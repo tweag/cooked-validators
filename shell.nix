@@ -1,33 +1,24 @@
-{ pkgs? import <nixpkgs> {} }:
-let
-  inherit (pkgs) stdenv lib;
-
-  # Bring in system deps necessary for building the dependencies
-  # of plutus.
-  twa-dependencies = stdenv.mkDerivation {
-    name = "twa-dependencies";
-    propagatedBuildInputs = with pkgs; [ libsodium lzma zlib ];
-    unpackPhase = "true";
-    installPhase = ''
-      export LD_LIBRARY_PATH=${lib.makeLibraryPath [ pkgs.libsodium pkgs.lzma pkgs.zlib ]}:\$LD_LIBRARY_PATH
-    '';
-  };
-in pkgs.mkShell {
+{ pkgs ? import (import ./nix/sources.nix).nixpkgs {} }:
+pkgs.mkShell {
     buildInputs = with pkgs; [
+        # libs
         libsodium
         lzma
         zlib
         glibc
 
+        # build env
+        git
+        cacert # git SSL
+        pkg-config # required by libsystemd-journal
+
+        # build haskell
         haskell.compiler.ghc8104
         haskellPackages.cabal-install
+
+        # devtools
         haskell-language-server
-        stack
         hlint
         ormolu
     ];
-    shellHook = ''
-      export LD_LIBRARY_PATH=${lib.makeLibraryPath [ pkgs.libsodium pkgs.lzma pkgs.zlib pkgs.glibc ]}:\$LD_LIBRARY_PATH
-    '';
 }
-
