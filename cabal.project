@@ -1,0 +1,164 @@
+-- We never, ever, want this.
+write-ghc-environment-files: never
+
+packages: 
+  twa-cooked-scripts
+
+allow-newer:
+  size-based:template-haskell
+
+-- package cardano-crypto-praos
+--   flags: -external-libsodium-vrf
+
+-- bring in Plutus and the parts of it that we need; then we copy the 
+-- cabal.project from them
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/plutus.git
+  tag: plutus-pab/v0.0.2
+  subdir:
+    freer-extras
+    playground-common
+    plutus-chain-index
+    plutus-contract
+    plutus-core
+    plutus-ledger-api
+    plutus-pab
+    plutus-ledger
+    plutus-tx
+    plutus-tx-plugin
+    plutus-use-cases
+    prettyprinter-configurable
+    quickcheck-dynamic
+    word-array
+
+-- From here onwards, this are packages listed in https://github.com/input-output-hk/plutus/blob/master/cabal.project,
+-- it is worthwhile to keep the tags exactly the same as theirs, so we're guaranteed to
+-- the compliant.
+
+source-repository-package
+  type: git
+  location: https://github.com/Quid2/flat.git
+  tag: ee59880f47ab835dbd73bea0847dab7869fc20d8
+
+source-repository-package
+  type: git
+  location: https://github.com/shmish111/purescript-bridge.git
+  tag: 6a92d7853ea514be8b70bab5e72077bf5a510596
+
+source-repository-package
+  type: git
+  location: https://github.com/eskimor/servant-purescript
+  -- IOHK uses the following tag, but cabal dislikes it
+  -- tag: a0c7c7e37c95564061247461aef4be505a853538
+  -- I'll use Indigo's tag instead:
+  tag: 6454d5bcb9aa2a5d6e3a3dc935423b67b6f3993c
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/cardano-crypto
+  tag: 07397f0e50da97eaa0575d93bee7ac4b2b2576ec
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/cardano-base
+  tag: 592aa61d657ad5935a33bace1243abce3728b643
+  subdir:
+    base-deriving-via
+    binary
+    binary/test
+    cardano-crypto-class
+    cardano-crypto-praos
+    measures
+    orphans-deriving-via
+    slotting
+    strict-containers
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/cardano-prelude
+  tag: fd773f7a58412131512b9f694ab95653ac430852
+  subdir:
+    cardano-prelude
+    cardano-prelude-test
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/ouroboros-network
+  tag: 5d37a927046bc7da2887830d8e35cf604622ce09
+  subdir:
+    io-classes
+    io-sim
+    monoidal-synchronisation
+    network-mux
+    ouroboros-network
+    ouroboros-network-testing
+    ouroboros-network-framework
+    ouroboros-consensus
+    ouroboros-consensus-byron
+    ouroboros-consensus-cardano
+    ouroboros-consensus-shelley
+    typed-protocols
+    typed-protocols-examples
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/iohk-monitoring-framework
+  tag: 46f994e216a1f8b36fe4669b47b2a7011b0e153c
+  subdir:
+    iohk-monitoring
+    tracer-transformers
+    contra-tracer
+    plugins/backend-aggregation
+    plugins/backend-ekg
+    plugins/backend-monitoring
+    plugins/backend-trace-forwarder
+    plugins/scribe-systemd
+
+source-repository-package
+  type: git
+  location: https://github.com/raduom/cardano-ledger-specs
+  tag: ef6bb99782d61316da55470620c7da994cc352b2
+  subdir:
+    byron/chain/executable-spec
+    byron/crypto
+    byron/crypto/test
+    byron/ledger/executable-spec
+    byron/ledger/impl
+    byron/ledger/impl/test
+    semantics/executable-spec
+    cardano-protocol-tpraos
+    semantics/small-steps-test
+    shelley/chain-and-ledger/dependencies/non-integer
+    shelley/chain-and-ledger/executable-spec
+    shelley/chain-and-ledger/shelley-spec-ledger-test
+    shelley-ma/impl
+    cardano-ledger-core
+    alonzo/impl
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/cardano-node
+  tag: ed7fdbf65f40f8e194850b87dd8c631fe26154e6
+  subdir:
+    cardano-api
+    cardano-cli
+    cardano-config
+    cardano-node
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/optparse-applicative
+  tag: 7497a29cb998721a9068d5725d49461f2bba0e7a
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/goblins
+  tag: cde90a2b27f79187ca8310b6549331e59595e7ba
+
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/Win32-network
+  tag: 3825d3abf75f83f406c1f7161883c438dac7277d
+
+
