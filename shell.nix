@@ -7,7 +7,7 @@ pkgs.mkShell {
         zlib
         glibc
 
-        # build env
+        # required to build in a pure nix shell
         git
         cacert # git SSL
         pkg-config # required by libsystemd-journal
