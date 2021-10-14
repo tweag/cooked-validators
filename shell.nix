@@ -11,6 +11,7 @@ pkgs.mkShell {
         git
         cacert # git SSL
         pkg-config # required by libsystemd-journal
+        systemd.dev
 
         # build haskell
         haskell.compiler.ghc8104
