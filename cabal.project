@@ -4,11 +4,20 @@ write-ghc-environment-files: never
 packages: 
   twa-cooked-scripts
 
-allow-newer:
-  size-based:template-haskell
+constraints: 
+  hashable <= 1.3.4
 
--- package cardano-crypto-praos
---   flags: -external-libsodium-vrf
+allow-newer:
+  -- Pins to an old version of Template Haskell, unclear if/when it will be updated
+    size-based:template-haskell
+  , ouroboros-consensus-byron:formatting
+  , beam-core:aeson
+  , beam-sqlite:aeson
+  , beam-sqlite:dlist
+  , beam-migrate:aeson
+
+package cardano-crypto-praos
+  flags: -external-libsodium-vrf
 
 -- bring in Plutus and the parts of it that we need; then we copy the 
 -- cabal.project from them

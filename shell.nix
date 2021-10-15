@@ -5,7 +5,6 @@ pkgs.mkShell {
         libsodium
         lzma
         zlib
-        glibc
 
         # required to build in a pure nix shell
         git
