@@ -2,7 +2,7 @@
 write-ghc-environment-files: never
 
 packages: 
-  twa-cooked-scripts
+  cooked-validators
 
 constraints: 
   hashable <= 1.3.4
