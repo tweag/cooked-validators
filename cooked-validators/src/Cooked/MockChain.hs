@@ -54,6 +54,10 @@ import qualified PlutusTx.Numeric as Num
 
 import Wallet.Emulator.MultiAgent
 
+-----
+
+import Cooked.Tx.Constraints
+
 -- * MockChain Example
 --
 -- Start from the initial 'UtxoIndex' and transfer 4200 lovelace from wallet 1 to wallet 2
@@ -83,6 +87,16 @@ data MockChainSt = MockChainSt
   { utxo :: UtxoIndex -- The current state
   , time :: (Bool, Integer) -- whether to increase slots on every bind and the current slot counter.
   } deriving (Show)
+
+
+-- TODO: write a function from MockChainSt to something closer to the
+-- eutxo model we all have in our heads:
+--
+-- type UtxoState = Map Addr (Value, Maybe Datum)
+--
+-- utxoState :: MockChainSt -> UtxoState
+--
+-- This way we can write properties about it
 
 -- custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
@@ -198,6 +212,10 @@ validateTxFromConstraints' :: forall a m
                            -> MockChainT m ()
 validateTxFromConstraints' wsk cstr =
   validateTxFromConstraints wsk (mconcat $ map fst cstr) (mconcat $ map snd cstr)
+
+validateTxFromSkeleton :: (Monad m) => TxSkel -> MockChainT m ()
+validateTxFromSkeleton (TxSkel constr ws) =
+  validateTxFromConstraints @Void ws mempty (toLedgerConstraints constr)
 
 -- instance Ord Value where
 --   compare v1 v2 = compare (show v1) (show v2)
