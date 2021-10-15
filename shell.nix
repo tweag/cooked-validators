@@ -20,5 +20,6 @@ pkgs.mkShell {
         haskell-language-server
         hlint
         ormolu
+        hpack
     ];
 }
