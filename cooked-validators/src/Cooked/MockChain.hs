@@ -21,13 +21,12 @@ import Data.List (sortBy,groupBy)
 import Data.Function (on)
 import Data.IORef
 import Data.Maybe (mapMaybe)
-import Control.Arrow (second, (***))
+import Control.Arrow (second)
 import Control.Lens ((^.))
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.State
 import qualified Data.Map as M
-import qualified Data.Set as S
 import System.IO.Unsafe
 
 import Ledger.Contexts
@@ -37,11 +36,9 @@ import Ledger.Slot
 import Ledger.Value
 import Ledger.Typed.Scripts.Validators
 import Ledger.Constraints
-import Ledger.Constraints.OffChain hiding (tx)
 import Ledger.Tx
 import Ledger.Crypto
 import Ledger.Orphans                   ()
-import Ledger.TimeSlot (posixTimeRangeToContainedSlotRange)
 
 import Plutus.Trace.Emulator hiding (chainState, EmulatorConfig, throwError)
 import Plutus.Contract.Trace
@@ -49,22 +46,10 @@ import Plutus.V1.Ledger.Address
 import Plutus.V1.Ledger.Credential      (Credential (..))
 import qualified Plutus.V1.Ledger.Api             as Api
 import qualified Plutus.V1.Ledger.Ada             as Ada
-import qualified PlutusTx.AssocMap                as Map
-import qualified PlutusTx.Numeric as Num
 
 import Wallet.Emulator.MultiAgent
 
 -----
-
-import Cooked.Tx.Constraints
-
--- * MockChain Example
---
--- Start from the initial 'UtxoIndex' and transfer 4200 lovelace from wallet 1 to wallet 2
-
-example :: IO (Either MockChainError ())
-example = runMockChainIO mcState0 $ do
-  validateTxFromConstraints @Void (mcWallet 1) mempty (mustPayToPubKey (mcWalletPKHash $ mcWallet 2) (Ada.lovelaceValueOf 4200))
 
 -- |The MockChainT monad provides a direct emulator; it gives us a way to call validator scripts with
 -- raw transactions, bypassing any off-chain checks that may be in place. We do so by
@@ -191,32 +176,6 @@ validateTx tx = do
     (Just err, _)  -> throwError (MCEValidationError err)
     (Nothing, ix') -> modify (\st -> st { utxo = ix' })
 
--- |Generates a transaction from constraints and signs it as if it were from the given Wallet.
-validateTxFromConstraints :: forall a m
-                           . ( Monad m, Api.FromData (DatumType a)
-                             , Api.FromData (RedeemerType a), Api.ToData (DatumType a), Api.ToData (RedeemerType a))
-                          => (Wallet, PrivateKey)
-                          -> ScriptLookups a
-                          -> TxConstraints (RedeemerType a) (DatumType a)
-                          -> MockChainT m ()
-validateTxFromConstraints (w, sk) lkups constr = do
-  let etx = mkTx lkups constr
-  case etx of
-    Left err -> throwError (MCETxError err)
-    Right tx -> balanceTxFrom w tx >>= validateTx . addSignature sk
-
-validateTxFromConstraints' :: forall a m
-                            . (Monad m, Api.FromData (DatumType a), Api.FromData (RedeemerType a), Api.ToData (DatumType a), Api.ToData (RedeemerType a))
-                           => (Wallet, PrivateKey)
-                           -> [(ScriptLookups a, TxConstraints (RedeemerType a) (DatumType a))]
-                           -> MockChainT m ()
-validateTxFromConstraints' wsk cstr =
-  validateTxFromConstraints wsk (mconcat $ map fst cstr) (mconcat $ map snd cstr)
-
-validateTxFromSkeleton :: (Monad m) => TxSkel -> MockChainT m ()
-validateTxFromSkeleton (TxSkel constr ws) =
-  validateTxFromConstraints @Void ws mempty (toLedgerConstraints constr)
-
 -- instance Ord Value where
 --   compare v1 v2 = compare (show v1) (show v2)
 
@@ -246,87 +205,6 @@ outsFromRef outref = do
   case mo of
     Just o -> return o
     Nothing -> error ("No such output: " ++ show outref)
-
--- |Balances a transaction with money from a given wallet. For every transaction,
--- it must be the case that @inputs + mint == outputs + fee@.
---
--- TODO: this is currently only balancing Ada values; ideally, it should perform
--- balancing over all currencies
---
--- TODO: If the transaction has more input, we can just add an output to `w`
-balanceTxFrom :: (Monad m) => Wallet -> UnbalancedTx -> MockChainT m Tx
-balanceTxFrom w (UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  -- We start by gathering all the inputs and summing it
-  let tx = tx0 { txFee = minFee tx0 }
-  lhsInputs <- mapM (outsFromRef . txInRef) (S.toList (txInputs tx))
-  let lhs = mappend (mconcat $ map txOutValue lhsInputs)      (txMint tx)
-  let rhs = mappend (mconcat $ map txOutValue $ txOutputs tx) (txFee tx)
-  (leftover, usedUTxO) <- foldM (\(leftOver, usedUTxO) (a,t,_) -> addInputToEquilibrate lhs rhs a t leftOver usedUTxO)
-    (mempty, [])
-    (toList rhs)
-  let txIns' = map (`TxIn` Just ConsumePublicKeyAddress) usedUTxO
-  let txOut' =
-        TxOut
-          (Address (PubKeyCredential $ pubKeyHash $ walletPubKey w) Nothing)
-          leftover Nothing
-  return tx{ txInputs  = txInputs tx <> S.fromList txIns'
-           , txOutputs = txOutputs tx ++ [txOut']
-           , txValidRange = posixTimeRangeToContainedSlotRange def slotRange
-           }
-  where
-    addInputToEquilibrate lhs rhs asset token leftOver usedUTxO =
-      case compare (valueOf lhs asset token) (valueOf rhs asset token) of
-      EQ -> return (leftOver, usedUTxO)
-      -- If the input of the transaction is already too big,
-      -- then no matter which inputs we add, the transaction will fail.
-      -- We still send it, in order to get the error of the chain.
-      -- However, we know it will be a "MCEValidation(...,ValueNotPreserved(...))"
-      GT -> return (leftOver, usedUTxO)
-      LT ->
-        let delta = valueOf rhs asset token - valueOf lhs asset token in
-        case compare delta (valueOf leftOver asset token) of
-        LT -> return (leftOver Num.- singleton asset token delta, usedUTxO)
-        EQ -> return (leftOver Num.- singleton asset token delta, usedUTxO)
-        GT -> do
-          refsFromW <- utxosFromPK' (pubKeyHash $ walletPubKey w)
-          (neededRefsFromW, additionalLeftover) <- necessaryUtxosFor asset token (delta - valueOf leftOver asset token) refsFromW usedUTxO
-          return (leftOver <> additionalLeftover, usedUTxO ++ neededRefsFromW)
-
-    -- Given an integer n and a list of UTxOs return the TxOutRes we need to consume
-    -- in order to cover n and returns any potential leftover that need to be
-    -- transfered to n's owner again.
-    --
-    -- We perform no sorting nor optimization, so we'll just select the first k necessary outrefs:
-    --
-    -- > necessaryUtxosFor 100 [(o1, 50, dh1), (o2, 30, dh2), (o3, 30, dh3), (o4, 120, dh4)]
-    -- >    == ([o1, o2, o3], 10)
-    --
-    necessaryUtxosFor :: (Monad m)
-                      => CurrencySymbol -> TokenName
-                      -> Integer -> [(TxOutRef, TxOut)]
-                      -> [TxOutRef]
-                      -> MockChainT m ([TxOutRef], Value)
-    necessaryUtxosFor _     _     0 _  _ = return ([], mempty)
-    necessaryUtxosFor asset token n ((oref, o):os) usedUTxO
-      | oref `elem` usedUTxO = necessaryUtxosFor asset token n os usedUTxO
-      | valOf (txOutValue o) > n = return ([oref], txOutValue o Num.- singleton asset token n)
-      | valOf (txOutValue o) == 0 = necessaryUtxosFor asset token n os usedUTxO
-      | otherwise =
-          let valLeftover = txOutValue o Num.- singleton asset token (valOf (txOutValue o)) in
-          ((oref :) *** (valLeftover Num.+ )) <$> necessaryUtxosFor asset token (n - valOf (txOutValue o)) os usedUTxO
-
-      where valOf val = valueOf val asset token
-    -- If there is not enough funds, the transaction will fail.
-    -- Even if we are already aware of it at this point,
-    -- we do not want to interfere with the error generated by the contract,
-    -- hence we let the wrong transaction happen.
-    necessaryUtxosFor _     _     _ [] _ = return ([], mempty)
-
-    toList :: Value -> [(CurrencySymbol, TokenName, Integer)]
-    toList v = concatMap (distribute . second Map.toList) (Map.toList (getValue v))
-
-    distribute :: (a,[(b,c)]) -> [(a,b,c)]
-    distribute (a,l) = map (\(b,c) -> (a,b,c)) l
 
 -- |Builds a 'ChainIndexTxOut' from a 'TxOut' and some potential datum that must match
 -- the datum hash in the 'TxOut' one wants to consume; If you don't pass a @Just x@

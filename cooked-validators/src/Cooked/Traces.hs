@@ -4,8 +4,8 @@ module Cooked.Traces where
 import Control.Arrow (first)
 
 import Cooked.MockChain
-import Cooked.Wallet
 import Cooked.Tx.Constraints
+import Cooked.Generator
 
 type TxSkelGen m a b = a -> MockChainT m (TxSkel, b)
 
