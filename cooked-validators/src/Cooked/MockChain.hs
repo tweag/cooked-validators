@@ -7,14 +7,88 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
--- |This entire module is a big hack. When we learned that the EmulatorTrace
--- /did not/ have the capability of interacting directly with on-chain code,
--- we needed to to something about it. The result was our own 'MockChain' monad
--- that we use to call validators explicitely. This will become a refined library
--- in the coming weeks, but for now, it worked well by enabling us to craft
--- and submit edge-case transactions to the validators we were analyzing.
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 module Cooked.MockChain where
 
+import           Data.Void
+import qualified Data.Map as M
+import           Data.Maybe (mapMaybe, fromJust)
+import           Control.Arrow (second)
+import           Control.Monad.State
+
+import qualified Ledger   as Pl
+import qualified Ledger.Credential   as Pl
+import qualified PlutusTx as Pl
+import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
+
+import Cooked.Tx.Constraints
+import Cooked.MockChain.Base
+
+-- |Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
+-- Additionally, return the datum present in there if it happened to be a script output. It is important
+-- to use @-XTypeApplications@ and pass a value for type variable @a@ below.
+utxosSuchThat :: forall a m
+               . (Monad m, Pl.FromData a)
+              => Pl.Address -> (Maybe a -> Pl.Value -> Bool)
+              -> MockChainT m [(SpendableOut, Maybe a)]
+utxosSuchThat addr datumPred = do
+    ix <- gets (Pl.getIndex . mcstIndex)
+    let ix' = M.filter ((== addr) . Pl.txOutAddress) ix
+    mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
+  where
+    go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
+    go oref (Pl.TxOut oaddr val mdatumH) =
+      case Pl.addressCredential oaddr of
+        -- A PK credential has no datum; just check whether we want to select this output or not.
+        Pl.PubKeyCredential _  ->
+          if datumPred Nothing val
+          then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, Nothing)
+          else return Nothing
+        -- A script credential, on the other hand, must have a datum. Hence, we'll go look on our map of
+        -- managed datum for a relevant datum, try to convert it to a value of type @a@ then see
+        -- if the user wants to select said output.
+        Pl.ScriptCredential (Pl.ValidatorHash vh) -> do
+          managedDatums <- gets mcstDatums
+          datumH <- maybe (fail $ "ScriptCredential with no datum hash: " ++ show oref) return mdatumH
+          datum  <- maybe (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref)
+                          return $ M.lookup datumH managedDatums
+          a  <- maybe (fail $ "Can't convert from builtin data at: " ++ show oref ++"; are you sure this is the right type?")
+                      return
+                      (Pl.fromBuiltinData (Pl.getDatum datum))
+          if datumPred (Just a) val
+          then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
+          else return Nothing
+
+-- |Public-key UTxO's have no datum, hence, can be selected easily with
+-- a simpler variant of 'utxosSuchThat'
+pkUtxosSuchThat :: (Monad m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> MockChainT m [SpendableOut]
+pkUtxosSuchThat pkh pred = map fst <$>
+  utxosSuchThat @Void
+    (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
+    (maybe pred absurd)
+
+-- |Script UTxO's always have a datum, hence, can be selected easily with
+-- a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
+-- with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
+scriptUtxosSuchThat :: forall tv m
+                     . (Monad m, Pl.FromData (Pl.DatumType tv))
+                    => Pl.TypedValidator tv
+                    -> (Pl.DatumType tv -> Pl.Value -> Bool)
+                    -> MockChainT m [(SpendableOut, Pl.DatumType tv)]
+scriptUtxosSuchThat v pred = map (second fromJust) <$>
+  utxosSuchThat
+    (Pl.Address (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v) Nothing)
+    (maybe (const False) pred)
+
+rstr :: (Monad m) => (a , m b) -> m (a, b)
+rstr (a, mb) = (a,) <$> mb
+
+assocl :: (a, (b, c)) -> ((a, b) , c)
+assocl (a, (b, c)) = ((a, b), c)
+
+-- OLD COLD CODE BELOW; SHOULD DISAPPEAR LATER
+
+{-
 import Data.Void
 import Data.Default
 import Data.List (sortBy,groupBy)
@@ -58,36 +132,9 @@ import Wallet.Emulator.MultiAgent
 
 import Cooked.Tx.Constraints
 
--- * MockChain Example
---
--- Start from the initial 'UtxoIndex' and transfer 4200 lovelace from wallet 1 to wallet 2
 
-example :: IO (Either MockChainError ())
-example = runMockChainIO mcState0 $ do
-  validateTxFromConstraints @Void (mcWallet 1) mempty (mustPayToPubKey (mcWalletPKHash $ mcWallet 2) (Ada.lovelaceValueOf 4200))
 
--- |The MockChainT monad provides a direct emulator; it gives us a way to call validator scripts with
--- raw transactions, bypassing any off-chain checks that may be in place. We do so by
--- keeping a 'UtxoIndex' in our state and feeding it to 'validateTx'.
---
--- Consequently, we can perform arbitrary operations on the 'UtxoIndex' and make sure
--- that the validators are catching for side conditions.
---
-newtype MockChainT m a = MockChainT
-    { unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a }
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
-
-data MockChainError
-  = MCEValidationError ValidationErrorInPhase
-  | MCETxError         MkTxError
-  | FailWith           String
-  deriving (Show, Eq)
-
-data MockChainSt = MockChainSt
-  { utxo :: UtxoIndex -- The current state
-  , time :: (Bool, Integer) -- whether to increase slots on every bind and the current slot counter.
-  } deriving (Show)
-
+type UtxoState = M.Map Pl.Address (Pl.Value, Maybe Pl.Datum)
 
 -- TODO: write a function from MockChainSt to something closer to the
 -- eutxo model we all have in our heads:
@@ -98,33 +145,6 @@ data MockChainSt = MockChainSt
 --
 -- This way we can write properties about it
 
--- custom monad instance made to increase the slot count automatically
-instance (Monad m) => Monad (MockChainT m) where
-  return  = pure
-  MockChainT x >>= f =
-    MockChainT $ do
-      xres <- x
-      modify (\st -> st { time = incSlot (time st) })
-      unMockChain (f xres)
-   where
-     incSlot (True , n) = (True, n+1)
-     incSlot (False, n) = (False, n)
-
-instance (Monad m) => MonadFail (MockChainT m) where
-  fail = throwError . FailWith
-
-type MockChain = MockChainT Identity
-
-runMockChainT :: (Monad m) => MockChainSt -> MockChainT m a -> m (Either MockChainError (a, UtxoIndex))
-runMockChainT i0 = runExceptT . fmap (second utxo) . flip runStateT i0 . unMockChain
-
-runMockChain :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoIndex)
-runMockChain i0 = runIdentity . runMockChainT i0
-
-runMockChainIO :: MockChainSt -> MockChain a -> IO (Either MockChainError a)
-runMockChainIO i0 f = case runMockChain i0 f of
-                        Left err      -> return (Left err)
-                        Right (r, ix) -> printUtxoIndex ix >> return (Right r)
 
 -- |UNSAFE (yet probably the most convenient function)
 --
@@ -147,14 +167,6 @@ runMockChainIOFrom tr f = do
   case runMockChain ix (f b) of
     Left err     -> return (Left err)
     Right (r, _) -> return (Right r)
-
-
--- |Returns all the outputs that belong to a given address
-outrefsFor :: (Monad m) => Address -> MockChainT m [(TxOutRef, TxOut)]
-outrefsFor addr = do
-  ix <- gets (getIndex . utxo)
-  let ix' = M.filter ((== addr) . txOutAddress) ix
-  return $ M.toList ix'
 
 -- |Returns the outputs for a given address that contain a certain value in their state;
 -- we also already create the proper 'ChainIndexTxOut' for them.
@@ -456,5 +468,14 @@ mustSpendPubKeyOutputs ws = (lkups, tx)
 hasAssetClass :: AssetClass -> TxOut -> Bool
 hasAssetClass (AssetClass (c, s)) o = valueOf (txOutValue o) c s > 0
 
-secondM :: (Monad m) => (a -> m b) -> (x, a) -> m (x, b)
-secondM f (x, a) = (x,) <$> f a
+
+-- * MockChain Example
+--
+-- Start from the initial 'UtxoIndex' and transfer 4200 lovelace from wallet 1 to wallet 2
+
+example :: IO (Either MockChainError ())
+example = runMockChainIO mcState0 $ do
+  validateTxFromConstraints @Void (mcWallet 1) mempty (mustPayToPubKey (mcWalletPKHash $ mcWallet 2) (Ada.lovelaceValueOf 4200))
+
+
+-}
