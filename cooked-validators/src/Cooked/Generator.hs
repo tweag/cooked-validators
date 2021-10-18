@@ -9,14 +9,14 @@ module Cooked.Generator where
 
 import Data.Void
 import Control.Monad.Except
-import Ledger.Typed.Scripts.Validators
-import Ledger.Constraints
-import Ledger.Tx
-import Ledger.Crypto
-import Ledger.Orphans                   ()
-import Plutus.Contract.Trace
-import qualified Plutus.V1.Ledger.Api             as Api
-import qualified Plutus.V1.Ledger.Ada             as Ada
+
+import qualified Ledger.Typed.Scripts.Validators as Pl
+import qualified Ledger.Constraints as Pl
+import qualified Ledger.Tx as Pl
+import qualified Ledger.Crypto as Pl
+import qualified Plutus.Contract.Trace as Pl
+import qualified Plutus.V1.Ledger.Api as Pl
+import qualified Plutus.V1.Ledger.Ada as Pl
 
 import Cooked.MockChain
 import Cooked.Balance
@@ -28,26 +28,26 @@ import Cooked.Tx.Constraints
 
 example :: IO (Either MockChainError ())
 example = runMockChainIO mcState0 $ do
-  validateTxFromConstraints @Void (mcWallet 1) mempty (mustPayToPubKey (mcWalletPKHash $ mcWallet 2) (Ada.lovelaceValueOf 4200))
+  validateTxFromConstraints @Void (mcWallet 1) mempty (Pl.mustPayToPubKey (mcWalletPKHash $ mcWallet 2) (Pl.lovelaceValueOf 4200))
 
 -- |Generates a transaction from constraints and signs it as if it were from the given Wallet.
 validateTxFromConstraints :: forall a m
-                           . ( Monad m, Api.FromData (DatumType a)
-                             , Api.FromData (RedeemerType a), Api.ToData (DatumType a), Api.ToData (RedeemerType a))
-                          => (Wallet, PrivateKey)
-                          -> ScriptLookups a
-                          -> TxConstraints (RedeemerType a) (DatumType a)
+                           . ( Monad m, Pl.FromData (Pl.DatumType a)
+                             , Pl.FromData (Pl.RedeemerType a), Pl.ToData (Pl.DatumType a), Pl.ToData (Pl.RedeemerType a))
+                          => (Pl.Wallet, Pl.PrivateKey)
+                          -> Pl.ScriptLookups a
+                          -> Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a)
                           -> MockChainT m ()
 validateTxFromConstraints (w, sk) lkups constr = do
-  let etx = mkTx lkups constr
+  let etx = Pl.mkTx lkups constr
   case etx of
     Left err -> throwError (MCETxError err)
-    Right tx -> balanceTxFrom w tx >>= validateTx . addSignature sk
+    Right tx -> balanceTxFrom w tx >>= validateTx . Pl.addSignature sk
 
 validateTxFromConstraints' :: forall a m
-                            . (Monad m, Api.FromData (DatumType a), Api.FromData (RedeemerType a), Api.ToData (DatumType a), Api.ToData (RedeemerType a))
-                           => (Wallet, PrivateKey)
-                           -> [(ScriptLookups a, TxConstraints (RedeemerType a) (DatumType a))]
+                            . (Monad m, Pl.FromData (Pl.DatumType a), Pl.FromData (Pl.RedeemerType a), Pl.ToData (Pl.DatumType a), Pl.ToData (Pl.RedeemerType a))
+                           => (Pl.Wallet, Pl.PrivateKey)
+                           -> [(Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a))]
                            -> MockChainT m ()
 validateTxFromConstraints' wsk cstr =
   validateTxFromConstraints wsk (mconcat $ map fst cstr) (mconcat $ map snd cstr)
