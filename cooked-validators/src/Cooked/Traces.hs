@@ -4,8 +4,8 @@ module Cooked.Traces where
 import Control.Arrow (first)
 
 import Cooked.MockChain
-import Cooked.Wallet
 import Cooked.Tx.Constraints
+import Cooked.Generator
 
 type TxSkelGen m a b = a -> MockChainT m (TxSkel, b)
 
@@ -20,7 +20,7 @@ data Tr m a b where
   Stutter :: Tr m a b -> Tr m a b
 
 modifyTr :: (Monad m) => (TxSkel -> TxSkel) -> Tr m a b -> Tr m a b
-modifyTr f Empty        = Empty
+modifyTr _ Empty        = Empty
 modifyTr f (Step g tr)  = Step (modifyTxSkelGen f g) (modifyTr f tr)
 modifyTr f (Stutter tr) = Stutter (modifyTr f tr)
 
