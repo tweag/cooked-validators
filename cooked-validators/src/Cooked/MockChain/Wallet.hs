@@ -1,5 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
-module Cooked.Wallet where
+module Cooked.MockChain.Wallet where
 
 import qualified Data.Map as M
 

@@ -9,7 +9,7 @@ import qualified Ledger.Constraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
 
-import Cooked.Wallet
+import Cooked.MockChain.Wallet
 
 -- |A 'SpendableOut' is an outref that is ready to be spend; with its
 -- underlying 'Pl.ChainIndexTxOut'.
@@ -71,6 +71,6 @@ toLedgerConstraints cs = (mconcat lkups, mconcat constrs)
 -- A Transaction sekeleton is a set of our constraints, and
 -- a set of our wallets, which will sign the generated transaction.
 data TxSkel = TxSkel
-  { txConstraints :: [Constraint]
-  , txSigners     :: Wallet
+  { txSigners     :: Wallet
+  , txConstraints :: [Constraint]
   }
