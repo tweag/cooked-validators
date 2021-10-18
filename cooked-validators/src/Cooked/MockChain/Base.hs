@@ -35,14 +35,14 @@ import Cooked.MockChain.Wallet
 -- way of managing the current utxo state.
 
 -- |A 'UtxoState' provides us with the mental picture of the state of the UTxO graph
-type UtxoState = M.Map Pl.Address (Pl.Value, Maybe Pl.Datum)
+type UtxoState = M.Map Pl.Address [(Pl.Value, Maybe Pl.Datum)]
 
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState s =
-  M.fromList . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
+  M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
-    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, (Pl.Value, Maybe Pl.Datum))
-    go1 _ (Pl.TxOut addr val mdh) = (addr, (val, mdh >>= (`M.lookup` mcstDatums s)))
+    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe Pl.Datum)])
+    go1 _ (Pl.TxOut addr val mdh) = (addr, [(val, mdh >>= (`M.lookup` mcstDatums s))])
 
 -- |Slightly more concrete version of 'UtxoState', used to actually run the monster.
 -- We keep a map from datum hash to datum, then a map from txOutRef to datumhash
