@@ -1,4 +1,4 @@
-module Cooked.Balance where
+module Cooked.Tx.Balance where
 
 import Data.Default
 import Control.Arrow ((***))
@@ -12,7 +12,6 @@ import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Tx as Pl
 import qualified Ledger.TimeSlot as Pl
 
-import qualified Plutus.Contract.Trace as Pl
 import qualified Plutus.V1.Ledger.Address as Pl
 import qualified Plutus.V1.Ledger.Crypto as Pl
 import qualified Plutus.V1.Ledger.Credential as Pl
@@ -22,14 +21,14 @@ import Cooked.MockChain
 
 -- |Balances a transaction with money from a given wallet. For every transaction,
 -- it must be the case that @inputs + mint == outputs + fee@.
-balanceTxFrom :: (Monad m) => Pl.Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- We start by gathering all the inputs and summing it
   let tx = tx0 { Pl.txFee = Pl.minFee tx0 }
-  lhsInputs <- mapM (outsFromRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
+  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs)      (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
-  let wPKH = Pl.pubKeyHash (Pl.walletPubKey w)
+  let wPKH = walletPKHash w
   (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
   -- All the UTxOs signed by the sender of the transaction and useful to balance it
   -- are added to the inputs.
@@ -44,7 +43,7 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
 balanceWithUTxOsOf :: (Monad m)
                    => Pl.Value -> Pl.PubKeyHash -> MockChainT m ([Pl.TxOutRef], Pl.Value)
 balanceWithUTxOsOf val wPKH =
-  spendValueFrom val <$> utxosFromPK' wPKH
+  spendValueFrom val <$> pkUtxos' wPKH
 
 spendValueFrom :: Pl.Value -> [(Pl.TxOutRef, Pl.TxOut)] -> ([Pl.TxOutRef], Pl.Value)
 spendValueFrom val utxos =
