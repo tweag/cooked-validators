@@ -5,7 +5,7 @@ import Control.Arrow (first)
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Generator
+import Cooked.Tx.Generator
 
 type TxSkelGen m a b = a -> MockChainT m (TxSkel, b)
 
