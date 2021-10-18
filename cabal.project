@@ -3,6 +3,7 @@ write-ghc-environment-files: never
 
 packages: 
   cooked-validators
+  examples
 
 constraints: 
   hashable <= 1.3.4

@@ -1,0 +1,43 @@
+verbatim:
+  cabal-version: 3.4
+
+name: examples
+version: 0.0.0
+
+
+dependencies:
+  - base >= 4.9 && < 5
+  - aeson
+  - bytestring
+  - containers
+  - cooked-validators
+  - data-default
+  - either
+  - flat
+  - foldl
+  - freer-extras
+  - freer-simple
+  - lens
+  - mtl
+  - playground-common
+  - plutus-contract
+  - plutus-core
+  - plutus-ledger
+  - plutus-ledger-api
+  - plutus-pab
+  - plutus-tx
+  - plutus-tx-plugin
+  - plutus-use-cases
+  - scientific
+  - streaming
+  - tasty
+  - text
+
+library:
+  source-dirs: src
+  ghc-options:
+    -Wall 
+    -fobject-code 
+    -fno-ignore-interface-pragmas 
+    -fno-omit-interface-pragmas
+    -fplugin-opt PlutusTx.Plugin:defer-errors
