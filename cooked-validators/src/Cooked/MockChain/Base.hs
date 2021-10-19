@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Cooked.MockChain.Base where
@@ -30,8 +29,8 @@ import Cooked.MockChain.Wallet
 --
 -- Running a 'MockChain' produces a 'UtxoState', which is a map from 'Pl.Address' to
 -- @(Pl.Value, Maybe Pl.Datum)@, and corresponds to the utxo mental model most people have.
--- Internally, however, we keep a 'L.UtxoIndex' in our state and feeding it to 'L.validateTx'.
--- For convenience, we also keep a map of 'L.Address' to 'L.Datum', giving is a simple
+-- Internally, however, we keep a 'Pl.UtxoIndex' in our state and feeding it to 'Pl.validateTx'.
+-- For convenience, we also keep a map of 'Pl.Address' to 'Pl.Datum', giving is a simple
 -- way of managing the current utxo state.
 
 -- |A 'UtxoState' provides us with the mental picture of the state of the UTxO graph
@@ -51,15 +50,6 @@ data MockChainSt = MockChainSt
   , mcstDatums  :: M.Map Pl.DatumHash Pl.Datum
   , mcstSlotCtr :: MockChainSlotCounter
   } deriving (Show)
-
-mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 M.empty (MockChainSlotCounter True 0)
-
-utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
-utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
-
-utxoIndex0 :: Pl.UtxoIndex
-utxoIndex0 = utxoIndex0From initialDistribution
 
 -- |The errors that can be produced by the 'MockChainT' monad
 data MockChainError
@@ -124,3 +114,17 @@ mcscIncrease :: MockChainSlotCounter -> MockChainSlotCounter
 mcscIncrease mcsc =
   let auto = mcscAutoIncrease mcsc
    in mcsc { mcscCurrentSlot = (if auto then (+1) else id) $ mcscCurrentSlot mcsc }
+
+-- Canonical initial values
+
+utxoState0 :: UtxoState
+utxoState0 = mcstToUtxoState mockChainSt0
+
+mockChainSt0 :: MockChainSt
+mockChainSt0 = MockChainSt utxoIndex0 M.empty (MockChainSlotCounter True 0)
+
+utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
+utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
+
+utxoIndex0 :: Pl.UtxoIndex
+utxoIndex0 = utxoIndex0From initialDistribution

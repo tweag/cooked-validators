@@ -10,6 +10,7 @@ import Cooked.MockChain
 --
 -- Start from the initial 'UtxoIndex' and transfer 4200 lovelace from wallet 1 to wallet 2
 
+example :: Either MockChainError ((), UtxoState)
 example = runMockChain $ do
   validateTxFromSkeleton $ TxSkel
     (wallet 1)
