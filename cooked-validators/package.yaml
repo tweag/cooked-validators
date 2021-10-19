@@ -37,8 +37,17 @@ dependencies:
 library:
   source-dirs: src
   ghc-options:
-    -Wall 
-    -fobject-code 
-    -fno-ignore-interface-pragmas 
+    -Wall
+    -fobject-code
+    -fno-ignore-interface-pragmas
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - tests/
+    dependencies:
+      - cooked-validators
+      - hspec
