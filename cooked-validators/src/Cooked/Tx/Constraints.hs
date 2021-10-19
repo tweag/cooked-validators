@@ -1,7 +1,9 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs            #-}
 module Cooked.Tx.Constraints where
 
+import           Data.Void
 import qualified Data.Map as M
 
 import qualified Ledger as Pl hiding (unspentOutputs)
@@ -58,8 +60,7 @@ toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
     lkups  = Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendPubKeyOutput oref
 
---
-
+-- * Converting 'Constraint's to 'Pl.ScriptLookups' and 'Pl.TxConstraints'
 
 type LedgerConstraint a = (Pl.ScriptLookups a , Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a))
 
@@ -74,3 +75,13 @@ data TxSkel = TxSkel
   { txSigners     :: Wallet
   , txConstraints :: [Constraint]
   }
+
+-- |Generates an unbalanced transaction from a skeleton; A
+-- transaction is unbalanced whenever @inputs + mints != outputs + fees@.
+-- In order to submit a transaction, it must be balanced, otherwise
+-- we will see a @ValueNotPreserved@ error.
+--
+-- See "Cooked.Tx.Balance" for balancing capabilities or stick to
+-- 'generateTx', which generates /and/ balances a transaction.
+generateUnbalTx :: TxSkel -> Either Pl.MkTxError Pl.UnbalancedTx
+generateUnbalTx = uncurry Pl.mkTx . toLedgerConstraints @Void . txConstraints

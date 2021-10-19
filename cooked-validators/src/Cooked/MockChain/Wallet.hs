@@ -32,6 +32,11 @@ walletPKHash = Pl.pubKeyHash . walletPK
 walletAddress :: Wallet -> Pl.Address
 walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
+-- * Signs a transaction
+
+txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
+txAddSignature (_, sk) = Pl.addSignature sk
+
 -- * Initial distribution of funds
 --
 -- Are nothing but is a map from Wallet to Value; we'll just proxy

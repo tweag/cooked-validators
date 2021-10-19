@@ -7,16 +7,17 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
 
-type TxSkelGen m a b = a -> MockChainT m (TxSkel, b)
+type TxSkelGenT m a b = a -> MockChainT m (TxSkel, b)
+type TxSkelGen    a b = a -> MockChain (TxSkel, b)
 
 modifyTxSkelGen :: (Monad m)
                 => (TxSkel -> TxSkel)
-                -> TxSkelGen m a b -> TxSkelGen m a b
+                -> TxSkelGenT m a b -> TxSkelGenT m a b
 modifyTxSkelGen f g = fmap (first f) . g
 
 data Tr m a b where
   Empty   :: Tr m a a
-  Step    :: TxSkelGen m a b -> Tr m b c -> Tr m a c
+  Step    :: TxSkelGenT m a b -> Tr m b c -> Tr m a c
   Stutter :: Tr m a b -> Tr m a b
 
 modifyTr :: (Monad m) => (TxSkel -> TxSkel) -> Tr m a b -> Tr m a b

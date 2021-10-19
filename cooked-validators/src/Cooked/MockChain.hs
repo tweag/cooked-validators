@@ -11,19 +11,25 @@
 module Cooked.MockChain (
     module Cooked.MockChain.Base
   , module Cooked.MockChain.Wallet
+    -- * Validating Transactions
+  , validateTx
+    -- * Selecting UTxO's
   , utxosSuchThat
   , pkUtxosSuchThat
   , pkUtxos , pkUtxos'
   , scriptUtxosSuchThat
   , outFromOutRef
+    -- * Slot Management
   , slot
   ) where
 
 import           Data.Void
 import qualified Data.Map as M
-import           Data.Maybe (mapMaybe, fromJust)
+import qualified Data.Set as S
+import           Data.Maybe (mapMaybe, catMaybes, fromJust)
 import           Control.Arrow (second)
 import           Control.Monad.State
+import           Control.Monad.Except
 
 import qualified Ledger   as Pl
 import qualified Ledger.Credential   as Pl
@@ -33,6 +39,32 @@ import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validato
 import Cooked.Tx.Constraints
 import Cooked.MockChain.Base
 import Cooked.MockChain.Wallet
+
+-- * Validating Transactions
+
+-- |Validates a transaction and, upon success, updates the utxo map; You can generate
+-- transactions with the helpers from "Cooked.Tx.Generator".
+validateTx :: (Monad m) => Pl.Tx -> MockChainT m ()
+validateTx tx = do
+  s  <- slot
+  ix <- gets mcstIndex
+  let res = Pl.runValidation (Pl.validateTransaction s tx) ix
+  case fst res of
+    (Just err, _)  -> throwError (MCEValidationError err)
+    (Nothing, ix') -> do
+      -- Validation succeeded; now we update the indexes and the managed datums.
+      -- The new mcstIndex is just `ix'`; the new mcstDatums is computed by
+      -- removing the datum hashes have been consumed and adding
+      -- those that have been created in `tx`.
+      let consumedIns = map Pl.txInRef $ S.toList (Pl.txInputs tx) ++ S.toList (Pl.txCollateral tx)
+      consumedDHs <- catMaybes <$> mapM (fmap Pl.txOutDatumHash . outFromOutRef) consumedIns
+      let consumedDHs' = M.fromList $ zip consumedDHs (repeat ())
+      modify (\st -> st { mcstIndex = ix'
+                        , mcstDatums = (mcstDatums st `M.difference` consumedDHs')
+                                       `M.union` Pl.txData tx
+                        })
+
+-- * Selecting UTxO's
 
 -- |Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
 -- Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -113,6 +145,8 @@ outFromOutRef outref = do
 -- |Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
 slot = gets (Pl.Slot . mcscCurrentSlot . mcstSlotCtr)
+
+-- * Utilities
 
 rstr :: (Monad m) => (a , m b) -> m (a, b)
 rstr (a, mb) = (a,) <$> mb

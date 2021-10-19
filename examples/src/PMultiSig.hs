@@ -38,6 +38,10 @@ import           PlutusTx.Prelude             hiding (Applicative (..))
 import           Schema                       (ToSchema)
 
 import qualified Prelude                      as Haskell
+import Ledger.Typed.Scripts (TypedValidator)
+import Ledger.Typed.Scripts.Validators (mkTypedValidatorParam)
+import Ledger.Typed.Scripts.Validators (wrapValidator)
+import Ledger.Typed.Scripts (validatorScript)
 
 data Params = Params
   { pmspSignatories  :: [PubKey]
@@ -78,11 +82,6 @@ instance Eq Datum where
 
 type Redeemer = ()
 
-data PMultiSig
-instance Scripts.ValidatorTypes PMultiSig where
-  type instance RedeemerType PMultiSig = Redeemer
-  type instance DatumType    PMultiSig = Datum
-
 {-# INLINABLE findDatum #-}
 findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
 findDatum txInfo inInfo = do
@@ -94,7 +93,7 @@ findDatum txInfo inInfo = do
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
 validatePayment Params {..} (Proposal p) _ ctx = length correctInputs >= pmspRequiredSigs
   where
-    thisInput = fromJust $ Validation.findOwnInput ctx 
+    thisInput = fromJust $ Validation.findOwnInput ctx
     txInfo = scriptContextTxInfo ctx
     relevantInputs = filter (/= thisInput) $ txInfoInputs txInfo
     correctInputs = filter validateSignature $ nub $ mapMaybe (findDatum txInfo) relevantInputs
@@ -113,3 +112,17 @@ validatePayment _           (Sign _ _) _ ctx = any (isProposal . findDatum txInf
 {-# INLINABLE verifySig #-}
 verifySig :: Signature -> PubKey -> Ledger.DatumHash -> Bool
 verifySig s pk dh = isRight $ Oracle.checkSignature dh pk s
+
+data PMultiSig
+instance Scripts.ValidatorTypes PMultiSig where
+  type instance RedeemerType PMultiSig = Redeemer
+  type instance DatumType    PMultiSig = Datum
+
+pmultisig :: Params -> TypedValidator PMultiSig
+pmultisig = mkTypedValidatorParam @PMultiSig
+              $$(PlutusTx.compile [|| validatePayment ||])
+              $$(PlutusTx.compile [|| wrap ||])
+  where wrap = wrapValidator @Datum @Redeemer
+
+pmultisigAddr :: Params -> Ledger.Address
+pmultisigAddr = Ledger.scriptAddress . validatorScript . pmultisig
