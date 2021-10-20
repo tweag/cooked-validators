@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -14,21 +15,20 @@
 {-# OPTIONS_GHC -fno-omit-interface-pragmas #-}
 {-# OPTIONS_GHC -fno-specialise #-}
 
--- | Lock and split a value equally among two recipients
+-- | Lock an amount and split it equally among two recipients.
 module Split where
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import Ledger
-  ( Ada,
-    PubKey,
+  ( PubKey,
     PubKeyHash,
     ScriptContext (ScriptContext, scriptContextTxInfo),
     pubKeyHash,
     valuePaidTo,
   )
 import qualified Ledger.Typed.Scripts as Scripts
-import Ledger.Value (Value, gt)
+import Ledger.Value (geq)
 import qualified Plutus.V1.Ledger.Ada as Ada
 import qualified PlutusTx
 import qualified PlutusTx.Lift.Class ()
@@ -39,7 +39,7 @@ import qualified Prelude as Haskell
 data SplitParams = SplitParams
   { recipient1 :: PubKey,
     recipient2 :: PubKey,
-    amount :: Value
+    amount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -47,7 +47,7 @@ data SplitParams = SplitParams
 data SplitDatum = SplitDatum
   { datumRecipient1 :: PubKeyHash,
     datumRecipient2 :: PubKeyHash,
-    datumAmount :: Value
+    datumAmount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -58,15 +58,17 @@ makeDatum (SplitParams recipient1 recipient2 amount) =
 
 type SplitRedeemer = ()
 
--- Note: Conversion to and from Ada to split the amount (a `Value`) in 2.
--- There may be a better way.
+{-# INLINEABLE validateSplit #-}
 validateSplit :: SplitDatum -> SplitRedeemer -> ScriptContext -> Bool
 validateSplit (SplitDatum r1 r2 amount) _ ScriptContext {scriptContextTxInfo} =
-  let halfAda = Ada.divide (Ada.fromValue amount) 2
-      isPaid :: PubKeyHash -> Ada -> Bool
+  let halfAda = divide amount 2
+      isPaid :: PubKeyHash -> Integer -> Bool
       isPaid recipient ada =
-        valuePaidTo scriptContextTxInfo recipient `gt` Ada.toValue ada
-   in r1 `isPaid` halfAda && r2 `isPaid` (Ada.fromValue amount - halfAda)
+        valuePaidTo scriptContextTxInfo recipient `geq` Ada.lovelaceValueOf ada
+   in traceIfFalse "R1 not paid enough" (r1 `isPaid` halfAda)
+        && traceIfFalse "R2 not paid enough" (r2 `isPaid` (amount - halfAda))
+
+-- Plutus boilerplate
 
 data Split
 
