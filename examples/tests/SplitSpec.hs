@@ -1,10 +1,12 @@
-module TestSplit where
+module SplitSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
+import Data.Either (isLeft, isRight)
 import qualified Plutus.V1.Ledger.Ada as Pl
 import qualified Split
+import Test.Hspec
 
 -- | Transaction to lock some amount from a given wallet to the script
 txLock :: Wallet -> Split.SplitParams -> MockChain TxSkel
@@ -82,6 +84,24 @@ txUnlockNotEnough w = do
         ]
     )
 
+-- | Transaction to unlock (that is split among recipients) money from a script
+-- UTxO which has the given wallet as a recipient in the datum
+-- This transation violates the contract (gives to the issuer instead of
+-- recipient)
+txUnlockBadRecipient :: Wallet -> MockChain TxSkel
+txUnlockBadRecipient w = do
+  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
+    scriptUtxosSuchThat Split.splitValidator (isARecipient w)
+  let half = div amount 2
+  return
+    ( TxSkel
+        w
+        [ SpendsScript Split.splitValidator () (output, datum),
+          PaysPK r1 (Pl.lovelaceValueOf half),
+          PaysPK r1 (Pl.lovelaceValueOf (amount - half))
+        ]
+    )
+
 -- | Parameters to share 400 among wallets 2 and 3
 run1LockParams :: Split.SplitParams
 run1LockParams =
@@ -108,3 +128,21 @@ run3 :: Either MockChainError ((), UtxoState)
 run3 = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
   txUnlockNotEnough (wallet 2) >>= validateTxFromSkeleton
+
+-- | Faulty run
+run4 :: Either MockChainError ((), UtxoState)
+run4 = runMockChain $ do
+  txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
+  txUnlockBadRecipient (wallet 4) >>= validateTxFromSkeleton
+
+-- Test spec
+spec :: Spec
+spec = do
+  it "succeeds when the amount is split among recipients" $ do
+    run1 `shouldSatisfy` isRight
+  it "succeeds when too much is paid to the recipients" $ do
+    run1 `shouldSatisfy` isRight
+  it "fails when not enough is paid to the recipients" $ do
+    run3 `shouldSatisfy` isLeft
+  it "fails when a recipient is forgotten" $ do
+    run4 `shouldSatisfy` isLeft
