@@ -121,16 +121,16 @@ findDatum txInfo inInfo = Validation.txOutDatumHash (Validation.txInInfoResolved
 
 {-# INLINABLE validatePayment #-}
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
--- |When adding a signature we need to ensure that there is a (single) Accumulator
--- input that also has the same payment. Its validator will do the rest.
-validatePayment _           (Sign payment _ _) _ ctx
-  | [Accumulator payment' _] <- accumulators = traceIfFalse "Mismatching payment" $ payment == payment'
-  | otherwise = traceError "Should have only one Accumulator input"
+-- |When adding a signature we need to ensure that there is a (single) Accumulator input.
+-- Its validator will do the rest.
+-- We also don't verify that the Sign's payment matches Accumulator's,
+-- since that will be verified by the Accumulator's validator as well —
+-- we just need to make sure it'll be run (which is precisely when we have an Accumulator input).
+validatePayment _           Sign {} _ ctx = traceIfFalse "Should have only one Accumulator input"
+                                              $ length [ () | Accumulator {} <- inputDatums ] == 1
   where
     txInfo = scriptContextTxInfo ctx
     inputDatums = mapMaybe (findDatum txInfo) $ txInfoInputs txInfo
-    accumulators = flip filter inputDatums $ \case Accumulator {} -> True
-                                                   _ -> False
 -- |When validating the (singleton) Accumulator input, we need to make sure that
 -- one of the two options hold:
 -- 1. If there's not enough signatures:
