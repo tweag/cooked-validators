@@ -75,15 +75,15 @@ instance Eq Payment where
 -- an accumulator collecting signatures for a given payment.
 data Datum
   = Accumulator { payment :: Payment, signees :: [Ledger.PubKey] }
-  | Sign { payment :: Payment, pk :: Ledger.PubKey, sig :: Ledger.Signature }
+  | Sign { pk :: Ledger.PubKey, sig :: Ledger.Signature }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 PlutusTx.unstableMakeIsData ''Datum
 
 instance Eq Datum where
   {-# INLINABLE (==) #-}
-  Accumulator p1 ss1 == Accumulator p2 ss2           = p1 == p2 && ss1 == ss2
-  Sign p1 pkh1 s1 == Sign p2 pkh2 s2                   = p1 == p2 && pkh1 == pkh2 && s1 == s2
+  Accumulator p1 ss1 == Accumulator p2 ss2 = p1 == p2 && ss1 == ss2
+  Sign pkh1 s1 == Sign pkh2 s2             = pkh1 == pkh2 && s1 == s2
   _ == _ = False
 
 -- |Finally, there is only one redeemer
@@ -169,11 +169,12 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 
         -- |Returns a signature from the datum if the signature is a valid one for this payment.
         extractSig Accumulator {} = Nothing
-        extractSig (Sign payment' pk s)
-          | payment' /= payment = Nothing                                    -- Different payment — wrong
+        extractSig (Sign pk s)
           | pk `notElem` pmspSignatories = Nothing                           -- Not a signatory — wrong
           | pk `elem` signees = Nothing                                      -- Already signed this payment — wrong
           | not $ verifySig pk (sha2_256 $ packPayment payment) s = Nothing  -- Sig verification failed — wrong
+                                                                             -- Note that if it succeeds, than the payment this Sign is for necessarily matches
+                                                                             -- the payment in the Accumulator, since `payment` comes from the Accumulator.
           | otherwise = Just pk                                              -- The above didn't get triggered, so presumably it's right
 
 -- Here's a wrapper to verify a signature. It is important that the parameters to verifySignature
