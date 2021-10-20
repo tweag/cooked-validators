@@ -133,7 +133,7 @@ run3 = runMockChain $ do
 run4 :: Either MockChainError ((), UtxoState)
 run4 = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
-  txUnlockBadRecipient (wallet 4) >>= validateTxFromSkeleton
+  txUnlockBadRecipient (wallet 2) >>= validateTxFromSkeleton
 
 -- Test spec
 spec :: Spec
