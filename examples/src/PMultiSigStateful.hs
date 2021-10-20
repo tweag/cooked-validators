@@ -150,8 +150,9 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
       | otherwise = False
 
     validateAcc
-      | [Api.TxOut _ outVal (Just dh)] <- txInfoOutputs txInfo
+      | [Api.TxOut outAddr outVal (Just dh)] <- txInfoOutputs txInfo
       , Just (Accumulator payment' signees') <- findDatumByHash txInfo dh = outVal == Ada.lovelaceValueOf 0
+                                                                         && outAddr == Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
                                                                          && payment == payment'
                                                                          && verifySignees signees'
       | otherwise = False
