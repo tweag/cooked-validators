@@ -1,9 +1,12 @@
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
+
 module SplitSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
 import Data.Either (isLeft, isRight)
+import Data.Maybe (fromMaybe)
 import qualified Plutus.V1.Ledger.Ada as Pl
 import qualified Split
 import Test.Hspec
@@ -28,79 +31,56 @@ isARecipient w datum _ =
   let wHash = walletPKHash w
    in elem wHash [Split.datumRecipient1 datum, Split.datumRecipient2 datum]
 
--- | Transaction to unlock (that is split among recipients) money from a script
--- UTxO which has the given wallet as a recipient in the datum
+-- | Template for unlock (that is split among recipients).
+txUnlockTemplate ::
+  -- | Optionally override first recipient
+  Maybe Wallet ->
+  -- | Optionally override second recipient
+  Maybe Wallet ->
+  -- | Optionally override the amount given to recipient
+  Maybe (Integer -> Integer) ->
+  -- | Issuer
+  Wallet ->
+  MockChain TxSkel
+txUnlockTemplate mRecipient1 mRecipient2 mAmountChanger issuer = do
+  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
+    scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
+  return $
+    let half = div amount 2
+        share1 = fromMaybe id mAmountChanger half
+        share2 = fromMaybe id mAmountChanger (amount - half)
+        constraints =
+          [ SpendsScript Split.splitValidator () (output, datum),
+            PaysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
+            PaysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
+          ]
+        remainder = amount - share1 - share2
+        remainderConstraint =
+          PaysScript
+            Split.splitValidator
+            [ ( Split.SplitDatum r1 r2 remainder,
+                Pl.lovelaceValueOf remainder
+              )
+            ]
+     in TxSkel
+          issuer
+          (constraints <> [remainderConstraint | remainder > 0])
+
+-- | Legit transaction
 txUnlock :: Wallet -> MockChain TxSkel
-txUnlock w = do
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient w)
-  let half = div amount 2
-  return
-    ( TxSkel
-        w
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf half),
-          PaysPK r2 (Pl.lovelaceValueOf (amount - half))
-        ]
-    )
+txUnlock = txUnlockTemplate Nothing Nothing Nothing
 
--- | Transaction to unlock (that is split among recipients) money from a script
--- UTxO which has the given wallet as a recipient in the datum.
--- This transaction violates the contract (duplicates instead of splitting)
-txUnlockTooMuch :: Wallet -> MockChain TxSkel
-txUnlockTooMuch w = do
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient w)
-  return
-    ( TxSkel
-        w
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf amount),
-          PaysPK r2 (Pl.lovelaceValueOf amount)
-        ]
-    )
-
--- | Transaction to unlock (that is split among recipients) money from a script
--- UTxO which has the given wallet as a recipient in the datum.
--- This transaction violates the contract (gives thirds instead of halves)
+-- | Transaction that does not pay enough to the recipients
 txUnlockNotEnough :: Wallet -> MockChain TxSkel
-txUnlockNotEnough w = do
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient w)
-  let third = div amount 3
-  return
-    ( TxSkel
-        w
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf third),
-          PaysPK r2 (Pl.lovelaceValueOf third),
-          let remainder = amount - (2 * third)
-           in PaysScript
-                Split.splitValidator
-                [ ( Split.SplitDatum r1 r2 remainder,
-                    Pl.lovelaceValueOf remainder
-                  )
-                ]
-        ]
-    )
+txUnlockNotEnough = txUnlockTemplate Nothing Nothing (Just (`div` 2))
 
--- | Transaction to unlock (that is split among recipients) money from a script
--- UTxO which has the given wallet as a recipient in the datum
--- This transation violates the contract (gives to the issuer instead of
--- recipient)
-txUnlockBadRecipient :: Wallet -> MockChain TxSkel
-txUnlockBadRecipient w = do
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient w)
-  let half = div amount 2
-  return
-    ( TxSkel
-        w
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf half),
-          PaysPK r1 (Pl.lovelaceValueOf (amount - half))
-        ]
-    )
+-- | Transaction that gives everything to the first recipient
+txUnlockTooMuch :: Wallet -> MockChain TxSkel
+txUnlockTooMuch = txUnlockTemplate Nothing Nothing (Just (* 2))
+
+-- | Transaction that pays everything to the issuer
+txUnlockGreedy :: Wallet -> MockChain TxSkel
+txUnlockGreedy w = txUnlockTemplate (Just w) (Just w) Nothing w
 
 -- | Parameters to share 400 among wallets 2 and 3
 run1LockParams :: Split.SplitParams
@@ -116,6 +96,11 @@ run1 :: Either MockChainError ((), UtxoState)
 run1 = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
   txUnlock (wallet 2) >>= validateTxFromSkeleton
+
+-- | Run containing only a paiement to the script
+runIncomplete :: Either MockChainError ((), UtxoState)
+runIncomplete = runMockChain $ do
+  txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
 
 -- | Faulty run
 run2 :: Either MockChainError ((), UtxoState)
@@ -133,7 +118,7 @@ run3 = runMockChain $ do
 run4 :: Either MockChainError ((), UtxoState)
 run4 = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
-  txUnlockBadRecipient (wallet 2) >>= validateTxFromSkeleton
+  txUnlockGreedy (wallet 2) >>= validateTxFromSkeleton
 
 -- Test spec
 spec :: Spec
@@ -141,7 +126,7 @@ spec = do
   it "succeeds when the amount is split among recipients" $ do
     run1 `shouldSatisfy` isRight
   it "succeeds when too much is paid to the recipients" $ do
-    run1 `shouldSatisfy` isRight
+    run2 `shouldSatisfy` isRight
   it "fails when not enough is paid to the recipients" $ do
     run3 `shouldSatisfy` isLeft
   it "fails when a recipient is forgotten" $ do
