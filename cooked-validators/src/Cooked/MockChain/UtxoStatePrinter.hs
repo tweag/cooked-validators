@@ -8,13 +8,15 @@ import qualified Data.Map as Map (toList)
 import qualified Ledger.Address as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl
+import qualified PlutusPrelude as Pl (pretty)
 import qualified PlutusTx.AssocMap as Pl
 
 showTokenValue :: (Pl.CurrencySymbol, Pl.Map Pl.TokenName Integer) -> String
 showTokenValue (symb, amountMap) =
   case (symb, Pl.toList amountMap) of
-    ("", [("", adaAmount)]) -> "Ada: " <> show adaAmount
-    (_, tokenValueMap) -> show symb <> ": " <> show tokenValueMap
+    ("", [("", adaAmount)]) -> "Ada: " <> show (Pl.pretty adaAmount)
+    (_, tokenValueMap) ->
+      show (Pl.pretty symb) <> ": " <> show (Pl.pretty tokenValueMap)
 
 -- Partial function here: address carries either pubkey or validator hash but
 -- the API does not expose the constructors to pattern match.
@@ -24,8 +26,8 @@ showAddressTypeAndHash a =
     Nothing ->
       case Pl.toValidatorHash a of
         Nothing -> error "Printing address: Neither pubkey nor validator hash"
-        Just hash -> "script " <> show hash
-    Just hash -> "pubkey " <> show hash
+        Just hash -> "script " <> show (Pl.pretty hash)
+    Just hash -> "pubkey " <> show (Pl.pretty hash)
 
 showValue :: Pl.Value -> String
 showValue =
@@ -37,7 +39,8 @@ showValue =
 
 showPayload :: (Pl.Value, Maybe Pl.Datum) -> String
 showPayload (value, mDatum) =
-  showValue value <> maybe "" ((\s -> "(" <> s <> ")") . show) mDatum
+  showValue value
+    <> maybe "" ((\s -> "(" <> s <> ")") . show . Pl.pretty) mDatum
 
 showAddress :: (Pl.Address, [(Pl.Value, Maybe Pl.Datum)]) -> String
 showAddress (address, payloads) =
