@@ -102,7 +102,7 @@ runIncomplete :: Either MockChainError ((), UtxoState)
 runIncomplete = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
 
--- | Faulty run
+-- | Valid run with overpayment
 run2 :: Either MockChainError ((), UtxoState)
 run2 = runMockChain $ do
   txLock (wallet 1) run1LockParams >>= validateTxFromSkeleton
