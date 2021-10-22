@@ -33,8 +33,12 @@ data Constraint where
   PaysPK   :: Pl.PubKeyHash -> Pl.Value -> Constraint
   SpendsPK :: SpendableOut -> Constraint
   Mints    :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+
   Before   :: Pl.POSIXTime -> Constraint
   After    :: Pl.POSIXTime -> Constraint
+
+  ValidateIn :: Pl.POSIXTimeRange -> Constraint
+  SignedBy   :: [Pl.PubKeyHash] -> Constraint
 
   -- TODO: add more constraints
 
@@ -70,6 +74,8 @@ toLedgerConstraint (Before t) = (mempty, constr)
   where constr = Pl.mustValidateIn (Pl.to t)
 toLedgerConstraint (After t) = (mempty, constr)
   where constr = Pl.mustValidateIn (Pl.from t)
+toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
+toLedgerConstraint (SignedBy pkhs) = (mempty, foldMap Pl.mustBeSignedBy pkhs)
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups' and 'Pl.TxConstraints'
 
