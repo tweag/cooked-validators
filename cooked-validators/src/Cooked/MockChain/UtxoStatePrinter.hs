@@ -54,7 +54,6 @@ showPayload ::
   (Show a, Pl.UnsafeFromData a) =>
   -- | Proxy carrying the datum type
   Proxy a ->
-  -- |
   (Pl.Value, Maybe Pl.Datum) ->
   String
 showPayload proxy (value, mDatum) =
