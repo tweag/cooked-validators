@@ -5,9 +5,10 @@ module Cooked.MockChain.UtxoStatePrinter (showUtxoState) where
 import Cooked.MockChain.Base (UtxoState)
 import Data.List (intercalate)
 import qualified Data.Map as Map (toList)
-import qualified Ledger.Address as Pl
-import qualified Ledger.Scripts as Pl
+import Data.Proxy (Proxy)
+import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusPrelude as Pl (pretty)
 import qualified PlutusTx.AssocMap as Pl
 
@@ -37,16 +38,46 @@ showValue =
     . Pl.toList
     . Pl.getValue
 
-showPayload :: (Pl.Value, Maybe Pl.Datum) -> String
-showPayload (value, mDatum) =
-  showValue value
-    <> maybe "" ((\s -> "(" <> s <> ")") . show . Pl.pretty) mDatum
+showDatum ::
+  (Show a, Pl.UnsafeFromData a) =>
+  -- | Proxy carrying the datum type
+  Proxy a ->
+  -- | Raw Plutus datum to show
+  Pl.Datum ->
+  String
+showDatum proxy = show . convert proxy . Pl.getDatum
+  where
+    convert :: Pl.UnsafeFromData a => Proxy a -> Pl.BuiltinData -> a
+    convert _proxy = Pl.unsafeFromBuiltinData
 
-showAddress :: (Pl.Address, [(Pl.Value, Maybe Pl.Datum)]) -> String
-showAddress (address, payloads) =
+showPayload ::
+  (Show a, Pl.UnsafeFromData a) =>
+  -- | Proxy carrying the datum type
+  Proxy a ->
+  -- |
+  (Pl.Value, Maybe Pl.Datum) ->
+  String
+showPayload proxy (value, mDatum) =
+  showValue value
+    <> maybe "" ((\s -> "(" <> s <> ")") . showDatum proxy) mDatum
+
+showAddress ::
+  (Show a, Pl.UnsafeFromData a) =>
+  -- | Proxy carrying the datum type
+  Proxy a ->
+  -- | Adress to show
+  (Pl.Address, [(Pl.Value, Maybe Pl.Datum)]) ->
+  String
+showAddress proxy (address, payloads) =
   showAddressTypeAndHash address
     <> ":\n"
-    <> concatMap ((\s -> "- " <> s <> "\n") . showPayload) payloads
+    <> concatMap ((\s -> "- " <> s <> "\n") . showPayload proxy) payloads
 
-showUtxoState :: UtxoState -> String
-showUtxoState = concatMap showAddress . Map.toList
+showUtxoState ::
+  (Show a, Pl.UnsafeFromData a) =>
+  -- | Proxy carrying the datum type
+  Proxy a ->
+  -- | UtxoState to show
+  UtxoState ->
+  String
+showUtxoState proxy = concatMap (showAddress proxy) . Map.toList
