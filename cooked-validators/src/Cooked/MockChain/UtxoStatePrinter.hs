@@ -19,7 +19,7 @@ showTokenValue (symb, amountMap) =
     (_, tokenValueMap) ->
       show (Pl.pretty symb) <> ": " <> show (Pl.pretty tokenValueMap)
 
--- Partial function here: address carries either pubkey or validator hash but
+-- Unsafe: address carries either pubkey or validator hash but
 -- the API does not expose the constructors to pattern match.
 showAddressTypeAndHash :: Pl.Address -> String
 showAddressTypeAndHash a =
@@ -38,6 +38,7 @@ showValue =
     . Pl.toList
     . Pl.getValue
 
+-- Unsafe
 showDatum ::
   (Show a, Pl.UnsafeFromData a) =>
   -- | Proxy carrying the datum type
@@ -50,6 +51,7 @@ showDatum proxy = show . convert proxy . Pl.getDatum
     convert :: Pl.UnsafeFromData a => Proxy a -> Pl.BuiltinData -> a
     convert _proxy = Pl.unsafeFromBuiltinData
 
+-- Unsafe
 showPayload ::
   (Show a, Pl.UnsafeFromData a) =>
   -- | Proxy carrying the datum type
@@ -60,6 +62,7 @@ showPayload proxy (value, mDatum) =
   showValue value
     <> maybe "" ((\s -> "(" <> s <> ")") . showDatum proxy) mDatum
 
+-- Unsafe
 showAddress ::
   (Show a, Pl.UnsafeFromData a) =>
   -- | Proxy carrying the datum type
@@ -72,6 +75,7 @@ showAddress proxy (address, payloads) =
     <> ":\n"
     <> concatMap ((\s -> "- " <> s <> "\n") . showPayload proxy) payloads
 
+-- Unsafe
 showUtxoState ::
   (Show a, Pl.UnsafeFromData a) =>
   -- | Proxy carrying the datum type
