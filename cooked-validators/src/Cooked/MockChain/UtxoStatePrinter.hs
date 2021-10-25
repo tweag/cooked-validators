@@ -31,9 +31,12 @@ prettyAddressTypeAndHash a =
       case Pl.toValidatorHash a of
         Nothing -> error "Printing address: Neither pubkey nor validator hash"
         Just hash ->
-          "script" <> Prettyprinter.colon <> Prettyprinter.pretty hash
+          "script" <> Prettyprinter.colon <> prettyCutHash hash
     Just hash ->
-      "pubkey" <> Prettyprinter.colon <> Prettyprinter.pretty hash
+      "pubkey" <> Prettyprinter.colon <> prettyCutHash hash
+  where
+    prettyCutHash :: Show a => a -> Doc ann
+    prettyCutHash = Prettyprinter.pretty . take 7 . show
 
 prettyValue :: Pl.Value -> Doc ann
 prettyValue =
