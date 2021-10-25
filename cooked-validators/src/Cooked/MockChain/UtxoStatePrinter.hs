@@ -4,6 +4,7 @@ module Cooked.MockChain.UtxoStatePrinter (prettyUtxoState) where
 
 import Cooked.MockChain.Base (UtxoState)
 import qualified Data.Map as Map (toList)
+import Data.Maybe (catMaybes)
 import Data.Proxy (Proxy)
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
@@ -42,9 +43,16 @@ prettyAddressTypeAndHash a =
           Prettyprinter.colon
         ]
 
-prettyValue :: Pl.Value -> Doc ann
-prettyValue =
-  Prettyprinter.encloseSep "{" "}" "; "
+-- Returns `Nothing` if the value is empty to avoid having an empty document
+-- whose height is 1 in the `prettyprinter` library and would generate empty
+-- lines.
+mPrettyValue :: Pl.Value -> Maybe (Doc ann)
+mPrettyValue =
+  ( \vs ->
+      if null vs
+        then Nothing
+        else Just $ Prettyprinter.encloseSep "{" "}" "; " vs
+  )
     . map prettyTokenValue
     . Pl.toList
     . Pl.getValue
@@ -72,12 +80,10 @@ prettyPayload ::
   Doc ann
 prettyPayload proxy (value, mDatum) =
   Prettyprinter.vsep
-    [ prettyValue value,
-      maybe
-        Prettyprinter.emptyDoc
-        (Prettyprinter.parens . prettyDatum proxy)
-        mDatum
-    ]
+    . catMaybes
+    $ [ mPrettyValue value,
+        Prettyprinter.parens . prettyDatum proxy <$> mDatum
+      ]
 
 -- Unsafe
 prettyAddress ::
