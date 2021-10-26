@@ -26,7 +26,7 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- We start by gathering all the inputs and summing it
   let tx = tx0 { Pl.txFee = Pl.minFee tx0 }
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
-  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs)      (Pl.txMint tx)
+  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs)         (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
   (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
@@ -49,7 +49,7 @@ spendValueFrom :: Pl.Value -> [(Pl.TxOutRef, Pl.TxOut)] -> ([Pl.TxOutRef], Pl.Va
 spendValueFrom val utxos =
   -- We then go through the output value and investigate for each token
   -- if there is a way to balance it.
-  foldl (\(leftO, spentTx) (curr,tok,i) -> addInputToBalance curr tok i leftO spentTx)
+  foldl (\(spentTx, leftO) (curr,tok,i) -> addInputToBalance curr tok i spentTx leftO)
     ([], mempty)
     (Pl.flattenValue val)
   where

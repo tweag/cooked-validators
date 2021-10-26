@@ -1,6 +1,10 @@
-module Main where
+module PMultiSigSpec where
 
 import Data.Default
+
+import Data.Either (isLeft, isRight)
+
+import Test.Hspec
 
 import qualified Ledger           as Pl
 import qualified Ledger.TimeSlot  as Pl
@@ -54,3 +58,9 @@ run1 = runMockChain $ do
   txSign          (wallet 2) samplePmt >>= validateTxFromSkeleton
   txSign          (wallet 3) samplePmt >>= validateTxFromSkeleton
   txExecute       (wallet 4) >>= validateTxFromSkeleton
+
+-- Test spec
+spec :: Spec
+spec = do
+  it "succeeds on the example run" $ do
+    run1 `shouldSatisfy` isRight

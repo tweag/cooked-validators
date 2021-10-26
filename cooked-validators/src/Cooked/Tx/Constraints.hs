@@ -32,6 +32,9 @@ data Constraint where
 
   PaysPK   :: Pl.PubKeyHash -> Pl.Value -> Constraint
   SpendsPK :: SpendableOut -> Constraint
+  Mints    :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+  Before   :: Pl.POSIXTime -> Constraint
+  After    :: Pl.POSIXTime -> Constraint
 
   -- TODO: add more constraints
 
@@ -71,6 +74,14 @@ toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
   where
     lkups  = Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendPubKeyOutput oref
+toLedgerConstraint (Mints pols v) = (lkups, constr)
+  where
+    lkups = foldMap Pl.mintingPolicy pols
+    constr = Pl.mustMintValue v
+toLedgerConstraint (Before t) = (mempty, constr)
+  where constr = Pl.mustValidateIn (Pl.to t)
+toLedgerConstraint (After t) = (mempty, constr)
+  where constr = Pl.mustValidateIn (Pl.from t)
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups' and 'Pl.TxConstraints'
 
@@ -81,7 +92,7 @@ toLedgerConstraints cs = (mconcat lkups, mconcat constrs)
   where
     (lkups, constrs) = unzip $ map toLedgerConstraint cs
 
--- A Transaction sekeleton is a set of our constraints, and
+-- A Transaction skeleton is a set of our constraints, and
 -- a set of our wallets, which will sign the generated transaction.
 data TxSkel = TxSkel
   { txSigners     :: Wallet

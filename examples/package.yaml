@@ -17,6 +17,7 @@ dependencies:
   - foldl
   - freer-extras
   - freer-simple
+  - hspec
   - lens
   - mtl
   - playground-common
@@ -42,3 +43,10 @@ library:
     -fno-ignore-interface-pragmas 
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
+
+tests:
+  spec:
+    source-dirs: tests
+    main: Spec.hs
+    dependencies:
+      - examples
