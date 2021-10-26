@@ -3,8 +3,9 @@
 module Cooked.MockChain.UtxoStatePrinter (prettyUtxoState) where
 
 import Cooked.MockChain.Base (UtxoState)
+import qualified Data.List as List (intersperse)
 import qualified Data.Map as Map (toList)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -12,15 +13,29 @@ import qualified PlutusTx.AssocMap as Pl
 import Prettyprinter (Doc)
 import qualified Prettyprinter
 
-prettyTokenValue :: (Pl.CurrencySymbol, Pl.Map Pl.TokenName Integer) -> Doc ann
-prettyTokenValue (symb, amountMap) =
-  case (symb, Pl.toList amountMap) of
+prettyCurrencyAndAmount ::
+  (Pl.CurrencySymbol, Pl.Map Pl.TokenName Integer) -> Doc ann
+prettyCurrencyAndAmount (symbol, amountMap) =
+  case (symbol, Pl.toList amountMap) of
     ("", [("", adaAmount)]) ->
-      "Ada" <> Prettyprinter.colon <> Prettyprinter.pretty adaAmount
-    (_, tokenValueMap) ->
-      Prettyprinter.pretty symb
+      "Ada"
         <> Prettyprinter.colon
-        <> Prettyprinter.pretty tokenValueMap
+        <> Prettyprinter.space
+        <> Prettyprinter.pretty adaAmount
+    _ -> Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList $ amountMap
+  where
+    prettySymbol :: Pl.CurrencySymbol -> Doc ann
+    prettySymbol = Prettyprinter.pretty . take 7 . show
+    prettyToken :: Pl.TokenName -> Integer -> Doc ann
+    prettyToken name n =
+      Prettyprinter.parens
+        ( prettySymbol symbol
+            <> "‣"
+            <> Prettyprinter.pretty name
+        )
+        <> ":"
+        <> Prettyprinter.space
+        <> Prettyprinter.pretty n
 
 -- Unsafe: address carries either pubkey or validator hash but
 -- the API does not expose the constructors to pattern match.
@@ -48,22 +63,28 @@ prettyAddressTypeAndHash a =
 mPrettyValue :: Pl.Value -> Maybe (Doc ann)
 mPrettyValue =
   ( \vs ->
-      if null vs
-        then Nothing
-        else Just $ Prettyprinter.encloseSep "{" "}" "; " vs
+      case vs of
+        [] -> Nothing
+        [v] -> Just v
+        _ -> Just $ Prettyprinter.encloseSep "{" "}" "; " vs
   )
-    . map prettyTokenValue
+    . map prettyCurrencyAndAmount
     . Pl.toList
     . Pl.getValue
 
-prettyPayload ::
-  (Pl.Value, Maybe (Pl.Datum, String)) ->
-  Doc ann
+-- Returns `Nothing` if the value is empty to avoid having an empty document
+-- whose height is 1 in the `prettyprinter` library and would generate empty
+-- lines.
+prettyPayload :: (Pl.Value, Maybe (Pl.Datum, String)) -> Maybe (Doc ann)
 prettyPayload (value, mDatum) =
-  Prettyprinter.vsep
+  (\vs -> if null vs then Nothing else Just $ Prettyprinter.vsep vs)
     . catMaybes
     $ [ mPrettyValue value,
-        Prettyprinter.parens . Prettyprinter.pretty . snd <$> mDatum
+        ("📦" <>)
+          . Prettyprinter.indent 1
+          . Prettyprinter.pretty
+          . snd
+          <$> mDatum
       ]
 
 prettyAddress ::
@@ -75,10 +96,14 @@ prettyAddress (address, payloads) =
     [ prettyAddressTypeAndHash address,
       Prettyprinter.indent 2
         . Prettyprinter.vsep
-        . map (("-" <>) . Prettyprinter.indent 1 . prettyPayload)
+        . map (("-" <>) . Prettyprinter.indent 1)
+        . mapMaybe prettyPayload
         $ payloads
     ]
 
 prettyUtxoState :: UtxoState -> Doc ann
 prettyUtxoState =
-  Prettyprinter.vsep . map prettyAddress . Map.toList
+  Prettyprinter.sep
+    . List.intersperse Prettyprinter.line
+    . map prettyAddress
+    . Map.toList
