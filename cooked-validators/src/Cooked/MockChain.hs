@@ -11,6 +11,7 @@
 module Cooked.MockChain (
     module Cooked.MockChain.Base
   , module Cooked.MockChain.Wallet
+  , module Cooked.MockChain.Time
     -- * Validating Transactions
   , validateTx
     -- * Selecting UTxO's
@@ -19,8 +20,13 @@ module Cooked.MockChain (
   , pkUtxos , pkUtxos'
   , scriptUtxosSuchThat
   , outFromOutRef
-    -- * Slot Management
+    -- * Time Management
   , slot
+  , freezeTime
+  , waitSlots
+  , waitTime
+  , slotIs
+  , timeIs
   ) where
 
 import           Data.Void
@@ -39,6 +45,7 @@ import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validato
 import Cooked.Tx.Constraints
 import Cooked.MockChain.Base
 import Cooked.MockChain.Wallet
+import Cooked.MockChain.Time
 
 -- * Validating Transactions
 
@@ -143,9 +150,26 @@ outFromOutRef outref = do
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
 
+-- * Time management in the monad.
+
 -- |Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
-slot = gets (Pl.Slot . mcscCurrentSlot . mcstSlotCtr)
+slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
+
+freezeTime :: (Monad m) => MockChainT m ()
+freezeTime = modify (onSlot scFreezeTime)
+
+waitSlots :: (Monad m) => Integer -> MockChainT m ()
+waitSlots n = modify (onSlot (scWaitSlots n))
+
+waitTime :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
+waitTime mSec = modify (onSlot (scWait mSec))
+
+slotIs :: (Monad m) => Integer -> MockChainT m ()
+slotIs n = modify (onSlot (scSlotIs n))
+
+timeIs :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
+timeIs t = modify (onSlot (scTimeIs t))
 
 -- * Utilities
 

@@ -1,7 +1,7 @@
 module Cooked.Tx.Balance where
 
-import Data.Default
 import Control.Arrow ((***))
+import Control.Monad.State
 import qualified Data.Set as S
 
 import qualified Ledger.Contexts as Pl
@@ -19,10 +19,13 @@ import qualified PlutusTx.Numeric as Pl
 
 import Cooked.MockChain
 
+import Debug.Trace (trace)
+
 -- |Balances a transaction with money from a given wallet. For every transaction,
 -- it must be the case that @inputs + mint == outputs + fee@.
 balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
+  trace (show $ Pl.txFee tx0) $ return ()
   -- We start by gathering all the inputs and summing it
   let tx = tx0 { Pl.txFee = Pl.minFee tx0 }
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
@@ -35,9 +38,10 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
   -- A new output is opened with the leftover of the added inputs.
   let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
+  config <- gets (slotConfig . mcstSlotCtr)
   return tx{ Pl.txInputs  = Pl.txInputs tx <> S.fromList txIns'
            , Pl.txOutputs = Pl.txOutputs tx ++ [txOut']
-           , Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange def slotRange
+           , Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
            }
 
 balanceWithUTxOsOf :: (Monad m)
