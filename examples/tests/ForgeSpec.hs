@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE NoImplicitPrelude#-}
 
-module Main where
+module ForgeSpec where
 
 import Data.Default
 
@@ -25,6 +25,8 @@ import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
 
 import Forge hiding (bigBossNFT, authToken, smithedToken)
+
+import Test.Hspec
 
 -- The NFT to control everything.
 bigBossTok = Value.TokenName "BigBossNFT"
@@ -116,3 +118,9 @@ run1 =
     oneBBNFT = Value.assetClassValue bigBossNFT 1
     oneAuthToken = Value.assetClassValue authToken 1
     w3PKH = walletPKHash $ wallet 3
+
+-- Test spec
+spec :: Spec
+spec = do
+  it "succeeds on the example run" $ do
+    run1 `shouldSatisfy` isRight
