@@ -5,7 +5,6 @@ module Cooked.MockChain.UtxoStatePrinter (prettyUtxoState) where
 import Cooked.MockChain.Base (UtxoState)
 import qualified Data.Map as Map (toList)
 import Data.Maybe (catMaybes)
-import Data.Proxy (Proxy)
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -57,58 +56,29 @@ mPrettyValue =
     . Pl.toList
     . Pl.getValue
 
--- Unsafe
--- TODO Consider also using `prettyprinter` lib for datum
-prettyDatum ::
-  (Show a, Pl.UnsafeFromData a) =>
-  -- | Proxy carrying the datum type
-  Proxy a ->
-  -- | Raw Plutus datum to show
-  Pl.Datum ->
-  Doc ann
-prettyDatum proxy = Prettyprinter.pretty . show . convert proxy . Pl.getDatum
-  where
-    convert :: Pl.UnsafeFromData a => Proxy a -> Pl.BuiltinData -> a
-    convert _proxy = Pl.unsafeFromBuiltinData
-
--- Unsafe
 prettyPayload ::
-  (Show a, Pl.UnsafeFromData a) =>
-  -- | Proxy carrying the datum type
-  Proxy a ->
-  (Pl.Value, Maybe Pl.Datum) ->
+  (Pl.Value, Maybe (Pl.Datum, String)) ->
   Doc ann
-prettyPayload proxy (value, mDatum) =
+prettyPayload (value, mDatum) =
   Prettyprinter.vsep
     . catMaybes
     $ [ mPrettyValue value,
-        Prettyprinter.parens . prettyDatum proxy <$> mDatum
+        Prettyprinter.parens . Prettyprinter.pretty . snd <$> mDatum
       ]
 
--- Unsafe
 prettyAddress ::
-  (Show a, Pl.UnsafeFromData a) =>
-  -- | Proxy carrying the datum type
-  Proxy a ->
   -- | Adress to show
-  (Pl.Address, [(Pl.Value, Maybe Pl.Datum)]) ->
+  (Pl.Address, [(Pl.Value, Maybe (Pl.Datum, String))]) ->
   Doc ann
-prettyAddress proxy (address, payloads) =
+prettyAddress (address, payloads) =
   Prettyprinter.vsep
     [ prettyAddressTypeAndHash address,
       Prettyprinter.indent 2
         . Prettyprinter.vsep
-        . map (("-" <>) . Prettyprinter.indent 1 . prettyPayload proxy)
+        . map (("-" <>) . Prettyprinter.indent 1 . prettyPayload)
         $ payloads
     ]
 
--- Unsafe
-prettyUtxoState ::
-  (Show a, Pl.UnsafeFromData a) =>
-  -- | Proxy carrying the datum type
-  Proxy a ->
-  -- | UtxoState to show
-  UtxoState ->
-  Doc ann
-prettyUtxoState proxy =
-  Prettyprinter.vsep . map (prettyAddress proxy) . Map.toList
+prettyUtxoState :: UtxoState -> Doc ann
+prettyUtxoState =
+  Prettyprinter.vsep . map prettyAddress . Map.toList
