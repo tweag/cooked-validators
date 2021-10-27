@@ -76,7 +76,12 @@ mPrettyValue =
       case vs of
         [] -> Nothing
         [v] -> Just v
-        _ -> Just $ Prettyprinter.encloseSep "{" "}" "; " vs
+        _ ->
+          Just $
+            Prettyprinter.lbrace
+              <> Prettyprinter.indent 1 (Prettyprinter.vsep vs)
+              <> Prettyprinter.space
+              <> Prettyprinter.rbrace
   )
     . map prettyCurrencyAndAmount
     . Pl.toList
@@ -113,7 +118,7 @@ prettyAddress (address, payloads) =
 
 prettyUtxoState :: UtxoState -> Doc ann
 prettyUtxoState =
-  Prettyprinter.sep
-    . List.intersperse Prettyprinter.line
+  Prettyprinter.vsep
+    . List.intersperse Prettyprinter.emptyDoc
     . map prettyAddress
     . Map.toList
