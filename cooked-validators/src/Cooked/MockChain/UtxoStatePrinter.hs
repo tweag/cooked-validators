@@ -3,8 +3,9 @@
 module Cooked.MockChain.UtxoStatePrinter (prettyUtxoState) where
 
 import Cooked.MockChain.Base (UtxoState)
+import Cooked.MockChain.Wallet (walletPKHashToIdMap)
 import qualified Data.List as List (intersperse)
-import qualified Data.Map as Map (toList)
+import qualified Data.Map as Map (lookup, toList)
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
@@ -46,15 +47,24 @@ prettyAddressTypeAndHash a =
       case Pl.toValidatorHash a of
         Nothing -> error "Printing address: Neither pubkey nor validator hash"
         Just hash -> prettyAux "script" hash
-    Just hash -> prettyAux "pubkey" hash
+    Just hash ->
+      prettyAux "pubkey" hash
+        <> maybe
+          Prettyprinter.emptyDoc
+          ( (Prettyprinter.space <>)
+              . Prettyprinter.parens
+              . ("wallet #" <>)
+              . Prettyprinter.pretty
+          )
+          (Map.lookup hash walletPKHashToIdMap)
+        <> Prettyprinter.colon
   where
     prettyAux :: Show hash => String -> hash -> Doc ann
     prettyAux addressType hash =
       mconcat
         [ Prettyprinter.pretty addressType,
           Prettyprinter.space,
-          Prettyprinter.pretty . take 7 . show $ hash,
-          Prettyprinter.colon
+          Prettyprinter.pretty . take 7 . show $ hash
         ]
 
 -- Returns `Nothing` if the value is empty to avoid having an empty document

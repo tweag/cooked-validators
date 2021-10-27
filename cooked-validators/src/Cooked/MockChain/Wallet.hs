@@ -29,6 +29,9 @@ walletPK = Pl.walletPubKey . fst
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
 
+walletPKHashToIdMap :: M.Map Pl.PubKeyHash Int
+walletPKHashToIdMap = M.fromList . flip zip [1..] . map walletPKHash $ knownWallets
+
 walletAddress :: Wallet -> Pl.Address
 walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
