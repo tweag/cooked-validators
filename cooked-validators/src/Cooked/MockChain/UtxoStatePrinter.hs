@@ -31,7 +31,7 @@ prettyCurrencyAndAmount (symbol, amountMap) =
     prettyToken name n =
       Prettyprinter.parens
         ( prettySymbol symbol
-            <> "‣"
+            <> " ¤ "
             <> Prettyprinter.pretty name
         )
         <> ":"
@@ -90,7 +90,7 @@ prettyPayload (value, mDatum) =
   (\vs -> if null vs then Nothing else Just $ Prettyprinter.vsep vs)
     . catMaybes
     $ [ mPrettyValue value,
-        ("📦" <>)
+        ("■" <>)
           . Prettyprinter.indent 1
           . Prettyprinter.pretty
           . snd
