@@ -39,6 +39,9 @@ bigBossCurr = Validation.scriptCurrencySymbol bigBossPolicy
 bigBossNFT = Value.assetClass bigBossCurr bigBossTok
 
 -- An auth token can only be minted or destroyed if the BigBossNFT is used.
+-- It is important to note that one has to create a function taking a 'Pl.AssetClass' argument,
+-- because if we directly put 'bigBossNFT', then we obtain a 'CekEvaluationFailure',
+-- due to a non-inlinable thing in its definition.
 {-# INLINEABLE mkAuthTokenPolicy #-}
 mkAuthTokenPolicy :: Value.AssetClass -> () -> Ledger.ScriptContext -> Bool
 mkAuthTokenPolicy nft _ ctx =
