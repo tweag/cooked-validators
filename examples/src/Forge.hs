@@ -43,6 +43,7 @@ data Params = Params
 PlutusTx.makeLift ''Params
 
 newtype DatumBigBoss = BigBoss [Api.PubKeyHash]
+  deriving stock (Haskell.Show)
 PlutusTx.unstableMakeIsData ''DatumBigBoss
 
 instance Eq DatumBigBoss where
