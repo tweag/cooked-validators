@@ -11,6 +11,9 @@
 module Cooked.MockChain (
     module Cooked.MockChain.Base
   , module Cooked.MockChain.Wallet
+  -- Our type for UTxOS
+  , SpendableOut
+  , spendableRef
     -- * Validating Transactions
   , validateTx
     -- * Selecting UTxO's
@@ -36,9 +39,17 @@ import qualified Ledger.Credential   as Pl
 import qualified PlutusTx as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 
-import Cooked.Tx.Constraints
 import Cooked.MockChain.Base
 import Cooked.MockChain.Wallet
+
+-- |A 'SpendableOut' is an outref that is ready to be spend; with its
+-- underlying 'Pl.ChainIndexTxOut'.
+type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
+
+spendableRef :: (Monad m) => Pl.TxOutRef -> MockChainT m SpendableOut
+spendableRef txORef = do
+  Just txOut <- gets (M.lookup txORef . Pl.getIndex . mcstIndex)
+  return (txORef, fromJust (Pl.fromTxOut txOut))
 
 -- * Validating Transactions
 
