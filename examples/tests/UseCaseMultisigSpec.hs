@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE NoImplicitPrelude#-}
 
-module Main where
+module UseCaseMultisigSpec where
 
 import Data.Default
 
@@ -25,6 +25,8 @@ import Cooked.MockChain
 import Cooked.Traces
 import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
+
+import Test.Hspec
 
 import Plutus.Contracts.MultiSig
 
@@ -55,3 +57,9 @@ run1 =
       , PaysScript multiVal [((), Ada.lovelaceValueOf 1500)]
       , SignedBy (map wallet [1,2,4,7]) -- Wallet 2 was not allowed to sign, but they did it no matter
       ]
+
+-- Test spec
+spec :: Spec
+spec = do
+  it "succeeds on the example run" $ do
+    run1 `shouldSatisfy` isRight

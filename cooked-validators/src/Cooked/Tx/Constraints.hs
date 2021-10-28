@@ -21,10 +21,10 @@ import Cooked.Tx.Balance
 -- |Our own first class constraint type. The advantage over the regular plutus constraint
 -- type is that we get to add whatever we need and we hide away the type variables in existentials.
 data Constraint where
-  PaysScript   :: (Pl.ToData (Pl.DatumType a))
+  PaysScript   :: (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a))
                => Pl.TypedValidator a -> [(Pl.DatumType a, Pl.Value)] -> Constraint
 
-  SpendsScript :: (Pl.ToData (Pl.DatumType a), Pl.ToData (Pl.RedeemerType a))
+  SpendsScript :: (Pl.ToData (Pl.DatumType a), Pl.ToData (Pl.RedeemerType a), Show (Pl.DatumType a))
                => Pl.TypedValidator a -> Pl.RedeemerType a -> (SpendableOut, Pl.DatumType a) -> Constraint
 
   -- TODO: something like stepscript below could be nice!
@@ -43,7 +43,6 @@ data Constraint where
 
   -- TODO: add more constraints
 
-spentByPK :: (Monad m) => Pl.PubKeyHash -> Pl.Value -> MockChainT m [Constraint]
 spentByPK pkh val = do
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
@@ -53,16 +52,24 @@ spentByPK pkh val = do
 
 type LedgerConstraint a = (Pl.ScriptLookups a , Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), [Wallet])
 
+-- | Map from datum hashes to string representation of all the datum carried
+extractDatumStrFromConstraint :: Constraint -> M.Map Pl.DatumHash String
+extractDatumStrFromConstraint (PaysScript _validator datumsAndValues) =
+  M.fromList .
+    map ((\d -> (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d, show d)) . fst) $
+    datumsAndValues
+extractDatumStrFromConstraint (SpendsScript _validator _redeemer (_out, datum)) =
+  M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
+extractDatumStrFromConstraint _ = M.empty
+
 -- |Converts our constraint into a 'LedgerConstraint',
 -- which later can be used to generate a transaction.
 toLedgerConstraint :: Constraint -> LedgerConstraint a
 toLedgerConstraint (SpendsScript v r ((oref, o), a)) = (lkups, constr, mempty)
   where
     lkups  = Pl.otherScript (Pl.validatorScript v)
-          <> Pl.otherData (Pl.Datum $ Pl.toBuiltinData a)
           <> Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
-
 toLedgerConstraint (PaysScript v outs) = (lkups, constr, mempty)
   where
     lkups  = Pl.otherScript (Pl.validatorScript v)
