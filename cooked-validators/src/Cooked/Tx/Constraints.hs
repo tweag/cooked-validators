@@ -1,15 +1,17 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
+{-# LANGUAGE TupleSections    #-}
 module Cooked.Tx.Constraints where
 
 import           Data.Void
 import qualified Data.Map as M
 import Data.Bifunctor ( Bifunctor(second) )
-import Data.Maybe
+import Data.Functor.Identity (runIdentity)
 
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
+import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
 
@@ -37,7 +39,7 @@ data Constraint where
   After    :: Pl.POSIXTime -> Constraint
 
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy   :: [Pl.PubKeyHash] -> Constraint
+  SignedBy   :: [Wallet] -> Constraint
 
   -- TODO: add more constraints
 
@@ -47,54 +49,52 @@ spentByPK pkh val = do
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
   (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
 
--- |Converts our constraint into a Plutus 'Pl.ScriptLookups' and 'Pl.TxConstraints',
--- which later can be used to generate a transaction. We're making the conscious choice
--- of making this function type check for arbitrary choices of @a, i@ and @o@,
--- enabling us to hide these from the users of /Cooked/.
-toLedgerConstraint :: Constraint -> (Pl.ScriptLookups a, Pl.TxConstraints i o)
-toLedgerConstraint (SpendsScript v r ((oref, o), a)) = (lkups, constr)
+-- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
+
+type LedgerConstraint a = (Pl.ScriptLookups a , Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), [Wallet])
+
+-- |Converts our constraint into a 'LedgerConstraint',
+-- which later can be used to generate a transaction.
+toLedgerConstraint :: Constraint -> LedgerConstraint a
+toLedgerConstraint (SpendsScript v r ((oref, o), a)) = (lkups, constr, mempty)
   where
     lkups  = Pl.otherScript (Pl.validatorScript v)
           <> Pl.otherData (Pl.Datum $ Pl.toBuiltinData a)
           <> Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
 
-toLedgerConstraint (PaysScript v outs) = (lkups, constr)
+toLedgerConstraint (PaysScript v outs) = (lkups, constr, mempty)
   where
     lkups  = Pl.otherScript (Pl.validatorScript v)
     constr = mconcat $ flip map outs $ \(d, val)
                -> Pl.mustPayToOtherScript (Pl.validatorHash $ Pl.validatorScript v)
                                           (Pl.Datum $ Pl.toBuiltinData d)
                                           val
-toLedgerConstraint (PaysPK p v)         = (mempty, Pl.mustPayToPubKey p v)
-toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
+toLedgerConstraint (PaysPK p v)         = (mempty, Pl.mustPayToPubKey p v, mempty)
+toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr, mempty)
   where
     lkups  = Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendPubKeyOutput oref
-toLedgerConstraint (Mints pols v) = (lkups, constr)
+toLedgerConstraint (Mints pols v) = (lkups, constr, mempty)
   where
     lkups = foldMap Pl.mintingPolicy pols
     constr = Pl.mustMintValue v
-toLedgerConstraint (Before t) = (mempty, constr)
+toLedgerConstraint (Before t) = (mempty, constr, mempty)
   where constr = Pl.mustValidateIn (Pl.to t)
-toLedgerConstraint (After t) = (mempty, constr)
+toLedgerConstraint (After t) = (mempty, constr, mempty)
   where constr = Pl.mustValidateIn (Pl.from t)
-toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
-toLedgerConstraint (SignedBy pkhs) = (mempty, foldMap Pl.mustBeSignedBy pkhs)
-
--- * Converting 'Constraint's to 'Pl.ScriptLookups' and 'Pl.TxConstraints'
-
-type LedgerConstraint a = (Pl.ScriptLookups a , Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a))
+toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r, mempty)
+toLedgerConstraint (SignedBy wals) = (mempty, mempty, wals)
 
 toLedgerConstraints :: [Constraint] -> LedgerConstraint a
-toLedgerConstraints cs = (mconcat lkups, mconcat constrs)
+toLedgerConstraints cs = (mconcat lkups, mconcat constrs, mconcat wals)
   where
-    (lkups, constrs) = unzip $ map toLedgerConstraint cs
+    (lkups, constrs, wals) = unzip3 $ map toLedgerConstraint cs
 
 -- A Transaction skeleton is a set of our constraints, and
--- a set of our wallets, which will sign the generated transaction.
+-- one of our wallet which will sign the generated transaction.
 data TxSkel = TxSkel
-  { txSigners     :: Wallet
+  { txMainSigner  :: Wallet
   , txConstraints :: [Constraint]
   }
 
@@ -105,5 +105,8 @@ data TxSkel = TxSkel
 --
 -- See "Cooked.Tx.Balance" for balancing capabilities or stick to
 -- 'generateTx', which generates /and/ balances a transaction.
-generateUnbalTx :: TxSkel -> Either Pl.MkTxError Pl.UnbalancedTx
-generateUnbalTx = uncurry Pl.mkTx . toLedgerConstraints @Void . txConstraints
+generateUnbalTx :: TxSkel -> Either Pl.MkTxError (Pl.UnbalancedTx, [Wallet])
+generateUnbalTx sk =
+  let (lkups, constrs, wals) = toLedgerConstraints @Void $ txConstraints sk in
+  let txUnsigned = Pl.mkTx lkups constrs in
+  second (, txMainSigner sk : wals) txUnsigned

@@ -16,7 +16,7 @@ import qualified Ledger.Index       as Pl
 import qualified Ledger.Scripts     as Pl
 import qualified Ledger.Constraints as Pl
 import           Ledger.Orphans     ()
-
+import qualified PlutusTx.Prelude   as Pl
 import Cooked.MockChain.Wallet
 
 -- * Direct Emulation
@@ -74,6 +74,15 @@ instance (Monad m) => Monad (MockChainT m) where
       xres <- x
       modify (\st -> st { mcstSlotCtr = mcscIncrease (mcstSlotCtr st) })
       unMockChain (f xres)
+
+instance (Functor m) => Pl.Functor (MockChainT m) where
+  fmap = (<$>)
+
+instance (Monad m) => Pl.Applicative (MockChainT m) where
+  pure = return
+  mf <*> ma = do
+    f <- mf
+    f <$> ma
 
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith

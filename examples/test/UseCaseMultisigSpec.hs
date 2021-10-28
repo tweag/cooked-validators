@@ -19,6 +19,8 @@ import qualified PlutusTx
 import qualified Plutus.V1.Ledger.Scripts as Scripts
 import qualified Ledger.Typed.Scripts     as TScripts
 
+import qualified Prelude as Haskell
+
 import Cooked.MockChain
 import Cooked.Traces
 import Cooked.Tx.Constraints
@@ -36,18 +38,20 @@ run1 =
     -- Everyone deposits 1000
     (validateTxFromSkeleton . TxSkel
       (wallet 1) . mconcat) =<< sequence
-      [ spentByPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 1000)
-      , spentByPK (walletPKHash $ wallet 4) (Ada.lovelaceValueOf 1000)
+      [ spentByPK (walletPKHash $ wallet 4) (Ada.lovelaceValueOf 1000)
       , spentByPK (walletPKHash $ wallet 5) (Ada.lovelaceValueOf 1000)
-      , spentByPK (walletPKHash $ wallet 6) (Ada.lovelaceValueOf 1000)
+      , spentByPK (walletPKHash $ wallet 7) (Ada.lovelaceValueOf 1000)
       , return
-          [PaysScript multiVal [((), Ada.lovelaceValueOf 4000)]
+          [ PaysScript multiVal [((), Ada.lovelaceValueOf 4000)]
+          , SignedBy (map wallet [1,4,5,7])
           ]
       ]
-    -- [(out, dat)] <- scriptUtxosSuchThat multiVal (\_ _ -> True)
     -- We then pay wallet 2 with this money
-    -- validateTxFromSkeleton $ TxSkel
-    --   (wallet 1)
-    --   [ SpendsScript multiVal () (out, dat)
-    --   , PaysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 2500)
-    --   ]
+    [(out, dat)] <- scriptUtxosSuchThat multiVal (\_ _ -> True)
+    validateTxFromSkeleton $ TxSkel
+      (wallet 1)
+      [ SpendsScript multiVal () (out, dat)
+      , PaysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 2500)
+      , PaysScript multiVal [((), Ada.lovelaceValueOf 1500)]
+      , SignedBy (map wallet [1,2,4,7]) -- Wallet 2 was not allowed to sign, but they did it no matter
+      ]

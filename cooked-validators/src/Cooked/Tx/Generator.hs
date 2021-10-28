@@ -21,8 +21,10 @@ import Cooked.Tx.Constraints
 generateTx :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
 generateTx skel =
   case generateUnbalTx skel of
-    Left err   -> throwError $ MCETxError err
-    Right ubtx -> txAddSignature (txSigners skel) <$> balanceTxFrom (txSigners skel) ubtx
+    Left err                 -> throwError $ MCETxError err
+    Right (ubtx, allSigners) -> do
+      balancedTx <- balanceTxFrom (txMainSigner skel) ubtx
+      return $ foldl (flip txAddSignature) balancedTx allSigners
 
 -- |Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (Monad m) => TxSkel -> MockChainT m ()
