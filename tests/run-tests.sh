@@ -7,5 +7,5 @@ hpack examples/
 cd cooked-validators
 cabal run tests
 
-cd examples
+cd ../examples
 cabal run tests

@@ -12,6 +12,9 @@ jobs:
         uses: cachix/install-nix-action@v13
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+      - name: Cabal update
+        run: |
+          cabal update
       - name: Chmod test script
         run: |
           chmod u+x tests/run-tests.sh
