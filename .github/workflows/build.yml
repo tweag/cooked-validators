@@ -18,6 +18,7 @@ jobs:
           path: |
             ~/.cabal/store
             dist-newstyle
+            /nix/store
           key: cabal
       - name: Cabal update.
         run: |
