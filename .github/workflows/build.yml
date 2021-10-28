@@ -14,6 +14,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: Cabal update
         run: |
+          cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
           cabal update
       - name: Chmod test script
         run: |
