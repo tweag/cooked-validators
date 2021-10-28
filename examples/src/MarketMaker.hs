@@ -20,7 +20,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import qualified Ledger.Contexts as Validation
+import qualified Ledger.Contexts as Contexts
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import qualified Ledger.Tx as Tx
@@ -50,7 +50,7 @@ newtype MarketDatum = MarketDatum
 data MarketRedeemer = Buy | Sell
 
 -- Validator
-validateMarket :: MarketParams -> MarketDatum -> MarketRedeemer -> Validation.ScriptContext -> Bool
+validateMarket :: MarketParams -> MarketDatum -> MarketRedeemer -> Contexts.ScriptContext -> Bool
 
 validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Buy context =
   traceIfFalse
@@ -60,7 +60,7 @@ validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Buy conte
     "Market equation is not respected"
     (nbAsset * adaPaid == constant * nbAssetBought)
   where
-    info = Validation.scriptContextTxInfo context
+    info = Contexts.scriptContextTxInfo context
     Just newDatum = findDatumFromOutputWithAsset nft info
     Just seller = findTheInputWithAsset asset info
     nbAssetBought =
@@ -70,60 +70,103 @@ validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Buy conte
     adaPaid = Ada.getLovelace . Ada.fromValue $ valuePaid
 
 validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Sell context =
-  traceIfFalse
-    "Datum (nb of tokens in stock) is not well updated"
-    (datumNbAsset newDatum == nbAsset - nbAssetSold) &&
-  traceIfFalse
-    "Market equation is not respected"
-    (nbAsset * adaReceived == constant * nbAssetSold)
-  where
-    info = Validation.scriptContextTxInfo context
-    Just newDatum = findDatumFromOutputWithAsset nft info
-    Just buyer = findTheOutputWithAsset asset info
-    nbAssetSold =
-      let (currencySymbol, tokenName) = Value.unAssetClass asset in
-      Value.valueOf (Tx.txOutValue buyer) currencySymbol tokenName
-    valueReceived = Tx.txOutValue buyer
-    adaReceived = Ada.getLovelace . Ada.fromValue $ valueReceived
+  let info = Contexts.scriptContextTxInfo context in
+  case findNewDatum nft info of
+    Nothing -> traceError "No script output with the NFT and datum."
+    Just newDatum ->
+      case findBuyerInputOutput nft asset info of
+        Nothing -> traceError "No buyer input or output."
+        Just (buyerInput, buyerOutput) ->
+          traceIfFalse
+            "Datum (nb of tokens in stock) is not well updated"
+            (datumNbAsset newDatum == nbAsset - nbAssetSold) &&
+          traceIfFalse
+            "Market equation is not respected"
+            (nbAsset * adaReceived == constant * nbAssetSold)
+          where
+            adaReceived = Ada.getLovelace . Ada.fromValue . Tx.txOutValue $ buyerInput
+            (currencySymbol, tokenName) = Value.unAssetClass asset
+            nbAssetSold = Value.valueOf (Tx.txOutValue buyerOutput) currencySymbol tokenName
 
 -- Helpers
-{-# INLINEABLE hasAsset #-}
-hasAsset :: Value.AssetClass -> Ledger.TxOut -> Bool
-hasAsset asset txO = Value.assetClassValueOf (Ledger.txOutValue txO) asset > 0
-
 {-# INLINEABLE isInExactlyOneInput #-}
-isInExactlyOneInput :: Value.AssetClass -> Validation.TxInfo -> Bool
+isInExactlyOneInput :: Value.AssetClass -> Contexts.TxInfo -> Bool
 isInExactlyOneInput asset info =
-  case filter (hasAsset asset) $ Validation.txInfoOutputs info of
+  case filter (hasAsset asset) $ Contexts.txInfoOutputs info of
     [_] -> True
     _ -> False
 
 {-# INLINEABLE findTheInputWithAsset #-}
-findTheInputWithAsset :: Value.AssetClass -> Validation.TxInfo -> Maybe Ledger.TxOut
+findTheInputWithAsset :: Value.AssetClass -> Contexts.TxInfo -> Maybe Ledger.TxOut
 findTheInputWithAsset asset info =
-  case filter (hasAsset asset) $ Validation.txInInfoResolved <$> Validation.txInfoInputs info of
+  case filter (hasAsset asset) $ Contexts.txInInfoResolved <$> Contexts.txInfoInputs info of
     [o] -> Just o
     _ -> Nothing
 
 {-# INLINEABLE findTheOutputWithAsset #-}
-findTheOutputWithAsset :: Value.AssetClass -> Validation.TxInfo -> Maybe Ledger.TxOut
+findTheOutputWithAsset :: Value.AssetClass -> Contexts.TxInfo -> Maybe Ledger.TxOut
 findTheOutputWithAsset asset info =
-  case filter (hasAsset asset) $ Validation.txInfoOutputs info of
+  case filter (hasAsset asset) $ Contexts.txInfoOutputs info of
     [o] -> Just o
     _ -> Nothing
 
-{-# INLINEABLE findDatumFromOutput #-}
-findDatumFromOutput :: (PlutusTx.FromData a) => Ledger.TxOut -> Validation.TxInfo -> Maybe a
-findDatumFromOutput output info = do
-  datHash <- Validation.txOutDatumHash output
-  dat <- Validation.findDatum datHash info
-  PlutusTx.fromBuiltinData $ Ledger.getDatum dat
-
 {-# INLINEABLE findDatumFromOutputWithAsset #-}
-findDatumFromOutputWithAsset :: (PlutusTx.FromData a) => Value.AssetClass -> Validation.TxInfo -> Maybe a
+findDatumFromOutputWithAsset :: (PlutusTx.FromData a) => Value.AssetClass -> Contexts.TxInfo -> Maybe a
 findDatumFromOutputWithAsset asset info = do
   output <- findTheOutputWithAsset asset info
   findDatumFromOutput output info
+
+{-# INLINEABLE findDatumFromOutput #-}
+findDatumFromOutput :: (PlutusTx.FromData a) => Ledger.TxOut -> Contexts.TxInfo -> Maybe a
+findDatumFromOutput output info = do
+  datHash <- Contexts.txOutDatumHash output
+  dat <- Contexts.findDatum datHash info
+  PlutusTx.fromBuiltinData $ Ledger.getDatum dat
+
+{-# INLINEABLE hasAsset #-}
+hasAsset :: Value.AssetClass -> Ledger.TxOut -> Bool
+hasAsset asset txO = Value.assetClassValueOf (Ledger.txOutValue txO) asset > 0
+
+{-# INLINEABLE hasAddress #-}
+hasAddress :: Ledger.Address -> Ledger.TxOut -> Bool
+hasAddress address = (== address) . Ledger.txOutAddress
+
+{-# INLINEABLE hasNotAsset #-}
+hasNotAsset :: Value.AssetClass -> Ledger.TxOut -> Bool
+hasNotAsset asset txO = Value.assetClassValueOf (Ledger.txOutValue txO) asset == 0
+
+{-# INLINEABLE inputSuchThat #-}
+inputSuchThat :: (Ledger.TxOut -> Bool) -> Contexts.TxInfo -> Maybe Ledger.TxOut
+inputSuchThat condition =
+  uniqueElement .
+  filter condition .
+  map Contexts.txInInfoResolved .
+  Contexts.txInfoInputs
+
+{-# INLINEABLE outputSuchThat #-}
+outputSuchThat :: (Ledger.TxOut -> Bool) -> Contexts.TxInfo -> Maybe Ledger.TxOut
+outputSuchThat condition =
+  uniqueElement .
+  filter condition .
+  Contexts.txInfoOutputs
+
+{-# INLINEABLE findScriptOutput #-}
+findScriptOutput :: Value.AssetClass -> Contexts.TxInfo -> Maybe Ledger.TxOut
+findScriptOutput nftClass =
+  outputSuchThat (hasAsset nftClass)
+
+{-# INLINEABLE findNewDatum #-}
+findNewDatum :: (PlutusTx.FromData a) => Value.AssetClass -> Contexts.TxInfo -> Maybe a
+findNewDatum nftClass info = do
+  scriptOutput <- findScriptOutput nftClass info
+  findDatumFromOutput scriptOutput info
+
+{-# INLINEABLE findBuyerInputOutput #-}
+findBuyerInputOutput :: Value.AssetClass -> Value.AssetClass -> Contexts.TxInfo -> Maybe (Ledger.TxOut, Ledger.TxOut)
+findBuyerInputOutput nftClass assetClass info = do
+  buyerOutput <- outputSuchThat (\tx -> hasAsset nftClass tx && hasNotAsset assetClass tx) info
+  buyerInput <- inputSuchThat (hasAddress (Ledger.txOutAddress buyerOutput)) info
+  return (buyerInput, buyerOutput)
 
 -- Plutus boilerplate
 
