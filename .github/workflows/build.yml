@@ -17,9 +17,15 @@ jobs:
         with:
           path: |
             ~/.cabal/store
+          key: cabal
+      - name: Accessing the cache.
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cabal/store
             dist-newstyle
             /nix/store
-          key: cabal
+          key: cabal-nix
       - name: Cabal update.
         run: |
           cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
