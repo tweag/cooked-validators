@@ -12,20 +12,16 @@ jobs:
         uses: cachix/install-nix-action@v13
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - name: Cabal update
-        run: |
-          cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
-          cabal update
-      - name: Freezing to identify cache
-        run: cabal freeze
       - name: Accessing the cache
         uses: actions/cache@v2
         with:
           path: |
-            dist-newstyle
-          key: cabal-${{ hashFiles('cabal.project.freeze') }}
-          restore-keys: |
-            cabal-
+            ~/.cabal/store
+          key: cabal
+      - name: Cabal update
+        run: |
+          cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
+          cabal update
       - name: Chmod test script
         run: |
           chmod u+x tests/run-tests.sh
