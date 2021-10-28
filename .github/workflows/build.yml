@@ -16,6 +16,16 @@ jobs:
         run: |
           cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
           cabal update
+      - name: Freezing to identify cache
+        run: cabal freeze
+      - name: Accessing the cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            dist-newstyle
+          key: cabal-${{ hashFiles('cabal.project.freeze') }}
+          restore-keys: |
+            cabal-
       - name: Chmod test script
         run: |
           chmod u+x tests/run-tests.sh
