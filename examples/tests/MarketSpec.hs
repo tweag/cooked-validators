@@ -137,7 +137,7 @@ run1 = do
     -- validateTxFromSkeleton $ TxSkel
     --   (wallet 2)
     --   [ SpendsScript marketValidator Market.Buy (output, datum)
-    --   , PaysScript marketValidator [(Market.MarketDatum 44, oneNft <> coins (9 + 36) <> ada 1500)]
+    --   , PaysScript marketValidator [(Market.MarketDatum 45, oneNft <> coins (9 + 36) <> ada 1500)]
     --   , PaysPK (walletPKHash (wallet 2)) (ada 1250 <> coins 1)
     --   ]
   
