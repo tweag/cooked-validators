@@ -12,7 +12,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | A market maker script that trades some asset in exchange of Ada according
--- to an exchange rate specified by and equation involving the current stock of
+-- to an exchange rate specified by and equation involving the current pool of
 -- asset detained by the market maker.
 module MarketMaker where
 
@@ -68,7 +68,7 @@ validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Buy conte
         Just (MarketDatum newAssetNb) ->
           -- Check that the datum evolves to account for the new quantity of
           -- assets gained through the buying by the market maker.
-          traceIfFalse "Datum (nb of tokens in stock) is not well updated."
+          traceIfFalse "Datum (nb of tokens in store) is not well updated."
             (newAssetNb == nbAsset + nbAssetBought)
           -- Check that the Ada spent by the market maker to buy the assets is
           -- in line with the current price per asset specified by the market
@@ -97,7 +97,7 @@ validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Sell cont
         Just (MarketDatum newAssetNb) ->
           -- Check that the datum evolves to account for the new quantity of
           -- assets gained through the buying by the market maker.
-          traceIfFalse "Datum (nb of tokens in stock) is not well updated."
+          traceIfFalse "Datum (nb of tokens in store) is not well updated."
             (newAssetNb == nbAsset - nbAssetSold)
           -- Check that the Ada spent by the buyer to buy the assets is in line
           -- with the current price per asset specified by the market maker
