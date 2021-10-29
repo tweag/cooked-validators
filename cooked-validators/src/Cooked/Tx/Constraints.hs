@@ -7,11 +7,9 @@ module Cooked.Tx.Constraints where
 import           Data.Void
 import qualified Data.Map as M
 import Data.Bifunctor ( Bifunctor(second) )
-import Data.Functor.Identity (runIdentity)
 
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
 
@@ -43,6 +41,7 @@ data Constraint where
 
   -- TODO: add more constraints
 
+spentByPK :: Monad m => Pl.PubKeyHash -> Pl.Value -> MockChainT m [Constraint]
 spentByPK pkh val = do
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
