@@ -120,26 +120,27 @@ run1 = do
       ]
 
     -- Transaction 2: the market sells 4 coins to wallet 3
-    -- A golden coin is now worth 125 Ada
-    -- The market output has also 1000 Ada to be given back
+    -- A golden coin is now worth 125 Ada (500 for 4 coins)
+    -- The market output has also 1000 Ada to be given back (so 1500 in total)
     [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
     validateTxFromSkeleton $ TxSkel
       (wallet 3)
       [ SpendsScript marketValidator Market.Sell (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 36, ada (1000 + 4 * 125) <> oneNft <> coins 36)]
+      , PaysScript marketValidator [(Market.MarketDatum 36, ada 1500 <> oneNft <> coins 36)]
       , PaysPK (walletPKHash (wallet 3)) (coins 4)
       ]
 
-    -- -- Transaction 3: the market buys 9 coins to wallet 2
-    -- -- A golden coin is now worth 1250/9
-    -- -- The market output has also 1500 ada and 36 golden coins to be given back
-    -- [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
-    -- validateTxFromSkeleton $ TxSkel
-    --   (wallet 2)
-    --   [ SpendsScript marketValidator Market.Buy (output, datum)
-    --   , PaysScript marketValidator [(Market.MarketDatum 45, oneNft <> coins (9 + 36) <> ada 1500)]
-    --   , PaysPK (walletPKHash (wallet 2)) (ada 1250 <> coins 1)
-    --   ]
+    -- Transaction 3: the market buys 9 coins to wallet 2
+    -- A golden coin is now worth 1250/9
+    -- The market output had 1500 ada and 36 golden coins
+    -- so that's 250 ada and 45 coins to give back
+    [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
+    validateTxFromSkeleton $ TxSkel
+      (wallet 2)
+      [ SpendsScript marketValidator Market.Buy (output, datum)
+      , PaysScript marketValidator [(Market.MarketDatum 45, oneNft <> coins 45 <> ada 250)]
+      , PaysPK (walletPKHash (wallet 2)) (ada 1250 <> coins 1)
+      ]
   
 -- Test spec
 spec :: Spec

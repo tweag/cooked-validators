@@ -61,9 +61,6 @@ validateMarket (MarketParams nft asset constant) (MarketDatum nbAsset) Buy conte
             (newAssetNb == nbAsset + nbAssetBought)
             && traceIfFalse
               "Market equation is not respected."
-              -- FIXME:
-              -- (adaSpentByScript == 0)
-              -- this holds for the last transaction in the example run
               (nbAsset * adaSpentByScript == constant * nbAssetBought)
           where
             sellerInputs = inputsSuchThat (hasNotAsset nft) info
