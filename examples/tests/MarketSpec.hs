@@ -20,16 +20,20 @@ import qualified MarketMaker as Market
 
 import Test.Hspec
 
--- Parameters of the tests
+-- Parameters of the tests -----
 
-nbCoinsInit :: Integer
-nbCoinsInit = 50
+-- Some coins for the market
+nbCoinsMarketInit :: Integer
+nbCoinsMarketInit = 50
 
-adaForACoinInit :: Integer
-adaForACoinInit = 100
+-- Some coins for a wallet
+nbCoinsWalletInit :: Integer
+nbCoinsWalletInit = 10
 
 constant :: Integer
-constant = nbCoinsInit * adaForACoinInit
+constant = 5000
+
+--------------------------------
 
 mParams :: Maybe Market.MarketParams
 mParams = do
@@ -53,8 +57,10 @@ mPolicy = do
   txInputToSpendRef <- txInputToSpendRef
   return $ Currency.curPolicy $
     Currency.OneShotCurrency
-      txInputToSpendRef -- Reference to tx input to be spent when minting
-      (AssocMap.fromList [(nftName, 1), (coinsName, nbCoinsInit)]) -- How many to mint: 1
+      -- Reference to tx input to be spent when minting
+      txInputToSpendRef
+      -- How many to mint
+      (AssocMap.fromList [(nftName, 1), (coinsName, nbCoinsMarketInit + nbCoinsWalletInit)])
   where
     mTxInputToSpendRef = either (const Nothing) (Just . fst) eitherTxRef
     eitherTxRef = runMockChain $ do
@@ -89,44 +95,51 @@ run1 = do
   let coins = Value.assetClassValue coinsAssetClass
   let ada = Ada.lovelaceValueOf
 
-  let initialValue = oneNft <> coins nbCoinsInit
-  let initialDatum = Market.MarketDatum nbCoinsInit
   return . runMockChain $ do
 
     -- Transaction 0: minting
+    -- Wallet 1 mints the nft and coins and shares it among the market and wallet 2
     validateTxFromSkeleton $ TxSkel
       (wallet 1)
       [ PaysPK (walletPKHash $ wallet 1) mempty
-      , Mints [policy] initialValue
-      , PaysScript marketValidator [(initialDatum, initialValue)]
+      , Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit))
+      , PaysScript marketValidator
+        [ (Market.MarketDatum nbCoinsMarketInit
+        , oneNft <> coins nbCoinsMarketInit) ]
+      , PaysPK (walletPKHash $ wallet 2) (coins nbCoinsWalletInit)
       ]
 
     -- Transaction 1: the market sells 10 coins to wallet 2
+    -- A golden coin is worth 100 Ada
     [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
     validateTxFromSkeleton $ TxSkel
       (wallet 2)
       [ SpendsScript marketValidator Market.Sell (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 40, ada 1000 <> oneNft <> coins 40)]
+      , PaysScript marketValidator [(Market.MarketDatum 40, oneNft <> ada 1000 <> coins 40)]
       , PaysPK (walletPKHash (wallet 2)) (coins 10)
       ]
 
     -- Transaction 2: the market sells 4 coins to wallet 3
+    -- A golden coin is now worth 125 Ada
+    -- The market output has also 1000 Ada to be given back
     [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
     validateTxFromSkeleton $ TxSkel
       (wallet 3)
       [ SpendsScript marketValidator Market.Sell (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 36, ada (4 * 125) <> oneNft <> coins 36)]
+      , PaysScript marketValidator [(Market.MarketDatum 36, ada (1000 + 4 * 125) <> oneNft <> coins 36)]
       , PaysPK (walletPKHash (wallet 3)) (coins 4)
       ]
 
-    -- Transaction 3: the market buys 8 coins to wallet 2
-    [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
-    validateTxFromSkeleton $ TxSkel
-      (wallet 2)
-      [ SpendsScript marketValidator Market.Buy (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 44, oneNft <> coins 8)]
-      , PaysPK (walletPKHash (wallet 2)) (ada 1350)
-      ]
+    -- -- Transaction 3: the market buys 9 coins to wallet 2
+    -- -- A golden coin is now worth 1250/9
+    -- -- The market output has also 1500 ada and 36 golden coins to be given back
+    -- [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
+    -- validateTxFromSkeleton $ TxSkel
+    --   (wallet 2)
+    --   [ SpendsScript marketValidator Market.Buy (output, datum)
+    --   , PaysScript marketValidator [(Market.MarketDatum 44, oneNft <> coins (9 + 36) <> ada 1500)]
+    --   , PaysPK (walletPKHash (wallet 2)) (ada 1250 <> coins 1)
+    --   ]
   
 -- Test spec
 spec :: Spec
