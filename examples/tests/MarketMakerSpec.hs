@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE NoImplicitPrelude     #-}
 
-module MarketSpec where
+module MarketMakerSpec where
 
 import qualified Ledger
 import qualified Ledger.Ada                as Ada
@@ -20,37 +20,49 @@ import qualified MarketMaker as Market
 
 import Test.Hspec
 
--- Parameters of the tests -----
+-- Parameters of the test runs -----
 
--- Some coins for the market
+-- | Some coins for the market initial stock
 nbCoinsMarketInit :: Integer
 nbCoinsMarketInit = 50
 
--- Some coins for a wallet
+-- | Some initial coins for on of the wallets (to vary situations and make it
+-- possible to define runs where the market maker can start by buying some
+-- assets).
 nbCoinsWalletInit :: Integer
 nbCoinsWalletInit = 10
 
 constant :: Integer
 constant = 5000
 
---------------------------------
+--------------------------------------------------------------------------------
 
+-- In the following, there are a lot of "Maybe" arising from the fact that the
+-- script is parameteried by NFT and coins token classes whose policies have to
+-- be initialized first individually in each run.
+
+-- | Parameters to initialize the market maker validator
 mParams :: Maybe Market.MarketParams
 mParams = do
   nftAssetClass <- mNftAssetClass
   coinsAssetClass <- mCoinsAssetClass
   return $ Market.MarketParams nftAssetClass coinsAssetClass constant
 
+-- | The market maker validator
 mMarketValidator :: Maybe (TScripts.TypedValidator Market.Market)
 mMarketValidator = Market.marketValidator <$> mParams
 
--- Minting policy
+-- | Name of the market maker NFT
 nftName :: Value.TokenName
 nftName = Value.TokenName "MarketNFT"
 
+-- | Name of the market maker exchanged asset (the coins)
 coinsName :: Value.TokenName
 coinsName = Value.TokenName "GoldenCoins"
 
+-- | Minting policy for both the NFT and exchanged assets (the coins)
+-- It is a one shot minting policy that produces 1 NFT and some coins once and
+-- for all.
 mPolicy :: Maybe TScripts.MintingPolicy
 mPolicy = do
   txInputToSpendRef <- mTxInputToSpendRef
@@ -69,21 +81,52 @@ mPolicy = do
         [(Contexts.TxOutRef txId i, _)] -> return (Just (txId, i))
         _ -> return Nothing
 
+-- | Currency symbol: hash of the minting policy
 mCurrencySymbol :: Maybe Ledger.CurrencySymbol
 mCurrencySymbol = Contexts.scriptCurrencySymbol <$> mPolicy
 
+-- | NFT asset class (currency symbol and nft name)
 mNftAssetClass :: Maybe Ledger.AssetClass
 mNftAssetClass = do
   nftCurrencySymbol <- mCurrencySymbol
   return $ Value.assetClass nftCurrencySymbol nftName
 
+-- | Coins asset class (currency symbol and coins name)
 mCoinsAssetClass :: Maybe Ledger.AssetClass
 mCoinsAssetClass = do
   nftCurrencySymbol <- mCurrencySymbol
   return $ Value.assetClass nftCurrencySymbol coinsName
 
--- Example run
+-- | Parameters of a run (after initialization of the minting policy)
+data RunParams = RunParams
+  { runParamsMarketValidator :: TScripts.TypedValidator Market.Market
+  , runParamsNftClass        :: Ledger.AssetClass
+  , runParamsCoinsClass      :: Ledger.AssetClass }
 
+-- | Parameters of a market transaction: that is how much Ada and coins the
+-- transaction will give to the wallet and the market maker in the end.
+data MarketTxParams = MarketTxParams
+  { marketTxParamsWalletAda        :: Integer
+  , marketTxParamsWalletCoins      :: Integer
+  , marketTxParamsMarketMakerAda   :: Integer
+  , marketTxParamsMarketMakerCoins :: Integer }
+
+-- | Template of a transaction
+marketTx :: Market.MarketRedeemer -> Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams validator nftClass coinsClass) = do
+  let ada = Ada.lovelaceValueOf
+  let coins = Value.assetClassValue coinsClass
+  let oneNft = Value.assetClassValue nftClass 1
+  [(output, datum)] <- scriptUtxosSuchThat validator (\_ _ -> True)
+  validateTxFromSkeleton $ TxSkel wIssuer
+    [ SpendsScript validator redeemer (output, datum)
+    , PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)]
+    , PaysPK (walletPKHash wIssuer) (ada wAda <> coins wCoins) ]
+
+marketSell = marketTx Market.Sell 
+marketBuy = marketTx Market.Buy 
+
+-- | Example run
 run1 :: Maybe (Either MockChainError ((), UtxoState))
 run1 = do
   marketValidator     <- mMarketValidator
@@ -94,6 +137,8 @@ run1 = do
 
   let coins = Value.assetClassValue coinsAssetClass
   let ada = Ada.lovelaceValueOf
+
+  let runParams = RunParams marketValidator nftAssetClass coinsAssetClass
 
   return . runMockChain $ do
 
@@ -111,36 +156,19 @@ run1 = do
 
     -- Transaction 1: the market sells 10 coins to wallet 2
     -- A golden coin is worth 100 Ada
-    [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
-    validateTxFromSkeleton $ TxSkel
-      (wallet 2)
-      [ SpendsScript marketValidator Market.Sell (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 40, oneNft <> ada 1000 <> coins 40)]
-      , PaysPK (walletPKHash (wallet 2)) (coins 10)
-      ]
+    -- 40 coins remain in the market maker
+    marketBuy (wallet 2) (MarketTxParams 0 10 1000 40) runParams
 
     -- Transaction 2: the market sells 4 coins to wallet 3
     -- A golden coin is now worth 125 Ada (500 for 4 coins)
     -- The market output has also 1000 Ada to be given back (so 1500 in total)
-    [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
-    validateTxFromSkeleton $ TxSkel
-      (wallet 3)
-      [ SpendsScript marketValidator Market.Sell (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 36, ada 1500 <> oneNft <> coins 36)]
-      , PaysPK (walletPKHash (wallet 3)) (coins 4)
-      ]
+    marketBuy (wallet 3) (MarketTxParams 0 4 1500 36) runParams
 
     -- Transaction 3: the market buys 9 coins to wallet 2
     -- A golden coin is now worth 1250/9
     -- The market output had 1500 ada and 36 golden coins
     -- so that's 250 ada and 45 coins to give back
-    [(output, datum)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
-    validateTxFromSkeleton $ TxSkel
-      (wallet 2)
-      [ SpendsScript marketValidator Market.Buy (output, datum)
-      , PaysScript marketValidator [(Market.MarketDatum 45, oneNft <> coins 45 <> ada 250)]
-      , PaysPK (walletPKHash (wallet 2)) (ada 1250 <> coins 1)
-      ]
+    marketSell (wallet 2) (MarketTxParams 1250 1 250 45) runParams
   
 -- Test spec
 spec :: Spec
