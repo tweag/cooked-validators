@@ -39,7 +39,7 @@ run1 =
   runMockChain $ do
     -- Everyone deposits 1000
     (validateTxFromSkeleton . TxSkel
-      (wallet 1) . mconcat) =<< sequence
+      (wallet 1) . mconcat) =<< Haskell.sequence
       [ spentByPK (walletPKHash $ wallet 4) (Ada.lovelaceValueOf 1000)
       , spentByPK (walletPKHash $ wallet 5) (Ada.lovelaceValueOf 1000)
       , spentByPK (walletPKHash $ wallet 7) (Ada.lovelaceValueOf 1000)

@@ -85,15 +85,6 @@ instance (Monad m) => Monad (MockChainT m) where
       modify (\st -> st { mcstSlotCtr = mcscIncrease (mcstSlotCtr st) })
       unMockChain (f xres)
 
-instance (Functor m) => Pl.Functor (MockChainT m) where
-  fmap = (<$>)
-
-instance (Monad m) => Pl.Applicative (MockChainT m) where
-  pure = return
-  mf <*> ma = do
-    f <- mf
-    f <$> ma
-
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
