@@ -43,6 +43,7 @@ import qualified Ledger.Typed.Scripts  as Scripts
 import qualified PlutusTx
 import           PlutusTx.Prelude      hiding (Applicative (..))
 import qualified Plutus.V2.Ledger.Api  as Api
+import qualified Plutus.V1.Ledger.Value as Value
 
 import           Schema                (ToSchema)
 
@@ -139,23 +140,33 @@ validatePayment _           Sign {} _ ctx = traceIfFalse "Should have only one A
 -- 2. If there are enough signatures:
 --    the single output contains no datum (so the accumulated signatures are consumed),
 --    and it transfers exactly as much as the Payment proclaims.
-validatePayment Params {..} (Accumulator payment signees) _ ctx
+validatePayment params@Params {..} (Accumulator payment signees) _ ctx
   | length signees >= pmspRequiredSigs = validatePayout
   | otherwise = validateAcc
   where
     txInfo = scriptContextTxInfo ctx
 
     validatePayout
-      | [Api.TxOut _ outVal Nothing] <- txInfoOutputs txInfo = outVal == Ada.lovelaceValueOf (paymentAmount payment)
+      | [Api.TxOut outAddr outVal Nothing] <- txInfoOutputs txInfo = outVal == Ada.lovelaceValueOf (paymentAmount payment)
+                                                                  -- /\ This also ensures there is no token in the output
+                                                                  && outAddr == Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
+                                                                  && verifyInAccThreadToken True
       | otherwise = False
 
     validateAcc
-      | [Api.TxOut outAddr outVal (Just dh)] <- txInfoOutputs txInfo
-      , Just (Accumulator payment' signees') <- findDatumByHash txInfo dh = outVal == Ada.lovelaceValueOf 0
-                                                                         && outAddr == Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
+      | [Api.TxOut _ outVal (Just dh)] <- txInfoOutputs txInfo
+      , Just (Accumulator payment' signees') <- findDatumByHash txInfo dh = Value.valueOf outVal Api.adaSymbol Api.adaToken == 0
+                                                                         && Value.valueOf outVal (threadTokenSymbol params) threadTokenName == 1
+                                                                         && verifyInAccThreadToken (not $ null signees')
                                                                          && payment == payment'
                                                                          && verifySignees signees'
       | otherwise = False
+
+    verifyInAccThreadToken shallExist = inputTokens == if shallExist then 1 else 0
+      where
+        inputTokens = sum $ tokenVal <$> txInfoInputs txInfo
+        tokenVal :: Api.TxInInfo -> Integer
+        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) = Value.valueOf outVal (threadTokenSymbol params) threadTokenName
 
     verifySignees signees' = uniqueSignees' == signees'                     -- no duplicates in the output
                           && uniqueSignees' == nub (signees <> newSignees)  -- the new signatures set is the union of the existing sigs and the added ones
@@ -198,3 +209,13 @@ pmultisig = Scripts.mkTypedValidatorParam @PMultiSig
 
 pmultisigAddr :: Params -> Ledger.Address
 pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
+
+
+threadTokenPolicy :: Params -> Scripts.MintingPolicy
+threadTokenPolicy = Scripts.mkForwardingMintingPolicy . Ledger.validatorHash . Scripts.validatorScript . pmultisig
+
+threadTokenSymbol :: Params -> Api.CurrencySymbol
+threadTokenSymbol = Validation.scriptCurrencySymbol . threadTokenPolicy
+
+threadTokenName :: Value.TokenName
+threadTokenName = Value.tokenName "threadToken"

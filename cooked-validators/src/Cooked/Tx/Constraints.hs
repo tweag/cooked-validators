@@ -5,7 +5,7 @@
 module Cooked.Tx.Constraints where
 
 import           Data.Void
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Data.Bifunctor ( Bifunctor(second) )
 
 import qualified Ledger as Pl hiding (unspentOutputs)

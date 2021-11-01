@@ -1,12 +1,13 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StrictData                 #-}
 module Cooked.MockChain.Base where
 
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import           Control.Arrow (second)
 import           Control.Monad.Identity
 import           Control.Monad.Except
-import           Control.Monad.State
+import           Control.Monad.State.Strict
 
 import qualified Ledger.Address     as Pl
 import qualified Ledger.Blockchain  as Pl
@@ -81,7 +82,7 @@ instance (Monad m) => Monad (MockChainT m) where
   MockChainT x >>= f =
     MockChainT $ do
       xres <- x
-      modify (\st -> st { mcstSlotCtr = mcscIncrease (mcstSlotCtr st) })
+      modify' (\st -> st { mcstSlotCtr = mcscIncrease (mcstSlotCtr st) })
       unMockChain (f xres)
 
 instance (Monad m) => MonadFail (MockChainT m) where

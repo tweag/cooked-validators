@@ -1,7 +1,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 module Cooked.MockChain.Wallet where
 
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 
 import qualified Ledger                as Pl
 import qualified Ledger.Ada            as Pl

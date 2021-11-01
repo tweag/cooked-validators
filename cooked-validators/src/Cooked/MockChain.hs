@@ -27,7 +27,7 @@ module Cooked.MockChain (
   ) where
 
 import           Data.Void
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import           Data.Maybe (mapMaybe, catMaybes, fromJust)
 import           Control.Arrow (second)
@@ -71,10 +71,10 @@ validateTx tx = do
       let consumedIns = map Pl.txInRef $ S.toList (Pl.txInputs tx) ++ S.toList (Pl.txCollateral tx)
       consumedDHs <- catMaybes <$> mapM (fmap Pl.txOutDatumHash . outFromOutRef) consumedIns
       let consumedDHs' = M.fromList $ zip consumedDHs (repeat ())
-      modify (\st -> st { mcstIndex = ix'
-                        , mcstDatums = (mcstDatums st `M.difference` consumedDHs')
-                                       `M.union` Pl.txData tx
-                        })
+      modify' (\st -> st { mcstIndex = ix'
+                         , mcstDatums = (mcstDatums st `M.difference` consumedDHs')
+                                        `M.union` Pl.txData tx
+                         })
 
 -- * Selecting UTxO's
 
