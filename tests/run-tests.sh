@@ -1,6 +1,10 @@
 #! /bin/bash
 set -uo pipefail
 
+cd examples
+hpack
+cd ..
+
 cd cooked-validators
 hpack
 cabal build
