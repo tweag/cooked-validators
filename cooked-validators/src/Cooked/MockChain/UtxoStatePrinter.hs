@@ -11,7 +11,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.AssocMap as Pl
-import Prettyprinter (Doc)
+import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter
 
 prettyCurrencyAndAmount ::
@@ -42,6 +42,7 @@ prettyCurrencyAndAmount (symbol, amountMap) =
 -- the API does not expose the constructors to pattern match.
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash a =
+
   case Pl.toPubKeyHash a of
     Nothing ->
       case Pl.toValidatorHash a of
