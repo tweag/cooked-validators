@@ -42,7 +42,6 @@ prettyCurrencyAndAmount (symbol, amountMap) =
 -- the API does not expose the constructors to pattern match.
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash a =
-
   case Pl.toPubKeyHash a of
     Nothing ->
       case Pl.toValidatorHash a of
