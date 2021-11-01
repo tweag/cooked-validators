@@ -34,11 +34,12 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- are added to the inputs.
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
   -- A new output is opened with the leftover of the added inputs.
-  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
+  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
   return tx{ Pl.txInputs  = Pl.txInputs tx <> S.fromList txIns'
            , Pl.txOutputs = Pl.txOutputs tx ++ [txOut']
            , Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange def slotRange
            }
+
 
 balanceWithUTxOsOf :: (Monad m)
                    => Pl.Value -> Pl.PubKeyHash -> MockChainT m ([Pl.TxOutRef], Pl.Value)
