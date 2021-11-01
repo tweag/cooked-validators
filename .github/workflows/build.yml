@@ -18,7 +18,7 @@ jobs:
           path: |
             ~/.cabal/store
             dist-newstyle
-          key: cabal
+          key: new-cabal
       - name: Cabal update.
         run: |
           cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
