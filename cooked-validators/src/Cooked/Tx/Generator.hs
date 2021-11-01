@@ -27,7 +27,9 @@ generateTx skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err   -> throwError $ MCETxError err
-    Right ubtx -> txAddSignature (txSigners skel) <$> balanceTxFrom (txSigners skel) ubtx
+    Right (ubtx, allSigners) -> do
+      balancedTx <- balanceTxFrom (txMainSigner skel) ubtx
+      return $ foldl (flip txAddSignature) balancedTx allSigners
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt

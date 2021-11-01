@@ -17,7 +17,6 @@ import qualified Ledger.Index       as Pl
 import qualified Ledger.Scripts     as Pl
 import qualified Ledger.Constraints as Pl
 import           Ledger.Orphans     ()
-
 import Cooked.MockChain.Wallet
 
 -- * Direct Emulation

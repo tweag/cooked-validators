@@ -95,8 +95,7 @@ run1 =
     -- We start with the creation of the NFT
     validateTxFromSkeleton $ TxSkel
       (wallet 1)
-      [ PaysPK (walletPKHash $ wallet 1) mempty
-      , Mints [bigBossPolicy] oneBBNFT
+      [ Mints [bigBossPolicy] oneBBNFT
       , PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
       ]
     -- We then open a forge
