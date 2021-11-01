@@ -25,8 +25,6 @@ run_cabal_test() {
 
   ## cd into the project, then generates the cabal file and run the necessary tests.
   pushd "$proj"
-  hpack
-
   cabal run tests | tee "../tests/${proj}-cabal-test.artifact"
   local cabal_res=$?
   popd
@@ -59,6 +57,11 @@ projects=("cooked-validators" "examples")
 ormolu_ok=true
 cabal_ok=true
 hlint_ok=true
+
+for p in ${projects[*]}; do
+  hpack "$p"
+done
+
 for p in ${projects[*]}; do
   run_ormolu "$p"
   if [[ "$?" -ne "0" ]]; then
