@@ -1,10 +1,11 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
+{-# LANGUAGE StrictData       #-}
 module Cooked.Tx.Constraints where
 
 import           Data.Void
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
