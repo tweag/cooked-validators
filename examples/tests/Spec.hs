@@ -1,10 +1,9 @@
-import qualified SplitSpec
-import qualified PMultiSigSpec
 import qualified ForgeSpec
-import qualified UseCaseMultisigSpec
 import qualified MarketMakerSpec
-
+import qualified PMultiSigSpec
+import qualified SplitSpec
 import Test.Hspec
+import qualified UseCaseMultisigSpec
 
 main :: IO ()
 main = hspec spec

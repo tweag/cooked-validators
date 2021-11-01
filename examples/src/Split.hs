@@ -18,20 +18,17 @@
 -- | Lock an amount and split it equally among two recipients.
 module Split where
 
-import           Data.Aeson (FromJSON, ToJSON)
-import           GHC.Generics (Generic)
+import Data.Aeson (FromJSON, ToJSON)
+import GHC.Generics (Generic)
 import qualified Ledger
-import qualified Ledger.Ada           as Ada
-import Ledger.Contexts                (ScriptContext (..))
+import qualified Ledger.Ada as Ada
+import Ledger.Contexts (ScriptContext (..))
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Value         as Value (geq)
-
+import qualified Ledger.Value as Value (geq)
 import qualified PlutusTx
-import           PlutusTx.Prelude     hiding (Applicative (..))
-
-import           Schema (ToSchema)
-
-import qualified Prelude              as Haskell
+import PlutusTx.Prelude hiding (Applicative (..))
+import Schema (ToSchema)
+import qualified Prelude as Haskell
 
 data SplitParams = SplitParams
   { recipient1 :: Ledger.PubKey,

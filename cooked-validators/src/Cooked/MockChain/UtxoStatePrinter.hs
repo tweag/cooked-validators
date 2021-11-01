@@ -11,7 +11,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.AssocMap as Pl
-import Prettyprinter (Doc)
+import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter
 
 prettyCurrencyAndAmount ::
@@ -31,8 +31,8 @@ prettyCurrencyAndAmount (symbol, amountMap) =
     prettyToken name n =
       Prettyprinter.parens
         ( prettySymbol symbol
-            <> " ¤ "
-            <> Prettyprinter.pretty name
+            <+> "$"
+            <+> Prettyprinter.pretty name
         )
         <> ":"
         <> Prettyprinter.space
@@ -95,7 +95,7 @@ prettyPayload (value, mDatum) =
   (\vs -> if null vs then Nothing else Just $ Prettyprinter.vsep vs)
     . catMaybes
     $ [ mPrettyValue value,
-        ("■" <>)
+        (":" <>)
           . Prettyprinter.indent 1
           . Prettyprinter.pretty
           . snd
