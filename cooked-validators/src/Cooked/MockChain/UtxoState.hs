@@ -2,6 +2,7 @@
 
 module Cooked.MockChain.UtxoState (UtxoState (..), UtxoDatum (..), prettyUtxoState) where
 
+import Cooked.MockChain.Wallet
 import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
@@ -111,7 +112,16 @@ prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash (Pl.Address addrCr _) =
   case addrCr of
     (Pl.ScriptCredential vh) -> prettyAux "script" vh
-    (Pl.PubKeyCredential pkh) -> prettyAux "pubkey" pkh
+    (Pl.PubKeyCredential pkh) ->
+      prettyAux "pubkey" pkh
+        <> maybe
+          Prettyprinter.emptyDoc
+          ( (Prettyprinter.space <>)
+              . Prettyprinter.parens
+              . ("wallet #" <>)
+              . Prettyprinter.pretty
+          )
+          (walletPKHashToId pkh)
   where
     prettyAux :: Show hash => String -> hash -> Doc ann
     prettyAux addressType hash =
@@ -121,3 +131,7 @@ prettyAddressTypeAndHash (Pl.Address addrCr _) =
           Prettyprinter.pretty . take 7 . show $ hash
         ]
         <> Prettyprinter.colon
+
+    walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
+    walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
+    walletPKHashToId = flip M.lookup walletPKHashToIdMap
