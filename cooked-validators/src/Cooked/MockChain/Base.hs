@@ -1,15 +1,17 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StrictData #-}
 
 module Cooked.MockChain.Base where
 
 import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Cooked.MockChain.Time
+import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Ledger.Address as Pl
 import qualified Ledger.Blockchain as Pl
 import qualified Ledger.Constraints as Pl
@@ -20,8 +22,6 @@ import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl
 
 -- * Direct Emulation
-
---
 
 -- $mockchaindocstr
 --
@@ -35,21 +35,28 @@ import qualified Ledger.Value as Pl
 -- For convenience, we also keep a map of 'Pl.Address' to 'Pl.Datum', giving is a simple
 -- way of managing the current utxo state.
 
--- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph
-type UtxoState = M.Map Pl.Address [(Pl.Value, Maybe Pl.Datum)]
-
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState s =
-  M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
+  UtxoState . M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
-    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe Pl.Datum)])
-    go1 _ (Pl.TxOut addr val mdh) = (addr, [(val, mdh >>= (`M.lookup` mcstDatums s))])
+    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe UtxoDatum)])
+    go1 _ (Pl.TxOut addr val mdh) = do
+      (addr, [(val, mdh >>= go2)])
 
--- | Slightly more concrete version of 'UtxoState', used to actually run the monster.
+    go2 :: Pl.DatumHash -> Maybe UtxoDatum
+    go2 datumHash = do
+      datumStr <- M.lookup datumHash (mcstStrDatums s)
+      datum <- M.lookup datumHash (mcstDatums s)
+      return $ UtxoDatum datum datumStr
+
+-- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
+--  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
+--  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
+    mcstStrDatums :: M.Map Pl.DatumHash String,
     mcstSlotCtr :: SlotCounter
   }
   deriving (Show)
@@ -75,7 +82,7 @@ instance (Monad m) => Monad (MockChainT m) where
   MockChainT x >>= f =
     MockChainT $ do
       xres <- x
-      modify (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
+      modify' (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
       unMockChain (f xres)
 
 instance (Monad m) => MonadFail (MockChainT m) where
@@ -102,24 +109,13 @@ runMockChainT = runMockChainTFrom mockChainSt0
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
--- TODO: make the IO versions that pretty print the resulting UtxoState. It should
--- look something like:
---
--- pubkey abc1#8741:
---   - utxoRef1: val1
---   - utxoRef2: val2
--- script fff#1234:
---   - utxoRef3: val3
---               datum1
---
-
 -- Canonical initial values
 
 utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 M.empty slotCounter0
+mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty slotCounter0
 
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]

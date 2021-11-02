@@ -2,7 +2,7 @@
 
 module Cooked.MockChain.Wallet where
 
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Credential as Pl
@@ -10,6 +10,7 @@ import qualified Plutus.Contract.Trace as Pl
 
 -- * MockChain Wallets
 
+-- $mockchainwallets
 --
 -- We keep the private key associated with each wallet so we can sign transactions
 -- from any wallet easily
@@ -40,6 +41,7 @@ txAddSignature (_, sk) = Pl.addSignature sk
 
 -- * Initial distribution of funds
 
+-- $initfundsdistr
 --
 -- Are nothing but is a map from Wallet to Value; we'll just proxy
 -- the underlying plutus definitions to make it easer when we have

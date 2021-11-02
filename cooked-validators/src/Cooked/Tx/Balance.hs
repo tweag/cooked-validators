@@ -1,10 +1,9 @@
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
-import Control.Monad.State
+import Control.Monad.State.Class
 import Cooked.MockChain
 import qualified Data.Set as S
-import Debug.Trace (trace)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Contexts as Pl
@@ -21,7 +20,6 @@ import qualified PlutusTx.Numeric as Pl
 --  it must be the case that @inputs + mint == outputs + fee@.
 balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  trace (show $ Pl.txFee tx0) $ return ()
   -- We start by gathering all the inputs and summing it
   let tx = tx0 {Pl.txFee = Pl.minFee tx0}
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))

@@ -1,8 +1,10 @@
-import qualified SplitSpec
-import qualified PMultiSigSpec
 import qualified ForgeSpec
-import qualified UseCasesAuctionSpec
+import qualified MarketMakerSpec
+import qualified PMultiSigSpec
+import qualified SplitSpec
 import Test.Hspec
+import qualified UseCaseCrowdfundingSpec
+import qualified UseCaseMultisigSpec
 
 main :: IO ()
 main = hspec spec
@@ -12,4 +14,6 @@ spec = do
   describe "'Split' contract" SplitSpec.spec
   describe "'PMultiSig' contract" PMultiSigSpec.spec
   describe "'Forge' contract" ForgeSpec.spec
-  describe "'plutus-use-cases/Auction' contract" UseCasesAuctionSpec.spec
+  describe "'plutus-use-cases/Crowdfunding' contract" UseCaseCrowdfundingSpec.spec
+  describe "'plutus-use-cases/Multisig' contract" UseCaseMultisigSpec.spec
+  describe "'MarketMaker' contract" MarketMakerSpec.spec

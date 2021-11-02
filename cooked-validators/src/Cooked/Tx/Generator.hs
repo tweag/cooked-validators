@@ -1,16 +1,17 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Cooked.Tx.Generator where
 
 import Control.Monad.Except
+import Control.Monad.State (modify)
 import Cooked.MockChain
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import qualified Data.Map as Map (unions)
 import qualified Ledger.Tx as Pl
 
 -- | Generates a balanced transaction, that is, a transaction where
@@ -18,10 +19,22 @@ import qualified Ledger.Tx as Pl
 --  access to the current UTxO state to chose which inputs to add in case
 --  the output-side of the balancing equation is bigger.
 generateTx :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
-generateTx skel =
+generateTx skel = do
+  modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err -> throwError $ MCETxError err
-    Right ubtx -> txAddSignature (txSigners skel) <$> balanceTxFrom (txSigners skel) ubtx
+    Right (ubtx, allSigners) -> do
+      balancedTx <- balanceTxFrom (txMainSigner skel) ubtx
+      return $ foldl (flip txAddSignature) balancedTx allSigners
+  where
+    -- Update the map of pretty printed representations in the mock chain state
+    updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
+    updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
+      st
+        { mcstStrDatums =
+            Map.unions $
+              mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
+        }
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (Monad m) => TxSkel -> MockChainT m ()

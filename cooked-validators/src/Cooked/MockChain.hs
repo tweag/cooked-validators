@@ -1,7 +1,5 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -11,8 +9,12 @@
 
 module Cooked.MockChain
   ( module Cooked.MockChain.Base,
-    module Cooked.MockChain.Wallet,
     module Cooked.MockChain.Time,
+    module Cooked.MockChain.UtxoState,
+    module Cooked.MockChain.Wallet,
+    -- Our type for UTxOS
+    SpendableOut,
+    spendableRef,
 
     -- * Validating Transactions
     validateTx,
@@ -40,9 +42,9 @@ import Control.Monad.Except
 import Control.Monad.State
 import Cooked.MockChain.Base
 import Cooked.MockChain.Time
+import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, fromJust, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
@@ -50,6 +52,15 @@ import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
+
+-- | A 'SpendableOut' is an outref that is ready to be spend; with its
+--  underlying 'Pl.ChainIndexTxOut'.
+type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
+
+spendableRef :: (Monad m) => Pl.TxOutRef -> MockChainT m SpendableOut
+spendableRef txORef = do
+  Just txOut <- gets (M.lookup txORef . Pl.getIndex . mcstIndex)
+  return (txORef, fromJust (Pl.fromTxOut txOut))
 
 -- * Validating Transactions
 
@@ -71,7 +82,7 @@ validateTx tx = do
       let consumedIns = map Pl.txInRef $ S.toList (Pl.txInputs tx) ++ S.toList (Pl.txCollateral tx)
       consumedDHs <- catMaybes <$> mapM (fmap Pl.txOutDatumHash . outFromOutRef) consumedIns
       let consumedDHs' = M.fromList $ zip consumedDHs (repeat ())
-      modify
+      modify'
         ( \st ->
             st
               { mcstIndex = ix',

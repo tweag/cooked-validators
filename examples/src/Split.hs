@@ -20,33 +20,27 @@ module Split where
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
-import Ledger
-  ( PubKey,
-    PubKeyHash,
-    ScriptContext (ScriptContext, scriptContextTxInfo),
-    pubKeyHash,
-    valuePaidTo,
-  )
+import qualified Ledger
+import qualified Ledger.Ada as Ada
+import Ledger.Contexts (ScriptContext (..))
 import qualified Ledger.Typed.Scripts as Scripts
-import Ledger.Value (geq)
-import qualified Plutus.V1.Ledger.Ada as Ada
+import qualified Ledger.Value as Value (geq)
 import qualified PlutusTx
-import qualified PlutusTx.Lift.Class ()
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 data SplitParams = SplitParams
-  { recipient1 :: PubKey,
-    recipient2 :: PubKey,
+  { recipient1 :: Ledger.PubKey,
+    recipient2 :: Ledger.PubKey,
     amount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data SplitDatum = SplitDatum
-  { datumRecipient1 :: PubKeyHash,
-    datumRecipient2 :: PubKeyHash,
+  { datumRecipient1 :: Ledger.PubKeyHash,
+    datumRecipient2 :: Ledger.PubKeyHash,
     datumAmount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
@@ -54,7 +48,10 @@ data SplitDatum = SplitDatum
 
 makeDatum :: SplitParams -> SplitDatum
 makeDatum (SplitParams recipient1 recipient2 amount) =
-  SplitDatum (pubKeyHash recipient1) (pubKeyHash recipient2) amount
+  SplitDatum
+    (Ledger.pubKeyHash recipient1)
+    (Ledger.pubKeyHash recipient2)
+    amount
 
 type SplitRedeemer = ()
 
@@ -62,9 +59,9 @@ type SplitRedeemer = ()
 validateSplit :: SplitDatum -> SplitRedeemer -> ScriptContext -> Bool
 validateSplit (SplitDatum r1 r2 amount) _ ScriptContext {scriptContextTxInfo} =
   let halfAda = divide amount 2
-      isPaid :: PubKeyHash -> Integer -> Bool
+      isPaid :: Ledger.PubKeyHash -> Integer -> Bool
       isPaid recipient ada =
-        valuePaidTo scriptContextTxInfo recipient `geq` Ada.lovelaceValueOf ada
+        Ledger.valuePaidTo scriptContextTxInfo recipient `Value.geq` Ada.lovelaceValueOf ada
    in traceIfFalse "R1 not paid enough" (r1 `isPaid` halfAda)
         && traceIfFalse "R2 not paid enough" (r2 `isPaid` (amount - halfAda))
 
