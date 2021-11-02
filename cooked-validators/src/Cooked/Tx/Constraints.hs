@@ -15,7 +15,7 @@ import qualified Ledger.Constraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
 
--- | Our own first class constraint type. The advantage over the regular plutus constraint
+-- | Our own first-class constraint type. The advantage over the regular plutus constraint
 --  type is that we get to add whatever we need and we hide away the type variables in existentials.
 data Constraint where
   PaysScript ::
@@ -51,7 +51,8 @@ spentByPK pkh val = do
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
 
-type LedgerConstraint a = (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), [Wallet])
+type LedgerConstraint a =
+  (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), [Wallet])
 
 -- | Map from datum hashes to string representation of all the datum carried
 extractDatumStrFromConstraint :: Constraint -> M.Map Pl.DatumHash String
@@ -66,7 +67,7 @@ extractDatumStrFromConstraint _ = M.empty
 -- | Converts our constraint into a 'LedgerConstraint',
 --  which later can be used to generate a transaction.
 toLedgerConstraint :: Constraint -> LedgerConstraint a
-toLedgerConstraint (SpendsScript v r ((oref, o), a)) = (lkups, constr, mempty)
+toLedgerConstraint (SpendsScript v r ((oref, o), _a)) = (lkups, constr, mempty)
   where
     lkups =
       Pl.otherScript (Pl.validatorScript v)

@@ -10,6 +10,7 @@ import qualified Plutus.Contract.Trace as Pl
 
 -- * MockChain Wallets
 
+-- $mockchainwallets
 --
 -- We keep the private key associated with each wallet so we can sign transactions
 -- from any wallet easily
@@ -30,9 +31,6 @@ walletPK = Pl.walletPubKey . fst
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
 
-walletPKHashToIdMap :: M.Map Pl.PubKeyHash Int
-walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
-
 walletAddress :: Wallet -> Pl.Address
 walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
@@ -43,6 +41,7 @@ txAddSignature (_, sk) = Pl.addSignature sk
 
 -- * Initial distribution of funds
 
+-- $initfundsdistr
 --
 -- Are nothing but is a map from Wallet to Value; we'll just proxy
 -- the underlying plutus definitions to make it easer when we have
