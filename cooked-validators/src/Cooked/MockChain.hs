@@ -10,6 +10,7 @@
 module Cooked.MockChain
   ( module Cooked.MockChain.Base,
     module Cooked.MockChain.Wallet,
+    module Cooked.MockChain.UtxoState,
     -- Our type for UTxOS
     SpendableOut,
     spendableRef,
@@ -35,6 +36,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Cooked.MockChain.Base
 import Cooked.MockChain.Wallet
+import Cooked.MockChain.UtxoState
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, fromJust, mapMaybe)
 import qualified Data.Set as S

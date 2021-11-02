@@ -8,6 +8,7 @@ import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Strict
+import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import qualified Data.Map.Strict as M
 import qualified Ledger.Address as Pl
@@ -21,8 +22,6 @@ import qualified Ledger.Value as Pl
 
 -- * Direct Emulation
 
---
-
 -- $mockchaindocstr
 --
 -- The MockChainT monad provides a direct emulator; that is, it gives us a simple way to call
@@ -35,27 +34,24 @@ import qualified Ledger.Value as Pl
 -- For convenience, we also keep a map of 'Pl.Address' to 'Pl.Datum', giving is a simple
 -- way of managing the current utxo state.
 
--- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph.
---  It includes a pretty printed representation alongside each datum for human
---  readable output during simulations.
-type UtxoState = M.Map Pl.Address [(Pl.Value, Maybe (Pl.Datum, String))]
-
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState s =
-  M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
+  UtxoState . M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
-    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe (Pl.Datum, String))])
+    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe UtxoDatum)])
     go1 _ (Pl.TxOut addr val mdh) = do
       (addr, [(val, mdh >>= go2)])
-    go2 :: Pl.DatumHash -> Maybe (Pl.Datum, String)
+
+    go2 :: Pl.DatumHash -> Maybe UtxoDatum
     go2 datumHash = do
       datumStr <- M.lookup datumHash (mcstStrDatums s)
       datum <- M.lookup datumHash (mcstDatums s)
-      return (datum, datumStr)
+      return $ UtxoDatum datum datumStr
 
--- | Slightly more concrete version of 'UtxoState', used to actually run the monster.
+-- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
---  For pretty printing purposes, we keep a map from datum hash to string representation
+--  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
+--  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
@@ -108,17 +104,6 @@ runMockChainT = runMockChainTFrom mockChainSt0
 
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
-
--- TODO: make the IO versions that pretty print the resulting UtxoState. It should
--- look something like:
---
--- pubkey abc1#8741:
---   - utxoRef1: val1
---   - utxoRef2: val2
--- script fff#1234:
---   - utxoRef3: val3
---               datum1
---
 
 data MockChainSlotCounter = MockChainSlotCounter
   { mcscAutoIncrease :: Bool,
