@@ -1,27 +1,28 @@
-{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Cooked.MockChain.Base where
 
-import qualified Data.Map as M
-import           Control.Arrow (second)
-import           Control.Monad.Identity
-import           Control.Monad.Except
-import           Control.Monad.State
-
-import qualified Ledger.Address     as Pl
-import qualified Ledger.Blockchain  as Pl
-import qualified Ledger.Value       as Pl
-import qualified Ledger.Contexts    as Pl
-import qualified Ledger.Index       as Pl
-import qualified Ledger.Scripts     as Pl
-import qualified Ledger.Constraints as Pl
-import           Ledger.Orphans     ()
-
-import Cooked.MockChain.Wallet
+import Control.Arrow (second)
+import Control.Monad.Except
+import Control.Monad.Identity
+import Control.Monad.State
 import Cooked.MockChain.Time
+import Cooked.MockChain.Wallet
+import qualified Data.Map as M
+import qualified Ledger.Address as Pl
+import qualified Ledger.Blockchain as Pl
+import qualified Ledger.Constraints as Pl
+import qualified Ledger.Contexts as Pl
+import qualified Ledger.Index as Pl
+import Ledger.Orphans ()
+import qualified Ledger.Scripts as Pl
+import qualified Ledger.Value as Pl
 
 -- * Direct Emulation
+
 --
+
 -- $mockchaindocstr
 --
 -- The MockChainT monad provides a direct emulator; that is, it gives us a simple way to call
@@ -34,7 +35,7 @@ import Cooked.MockChain.Time
 -- For convenience, we also keep a map of 'Pl.Address' to 'Pl.Datum', giving is a simple
 -- way of managing the current utxo state.
 
--- |A 'UtxoState' provides us with the mental picture of the state of the UTxO graph
+-- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph
 type UtxoState = M.Map Pl.Address [(Pl.Value, Maybe Pl.Datum)]
 
 mcstToUtxoState :: MockChainSt -> UtxoState
@@ -44,36 +45,37 @@ mcstToUtxoState s =
     go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe Pl.Datum)])
     go1 _ (Pl.TxOut addr val mdh) = (addr, [(val, mdh >>= (`M.lookup` mcstDatums s))])
 
--- |Slightly more concrete version of 'UtxoState', used to actually run the monster.
--- We keep a map from datum hash to datum, then a map from txOutRef to datumhash
+-- | Slightly more concrete version of 'UtxoState', used to actually run the monster.
+--  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
 data MockChainSt = MockChainSt
-  { mcstIndex   :: Pl.UtxoIndex
-  , mcstDatums  :: M.Map Pl.DatumHash Pl.Datum
-  , mcstSlotCtr :: SlotCounter
-  } deriving (Show)
+  { mcstIndex :: Pl.UtxoIndex,
+    mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
+    mcstSlotCtr :: SlotCounter
+  }
+  deriving (Show)
 
--- |The errors that can be produced by the 'MockChainT' monad
+-- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
-  | MCETxError         Pl.MkTxError
-  | FailWith           String
+  | MCETxError Pl.MkTxError
+  | FailWith String
   deriving (Show, Eq)
 
--- |The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
+-- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
-    { unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a }
+  {unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a}
   deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
 
--- |Non-transformer variant
+-- | Non-transformer variant
 type MockChain = MockChainT Identity
 
 -- Custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
-  return  = pure
+  return = pure
   MockChainT x >>= f =
     MockChainT $ do
       xres <- x
-      modify (\st -> st { mcstSlotCtr = scIncrease (mcstSlotCtr st) })
+      modify (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
       unMockChain (f xres)
 
 instance (Monad m) => MonadFail (MockChainT m) where
@@ -82,16 +84,18 @@ instance (Monad m) => MonadFail (MockChainT m) where
 onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
 onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
 
--- |Executes a 'MockChainT' from some initial state.
-runMockChainTFrom :: (Monad m)
-                  => MockChainSt
-                  -> MockChainT m a -> m (Either MockChainError (a, UtxoState))
+-- | Executes a 'MockChainT' from some initial state.
+runMockChainTFrom ::
+  (Monad m) =>
+  MockChainSt ->
+  MockChainT m a ->
+  m (Either MockChainError (a, UtxoState))
 runMockChainTFrom i0 = runExceptT . fmap (second mcstToUtxoState) . flip runStateT i0 . unMockChain
 
 runMockChainFrom :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 
--- |Executes a 'MockChainT' from the cannonical initial state.
+-- | Executes a 'MockChainT' from the cannonical initial state.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
 runMockChainT = runMockChainTFrom mockChainSt0
 
