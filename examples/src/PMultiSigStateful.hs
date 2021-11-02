@@ -199,6 +199,7 @@ instance Scripts.ValidatorTypes PMultiSig where
   type RedeemerType PMultiSig = Redeemer
   type DatumType PMultiSig = Datum
 
+{-# INLINEABLE pmultisig #-}
 pmultisig :: Params -> Scripts.TypedValidator PMultiSig
 pmultisig =
   Scripts.mkTypedValidatorParam @PMultiSig
@@ -207,14 +208,18 @@ pmultisig =
   where
     wrap = Scripts.wrapValidator @Datum @Redeemer
 
+{-# INLINEABLE pmultisigAddr #-}
 pmultisigAddr :: Params -> Ledger.Address
 pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 
+{-# INLINEABLE threadTokenPolicy #-}
 threadTokenPolicy :: Params -> Scripts.MintingPolicy
 threadTokenPolicy = Scripts.mkForwardingMintingPolicy . Ledger.validatorHash . Scripts.validatorScript . pmultisig
 
+{-# INLINEABLE threadTokenSymbol #-}
 threadTokenSymbol :: Params -> Api.CurrencySymbol
 threadTokenSymbol = Validation.scriptCurrencySymbol . threadTokenPolicy
 
+{-# INLINEABLE threadTokenName #-}
 threadTokenName :: Value.TokenName
 threadTokenName = Value.tokenName "threadToken"
