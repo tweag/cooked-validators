@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cooked.MockChain.UtxoState where
+module Cooked.MockChain.UtxoState (UtxoState (..), UtxoDatum (..), prettyUtxoState) where
 
 import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M

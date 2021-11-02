@@ -4,8 +4,7 @@
 module Cooked.BalanceSpec (spec) where
 
 import Control.Monad.State
-import Cooked.MockChain.Base
-import Cooked.MockChain.Wallet
+import Cooked.MockChain
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import Cooked.Tx.Generator
