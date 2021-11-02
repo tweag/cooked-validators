@@ -3,6 +3,7 @@ write-ghc-environment-files: never
 
 packages: 
   cooked-validators
+  cooked-report
   examples
 
 constraints: 
