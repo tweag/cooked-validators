@@ -15,13 +15,16 @@ jobs:
         uses: cachix/install-nix-action@v13
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - name: Accesses the cache.
+      - name: Accessing the cache.
         uses: actions/cache@v2
         with:
           path: |
             ~/.cabal/store
             dist-newstyle
-          key: new-cabal
+          key: cabal-cache-${{ github.sha }}
+          restore-keys: |
+            cabal-cache
+            new-cabal
       - name: Cabal update.
         run: |
           cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
