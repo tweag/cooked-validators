@@ -24,6 +24,7 @@ jobs:
           key: cabal-cache-${{ github.sha }}
           recovery-keys: |
             cabal-cache
+            new-cabal
       - name: Cabal update.
         run: |
           cd .. # It's important to cd out of the root, otherwise cabal will try to build deps in the cabal.project file
