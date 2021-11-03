@@ -22,7 +22,7 @@ jobs:
             ~/.cabal/store
             dist-newstyle
           key: cabal-cache-${{ github.sha }}
-          recovery-keys: |
+          restore-keys: |
             cabal-cache
             new-cabal
       - name: Cabal update.
