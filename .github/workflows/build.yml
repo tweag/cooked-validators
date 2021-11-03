@@ -21,9 +21,9 @@ jobs:
           path: |
             ~/.cabal/store
             dist-newstyle
-          key: cabal-cache-${{ github.ref }}
+          key: cabal-cache-${{ github.sha }}
           recovery-keys: |
-            cabal-cache-${{ github.ref }}
+            cabal-cache-${{ github.sha }}
             cabal-cache
       - name: Cabal update.
         run: |
