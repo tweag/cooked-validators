@@ -40,13 +40,11 @@ import qualified Ledger.Ada as Ada
 import Ledger.Contexts hiding (findDatum)
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Typed.Scripts.MonetaryPolicies as Scripts
 
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as Api
-import qualified Plutus.V2.Ledger.Contexts as Api
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
@@ -142,7 +140,7 @@ validatePayment _ Sign {} _ ctx =
   where
     txInfo = scriptContextTxInfo ctx
     inputDatums = mapMaybe (findDatum txInfo) $ txInfoInputs txInfo
-validatePayment params@Params {..} (Accumulator payment signees) _ ctx
+validatePayment Params {..} (Accumulator payment signees) _ ctx
   | length signees >= pmspRequiredSigs = validatePayout
   | otherwise = validateAcc
   where
