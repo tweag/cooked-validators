@@ -8,9 +8,8 @@ import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Strict
-import Cooked.MockChain.UtxoState
-import Cooked.MockChain.Wallet
 import qualified Data.Map.Strict as M
+
 import qualified Ledger.Address as Pl
 import qualified Ledger.Blockchain as Pl
 import qualified Ledger.Constraints as Pl
@@ -19,6 +18,9 @@ import qualified Ledger.Index as Pl
 import Ledger.Orphans ()
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl
+
+import Cooked.MockChain.UtxoState
+import Cooked.MockChain.Wallet
 
 -- * Direct Emulation
 
@@ -53,10 +55,10 @@ mcstToUtxoState s =
 --  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
-  { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
-    mcstStrDatums :: M.Map Pl.DatumHash String,
-    mcstSlotCtr :: MockChainSlotCounter
+  { mcstIndex :: Pl.UtxoIndex
+  , mcstDatums :: M.Map Pl.DatumHash Pl.Datum
+  , mcstStrDatums :: M.Map Pl.DatumHash String
+  , mcstSlotCtr :: MockChainSlotCounter
   }
   deriving (Show)
 
@@ -106,8 +108,8 @@ runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
 data MockChainSlotCounter = MockChainSlotCounter
-  { mcscAutoIncrease :: Bool,
-    mcscCurrentSlot :: Integer
+  { mcscAutoIncrease :: Bool
+  , mcscCurrentSlot :: Integer
   }
   deriving (Eq, Show)
 

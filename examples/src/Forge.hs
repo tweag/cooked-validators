@@ -23,6 +23,7 @@ import qualified Ledger.Ada as Ada
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
+
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V2.Ledger.Api as Api
@@ -32,9 +33,9 @@ import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 data Params = Params
-  { bigBossNFT :: Value.AssetClass,
-    authToken :: Value.AssetClass,
-    smithedToken :: Value.AssetClass
+  { bigBossNFT :: Value.AssetClass
+  , authToken :: Value.AssetClass
+  , smithedToken :: Value.AssetClass
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -61,8 +62,8 @@ instance Eq RedeemerBigBoss where
   _ == _ = False
 
 data DatumSmith = Forge
-  { owner :: Api.PubKeyHash,
-    forged :: Integer
+  { owner :: Api.PubKeyHash
+  , forged :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)

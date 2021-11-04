@@ -48,7 +48,6 @@ spentByPK pkh val = do
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
   (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
-
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
 
 type LedgerConstraint a =
@@ -108,8 +107,8 @@ toLedgerConstraints cs = (mconcat lkups, mconcat constrs, mconcat wals)
 -- A Transaction skeleton is a set of our constraints, and
 -- one of our wallet which will sign the generated transaction.
 data TxSkel = TxSkel
-  { txMainSigner :: Wallet,
-    txConstraints :: [Constraint]
+  { txMainSigner :: Wallet
+  , txConstraints :: [Constraint]
   }
 
 -- | Generates an unbalanced transaction from a skeleton; A

@@ -34,9 +34,9 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
   return
     tx
-      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
-        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
-        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange def slotRange
+      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns'
+      , Pl.txOutputs = Pl.txOutputs tx ++ [txOut']
+      , Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange def slotRange
       }
 
 balanceWithUTxOsOf ::

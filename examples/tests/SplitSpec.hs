@@ -18,8 +18,9 @@ txLock w splitParams = return (TxSkel w constraints)
     constraints =
       [ PaysScript
           Split.splitValidator
-          [ ( Split.makeDatum splitParams,
-              Pl.lovelaceValueOf $ Split.amount splitParams
+          [
+            ( Split.makeDatum splitParams
+            , Pl.lovelaceValueOf $ Split.amount splitParams
             )
           ]
       ]
@@ -50,16 +51,17 @@ txUnlockTemplate mRecipient1 mRecipient2 mAmountChanger issuer = do
         share1 = fromMaybe id mAmountChanger half
         share2 = fromMaybe id mAmountChanger (amount - half)
         constraints =
-          [ SpendsScript Split.splitValidator () (output, datum),
-            PaysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
-            PaysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
+          [ SpendsScript Split.splitValidator () (output, datum)
+          , PaysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1)
+          , PaysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
           ]
         remainder = amount - share1 - share2
         remainderConstraint =
           PaysScript
             Split.splitValidator
-            [ ( Split.SplitDatum r1 r2 remainder,
-                Pl.lovelaceValueOf remainder
+            [
+              ( Split.SplitDatum r1 r2 remainder
+              , Pl.lovelaceValueOf remainder
               )
             ]
      in TxSkel
@@ -86,9 +88,9 @@ txUnlockGreedy w = txUnlockTemplate (Just w) (Just w) Nothing w
 run1LockParams :: Split.SplitParams
 run1LockParams =
   Split.SplitParams
-    { Split.recipient1 = walletPK (wallet 2),
-      Split.recipient2 = walletPK (wallet 3),
-      Split.amount = 400
+    { Split.recipient1 = walletPK (wallet 2)
+    , Split.recipient2 = walletPK (wallet 3)
+    , Split.amount = 400
     }
 
 -- | Regular run

@@ -7,29 +7,28 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Cooked.MockChain
-  ( module Cooked.MockChain.Base,
-    module Cooked.MockChain.Wallet,
-    module Cooked.MockChain.UtxoState,
-    -- Our type for UTxOS
-    SpendableOut,
-    spendableRef,
+module Cooked.MockChain (
+  module Cooked.MockChain.Base,
+  module Cooked.MockChain.Wallet,
+  module Cooked.MockChain.UtxoState,
+  -- Our type for UTxOS
+  SpendableOut,
+  spendableRef,
 
-    -- * Validating Transactions
-    validateTx,
+  -- * Validating Transactions
+  validateTx,
 
-    -- * Selecting UTxO's
-    utxosSuchThat,
-    pkUtxosSuchThat,
-    pkUtxos,
-    pkUtxos',
-    scriptUtxosSuchThat,
-    outFromOutRef,
+  -- * Selecting UTxO's
+  utxosSuchThat,
+  pkUtxosSuchThat,
+  pkUtxos,
+  pkUtxos',
+  scriptUtxosSuchThat,
+  outFromOutRef,
 
-    -- * Slot Management
-    slot,
-  )
-where
+  -- * Slot Management
+  slot,
+) where
 
 import Control.Arrow (second)
 import Control.Monad.Except
@@ -54,7 +53,6 @@ spendableRef :: (Monad m) => Pl.TxOutRef -> MockChainT m SpendableOut
 spendableRef txORef = do
   Just txOut <- gets (M.lookup txORef . Pl.getIndex . mcstIndex)
   return (txORef, fromJust (Pl.fromTxOut txOut))
-
 -- * Validating Transactions
 
 -- | Validates a transaction and, upon success, updates the utxo map; You can generate
@@ -78,8 +76,8 @@ validateTx tx = do
       modify'
         ( \st ->
             st
-              { mcstIndex = ix',
-                mcstDatums =
+              { mcstIndex = ix'
+              , mcstDatums =
                   (mcstDatums st `M.difference` consumedDHs')
                     `M.union` Pl.txData tx
               }
