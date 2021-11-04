@@ -252,6 +252,7 @@ mkPolicy (oref, tn) _ ctx =
       [(cs, tn', amt)] -> cs == ownCurrencySymbol ctx && tn' == tn && amt == 1
       _ -> False
 
+{-# INLINEABLE threadTokenSymbol #-}
 threadTokenSymbol :: Api.TxOutRef -> Value.TokenName -> Api.CurrencySymbol
 threadTokenSymbol oref = Validation.scriptCurrencySymbol . threadTokenPolicy oref
 
@@ -259,9 +260,11 @@ threadTokenSymbol oref = Validation.scriptCurrencySymbol . threadTokenPolicy ore
 threadTokenName :: Value.TokenName
 threadTokenName = Value.tokenName "threadToken"
 
+{-# INLINEABLE threadTokenAssetClass #-}
 threadTokenAssetClass :: Api.TxOutRef -> Value.AssetClass
 threadTokenAssetClass oref = Value.assetClass (threadTokenSymbol oref threadTokenName) threadTokenName
 
+{-# INLINEABLE threadTokenPolicy #-}
 threadTokenPolicy :: Api.TxOutRef -> Value.TokenName -> Scripts.MintingPolicy
 threadTokenPolicy oref tok =
   Api.mkMintingPolicyScript $
