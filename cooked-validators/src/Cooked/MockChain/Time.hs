@@ -6,9 +6,9 @@ import qualified Plutus.V1.Ledger.Slot as Pl
 import qualified Plutus.V1.Ledger.Time as Pl
 
 data SlotCounter = SlotCounter
-  { autoIncrease :: Bool,
-    currentSlot :: Integer,
-    slotConfig :: Pl.SlotConfig
+  { autoIncrease :: Bool
+  , currentSlot :: Integer
+  , slotConfig :: Pl.SlotConfig
   }
   deriving (Eq, Show)
 

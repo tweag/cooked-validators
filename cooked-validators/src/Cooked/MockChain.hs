@@ -7,35 +7,34 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Cooked.MockChain
-  ( module Cooked.MockChain.Base,
-    module Cooked.MockChain.Time,
-    module Cooked.MockChain.UtxoState,
-    module Cooked.MockChain.Wallet,
-    -- Our type for UTxOS
-    SpendableOut,
-    spendableRef,
+module Cooked.MockChain (
+  module Cooked.MockChain.Base,
+  module Cooked.MockChain.Time,
+  module Cooked.MockChain.UtxoState,
+  module Cooked.MockChain.Wallet,
+  -- Our type for UTxOS
+  SpendableOut,
+  spendableRef,
 
-    -- * Validating Transactions
-    validateTx,
+  -- * Validating Transactions
+  validateTx,
 
-    -- * Selecting UTxO's
-    utxosSuchThat,
-    pkUtxosSuchThat,
-    pkUtxos,
-    pkUtxos',
-    scriptUtxosSuchThat,
-    outFromOutRef,
+  -- * Selecting UTxO's
+  utxosSuchThat,
+  pkUtxosSuchThat,
+  pkUtxos,
+  pkUtxos',
+  scriptUtxosSuchThat,
+  outFromOutRef,
 
-    -- * Time Management
-    slot,
-    freezeTime,
-    waitSlots,
-    waitTime,
-    slotIs,
-    timeIs,
-  )
-where
+  -- * Time Management
+  slot,
+  freezeTime,
+  waitSlots,
+  waitTime,
+  slotIs,
+  timeIs,
+) where
 
 import Control.Arrow (second)
 import Control.Monad.Except
@@ -61,7 +60,6 @@ spendableRef :: (Monad m) => Pl.TxOutRef -> MockChainT m SpendableOut
 spendableRef txORef = do
   Just txOut <- gets (M.lookup txORef . Pl.getIndex . mcstIndex)
   return (txORef, fromJust (Pl.fromTxOut txOut))
-
 -- * Validating Transactions
 
 -- | Validates a transaction and, upon success, updates the utxo map; You can generate
@@ -85,8 +83,8 @@ validateTx tx = do
       modify'
         ( \st ->
             st
-              { mcstIndex = ix',
-                mcstDatums =
+              { mcstIndex = ix'
+              , mcstDatums =
                   (mcstDatums st `M.difference` consumedDHs')
                     `M.union` Pl.txData tx
               }
@@ -200,7 +198,6 @@ slotIs n = modify (onSlot (scSlotIs n))
 
 timeIs :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
 timeIs t = modify (onSlot (scTimeIs t))
-
 -- * Utilities
 
 rstr :: (Monad m) => (a, m b) -> m (a, b)

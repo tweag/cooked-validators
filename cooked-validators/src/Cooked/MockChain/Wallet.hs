@@ -38,7 +38,6 @@ walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
 txAddSignature (_, sk) = Pl.addSignature sk
-
 -- * Initial distribution of funds
 
 -- $initfundsdistr
@@ -57,8 +56,8 @@ initialDistribution = M.fromList $ zip knownWallets (repeat def)
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
   mempty
-    { Pl.txMint = mconcat (map snd initDist'),
-      Pl.txOutputs = map (\wv -> Pl.TxOut (walletAddress $ fst wv) (snd wv) Nothing) initDist'
+    { Pl.txMint = mconcat (map snd initDist')
+    , Pl.txOutputs = map (\wv -> Pl.TxOut (walletAddress $ fst wv) (snd wv) Nothing) initDist'
     }
   where
     initDist' = M.toList initDist
