@@ -96,10 +96,10 @@ mCoinsAssetClass = do
 
 -- | Parameters of a run (after initialization of the minting policy)
 data RunParams = RunParams
-  { runParamsMarketValidator :: TScripts.TypedValidator Market.Market,
-    runParamsMintingPolicy :: TScripts.MintingPolicy,
-    runParamsNftClass :: Ledger.AssetClass,
-    runParamsCoinsClass :: Ledger.AssetClass
+  { runParamsMarketValidator :: TScripts.TypedValidator Market.Market
+  , runParamsMintingPolicy :: TScripts.MintingPolicy
+  , runParamsNftClass :: Ledger.AssetClass
+  , runParamsCoinsClass :: Ledger.AssetClass
   }
 
 -- | Parameters of a market transaction: that is how much Ada and coins the
@@ -107,10 +107,10 @@ data RunParams = RunParams
 -- has to be thought about while keeping track of the inputs that will be spent
 -- during the transaction.
 data MarketTxParams = MarketTxParams
-  { marketTxParamsWalletAda :: Integer,
-    marketTxParamsWalletCoins :: Integer,
-    marketTxParamsMarketMakerAda :: Integer,
-    marketTxParamsMarketMakerCoins :: Integer
+  { marketTxParamsWalletAda :: Integer
+  , marketTxParamsWalletCoins :: Integer
+  , marketTxParamsMarketMakerAda :: Integer
+  , marketTxParamsMarketMakerCoins :: Integer
   }
 
 -- | Template of a transaction
@@ -123,9 +123,9 @@ marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams 
   validateTxFromSkeleton $
     TxSkel
       wIssuer
-      [ SpendsScript validator redeemer (output, datum),
-        PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)],
-        PaysPK (walletPKHash wIssuer) (ada wAda <> coins wCoins)
+      [ SpendsScript validator redeemer (output, datum)
+      , PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)]
+      , PaysPK (walletPKHash wIssuer) (ada wAda <> coins wCoins)
       ]
 
 -- | Template of a Sell transaction
@@ -148,15 +148,16 @@ marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass
    in validateTxFromSkeleton $
         TxSkel
           wIssuer
-          [ PaysPK (walletPKHash wIssuer) mempty,
-            Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
-            PaysScript
+          [ PaysPK (walletPKHash wIssuer) mempty
+          , Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit))
+          , PaysScript
               validator
-              [ ( Market.MarketDatum nbCoinsMarketInit,
-                  oneNft <> coins nbCoinsMarketInit
+              [
+                ( Market.MarketDatum nbCoinsMarketInit
+                , oneNft <> coins nbCoinsMarketInit
                 )
-              ],
-            PaysPK (walletPKHash wReceiver) (coins nbCoinsWalletInit)
+              ]
+          , PaysPK (walletPKHash wReceiver) (coins nbCoinsWalletInit)
           ]
 
 -- | Example run

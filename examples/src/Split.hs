@@ -31,17 +31,17 @@ import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 data SplitParams = SplitParams
-  { recipient1 :: Ledger.PubKey,
-    recipient2 :: Ledger.PubKey,
-    amount :: Integer
+  { recipient1 :: Ledger.PubKey
+  , recipient2 :: Ledger.PubKey
+  , amount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 data SplitDatum = SplitDatum
-  { datumRecipient1 :: Ledger.PubKeyHash,
-    datumRecipient2 :: Ledger.PubKeyHash,
-    datumAmount :: Integer
+  { datumRecipient1 :: Ledger.PubKeyHash
+  , datumRecipient2 :: Ledger.PubKeyHash
+  , datumAmount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

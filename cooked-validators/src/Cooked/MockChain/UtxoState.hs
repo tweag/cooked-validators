@@ -41,8 +41,8 @@ prettyUtxoState =
 prettyAddress :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
 prettyAddress address payloads =
   Prettyprinter.vsep
-    [ prettyAddressTypeAndHash address,
-      Prettyprinter.indent 2
+    [ prettyAddressTypeAndHash address
+    , Prettyprinter.indent 2
         . Prettyprinter.vsep
         . map (("-" <>) . Prettyprinter.indent 1)
         . mapMaybe (uncurry prettyPayload)
@@ -56,8 +56,8 @@ prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
 prettyPayload value mDatum =
   (\vs -> if null vs then Nothing else Just $ Prettyprinter.vsep vs)
     . catMaybes
-    $ [ mPrettyValue value,
-        (":" <>)
+    $ [ mPrettyValue value
+      , (":" <>)
           . Prettyprinter.indent 1
           . Prettyprinter.pretty
           . utxoShow
@@ -126,9 +126,9 @@ prettyAddressTypeAndHash (Pl.Address addrCr _) =
     prettyAux :: Show hash => String -> hash -> Doc ann
     prettyAux addressType hash =
       mconcat
-        [ Prettyprinter.pretty addressType,
-          Prettyprinter.space,
-          Prettyprinter.pretty . take 7 . show $ hash
+        [ Prettyprinter.pretty addressType
+        , Prettyprinter.space
+        , Prettyprinter.pretty . take 7 . show $ hash
         ]
         <> Prettyprinter.colon
 
