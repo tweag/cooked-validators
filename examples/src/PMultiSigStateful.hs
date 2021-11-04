@@ -81,7 +81,7 @@ instance Eq Payment where
 --  an accumulator collecting signatures for a given payment.
 data Datum
   = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
-  | Sign {pk :: Ledger.PubKey, sig :: Ledger.Signature}
+  | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -184,13 +184,13 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
         allInputsRelevant = length newSignees == length otherInputs
 
         extractSig Accumulator {} = Nothing
-        extractSig (Sign pk s)
-          | pk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
-          | pk `elem` signees = Nothing -- Already signed this payment -- wrong
-          | not $ verifySig pk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
+        extractSig (Sign signPk s)
+          | signPk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
+          | signPk `elem` signees = Nothing -- Already signed this payment -- wrong
+          | not $ verifySig signPk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
           -- Note that if it succeeds, than the payment this Sign is for necessarily matches
           -- the payment in the Accumulator, since `payment` comes from the Accumulator.
-          | otherwise = Just pk -- The above didn't get triggered, so presumably it's right
+          | otherwise = Just signPk -- The above didn't get triggered, so presumably it's right
 
 -- Here's a wrapper to verify a signature. It is important that the parameters to verifySignature
 -- are, in order: pk, msg then signature.
