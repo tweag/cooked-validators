@@ -8,6 +8,7 @@ import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Strict
+import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import qualified Data.Map.Strict as M
@@ -25,7 +26,7 @@ import qualified Ledger.Value as Pl
 -- $mockchaindocstr
 --
 -- The MockChainT monad provides a direct emulator; that is, it gives us a simple way to call
--- validator scripts directly, without the need for all the complexity tha the 'Contract'
+-- validator scripts directly, without the need for all the complexity the 'Contract'
 -- monad introduces.
 --
 -- Running a 'MockChain' produces a 'UtxoState', which is a map from 'Pl.Address' to
@@ -56,7 +57,7 @@ data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
     mcstStrDatums :: M.Map Pl.DatumHash String,
-    mcstSlotCtr :: MockChainSlotCounter
+    mcstSlotCtr :: SlotCounter
   }
   deriving (Show)
 
@@ -75,17 +76,20 @@ newtype MockChainT m a = MockChainT
 -- | Non-transformer variant
 type MockChain = MockChainT Identity
 
--- custom monad instance made to increase the slot count automatically
+-- Custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
   return = pure
   MockChainT x >>= f =
     MockChainT $ do
       xres <- x
-      modify' (\st -> st {mcstSlotCtr = mcscIncrease (mcstSlotCtr st)})
+      modify' (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
       unMockChain (f xres)
 
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
+
+onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
+onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
 
 -- | Executes a 'MockChainT' from some initial state.
 runMockChainTFrom ::
@@ -105,24 +109,13 @@ runMockChainT = runMockChainTFrom mockChainSt0
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
-data MockChainSlotCounter = MockChainSlotCounter
-  { mcscAutoIncrease :: Bool,
-    mcscCurrentSlot :: Integer
-  }
-  deriving (Eq, Show)
-
-mcscIncrease :: MockChainSlotCounter -> MockChainSlotCounter
-mcscIncrease mcsc =
-  let auto = mcscAutoIncrease mcsc
-   in mcsc {mcscCurrentSlot = (if auto then (+ 1) else id) $ mcscCurrentSlot mcsc}
-
 -- Canonical initial values
 
 utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty (MockChainSlotCounter True 0)
+mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty slotCounter0
 
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
