@@ -24,12 +24,16 @@ import PlutusTx.Prelude
 import Test.Hspec
 import qualified Prelude as Haskell
 
+allowedSigners :: [Ledger.PubKeyHash]
 allowedSigners = map (walletPKHash . wallet) [1, 4, 5, 7]
 
+param :: MultiSig
 param = MultiSig allowedSigners 3
 
+multiVal :: TScripts.TypedValidator MultiSig
 multiVal = typedValidator param
 
+run1 :: Either MockChainError ((), UtxoState)
 run1 =
   runMockChain $ do
     -- Everyone deposits 1000

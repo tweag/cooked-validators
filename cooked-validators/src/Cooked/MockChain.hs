@@ -9,8 +9,9 @@
 
 module Cooked.MockChain (
   module Cooked.MockChain.Base,
-  module Cooked.MockChain.Wallet,
+  module Cooked.MockChain.Time,
   module Cooked.MockChain.UtxoState,
+  module Cooked.MockChain.Wallet,
   -- Our type for UTxOS
   SpendableOut,
   spendableRef,
@@ -26,14 +27,20 @@ module Cooked.MockChain (
   scriptUtxosSuchThat,
   outFromOutRef,
 
-  -- * Slot Management
+  -- * Time Management
   slot,
+  freezeTime,
+  waitSlots,
+  waitTime,
+  slotIs,
+  timeIs,
 ) where
 
 import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.State
 import Cooked.MockChain.Base
+import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import qualified Data.Map.Strict as M
@@ -171,10 +178,26 @@ outFromOutRef outref = do
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
 
+-- * Time management in the monad.
+
 -- | Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
-slot = gets (Pl.Slot . mcscCurrentSlot . mcstSlotCtr)
+slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
 
+freezeTime :: (Monad m) => MockChainT m ()
+freezeTime = modify (onSlot scFreezeTime)
+
+waitSlots :: (Monad m) => Integer -> MockChainT m ()
+waitSlots n = modify (onSlot (scWaitSlots n))
+
+waitTime :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
+waitTime mSec = modify (onSlot (scWait mSec))
+
+slotIs :: (Monad m) => Integer -> MockChainT m ()
+slotIs n = modify (onSlot (scSlotIs n))
+
+timeIs :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
+timeIs t = modify (onSlot (scTimeIs t))
 -- * Utilities
 
 rstr :: (Monad m) => (a, m b) -> m (a, b)

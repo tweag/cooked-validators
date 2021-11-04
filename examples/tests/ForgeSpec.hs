@@ -25,16 +25,20 @@ import PlutusTx.Prelude
 import Test.Hspec
 
 -- The NFT to control everything.
+bigBossTok :: Value.TokenName
 bigBossTok = Value.TokenName "BigBossNFT"
 
+bigBossPolicy :: Scripts.MintingPolicy
 bigBossPolicy = Currency.curPolicy $ Currency.OneShotCurrency (h, i) (AssocMap.fromList [(bigBossTok, 1)])
   where
     Right ((h, i), _) = runMockChain $ do
       [(Validation.TxOutRef h i, _)] <- pkUtxos' (walletPKHash $ wallet 1)
       return (h, i)
 
+bigBossCurr :: Value.CurrencySymbol
 bigBossCurr = Validation.scriptCurrencySymbol bigBossPolicy
 
+bigBossNFT :: Value.AssetClass
 bigBossNFT = Value.assetClass bigBossCurr bigBossTok
 
 -- An auth token can only be minted or destroyed if the BigBossNFT is used.
@@ -58,8 +62,10 @@ authTokenPolicy =
 authTokenCurrency :: Value.CurrencySymbol
 authTokenCurrency = Validation.scriptCurrencySymbol authTokenPolicy
 
+authTokenTok :: Value.TokenName
 authTokenTok = Value.TokenName "ForgeAuth"
 
+authToken :: Value.AssetClass
 authToken = Value.assetClass authTokenCurrency authTokenTok
 
 -- The smithed token can only be forged if the auth token is used.
@@ -81,17 +87,22 @@ smithingPolicy =
 smithingCurrency :: Value.CurrencySymbol
 smithingCurrency = Validation.scriptCurrencySymbol smithingPolicy
 
+smithingToken :: Value.TokenName
 smithingToken = Value.TokenName "Token"
 
+smithed :: Value.AssetClass
 smithed = Value.assetClass smithingCurrency smithingToken
 
 params :: Params
 params = Params bigBossNFT authToken smithed
 
+bigBossVal :: TScripts.TypedValidator BigBoss
 bigBossVal = bigBossTypedValidator params
 
+smithVal :: TScripts.TypedValidator Smith
 smithVal = smithTypedValidator params
 
+run1 :: Either MockChainError ((), UtxoState)
 run1 =
   runMockChain $ do
     -- We start with the creation of the NFT
