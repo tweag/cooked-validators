@@ -19,6 +19,8 @@
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas #-}
 {-# OPTIONS_GHC -fno-omit-interface-pragmas #-}
 {-# OPTIONS_GHC -fno-specialise #-}
+{-# OPTIONS_GHC -fno-strictness #-}
+{-# OPTIONS_GHC -fobject-code #-}
 
 -- |
 -- * Parallel stateful multi-sig contract
@@ -35,23 +37,27 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import Ledger.Contexts (ScriptContext (..), TxInfo (..))
+import Ledger.Contexts hiding (findDatum)
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
+import qualified Ledger.Typed.Scripts.MonetaryPolicies as Scripts
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as Api
+import qualified Plutus.V2.Ledger.Contexts as Api
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 -- | This multisig script will receive as a parameter the list of elligible signers
---  and the threshold number of signatures.
+--  and the threshold number of signatures. Moreover, we pass the threadToken NFT
+--  that will identify legitimate datums as a parameter, as this will only be known at run-time.
 data Params = Params
   { pmspSignatories :: [Ledger.PubKey],
-    pmspRequiredSigs :: Integer
+    pmspRequiredSigs :: Integer,
+    pmspThreadToken :: Value.AssetClass
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -139,6 +145,8 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
   | length signees >= pmspRequiredSigs = validatePayout
   | otherwise = validateAcc
   where
+    (provTokSym, provTokName) = Value.unAssetClass pmspThreadToken
+
     txInfo = scriptContextTxInfo ctx
 
     validatePayout
@@ -153,7 +161,7 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
       | [Api.TxOut _ outVal (Just dh)] <- txInfoOutputs txInfo,
         Just (Accumulator payment' signees') <- findDatumByHash txInfo dh =
         Value.valueOf outVal Api.adaSymbol Api.adaToken == 0
-          && Value.valueOf outVal (threadTokenSymbol params) threadTokenName == 1
+          && Value.valueOf outVal provTokSym provTokName == 1
           && verifyInAccThreadToken (not $ null signees')
           && payment == payment'
           && verifySignees signees'
@@ -163,7 +171,7 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
       where
         inputTokens = sum $ tokenVal <$> txInfoInputs txInfo
         tokenVal :: Api.TxInInfo -> Integer
-        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) = Value.valueOf outVal (threadTokenSymbol params) threadTokenName
+        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) = Value.valueOf outVal provTokSym provTokName
 
     verifySignees signees' =
       uniqueSignees' == signees' -- no duplicates in the output
@@ -210,11 +218,49 @@ pmultisig =
 pmultisigAddr :: Params -> Ledger.Address
 pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 
-threadTokenPolicy :: Params -> Scripts.MintingPolicy
-threadTokenPolicy = Scripts.mkForwardingMintingPolicy . Ledger.validatorHash . Scripts.validatorScript . pmultisig
+-- * Minting Policy
 
-threadTokenSymbol :: Params -> Api.CurrencySymbol
-threadTokenSymbol = Validation.scriptCurrencySymbol . threadTokenPolicy
+-- $mintingpolicy
+--
+-- 'mkPolicy' below is a minting policy for an NFT. This was taken from the plutus-pioneer-program
+-- in: https://plutus-pioneer-program.readthedocs.io/en/latest/pioneer/week5.html#nfts
+--
+-- The general idea is to parameterize the policy with an 'Api.TxOutRef', and make
+-- it so that this currency can only be minted in a transaction consuming a given 'Api.TxOutRef'.
+-- Since a 'TxOut' can only be consumed once, no other transaction will be able to
+-- consume the same TxOutRef and hence no more tokens can be minted.
+--
+-- TODO: modify to allow burning of the token; a transaction that consumes and output
+
+{-# INLINEABLE mkPolicy #-}
+mkPolicy :: (Api.TxOutRef, Value.TokenName) -> () -> ScriptContext -> Bool
+mkPolicy (oref, tn) _ ctx =
+  traceIfFalse "UTxO not consumed" hasUTxO
+    && traceIfFalse "wrong amount minted" checkMintedAmount
+  where
+    info :: TxInfo
+    info = scriptContextTxInfo ctx
+
+    hasUTxO :: Bool
+    hasUTxO = any (\i -> txInInfoOutRef i == oref) $ txInfoInputs info
+
+    checkMintedAmount :: Bool
+    checkMintedAmount = case Value.flattenValue (txInfoMint info) of
+      [(cs, tn', amt)] -> cs == ownCurrencySymbol ctx && tn' == tn && amt == 1
+      _ -> False
+
+threadTokenSymbol :: Api.TxOutRef -> Value.TokenName -> Api.CurrencySymbol
+threadTokenSymbol oref = Validation.scriptCurrencySymbol . threadTokenPolicy oref
 
 threadTokenName :: Value.TokenName
 threadTokenName = Value.tokenName "threadToken"
+
+threadTokenAssetClass :: Api.TxOutRef -> Value.AssetClass
+threadTokenAssetClass oref = Value.assetClass (threadTokenSymbol oref threadTokenName) threadTokenName
+
+threadTokenPolicy :: Api.TxOutRef -> Value.TokenName -> Scripts.MintingPolicy
+threadTokenPolicy oref tok =
+  Api.mkMintingPolicyScript $
+    $$(PlutusTx.compile [||\x y -> Scripts.wrapMintingPolicy $ mkPolicy (x, y)||])
+      `PlutusTx.applyCode` PlutusTx.liftCode oref
+      `PlutusTx.applyCode` PlutusTx.liftCode tok
