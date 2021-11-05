@@ -126,6 +126,14 @@ findDatumByHash txInfo hash = do
 findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
 findDatum txInfo inInfo = Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
 
+{-# INLINEABLE findAccumulators #-}
+findAccumulators :: TxInfo -> [(Datum, Api.Value)]
+findAccumulators txInfo = mapMaybe toAcc $ txInfoOutputs txInfo
+  where
+    toAcc (Api.TxOut _ outVal (Just dh))
+      | Just acc@Accumulator {} <- findDatumByHash txInfo dh = Just (acc, outVal)
+    toAcc _ = Nothing
+
 {-# INLINEABLE validatePayment #-}
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
 
@@ -157,8 +165,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
       | otherwise = False
 
     validateAcc
-      | [Api.TxOut _ outVal (Just dh)] <- txInfoOutputs txInfo
-        , Just (Accumulator payment' signees') <- findDatumByHash txInfo dh =
+      | [(Accumulator payment' signees', outVal)] <- findAccumulators txInfo =
         Value.valueOf outVal Api.adaSymbol Api.adaToken == 0
           && Value.valueOf outVal provTokSym provTokName == 1
           && verifyInAccThreadToken (not $ null signees')
