@@ -123,7 +123,7 @@ lockParams =
 lockParams2 :: Split.SplitParams
 lockParams2 =
   Split.SplitParams
-    { Split.recipient1 = walletPK (wallet 5)
+    { Split.recipient1 = walletPK (wallet 4)
     , Split.recipient2 = walletPK (wallet 3)
     , Split.amount = 400
     }
@@ -161,7 +161,7 @@ run4 = runMockChain $ do
 runAttack :: Either MockChainError ((), UtxoState)
 runAttack = runMockChain $ do
   txLock (wallet 1) lockParams >>= validateTxFromSkeleton
-  txLock (wallet 5) lockParams2 >>= validateTxFromSkeleton
+  txLock (wallet 1) lockParams2 >>= validateTxFromSkeleton
   txUnlockAttack (wallet 5) >>= validateTxFromSkeleton
 
 -- Test spec
