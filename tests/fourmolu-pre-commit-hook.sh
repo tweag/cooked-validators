@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # command taken from https://github.com/JLLeitschuh/ktlint-gradle  task addKtlintFormatGitPreCommitHook
