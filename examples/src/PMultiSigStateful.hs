@@ -171,7 +171,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 
     validateAcc
       | [(Accumulator payment' signees', outVal)] <- findAccumulators txInfo =
-        Value.valueOf outVal Api.adaSymbol Api.adaToken == 0
+        Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment
           && Value.valueOf outVal provTokSym provTokName == 1
           && verifyInAccThreadToken (not $ null signees')
           && payment == payment'
