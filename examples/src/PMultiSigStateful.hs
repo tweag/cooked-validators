@@ -134,6 +134,10 @@ findAccumulators txInfo = mapMaybe toAcc $ txInfoOutputs txInfo
       | Just acc@Accumulator {} <- findDatumByHash txInfo dh = Just (acc, outVal)
     toAcc _ = Nothing
 
+{-# INLINEABLE findPaymentsToAddr #-}
+findPaymentsToAddr :: Api.Address -> TxInfo -> [Api.TxOut]
+findPaymentsToAddr addr = filter (\(Api.TxOut outAddr _ _) -> outAddr == addr) . txInfoOutputs
+
 {-# INLINEABLE validatePayment #-}
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
 
@@ -157,12 +161,13 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
     txInfo = scriptContextTxInfo ctx
 
     validatePayout
-      | [Api.TxOut outAddr outVal Nothing] <- txInfoOutputs txInfo =
+      | [Api.TxOut _ outVal Nothing] <- findPaymentsToAddr paymentAddr txInfo =
         outVal == Ada.lovelaceValueOf (paymentAmount payment)
           -- /\ This also ensures there is no token in the output
-          && outAddr == Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
           && verifyInAccThreadToken True
       | otherwise = False
+      where
+        paymentAddr = Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
 
     validateAcc
       | [(Accumulator payment' signees', outVal)] <- findAccumulators txInfo =
