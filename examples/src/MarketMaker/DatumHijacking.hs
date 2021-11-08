@@ -1,24 +1,32 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
-module Stealer where
+-- This module creates a simple "datum hijacking" example.
+-- The "datum hijacking" attack consists in creating a contract
+-- with the same structure of datum as the attacked contract.
+-- Whenever one checks that an output has the expected datum,
+-- since serialization only relies on the structure,
+-- (serialized datums have the shape "Const 1 (int 24)")
+-- it is possible to put an output of our own contract instead of a legitimate
+-- output.
+module MarketMaker.DatumHijacking where
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Contexts as Contexts
-import qualified PlutusTx
 import qualified Ledger.Typed.Scripts as Scripts
-import Schema (ToSchema)
+import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
+import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 newtype StealerParams = StealerParams
@@ -29,8 +37,10 @@ newtype StealerParams = StealerParams
 
 PlutusTx.makeLift ''StealerParams
 
+-- Here we reproduce the shape of datum of the 'MarketMaker' contract,
+-- so only one constructor, which takes one integer parameter.
 newtype StealerDatum = StealerDatum
-  { fake :: Integer}
+  {fake :: Integer}
   deriving stock (Haskell.Show)
 
 type StealerRedeemer = ()
@@ -38,8 +48,7 @@ type StealerRedeemer = ()
 validateSteal :: StealerParams -> StealerDatum -> StealerRedeemer -> Contexts.ScriptContext -> Bool
 validateSteal (StealerParams pkh) _ _ context =
   let info = Contexts.scriptContextTxInfo context
-  in
-    elem pkh (Contexts.txInfoSignatories info)
+   in elem pkh (Contexts.txInfoSignatories info)
 
 data Stealer
 

