@@ -42,21 +42,12 @@ outsOf i utxoIndex =
         case Pl.txOutPubKey tx of
           Nothing -> acc
           Just pk ->
-            if pk == wPKH i
+            if pk == walletPKHash (wallet i)
               then (k, tx) : acc
               else acc
     )
     []
     (Pl.getIndex utxoIndex)
-
-wPKH :: Int -> Pl.PubKeyHash
-wPKH i
-  | i <= 10 = walletPKHash (wallet i)
-  | i > 10 =
-    let pk = Pl.generateFromSeed (fromString $ show i ++ pad)
-     in walletPKHash (Pl.Wallet (Pl.MockWallet pk), pk)
-  where
-    pad = "abcdefghijklmnopqrstuvwxyz1234567890"
 
 tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
 tracePayWallet11 =
@@ -64,9 +55,9 @@ tracePayWallet11 =
     validateTxFromSkeleton $
       TxSkel
         (wallet 1)
-        [PaysPK (wPKH 11) (Pl.lovelaceValueOf 4200)]
+        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4200)]
     validateTxFromSkeleton $
       TxSkel
         (wallet 3)
-        [PaysPK (wPKH 11) (Pl.lovelaceValueOf 4200)]
+        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4200)]
     MockChainT get

@@ -1,3 +1,8 @@
+## Dependencies
+
+All of the project dependencies, except for Plutus, is handled by nix.
+Plutus is handled by cabal.
+
 ### Updating Plutus
 
 We are _not_ pinning plutus with nix in favor of a simpler nix setup and
@@ -14,12 +19,17 @@ In order to bump plutus, all one has to do is:
 1. Select the tag you want to updat to from `plutus-apps`.
 2. Copy the `cabal.project` from there
 3. Modify the `packages:` section to build our packages
-4. Add the `plutus-apps` dependency in there:
+4. Add the relevant setting for linking with libsodium:
+    ```
+    package cardano-crypto-praos
+      flags: -external-libsodium-vrf
+    ```
+5. Add the `plutus-apps` dependency in there:
     ```
     source-repository-package
       type: git
       location: https://github.com/input-output-hk/plutus-apps.git
-      tag: v2021-11-05
+      tag: v2021-11-05 -- change the tag to whatever tag you need.
       subdir:
         freer-extras
         playground-common
@@ -32,7 +42,9 @@ In order to bump plutus, all one has to do is:
         quickcheck-dynamic
     ```
    In this case, we're running with `plutus-apps` at tag `v2021-11-05`.
-5. Run `cabal build all` and grab a coffee.
+6. Run `cabal build all` and grab a coffee.
+
+## Developer Tools and Environment
 
 ### Pre-commit Hooks and CI
 
