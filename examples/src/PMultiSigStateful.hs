@@ -40,7 +40,6 @@ import qualified Ledger.Ada as Ada
 import Ledger.Contexts hiding (findDatum)
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
-
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V1.Ledger.Value as Value
@@ -54,9 +53,9 @@ import qualified Prelude as Haskell
 --  and the threshold number of signatures. Moreover, we pass the threadToken NFT
 --  that will identify legitimate datums as a parameter, as this will only be known at run-time.
 data Params = Params
-  { pmspSignatories :: [Ledger.PubKey]
-  , pmspRequiredSigs :: Integer
-  , pmspThreadToken :: Value.AssetClass
+  { pmspSignatories :: [Ledger.PubKey],
+    pmspRequiredSigs :: Integer,
+    pmspThreadToken :: Value.AssetClass
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -65,8 +64,8 @@ PlutusTx.makeLift ''Params
 
 -- | A Payment is a simple amount of Ada to be paid to a public key.
 data Payment = Payment
-  { paymentAmount :: Integer
-  , paymentRecipient :: Ledger.PubKeyHash
+  { paymentAmount :: Integer,
+    paymentRecipient :: Ledger.PubKeyHash
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -251,9 +250,13 @@ pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: (Api.TxOutRef, Value.TokenName) -> () -> ScriptContext -> Bool
 mkPolicy (oref, tn) _ ctx
-  | Just amt <- mintedAmount = if amt == 1 then traceIfFalse "UTxO not consumed" hasUTxO
-                               else if amt == (-1) then True
-                               else traceIfFalse "wrong amount minted" False
+  | Just amt <- mintedAmount =
+    if amt == 1
+      then traceIfFalse "UTxO not consumed" hasUTxO
+      else
+        if amt == (-1)
+          then True
+          else traceIfFalse "wrong amount minted" False
   | otherwise = traceIfFalse "no minted amount" False
   where
     info :: TxInfo

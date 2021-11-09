@@ -7,8 +7,8 @@ import Data.Either (isRight)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import PMultiSigStateful
-import qualified PlutusTx.Prelude as Pl
 import qualified Plutus.V1.Ledger.Value as Pl
+import qualified PlutusTx.Prelude as Pl
 import Test.Hspec
 
 paymentValue :: Payment -> Pl.Value
@@ -22,18 +22,21 @@ mkProposalSkel :: Wallet -> Payment -> MockChain (Params, TxSkel, Pl.TxOutRef)
 mkProposalSkel w pmt = do
   utxos <- pkUtxos wpkh
   case utxos of
-       (spendableOut:_) -> do
-         let klass = threadTokenAssetClass $ fst spendableOut
-         let params = Params (walletPK <$> knownWallets) 2 klass
-         let threadToken = paramsToken params
-         let skel = TxSkel w [ Mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken
-                             -- We don't have SpendsPK or PaysPK wrt the wallet `w`
-                             -- because the balancing mechanism chooses the same (first) output
-                             -- we're working on.
-                             , PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
-                             ]
-         pure (params, skel, fst spendableOut)
-       _ -> error "No spendable outputs for the wallet"
+    (spendableOut : _) -> do
+      let klass = threadTokenAssetClass $ fst spendableOut
+      let params = Params (walletPK <$> knownWallets) 2 klass
+      let threadToken = paramsToken params
+      let skel =
+            TxSkel
+              w
+              [ Mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
+                -- We don't have SpendsPK or PaysPK wrt the wallet `w`
+                -- because the balancing mechanism chooses the same (first) output
+                -- we're working on.
+                PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
+              ]
+      pure (params, skel, fst spendableOut)
+    _ -> error "No spendable outputs for the wallet"
   where
     wpkh = walletPKHash w
 
@@ -63,8 +66,8 @@ mkThreadToken w = do
   validateTxFromSkeleton $ mkThreadTokenInputSkel w
   emptyUtxos <- pkUtxosSuchThat (walletPKHash w) (== mempty)
   case emptyUtxos of
-       [] -> error "No empty UTxOs"
-       ((out, _) :_) -> pure out
+    [] -> error "No empty UTxOs"
+    ((out, _) : _) -> pure out
 
 mkParams :: MockChain Params
 mkParams = do
@@ -84,18 +87,21 @@ txs1 = do
     collect params = do
       [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
       signatures <- scriptUtxosSuchThat (pmultisig params) isSign
-      pure $ TxSkel (wallet 1)
-        $ PaysScript (pmultisig params) [(Accumulator thePayment (signPk . snd <$> signatures), paymentAda <> paramsToken params)] :
+      pure $
+        TxSkel (wallet 1) $
+          PaysScript (pmultisig params) [(Accumulator thePayment (signPk . snd <$> signatures), paymentAda <> paramsToken params)] :
           SpendsScript (pmultisig params) () initialProp :
           (SpendsScript (pmultisig params) () <$> signatures)
 
     pay params tokenOutRef = do
       [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
-      pure $ TxSkel (wallet 1)
-        [ PaysPK (paymentRecipient thePayment) paymentAda
-        , SpendsScript (pmultisig params) () accumulated
-        , Mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
-        ]
+      pure $
+        TxSkel
+          (wallet 1)
+          [ PaysPK (paymentRecipient thePayment) paymentAda,
+            SpendsScript (pmultisig params) () accumulated,
+            Mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+          ]
 
     paymentAda = paymentValue thePayment
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
