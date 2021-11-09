@@ -34,9 +34,9 @@ import qualified Prelude as Haskell
 -- It is characterised by a constant in this example where the equation for the
 -- market maker is: `nbTokens * tokenPrice = constant`
 data MarketParams = MarketParams
-  { paramsMarketNFT :: Value.AssetClass
-  , paramsAsset :: Value.AssetClass
-  , paramsConstant :: Integer
+  { paramsMarketNFT :: Value.AssetClass,
+    paramsAsset :: Value.AssetClass,
+    paramsConstant :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)

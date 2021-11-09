@@ -109,28 +109,28 @@ run1 =
     validateTxFromSkeleton $
       TxSkel
         (wallet 1)
-        [ Mints [bigBossPolicy] oneBBNFT
-        , PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
+        [ Mints [bigBossPolicy] oneBBNFT,
+          PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
         ]
     -- We then open a forge
     [(outBB, datBB@(BigBoss l))] <- scriptUtxosSuchThat bigBossVal (\_ _ -> True)
     validateTxFromSkeleton $
       TxSkel
         (wallet 3)
-        [ SpendsScript bigBossVal Open (outBB, datBB)
-        , Mints [authTokenPolicy] oneAuthToken
-        , PaysScript bigBossVal [(BigBoss [w3PKH], oneBBNFT)]
-        , PaysScript smithVal [(Forge w3PKH 0, oneAuthToken)]
+        [ SpendsScript bigBossVal Open (outBB, datBB),
+          Mints [authTokenPolicy] oneAuthToken,
+          PaysScript bigBossVal [(BigBoss [w3PKH], oneBBNFT)],
+          PaysScript smithVal [(Forge w3PKH 0, oneAuthToken)]
         ]
     -- We use this forge to mint 3 tokens
     [(outSmith, datSmith@(Forge owner forged))] <- scriptUtxosSuchThat smithVal (\_ _ -> True)
     validateTxFromSkeleton $
       TxSkel
         (wallet 3)
-        [ SpendsScript smithVal Adjust (outSmith, datSmith)
-        , Mints [smithingPolicy] (Value.assetClassValue smithed 30)
-        , PaysScript smithVal [(Forge w3PKH 30, oneAuthToken <> Ada.lovelaceValueOf 500)]
-        , PaysPK w3PKH (Value.assetClassValue smithed 30)
+        [ SpendsScript smithVal Adjust (outSmith, datSmith),
+          Mints [smithingPolicy] (Value.assetClassValue smithed 30),
+          PaysScript smithVal [(Forge w3PKH 30, oneAuthToken <> Ada.lovelaceValueOf 500)],
+          PaysPK w3PKH (Value.assetClassValue smithed 30)
         ]
   where
     oneBBNFT = Value.assetClassValue bigBossNFT 1

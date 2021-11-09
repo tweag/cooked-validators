@@ -80,8 +80,8 @@ run1 =
       TxSkel
         (wallet 1)
         ( map (SpendsScript crowdVal Collect) funds
-            ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000)
-               , ValidateIn $ Ledger.interval (originOfTime + Ledger.POSIXTime 20000) (originOfTime + Ledger.POSIXTime 27000)
+            ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),
+                 ValidateIn $ Ledger.interval (originOfTime + Ledger.POSIXTime 20000) (originOfTime + Ledger.POSIXTime 27000)
                ]
         )
 

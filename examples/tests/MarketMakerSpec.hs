@@ -12,12 +12,11 @@ import qualified Ledger.Contexts as Contexts
 import qualified Ledger.Typed.Scripts as TScripts
 import qualified Ledger.Value as Value
 import qualified MarketMaker as Market
+import MarketMaker.DatumHijacking
 import qualified Plutus.Contracts.Currency as Currency
 import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude
 import Test.Hspec
-
-import MarketMaker.DatumHijacking
 
 -- Parameters of the test runs
 
@@ -98,10 +97,10 @@ mCoinsAssetClass = do
 
 -- | Parameters of a run (after initialization of the minting policy)
 data RunParams = RunParams
-  { runParamsMarketValidator :: TScripts.TypedValidator Market.Market
-  , runParamsMintingPolicy :: TScripts.MintingPolicy
-  , runParamsNftClass :: Ledger.AssetClass
-  , runParamsCoinsClass :: Ledger.AssetClass
+  { runParamsMarketValidator :: TScripts.TypedValidator Market.Market,
+    runParamsMintingPolicy :: TScripts.MintingPolicy,
+    runParamsNftClass :: Ledger.AssetClass,
+    runParamsCoinsClass :: Ledger.AssetClass
   }
 
 -- | Parameters of a market transaction: that is how much Ada and coins the
@@ -109,10 +108,10 @@ data RunParams = RunParams
 -- has to be thought about while keeping track of the inputs that will be spent
 -- during the transaction.
 data MarketTxParams = MarketTxParams
-  { marketTxParamsWalletAda :: Integer
-  , marketTxParamsWalletCoins :: Integer
-  , marketTxParamsMarketMakerAda :: Integer
-  , marketTxParamsMarketMakerCoins :: Integer
+  { marketTxParamsWalletAda :: Integer,
+    marketTxParamsWalletCoins :: Integer,
+    marketTxParamsMarketMakerAda :: Integer,
+    marketTxParamsMarketMakerCoins :: Integer
   }
 
 -- | Template of a transaction
@@ -125,9 +124,9 @@ marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams 
   validateTxFromSkeleton $
     TxSkel
       wIssuer
-      [ SpendsScript validator redeemer (output, datum)
-      , PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)]
-      , PaysPK (walletPKHash wIssuer) (ada wAda <> coins wCoins)
+      [ SpendsScript validator redeemer (output, datum),
+        PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)],
+        PaysPK (walletPKHash wIssuer) (ada wAda <> coins wCoins)
       ]
 
 -- | Template of a Sell transaction
@@ -150,16 +149,15 @@ marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass
    in validateTxFromSkeleton $
         TxSkel
           wIssuer
-          [ PaysPK (walletPKHash wIssuer) mempty
-          , Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit))
-          , PaysScript
+          [ PaysPK (walletPKHash wIssuer) mempty,
+            Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
+            PaysScript
               validator
-              [
-                ( Market.MarketDatum nbCoinsMarketInit
-                , oneNft <> coins nbCoinsMarketInit
+              [ ( Market.MarketDatum nbCoinsMarketInit,
+                  oneNft <> coins nbCoinsMarketInit
                 )
-              ]
-          , PaysPK (walletPKHash wReceiver) (coins nbCoinsWalletInit)
+              ],
+            PaysPK (walletPKHash wReceiver) (coins nbCoinsWalletInit)
           ]
 
 -- | Example run
@@ -227,9 +225,9 @@ datumHijacking = do
     validateTxFromSkeleton $
       TxSkel
         (wallet 1)
-        [ SpendsScript marketValidator Market.Buy (out, dat)
-        , PaysScript stealValidator [(StealerDatum 40, oneNft <> ada 1000 <> coins 40)]
-        , PaysPK (walletPKHash (wallet 1)) (coins 10)
+        [ SpendsScript marketValidator Market.Buy (out, dat),
+          PaysScript stealValidator [(StealerDatum 40, oneNft <> ada 1000 <> coins 40)],
+          PaysPK (walletPKHash (wallet 1)) (coins 10)
         ]
 
     [(outS, datS)] <- scriptUtxosSuchThat stealValidator (\_ _ -> True)
@@ -238,8 +236,8 @@ datumHijacking = do
     validateTxFromSkeleton $
       TxSkel
         (wallet 1)
-        [ SpendsScript stealValidator () (outS, datS)
-        , PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)
+        [ SpendsScript stealValidator () (outS, datS),
+          PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)
         ]
 
 -- Test spec

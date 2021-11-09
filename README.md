@@ -1,8 +1,8 @@
 ### Pre-commit Hooks and CI
 
-Our ci runs `fourmolu`, `hlint` and `cabal test` for each of our subprojects.
+Our ci runs `ormolu`, `hlint` and `cabal test` for each of our subprojects.
 In order to help avoid CI failures due to formatting problems, we recommend
-that you install the [pre-commit hook for running fourmolu](tests/fourmolu-pre-commit-hook.sh).
+that you install the [pre-commit hook for running ormolu](tests/ormolu-pre-commit-hook.sh).
 To do so, simply copy (or link) the script into `.git/hooks/pre-commit`.
 
 ### Nix

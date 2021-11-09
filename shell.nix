@@ -19,7 +19,7 @@ pkgs.mkShell {
         # devtools
         haskell-language-server
         hlint
-        haskellPackages.fourmolu
+        ormolu
         hpack
     ];
 }

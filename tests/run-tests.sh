@@ -27,13 +27,13 @@ done
 ## explaining the failure inside the tests folder.
 run_ormolu() {
   local proj=$1
-  echo "Running fourmolu on $proj"
+  echo "Running ormolu on $proj"
   local ormolu_res=0
   if $ci; then
-    fourmolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "tests/${proj}-ormolu.artifact")
+    ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "tests/${proj}-ormolu.artifact")
     ormolu_res=$?
   else 
-    fourmolu --mode inplace $(find ./$proj -name '*.hs') 
+    ormolu --mode inplace $(find ./$proj -name '*.hs') 
     ormolu_res=$?
   fi 
 

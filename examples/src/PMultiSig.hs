@@ -39,7 +39,6 @@ import qualified Ledger.Ada as Ada
 import Ledger.Contexts (ScriptContext (..), TxInfo (..))
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
-
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V2.Ledger.Api as Api
@@ -51,8 +50,8 @@ import qualified Prelude as Haskell
 -- | This multisig script will receive as a parameter the list of elligible signers
 --  and the threshold number of signatures.
 data Params = Params
-  { pmspSignatories :: [Ledger.PubKey]
-  , pmspRequiredSigs :: Integer
+  { pmspSignatories :: [Ledger.PubKey],
+    pmspRequiredSigs :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -61,8 +60,8 @@ PlutusTx.makeLift ''Params
 
 -- | A Payment is a simple amount of Ada to be paid to a public key.
 data Payment = Payment
-  { paymentAmount :: Integer
-  , paymentRecipient :: Ledger.PubKeyHash
+  { paymentAmount :: Integer,
+    paymentRecipient :: Ledger.PubKeyHash
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -128,8 +127,8 @@ validatePayment Params {..} (Proposal p) _ ctx =
   and
     [ traceIfFalse
         "Not enough correct inputs"
-        (length correctInputs >= pmspRequiredSigs)
-    , traceIfFalse
+        (length correctInputs >= pmspRequiredSigs),
+      traceIfFalse
         "Does not pay recipient"
         (any validPayment $ txInfoOutputs txInfo)
     ]

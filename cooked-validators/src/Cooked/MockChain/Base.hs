@@ -54,10 +54,10 @@ mcstToUtxoState s =
 --  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
-  { mcstIndex :: Pl.UtxoIndex
-  , mcstDatums :: M.Map Pl.DatumHash Pl.Datum
-  , mcstStrDatums :: M.Map Pl.DatumHash String
-  , mcstSlotCtr :: SlotCounter
+  { mcstIndex :: Pl.UtxoIndex,
+    mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
+    mcstStrDatums :: M.Map Pl.DatumHash String,
+    mcstSlotCtr :: SlotCounter
   }
   deriving (Show)
 
