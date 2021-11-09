@@ -35,9 +35,9 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   config <- gets (slotConfig . mcstSlotCtr)
   return
     tx
-      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns'
-      , Pl.txOutputs = Pl.txOutputs tx ++ [txOut']
-      , Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
+      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
+        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
+        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
       }
 
 balanceWithUTxOsOf ::

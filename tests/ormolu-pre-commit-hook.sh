@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # command taken from https://github.com/JLLeitschuh/ktlint-gradle  task addKtlintFormatGitPreCommitHook
@@ -7,6 +7,6 @@ filesToFormat="$(git --no-pager diff --name-status --no-color --cached | awk '$1
 echo "files to format $filesToFormat"
 for sourceFilePath in $filesToFormat
 do
-  fourmolu --mode inplace "$(pwd)/$sourceFilePath"
+  ormolu --mode inplace "$(pwd)/$sourceFilePath"
   git add $sourceFilePath
 done;
