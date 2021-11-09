@@ -243,13 +243,18 @@ pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 -- Since a 'TxOut' can only be consumed once, no other transaction will be able to
 -- consume the same TxOutRef and hence no more tokens can be minted.
 --
--- TODO: modify to allow burning of the token; a transaction that consumes and output
+-- We also allow burning a token unconditionally _in the policy_,
+-- since validator is reponsible for verifying when the token is actually burned.
+-- Concretely, it can be shown by induction on the graph of the transactions
+-- that the only place where the token is burned is when paying the funds out.
 
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: (Api.TxOutRef, Value.TokenName) -> () -> ScriptContext -> Bool
-mkPolicy (oref, tn) _ ctx =
-  traceIfFalse "UTxO not consumed" hasUTxO
-    && traceIfFalse "wrong amount minted" checkMintedAmount
+mkPolicy (oref, tn) _ ctx
+  | Just amt <- mintedAmount = if amt == 1 then traceIfFalse "UTxO not consumed" hasUTxO
+                               else if amt == (-1) then True
+                               else traceIfFalse "wrong amount minted" False
+  | otherwise = traceIfFalse "no minted amount" False
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -257,10 +262,10 @@ mkPolicy (oref, tn) _ ctx =
     hasUTxO :: Bool
     hasUTxO = any (\i -> txInInfoOutRef i == oref) $ txInfoInputs info
 
-    checkMintedAmount :: Bool
-    checkMintedAmount = case Value.flattenValue (txInfoMint info) of
-      [(cs, tn', amt)] -> cs == ownCurrencySymbol ctx && tn' == tn && amt == 1
-      _ -> False
+    mintedAmount :: Maybe Integer
+    mintedAmount = case Value.flattenValue (txInfoMint info) of
+      [(cs, tn', amt)] | cs == ownCurrencySymbol ctx && tn' == tn -> Just amt
+      _ -> Nothing
 
 {-# INLINEABLE threadTokenSymbol #-}
 threadTokenSymbol :: Api.TxOutRef -> Value.TokenName -> Api.CurrencySymbol
