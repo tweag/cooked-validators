@@ -44,7 +44,7 @@ mkSignSkel :: Params -> Wallet -> Payment -> TxSkel
 mkSignSkel params w pmt = TxSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
   where
     pk = walletPK w
-    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (snd w)
+    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
 
 isSign :: Datum -> a -> Bool
 isSign Sign {} _ = True
