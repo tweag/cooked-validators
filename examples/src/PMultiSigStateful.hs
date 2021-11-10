@@ -40,12 +40,10 @@ import qualified Ledger.Ada as Ada
 import Ledger.Contexts hiding (findDatum)
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Typed.Scripts.MonetaryPolicies as Scripts
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as Api
-import qualified Plutus.V2.Ledger.Contexts as Api
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
@@ -82,7 +80,7 @@ instance Eq Payment where
 --  an accumulator collecting signatures for a given payment.
 data Datum
   = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
-  | Sign {pk :: Ledger.PubKey, sig :: Ledger.Signature}
+  | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -107,7 +105,10 @@ fromJust Nothing = traceError "fromJust: Nothing"
 -- a BuiltinByteString; henre, we'll build it ourselves.
 {-# INLINEABLE packInteger #-}
 packInteger :: Integer -> BuiltinByteString
-packInteger k = if k < 0 then consByteString 1 (go (negate k) emptyByteString) else consByteString 0 (go k emptyByteString)
+packInteger k =
+  if k < 0
+    then consByteString 1 (go (negate k) emptyByteString)
+    else consByteString 0 (go k emptyByteString)
   where
     go n s
       | n == 0 = s
@@ -115,7 +116,8 @@ packInteger k = if k < 0 then consByteString 1 (go (negate k) emptyByteString) e
 
 {-# INLINEABLE packPayment #-}
 packPayment :: Payment -> BuiltinByteString
-packPayment (Payment amm bob) = consByteString 42 $ appendByteString (packInteger amm) (Ledger.getPubKeyHash bob)
+packPayment (Payment amm bob) =
+  consByteString 42 $ appendByteString (packInteger amm) (Ledger.getPubKeyHash bob)
 
 {-# INLINEABLE findDatumByHash #-}
 findDatumByHash :: TxInfo -> Api.DatumHash -> Maybe Datum
@@ -125,7 +127,30 @@ findDatumByHash txInfo hash = do
 
 {-# INLINEABLE findDatum #-}
 findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
-findDatum txInfo inInfo = Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
+findDatum txInfo inInfo =
+  Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
+
+-- | In order to find the relevant accumulators we look at the 'getContinuingOutputs',
+-- which returns those outputs that pay to the same address of whatever is beeing
+-- redeemed.
+--
+-- If we used 'txInfoOutputs' without checking the address explicitely, we would
+-- be making this script vulnerable to the datum hijack attack.
+-- You can find more about it at "MarketMaker.DatumHijacking" and its respective
+-- test suite to see how that would work.
+{-# INLINEABLE findAccumulators #-}
+findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
+findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
+  where
+    txInfo = scriptContextTxInfo ctx
+
+    toAcc (Api.TxOut _ outVal (Just dh))
+      | Just acc@Accumulator {} <- findDatumByHash txInfo dh = Just (acc, outVal)
+    toAcc _ = Nothing
+
+{-# INLINEABLE findPaymentsToAddr #-}
+findPaymentsToAddr :: Api.Address -> TxInfo -> [Api.TxOut]
+findPaymentsToAddr addr = filter (\(Api.TxOut outAddr _ _) -> outAddr == addr) . txInfoOutputs
 
 {-# INLINEABLE validatePayment #-}
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
@@ -141,7 +166,7 @@ validatePayment _ Sign {} _ ctx =
   where
     txInfo = scriptContextTxInfo ctx
     inputDatums = mapMaybe (findDatum txInfo) $ txInfoInputs txInfo
-validatePayment params@Params {..} (Accumulator payment signees) _ ctx
+validatePayment Params {..} (Accumulator payment signees) _ ctx
   | length signees >= pmspRequiredSigs = validatePayout
   | otherwise = validateAcc
   where
@@ -150,17 +175,17 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
     txInfo = scriptContextTxInfo ctx
 
     validatePayout
-      | [Api.TxOut outAddr outVal Nothing] <- txInfoOutputs txInfo =
+      | [Api.TxOut _ outVal Nothing] <- findPaymentsToAddr paymentAddr txInfo =
         outVal == Ada.lovelaceValueOf (paymentAmount payment)
           -- /\ This also ensures there is no token in the output
-          && outAddr == Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
           && verifyInAccThreadToken True
       | otherwise = False
+      where
+        paymentAddr = Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
 
     validateAcc
-      | [Api.TxOut _ outVal (Just dh)] <- txInfoOutputs txInfo,
-        Just (Accumulator payment' signees') <- findDatumByHash txInfo dh =
-        Value.valueOf outVal Api.adaSymbol Api.adaToken == 0
+      | [(Accumulator payment' signees', outVal)] <- findAccumulators ctx =
+        Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment
           && Value.valueOf outVal provTokSym provTokName == 1
           && verifyInAccThreadToken (not $ null signees')
           && payment == payment'
@@ -171,7 +196,8 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
       where
         inputTokens = sum $ tokenVal <$> txInfoInputs txInfo
         tokenVal :: Api.TxInInfo -> Integer
-        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) = Value.valueOf outVal provTokSym provTokName
+        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) =
+          Value.valueOf outVal provTokSym provTokName
 
     verifySignees signees' =
       uniqueSignees' == signees' -- no duplicates in the output
@@ -180,24 +206,29 @@ validatePayment params@Params {..} (Accumulator payment signees) _ ctx
       where
         uniqueSignees' = nub signees'
 
-        otherInputs = mapMaybe (findDatum txInfo) $ filter (/= fromJust (Validation.findOwnInput ctx)) $ txInfoInputs txInfo
+        otherInputs =
+          mapMaybe (findDatum txInfo) $
+            filter (/= fromJust (Validation.findOwnInput ctx)) $ txInfoInputs txInfo
+
         newSignees = mapMaybe extractSig otherInputs
+
         allInputsRelevant = length newSignees == length otherInputs
 
         extractSig Accumulator {} = Nothing
-        extractSig (Sign pk s)
-          | pk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
-          | pk `elem` signees = Nothing -- Already signed this payment -- wrong
-          | not $ verifySig pk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
+        extractSig (Sign signPk s)
+          | signPk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
+          | signPk `elem` signees = Nothing -- Already signed this payment -- wrong
+          | not $ verifySig signPk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
           -- Note that if it succeeds, than the payment this Sign is for necessarily matches
           -- the payment in the Accumulator, since `payment` comes from the Accumulator.
-          | otherwise = Just pk -- The above didn't get triggered, so presumably it's right
+          | otherwise = Just signPk -- The above didn't get triggered, so presumably it's right
 
 -- Here's a wrapper to verify a signature. It is important that the parameters to verifySignature
 -- are, in order: pk, msg then signature.
 {-# INLINEABLE verifySig #-}
 verifySig :: Ledger.PubKey -> BuiltinByteString -> Ledger.Signature -> Bool
-verifySig pk msg s = verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
+verifySig pk msg s =
+  verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
 
 -- Finally, we wrap everything up and make the script available.
 
@@ -207,6 +238,7 @@ instance Scripts.ValidatorTypes PMultiSig where
   type RedeemerType PMultiSig = Redeemer
   type DatumType PMultiSig = Datum
 
+{-# INLINEABLE pmultisig #-}
 pmultisig :: Params -> Scripts.TypedValidator PMultiSig
 pmultisig =
   Scripts.mkTypedValidatorParam @PMultiSig
@@ -215,6 +247,7 @@ pmultisig =
   where
     wrap = Scripts.wrapValidator @Datum @Redeemer
 
+{-# INLINEABLE pmultisigAddr #-}
 pmultisigAddr :: Params -> Ledger.Address
 pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 
@@ -230,13 +263,22 @@ pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
 -- Since a 'TxOut' can only be consumed once, no other transaction will be able to
 -- consume the same TxOutRef and hence no more tokens can be minted.
 --
--- TODO: modify to allow burning of the token; a transaction that consumes and output
+-- We also allow burning a token unconditionally _in the policy_,
+-- since validator is reponsible for verifying when the token is actually burned.
+-- Concretely, it can be shown by induction on the graph of the transactions
+-- that the only place where the token is burned is when paying the funds out.
 
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: (Api.TxOutRef, Value.TokenName) -> () -> ScriptContext -> Bool
-mkPolicy (oref, tn) _ ctx =
-  traceIfFalse "UTxO not consumed" hasUTxO
-    && traceIfFalse "wrong amount minted" checkMintedAmount
+mkPolicy (oref, tn) _ ctx
+  | Just amt <- mintedAmount =
+    if amt == 1
+      then traceIfFalse "UTxO not consumed" hasUTxO
+      else
+        if amt == (-1)
+          then True
+          else traceIfFalse "wrong amount minted" False
+  | otherwise = traceIfFalse "no minted amount" False
   where
     info :: TxInfo
     info = scriptContextTxInfo ctx
@@ -244,20 +286,24 @@ mkPolicy (oref, tn) _ ctx =
     hasUTxO :: Bool
     hasUTxO = any (\i -> txInInfoOutRef i == oref) $ txInfoInputs info
 
-    checkMintedAmount :: Bool
-    checkMintedAmount = case Value.flattenValue (txInfoMint info) of
-      [(cs, tn', amt)] -> cs == ownCurrencySymbol ctx && tn' == tn && amt == 1
-      _ -> False
+    mintedAmount :: Maybe Integer
+    mintedAmount = case Value.flattenValue (txInfoMint info) of
+      [(cs, tn', amt)] | cs == ownCurrencySymbol ctx && tn' == tn -> Just amt
+      _ -> Nothing
 
+{-# INLINEABLE threadTokenSymbol #-}
 threadTokenSymbol :: Api.TxOutRef -> Value.TokenName -> Api.CurrencySymbol
 threadTokenSymbol oref = Validation.scriptCurrencySymbol . threadTokenPolicy oref
 
+{-# INLINEABLE threadTokenName #-}
 threadTokenName :: Value.TokenName
 threadTokenName = Value.tokenName "threadToken"
 
+{-# INLINEABLE threadTokenAssetClass #-}
 threadTokenAssetClass :: Api.TxOutRef -> Value.AssetClass
 threadTokenAssetClass oref = Value.assetClass (threadTokenSymbol oref threadTokenName) threadTokenName
 
+{-# INLINEABLE threadTokenPolicy #-}
 threadTokenPolicy :: Api.TxOutRef -> Value.TokenName -> Scripts.MintingPolicy
 threadTokenPolicy oref tok =
   Api.mkMintingPolicyScript $
