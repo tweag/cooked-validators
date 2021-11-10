@@ -1,32 +1,42 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Wallet where
 
+import Data.Function (on)
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
+import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
-import qualified Plutus.Contract.Trace as Pl
 
 -- * MockChain Wallets
 
 -- $mockchainwallets
 --
--- We keep the private key associated with each wallet so we can sign transactions
--- from any wallet easily
+-- Because the mock wallets from the plutus-apps changes somewhat often, we will
+-- provide our own wrapper on top of them to make sure that we can easily deal
+-- changes from Plutus.
 
-type Wallet = (Pl.Wallet, Pl.PrivateKey)
+type Wallet = CW.MockWallet
+
+instance Eq Wallet where
+  (==) = (==) `on` CW.mwWalletId
+
+instance Ord Wallet where
+  compare = compare `on` CW.mwWalletId
 
 knownWallets :: [Wallet]
-knownWallets = zip Pl.knownWallets Pl.knownPrivateKeys
+knownWallets = CW.knownWallets
 
 wallet :: Int -> Wallet
 wallet j
   | j > 0 && j <= 10 = let i = j - 1 in knownWallets !! i
-  | otherwise = error "There are only 10 wallets, starting index is 1"
+  | otherwise = CW.fromWalletNumber (CW.WalletNumber $ fromIntegral j)
 
 walletPK :: Wallet -> Pl.PubKey
-walletPK = Pl.walletPubKey . fst
+walletPK = CW.pubKey
 
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
@@ -34,10 +44,13 @@ walletPKHash = Pl.pubKeyHash . walletPK
 walletAddress :: Wallet -> Pl.Address
 walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
+walletSK :: CW.MockWallet -> Pl.PrivateKey
+walletSK = CW.privateKey
+
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature (_, sk) = Pl.addSignature sk
+txAddSignature w = Pl.addSignature (CW.privateKey w)
 
 -- * Initial distribution of funds
 
