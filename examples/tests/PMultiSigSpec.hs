@@ -23,7 +23,7 @@ txCreatePayment w pmt = return (TxSkel w ctrs)
 
 txSign :: Wallet -> Payment -> MockChain TxSkel
 txSign w pmt =
-  let wSignature = Pl.sign (Pl.sha2_256 $ packPayment pmt) (snd w)
+  let wSignature = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
       wPk = walletPK w
       ctrs = [PaysScript (pmultisig params) [(Sign wPk wSignature, mempty)]]
    in return (TxSkel w ctrs)
