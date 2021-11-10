@@ -105,7 +105,10 @@ fromJust Nothing = traceError "fromJust: Nothing"
 -- a BuiltinByteString; henre, we'll build it ourselves.
 {-# INLINEABLE packInteger #-}
 packInteger :: Integer -> BuiltinByteString
-packInteger k = if k < 0 then consByteString 1 (go (negate k) emptyByteString) else consByteString 0 (go k emptyByteString)
+packInteger k =
+  if k < 0
+    then consByteString 1 (go (negate k) emptyByteString)
+    else consByteString 0 (go k emptyByteString)
   where
     go n s
       | n == 0 = s
@@ -113,7 +116,8 @@ packInteger k = if k < 0 then consByteString 1 (go (negate k) emptyByteString) e
 
 {-# INLINEABLE packPayment #-}
 packPayment :: Payment -> BuiltinByteString
-packPayment (Payment amm bob) = consByteString 42 $ appendByteString (packInteger amm) (Ledger.getPubKeyHash bob)
+packPayment (Payment amm bob) =
+  consByteString 42 $ appendByteString (packInteger amm) (Ledger.getPubKeyHash bob)
 
 {-# INLINEABLE findDatumByHash #-}
 findDatumByHash :: TxInfo -> Api.DatumHash -> Maybe Datum
@@ -123,12 +127,23 @@ findDatumByHash txInfo hash = do
 
 {-# INLINEABLE findDatum #-}
 findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
-findDatum txInfo inInfo = Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
+findDatum txInfo inInfo =
+  Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
 
+-- | In order to find the relevant accumulators we look at the 'getContinuingOutputs',
+-- which returns those outputs that pay to the same address of whatever is beeing
+-- redeemed.
+--
+-- If we used 'txInfoOutputs' without checking the address explicitely, we would
+-- be making this script vulnerable to the datum hijack attack.
+-- You can find more about it at "MarketMaker.DatumHijacking" and its respective
+-- test suite to see how that would work.
 {-# INLINEABLE findAccumulators #-}
-findAccumulators :: TxInfo -> [(Datum, Api.Value)]
-findAccumulators txInfo = mapMaybe toAcc $ txInfoOutputs txInfo
+findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
+findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
   where
+    txInfo = scriptContextTxInfo ctx
+
     toAcc (Api.TxOut _ outVal (Just dh))
       | Just acc@Accumulator {} <- findDatumByHash txInfo dh = Just (acc, outVal)
     toAcc _ = Nothing
@@ -169,7 +184,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
         paymentAddr = Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
 
     validateAcc
-      | [(Accumulator payment' signees', outVal)] <- findAccumulators txInfo =
+      | [(Accumulator payment' signees', outVal)] <- findAccumulators ctx =
         Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment
           && Value.valueOf outVal provTokSym provTokName == 1
           && verifyInAccThreadToken (not $ null signees')
@@ -181,7 +196,8 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
       where
         inputTokens = sum $ tokenVal <$> txInfoInputs txInfo
         tokenVal :: Api.TxInInfo -> Integer
-        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) = Value.valueOf outVal provTokSym provTokName
+        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) =
+          Value.valueOf outVal provTokSym provTokName
 
     verifySignees signees' =
       uniqueSignees' == signees' -- no duplicates in the output
@@ -190,8 +206,12 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
       where
         uniqueSignees' = nub signees'
 
-        otherInputs = mapMaybe (findDatum txInfo) $ filter (/= fromJust (Validation.findOwnInput ctx)) $ txInfoInputs txInfo
+        otherInputs =
+          mapMaybe (findDatum txInfo) $
+            filter (/= fromJust (Validation.findOwnInput ctx)) $ txInfoInputs txInfo
+
         newSignees = mapMaybe extractSig otherInputs
+
         allInputsRelevant = length newSignees == length otherInputs
 
         extractSig Accumulator {} = Nothing
@@ -207,7 +227,8 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 -- are, in order: pk, msg then signature.
 {-# INLINEABLE verifySig #-}
 verifySig :: Ledger.PubKey -> BuiltinByteString -> Ledger.Signature -> Bool
-verifySig pk msg s = verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
+verifySig pk msg s =
+  verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
 
 -- Finally, we wrap everything up and make the script available.
 
