@@ -1,0 +1,27 @@
+verbatim:
+  cabal-version: 3.4
+
+name: cooked-report
+version: 0.0.0
+
+dependencies:
+  - base >= 4.9 && < 5
+  - containers
+  - mtl
+  - heredoc
+  - text
+  - tasty
+  - tasty-hunit
+
+library:
+  source-dirs: src
+  ghc-options:
+    -Wall 
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - tests/
+    dependencies:
+      - cooked-report
