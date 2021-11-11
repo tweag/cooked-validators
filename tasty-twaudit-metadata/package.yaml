@@ -1,7 +1,7 @@
 verbatim:
   cabal-version: 3.4
 
-name: cooked-report
+name: tasty-twaudit-metadata
 version: 0.0.0
 
 dependencies:
@@ -12,6 +12,10 @@ dependencies:
   - text
   - tasty
   - tasty-hunit
+  - tasty-quickcheck
+  - tasty-expected-failure
+  - QuickCheck
+
 
 library:
   source-dirs: src
@@ -19,9 +23,12 @@ library:
     -Wall 
 
 tests:
-  spec:
+  test-suite:
     main: Spec.hs
     source-dirs:
       - tests/
     dependencies:
-      - cooked-report
+      - tasty-twaudit-metadata
+      - tasty-hunit
+      - tasty-quickcheck
+      - tasty-expected-failure
