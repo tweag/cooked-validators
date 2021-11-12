@@ -1,11 +1,100 @@
-# tasty-twaudit-metadata
+# Automatic Report Generation 
 
-Enables tasty to produce a reportbased on test metadata. Check
-`tests/Spec.hs` for an example.
+The `tasty-twaudit-metadata` library 
+augments tasty to produce a reportbased on some arbitrary metadata. In our case,
+it produces LaTeX which is compatible with our [`twaudit-issue`](https://github.com/tweag/audit-docs/blob/master/tex/latex/twaudit-issue.sty) LaTeX package. 
 
-You can instruct tasty to create a file for you with all the collected
-metadata with:
+## Usage
+
+Usage is broken up in two parts: declaring tests with metadata and running tests
+while producing a report. It is worth noting that you probably need a bunch
+of libraries on top of `tasty` and `tasty-twaudit-metadata` to use `tasty` to its
+full potential. A reasonable recomended set is:
 
 ```
-cabal run test-suite -- --save-report file.tex
+- tasty
+- tasty-expected-failure
+- tasty-hunit
+- tasty-quickcheck
+- tasty-twaudit-metadata
+```
+
+### Declaring Tests
+
+```haskell
+-- Text.Heredoc gives us the nice [str| ... |] quasi-quoter, it does require
+-- the respective language extension, though.
+{-# LANGUAGE QuasiQuotes #-} 
+import Text.Heredoc (str) 
+
+-- Bring in our library qualified just so you can identity what it provides.
+import qualified Test.Tasty.Metadata as TW
+
+import Test.Tasty.ExpectedFailure -- from tasty-expected-failure
+import qualified Test.Tasty.HUnit as HU -- from tasty-hunit
+import qualified Test.Tasty.QuickCheck as QC -- from tasty-quickcheck
+
+-- The following test tree declares some tests with metadata, and some tests without
+-- metadata, they can be mixed together in the same tree, no problem.
+testTree =
+  testGroup
+    "A group with some metadata tests"
+    [ TW.bug -- this pushes metadata down a tree that contains a single testcase
+        TW.Critical
+        [str|It is paramount that two must not be three! This is
+            |a first test for the metadata association.
+            |Note how the \hs{bug} constructor will add the \\issue{...} header
+            |that we need for latex.
+            |]
+        $ expectFail $
+          HU.testCase "Two must not be three" $ 2 HU.@?= 3,
+
+      HU.testCase 
+        "Passing test without metadata" 
+        (5 HU.@?= 5),
+
+      -- Inner testGroups work too.
+      testGroup
+        "Inner Group"
+        [ TW.vuln' -- pushes metadata in the "Vulnerabilities" section
+            "important-vuln"
+            TW.High
+            [str|Here's a potentially dangerous vulnerability! Beware!
+                |*Drama Intensifies*
+                |Here we use \hs{vuln'} to add a custom label to this vulnerability.
+                |]
+            $ QC.testProperty
+              "Whatever squared is greater than itself"
+              (\x -> (x :: Integer) * x >= x),
+
+          expectFail $ HU.testCase "Now a failing test without metadata" undefined,
+
+          -- Lets add another test in the 'Bug' section
+          TW.bug
+            TW.Medium
+            [str|Finally, a last very problematic bug that we can try
+                |and cross-ref \Cref{important-vuln}
+                |]
+            $ HU.testCase "Reasonable Starting Arithmetic Assumption" (1 HU.@?= 1)
+        ]
+    ]
+
+```
+
+### Running Tests and producing a report
+
+In this particular example, the tests are named `test-suite`; hence, we can run 
+them with `cabal run test-suite`. Because `tasty` supports custom command-line options,
+`tasty-twaudit-metadata` can be interacted with through:
+
+- `--save-metareport FILE`, triggering the given `FILE` to be created (or overwritten) with
+  the report produced from the test tree.
+- `--metareport-only all|passed|failed`, which controls which tests with associated metadata
+  should actually be reported. By default, its `all`.
+
+For example, the following command will save all metadata reports from all failed tests
+into `failed-tests.tex`:
+
+```
+cabal run test-suite -- --save-metareport failed-tests.tex --metareport-only failed
 ```

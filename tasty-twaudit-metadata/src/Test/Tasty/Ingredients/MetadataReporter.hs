@@ -112,7 +112,7 @@ newtype SaveReportToFile = SaveReportToFile (Maybe FilePath)
 instance IsOption SaveReportToFile where
   defaultValue = SaveReportToFile Nothing
   parseValue = Just . SaveReportToFile . Just
-  optionName = return "save-report"
+  optionName = return "save-metareport"
   optionHelp = return "Saves the metadata report to a given file "
   showDefaultValue _ = Nothing
 
@@ -135,8 +135,11 @@ parseTestResultPredicate s =
 instance IsOption ReportTestsSuchThat where
   defaultValue = ReportTestsSuchThat (const True)
   parseValue = fmap ReportTestsSuchThat . parseTestResultPredicate
-  optionName = return "report-such-that"
-  optionHelp = return "Which tests to save metadata reports for"
+  optionName = return "metareport-only"
+  optionHelp =
+    return $
+      "Which tests to save metadata reports for\n"
+        ++ "Can be all|passed|failed"
 
 -- ** Reporter Internals
 
