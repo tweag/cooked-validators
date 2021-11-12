@@ -1,6 +1,6 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
@@ -28,6 +28,13 @@ data DetailedTestResult meta = DetailedTestResult
     trResult :: Tasty.Result,
     trMetadata :: meta
   }
+  deriving (Functor)
+
+-- | Whether or not a given 'DetailedTestResult' indicates the test passed.
+passed :: DetailedTestResult meta -> Bool
+passed dtr = case Tasty.resultOutcome (trResult dtr) of
+  Tasty.Success -> True
+  _ -> False
 
 -- | A 'TestReport' organizes sets of tests into sections; We are using lists
 -- instead of sets in order to avoid having to define @Eq@ and @Ord@ instances
@@ -68,12 +75,16 @@ data WithMetadata meta :: * where
     WithMetadata meta
   deriving (Typeable)
 
+-- | Pushes some metadata down a 'Tasty.TestTree'. This succeeds as long as the test tree
+--  contains a single 'Tasty.SingleTest' and no 'Tasty.After' nodes.
 pushMetadata :: (Typeable meta) => meta -> Tasty.TestTree -> Tasty.TestTree
 pushMetadata m (Tasty.SingleTest tname t) = Tasty.SingleTest tname (WithMetadata m t)
-pushMetadata _ _ = error "pushMetadata can only be applied to a Tasty.SingleTest"
-
-(#>) :: (Typeable meta) => meta -> Tasty.TestTree -> Tasty.TestTree
-(#>) = pushMetadata
+pushMetadata m (Tasty.AskOptions f) = Tasty.AskOptions (pushMetadata m . f)
+pushMetadata m (Tasty.PlusTestOptions plus tree) = Tasty.PlusTestOptions plus (pushMetadata m tree)
+pushMetadata m (Tasty.WithResource spec genTree) = Tasty.WithResource spec (pushMetadata m . genTree)
+pushMetadata m (Tasty.TestGroup name [t]) = Tasty.TestGroup name [pushMetadata m t]
+pushMetadata _ _ =
+  error "pushMetadata can only be applied to TestTrees containing a single Tasty.SingleTest and no Tasty.After node"
 
 instance (Typeable meta) => Tasty.IsTest (WithMetadata meta) where
   run opts (WithMetadata _ body) rep = Tasty.run opts body rep
@@ -102,6 +113,35 @@ instance IsMeta TwauditMetadata where
   type Sections TwauditMetadata = Class
 
   sectionOf = mClass
+
+-- ** Some Smart constructors
+
+prependTwauditIssue :: Maybe String -> Description -> Description
+prependTwauditIssue mLbl desc =
+  unlines
+    [ concat ["\\issue{\\$severity}{", maybe "tasty-lbl-$ix" id mLbl, "}{$name}"],
+      desc
+    ]
+
+vuln :: Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+vuln sev d = pushMetadata (TwauditMetadata Vuln sev (prependTwauditIssue Nothing d))
+
+bug :: Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+bug sev d = pushMetadata (TwauditMetadata Bug sev (prependTwauditIssue Nothing d))
+
+underspec :: Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+underspec sev d = pushMetadata (TwauditMetadata Underspec sev (prependTwauditIssue Nothing d))
+
+vuln' :: String -> Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+vuln' lbl sev d = pushMetadata (TwauditMetadata Vuln sev (prependTwauditIssue (Just lbl) d))
+
+bug' :: String -> Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+bug' lbl sev d = pushMetadata (TwauditMetadata Bug sev (prependTwauditIssue (Just lbl) d))
+
+underspec' :: String -> Severity -> Description -> Tasty.TestTree -> Tasty.TestTree
+underspec' lbl sev d = pushMetadata (TwauditMetadata Underspec sev (prependTwauditIssue (Just lbl) d))
+
+-- ** Rendering to text
 
 -- | Renders the final description by replacing some metavariables
 --  in the 'mDescr' body with their associated values. Check the source
@@ -142,44 +182,3 @@ renderTwauditLatex =
       trrRenderResult = renderDetailedTwauditMeta,
       trrSort = sortBy (compare `on` trIndex)
     }
-
--- ** Some Smart constructors
-
-vuln0 :: Description -> TwauditMetadata
-vuln0 = TwauditMetadata Vuln Critical
-
-vuln1 :: Description -> TwauditMetadata
-vuln1 = TwauditMetadata Vuln High
-
-vuln2 :: Description -> TwauditMetadata
-vuln2 = TwauditMetadata Vuln Medium
-
-bug0 :: Description -> TwauditMetadata
-bug0 = TwauditMetadata Bug Critical
-
-bug1 :: Description -> TwauditMetadata
-bug1 = TwauditMetadata Bug High
-
-bug2 :: Description -> TwauditMetadata
-bug2 = TwauditMetadata Bug Medium
-
-bug3 :: Description -> TwauditMetadata
-bug3 = TwauditMetadata Bug Low
-
-bug4 :: Description -> TwauditMetadata
-bug4 = TwauditMetadata Bug Lowest
-
-underspec0 :: Description -> TwauditMetadata
-underspec0 = TwauditMetadata Underspec Critical
-
-underspec1 :: Description -> TwauditMetadata
-underspec1 = TwauditMetadata Underspec High
-
-underspec2 :: Description -> TwauditMetadata
-underspec2 = TwauditMetadata Underspec Medium
-
-underspec3 :: Description -> TwauditMetadata
-underspec3 = TwauditMetadata Underspec Low
-
-underspec4 :: Description -> TwauditMetadata
-underspec4 = TwauditMetadata Underspec Lowest

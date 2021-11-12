@@ -2,14 +2,18 @@
 # https://github.com/ndmitchell/hlint
 ##########################
 
-# This file contains a template configuration file, which is typically
-# placed as .hlint.yaml in the root of your project
+# Ignore some suggestions that would require us to import more things; because
+# ormolu doesn't like grouping imports, I'd rather keep them as short as possible.
+- ignore: {name: Use void}
+- ignore: {name: Use fromMaybe}
 
+# Below this point, there is a template configuration file. While our rules are
+# not too complex to illustrate what can be done, there's value in keeping
+# a reference here.
 
 # Specify additional command line arguments
 #
 # - arguments: [--color, --cpp-simple, -XQuasiQuotes]
-
 
 # Control which extensions/flags/modules/functions can be used
 #
@@ -52,11 +56,9 @@
 # Generalise map to fmap, ++ to <>
 # - group: {name: generalise, enabled: true}
 
-
 # Ignore some builtin hints
 # - ignore: {name: Use let}
 # - ignore: {name: Use const, within: SpecialModule} # Only within certain modules
-
 
 # Define some custom infix operators
 # - fixity: infixr 3 ~^#^~#
