@@ -5,6 +5,7 @@
 
 module Main where
 
+import Control.Monad
 import Data.IORef
 import qualified Data.Map as M
 import System.Exit
@@ -20,8 +21,16 @@ main :: IO ()
 main = do
   ior <- newIORef M.empty
   res <- twauditMain' (Just ior) testTree
-  readIORef ior >>= putStrLn . TW.testReportRender TW.renderTwauditLatex
+  putStrLn "We will now get the report and make sure it has all the issues we expect"
+  readIORef ior >>= assert_TwoBugsOneVuln
   exitWith res
+
+assert_TwoBugsOneVuln :: TW.TestReport TW.TwauditMetadata -> IO ()
+assert_TwoBugsOneVuln report = do
+  unless ((length <$> M.lookup TW.Vuln report) == Just 1) $
+    fail "Expecting one vulnerability on the report"
+  unless ((length <$> M.lookup TW.Bug report) == Just 2) $
+    fail "Expecting two bugs on the report"
 
 testTree :: TestTree
 testTree =

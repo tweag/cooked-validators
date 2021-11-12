@@ -1,8 +1,8 @@
-# Automatic Report Generation 
+# Automatic Report Generation
 
-The `tasty-twaudit-metadata` library 
+The `tasty-twaudit-metadata` library
 augments tasty to produce a reportbased on some arbitrary metadata. In our case,
-it produces LaTeX which is compatible with our [`twaudit-issue`](https://github.com/tweag/audit-docs/blob/master/tex/latex/twaudit-issue.sty) LaTeX package. 
+it produces LaTeX which is compatible with our [`twaudit-issue`](https://github.com/tweag/audit-docs/blob/master/tex/latex/twaudit-issue.sty) LaTeX package.
 
 ## Usage
 
@@ -24,8 +24,8 @@ full potential. A reasonable recomended set is:
 ```haskell
 -- Text.Heredoc gives us the nice [str| ... |] quasi-quoter, it does require
 -- the respective language extension, though.
-{-# LANGUAGE QuasiQuotes #-} 
-import Text.Heredoc (str) 
+{-# LANGUAGE QuasiQuotes #-}
+import Text.Heredoc (str)
 
 -- Bring in our library qualified just so you can identity what it provides.
 import qualified Test.Tasty.Metadata as TW
@@ -49,8 +49,8 @@ testTree =
         $ expectFail $
           HU.testCase "Two must not be three" $ 2 HU.@?= 3,
 
-      HU.testCase 
-        "Passing test without metadata" 
+      HU.testCase
+        "Passing test without metadata"
         (5 HU.@?= 5),
 
       -- Inner testGroups work too.
@@ -83,7 +83,7 @@ testTree =
 
 ### Running Tests and producing a report
 
-In this particular example, the tests are named `test-suite`; hence, we can run 
+In this particular example, the tests are named `test-suite`; hence, we can run
 them with `cabal run test-suite`. Because `tasty` supports custom command-line options,
 `tasty-twaudit-metadata` can be interacted with through:
 
@@ -93,23 +93,37 @@ them with `cabal run test-suite`. Because `tasty` supports custom command-line o
   should actually be reported. By default, its `all`.
 
 For example, the following command will save all metadata reports from all successful tests
-into `passed-tests.tex`:
+into three potential files: `passed-tests-vuln.tex`, `passed-tests-bug.tex` and
+`passed-tests-underspec.tex`:
 
 ```
 cabal run test-suite -- --save-metareport passed-tests.tex --metareport-only passed
 ```
 
-This is the contents of `passed-tests.tex`:
-
+Passing the `.tex` suffix is optional, if the suffix is not there, it will be added.
+The reason for creating multiple files is to give us a little more flexiblity when
+assembling the report. For example, with a template like:
 ```latex
 \section{Vulnerabilities}
+\include{src/passed-tests-vuln}
+
+\section{Implementaton Bugs}
+\include{src/passed-tests-bug}
+```
+
+we can easily still add handwritten issues to each individual section.
+For this particular example, this is the contents of `passed-tests-vuln.tex`:
+
+```latex
 \issue{\High}{important-vuln}{Whatever squared is greater than itself}
 Here's a potentially dangerous vulnerability! Beware!
 *Drama Intensifies*
 Here we use \hs{vuln'} to add a custom label to this vulnerability.
+```
 
+And this is the contets of `passed-tests-bug.tex`:
 
-\section{Implementation Bugs}
+```latex
 \issue{\Critical}{tasty-lbl-0}{Two must not be three}
 It is paramount that two must not be three! This is
 a first test for the metadata association.
@@ -121,4 +135,3 @@ that we need for latex.
 Finally, a last very problematic bug that we can try
 and cross-ref \Cref{important-vuln}
 ```
-

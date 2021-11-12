@@ -87,10 +87,8 @@ metadataTestReporter renderer mior = TestReporter metadataReporterOptions $
               Nothing -> return ()
               Just ior -> writeIORef ior report
 
-            -- If we want to render anything into a file, we do so.
-            case saveAt of
-              Nothing -> return ()
-              Just f -> writeFile f (testReportRender renderer report)
+            -- Call the renderer, so it can do whatever is suitable with the given report
+            renderer report saveAt
 
             -- Finally, we rely on the existing computeStatistics to detect any failure,
             -- this was taken from "Test.Tasty.Ingredients.ConsoleReporter".

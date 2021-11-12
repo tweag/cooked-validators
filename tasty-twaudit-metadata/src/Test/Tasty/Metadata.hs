@@ -8,10 +8,8 @@
 
 module Test.Tasty.Metadata where
 
-import Control.Arrow (second)
 import Data.Foldable (asum)
-import Data.Function (on)
-import Data.List (intersperse, sortBy, stripPrefix)
+import Data.List (intersperse, isSuffixOf, stripPrefix)
 import qualified Data.Map.Strict as M
 import Data.Typeable
 import qualified Test.Tasty as Tasty
@@ -45,23 +43,9 @@ class (Typeable meta, Ord (Sections meta)) => IsMeta meta where
   type Sections meta :: *
   sectionOf :: meta -> Sections meta
 
--- | Rendering a report relies on an explicit dictionary in order to easily customize
---  the formatting behavior.
-data TestReportRenderer meta = TestReportRenderer
-  { trrRenderSection :: Sections meta -> [ShowS] -> ShowS,
-    trrRenderResult :: DetailedTestResult meta -> ShowS,
-    trrSort :: [DetailedTestResult meta] -> [DetailedTestResult meta]
-  }
-
--- | Renders a given report according to some some renderer
-testReportRender :: TestReportRenderer meta -> TestReport meta -> String
-testReportRender TestReportRenderer {..} =
-  ($ "") . showsConcatWith (showChar '\n') . map shows1 . M.toList
-  where
-    shows1 = uncurry trrRenderSection . second (map trrRenderResult . trrSort)
-
-showsConcatWith :: ShowS -> [ShowS] -> ShowS
-showsConcatWith sep = foldr (.) id . intersperse sep
+-- | Rendering a report consists in producing an @IO ()@ action given a
+-- @Maybe FilePath@ and a 'TestReport'.
+type TestReportRenderer meta = TestReport meta -> Maybe FilePath -> IO ()
 
 -- ** Pushing metadata to existing test cases
 
@@ -143,6 +127,37 @@ underspec' lbl sev d = pushMetadata (TwauditMetadata Underspec sev (prependTwaud
 
 -- ** Rendering to text
 
+-- | Renders a 'TestReport' containing our own metadata into three latex files,
+--  if the filepath is a @Just@, does nothing otherwise.
+--  The reason for creating three latex files is that this makes it easier to
+--  later on include hand-written issues in each different category.
+renderTwauditLatex :: TestReportRenderer TwauditMetadata
+renderTwauditLatex _ Nothing = return ()
+renderTwauditLatex report (Just fn) =
+  flip mapM_ [Vuln, Bug, Underspec] $ \klass ->
+    case M.lookup klass report of
+      Nothing -> return ()
+      Just issues ->
+        writeFile (renderFilePath klass fn) $
+          showsConcatWith (showChar '\n') (map renderDetailedTwauditMeta issues) ""
+
+renderFilePath :: Class -> FilePath -> FilePath
+renderFilePath klass fn =
+  let fn' = maybe fn id $ stripSuffix ".tex" fn
+   in fn' ++ '-' : klassStr ++ ".tex"
+  where
+    klassStr = case klass of
+      Vuln -> "vuln"
+      Underspec -> "underspec"
+      Bug -> "bug"
+
+    stripSuffix suf xs
+      | suf `isSuffixOf` xs = Just $ take (length xs - length suf) xs
+      | otherwise = Nothing
+
+showsConcatWith :: ShowS -> [ShowS] -> ShowS
+showsConcatWith sep = foldr (.) id . intersperse sep
+
 -- | Renders the final description by replacing some metavariables
 --  in the 'mDescr' body with their associated values. Check the source
 --  to see exactly which escape sequences are available.
@@ -169,16 +184,3 @@ renderDetailedTwauditMeta (DetailedTestResult ix tname out (TwauditMetadata _kla
 
     replace1 :: String -> String -> String -> Maybe (String, String)
     replace1 haystack needle res = (res,) <$> stripPrefix needle haystack
-
-renderClassLatex :: Class -> ShowS
-renderClassLatex Vuln = showString "\\section{Vulnerabilities}"
-renderClassLatex Bug = showString "\\section{Implementation Bugs}"
-renderClassLatex Underspec = showString "\\section{Unclear Specification}"
-
-renderTwauditLatex :: TestReportRenderer TwauditMetadata
-renderTwauditLatex =
-  TestReportRenderer
-    { trrRenderSection = \sect -> showsConcatWith (showChar '\n') . (renderClassLatex sect :),
-      trrRenderResult = renderDetailedTwauditMeta,
-      trrSort = sortBy (compare `on` trIndex)
-    }
