@@ -92,9 +92,33 @@ them with `cabal run test-suite`. Because `tasty` supports custom command-line o
 - `--metareport-only all|passed|failed`, which controls which tests with associated metadata
   should actually be reported. By default, its `all`.
 
-For example, the following command will save all metadata reports from all failed tests
-into `failed-tests.tex`:
+For example, the following command will save all metadata reports from all successful tests
+into `passed-tests.tex`:
 
 ```
-cabal run test-suite -- --save-metareport failed-tests.tex --metareport-only failed
+cabal run test-suite -- --save-metareport passed-tests.tex --metareport-only passed
 ```
+
+This is the contents of `passed-tests.tex`:
+
+```latex
+\section{Vulnerabilities}
+\issue{\High}{important-vuln}{Whatever squared is greater than itself}
+Here's a potentially dangerous vulnerability! Beware!
+*Drama Intensifies*
+Here we use \hs{vuln'} to add a custom label to this vulnerability.
+
+
+\section{Implementation Bugs}
+\issue{\Critical}{tasty-lbl-0}{Two must not be three}
+It is paramount that two must not be three! This is
+a first test for the metadata association.
+Note how the \hs{bug} constructor will add the \\issue{...} header
+that we need for latex.
+
+
+\issue{\Medium}{tasty-lbl-4}{Reasonable Starting Arithmetic Assumption}
+Finally, a last very problematic bug that we can try
+and cross-ref \Cref{important-vuln}
+```
+
