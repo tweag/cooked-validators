@@ -6,6 +6,8 @@
 # ormolu doesn't like grouping imports, I'd rather keep them as short as possible.
 - ignore: {name: Use void}
 - ignore: {name: Use fromMaybe}
+- ignore: {name: Use forM_}
+- ignore: {name: Use forM}
 
 # Below this point, there is a template configuration file. While our rules are
 # not too complex to illustrate what can be done, there's value in keeping
