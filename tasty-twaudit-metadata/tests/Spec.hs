@@ -7,6 +7,7 @@ module Main where
 
 import Control.Monad
 import Data.IORef
+import Data.List (sort)
 import qualified Data.Map as M
 import System.Exit
 import Test.Tasty
@@ -32,10 +33,26 @@ assertTwoBugsOneVuln report = do
   unless ((length <$> M.lookup TW.Bug report) == Just 2) $
     fail "Expecting two bugs on the report"
 
+tastyMetadataInternalTestTree :: TestTree
+tastyMetadataInternalTestTree =
+  testGroup
+    "Internal tests for tasty-twaudit-metadata"
+    [ HU.testCase
+        "Issue Classes is ordered correctly: Vuln > Bug > Underspec"
+        ( let classes = [TW.Underspec, TW.Bug, TW.Vuln]
+           in sort classes HU.@?= classes
+        ),
+      HU.testCase
+        "Issue Severity is ordered correctly: Critical > ... > Lowest"
+        ( let sev = [TW.Lowest, TW.Low, TW.Medium, TW.High, TW.Critical]
+           in sort sev HU.@?= sev
+        )
+    ]
+
 testTree :: TestTree
 testTree =
   testGroup
-    "A group with some metadata tests"
+    "Tests for the metadata annotation mechanism"
     [ TW.bug -- this pushes metadata down a tree that contains a single testcase
         TW.Critical
         [str|It is paramount that two must not be three! This is
@@ -45,9 +62,10 @@ testTree =
             |]
         $ expectFail $
           HU.testCase "Two must not be three" $ 2 HU.@?= 3,
-      HU.testCase
-        "Passing test without metadata"
-        (5 HU.@?= 5),
+      -- We'll also add the actual tests for tasty-twaudit-metadata in here
+      -- to make sure they DO NOT show up on the report. We do want some non-annotated
+      -- tests in this tree after all
+      tastyMetadataInternalTestTree,
       -- Inner testGroups work too.
       testGroup
         "Inner Group"

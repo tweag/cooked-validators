@@ -46,6 +46,9 @@ twauditMain' r tree = do
       tree
       >> return ExitSuccess
     )
+    -- This catch is only catching exceptions of type `ExitCode` due to how types get unified.
+    -- That is the intended behavior; we want to prevent `defaultMainWithIngredients` to cause
+    -- the process to exit, giving us a change to inspect what was written in our IORef `r`
     `catchException` return
 
 -- * Reporting Test Metadata as an Ingredient

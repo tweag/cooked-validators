@@ -77,11 +77,11 @@ instance (Typeable meta) => Tasty.IsTest (WithMetadata meta) where
 
 -- TODO: move to its own module?
 
-data Severity = Critical | High | Medium | Low | Lowest
+data Severity = Lowest | Low | Medium | High | Critical
   deriving (Eq, Ord, Show)
 
-data Class = Vuln | Bug | Underspec
-  deriving (Eq, Ord, Show)
+data Class = Underspec | Bug | Vuln
+  deriving (Eq, Ord, Show, Enum, Bounded)
 
 type Description = String
 
@@ -133,7 +133,7 @@ underspec' lbl sev d = pushMetadata (TwauditMetadata Underspec sev (prependTwaud
 renderTwauditLatex :: TestReportRenderer TwauditMetadata
 renderTwauditLatex _ Nothing = return ()
 renderTwauditLatex report (Just fn) =
-  flip mapM_ [Vuln, Bug, Underspec] $ \klass ->
+  flip mapM_ [minBound .. maxBound] $ \klass ->
     case M.lookup klass report of
       Nothing -> return ()
       Just issues ->
