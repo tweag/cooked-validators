@@ -50,7 +50,7 @@ twauditMain' r tree = do
 
 -- * Reporting Test Metadata as an Ingredient
 
--- | This custom reporter will render and keep a test report for all test cases
+-- | This custom reporter renders and keeps a test report for all test cases
 -- that have metadata associated with them, that is, all tests cases define
 -- with a 'WithMetadata'.
 --
