@@ -1,7 +1,7 @@
 # Automatic Report Generation
 
 The `tasty-twaudit-metadata` library
-augments tasty to produce a reportbased on some arbitrary metadata. In our case,
+augments `tasty` to produce a reportbased on some arbitrary metadata. In our case,
 it produces LaTeX which is compatible with our [`twaudit-issue`](https://github.com/tweag/audit-docs/blob/master/tex/latex/twaudit-issue.sty) LaTeX package.
 
 ## Usage
