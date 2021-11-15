@@ -121,7 +121,7 @@ Here's a potentially dangerous vulnerability! Beware!
 Here we use \hs{vuln'} to add a custom label to this vulnerability.
 ```
 
-And this is the contets of `passed-tests-bug.tex`:
+And this is the contents of `passed-tests-bug.tex`:
 
 ```latex
 \issue{\Critical}{tasty-lbl-0}{Two must not be three}
