@@ -1,3 +1,10 @@
+## Projects
+
+- [cooked-validators](cooked-validators) is a library for exercising validator scripts without
+  having to rely on Plutus' `EmulatorTrace`
+- [tasty-twaudit-metadata](tasty-twaudit-metadata) is a library for generating our LaTeX reports
+  out of an annotated tasty test-suite.
+
 ## Dependencies
 
 All of the project dependencies, except for Plutus, is handled by nix.
@@ -9,7 +16,7 @@ We are _not_ pinning plutus with nix in favor of a simpler nix setup and
 to be able to cache CI builds more easily. This does make the update process
 more manual but its also pretty straightforward.
 
-Our `cabal.project` file is a copy of the homonym file from 
+Our `cabal.project` file is a copy of the homonym file from
 [plutus-apps](https://github.com/input-output-hk/plutus-apps/blob/main/cabal.project),
 with the addition of `plutus-apps` themselves in there and a different list
 of packages to build.
@@ -60,7 +67,7 @@ See [`nix-shell` docs](https://nixos.org/manual/nix/unstable/command-ref/nix-she
 
 #### Seamless Integration with `direnv`
 
-Install `direnv` and run `direnv allow` at the root of the repo. 
+Install `direnv` and run `direnv allow` at the root of the repo.
 To cache the nix environment and make direnv load faster you can configure
 and use [nix-direnv](https://github.com/nix-community/nix-direnv#with-nix-env).
 

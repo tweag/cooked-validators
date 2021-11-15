@@ -1,0 +1,34 @@
+verbatim:
+  cabal-version: 3.4
+
+name: tasty-twaudit-metadata
+version: 0.0.0
+
+dependencies:
+  - base >= 4.9 && < 5
+  - containers
+  - mtl
+  - heredoc
+  - text
+  - tasty
+  - tasty-hunit
+  - tasty-quickcheck
+  - tasty-expected-failure
+  - QuickCheck
+
+
+library:
+  source-dirs: src
+  ghc-options:
+    -Wall 
+
+tests:
+  test-suite:
+    main: Spec.hs
+    source-dirs:
+      - tests/
+    dependencies:
+      - tasty-twaudit-metadata
+      - tasty-hunit
+      - tasty-quickcheck
+      - tasty-expected-failure
