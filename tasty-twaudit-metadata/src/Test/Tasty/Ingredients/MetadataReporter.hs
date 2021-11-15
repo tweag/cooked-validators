@@ -117,7 +117,7 @@ instance IsOption SaveReportToFile where
 -- | Instructs tasty to only report tests whose result satisfy a given predicate.
 -- On the command line, three options are available:
 -- - "all", "failed" and "passed"
--- If you want a more complex predicate, construct your preicated and pass it with 'localOption'
+-- If you want a more complex predicate, construct your predicate and pass it with 'localOption'
 -- to the test tree you want to be affected.
 newtype ReportTestsSuchThat = ReportTestsSuchThat (DetailedTestResult () -> Bool)
   deriving (Typeable)
