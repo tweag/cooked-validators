@@ -5,7 +5,7 @@
 
 module Cooked.Tx.Constraints where
 
-import Cooked.MockChain
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Data.Bifunctor (Bifunctor (second))
 import qualified Data.Map.Strict as M
@@ -14,6 +14,10 @@ import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
+
+-- | A 'SpendableOut' is an outref that is ready to be spend; with its
+--  underlying 'Pl.ChainIndexTxOut'.
+type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
 
 -- | Our own first-class constraint type. The advantage over the regular plutus constraint
 --  type is that we get to add whatever we need and we hide away the type variables in existentials.
@@ -42,12 +46,6 @@ data Constraint where
   SignedBy :: [Wallet] -> Constraint
 
 -- TODO: add more constraints
-
-spentByPK :: Monad m => Pl.PubKeyHash -> Pl.Value -> MockChainT m [Constraint]
-spentByPK pkh val = do
-  allOuts <- pkUtxos pkh
-  let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
 

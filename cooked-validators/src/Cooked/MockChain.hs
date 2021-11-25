@@ -53,15 +53,6 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl
 
--- | A 'SpendableOut' is an outref that is ready to be spend; with its
---  underlying 'Pl.ChainIndexTxOut'.
-type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
-
-spendableRef :: (Monad m) => Pl.TxOutRef -> MockChainT m SpendableOut
-spendableRef txORef = do
-  Just txOut <- gets (M.lookup txORef . Pl.getIndex . mcstIndex)
-  return (txORef, fromJust (Pl.fromTxOut txOut))
-
 -- * Validating Transactions
 
 -- | Validates a transaction and, upon success, updates the utxo map; You can generate
@@ -136,70 +127,9 @@ utxosSuchThat addr datumPred = do
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
 
--- | Public-key UTxO's have no datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (Monad m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> MockChainT m [SpendableOut]
-pkUtxosSuchThat pkh pred =
-  map fst
-    <$> utxosSuchThat @Void
-      (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-      (maybe pred absurd)
-
--- | Return all utxos belonging to a pubkey
-pkUtxos :: (Monad m) => Pl.PubKeyHash -> MockChainT m [SpendableOut]
-pkUtxos = flip pkUtxosSuchThat (const True)
-
--- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
---  for internal use.
-pkUtxos' :: (Monad m) => Pl.PubKeyHash -> MockChainT m [(Pl.TxOutRef, Pl.TxOut)]
-pkUtxos' pkh = map (second go) <$> pkUtxos pkh
-  where
-    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
-    go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
-
--- | Script UTxO's always have a datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
---  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
-scriptUtxosSuchThat ::
-  forall tv m.
-  (Monad m, Pl.FromData (Pl.DatumType tv)) =>
-  Pl.TypedValidator tv ->
-  (Pl.DatumType tv -> Pl.Value -> Bool) ->
-  MockChainT m [(SpendableOut, Pl.DatumType tv)]
-scriptUtxosSuchThat v pred =
-  map (second fromJust)
-    <$> utxosSuchThat
-      (Pl.Address (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v) Nothing)
-      (maybe (const False) pred)
-
--- | Returns the output associated with a given reference
-outFromOutRef :: (Monad m) => Pl.TxOutRef -> MockChainT m Pl.TxOut
-outFromOutRef outref = do
-  mo <- gets (M.lookup outref . Pl.getIndex . mcstIndex)
-  case mo of
-    Just o -> return o
-    Nothing -> fail ("No output associated with: " ++ show outref)
-
--- * Time management in the monad.
-
 -- | Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
 slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
-
-freezeTime :: (Monad m) => MockChainT m ()
-freezeTime = modify (onSlot scFreezeTime)
-
-waitSlots :: (Monad m) => Integer -> MockChainT m ()
-waitSlots n = modify (onSlot (scWaitSlots n))
-
-waitTime :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
-waitTime mSec = modify (onSlot (scWait mSec))
-
-slotIs :: (Monad m) => Integer -> MockChainT m ()
-slotIs n = modify (onSlot (scSlotIs n))
-
-timeIs :: (Monad m) => Pl.POSIXTime -> MockChainT m ()
-timeIs t = modify (onSlot (scTimeIs t))
 
 -- * Utilities
 
