@@ -11,7 +11,7 @@ import qualified Split
 import Test.Hspec
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: Wallet -> Split.SplitParams -> MockChain TxSkel
+txLock :: MonadMockChain m => Wallet -> Split.SplitParams -> m TxSkel
 txLock w splitParams = return (TxSkel w constraints)
   where
     constraints =
@@ -32,6 +32,7 @@ isARecipient w datum _ =
 
 -- | Template for unlock (that is split among recipients).
 txUnlockTemplate ::
+  MonadMockChain m =>
   -- | Optionally override first recipient
   Maybe Wallet ->
   -- | Optionally override second recipient
@@ -40,7 +41,7 @@ txUnlockTemplate ::
   Maybe (Integer -> Integer) ->
   -- | Issuer
   Wallet ->
-  MockChain TxSkel
+  m TxSkel
 txUnlockTemplate mRecipient1 mRecipient2 mAmountChanger issuer = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
@@ -71,9 +72,10 @@ txUnlockTemplate mRecipient1 mRecipient2 mAmountChanger issuer = do
 -- Attack: the second recipient is paid only one of his shares, the remainder
 -- goes to the issuer of the transaction.
 txUnlockAttack ::
+  MonadMockChain m =>
   -- | Issuer
   Wallet ->
-  MockChain TxSkel
+  m TxSkel
 txUnlockAttack issuer = do
   (output1, datum1@(Split.SplitDatum r11 r12 amount))
     : (output2, datum2@(Split.SplitDatum r21 _ _))
@@ -92,19 +94,19 @@ txUnlockAttack issuer = do
      in TxSkel issuer constraints
 
 -- | Legit transaction
-txUnlock :: Wallet -> MockChain TxSkel
+txUnlock :: MonadMockChain m => Wallet -> m TxSkel
 txUnlock = txUnlockTemplate Nothing Nothing Nothing
 
 -- | Transaction that does not pay enough to the recipients
-txUnlockNotEnough :: Wallet -> MockChain TxSkel
+txUnlockNotEnough :: MonadMockChain m => Wallet -> m TxSkel
 txUnlockNotEnough = txUnlockTemplate Nothing Nothing (Just (`div` 2))
 
 -- | Transaction that gives everything to the first recipient
-txUnlockTooMuch :: Wallet -> MockChain TxSkel
+txUnlockTooMuch :: MonadMockChain m => Wallet -> m TxSkel
 txUnlockTooMuch = txUnlockTemplate Nothing Nothing (Just (* 2))
 
 -- | Transaction that pays everything to the issuer
-txUnlockGreedy :: Wallet -> MockChain TxSkel
+txUnlockGreedy :: MonadMockChain m => Wallet -> m TxSkel
 txUnlockGreedy w = txUnlockTemplate (Just w) (Just w) Nothing w
 
 -- | Parameters to share 400 among wallets 2 and 3

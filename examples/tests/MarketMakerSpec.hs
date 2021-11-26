@@ -114,7 +114,7 @@ data MarketTxParams = MarketTxParams
   }
 
 -- | Template of a transaction
-marketTx :: Market.MarketRedeemer -> Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketTx :: MonadMockChain m => Market.MarketRedeemer -> Wallet -> MarketTxParams -> RunParams -> m ()
 marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams validator _ nftClass coinsClass) = do
   let ada = Ada.lovelaceValueOf
   let coins = Value.assetClassValue coinsClass
@@ -129,11 +129,11 @@ marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams 
       ]
 
 -- | Template of a Sell transaction
-marketSellTx :: Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketSellTx :: MonadMockChain m => Wallet -> MarketTxParams -> RunParams -> m ()
 marketSellTx = marketTx Market.Sell
 
 -- | Template of a Buy transaction
-marketBuyTx :: Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketBuyTx :: MonadMockChain m => Wallet -> MarketTxParams -> RunParams -> m ()
 marketBuyTx = marketTx Market.Buy
 
 -- | Initial minting and distribution of token in a given run
@@ -141,7 +141,7 @@ marketBuyTx = marketTx Market.Buy
 -- Part of the coins is given to the script and part of it to a receiving
 -- wallet (to have some diversity in the runs and allow the script to buy from
 -- a wallet right from start).
-marketMiningTx :: Wallet -> Wallet -> RunParams -> MockChain ()
+marketMiningTx :: MonadMockChain m => Wallet -> Wallet -> RunParams -> m ()
 marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass) =
   let coins = Value.assetClassValue coinsClass
       oneNft = Value.assetClassValue nftClass 1
