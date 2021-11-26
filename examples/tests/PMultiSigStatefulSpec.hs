@@ -21,7 +21,7 @@ paramsToken :: Params -> Pl.Value
 paramsToken params = Pl.assetClassValue (pmspThreadToken params) 1
 
 -- Proposal is basically an accumulator with no signees
-mkProposalSkel :: Integer -> Wallet -> Payment -> MockChain (Params, TxSkel, Pl.TxOutRef)
+mkProposalSkel :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, TxSkel, Pl.TxOutRef)
 mkProposalSkel reqSigs w pmt = do
   utxos <- pkUtxos wpkh
   case utxos of
@@ -64,7 +64,7 @@ isProposal _ _ = False
 mkThreadTokenInputSkel :: Wallet -> TxSkel
 mkThreadTokenInputSkel w = TxSkel w [PaysPK (walletPKHash w) mempty]
 
-mkThreadToken :: Wallet -> MockChain Pl.TxOutRef
+mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
 mkThreadToken w = do
   validateTxFromSkeleton $ mkThreadTokenInputSkel w
   emptyUtxos <- pkUtxosSuchThat (walletPKHash w) (== mempty)
@@ -72,12 +72,12 @@ mkThreadToken w = do
     [] -> error "No empty UTxOs"
     ((out, _) : _) -> pure out
 
-mkParams :: MockChain Params
+mkParams :: MonadMockChain m => m Params
 mkParams = do
   out <- mkThreadToken (wallet 1)
   pure $ Params (walletPK <$> knownWallets) 2 $ threadTokenAssetClass out
 
-mkCollectSkel :: Payment -> Params -> MockChain TxSkel
+mkCollectSkel :: MonadMockChain m => Payment -> Params -> m TxSkel
 mkCollectSkel thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- scriptUtxosSuchThat (pmultisig params) isSign
@@ -88,7 +88,7 @@ mkCollectSkel thePayment params = do
       (SpendsScript (pmultisig params) () <$> signatures)
 
 
-mkPaySkel :: Payment -> Params -> Pl.TxOutRef -> MockChain TxSkel
+mkPaySkel :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m TxSkel
 mkPaySkel thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
   pure $
@@ -99,7 +99,7 @@ mkPaySkel thePayment params tokenOutRef = do
         Mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
       ]
 
-txs1 :: MockChain ()
+txs1 :: MonadMockChain m => m ()
 txs1 = do
   (params, proposalSkel, tokenOutRef) <- mkProposalSkel 2 (wallet 1) thePayment
   validateTxFromSkeleton proposalSkel
