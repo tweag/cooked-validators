@@ -132,8 +132,17 @@ utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
 utxoIndex0 :: Pl.UtxoIndex
 utxoIndex0 = utxoIndex0From initialDistribution
 
--- * Validating Transactions
+-- ** Direct Interpretation of Operations
 
+instance (Monad m) => MonadMockChain (MockChainT m) where
+  generateTx = generateTx'
+  validateTx = validateTx'
+  index = gets (Pl.getIndex . mcstIndex)
+  slotCounter = gets mcstSlotCtr
+  modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
+  utxosSuchThat = utxosSuchThat'
+
+-- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
 validateTx' tx = do
   s <- slot
@@ -160,8 +169,7 @@ validateTx' tx = do
               }
         )
 
--- * Selecting UTxO's
-
+-- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
   forall a m.
   (Monad m, Pl.FromData a) =>
@@ -201,6 +209,7 @@ utxosSuchThat' addr datumPred = do
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
 
+-- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
 generateTx' skel = do
   modify $ updateDatumStr skel
@@ -222,14 +231,6 @@ generateTx' skel = do
 -- | Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
 slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
-
-instance (Monad m) => MonadMockChain (MockChainT m) where
-  generateTx = generateTx'
-  validateTx = validateTx'
-  index = gets (Pl.getIndex . mcstIndex)
-  slotCounter = gets mcstSlotCtr
-  modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
-  utxosSuchThat = utxosSuchThat'
 
 -- * Utilities
 
