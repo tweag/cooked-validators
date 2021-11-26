@@ -1,11 +1,15 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Cooked.MockChain.Monad.Staged where
 
 import Control.Monad.Identity
 import Control.Monad.Operational
+import Control.Monad.Trans
 import Cooked.MockChain.Monad
+import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import qualified Data.Map as M
@@ -43,3 +47,21 @@ instance (Monad m) => MonadMockChain (StagedMockChainT m) where
   slotCounter = singleton GetSlotCounter
   modifySlotCounter = singleton . ModifySlotCounter
   utxosSuchThat addr = singleton . UtxosSuchThat addr
+
+-- | Interprets a single operation in the direct 'MockChainT' monad.
+interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
+interpretOp (GenerateTx skel) = generateTx skel
+interpretOp (ValidateTx tx) = validateTx tx
+interpretOp Index = index
+interpretOp GetSlotCounter = slotCounter
+interpretOp (ModifySlotCounter f) = modifySlotCounter f
+interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
+interpretOp (Fail str) = fail str
+
+-- | Interprets a 'StagedMockChainT' into a 'MockChainT' computation.
+interpret :: forall m a. (Monad m) => StagedMockChainT m a -> MockChainT m a
+interpret = join . lift . fmap eval . viewT
+  where
+    eval :: ProgramViewT MockChainOp m a -> MockChainT m a
+    eval (Return a) = return a
+    eval (instr :>>= f) = interpretOp instr >>= interpret . f

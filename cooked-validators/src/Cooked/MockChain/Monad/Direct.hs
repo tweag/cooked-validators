@@ -94,6 +94,9 @@ instance (Monad m) => Monad (MockChainT m) where
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
+instance MonadTrans MockChainT where
+  lift = MockChainT . lift . lift
+
 onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
 onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
 
