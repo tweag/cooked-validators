@@ -35,6 +35,7 @@ dependencies:
   - streaming
   - tasty
   - text
+  - transformers
   - QuickCheck
 
 library:

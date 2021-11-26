@@ -1,11 +1,17 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad
+import Control.Monad.Reader
+import Control.Monad.Trans.Class
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import qualified Data.Map as M
@@ -157,3 +163,26 @@ slotIs n = modifySlotCounter (scSlotIs n)
 
 timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
 timeIs t = modifySlotCounter (scTimeIs t)
+
+-- ** Deriving further 'MonadMockChain' instances
+
+-- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
+-- for any 'MonadTrans'.
+--
+-- For example, to derive 'MonadMockChain m => MonadMockChain (ReaderT r m)', you'd write
+--
+-- > deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+--
+-- and avoid the boilerplate of defining all the methods of the class yourself.
+newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
+  deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
+
+instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+  generateTx = lift . generateTx
+  validateTx = lift . validateTx
+  utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  index = lift index
+  slotCounter = lift slotCounter
+  modifySlotCounter = lift . modifySlotCounter
+
+deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
