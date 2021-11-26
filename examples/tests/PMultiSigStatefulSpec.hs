@@ -2,7 +2,6 @@ module PMultiSigStatefulSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Either (isRight)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl

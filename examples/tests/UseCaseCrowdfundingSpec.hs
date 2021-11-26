@@ -9,9 +9,7 @@
 module UseCaseCrowdfundingSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import qualified Ledger
 import qualified Ledger.Ada as Ada

@@ -157,14 +157,3 @@ slotIs n = modifySlotCounter (scSlotIs n)
 
 timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
 timeIs t = modifySlotCounter (scTimeIs t)
-
-{-
- TODO: Discover what to do with this function; it iss not being used anywhere and
-       it introduces a weird dependency cycle since spendValueFrom comes from Tx.Balance
-       I'll just leave it commented out for now
-spentByPK :: MonadMockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
-spentByPK pkh val = do
-  allOuts <- pkUtxos pkh
-  let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
--}

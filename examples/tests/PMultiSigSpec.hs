@@ -1,9 +1,7 @@
 module PMultiSigSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import Data.Either (isLeft, isRight)
 import qualified Ledger as Pl

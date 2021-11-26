@@ -6,9 +6,7 @@
 module ForgeSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import Forge hiding (authToken, bigBossNFT, smithedToken)
 import qualified Ledger

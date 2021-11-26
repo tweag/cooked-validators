@@ -4,7 +4,6 @@ module SplitSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
 import qualified Plutus.V1.Ledger.Ada as Pl

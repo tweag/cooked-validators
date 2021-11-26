@@ -22,15 +22,9 @@ import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import qualified Ledger as Pl
-import qualified Ledger.Address as Pl
-import qualified Ledger.Blockchain as Pl
 import qualified Ledger.Constraints as Pl
-import qualified Ledger.Contexts as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Index as Pl
 import Ledger.Orphans ()
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 
 -- * Direct Emulation

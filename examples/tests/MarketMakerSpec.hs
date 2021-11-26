@@ -5,7 +5,6 @@ module MarketMakerSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Contexts as Contexts
