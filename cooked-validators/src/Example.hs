@@ -2,7 +2,6 @@ module Example where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import qualified Ledger.Ada as Pl
 
 -- * MockChain Example

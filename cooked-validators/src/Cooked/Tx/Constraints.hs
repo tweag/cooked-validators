@@ -6,7 +6,6 @@
 module Cooked.Tx.Constraints where
 
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Balance
 import Data.Bifunctor (Bifunctor (second))
 import qualified Data.Map.Strict as M
 import Data.Void

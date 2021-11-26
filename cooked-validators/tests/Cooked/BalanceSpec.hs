@@ -7,7 +7,6 @@ import Control.Monad.State
 import Cooked.MockChain
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import qualified Data.Map as M
 import Data.String
 import qualified Ledger.Crypto as Pl

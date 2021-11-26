@@ -2,12 +2,12 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Cooked.MockChain.Staged where
+module Cooked.MockChain.Monad.Staged where
 
 import Control.Arrow (second)
 import Control.Monad.Identity
 import Control.Monad.Operational
-import Cooked.MockChain.Monad.Class
+import Cooked.MockChain.Monad
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import qualified Data.Map as M
@@ -18,6 +18,10 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
 
+-- | This is an initial encoding of the MockChain operations, it provides
+--  a simple way of altering the AST of a trace before actually executing it.
+--  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
+--  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
   GenerateTx :: TxSkel -> MockChainOp Pl.Tx
   ValidateTx :: Pl.Tx -> MockChainOp ()

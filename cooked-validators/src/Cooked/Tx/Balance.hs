@@ -1,8 +1,9 @@
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
-import Control.Monad.State.Class
-import Cooked.MockChain
+import Cooked.MockChain.Monad
+import Cooked.MockChain.Time
+import Cooked.MockChain.Wallet
 import qualified Data.Set as S
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -18,7 +19,7 @@ import qualified PlutusTx.Numeric as Pl
 
 -- | Balances a transaction with money from a given wallet. For every transaction,
 --  it must be the case that @inputs + mint == outputs + fee@.
-balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom :: (MonadMockChain m) => Wallet -> Pl.UnbalancedTx -> m Pl.Tx
 balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- We start by gathering all the inputs and summing it
   let tx = tx0 {Pl.txFee = Pl.minFee tx0}
@@ -32,7 +33,7 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
   -- A new output is opened with the leftover of the added inputs.
   let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
-  config <- gets (slotConfig . mcstSlotCtr)
+  config <- slotConfig <$> slotCounter
   return
     tx
       { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
@@ -41,10 +42,10 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
       }
 
 balanceWithUTxOsOf ::
-  (Monad m) =>
+  (MonadMockChain m) =>
   Pl.Value ->
   Pl.PubKeyHash ->
-  MockChainT m ([Pl.TxOutRef], Pl.Value)
+  m ([Pl.TxOutRef], Pl.Value)
 balanceWithUTxOsOf val wPKH =
   spendValueFrom val <$> pkUtxos' wPKH
 
