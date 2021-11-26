@@ -1,8 +1,15 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections #-}
+
 module PMultiSigStatefulSpec where
 
 import Control.Monad
+import Control.Monad.Trans.Class
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Either (isRight)
@@ -11,8 +18,8 @@ import qualified Ledger.Ada as Pl
 import PMultiSigStateful
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Prelude as Pl
+import QuickCheck.GenT
 import Test.Hspec
-import Test.QuickCheck
 
 paymentValue :: Payment -> Pl.Value
 paymentValue = Pl.lovelaceValueOf . paymentAmount
@@ -87,7 +94,6 @@ mkCollectSkel thePayment params = do
       SpendsScript (pmultisig params) () initialProp :
       (SpendsScript (pmultisig params) () <$> signatures)
 
-
 mkPaySkel :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m TxSkel
 mkPaySkel thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
@@ -119,73 +125,19 @@ spec = do
 spec' :: IO ()
 spec' = hspec spec
 
+deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
-data Action res where
-  Validate :: TxSkel -> Action ()
-  WithModifier :: (TxSkel -> [TxSkel]) -> Script a -> Action a
-  MCAct    :: MockChain a -> Action a
-  GenNat   :: {- upperBound : -} Integer -> Action Integer   -- TODO generalize to arbitrary generatable things
-
-data Script res where
-  Pure :: res -> Script res
-  Bind :: Action r1 -> (r1 -> Script r2) -> Script r2
-
-liftAction :: Action res -> Script res
-liftAction act = act `Bind` Pure
-
-validate :: TxSkel -> Script ()
-validate = liftAction . Validate
-
-mcAct :: MockChain a -> Script a
-mcAct = liftAction . MCAct
-
-genNat :: Integer -> Script Integer
-genNat = liftAction . GenNat
-
-withModifier :: (TxSkel -> [TxSkel]) -> Script a -> Script a
-withModifier f = liftAction . WithModifier f
-
-instance Functor Script where
-  f `fmap` Pure res = Pure $ f res
-  f `fmap` Bind act step = Bind act $ fmap f . step
-
-instance Applicative Script where
-  pure = Pure
-  Pure f        <*> script = f <$> script
-  Bind act step <*> script = Bind act $ \r -> step r <*> script
-
-instance Monad Script where
-  Pure v        >>= f = f v
-  Bind act step >>= f = Bind act $ step >=> f
-
-runAct :: Action a -> Gen (MockChain a)
-runAct (Validate txSkel) = pure $ validateTxFromSkeleton txSkel
-runAct (WithModifier f sa) = undefined -- TODO
-runAct (MCAct mia) = pure mia
-runAct (GenNat upper) = do
-  n <- chooseInteger (0, upper)
-  pure $ pure n
-
-runScript :: Script a -> Gen (MockChain (), a)
-runScript (Pure v) = pure (pure (), v)
-runScript (Bind act step) = do
-  mc <- runAct act
-  _
-
-
-walletsThreshold :: Script (Integer, Integer)
+walletsThreshold :: MonadMockChain m => GenT m (Integer, Integer)
 walletsThreshold = do
-  reqSigs <- genNat 5
-  withModifier pure $ do
-    (params, proposalSkel, tokenOutRef) <- mcAct $ mkProposalSkel reqSigs (wallet 1) thePayment
-    validate proposalSkel
+  reqSigs <- choose (0, 5)
+  numSigs <- choose (0, 5)
+  (params, proposalSkel, tokenOutRef) <- mkProposalSkel reqSigs (wallet 1) thePayment
+  validateTxFromSkeleton proposalSkel
 
-    numSigs <- genNat 5
-    forM_ [1..numSigs] $ \n -> validate $ mkSignSkel params (wallet $ fromIntegral n) thePayment
+  forM_ [1 .. numSigs] $ \n -> validateTxFromSkeleton $ mkSignSkel params (wallet $ fromIntegral n) thePayment
 
-    validate =<< mcAct (mkCollectSkel thePayment params)
-    validate =<< mcAct (mkPaySkel thePayment params tokenOutRef)
-
-    pure (reqSigs, numSigs)
+  validateTxFromSkeleton =<< mkCollectSkel thePayment params
+  validateTxFromSkeleton =<< mkPaySkel thePayment params tokenOutRef
+  pure (reqSigs, numSigs)
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)

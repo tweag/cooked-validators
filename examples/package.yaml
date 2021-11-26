@@ -29,11 +29,14 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
-  - serialise >= 0.2.3.0
+  - QuickCheck
+  - QuickCheck-GenT
   - scientific
+  - serialise >= 0.2.3.0
   - streaming
   - tasty
   - text
+  - transformers
 
 library:
   source-dirs: src
