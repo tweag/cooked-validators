@@ -121,7 +121,7 @@ marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams 
   let oneNft = Value.assetClassValue nftClass 1
   [(output, datum)] <- scriptUtxosSuchThat validator (\_ _ -> True)
   validateTxFromSkeleton $
-    TxSkel
+    txSkel
       wIssuer
       [ SpendsScript validator redeemer (output, datum),
         PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)],
@@ -146,7 +146,7 @@ marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass
   let coins = Value.assetClassValue coinsClass
       oneNft = Value.assetClassValue nftClass 1
    in validateTxFromSkeleton $
-        TxSkel
+        txSkel
           wIssuer
           [ PaysPK (walletPKHash wIssuer) mempty,
             Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
@@ -222,7 +222,7 @@ datumHijacking = do
 
     -- We take advantage of a purchase of golden coins to inject our 'stealValidator' instead of the original 'marketValidator' one.
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ SpendsScript marketValidator Market.Buy (out, dat),
           PaysScript stealValidator [(StealerDatum 40, oneNft <> ada 1000 <> coins 40)],
@@ -233,7 +233,7 @@ datumHijacking = do
 
     -- Now, everything belongs to the wallet 1, who can easily harvest the loot.
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ SpendsScript stealValidator () (outS, datS),
           PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)

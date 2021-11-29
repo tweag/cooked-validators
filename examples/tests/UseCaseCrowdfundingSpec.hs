@@ -61,13 +61,13 @@ run1 =
   runMockChain $ do
     freezeTime
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 3)
         [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
         ]
     waitSlots 1
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 4)
         [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
         ]
@@ -75,7 +75,7 @@ run1 =
     timeIs $ originOfTime + Ledger.POSIXTime 25000
     funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         ( map (SpendsScript crowdVal Collect) funds
             ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),

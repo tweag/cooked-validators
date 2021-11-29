@@ -12,7 +12,7 @@ import Test.Hspec
 
 -- | Transaction to lock some amount from a given wallet to the script
 txLock :: MonadMockChain m => Wallet -> Split.SplitParams -> m TxSkel
-txLock w splitParams = return (TxSkel w constraints)
+txLock w splitParams = return (txSkel w constraints)
   where
     constraints =
       [ PaysScript
@@ -62,7 +62,7 @@ txUnlockTemplate mRecipient1 mRecipient2 mAmountChanger issuer = do
                 Pl.lovelaceValueOf remainder
               )
             ]
-     in TxSkel
+     in txSkel
           issuer
           (constraints <> [remainderConstraint | remainder > 0])
 
@@ -91,7 +91,7 @@ txUnlockAttack issuer = do
             PaysPK r21 half,
             PaysPK (walletPKHash issuer) half
           ]
-     in TxSkel issuer constraints
+     in txSkel issuer constraints
 
 -- | Legit transaction
 txUnlock :: MonadMockChain m => Wallet -> m TxSkel

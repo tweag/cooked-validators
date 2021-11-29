@@ -15,7 +15,7 @@ params :: Params
 params = Params (map walletPK knownWallets) 2
 
 txCreatePayment :: MonadMockChain m => Wallet -> Payment -> m TxSkel
-txCreatePayment w pmt = return (TxSkel w ctrs)
+txCreatePayment w pmt = return (txSkel w ctrs)
   where
     ctrs = [PaysScript (pmultisig params) [(Proposal pmt, Pl.lovelaceValueOf (paymentAmount pmt))]]
 
@@ -24,7 +24,7 @@ txSign w pmt =
   let wSignature = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
       wPk = walletPK w
       ctrs = [PaysScript (pmultisig params) [(Sign wPk wSignature, mempty)]]
-   in return (TxSkel w ctrs)
+   in return (txSkel w ctrs)
 
 isProposal :: Datum -> a -> Bool
 isProposal (Proposal _) _ = True
@@ -42,7 +42,7 @@ txExecute w = do
         PaysPK (paymentRecipient prop) (Pl.lovelaceValueOf $ paymentAmount prop) :
         SpendsScript (pmultisig params) () (propOut, Proposal prop) :
         map (SpendsScript (pmultisig params) ()) sigs
-  return (TxSkel w txConstr)
+  return (txSkel w txConstr)
 
 samplePmt = Payment 4200 (walletPKHash $ wallet 3)
 

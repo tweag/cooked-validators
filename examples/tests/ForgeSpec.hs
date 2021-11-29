@@ -105,7 +105,7 @@ run1 =
   runMockChain $ do
     -- We start with the creation of the NFT
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ Mints [bigBossPolicy] oneBBNFT,
           PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
@@ -113,7 +113,7 @@ run1 =
     -- We then open a forge
     [(outBB, datBB@(BigBoss l))] <- scriptUtxosSuchThat bigBossVal (\_ _ -> True)
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 3)
         [ SpendsScript bigBossVal Open (outBB, datBB),
           Mints [authTokenPolicy] oneAuthToken,
@@ -123,7 +123,7 @@ run1 =
     -- We use this forge to mint 3 tokens
     [(outSmith, datSmith@(Forge owner forged))] <- scriptUtxosSuchThat smithVal (\_ _ -> True)
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 3)
         [ SpendsScript smithVal Adjust (outSmith, datSmith),
           Mints [smithingPolicy] (Value.assetClassValue smithed 30),
