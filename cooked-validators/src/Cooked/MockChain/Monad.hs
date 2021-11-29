@@ -11,7 +11,6 @@ module Cooked.MockChain.Monad where
 import Control.Arrow (second)
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.Trans.Class
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import qualified Data.Map as M

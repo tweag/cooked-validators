@@ -97,7 +97,7 @@ interpretWithDescrT = join . lift . lift . fmap eval . viewT
         >> interpretOp instr
         >>= interpretWithDescrT . f
 
-interpretWithDescr :: forall a ann. StagedMockChain a -> MockChainT (Writer TraceDescr) a
+interpretWithDescr :: forall a. StagedMockChain a -> MockChainT (Writer TraceDescr) a
 interpretWithDescr = interpretWithDescrT @Identity
 
 instance Show (MockChainOp a) where
