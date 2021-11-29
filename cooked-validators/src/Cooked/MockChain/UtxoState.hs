@@ -1,6 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cooked.MockChain.UtxoState (UtxoState (..), UtxoDatum (..), prettyUtxoState) where
+module Cooked.MockChain.UtxoState
+  ( UtxoState (..),
+    UtxoDatum (..),
+    prettyUtxoState,
+    prettyCurrencyAndAmount,
+    prettyAddressTypeAndHash,
+    mPrettyValue,
+  )
+where
 
 import Cooked.MockChain.Wallet
 import qualified Data.List as List (intersperse)
@@ -131,7 +139,3 @@ prettyAddressTypeAndHash (Pl.Address addrCr _) =
           Prettyprinter.pretty . take 7 . show $ hash
         ]
         <> Prettyprinter.colon
-
-    walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
-    walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
-    walletPKHashToId = flip M.lookup walletPKHashToIdMap

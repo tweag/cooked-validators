@@ -1,12 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad.Staged where
 
 import Control.Monad.Identity
 import Control.Monad.Operational
 import Control.Monad.Trans
+import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Time
@@ -14,6 +17,8 @@ import Cooked.Tx.Constraints
 import qualified Data.Map as M
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
+import Prettyprinter (Doc, (<+>))
+import qualified Prettyprinter as PP
 
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
@@ -58,9 +63,49 @@ interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 
 -- | Interprets a 'StagedMockChainT' into a 'MockChainT' computation.
-interpret :: forall m a. (Monad m) => StagedMockChainT m a -> MockChainT m a
-interpret = join . lift . fmap eval . viewT
+interpretT :: forall m a. (Monad m) => StagedMockChainT m a -> MockChainT m a
+interpretT = join . lift . fmap eval . viewT
   where
     eval :: ProgramViewT MockChainOp m a -> MockChainT m a
     eval (Return a) = return a
-    eval (instr :>>= f) = interpretOp instr >>= interpret . f
+    eval (instr :>>= f) = interpretOp instr >>= interpretT . f
+
+newtype TraceDescr = TraceDescr {getDoc :: Doc ()}
+
+instance Show TraceDescr where
+  show = show . getDoc
+
+instance Semigroup TraceDescr where
+  x <> y = TraceDescr $ PP.vcat [getDoc x, getDoc y]
+
+instance Monoid TraceDescr where
+  mempty = TraceDescr PP.emptyDoc
+
+-- | Similar to interpret; but produces a description of the operations that were
+--  issued to the mockchain as evaluation happens.
+interpretWithDescrT ::
+  forall m a.
+  (Monad m) =>
+  StagedMockChainT m a ->
+  MockChainT (WriterT TraceDescr m) a
+interpretWithDescrT = join . lift . lift . fmap eval . viewT
+  where
+    eval :: ProgramViewT MockChainOp m a -> MockChainT (WriterT TraceDescr m) a
+    eval (Return a) = return a
+    eval (instr :>>= f) =
+      lift (tell $ TraceDescr $ prettyMockChainOp instr)
+        >> interpretOp instr
+        >>= interpretWithDescrT . f
+
+interpretWithDescr :: forall a ann. StagedMockChain a -> MockChainT (Writer TraceDescr) a
+interpretWithDescr = interpretWithDescrT @Identity
+
+instance Show (MockChainOp a) where
+  show _ = "<MockChainOp>"
+
+instance Show (ProgramT f m a) where
+  show _ = "<script>"
+
+prettyMockChainOp :: MockChainOp a -> Doc ann
+prettyMockChainOp (GenerateTx skel) = PP.hang 2 $ PP.vsep ["GenerateTx", prettyTxSkel skel]
+prettyMockChainOp _ = "<mockchainop>"

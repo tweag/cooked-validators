@@ -35,6 +35,11 @@ wallet j
   | j > 0 && j <= 10 = let i = j - 1 in knownWallets !! i
   | otherwise = CW.fromWalletNumber (CW.WalletNumber $ fromIntegral j)
 
+walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
+walletPKHashToId = flip M.lookup walletPKHashToIdMap
+  where
+    walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
+
 walletPK :: Wallet -> Pl.PubKey
 walletPK = CW.pubKey
 

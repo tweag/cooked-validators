@@ -52,11 +52,11 @@ tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
 tracePayWallet11 =
   runMockChain $ do
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4200)]
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 3)
         [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4200)]
     MockChainT get

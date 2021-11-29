@@ -1,16 +1,22 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module PMultiSigStatefulSpec where
 
 import Control.Monad
 import Control.Monad.Trans.Class
+import Control.Monad.Writer
 import Cooked.MockChain
+import Cooked.MockChain.Monad.Staged
 import Cooked.Tx.Constraints
 import Data.Either (isRight)
 import qualified Ledger as Pl
@@ -20,12 +26,17 @@ import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Prelude as Pl
 import QuickCheck.GenT
 import Test.Hspec
+import qualified Test.QuickCheck as QC
+import qualified Test.QuickCheck.Monadic as QC
 
 paymentValue :: Payment -> Pl.Value
 paymentValue = Pl.lovelaceValueOf . paymentAmount
 
 paramsToken :: Params -> Pl.Value
 paramsToken params = Pl.assetClassValue (pmspThreadToken params) 1
+
+data ProposalSkel = ProposalSkel Integer Payment
+  deriving (Show)
 
 -- Proposal is basically an accumulator with no signees
 mkProposalSkel :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, TxSkel, Pl.TxOutRef)
@@ -37,7 +48,8 @@ mkProposalSkel reqSigs w pmt = do
       let params = Params (walletPK <$> knownWallets) reqSigs klass
       let threadToken = paramsToken params
       let skel =
-            TxSkel
+            txSkelLbl
+              (ProposalSkel reqSigs pmt)
               w
               [ Mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
                 -- We don't have SpendsPK or PaysPK wrt the wallet `w`
@@ -51,7 +63,7 @@ mkProposalSkel reqSigs w pmt = do
     wpkh = walletPKHash w
 
 mkSignSkel :: Params -> Wallet -> Payment -> TxSkel
-mkSignSkel params w pmt = TxSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
+mkSignSkel params w pmt = txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
   where
     pk = walletPK w
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
@@ -69,7 +81,7 @@ isProposal (Accumulator _ []) _ = True
 isProposal _ _ = False
 
 mkThreadTokenInputSkel :: Wallet -> TxSkel
-mkThreadTokenInputSkel w = TxSkel w [PaysPK (walletPKHash w) mempty]
+mkThreadTokenInputSkel w = txSkel w [PaysPK (walletPKHash w) mempty]
 
 mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
 mkThreadToken w = do
@@ -89,7 +101,7 @@ mkCollectSkel thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- scriptUtxosSuchThat (pmultisig params) isSign
   pure $
-    TxSkel (wallet 1) $
+    txSkel (wallet 1) $
       PaysScript (pmultisig params) [(Accumulator thePayment (signPk . snd <$> signatures), (paymentValue thePayment) <> paramsToken params)] :
       SpendsScript (pmultisig params) () initialProp :
       (SpendsScript (pmultisig params) () <$> signatures)
@@ -98,7 +110,7 @@ mkPaySkel :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m TxSkel
 mkPaySkel thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
   pure $
-    TxSkel
+    txSkel
       (wallet 1)
       [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
         SpendsScript (pmultisig params) () accumulated,
@@ -141,3 +153,18 @@ walletsThreshold = do
   pure (reqSigs, numSigs)
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
+
+forAllMC ::
+  forall a.
+  (forall m. (MonadMockChain m) => GenT m a) ->
+  (Either MockChainError (a, UtxoState) -> QC.Property) ->
+  QC.Property
+forAllMC gen prop = QC.forAllShrinkBlind (runGenT gen) (const []) go
+  where
+    go :: StagedMockChain a -> QC.Property
+    go smc =
+      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
+       in QC.counterexample (show descr) (prop res)
+
+test :: QC.Property
+test = forAllMC walletsThreshold (QC.property . isRight)
