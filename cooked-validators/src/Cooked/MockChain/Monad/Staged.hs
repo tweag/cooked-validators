@@ -25,8 +25,7 @@ import qualified Prettyprinter as PP
 --  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
-  GenerateTx :: TxSkel -> MockChainOp Pl.Tx
-  ValidateTx :: Pl.Tx -> MockChainOp ()
+  ValidateTxSkel :: TxSkel -> MockChainOp ()
   Index :: MockChainOp (M.Map Pl.TxOutRef Pl.TxOut)
   GetSlotCounter :: MockChainOp SlotCounter
   ModifySlotCounter :: (SlotCounter -> SlotCounter) -> MockChainOp ()
@@ -45,8 +44,7 @@ instance (Monad m) => MonadFail (StagedMockChainT m) where
   fail = singleton . Fail
 
 instance (Monad m) => MonadMockChain (StagedMockChainT m) where
-  generateTx = singleton . GenerateTx
-  validateTx = singleton . ValidateTx
+  validateTxSkel = singleton . ValidateTxSkel
   index = singleton Index
   slotCounter = singleton GetSlotCounter
   modifySlotCounter = singleton . ModifySlotCounter
@@ -54,8 +52,7 @@ instance (Monad m) => MonadMockChain (StagedMockChainT m) where
 
 -- | Interprets a single operation in the direct 'MockChainT' monad.
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
-interpretOp (GenerateTx skel) = generateTx skel
-interpretOp (ValidateTx tx) = validateTx tx
+interpretOp (ValidateTxSkel skel) = validateTxSkel skel
 interpretOp Index = index
 interpretOp GetSlotCounter = slotCounter
 interpretOp (ModifySlotCounter f) = modifySlotCounter f
@@ -70,17 +67,6 @@ interpretT = join . lift . fmap eval . viewT
     eval (Return a) = return a
     eval (instr :>>= f) = interpretOp instr >>= interpretT . f
 
-newtype TraceDescr = TraceDescr {getDoc :: Doc ()}
-
-instance Show TraceDescr where
-  show = show . getDoc
-
-instance Semigroup TraceDescr where
-  x <> y = TraceDescr $ PP.vcat [getDoc x, getDoc y]
-
-instance Monoid TraceDescr where
-  mempty = TraceDescr PP.emptyDoc
-
 -- | Similar to interpret; but produces a description of the operations that were
 --  issued to the mockchain as evaluation happens.
 interpretWithDescrT ::
@@ -93,7 +79,7 @@ interpretWithDescrT = join . lift . lift . fmap eval . viewT
     eval :: ProgramViewT MockChainOp m a -> MockChainT (WriterT TraceDescr m) a
     eval (Return a) = return a
     eval (instr :>>= f) =
-      lift (tell $ TraceDescr $ prettyMockChainOp instr)
+      lift (tell $ TraceDescr $ Just $ prettyMockChainOp instr)
         >> interpretOp instr
         >>= interpretWithDescrT . f
 
@@ -107,5 +93,20 @@ instance Show (ProgramT f m a) where
   show _ = "<script>"
 
 prettyMockChainOp :: MockChainOp a -> Doc ann
-prettyMockChainOp (GenerateTx skel) = PP.hang 2 $ PP.vsep ["GenerateTx", prettyTxSkel skel]
+prettyMockChainOp (ValidateTxSkel skel) =
+  PP.hang 2 $ PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
 prettyMockChainOp _ = "<mockchainop>"
+
+newtype TraceDescr = TraceDescr {getDoc :: Maybe (Doc ())}
+
+instance Show TraceDescr where
+  show = maybe "" show . getDoc
+
+instance Semigroup TraceDescr where
+  TraceDescr Nothing <> y = y
+  x <> TraceDescr Nothing = x
+  TraceDescr (Just x) <> TraceDescr (Just y) =
+    TraceDescr $ Just $ PP.vcat [x, y]
+
+instance Monoid TraceDescr where
+  mempty = TraceDescr Nothing

@@ -151,25 +151,29 @@ walletsThreshold (reqSigs, numSigs) = do
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
+walletsThreshold' :: (MonadMockChain m) => GenT m ()
+walletsThreshold' = ((,) <$> choose (1, 5) <*> choose (0, 5)) >>= walletsThreshold
+
 forAllMC ::
   forall a setup.
-  Gen setup ->
-  (forall m. (MonadMockChain m) => setup -> GenT m a) ->
-  (setup -> Either MockChainError (a, UtxoState) -> QC.Property) ->
-  Gen QC.Property
-forAllMC setupGen trGen prop = do
-  setup <- setupGen
-  let go :: StagedMockChain a -> QC.Property
-      go smc =
-        let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
-         in QC.counterexample (show descr) (prop setup res)
-  pure $ QC.forAllShrinkBlind (runGenT $ trGen setup) (const []) go
-
-test :: Gen QC.Property
-test = forAllMC ((,) <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
+  (forall m. (MonadMockChain m) => GenT m a) ->
+  (Either MockChainError (a, UtxoState) -> QC.Property) ->
+  QC.Property
+forAllMC trGen prop =
+  QC.forAllShrinkBlind (runGenT trGen) (const []) go
   where
-    prop (reqSigs, numSigs) =
-      QC.property
-        . if reqSigs <= numSigs
-          then isRight
-          else isLeft
+    go :: StagedMockChain a -> QC.Property
+    go smc =
+      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
+       in QC.counterexample (show descr) (prop res)
+
+test :: QC.Property
+test = forAllMC walletsThreshold' prop
+  where
+    prop = QC.property . isRight
+
+-- . if reqSigs <= numSigs
+--   then isRight
+--   else isLeft
+
+res = QC.quickCheck test

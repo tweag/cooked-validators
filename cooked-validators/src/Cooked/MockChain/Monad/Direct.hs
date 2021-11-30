@@ -9,6 +9,7 @@
 module Cooked.MockChain.Monad.Direct where
 
 import Control.Arrow (second)
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Strict
@@ -135,8 +136,7 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
-  generateTx = generateTx'
-  validateTx = validateTx'
+  validateTxSkel = validateTx' <=< generateTx'
   index = gets (Pl.getIndex . mcstIndex)
   slotCounter = gets mcstSlotCtr
   modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})

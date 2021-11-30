@@ -9,7 +9,6 @@
 module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
-import Control.Monad
 import Control.Monad.Reader
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
@@ -51,16 +50,16 @@ import qualified PlutusTx as Pl (FromData)
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  See [here](#mockchainanchor) for more details.
 class (MonadFail m) => MonadMockChain m where
-  -- | Generates a balanced transaction, that is, a transaction where
-  --  @inputs + mints == outputs + fees@. To balance a transaction, we need
+  -- | Generates and balances a transaction from a skeleton, then attemps to
+  -- validate such transaction.
+  --  A balanced transaction is such that @inputs + mints == outputs + fees@.
+  --  To balance a transaction, we need
   --  access to the current UTxO state to chose which inputs to add in case
   --  the output-side of the balancing equation is bigger.
-  generateTx :: TxSkel -> m Pl.Tx
-
-  -- | Validates a transaction and, upon success, updates the utxo map; You can generate
-  --  transactions with the helpers from 'generateTx' and "Cooked.Tx.Generator".
-  --  Most of the times you will want to use 'validateTxFromSkeleton'.
-  validateTx :: Pl.Tx -> m ()
+  --
+  --  If you want to work manually or skip balancing, check the helpers
+  -- from 'generateTx' and "Cooked.Tx.Generator".
+  validateTxSkel :: TxSkel -> m ()
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -84,7 +83,7 @@ class (MonadFail m) => MonadMockChain m where
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
-validateTxFromSkeleton = generateTx >=> validateTx
+validateTxFromSkeleton = validateTxSkel
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -177,8 +176,7 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  generateTx = lift . generateTx
-  validateTx = lift . validateTx
+  validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   index = lift index
   slotCounter = lift slotCounter

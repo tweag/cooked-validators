@@ -17,29 +17,29 @@ import qualified Prettyprinter as PP
 instance Show Constraint where
   show = show . prettyConstraint
 
+prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
+prettyEnum title tag items =
+  PP.hang 2 $ PP.vsep $ title : map (tag <+>) items
+
 prettyTxSkel :: TxSkel -> Doc ann
 prettyTxSkel (TxSkel lbl signer constr) =
-  PP.hang 2 $
-    PP.vsep $
+  PP.vsep $
+    map ("-" <+>) $
       catMaybes
-        [ Just $ prettyWallet signer,
-          fmap (("User label:" <+>) . PP.viaShow) lbl,
-          Just $ PP.vsep (map (("*" <+>) . prettyConstraint) constr)
+        [ Just $ "Signer:" <+> prettyWallet signer,
+          fmap (("Label:" <+>) . PP.viaShow) lbl,
+          Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
         ]
 
 prettyWallet :: Wallet -> Doc ann
 prettyWallet w =
   "wallet" <+> (maybe prettyWHash (("#" <>) . PP.pretty) . walletPKHashToId . walletPKHash $ w)
   where
-    prettyWHash = PP.viaShow (take 6 $ show (walletPKHash w))
+    prettyWHash = PP.pretty (take 6 $ show (walletPKHash w))
 
 prettyConstraint :: Constraint -> Doc ann
 prettyConstraint (PaysScript val outs) =
-  PP.hang 2 $
-    PP.vsep
-      ( "PaysScript" <+> prettyTypedValidator val :
-        map ((<+>) "-" . uncurry (prettyDatumVal val)) outs
-      )
+  prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) outs)
 prettyConstraint _ = "<constraint>"
 
 prettyTypedValidator :: Pl.TypedValidator a -> Doc ann
