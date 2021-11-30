@@ -18,7 +18,7 @@ import Control.Monad.Writer
 import Cooked.MockChain
 import Cooked.MockChain.Monad.Staged
 import Cooked.Tx.Constraints
-import Data.Either (isRight)
+import Data.Either (isLeft, isRight)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import PMultiSigStateful
@@ -139,10 +139,8 @@ spec' = hspec spec
 
 deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
-walletsThreshold :: MonadMockChain m => GenT m (Integer, Integer)
-walletsThreshold = do
-  reqSigs <- choose (0, 5)
-  numSigs <- choose (0, 5)
+walletsThreshold :: MonadMockChain m => (Integer, Integer) -> GenT m ()
+walletsThreshold (reqSigs, numSigs) = do
   (params, proposalSkel, tokenOutRef) <- mkProposalSkel reqSigs (wallet 1) thePayment
   validateTxFromSkeleton proposalSkel
 
@@ -150,21 +148,28 @@ walletsThreshold = do
 
   validateTxFromSkeleton =<< mkCollectSkel thePayment params
   validateTxFromSkeleton =<< mkPaySkel thePayment params tokenOutRef
-  pure (reqSigs, numSigs)
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
 forAllMC ::
-  forall a.
-  (forall m. (MonadMockChain m) => GenT m a) ->
-  (Either MockChainError (a, UtxoState) -> QC.Property) ->
-  QC.Property
-forAllMC gen prop = QC.forAllShrinkBlind (runGenT gen) (const []) go
-  where
-    go :: StagedMockChain a -> QC.Property
-    go smc =
-      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
-       in QC.counterexample (show descr) (prop res)
+  forall a setup.
+  Gen setup ->
+  (forall m. (MonadMockChain m) => setup -> GenT m a) ->
+  (setup -> Either MockChainError (a, UtxoState) -> QC.Property) ->
+  Gen QC.Property
+forAllMC setupGen trGen prop = do
+  setup <- setupGen
+  let go :: StagedMockChain a -> QC.Property
+      go smc =
+        let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
+         in QC.counterexample (show descr) (prop setup res)
+  pure $ QC.forAllShrinkBlind (runGenT $ trGen setup) (const []) go
 
-test :: QC.Property
-test = forAllMC walletsThreshold (QC.property . isRight)
+test :: Gen QC.Property
+test = forAllMC ((,) <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
+  where
+    prop (reqSigs, numSigs) =
+      QC.property
+        . if reqSigs <= numSigs
+          then isRight
+          else isLeft
