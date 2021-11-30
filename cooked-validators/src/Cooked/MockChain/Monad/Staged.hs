@@ -21,6 +21,35 @@ import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
 
+-- TODO: How should we go about modifying the generated traces?
+-- At first, I believed it could make sense to have some modifiers on the
+-- StagedMockChain level that work as:
+--
+-- > mapTxSkel :: (TxSkel -> TxSkel) -> StagedMockChain a -> StagedMockChain a
+--
+-- Because we're modifying the tree, we are able to map over the
+-- bind arguments easily:
+--
+-- > mapTxSkel f (Bind x m) = Bind (mapTxSkel f x) (mapTxSkel f . m)
+--
+-- The problem starts when we want to apply f to just one transaction;
+--
+-- > onOne :: (TxSkel -> TxSkel) -> StagedMockChain a -> [StagedMockChain a]
+-- > onOne f (Bind x m) = do
+-- >   x' <- onOne f x
+-- >   return $ Bind x' ???
+--
+-- Maybe the solution is to rely on the transformer layer? (again!)
+--
+-- > onOne :: (TxSkel -> TxSkel) -> StagedMockChain a -> StagedMockChainT [] a
+--
+-- Then, it would actually make sense to change the interpretT type to
+--
+-- > interpretT :: forall m a. (Monad m) => StagedMockChainT m a -> m (MockChain a)
+--
+-- Now, running `interpretT (onOne f tr)` will return a list of `MockChain a`, which
+-- we can run individually.
+
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
 --  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
