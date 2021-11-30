@@ -19,6 +19,7 @@ import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
+import qualified Prettyprinter.Render.String as PP
 
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
@@ -67,8 +68,11 @@ interpretT = join . lift . fmap eval . viewT
     eval (Return a) = return a
     eval (instr :>>= f) = interpretOp instr >>= interpretT . f
 
--- | Similar to interpret; but produces a description of the operations that were
---  issued to the mockchain as evaluation happens.
+-- | Similar to interpret; but produces a description of the transactions that were
+--  issued to the mockchain as evaluation happens. There is no way of producing a
+--  description /without/ evaluating the script because of how we encoded /bind/.
+--  We need the result of the previous computation to generate the new AST, which
+--  then gets interpreted.
 interpretWithDescrT ::
   forall m a.
   (Monad m) =>
@@ -79,34 +83,43 @@ interpretWithDescrT = join . lift . lift . fmap eval . viewT
     eval :: ProgramViewT MockChainOp m a -> MockChainT (WriterT TraceDescr m) a
     eval (Return a) = return a
     eval (instr :>>= f) =
-      lift (tell $ TraceDescr $ Just $ prettyMockChainOp instr)
+      lift (tell $ prettyMockChainOp instr)
         >> interpretOp instr
         >>= interpretWithDescrT . f
 
 interpretWithDescr :: forall a. StagedMockChain a -> MockChainT (Writer TraceDescr) a
 interpretWithDescr = interpretWithDescrT @Identity
 
-instance Show (MockChainOp a) where
-  show _ = "<MockChainOp>"
+-- * Human Readable Traces
 
-instance Show (ProgramT f m a) where
-  show _ = "<script>"
-
-prettyMockChainOp :: MockChainOp a -> Doc ann
+-- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
+--  the transactions that were validated, so many operations have no description.
+prettyMockChainOp :: MockChainOp a -> TraceDescr
 prettyMockChainOp (ValidateTxSkel skel) =
-  PP.hang 2 $ PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
-prettyMockChainOp _ = "<mockchainop>"
+  trSingleton $ PP.hang 2 $ PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
+prettyMockChainOp (Fail reason) =
+  trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
+prettyMockChainOp _ = mempty
 
-newtype TraceDescr = TraceDescr {getDoc :: Maybe (Doc ())}
+-- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
+--  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
+--    1) Naturally, these make for efficient concatenation
+--    2) More importantly, this makes it easy to define the empty 'TraceDescr'
+--       as @TraceDescr id@ instead of reliying on 'PP.emptyDoc', which generates
+--       empty lines when used with 'PP.vsep'. This avoids generating these empty lines
+newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
+
+trSingleton :: Doc ann -> TraceDescr
+trSingleton d = TraceDescr (fmap (const ()) d :)
 
 instance Show TraceDescr where
-  show = maybe "" show . getDoc
+  show (TraceDescr gen) =
+    let tr = gen []
+        numbered = zipWith (\n d -> PP.pretty n <> ")" <+> PP.align d) [1 :: Integer ..] tr
+     in PP.renderString . PP.layoutPretty PP.defaultLayoutOptions $ PP.vsep numbered
 
 instance Semigroup TraceDescr where
-  TraceDescr Nothing <> y = y
-  x <> TraceDescr Nothing = x
-  TraceDescr (Just x) <> TraceDescr (Just y) =
-    TraceDescr $ Just $ PP.vcat [x, y]
+  x <> y = TraceDescr $ trApp x . trApp y
 
 instance Monoid TraceDescr where
-  mempty = TraceDescr Nothing
+  mempty = TraceDescr id

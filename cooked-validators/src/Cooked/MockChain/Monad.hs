@@ -19,6 +19,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
+import QuickCheck.GenT
 
 -- * MockChain Monad
 
@@ -183,3 +184,5 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   modifySlotCounter = lift . modifySlotCounter
 
 deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+
+deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)

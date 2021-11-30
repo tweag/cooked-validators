@@ -137,8 +137,6 @@ spec = do
 spec' :: IO ()
 spec' = hspec spec
 
-deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
-
 walletsThreshold :: MonadMockChain m => (Integer, Integer) -> GenT m ()
 walletsThreshold (reqSigs, numSigs) = do
   (params, proposalSkel, tokenOutRef) <- mkProposalSkel reqSigs (wallet 1) thePayment
@@ -151,29 +149,11 @@ walletsThreshold (reqSigs, numSigs) = do
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
-walletsThreshold' :: (MonadMockChain m) => GenT m ()
-walletsThreshold' = ((,) <$> choose (1, 5) <*> choose (0, 5)) >>= walletsThreshold
-
-forAllMC ::
-  forall a setup.
-  (forall m. (MonadMockChain m) => GenT m a) ->
-  (Either MockChainError (a, UtxoState) -> QC.Property) ->
-  QC.Property
-forAllMC trGen prop =
-  QC.forAllShrinkBlind (runGenT trGen) (const []) go
-  where
-    go :: StagedMockChain a -> QC.Property
-    go smc =
-      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
-       in QC.counterexample (show descr) (prop res)
-
 test :: QC.Property
-test = forAllMC walletsThreshold' prop
+test = after' ((,) <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
   where
-    prop = QC.property . isRight
-
--- . if reqSigs <= numSigs
---   then isRight
---   else isLeft
-
-res = QC.quickCheck test
+    prop (reqSigs, numSigs) =
+      QC.property
+        . if reqSigs <= numSigs
+          then isRight
+          else isLeft

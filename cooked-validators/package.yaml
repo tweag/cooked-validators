@@ -37,6 +37,7 @@ dependencies:
   - text
   - transformers
   - QuickCheck
+  - QuickCheck-GenT
 
 library:
   source-dirs: src

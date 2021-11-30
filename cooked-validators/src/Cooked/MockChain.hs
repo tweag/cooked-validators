@@ -5,6 +5,7 @@ module Cooked.MockChain
     module Cooked.MockChain.Monad.Staged,
     module Cooked.MockChain.Monad.Direct,
     module Cooked.MockChain.Monad,
+    module Cooked.MockChain.QuickCheck,
     SpendableOut,
     spentByPK,
   )
@@ -14,6 +15,7 @@ import Control.Arrow (second)
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
+import Cooked.MockChain.QuickCheck
 import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet

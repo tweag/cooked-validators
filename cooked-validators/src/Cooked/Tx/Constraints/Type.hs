@@ -25,7 +25,11 @@ data Constraint where
     [(Pl.DatumType a, Pl.Value)] ->
     Constraint
   SpendsScript ::
-    (Pl.ToData (Pl.DatumType a), Pl.ToData (Pl.RedeemerType a), Show (Pl.DatumType a)) =>
+    ( Pl.ToData (Pl.DatumType a),
+      Pl.ToData (Pl.RedeemerType a),
+      Show (Pl.DatumType a),
+      Show (Pl.RedeemerType a)
+    ) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
