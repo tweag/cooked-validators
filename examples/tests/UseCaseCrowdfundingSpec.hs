@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -26,6 +27,7 @@ import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (show, trace)
 import Test.Hspec
 import Prelude (show)
+import qualified Prelude as Haskell
 
 -- One has to duplicate some functions of the contract,
 -- since they are not exported.
@@ -43,6 +45,8 @@ data Crowdfunding
 instance TScripts.ValidatorTypes Crowdfunding where
   type RedeemerType Crowdfunding = CampaignAction
   type DatumType Crowdfunding = Ledger.PubKeyHash
+
+deriving instance Haskell.Show CampaignAction
 
 -- We now declare the typed validator of the campaign.
 
