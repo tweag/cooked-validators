@@ -50,6 +50,7 @@ newtype MarketDatum = MarketDatum
   deriving stock (Haskell.Show)
 
 data MarketRedeemer = Buy | Sell
+  deriving stock (Haskell.Show)
 
 -- | Constant fee in Ada applied to every transaction.
 fee :: Integer

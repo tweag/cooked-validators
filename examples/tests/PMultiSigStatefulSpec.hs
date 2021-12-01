@@ -4,7 +4,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections #-}
@@ -137,8 +139,14 @@ spec = do
 spec' :: IO ()
 spec' = hspec spec
 
-walletsThreshold :: MonadMockChain m => (Integer, Integer) -> GenT m ()
-walletsThreshold (reqSigs, numSigs) = do
+data ThresholdParams = ThresholdParams
+  { reqSigs :: Integer,
+    numSigs :: Integer
+  }
+  deriving (Show)
+
+walletsThreshold :: MonadMockChain m => ThresholdParams -> GenT m ()
+walletsThreshold ThresholdParams {reqSigs, numSigs} = do
   (params, proposalSkel, tokenOutRef) <- mkProposalSkel reqSigs (wallet 1) thePayment
   validateTxFromSkeleton proposalSkel
 
@@ -150,9 +158,9 @@ walletsThreshold (reqSigs, numSigs) = do
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
 test :: QC.Property
-test = after' ((,) <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
+test = after' (ThresholdParams <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
   where
-    prop (reqSigs, numSigs) =
+    prop ThresholdParams {..} =
       QC.property
         . if reqSigs <= numSigs
           then isRight

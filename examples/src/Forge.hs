@@ -51,6 +51,7 @@ instance Eq DatumBigBoss where
   BigBoss l1 == BigBoss l2 = l1 == l2
 
 data RedeemerBigBoss = Open | CloseBB
+  deriving stock (Haskell.Show)
 
 PlutusTx.unstableMakeIsData ''RedeemerBigBoss
 
@@ -74,6 +75,7 @@ instance Eq DatumSmith where
   Forge o1 f1 == Forge o2 f2 = o1 == o2 && f1 == f2
 
 data RedeemerSmith = Adjust | CloseSmith
+  deriving stock (Haskell.Show)
 
 PlutusTx.unstableMakeIsData ''RedeemerSmith
 
