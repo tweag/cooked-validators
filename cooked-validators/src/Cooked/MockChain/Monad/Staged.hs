@@ -97,6 +97,12 @@ interpretOp (Fail str) = fail str
 int :: (Monad m) => StagedMockChain a -> MockChainT m a
 int = interpretWithMonad interpretOp . liftProgram
 
+-- Alright; here's one interpretation of a stagedmockchain that returns a list
+-- of traces, each of which where one transaction was altered by f;
+--
+-- PROBLEM: how do we pass parameters that were discovered in between
+-- the trace to the transformation? Maybe this really has to become a method
+-- in MonadMockChain as proposed by GR
 onOne :: (TxSkel -> TxSkel) -> StagedMockChain a -> MockChainT (WriterT TraceDescr []) a
 onOne t = go . view
   where

@@ -171,7 +171,7 @@ dropOne (TxSkel lbl w [c]) = TxSkel lbl w [c]
 dropOne (TxSkel lbl w (c : constr)) = TxSkel lbl w constr
 
 test2 :: QC.Property
-test2 = afterMod (walletsThreshold (2, 3)) dropOne $ \result ->
+test2 = afterMod (walletsThreshold $ ThresholdParams 2 3) dropOne $ \result ->
   case result of
     Left err -> QC.counterexample (show err) False
     Right _ -> QC.property True
