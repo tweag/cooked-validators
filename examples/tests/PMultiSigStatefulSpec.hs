@@ -157,3 +157,15 @@ test = after' ((,) <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
         . if reqSigs <= numSigs
           then isRight
           else isLeft
+
+dropOne :: TxSkel -> TxSkel
+dropOne (TxSkel lbl w [c]) = TxSkel lbl w [c]
+dropOne (TxSkel lbl w (c : constr)) = TxSkel lbl w constr
+
+test2 :: QC.Property
+test2 = afterMod (walletsThreshold (2, 3)) dropOne $ \result ->
+  case result of
+    Left err -> QC.counterexample (show err) False
+    Right _ -> QC.property True
+
+r = QC.quickCheck test2

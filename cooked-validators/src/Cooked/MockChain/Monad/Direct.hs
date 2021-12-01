@@ -8,6 +8,7 @@
 
 module Cooked.MockChain.Monad.Direct where
 
+import Control.Applicative
 import Control.Arrow (second)
 import Control.Monad
 import Control.Monad.Except
@@ -98,8 +99,30 @@ instance (Monad m) => MonadFail (MockChainT m) where
 instance MonadTrans MockChainT where
   lift = MockChainT . lift . lift
 
+instance (Monad m, Alternative m) => Alternative (MockChainT m) where
+  empty = MockChainT $ StateT $ const $ ExceptT empty
+  (<|>) = combineMockChainT (<|>)
+
+combineMockChainT ::
+  (Monad m) =>
+  (forall a. m a -> m a -> m a) ->
+  MockChainT m x ->
+  MockChainT m x ->
+  MockChainT m x
+combineMockChainT f ma mb = MockChainT $
+  StateT $ \s ->
+    let resA = runExceptT $ runStateT (unMockChain ma) s
+        resB = runExceptT $ runStateT (unMockChain mb) s
+     in ExceptT $ f resA resB
+
 onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
 onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
+
+mapMockChainT ::
+  (m (Either MockChainError (a, MockChainSt)) -> n (Either MockChainError (b, MockChainSt))) ->
+  MockChainT m a ->
+  MockChainT n b
+mapMockChainT f = MockChainT . mapStateT (mapExceptT f) . unMockChain
 
 -- | Executes a 'MockChainT' from some initial state.
 runMockChainTFrom ::

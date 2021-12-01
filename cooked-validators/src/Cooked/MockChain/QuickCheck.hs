@@ -8,6 +8,7 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState
+import Cooked.Tx.Constraints.Type
 import Data.Either (isLeft, isRight)
 import QuickCheck.GenT
 import Test.QuickCheck (Property)
@@ -35,6 +36,20 @@ after trGen prop =
     go smc =
       let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
        in QC.counterexample (show descr) (prop res)
+
+afterMod ::
+  forall a.
+  GenTrace a ->
+  (TxSkel -> TxSkel) ->
+  (Either MockChainError (a, UtxoState) -> Property) ->
+  Property
+afterMod trGen f prop =
+  QC.forAllShrinkBlind (runGenT trGen) (const []) go
+  where
+    go :: StagedMockChain a -> QC.Property
+    go smc =
+      let traces = runWriterT $ runMockChainT (onOne f smc)
+       in QC.conjoin $ map (\(res, descr) -> QC.counterexample (show descr) (prop res)) traces
 
 -- | Analogous to 'after', but also generates some setup information; this can be useful
 --  when we need the information about the setup to decide whether the test should pass or fail.

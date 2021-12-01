@@ -1,13 +1,18 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad.Staged where
 
+import Control.Applicative
+import Control.Monad.Except
 import Control.Monad.Identity
+import Control.Monad.List
 import Control.Monad.Operational
+import Control.Monad.State.Strict
 import Control.Monad.Trans
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
@@ -89,13 +94,26 @@ interpretOp (ModifySlotCounter f) = modifySlotCounter f
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 
--- | Interprets a 'StagedMockChainT' into a 'MockChainT' computation.
-interpretT :: forall m a. (Monad m) => StagedMockChainT m a -> MockChainT m a
-interpretT = join . lift . fmap eval . viewT
+int :: (Monad m) => StagedMockChain a -> MockChainT m a
+int = interpretWithMonad interpretOp . liftProgram
+
+onOne :: (TxSkel -> TxSkel) -> StagedMockChain a -> MockChainT (WriterT TraceDescr []) a
+onOne t = go . view
   where
-    eval :: ProgramViewT MockChainOp m a -> MockChainT m a
-    eval (Return a) = return a
-    eval (instr :>>= f) = interpretOp instr >>= interpretT . f
+    go :: ProgramView MockChainOp a -> MockChainT (WriterT TraceDescr []) a
+    go (Return a) = return a
+    go (instr@(ValidateTxSkel skel) :>>= f) =
+      ( lift (tell $ trSingleton "NEXT WAS:")
+          >> lift (tell $ prettyMockChainOp instr)
+          >> lift (tell $ trSingleton "BECAME:")
+          >> lift (tell $ prettyMockChainOp (ValidateTxSkel $ t skel))
+          >> interpretOp (ValidateTxSkel $ t skel) >>= int . f
+      )
+        <|> ( lift (tell $ prettyMockChainOp instr)
+                >> interpretOp (ValidateTxSkel skel) >>= onOne t . f
+            )
+    go (instr :>>= f) =
+      interpretOp instr >>= onOne t . f
 
 -- | Similar to interpret; but produces a description of the transactions that were
 --  issued to the mockchain as evaluation happens. There is no way of producing a
