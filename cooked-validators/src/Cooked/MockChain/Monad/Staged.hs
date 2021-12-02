@@ -185,7 +185,9 @@ interpret = goDet
     goMod :: [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
     -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
     -- returned empty. If we return a, it would correspond to a trace where the modality was never applied.
-    -- TODO: I'm not entirely sure about this, actually!
+    --
+    -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
+    --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
     goMod (Somewhere _ : _) (Return _) = empty
     goMod _ (Return a) = return a
     -- When interpreting a new modality, we just compose them by pushing it into the stack
