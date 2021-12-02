@@ -82,6 +82,12 @@ class (MonadFail m) => MonadMockChain m where
   -- | Modifies the slot counter
   modifySlotCounter :: (SlotCounter -> SlotCounter) -> m ()
 
+  -- | Applies a modification to all transactions in a tree
+  everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
+
+  -- | Applies a modification to some transactions in a tree
+  somewhere :: (TxSkel -> TxSkel) -> m () -> m ()
+
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
 validateTxFromSkeleton = validateTxSkel

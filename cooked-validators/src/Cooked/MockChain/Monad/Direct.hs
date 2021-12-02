@@ -164,6 +164,8 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
   slotCounter = gets mcstSlotCtr
   modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
   utxosSuchThat = utxosSuchThat'
+  somewhere _ _ = fail "somewhere: Cannot apply modalities in a direct MockChainT; there's nowhere to backtrack to"
+  everywhere _ _ = fail "everywhere: Cannot apply modalities in a direct MockChainT; there's nowhere to backtrack to"
 
 -- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
