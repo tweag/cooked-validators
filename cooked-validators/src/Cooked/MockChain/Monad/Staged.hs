@@ -188,7 +188,7 @@ interpret = goDet
     --
     -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
     --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
-    goMod ms (Return _)
+    goMod ms (Return a)
       | any isSomewhere ms = empty
       | otherwise = return a
     -- When interpreting a new modality, we just compose them by pushing it into the stack
