@@ -31,20 +31,6 @@ after ::
   Property
 after trGen prop = after' (pure ()) (const trGen) (const prop)
 
-afterMod ::
-  forall a.
-  GenTrace a ->
-  (TxSkel -> TxSkel) ->
-  (Either MockChainError (a, UtxoState) -> Property) ->
-  Property
-afterMod trGen f prop =
-  QC.forAllShrinkBlind (runGenT trGen) (const []) go
-  where
-    go :: StagedMockChain a -> QC.Property
-    go smc =
-      let traces = runWriterT $ runMockChainT (onOne f smc)
-       in QC.conjoin $ map (\(res, descr) -> QC.counterexample (show descr) (prop res)) traces
-
 -- | Analogous to 'after', but also generates some setup information; this can be useful
 --  when we need the information about the setup to decide whether the test should pass or fail.
 after' ::
