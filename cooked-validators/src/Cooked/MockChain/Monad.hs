@@ -85,8 +85,11 @@ class (MonadFail m) => MonadMockChain m where
   -- | Applies a modification to all transactions in a tree
   everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
 
-  -- | Applies a modification to some transactions in a tree
-  somewhere :: (TxSkel -> TxSkel) -> m () -> m ()
+  -- | Applies a modification to some transactions in a tree, note that
+  -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
+  -- progress, henece if it is not possible to apply the transformation anywhere
+  -- in @x@, there would be no progress.
+  somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()

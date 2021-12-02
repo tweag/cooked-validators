@@ -134,9 +134,9 @@ instance Monad StagedMockChain where
 --                 ~ Modify h t (c >>= (h >=> j))
 --                 ~ Modify h t c >>= (h >=> j)
 --
--- On our particular case, it must be that (Modify f Return c ~ c), as in, modifying
--- the identity computation has no effect; nevertheless, that can only be proved
--- at the interpreter level; syntactically, these are different.
+-- On our particular case, it must be that (Modify (Everwhere f) Return c ~ c),
+-- and (Modify (Somewhere f) Return c ~ empty) following the intuition of modal logics
+-- that diamond (ie., Somewhere) implies some sort of progress.
 
 -- | Interprets a single operation in the direct 'MockChainT' monad.
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
@@ -188,8 +188,9 @@ interpret = goDet
     --
     -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
     --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
-    goMod (Somewhere _ : _) (Return _) = empty
-    goMod _ (Return a) = return a
+    goMod ms (Return _)
+      | any isSomewhere ms = empty
+      | otherwise = return a
     -- When interpreting a new modality, we just compose them by pushing it into the stack
     goMod ms (Modify m block cont) = goMod (m : ms) block >> goMod ms cont
     -- Finally, when interpreting a instruction, we evaluate the modalities
@@ -203,7 +204,11 @@ interpret = goDet
 -- * Modalities
 
 -- | Modalieis apply a function to a trace;
-data Modality a = Somewhere (a -> a) | Everywhere (a -> a)
+data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> a)
+
+isSomewhere :: Modality a -> Bool
+isSomewhere (Somewhere _) = True
+isSomewhere _ = False
 
 -- | Performs one step of interpreting a composition of modalities to an input. For example,
 --
@@ -225,7 +230,9 @@ interpModalities (Everywhere f : ms) s = map here $ interpModalities ms s
     here (hs, mods) = (f hs, Everywhere f : mods)
 interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities ms s
   where
-    hereOrThere (hs, mods) = [(f hs, mods), (hs, (Somewhere f : mods))]
+    hereOrThere (hs, mods)
+      | Just fhs <- f hs = [(fhs, mods), (hs, (Somewhere f : mods))]
+      | otherwise = [(hs, (Somewhere f : mods))]
 
 -- * Human Readable Traces
 
