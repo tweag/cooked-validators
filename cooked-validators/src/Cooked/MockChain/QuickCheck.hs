@@ -29,13 +29,7 @@ after ::
   GenTrace a ->
   (Either MockChainError (a, UtxoState) -> Property) ->
   Property
-after trGen prop =
-  QC.forAllShrinkBlind (runGenT trGen) (const []) go
-  where
-    go :: StagedMockChain a -> QC.Property
-    go smc =
-      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
-       in QC.counterexample (show descr) (prop res)
+after trGen prop = after' (pure ()) (const trGen) (const prop)
 
 afterMod ::
   forall a.
