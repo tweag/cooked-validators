@@ -46,8 +46,8 @@ after' genSetup trGen prop =
   where
     go :: setup -> StagedMockChain a -> QC.Property
     go s smc =
-      let (res, descr) = runWriter $ runMockChainT (interpretWithDescr smc)
-       in QC.counterexample (show descr) (prop s res)
+      let traces = runWriterT $ runMockChainT (interpret smc)
+       in QC.conjoin $ map (\(res, descr) -> QC.counterexample (show descr) (prop s res)) traces
 
 traceSucceeds :: GenTrace a -> Property
 traceSucceeds = (`after` (QC.property . isRight))
