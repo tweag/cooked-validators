@@ -168,6 +168,10 @@ sampleTrace1 =
       where
         thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
+qcIsRight :: (Show a) => Either a b -> QC.Property
+qcIsRight (Left a) = QC.counterexample (show a) False
+qcIsRight (Right _) = QC.property True
+
 sampleGroup1 :: TestTree
 sampleGroup1 =
   testGroup
@@ -180,7 +184,7 @@ sampleGroup1 =
           forAllTrP
             successParams
             (\p -> mkProposalForParams p >>= mkTraceForParams p)
-            (const (QC.property . isRight)),
+            (const qcIsRight),
       TW.bug
         TW.Critical
         [str|On the other hand, if we do \emph{not} collect enough unique
