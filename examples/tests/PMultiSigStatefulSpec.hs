@@ -22,14 +22,15 @@ import Cooked.MockChain
 import Cooked.MockChain.Monad.Staged
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
+import Data.List (nub)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import PMultiSigStateful
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Prelude as Pl
-import QuickCheck.GenT
 import Test.Hspec hiding (after)
 import qualified Test.QuickCheck as QC
+import Test.QuickCheck.GenT
 import qualified Test.QuickCheck.Monadic as QC
 
 paymentValue :: Payment -> Pl.Value
@@ -42,8 +43,8 @@ data ProposalSkel = ProposalSkel Integer Payment
   deriving (Show)
 
 -- Proposal is basically an accumulator with no signees
-mkProposalSkel :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, TxSkel, Pl.TxOutRef)
-mkProposalSkel reqSigs w pmt = do
+mkProposal :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, Pl.TxOutRef)
+mkProposal reqSigs w pmt = do
   utxos <- pkUtxos wpkh
   case utxos of
     (spendableOut : _) -> do
@@ -60,13 +61,14 @@ mkProposalSkel reqSigs w pmt = do
                 -- we're working on.
                 PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
               ]
-      pure (params, skel, fst spendableOut)
+      validateTxSkel skel
+      pure (params, fst spendableOut)
     _ -> error "No spendable outputs for the wallet"
   where
     wpkh = walletPKHash w
 
-mkSignSkel :: Params -> Wallet -> Payment -> TxSkel
-mkSignSkel params w pmt = txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
+mkSign :: MonadMockChain m => Params -> Wallet -> Payment -> m ()
+mkSign params w pmt = validateTxSkel $ txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
   where
     pk = walletPK w
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
@@ -99,20 +101,20 @@ mkParams = do
   out <- mkThreadToken (wallet 1)
   pure $ Params (walletPK <$> knownWallets) 2 $ threadTokenAssetClass out
 
-mkCollectSkel :: MonadMockChain m => Payment -> Params -> m TxSkel
-mkCollectSkel thePayment params = do
+mkCollect :: MonadMockChain m => Payment -> Params -> m ()
+mkCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- scriptUtxosSuchThat (pmultisig params) isSign
-  pure $
+  validateTxSkel $
     txSkel (wallet 1) $
       PaysScript (pmultisig params) [(Accumulator thePayment (signPk . snd <$> signatures), (paymentValue thePayment) <> paramsToken params)] :
       SpendsScript (pmultisig params) () initialProp :
       (SpendsScript (pmultisig params) () <$> signatures)
 
-mkPaySkel :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m TxSkel
-mkPaySkel thePayment params tokenOutRef = do
+mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
+mkPay thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
-  pure $
+  validateTxSkel $
     txSkel
       (wallet 1)
       [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
@@ -122,13 +124,12 @@ mkPaySkel thePayment params tokenOutRef = do
 
 txs1 :: MonadMockChain m => m ()
 txs1 = do
-  (params, proposalSkel, tokenOutRef) <- mkProposalSkel 2 (wallet 1) thePayment
-  validateTxFromSkeleton proposalSkel
-  validateTxFromSkeleton $ mkSignSkel params (wallet 1) thePayment
-  validateTxFromSkeleton $ mkSignSkel params (wallet 2) thePayment
-  validateTxFromSkeleton $ mkSignSkel params (wallet 3) thePayment
-  validateTxFromSkeleton =<< mkCollectSkel thePayment params
-  validateTxFromSkeleton =<< mkPaySkel thePayment params tokenOutRef
+  (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
+  mkSign params (wallet 1) thePayment
+  mkSign params (wallet 2) thePayment
+  mkSign params (wallet 3) thePayment
+  mkCollect thePayment params
+  mkPay thePayment params tokenOutRef
   where
     thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
@@ -142,24 +143,58 @@ spec' = hspec spec
 
 data ThresholdParams = ThresholdParams
   { reqSigs :: Integer,
-    numSigs :: Integer
+    sigWallets :: [Int],
+    proposerWallet :: Wallet,
+    pmt :: Payment
   }
   deriving (Show)
 
-walletsThreshold :: MonadMockChain m => ThresholdParams -> GenT m ()
-walletsThreshold ThresholdParams {reqSigs, numSigs} = do
-  (params, proposalSkel, tokenOutRef) <- mkProposalSkel reqSigs (wallet 1) thePayment
-  validateTxFromSkeleton proposalSkel
+numUniqueSigs :: ThresholdParams -> Integer
+numUniqueSigs = fromIntegral . length . nub . sigWallets
 
-  forM_ [1 .. numSigs] $ \n -> validateTxFromSkeleton $ mkSignSkel params (wallet $ fromIntegral n) thePayment
+anyParams :: QC.Gen ThresholdParams
+anyParams =
+  ThresholdParams
+    <$> choose (1, 5)
+    <*> (resize 5 $ listOf (choose (1, 8)))
+    <*> (wallet <$> choose (1, 8))
+    <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
 
-  validateTxFromSkeleton =<< mkCollectSkel thePayment params
-  validateTxFromSkeleton =<< mkPaySkel thePayment params tokenOutRef
+successParams :: QC.Gen ThresholdParams
+successParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p >= reqSigs p)
+
+failureParams :: QC.Gen ThresholdParams
+failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
+
+mkProposalForParams :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+mkProposalForParams parms = mkProposal (reqSigs parms) (proposerWallet parms) (pmt parms)
+
+mkTraceForParams :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+mkTraceForParams tParms (parms, tokenRef) = do
+  forM_ (sigWallets tParms) $ \wId -> mkSign parms (wallet wId) (pmt tParms)
+  mkCollect (pmt tParms) parms
+  mkPay (pmt tParms) parms tokenRef
+
+data DupTokenAttacked where
+  DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
+
+deriving instance Show DupTokenAttacked
+
+dupTokenAttack :: (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
+dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
+  Just $ TxSkel (Just $ (DupTokenAttacked l)) s (attack : cs)
   where
-    thePayment = Payment 4200 (walletPKHash $ last knownWallets)
+    attack = Mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
+
+{-
+
+thresholdTrace :: MonadMockChain m => ThresholdParams -> (Params, TxSGenT m ()
+walletsThreshold ThresholdParams {reqSigs, numSigs} = do
+  (params, tokenOutRef) <- mkProposal reqSigs (wallet 1) thePayment
+   thePayment = Payment 4200 (walletPKHash $ last knownWallets)
 
 test :: QC.Property
-test = after' (ThresholdParams <$> choose (1, 5) <*> choose (0, 5)) walletsThreshold prop
+test = forAllTrP  walletsThreshold prop
   where
     prop ThresholdParams {..} =
       QC.property
@@ -172,9 +207,10 @@ dropOne (TxSkel lbl w [c]) = Nothing
 dropOne (TxSkel lbl w (c : constr)) = Just $ TxSkel lbl w constr
 
 test2 :: QC.Property
-test2 = after (somewhere dropOne (walletsThreshold $ ThresholdParams 2 3)) prop
+test2 = forAllTr (somewhere dropOne (walletsThreshold $ ThresholdParams 2 3)) prop
   where
     prop (Left err) = QC.counterexample (show err) False
     prop (Right _) = QC.property True
 
 r = QC.quickCheck test2
+-}

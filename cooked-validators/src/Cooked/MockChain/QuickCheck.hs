@@ -33,7 +33,7 @@ import Test.QuickCheck.GenT
 type GenTraceParm parm a = forall m. (MonadMockChain m) => parm -> GenT m a
 
 -- | The type of trace generators with no paramters
-type GenTrace a = GenTraceParm () a
+type GenTrace a = forall m. (MonadMockChain m) => GenT m a
 
 -- | Very general quantification mechanism for traces. This function is mostly used
 --  internally as the implementation for its simpler cousins like 'forAllTr', 'forSomeTr',
@@ -71,7 +71,7 @@ forAllTr gTr prop =
   quantifyOverTraces
     (return ())
     (const "")
-    gTr
+    (const gTr)
     (const prop)
     QC.conjoin
 
@@ -97,7 +97,7 @@ forSomeTr gTr prop =
   quantifyOverTraces
     (return ())
     (const "")
-    gTr
+    (const gTr)
     (const prop)
     QC.disjoin
 

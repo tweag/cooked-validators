@@ -7,10 +7,21 @@ version: 0.0.0
 
 dependencies:
   - base >= 4.9 && < 5
+  # Internal dependencies of the test suite
+  - cooked-validators
+  - tasty-twaudit-metadata
+  # Other libraries that you will likely need to write a good test-suide:
+  - QuickCheck
+  - quickcheck-transformer
+  - tasty
+  - tasty-hunit
+  - tasty-quickcheck
+  - tasty-expected-failure
+  - heredoc
+  # Dependencies of the example contracts, these come from the client
   - aeson
   - bytestring
   - containers
-  - cooked-validators
   - data-default
   - either
   - flat
@@ -29,12 +40,9 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
-  - QuickCheck
-  - QuickCheck-GenT
   - scientific
   - serialise >= 0.2.3.0
   - streaming
-  - tasty
   - text
   - transformers
 
