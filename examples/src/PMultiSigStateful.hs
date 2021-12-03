@@ -72,6 +72,14 @@ data Payment = Payment
 
 PlutusTx.unstableMakeIsData ''Payment
 
+{-# INLINEABLE paymentValue #-}
+paymentValue :: Payment -> Ledger.Value
+paymentValue = Ada.lovelaceValueOf . paymentAmount
+
+{-# INLINEABLE paramsToken #-}
+paramsToken :: Params -> Ledger.Value
+paramsToken params = Value.assetClassValue (pmspThreadToken params) 1
+
 instance Eq Payment where
   {-# INLINEABLE (==) #-}
   Payment a1 r1 == Payment a2 r2 = a1 == a2 && r1 == r2
