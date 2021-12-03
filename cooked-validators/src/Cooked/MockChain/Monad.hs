@@ -19,7 +19,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
-import QuickCheck.GenT
+import Test.QuickCheck.GenT
 
 -- * MockChain Monad
 
@@ -172,6 +172,30 @@ slotIs n = modifySlotCounter (scSlotIs n)
 timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
 timeIs t = modifySlotCounter (scTimeIs t)
 
+instance MonadMockChain m => MonadMockChain (ReaderT r m) where
+  validateTxSkel = lift . validateTxSkel
+  utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  index = lift index
+  slotCounter = lift slotCounter
+  modifySlotCounter = lift . modifySlotCounter
+  everywhere f m = ReaderT (\r -> everywhere f (runReaderT m r))
+  somewhere f m = ReaderT (\r -> somewhere f (runReaderT m r))
+
+instance MonadMockChain m => MonadMockChain (GenT m) where
+  validateTxSkel = lift . validateTxSkel
+  utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  index = lift index
+  slotCounter = lift slotCounter
+  modifySlotCounter = lift . modifySlotCounter
+  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
+  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
+
+{-
+
+TODO: I couldn't figure out how to complete the implementation for
+      everywhere and somewhere generically through AsTrans; I decided to
+      revert to writing the two instances we have by hand, above.
+
 -- ** Deriving further 'MonadMockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
@@ -191,7 +215,6 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   index = lift index
   slotCounter = lift slotCounter
   modifySlotCounter = lift . modifySlotCounter
-
-deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
-
-deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
+  everywhere f (AsTrans m) = AsTrans _
+  somewhere f m = _
+-}

@@ -9,10 +9,6 @@ module Cooked.MockChain.Monad.Staged where
 
 import Control.Applicative
 import Control.Monad.Except
-import Control.Monad.Identity
-import Control.Monad.List
-import Control.Monad.State.Strict
-import Control.Monad.Trans
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
