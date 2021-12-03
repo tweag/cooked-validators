@@ -154,7 +154,8 @@ tests :: TestTree
 tests =
   testGroup
     "PMultiSigStateful"
-    [ sampleTrace1
+    [ sampleTrace1,
+      sampleGroup1
     ]
 
 sampleTrace1 :: TestTree
@@ -177,6 +178,44 @@ sampleTrace1 =
       mkPay thePayment params tokenOutRef
       where
         thePayment = Payment 4200 (walletPKHash $ last knownWallets)
+
+sampleGroup1 :: TestTree
+sampleGroup1 =
+  testGroup
+    "Property-based Test Examples"
+    [ TW.bug'
+        "sec:simple-traces"
+        TW.Critical
+        [str|Traces that use enough unique signatures should always succeed|]
+        $ testProperty "Can execute payment with enough signatures" $
+          forAllTrP
+            successParams
+            (\p -> mkProposalForParams p >>= mkTraceForParams p)
+            (const (QC.property . isRight)),
+      TW.bug
+        TW.Critical
+        [str|On the other hand, if we do \emph{not} collect enough unique
+          |signatures, the validator should block the payment.
+          |]
+        $ testProperty "Cannot execute payment without enough signatures" $
+          forAllTrP
+            failureParams
+            (\p -> mkProposalForParams p >>= mkTraceForParams p)
+            (const (QC.property . isLeft)),
+      TW.bug
+        TW.Critical
+        [str|On successful traces, it must be impossible to duplicate the
+          |authentication token
+          |]
+        $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
+          forAllTrP
+            successParams
+            ( \p ->
+                mkProposalForParams p
+                  >>= \i -> somewhere (dupTokenAttack i) (mkTraceForParams p i)
+            )
+            (const (QC.property . isLeft))
+    ]
 
 data ThresholdParams = ThresholdParams
   { reqSigs :: Integer,
@@ -222,32 +261,3 @@ dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
   Just $ TxSkel (Just $ (DupTokenAttacked l)) s (attack : cs)
   where
     attack = Mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
-
-{-
-
-thresholdTrace :: MonadMockChain m => ThresholdParams -> (Params, TxSGenT m ()
-walletsThreshold ThresholdParams {reqSigs, numSigs} = do
-  (params, tokenOutRef) <- mkProposal reqSigs (wallet 1) thePayment
-   thePayment = Payment 4200 (walletPKHash $ last knownWallets)
-
-test :: QC.Property
-test = forAllTrP  walletsThreshold prop
-  where
-    prop ThresholdParams {..} =
-      QC.property
-        . if reqSigs <= numSigs
-          then isRight
-          else isLeft
-
-dropOne :: TxSkel -> Maybe TxSkel
-dropOne (TxSkel lbl w [c]) = Nothing
-dropOne (TxSkel lbl w (c : constr)) = Just $ TxSkel lbl w constr
-
-test2 :: QC.Property
-test2 = forAllTr (somewhere dropOne (walletsThreshold $ ThresholdParams 2 3)) prop
-  where
-    prop (Left err) = QC.counterexample (show err) False
-    prop (Right _) = QC.property True
-
-r = QC.quickCheck test2
--}
