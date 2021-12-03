@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad.Staged where
 
@@ -227,8 +226,8 @@ interpModalities (Everywhere f : ms) s = map here $ interpModalities ms s
 interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities ms s
   where
     hereOrThere (hs, mods)
-      | Just fhs <- f hs = [(fhs, mods), (hs, (Somewhere f : mods))]
-      | otherwise = [(hs, (Somewhere f : mods))]
+      | Just fhs <- f hs = [(fhs, mods), (hs, Somewhere f : mods)]
+      | otherwise = [(hs, Somewhere f : mods)]
 
 -- * Human Readable Traces
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -12,7 +10,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 module PMultiSigStatefulSpec where
 
@@ -117,7 +114,7 @@ mkCollect thePayment params = do
       PaysScript
         (pmultisig params)
         [ ( Accumulator thePayment (signPk . snd <$> signatures),
-            (paymentValue thePayment) <> paramsToken params
+            paymentValue thePayment <> paramsToken params
           )
         ] :
       SpendsScript (pmultisig params) () initialProp :
@@ -232,7 +229,7 @@ anyParams :: QC.Gen ThresholdParams
 anyParams =
   ThresholdParams
     <$> choose (1, 5)
-    <*> (resize 5 $ listOf (choose (1, 8)))
+    <*> resize 5 (listOf (choose (1, 8)))
     <*> (wallet <$> choose (1, 8))
     <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
 
@@ -258,6 +255,6 @@ deriving instance Show DupTokenAttacked
 
 dupTokenAttack :: (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
 dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
-  Just $ TxSkel (Just $ (DupTokenAttacked l)) s (attack : cs)
+  Just $ TxSkel (Just $ DupTokenAttacked l) s (attack : cs)
   where
     attack = Mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)

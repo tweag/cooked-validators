@@ -1,9 +1,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad where
@@ -178,8 +176,8 @@ instance MonadMockChain m => MonadMockChain (ReaderT r m) where
   index = lift index
   slotCounter = lift slotCounter
   modifySlotCounter = lift . modifySlotCounter
-  everywhere f m = ReaderT (\r -> everywhere f (runReaderT m r))
-  somewhere f m = ReaderT (\r -> somewhere f (runReaderT m r))
+  everywhere f m = ReaderT (everywhere f . runReaderT m)
+  somewhere f m = ReaderT (somewhere f . runReaderT m)
 
 instance MonadMockChain m => MonadMockChain (GenT m) where
   validateTxSkel = lift . validateTxSkel
