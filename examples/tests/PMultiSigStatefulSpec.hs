@@ -4,6 +4,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -27,7 +28,7 @@ import PMultiSigStateful
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Prelude as Pl
 import QuickCheck.GenT
-import Test.Hspec
+import Test.Hspec hiding (after)
 import qualified Test.QuickCheck as QC
 import qualified Test.QuickCheck.Monadic as QC
 
@@ -166,14 +167,14 @@ test = after' (ThresholdParams <$> choose (1, 5) <*> choose (0, 5)) walletsThres
           then isRight
           else isLeft
 
-dropOne :: TxSkel -> TxSkel
-dropOne (TxSkel lbl w [c]) = TxSkel lbl w [c]
-dropOne (TxSkel lbl w (c : constr)) = TxSkel lbl w constr
+dropOne :: TxSkel -> Maybe TxSkel
+dropOne (TxSkel lbl w [c]) = Nothing
+dropOne (TxSkel lbl w (c : constr)) = Just $ TxSkel lbl w constr
 
 test2 :: QC.Property
-test2 = afterMod (walletsThreshold $ ThresholdParams 2 3) dropOne $ \result ->
-  case result of
-    Left err -> QC.counterexample (show err) False
-    Right _ -> QC.property True
+test2 = after (somewhere dropOne (walletsThreshold $ ThresholdParams 2 3)) prop
+  where
+    prop (Left err) = QC.counterexample (show err) False
+    prop (Right _) = QC.property True
 
 r = QC.quickCheck test2
