@@ -14,26 +14,18 @@
 module PMultiSigStatefulSpec where
 
 import Control.Monad
-import Control.Monad.Trans.Class
-import Control.Monad.Writer
 import Cooked.MockChain
-import Cooked.MockChain.Monad.Staged
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
-import Data.List (nub)
+import Data.Function (on)
+import Data.List (nub, nubBy)
 import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
 import PMultiSigStateful
-import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Prelude as Pl
-import Test.Hspec hiding (after)
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
-import qualified Test.QuickCheck.Monadic as QC
 import Test.Tasty
-import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
-import Test.Tasty.Ingredients.MetadataReporter
 import qualified Test.Tasty.Metadata as TW
 import Test.Tasty.QuickCheck (testProperty)
 import Text.Heredoc
@@ -108,7 +100,7 @@ mkSign params w pmt =
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
-  signatures <- scriptUtxosSuchThat (pmultisig params) isSign
+  signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
   validateTxSkel $
     txSkel (wallet 1) $
       PaysScript

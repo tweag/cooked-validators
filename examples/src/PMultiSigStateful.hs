@@ -67,7 +67,7 @@ data Payment = Payment
   { paymentAmount :: Integer,
     paymentRecipient :: Ledger.PubKeyHash
   }
-  deriving stock (Haskell.Show, Generic)
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 PlutusTx.unstableMakeIsData ''Payment
@@ -89,7 +89,7 @@ instance Eq Payment where
 data Datum
   = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
   | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
-  deriving stock (Haskell.Show, Generic)
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 PlutusTx.unstableMakeIsData ''Datum
