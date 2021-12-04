@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -9,9 +10,7 @@
 module UseCaseCrowdfundingSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import qualified Ledger
 import qualified Ledger.Ada as Ada
@@ -28,6 +27,7 @@ import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (show, trace)
 import Test.Hspec
 import Prelude (show)
+import qualified Prelude as Haskell
 
 -- One has to duplicate some functions of the contract,
 -- since they are not exported.
@@ -46,6 +46,8 @@ instance TScripts.ValidatorTypes Crowdfunding where
   type RedeemerType Crowdfunding = CampaignAction
   type DatumType Crowdfunding = Ledger.PubKeyHash
 
+deriving instance Haskell.Show CampaignAction
+
 -- We now declare the typed validator of the campaign.
 
 originOfTime :: Ledger.POSIXTime
@@ -63,13 +65,13 @@ run1 =
   runMockChain $ do
     freezeTime
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 3)
         [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
         ]
     waitSlots 1
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 4)
         [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
         ]
@@ -77,7 +79,7 @@ run1 =
     timeIs $ originOfTime + Ledger.POSIXTime 25000
     funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         ( map (SpendsScript crowdVal Collect) funds
             ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),

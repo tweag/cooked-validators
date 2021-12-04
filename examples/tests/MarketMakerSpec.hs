@@ -5,7 +5,6 @@ module MarketMakerSpec where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Contexts as Contexts
@@ -115,14 +114,14 @@ data MarketTxParams = MarketTxParams
   }
 
 -- | Template of a transaction
-marketTx :: Market.MarketRedeemer -> Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketTx :: MonadMockChain m => Market.MarketRedeemer -> Wallet -> MarketTxParams -> RunParams -> m ()
 marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams validator _ nftClass coinsClass) = do
   let ada = Ada.lovelaceValueOf
   let coins = Value.assetClassValue coinsClass
   let oneNft = Value.assetClassValue nftClass 1
   [(output, datum)] <- scriptUtxosSuchThat validator (\_ _ -> True)
   validateTxFromSkeleton $
-    TxSkel
+    txSkel
       wIssuer
       [ SpendsScript validator redeemer (output, datum),
         PaysScript validator [(Market.MarketDatum mmCoins, oneNft <> ada mmAda <> coins mmCoins)],
@@ -130,11 +129,11 @@ marketTx redeemer wIssuer (MarketTxParams wAda wCoins mmAda mmCoins) (RunParams 
       ]
 
 -- | Template of a Sell transaction
-marketSellTx :: Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketSellTx :: MonadMockChain m => Wallet -> MarketTxParams -> RunParams -> m ()
 marketSellTx = marketTx Market.Sell
 
 -- | Template of a Buy transaction
-marketBuyTx :: Wallet -> MarketTxParams -> RunParams -> MockChain ()
+marketBuyTx :: MonadMockChain m => Wallet -> MarketTxParams -> RunParams -> m ()
 marketBuyTx = marketTx Market.Buy
 
 -- | Initial minting and distribution of token in a given run
@@ -142,12 +141,12 @@ marketBuyTx = marketTx Market.Buy
 -- Part of the coins is given to the script and part of it to a receiving
 -- wallet (to have some diversity in the runs and allow the script to buy from
 -- a wallet right from start).
-marketMiningTx :: Wallet -> Wallet -> RunParams -> MockChain ()
+marketMiningTx :: MonadMockChain m => Wallet -> Wallet -> RunParams -> m ()
 marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass) =
   let coins = Value.assetClassValue coinsClass
       oneNft = Value.assetClassValue nftClass 1
    in validateTxFromSkeleton $
-        TxSkel
+        txSkel
           wIssuer
           [ PaysPK (walletPKHash wIssuer) mempty,
             Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
@@ -223,7 +222,7 @@ datumHijacking = do
 
     -- We take advantage of a purchase of golden coins to inject our 'stealValidator' instead of the original 'marketValidator' one.
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ SpendsScript marketValidator Market.Buy (out, dat),
           PaysScript stealValidator [(StealerDatum 40, oneNft <> ada 1000 <> coins 40)],
@@ -234,7 +233,7 @@ datumHijacking = do
 
     -- Now, everything belongs to the wallet 1, who can easily harvest the loot.
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ SpendsScript stealValidator () (outS, datS),
           PaysPK (walletPKHash (wallet 1)) (oneNft <> ada 1000 <> coins 40)

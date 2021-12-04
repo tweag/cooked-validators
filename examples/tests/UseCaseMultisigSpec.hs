@@ -5,9 +5,7 @@
 module UseCaseMultisigSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import qualified Ledger
 import qualified Ledger.Ada as Ada
@@ -38,7 +36,7 @@ run1 =
   runMockChain $ do
     -- Everyone deposits 1000
     ( validateTxFromSkeleton
-        . TxSkel
+        . txSkel
           (wallet 1)
         . mconcat
       )
@@ -54,7 +52,7 @@ run1 =
     -- We then pay wallet 2 with this money
     [(out, dat)] <- scriptUtxosSuchThat multiVal (\_ _ -> True)
     validateTxFromSkeleton $
-      TxSkel
+      txSkel
         (wallet 1)
         [ SpendsScript multiVal () (out, dat),
           PaysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 2500),

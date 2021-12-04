@@ -67,10 +67,18 @@ data Payment = Payment
   { paymentAmount :: Integer,
     paymentRecipient :: Ledger.PubKeyHash
   }
-  deriving stock (Haskell.Show, Generic)
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 PlutusTx.unstableMakeIsData ''Payment
+
+{-# INLINEABLE paymentValue #-}
+paymentValue :: Payment -> Ledger.Value
+paymentValue = Ada.lovelaceValueOf . paymentAmount
+
+{-# INLINEABLE paramsToken #-}
+paramsToken :: Params -> Ledger.Value
+paramsToken params = Value.assetClassValue (pmspThreadToken params) 1
 
 instance Eq Payment where
   {-# INLINEABLE (==) #-}
@@ -81,7 +89,7 @@ instance Eq Payment where
 data Datum
   = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
   | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
-  deriving stock (Haskell.Show, Generic)
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 PlutusTx.unstableMakeIsData ''Datum
@@ -152,6 +160,13 @@ findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
 findPaymentsToAddr :: Api.Address -> TxInfo -> [Api.TxOut]
 findPaymentsToAddr addr = filter (\(Api.TxOut outAddr _ _) -> outAddr == addr) . txInfoOutputs
 
+{-# INLINEABLE isOnlyAdaButAtLeast #-}
+isOnlyAdaButAtLeast :: Ledger.Value -> Integer -> Bool
+isOnlyAdaButAtLeast x minAdaAmount
+  | [(cur, tok, xVal)] <- Value.flattenValue x =
+    cur == Api.adaSymbol && tok == Api.adaToken && xVal >= minAdaAmount
+  | otherwise = False
+
 {-# INLINEABLE validatePayment #-}
 validatePayment :: Params -> Datum -> Redeemer -> ScriptContext -> Bool
 
@@ -167,42 +182,53 @@ validatePayment _ Sign {} _ ctx =
     txInfo = scriptContextTxInfo ctx
     inputDatums = mapMaybe (findDatum txInfo) $ txInfoInputs txInfo
 validatePayment Params {..} (Accumulator payment signees) _ ctx
-  | length signees >= pmspRequiredSigs = validatePayout
-  | otherwise = validateAcc
+  | length signees >= pmspRequiredSigs = traceIfFalse "validatePayout" validatePayout
+  | otherwise = traceIfFalse "validateAcc" validateAcc
   where
     (provTokSym, provTokName) = Value.unAssetClass pmspThreadToken
 
     txInfo = scriptContextTxInfo ctx
 
-    validatePayout
-      | [Api.TxOut _ outVal Nothing] <- findPaymentsToAddr paymentAddr txInfo =
-        outVal == Ada.lovelaceValueOf (paymentAmount payment)
-          -- /\ This also ensures there is no token in the output
-          && verifyInAccThreadToken True
-      | otherwise = False
+    -- When validating the payout, we make sure the output value is at least that which is
+    -- specified by the payment; but it might be bigger, in particular, if the same
+    -- person supposed to receive the payment is the one executing the transaction,
+    -- then they are paying the fees. This means they consumed a UTxO from themselves
+    -- and gave themselves the change, hence, there might be two UTxO's distined to
+    -- the receiver and the output value is larger than just the payment
+    validatePayout =
+      let outVal = mconcat $ map Api.txOutValue $ findPaymentsToAddr paymentAddr txInfo
+       in traceIfFalse "T0" (outVal `isOnlyAdaButAtLeast` paymentAmount payment)
+            -- /\ This also ensures there is no token in the output
+            && traceIfFalse "T1" (verifyInAccThreadToken True)
+            && traceIfFalse "T2" (verifyOutAccThreadToken False)
       where
         paymentAddr = Api.Address (Api.PubKeyCredential $ paymentRecipient payment) Nothing
 
     validateAcc
       | [(Accumulator payment' signees', outVal)] <- findAccumulators ctx =
-        Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment
-          && Value.valueOf outVal provTokSym provTokName == 1
-          && verifyInAccThreadToken (not $ null signees')
-          && payment == payment'
-          && verifySignees signees'
-      | otherwise = False
+        traceIfFalse "T0" (Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment)
+          && traceIfFalse "T1" (Value.valueOf outVal provTokSym provTokName == 1)
+          && traceIfFalse "T2" (verifyInAccThreadToken (not $ null signees'))
+          && traceIfFalse "T3" (payment == payment')
+          && traceIfFalse "T4" (verifySignees signees')
+      | otherwise = traceIfFalse "otherwise" False
 
     verifyInAccThreadToken shallExist = inputTokens == if shallExist then 1 else 0
       where
-        inputTokens = sum $ tokenVal <$> txInfoInputs txInfo
-        tokenVal :: Api.TxInInfo -> Integer
-        tokenVal (Api.TxInInfo _ (Api.TxOut _ outVal _)) =
-          Value.valueOf outVal provTokSym provTokName
+        inputTokens = sum $ tokenVal . Api.txInInfoResolved <$> txInfoInputs txInfo
+
+    verifyOutAccThreadToken shallExist = outputTokens == if shallExist then 1 else 0
+      where
+        outputTokens = sum $ tokenVal <$> txInfoOutputs txInfo
+
+    tokenVal :: Api.TxOut -> Integer
+    tokenVal (Api.TxOut _ outVal _) =
+      Value.valueOf outVal provTokSym provTokName
 
     verifySignees signees' =
-      uniqueSignees' == signees' -- no duplicates in the output
-        && uniqueSignees' == nub (signees <> newSignees) -- the new signatures set is the union of the existing sigs and the added ones
-        && allInputsRelevant -- no irrelevant inputs (like other accumulators or double signatures) are being consumed
+      traceIfFalse "U0" (uniqueSignees' == signees') -- no duplicates in the output
+        && traceIfFalse "U1" (uniqueSignees' == nub (signees <> newSignees)) -- the new signatures set is the union of the existing sigs and the added ones
+        && traceIfFalse "U1" allInputsRelevant -- no irrelevant inputs (like other accumulators or double signatures) are being consumed
       where
         uniqueSignees' = nub signees'
 

@@ -1,9 +1,7 @@
 module PMultiSigSpec where
 
 import Cooked.MockChain
-import Cooked.Traces
 import Cooked.Tx.Constraints
-import Cooked.Tx.Generator
 import Data.Default
 import Data.Either (isLeft, isRight)
 import qualified Ledger as Pl
@@ -16,17 +14,17 @@ import Test.Hspec
 params :: Params
 params = Params (map walletPK knownWallets) 2
 
-txCreatePayment :: Wallet -> Payment -> MockChain TxSkel
-txCreatePayment w pmt = return (TxSkel w ctrs)
+txCreatePayment :: MonadMockChain m => Wallet -> Payment -> m TxSkel
+txCreatePayment w pmt = return (txSkel w ctrs)
   where
     ctrs = [PaysScript (pmultisig params) [(Proposal pmt, Pl.lovelaceValueOf (paymentAmount pmt))]]
 
-txSign :: Wallet -> Payment -> MockChain TxSkel
+txSign :: MonadMockChain m => Wallet -> Payment -> m TxSkel
 txSign w pmt =
   let wSignature = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
       wPk = walletPK w
       ctrs = [PaysScript (pmultisig params) [(Sign wPk wSignature, mempty)]]
-   in return (TxSkel w ctrs)
+   in return (txSkel w ctrs)
 
 isProposal :: Datum -> a -> Bool
 isProposal (Proposal _) _ = True
@@ -36,7 +34,7 @@ isSignature :: Datum -> a -> Bool
 isSignature (Sign _ _) _ = True
 isSignature _ _ = False
 
-txExecute :: Wallet -> MockChain TxSkel
+txExecute :: MonadMockChain m => Wallet -> m TxSkel
 txExecute w = do
   [(propOut, Proposal prop)] <- scriptUtxosSuchThat (pmultisig params) isProposal
   sigs <- scriptUtxosSuchThat (pmultisig params) isSignature
@@ -44,10 +42,11 @@ txExecute w = do
         PaysPK (paymentRecipient prop) (Pl.lovelaceValueOf $ paymentAmount prop) :
         SpendsScript (pmultisig params) () (propOut, Proposal prop) :
         map (SpendsScript (pmultisig params) ()) sigs
-  return (TxSkel w txConstr)
+  return (txSkel w txConstr)
 
 samplePmt = Payment 4200 (walletPKHash $ wallet 3)
 
+run1 :: Either MockChainError ((), UtxoState)
 run1 = runMockChain $ do
   txCreatePayment (wallet 1) samplePmt >>= validateTxFromSkeleton
   txSign (wallet 1) samplePmt >>= validateTxFromSkeleton
