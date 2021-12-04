@@ -27,7 +27,7 @@ import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.HUnit
 import qualified Test.Tasty.Metadata as TW
-import Test.Tasty.QuickCheck (testProperty)
+import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 import Text.Heredoc
 
 -- * Writing a Test Suite
@@ -172,43 +172,105 @@ qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
 qcIsRight (Right _) = QC.property True
 
+-- | This is a test tree with quickcheck properties. A word of caution is necessary as the
+--  semantics of 'GenT' and 'somewhere'/'everywhere' can be easily confused and lead to
+--  tests that take way too long to run.
+--
+--  TL;DR: if using 'somewhere' in your test, make sure to set
+--  @localOption (QuickCheckTests x)@ for some x smaller than the default (100).
+--
+--  What is happening, though? Well, say we write a trace:
+--
+--  > tr :: (MonadMockChain m) => GenT m ()
+--  > tr = do
+--  >   x <- choose (0, 10)
+--  >   y <- choose (0, 10)
+--  >   validateTxFromSkel (mkTx x)
+--  >   validateTxFromSkel (mkTx y)
+--
+--  If interpreted with @m ~ StagedMockChain@, the @tr@ above denotes a
+--  probability distribution over functions that return a list of possible outcomes,
+--  that is:
+--
+--  > interpret (runGenT tr)
+--  >   :: Gen (MockChainT (WriterT TraceDesc []) ())
+--
+--  Now thats a mouthful of monad transformers to look at, if we expand them all we get:
+--
+--  > Gen (MockChainSt -> [(Either MockChainErr (), TraceDesc)])
+--
+--  In the particular case of tr, above, we get a probability distribution of
+--  traces that return only one possible result. The probability distribution is
+--  over the choice of values for @x@ and @y@. Regardless of that, the trace produces
+--  a single result which consists of validating transactions @mkTx x@ and @mkTx y@.
+--
+--  Now say we change @tr@ to:
+--
+--  > tr2 :: (MonadMockChain m) => GenT m ()
+--  > tr2 = do
+--  >   x <- choose (0, 10)
+--  >   y <- choose (0, 10)
+--  >   somewhere mod $ do
+--  >     validateTxFromSkel (mkTx x)
+--  >     validateTxFromSkel (mkTx y)
+--
+--  Now, the probability distribution is still over the choice of values for @x@ and @y@,
+--  but for any given such choice, we return a function that given an initial state
+--  returns /two/ possible results:
+--
+--  1. One where we validate transactions @mod (mkTx x)@ and @mkTx y@
+--  2. One where we validate transactions @mkTx x@ and @mod (mkTx y)@
+--
+--  When using the 'forAllTr' and 'forAllTrP' combinators, we're actualy
+--  testing the 'QC.conjoin' of all possible universes returned by trace.
+--  Hence, if we run the following 'testTree' with default options:
+--
+--  > testProperty "propName" $ forAllTr tr2 somePredicate
+--
+--  QuickCheck will run the property 100 times, but each of those runs
+--  we will be checking two different traces. So all in all, we will look
+--  at 200 traces. A more reasonable option is to use:
+--
+--  > localOption (QuickCheckTests 25) $
+--  >   testProperty "propName" $ forAllTr tr2 somePredicate
 sampleGroup1 :: TestTree
 sampleGroup1 =
-  testGroup
-    "Property-based Test Examples"
-    [ TW.bug'
-        "sec:simple-traces"
-        TW.Critical
-        [str|Traces that use enough unique signatures should always succeed|]
-        $ testProperty "Can execute payment with enough signatures" $
-          forAllTrP
-            successParams
-            (\p -> mkProposalForParams p >>= mkTraceForParams p)
-            (const qcIsRight),
-      TW.bug
-        TW.Critical
-        [str|On the other hand, if we do \emph{not} collect enough unique
+  localOption (QuickCheckTests 25) $
+    testGroup
+      "Property-based Test Examples"
+      [ TW.bug'
+          "sec:simple-traces"
+          TW.Critical
+          [str|Traces that use enough unique signatures should always succeed|]
+          $ testProperty "Can execute payment with enough signatures" $
+            forAllTrP
+              successParams
+              (\p -> mkProposalForParams p >>= mkTraceForParams p)
+              (const qcIsRight),
+        TW.bug
+          TW.Critical
+          [str|On the other hand, if we do \emph{not} collect enough unique
           |signatures, the validator should block the payment.
           |]
-        $ testProperty "Cannot execute payment without enough signatures" $
-          forAllTrP
-            failureParams
-            (\p -> mkProposalForParams p >>= mkTraceForParams p)
-            (const (QC.property . isLeft)),
-      TW.bug
-        TW.Critical
-        [str|On successful traces, it must be impossible to duplicate the
+          $ testProperty "Cannot execute payment without enough signatures" $
+            forAllTrP
+              failureParams
+              (\p -> mkProposalForParams p >>= mkTraceForParams p)
+              (const (QC.property . isLeft)),
+        TW.bug
+          TW.Critical
+          [str|On successful traces, it must be impossible to duplicate the
           |authentication token
           |]
-        $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
-          forAllTrP
-            successParams
-            ( \p ->
-                mkProposalForParams p
-                  >>= \i -> somewhere (dupTokenAttack i) (mkTraceForParams p i)
-            )
-            (const (QC.property . isLeft))
-    ]
+          $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
+            forAllTrP
+              successParams
+              ( \p ->
+                  mkProposalForParams p
+                    >>= \i -> somewhere (dupTokenAttack i) (mkTraceForParams p i)
+              )
+              (const (QC.property . isLeft))
+      ]
 
 data ThresholdParams = ThresholdParams
   { reqSigs :: Integer,
