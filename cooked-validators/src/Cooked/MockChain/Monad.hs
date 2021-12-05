@@ -24,7 +24,7 @@ import Test.QuickCheck.GenT
 -- $mockchainmonad
 -- #mockchainanchor#
 --
--- The 'MonadMockChain' class provides the basic interface that we need in order
+-- The 'MonadMockChain' class provides the basic interface
 -- to write traces for validator scripts using the transaction generator from
 -- the constraints from "Cooked.Tx.Constraints".
 --
@@ -85,7 +85,7 @@ class (MonadFail m) => MonadMockChain m where
 
   -- | Applies a modification to some transactions in a tree, note that
   -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
-  -- progress, henece if it is not possible to apply the transformation anywhere
+  -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
