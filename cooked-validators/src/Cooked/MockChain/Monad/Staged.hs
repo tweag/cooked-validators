@@ -122,6 +122,8 @@ instance MonadMockChain StagedMockChain where
   slotCounter = singleton GetSlotCounter
   modifySlotCounter = singleton . ModifySlotCounter
   utxosSuchThat addr = singleton . UtxosSuchThat addr
+
+instance MonadModalMockChain StagedMockChain where
   somewhere m tree = Modify (Somewhere m) tree (Return ())
   everywhere m tree = Modify (Everywhere m) tree (Return ())
 

@@ -1,7 +1,9 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad where
@@ -80,6 +82,8 @@ class (MonadFail m) => MonadMockChain m where
   -- | Modifies the slot counter
   modifySlotCounter :: (SlotCounter -> SlotCounter) -> m ()
 
+-- | Mock chain implementations that also support modifying the traces via modalities.
+class (MonadMockChain m) => MonadModalMockChain m where
   -- | Applies a modification to all transactions in a tree
   everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
 
@@ -170,30 +174,6 @@ slotIs n = modifySlotCounter (scSlotIs n)
 timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
 timeIs t = modifySlotCounter (scTimeIs t)
 
-instance MonadMockChain m => MonadMockChain (ReaderT r m) where
-  validateTxSkel = lift . validateTxSkel
-  utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
-  slotCounter = lift slotCounter
-  modifySlotCounter = lift . modifySlotCounter
-  everywhere f m = ReaderT (everywhere f . runReaderT m)
-  somewhere f m = ReaderT (somewhere f . runReaderT m)
-
-instance MonadMockChain m => MonadMockChain (GenT m) where
-  validateTxSkel = lift . validateTxSkel
-  utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
-  slotCounter = lift slotCounter
-  modifySlotCounter = lift . modifySlotCounter
-  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
-  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
-
-{-
-
-TODO: I couldn't figure out how to complete the implementation for
-      everywhere and somewhere generically through AsTrans; I decided to
-      revert to writing the two instances we have by hand, above.
-
 -- ** Deriving further 'MonadMockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
@@ -213,6 +193,15 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   index = lift index
   slotCounter = lift slotCounter
   modifySlotCounter = lift . modifySlotCounter
-  everywhere f (AsTrans m) = AsTrans _
-  somewhere f m = _
--}
+
+deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+
+deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
+
+instance MonadModalMockChain m => MonadModalMockChain (ReaderT r m) where
+  everywhere f m = ReaderT (everywhere f . runReaderT m)
+  somewhere f m = ReaderT (somewhere f . runReaderT m)
+
+instance MonadModalMockChain m => MonadModalMockChain (GenT m) where
+  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
+  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
