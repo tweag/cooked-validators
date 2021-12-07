@@ -72,10 +72,8 @@ class (MonadFail m) => MonadMockChain m where
     (Maybe a -> Pl.Value -> Bool) ->
     m [(SpendableOut, Maybe a)]
 
-  -- | Returns the current map of unspent outputs, called the 'Pl.UtxoIndex' in Plutus.
-  --  By default, the slots are increased in a constant rate. If you want more control over
-  --  that please check
-  index :: m (M.Map Pl.TxOutRef Pl.TxOut)
+  -- | Returns an output given a reference to it
+  txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
   -- | Returns the current slot counter, which is responsible for mocking the passage of time
   slotCounter :: m SlotCounter
@@ -103,7 +101,7 @@ validateTxFromSkeleton = validateTxSkel
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
-  Just txOut <- M.lookup txORef <$> index
+  Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
 -- | Public-key UTxO's have no datum, hence, can be selected easily with
@@ -132,7 +130,7 @@ scriptUtxosSuchThat v predicate =
 -- | Returns the output associated with a given reference
 outFromOutRef :: (MonadMockChain m) => Pl.TxOutRef -> m Pl.TxOut
 outFromOutRef outref = do
-  mo <- M.lookup outref <$> index
+  mo <- txOutByRef outref
   case mo of
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
@@ -194,7 +192,7 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
+  txOutByRef = lift . txOutByRef
   slotCounter = lift slotCounter
   modifySlotCounter = lift . modifySlotCounter
 

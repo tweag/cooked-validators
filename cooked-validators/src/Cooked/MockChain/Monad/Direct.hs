@@ -160,7 +160,7 @@ utxoIndex0 = utxoIndex0From initialDistribution
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
   validateTxSkel = validateTx' <=< generateTx'
-  index = gets (Pl.getIndex . mcstIndex)
+  txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
   slotCounter = gets mcstSlotCtr
   modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
   utxosSuchThat = utxosSuchThat'

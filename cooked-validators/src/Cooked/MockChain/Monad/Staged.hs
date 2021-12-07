@@ -14,7 +14,6 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Foldable
-import qualified Data.Map as M
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
@@ -27,7 +26,7 @@ import qualified Prettyprinter.Render.String as PP
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
   ValidateTxSkel :: TxSkel -> MockChainOp ()
-  Index :: MockChainOp (M.Map Pl.TxOutRef Pl.TxOut)
+  TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
   GetSlotCounter :: MockChainOp SlotCounter
   ModifySlotCounter :: (SlotCounter -> SlotCounter) -> MockChainOp ()
   UtxosSuchThat ::
@@ -107,7 +106,7 @@ instance Monad StagedMockChain where
 -- | Interprets a single operation in the direct 'MockChainT' monad.
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
 interpretOp (ValidateTxSkel skel) = validateTxSkel skel
-interpretOp Index = index
+interpretOp (TxOutByRef ref) = txOutByRef ref
 interpretOp GetSlotCounter = slotCounter
 interpretOp (ModifySlotCounter f) = modifySlotCounter f
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
@@ -118,7 +117,7 @@ instance MonadFail StagedMockChain where
 
 instance MonadMockChain StagedMockChain where
   validateTxSkel = singleton . ValidateTxSkel
-  index = singleton Index
+  txOutByRef = singleton . TxOutByRef
   slotCounter = singleton GetSlotCounter
   modifySlotCounter = singleton . ModifySlotCounter
   utxosSuchThat addr = singleton . UtxosSuchThat addr
