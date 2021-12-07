@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -82,8 +83,8 @@ class (MonadFail m) => MonadMockChain m where
   -- | Modifies the slot counter
   modifySlotCounter :: (SlotCounter -> SlotCounter) -> m ()
 
--- | Mock chain implementations that also support modifying the traces via modalities.
-class (MonadMockChain m) => MonadModalMockChain m where
+-- | Monads supporting modifying transaction skeletons with modalities.
+class (Monad m) => MonadModal m where
   -- | Applies a modification to all transactions in a tree
   everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
 
@@ -92,6 +93,9 @@ class (MonadMockChain m) => MonadModalMockChain m where
   -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
+
+-- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
@@ -198,10 +202,10 @@ deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain
 
 deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
-instance MonadModalMockChain m => MonadModalMockChain (ReaderT r m) where
+instance MonadModal m => MonadModal (ReaderT r m) where
   everywhere f m = ReaderT (everywhere f . runReaderT m)
   somewhere f m = ReaderT (somewhere f . runReaderT m)
 
-instance MonadModalMockChain m => MonadModalMockChain (GenT m) where
+instance MonadModal m => MonadModal (GenT m) where
   everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
   somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
