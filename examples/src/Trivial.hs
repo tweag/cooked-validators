@@ -144,8 +144,8 @@ savePirFile = case PlutusTx.getPir $$(PlutusTx.compile [||validateTrivial||]) of
 -- concatenating the path formulas and further refining the @ctx@
 --
 --
--- Running validateTrivial over our copy of G2 with --prune False --no-smt took the better part of ?????
--- and produces a very large number of constraints; The first one is placed below, with two relevant
+-- Running validateTrivial over our copy of G2 with @ -n 1300 --prune False --no-smt@ took 2 minutes and 5 seconds!!
+-- Additionally, it produces a very large number of constraints; The first one is placed below, with two relevant
 -- names substituted from "y"_6989586621679181690 to YYYYY and "x"_6989586621679181712 to XXXXX:
 --
 -- >  "validateTrivial"
