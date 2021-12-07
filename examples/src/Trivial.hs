@@ -142,3 +142,39 @@ savePirFile = case PlutusTx.getPir $$(PlutusTx.compile [||validateTrivial||]) of
 -- Now, the tool would know that whenever vh probably appears in @txInfoInputs@, it
 -- submits the same symbolic @ctx@ with its discovered constraints to @otherValidator@,
 -- concatenating the path formulas and further refining the @ctx@
+--
+--
+-- Running validateTrivial over our copy of G2 with --prune False --no-smt took the better part of ?????
+-- and produces a very large number of constraints; The first one is placed below, with two relevant
+-- names substituted from "y"_6989586621679181690 to YYYYY and "x"_6989586621679181712 to XXXXX:
+--
+-- >  "validateTrivial"
+-- >    (("TrivialParams" "ds3"_7205759403792968334) ((":" ("C#" YYYYY)) "[]"))
+-- >    "fs?"_21354
+-- >    "fs?"_21355
+-- >    (("ScriptContext"
+-- >      (((((((((("TxInfo" "ds1"_7205759403792968994)
+-- >        ((":" ((("TxOut" ("Address" ("PubKeyCredential" "ipv"_8286623314361893677))) "ds2"_7205759403792968415) "ds3"_7205759403792968336))
+-- >         ((":" ((("TxOut" ("Address" ("ScriptCredential" ((":" ("C#" XXXXX)) "[]")))) "ds2"_7205759403792968416) "ds3"_7205759403792968337))
+-- >          ((":" ((("TxOut" ("Address" ("ScriptCredential" "[]"))) "ds2"_7205759403792968417) "ds3"_7205759403792968338))
+-- >           ((":" ((("TxOut" ("Address" ("PubKeyCredential" "ipv"_8286623314361893683))) "ds2"_7205759403792968418) "ds3"_7205759403792968339))
+-- >            ((":" ((("TxOut" ("Address" ("ScriptCredential" "[]"))) "ds2"_7205759403792968419) "ds3"_7205759403792968340))
+-- >             ((":" ((("TxOut" ("Address" ("PubKeyCredential" "ipv"_8286623314361893711))) "ds2"_7205759403792968420) "ds3"_7205759403792968341))
+-- >              "[]")))))))
+-- >         "ds3"_7205759403792968335)
+-- >         "ds4"_7205759403792968236)
+-- >         "ds5"_7205759403792966627)
+-- >         "ds6"_7205759403792966628)
+-- >         "ds7"_7205759403792829016)
+-- >         "ds8"_7205759403792966629)
+-- >         "ds9"_7205759403792966630)
+-- >         "ds10"_7205759403792829019))
+-- >         "ds2"_7205759403792968413)
+-- >  = "True"
+-- >    With constraints:
+-- >      -   YYYYY, XXXXX ->
+-- >        *   ((Eq XXXXX) YYYYY)
+--
+-- As we can see; it is pretty close to what we expected: it produecs a ScriptContext that contains an address equal
+-- to its parameters. Yet, this was very slow, and the amount of work we would have to put into MockPlutus is insane to handle
+-- real validators.
