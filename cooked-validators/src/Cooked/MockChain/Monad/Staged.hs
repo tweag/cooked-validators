@@ -122,6 +122,8 @@ instance MonadMockChain StagedMockChain where
   slotCounter = singleton GetSlotCounter
   modifySlotCounter = singleton . ModifySlotCounter
   utxosSuchThat addr = singleton . UtxosSuchThat addr
+
+instance MonadModal StagedMockChain where
   somewhere m tree = Modify (Somewhere m) tree (Return ())
   everywhere m tree = Modify (Everywhere m) tree (Return ())
 
@@ -150,7 +152,7 @@ interpret = goDet
     -- that are meant to be submitted.
     goMod :: [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
     -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
-    -- returned empty. If we return a, it would correspond to a trace where the modality was never applied.
+    -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
     --
     -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
     --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
@@ -169,7 +171,7 @@ interpret = goDet
 
 -- * Modalities
 
--- | Modalieis apply a function to a trace;
+-- | Modalities apply a function to a trace;
 data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> a)
 
 isSomewhere :: Modality a -> Bool
@@ -215,7 +217,7 @@ prettyMockChainOp _ = mempty
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
 --    1) Naturally, these make for efficient concatenation
 --    2) More importantly, this makes it easy to define the empty 'TraceDescr'
---       as @TraceDescr id@ instead of reliying on 'PP.emptyDoc', which generates
+--       as @TraceDescr id@ instead of relying on 'PP.emptyDoc', which generates
 --       empty lines when used with 'PP.vsep'. This avoids generating these empty lines
 newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
 
