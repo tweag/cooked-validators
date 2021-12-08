@@ -32,7 +32,6 @@ dependencies:
   - hspec
   - lens
   - mtl
-  - playground-common
   - plutus-contract
   - plutus-core
   - plutus-ledger
