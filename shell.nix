@@ -11,7 +11,14 @@
     # the haskell.nix functionality itself as an overlay.
     haskellNix.nixpkgsArgs
 }:
-rawpkgs.mkShell {
+let
+  my-ghcide = (iohkpkgs.haskell-nix.hackage-package {
+    compiler-nix-name = "ghc884";
+    name = "ghcide";
+    flag = "ghc-patched-unboxed-bytecode";
+    version = "1.5.1";
+  }).components.exes.ghcide;
+in rawpkgs.mkShell {
     buildInputs = with rawpkgs; [
         # libs
         libsodium
@@ -23,13 +30,10 @@ rawpkgs.mkShell {
         cacert # git SSL
         pkg-config # required by libsystemd-journal
         systemd.dev
-
-        hlint
-        ormolu
-        hpack
-        haskell-language-server
      ] ++ [
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
+        my-ghcide
+        (iohkpkgs.haskell-nix.tool "ghc810420210212" "haskell-language-server" "latest")
      ];
 }
