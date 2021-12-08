@@ -70,7 +70,7 @@ type InitialDistribution = M.Map Wallet Pl.Value
 initialDistribution :: InitialDistribution
 initialDistribution = M.fromList $ zip knownWallets (repeat def)
   where
-    def = Pl.lovelaceValueOf 100_000
+    def = Pl.lovelaceValueOf 100_000_000
 
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
