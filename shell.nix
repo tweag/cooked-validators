@@ -26,11 +26,8 @@ pkgs.mkShell {
         # build haskell
         haskell-nix.internal-cabal-install
         haskell-nix.compiler.ghc810420210212
-
-        # devtools
-        # haskell-language-server
-        # hlint
-        # ormolu
-        # hpack
+    ] ++ [
+    #  devtools
+      (haskell-nix.tool "ghc8107" "hlint" "latest") 
     ];
 }
