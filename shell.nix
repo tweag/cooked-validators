@@ -24,13 +24,13 @@ pkgs.mkShell {
         systemd.dev
 
         # build haskell
-        haskellPackages.cabal-install
+        haskell-nix.internal-cabal-install
         haskell-nix.compiler.ghc810420210212
 
         # devtools
-        haskell-language-server
-        hlint
-        ormolu
-        hpack
+        # haskell-language-server
+        # hlint
+        # ormolu
+        # hpack
     ];
 }
