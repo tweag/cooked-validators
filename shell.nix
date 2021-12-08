@@ -1,7 +1,8 @@
 { 
   sources ? import ./nix/sources.nix {},
+  rawpkgs ? import sources.nixpkgs {},
   haskellNix ? import sources.haskellNix {},
-  pkgs ? import
+  iohkpkgs ? import
     # haskell.nix provides access to the nixpkgs pins which are used by our CI,
     # hence you will be more likely to get cache hits when using these.
     # But you can also just use your own, e.g. '<nixpkgs>'.
@@ -10,8 +11,8 @@
     # the haskell.nix functionality itself as an overlay.
     haskellNix.nixpkgsArgs
 }:
-pkgs.mkShell {
-    buildInputs = with pkgs; [
+rawpkgs.mkShell {
+    buildInputs = with rawpkgs; [
         # libs
         libsodium
         lzma
@@ -23,11 +24,12 @@ pkgs.mkShell {
         pkg-config # required by libsystemd-journal
         systemd.dev
 
-        # build haskell
-        haskell-nix.internal-cabal-install
-        haskell-nix.compiler.ghc810420210212
-    ] ++ [
-    #  devtools
-      (haskell-nix.tool "ghc8107" "hlint" "latest") 
-    ];
+        hlint
+        ormolu
+        hpack
+        haskell-language-server
+     ] ++ [
+        iohkpkgs.haskell-nix.internal-cabal-install
+        iohkpkgs.haskell-nix.compiler.ghc810420210212
+     ];
 }
