@@ -40,6 +40,7 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
+  - playground-common
   - scientific
   - serialise >= 0.2.3.0
   - streaming
