@@ -1,5 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
