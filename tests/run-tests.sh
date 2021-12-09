@@ -23,7 +23,9 @@ while [[ $# -ne "0" ]]; do
 done
 
 if $ci; then
+  pushd ..
   cabal update
+  popd
 fi
 
 ## Runs ormolu on all .hs files in a given project; sets the ormolu_ok
