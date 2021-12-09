@@ -30,10 +30,10 @@ import Test.QuickCheck.GenT
 --  in reality, the test failed for entirely different reasons.
 
 -- | The type of trace generators parameterized by some values.
-type GenTraceParm parm a = forall m. (MonadMockChain m) => parm -> GenT m a
+type GenTraceParm parm a = forall m. (MonadModalMockChain m) => parm -> GenT m a
 
 -- | The type of trace generators with no paramters
-type GenTrace a = forall m. (MonadMockChain m) => GenT m a
+type GenTrace a = forall m. (MonadModalMockChain m) => GenT m a
 
 -- | Very general quantification mechanism for traces. This function is mostly used
 --  internally as the implementation for its simpler cousins like 'forAllTr', 'forSomeTr',

@@ -1,7 +1,10 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.MockChain.Monad where
@@ -24,7 +27,7 @@ import Test.QuickCheck.GenT
 -- $mockchainmonad
 -- #mockchainanchor#
 --
--- The 'MonadMockChain' class provides the basic interface that we need in order
+-- The 'MonadMockChain' class provides the basic interface
 -- to write traces for validator scripts using the transaction generator from
 -- the constraints from "Cooked.Tx.Constraints".
 --
@@ -80,14 +83,19 @@ class (MonadFail m) => MonadMockChain m where
   -- | Modifies the slot counter
   modifySlotCounter :: (SlotCounter -> SlotCounter) -> m ()
 
+-- | Monads supporting modifying transaction skeletons with modalities.
+class (Monad m) => MonadModal m where
   -- | Applies a modification to all transactions in a tree
   everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
 
   -- | Applies a modification to some transactions in a tree, note that
   -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
-  -- progress, henece if it is not possible to apply the transformation anywhere
+  -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
+
+-- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
 validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
@@ -170,30 +178,6 @@ slotIs n = modifySlotCounter (scSlotIs n)
 timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
 timeIs t = modifySlotCounter (scTimeIs t)
 
-instance MonadMockChain m => MonadMockChain (ReaderT r m) where
-  validateTxSkel = lift . validateTxSkel
-  utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
-  slotCounter = lift slotCounter
-  modifySlotCounter = lift . modifySlotCounter
-  everywhere f m = ReaderT (everywhere f . runReaderT m)
-  somewhere f m = ReaderT (somewhere f . runReaderT m)
-
-instance MonadMockChain m => MonadMockChain (GenT m) where
-  validateTxSkel = lift . validateTxSkel
-  utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
-  slotCounter = lift slotCounter
-  modifySlotCounter = lift . modifySlotCounter
-  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
-  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
-
-{-
-
-TODO: I couldn't figure out how to complete the implementation for
-      everywhere and somewhere generically through AsTrans; I decided to
-      revert to writing the two instances we have by hand, above.
-
 -- ** Deriving further 'MonadMockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
@@ -213,6 +197,15 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   index = lift index
   slotCounter = lift slotCounter
   modifySlotCounter = lift . modifySlotCounter
-  everywhere f (AsTrans m) = AsTrans _
-  somewhere f m = _
--}
+
+deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+
+deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
+
+instance MonadModal m => MonadModal (ReaderT r m) where
+  everywhere f m = ReaderT (everywhere f . runReaderT m)
+  somewhere f m = ReaderT (somewhere f . runReaderT m)
+
+instance MonadModal m => MonadModal (GenT m) where
+  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
+  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
