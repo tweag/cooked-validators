@@ -23,6 +23,7 @@ dependencies:
   - plutus-contract
   - plutus-core
   - plutus-ledger
+  - plutus-ledger-constraints
   - plutus-ledger-api
   - plutus-pab
   - plutus-tx

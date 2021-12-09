@@ -172,7 +172,8 @@ validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
 validateTx' tx = do
   s <- slot
   ix <- gets mcstIndex
-  let res = Pl.runValidation (Pl.validateTransaction s tx) ix
+  slotCfg <- gets (slotConfig . mcstSlotCtr)
+  let res = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
   -- case trace (show $ snd res) $ fst res of
   case fst res of
     (Just err, _) -> throwError (MCEValidationError err)
