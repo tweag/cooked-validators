@@ -107,7 +107,7 @@ run1 =
     validateTxFromSkeleton $
       txSkel
         (wallet 1)
-        [ Mints [bigBossPolicy] oneBBNFT,
+        [ mints [bigBossPolicy] oneBBNFT,
           PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
         ]
     -- We then open a forge
@@ -116,7 +116,7 @@ run1 =
       txSkel
         (wallet 3)
         [ SpendsScript bigBossVal Open (outBB, datBB),
-          Mints [authTokenPolicy] oneAuthToken,
+          mints [authTokenPolicy] oneAuthToken,
           PaysScript bigBossVal [(BigBoss [w3PKH], oneBBNFT)],
           PaysScript smithVal [(Forge w3PKH 0, oneAuthToken)]
         ]
@@ -126,7 +126,7 @@ run1 =
       txSkel
         (wallet 3)
         [ SpendsScript smithVal Adjust (outSmith, datSmith),
-          Mints [smithingPolicy] (Value.assetClassValue smithed 30),
+          mints [smithingPolicy] (Value.assetClassValue smithed 30),
           PaysScript smithVal [(Forge w3PKH 30, oneAuthToken <> Ada.lovelaceValueOf 500)],
           PaysPK w3PKH (Value.assetClassValue smithed 30)
         ]

@@ -39,11 +39,19 @@ data Constraint where
 
   PaysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
   SpendsPK :: SpendableOut -> Constraint
-  Mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+  Mints ::
+    (Pl.ToData a, Show a) =>
+    Maybe a ->
+    [Pl.MintingPolicy] ->
+    Pl.Value ->
+    Constraint
   Before :: Pl.POSIXTime -> Constraint
   After :: Pl.POSIXTime -> Constraint
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
   SignedBy :: [Wallet] -> Constraint
+
+mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+mints = Mints @() Nothing
 
 -- | A Transaction skeleton is a set of our constraints,
 -- a wallet which will sign the generated transaction and
