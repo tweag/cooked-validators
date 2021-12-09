@@ -25,7 +25,7 @@ let
           packages.ghcide.flags.ghc-patched-unboxed-bytecode = true;
         }];
   }).components.exes.haskell-language-server;
-in rec { 
+in { 
   # We will split our dependencies into those deps that are needed for
   # building and testing; and those that are needed for development
   # the purpose is to keep CI happier and make it as fast as possible.
@@ -53,5 +53,5 @@ in rec {
 
   # Besides what's needed for building, we also want our instance of the
   # the haskell-language-server
-  dev-deps = build-deps ++ [ custom-hls ];
+  dev-deps = [ custom-hls ];
 }
