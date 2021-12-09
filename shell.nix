@@ -15,8 +15,12 @@ let
   my-hls = (iohkpkgs.haskell-nix.hackage-package {
     compiler-nix-name = "ghc810420210212";
     name = "haskell-language-server";
-    configureArgs = "--constraint \"ghcide < 1.5\"";
-    version = "1.4.0.0";
+    # configureArgs = "--constraint \"ghcide < 1.5\"";
+    version = "1.5.1.0";
+    modules = [{
+          packages.ghcide.patches = [ nix/patches/ghcide_partial_iface.patch ];
+          packages.ghcide.flags.ghc-patched-unboxed-bytecode = true;
+        }];
   }).components.exes.haskell-language-server;
 in rawpkgs.mkShell {
     buildInputs = with rawpkgs; [
