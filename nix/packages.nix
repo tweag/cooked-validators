@@ -25,7 +25,11 @@ let
           packages.ghcide.flags.ghc-patched-unboxed-bytecode = true;
         }];
   }).components.exes.haskell-language-server;
-in with rawpkgs; [
+in rec { 
+  # We will split our dependencies into those deps that are needed for
+  # building and testing; and those that are needed for development
+  # the purpose is to keep CI happier and make it as fast as possible.
+  build-deps = with rawpkgs; [
         # libs required to build plutus
         libsodium
         lzma
@@ -45,5 +49,9 @@ in with rawpkgs; [
         # iohk-specific stuff that we require
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
-        custom-hls
-     ]
+     ];
+
+  # Besides what's needed for building, we also want our instance of the
+  # the haskell-language-server
+  dev-deps = build-deps ++ [ custom-hls ];
+}
