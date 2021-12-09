@@ -47,10 +47,17 @@ prettyConstraint (PaysPK pkh val) =
 prettyConstraint (SpendsPK out) =
   let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyConstraint (Mints policies val) =
+prettyConstraint (Mints Nothing policies val) =
   prettyEnum "Mints" "-" $
     catMaybes
       [ mPrettyValue val,
+        Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
+      ]
+prettyConstraint (Mints (Just r) policies val) =
+  prettyEnum "Mints" "-" $
+    catMaybes
+      [ mPrettyValue val,
+        Just $ "With the redeemer" <+> prettyDatum r,
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
 prettyConstraint (SignedBy ws) =

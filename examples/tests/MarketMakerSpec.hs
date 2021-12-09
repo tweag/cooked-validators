@@ -149,7 +149,7 @@ marketMiningTx wIssuer wReceiver (RunParams validator policy nftClass coinsClass
         txSkel
           wIssuer
           [ PaysPK (walletPKHash wIssuer) mempty,
-            Mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
+            mints [policy] (oneNft <> coins (nbCoinsWalletInit + nbCoinsMarketInit)),
             PaysScript
               validator
               [ ( Market.MarketDatum nbCoinsMarketInit,
