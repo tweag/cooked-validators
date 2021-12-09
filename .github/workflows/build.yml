@@ -12,7 +12,7 @@ jobs:
       - name: Check out repository code.
         uses: actions/checkout@v2
       - name: Cache install Nix packages
-        uses: rikhuijzer/cache-install@v1
+        uses: rikhuijzer/cache-install@v1.0.8
         with:
           key: nix-${{ hashFiles('nix/packages.nix') }}
           nix_file: 'nix/packages.nix'
