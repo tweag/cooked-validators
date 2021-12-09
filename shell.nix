@@ -16,7 +16,7 @@ let
     compiler-nix-name = "ghc810420210212";
     name = "ghcide";
     configureArgs = "--flag ghc-patched-unboxed-bytecode";
-    rev = "1.4.2.3";
+    version = "1.4.2.3";
   }).components.exes.ghcide;
 in rawpkgs.mkShell {
     buildInputs = with rawpkgs; [
@@ -33,7 +33,8 @@ in rawpkgs.mkShell {
      ] ++ [
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
-        my-ghcide
-        (iohkpkgs.haskell-nix.tool "ghc810420210212" "haskell-language-server" "1.5.1.0")
+        # my-ghcide
+        (iohkpkgs.haskell-nix.tool "ghc810420210212" "ghcide" { version = "1.4.2.3"; })
+        (iohkpkgs.haskell-nix.tool "ghc810420210212" "haskell-language-server" { version = "1.5.1.0"; })
      ];
 }
