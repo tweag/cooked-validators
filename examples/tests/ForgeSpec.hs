@@ -5,6 +5,7 @@
 
 module ForgeSpec where
 
+import Control.Monad.Writer hiding ((<>))
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
@@ -100,37 +101,40 @@ bigBossVal = bigBossTypedValidator params
 smithVal :: TScripts.TypedValidator Smith
 smithVal = smithTypedValidator params
 
-run1 :: Either MockChainError ((), UtxoState)
 run1 =
-  runMockChain $ do
-    -- We start with the creation of the NFT
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 1)
-        [ Mints [bigBossPolicy] oneBBNFT,
-          PaysScript bigBossVal [(BigBoss [], oneBBNFT)]
-        ]
-    -- We then open a forge
-    [(outBB, datBB@(BigBoss l))] <- scriptUtxosSuchThat bigBossVal (\_ _ -> True)
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 3)
-        [ SpendsScript bigBossVal Open (outBB, datBB),
-          Mints [authTokenPolicy] oneAuthToken,
-          PaysScript bigBossVal [(BigBoss [w3PKH], oneBBNFT)],
-          PaysScript smithVal [(Forge w3PKH 0, oneAuthToken)]
-        ]
-    -- We use this forge to mint 3 tokens
-    [(outSmith, datSmith@(Forge owner forged))] <- scriptUtxosSuchThat smithVal (\_ _ -> True)
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 3)
-        [ SpendsScript smithVal Adjust (outSmith, datSmith),
-          Mints [smithingPolicy] (Value.assetClassValue smithed 30),
-          PaysScript smithVal [(Forge w3PKH 30, oneAuthToken <> Ada.lovelaceValueOf 500)],
-          PaysPK w3PKH (Value.assetClassValue smithed 30)
-        ]
+  head $
+    runWriterT $
+      runMockChainT $
+        interpret $ do
+          -- We start with the creation of the NFT
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 1)
+              [ Mints [bigBossPolicy] oneBBNFT,
+                PaysScript bigBossVal [(BigBoss [], oneBBNFT <> minAda)]
+              ]
+          -- We then open a forge
+          [(outBB, datBB@(BigBoss l))] <- scriptUtxosSuchThat bigBossVal (\_ _ -> True)
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 3)
+              [ SpendsScript bigBossVal Open (outBB, datBB),
+                Mints [authTokenPolicy] oneAuthToken,
+                PaysScript bigBossVal [(BigBoss [w3PKH], oneBBNFT <> minAda)],
+                PaysScript smithVal [(Forge w3PKH 0, oneAuthToken <> minAda)]
+              ]
+          -- We use this forge to mint 3 tokens
+          [(outSmith, datSmith@(Forge owner forged))] <- scriptUtxosSuchThat smithVal (\_ _ -> True)
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 3)
+              [ SpendsScript smithVal Adjust (outSmith, datSmith),
+                Mints [smithingPolicy] (Value.assetClassValue smithed 30),
+                PaysScript smithVal [(Forge w3PKH 30, oneAuthToken <> minAda <> Ada.lovelaceValueOf 500)],
+                PaysPK w3PKH (Value.assetClassValue smithed 30 <> minAda)
+              ]
   where
+    minAda = Ada.lovelaceValueOf 2000000
     oneBBNFT = Value.assetClassValue bigBossNFT 1
     oneAuthToken = Value.assetClassValue authToken 1
     w3PKH = walletPKHash $ wallet 3
@@ -139,4 +143,4 @@ run1 =
 spec :: Spec
 spec = do
   it "succeeds on the example run" $ do
-    run1 `shouldSatisfy` isRight
+    run1 `shouldSatisfy` (isRight . fst)

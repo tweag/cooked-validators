@@ -1,3 +1,5 @@
+{-# LANGUAGE NumericUnderscores #-}
+
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
@@ -21,7 +23,6 @@ import qualified PlutusTx.Numeric as Pl
 --  it must be the case that @inputs + mint == outputs + fee@.
 balanceTxFrom :: (MonadMockChain m) => Wallet -> Pl.UnbalancedTx -> m Pl.Tx
 balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  -- We start by gathering all the inputs and summing it
   let tx = tx0 {Pl.txFee = Pl.minFee tx0}
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
