@@ -62,10 +62,14 @@ toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr, mempty)
   where
     lkups = Pl.unspentOutputs (M.singleton oref o)
     constr = Pl.mustSpendPubKeyOutput oref
-toLedgerConstraint (Mints pols v) = (lkups, constr, mempty)
+toLedgerConstraint (Mints Nothing pols v) = (lkups, constr, mempty)
   where
     lkups = foldMap Pl.mintingPolicy pols
     constr = Pl.mustMintValue v
+toLedgerConstraint (Mints (Just r) pols v) = (lkups, constr, mempty)
+  where
+    lkups = foldMap Pl.mintingPolicy pols
+    constr = Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData r)) v
 toLedgerConstraint (Before t) = (mempty, constr, mempty)
   where
     constr = Pl.mustValidateIn (Pl.to t)

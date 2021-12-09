@@ -77,7 +77,7 @@ mkProposal reqSigs w pmt = do
             txSkelLbl
               (ProposalSkel reqSigs pmt)
               w
-              [ Mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
+              [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
                 -- We don't have SpendsPK or PaysPK wrt the wallet `w`
                 -- because the balancing mechanism chooses the same (first) output
                 -- we're working on.
@@ -120,7 +120,7 @@ mkPay thePayment params tokenOutRef = do
       (wallet 1)
       [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
         SpendsScript (pmultisig params) () accumulated,
-        Mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+        mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
       ]
 
 -- *** Auxiliary Functions
@@ -315,4 +315,4 @@ dupTokenAttack :: (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
 dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
   Just $ TxSkel (Just $ DupTokenAttacked l) s (attack : cs)
   where
-    attack = Mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
+    attack = mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
