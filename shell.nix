@@ -12,12 +12,12 @@
     haskellNix.nixpkgsArgs
 }:
 let
-  my-ghcide = (iohkpkgs.haskell-nix.hackage-package {
+  my-hls = (iohkpkgs.haskell-nix.hackage-package {
     compiler-nix-name = "ghc810420210212";
-    name = "ghcide";
-    configureArgs = "--flag ghc-patched-unboxed-bytecode";
-    version = "1.4.2.3";
-  }).components.exes.ghcide;
+    name = "haskell-language-server";
+    configureArgs = "--constraint \"ghcide < 1.5\"";
+    version = "1.4.0.0";
+  }).components.exes.haskell-language-server;
 in rawpkgs.mkShell {
     buildInputs = with rawpkgs; [
         # libs
@@ -33,8 +33,6 @@ in rawpkgs.mkShell {
      ] ++ [
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
-        # my-ghcide
-        (iohkpkgs.haskell-nix.tool "ghc810420210212" "ghcide" { version = "1.4.2.3"; })
-        (iohkpkgs.haskell-nix.tool "ghc810420210212" "haskell-language-server" { version = "1.5.1.0"; })
+        my-hls
      ];
 }
