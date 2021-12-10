@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
@@ -25,10 +26,12 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
+import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.TimeSlot as Pl
 import Ledger.Orphans ()
+import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
 
@@ -66,9 +69,12 @@ data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
     mcstStrDatums :: M.Map Pl.DatumHash String,
-    mcstCurrentSlot :: Integer
+    mcstCurrentSlot :: Pl.Slot
   }
   deriving (Show)
+
+instance Default Pl.Slot where
+  def = Pl.Slot 0
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError
@@ -133,11 +139,12 @@ runMockChainTFrom ::
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 = runExceptT
-                     . fmap (second mcstToUtxoState)
-                     . flip runStateT i0
-                     . flip runReaderT def
-                     . unMockChain
+runMockChainTFrom i0 =
+  runExceptT
+    . fmap (second mcstToUtxoState)
+    . flip runStateT i0
+    . flip runReaderT def
+    . unMockChain
 
 runMockChainFrom :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
@@ -170,18 +177,28 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
     tx <- generateTx' skel
     validateTx' tx
     modify' $ \st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1}
+
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
-  getSlotConfig = asks mceSlotConfig
-  getCurrentSlot = gets mcstCurrentSlot
-  waitNumSlots n
-    | n >= 0 = modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + n})
-    | otherwise = error "One cannot set time to a previous instant."
+
   utxosSuchThat = utxosSuchThat'
+
+  currentSlot = gets mcstCurrentSlot
+
+  currentTime = Pl.slotToBeginPOSIXTime <$> asks mceSlotConfig <*> gets mcstCurrentSlot
+
+  awaitSlot n
+    | n >= 0 = modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + n}) >> currentSlot
+    | otherwise = error "One cannot set time to a previous instant."
+
+  awaitTime t = do
+    sc <- asks mceSlotConfig
+    s <- awaitSlot (Pl.posixTimeToEnclosingSlot sc t)
+    return $ Pl.slotToBeginPOSIXTime sc s
 
 -- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
 validateTx' tx = do
-  s <- slot
+  s <- currentSlot
   ix <- gets mcstIndex
   let res = Pl.runValidation (Pl.validateTransaction s tx) ix
   -- case trace (show $ snd res) $ fst res of
@@ -264,9 +281,29 @@ generateTx' skel = do
               mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
         }
 
--- | Returns the current internal slot count.
-slot :: (Monad m) => MockChainT m Pl.Slot
-slot = Pl.Slot <$> getCurrentSlot
+-- | Balances a transaction with money from a given wallet. For every transaction,
+--  it must be the case that @inputs + mint == outputs + fee@.
+balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
+  -- We start by gathering all the inputs and summing it
+  let tx = tx0 {Pl.txFee = Pl.minFee tx0}
+  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
+  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
+  let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
+  let wPKH = walletPKHash w
+  (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
+  -- All the UTxOs signed by the sender of the transaction and useful to balance it
+  -- are added to the inputs.
+  let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
+  -- A new output is opened with the leftover of the added inputs.
+  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
+  config <- asks mceSlotConfig
+  return
+    tx
+      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
+        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
+        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
+      }
 
 -- * Utilities
 
