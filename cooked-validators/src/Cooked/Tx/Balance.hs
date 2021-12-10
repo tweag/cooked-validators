@@ -2,7 +2,6 @@ module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Time
 import Cooked.MockChain.Wallet
 import qualified Data.Set as S
 import qualified Ledger.Constraints as Pl
@@ -33,7 +32,7 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
   -- A new output is opened with the leftover of the added inputs.
   let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
-  config <- slotConfig <$> slotCounter
+  config <- getSlotConfig
   return
     tx
       { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',

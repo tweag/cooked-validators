@@ -10,22 +10,23 @@ module Cooked.MockChain.Monad.Direct where
 
 import Control.Applicative
 import Control.Arrow (second)
-import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
+import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import Data.Default
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.TimeSlot as Pl
 import Ledger.Orphans ()
 import qualified PlutusTx as Pl
 
@@ -65,7 +66,7 @@ data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
     mcstStrDatums :: M.Map Pl.DatumHash String,
-    mcstSlotCtr :: SlotCounter
+    mcstCurrentSlot :: Integer
   }
   deriving (Show)
 
@@ -76,10 +77,18 @@ data MockChainError
   | FailWith String
   deriving (Show, Eq)
 
+newtype MockChainEnv = MockChainEnv
+  { mceSlotConfig :: Pl.SlotConfig
+  }
+  deriving (Show)
+
+instance Default MockChainEnv where
+  def = MockChainEnv def
+
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
-  {unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
+  {unMockChain :: ReaderT MockChainEnv (StateT MockChainSt (ExceptT MockChainError m)) a}
+  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadReader MockChainEnv)
 
 -- | Non-transformer variant
 type MockChain = MockChainT Identity
@@ -87,20 +96,16 @@ type MockChain = MockChainT Identity
 -- Custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
   return = pure
-  MockChainT x >>= f =
-    MockChainT $ do
-      xres <- x
-      modify' (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
-      unMockChain (f xres)
+  MockChainT x >>= f = MockChainT $ x >>= unMockChain . f
 
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
 instance MonadTrans MockChainT where
-  lift = MockChainT . lift . lift
+  lift = MockChainT . lift . lift . lift
 
 instance (Monad m, Alternative m) => Alternative (MockChainT m) where
-  empty = MockChainT $ StateT $ const $ ExceptT empty
+  empty = MockChainT $ ReaderT $ const $ StateT $ const $ ExceptT empty
   (<|>) = combineMockChainT (<|>)
 
 combineMockChainT ::
@@ -110,19 +115,17 @@ combineMockChainT ::
   MockChainT m x ->
   MockChainT m x
 combineMockChainT f ma mb = MockChainT $
-  StateT $ \s ->
-    let resA = runExceptT $ runStateT (unMockChain ma) s
-        resB = runExceptT $ runStateT (unMockChain mb) s
-     in ExceptT $ f resA resB
-
-onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
-onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
+  ReaderT $ \r ->
+    StateT $ \s ->
+      let resA = runExceptT $ runStateT (runReaderT (unMockChain ma) r) s
+          resB = runExceptT $ runStateT (runReaderT (unMockChain mb) r) s
+       in ExceptT $ f resA resB
 
 mapMockChainT ::
   (m (Either MockChainError (a, MockChainSt)) -> n (Either MockChainError (b, MockChainSt))) ->
   MockChainT m a ->
   MockChainT n b
-mapMockChainT f = MockChainT . mapStateT (mapExceptT f) . unMockChain
+mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
 
 -- | Executes a 'MockChainT' from some initial state.
 runMockChainTFrom ::
@@ -130,7 +133,11 @@ runMockChainTFrom ::
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 = runExceptT . fmap (second mcstToUtxoState) . flip runStateT i0 . unMockChain
+runMockChainTFrom i0 = runExceptT
+                     . fmap (second mcstToUtxoState)
+                     . flip runStateT i0
+                     . flip runReaderT def
+                     . unMockChain
 
 runMockChainFrom :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
@@ -148,7 +155,7 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty slotCounter0
+mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty def
 
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
@@ -159,10 +166,16 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
-  validateTxSkel = validateTx' <=< generateTx'
+  validateTxSkel skel = do
+    tx <- generateTx' skel
+    validateTx' tx
+    modify' $ \st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1}
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
-  slotCounter = gets mcstSlotCtr
-  modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
+  getSlotConfig = asks mceSlotConfig
+  getCurrentSlot = gets mcstCurrentSlot
+  waitNumSlots n
+    | n >= 0 = modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + n})
+    | otherwise = error "One cannot set time to a previous instant."
   utxosSuchThat = utxosSuchThat'
 
 -- | Check 'validateTx' for details
@@ -253,7 +266,7 @@ generateTx' skel = do
 
 -- | Returns the current internal slot count.
 slot :: (Monad m) => MockChainT m Pl.Slot
-slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
+slot = Pl.Slot <$> getCurrentSlot
 
 -- * Utilities
 

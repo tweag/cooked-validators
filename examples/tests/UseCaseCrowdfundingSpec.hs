@@ -63,13 +63,11 @@ crowdVal = typedValidator camp
 run1 :: Either MockChainError ((), UtxoState)
 run1 =
   runMockChain $ do
-    freezeTime
     validateTxFromSkeleton $
       txSkel
         (wallet 3)
         [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
         ]
-    waitSlots 1
     validateTxFromSkeleton $
       txSkel
         (wallet 4)

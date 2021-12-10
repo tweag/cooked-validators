@@ -11,10 +11,10 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
-import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Foldable
 import qualified Ledger as Pl
+import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -27,8 +27,9 @@ import qualified Prettyprinter.Render.String as PP
 data MockChainOp a where
   ValidateTxSkel :: TxSkel -> MockChainOp ()
   TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
-  GetSlotCounter :: MockChainOp SlotCounter
-  ModifySlotCounter :: (SlotCounter -> SlotCounter) -> MockChainOp ()
+  GetSlotConfig :: MockChainOp Pl.SlotConfig
+  GetCurrentSlot :: MockChainOp Integer
+  WaitNumSlots :: Integer -> MockChainOp ()
   UtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
@@ -107,8 +108,9 @@ instance Monad StagedMockChain where
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
 interpretOp (ValidateTxSkel skel) = validateTxSkel skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
-interpretOp GetSlotCounter = slotCounter
-interpretOp (ModifySlotCounter f) = modifySlotCounter f
+interpretOp GetSlotConfig = getSlotConfig
+interpretOp GetCurrentSlot = getCurrentSlot
+interpretOp (WaitNumSlots n) = waitNumSlots n
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 
@@ -118,8 +120,9 @@ instance MonadFail StagedMockChain where
 instance MonadMockChain StagedMockChain where
   validateTxSkel = singleton . ValidateTxSkel
   txOutByRef = singleton . TxOutByRef
-  slotCounter = singleton GetSlotCounter
-  modifySlotCounter = singleton . ModifySlotCounter
+  getSlotConfig = singleton GetSlotConfig
+  getCurrentSlot = singleton GetCurrentSlot
+  waitNumSlots = singleton . WaitNumSlots
   utxosSuchThat addr = singleton . UtxosSuchThat addr
 
 instance MonadModal StagedMockChain where
