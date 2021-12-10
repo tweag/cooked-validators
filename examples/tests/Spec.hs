@@ -18,8 +18,8 @@ main = do
   twauditMain $
     testGroup
       "main"
-      [ spec,
-        PMultiSigStatefulSpec.tests
+      [ spec
+      -- PMultiSigStatefulSpec.tests
       ]
 
 legacySpec :: Spec
