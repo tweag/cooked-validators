@@ -11,13 +11,11 @@ module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
-import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
 import Test.QuickCheck.GenT
@@ -75,17 +73,23 @@ class (MonadFail m) => MonadMockChain m where
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
-  -- | Returns the current slot config
-  getSlotConfig :: m Pl.SlotConfig
-
   -- | Returns the current slot number
-  getCurrentSlot :: m Integer
+  currentSlot :: m Pl.Slot
 
-  -- | Waits until the given number of slots pass
+  -- | Returns the current time
+  currentTime :: m Pl.POSIXTime
+
+  -- | Either waits until the given slot then returns the current slot.
+  --  Note that that it might not wait for anything if the current slot
+  --  is larger than the argument.
+  awaitSlot :: Pl.Slot -> m Pl.Slot
+
+  -- | Wait until the slot where the given time falls into and return latest time
+  -- we know has passed.
   --
-  -- This function can receive negative integers.
-  -- Its duty is to check for that and error out of that's the case.
-  waitNumSlots :: Integer -> m ()
+  -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
+  -- waits until slot 2 and returns the value `POSIXTime 5`.
+  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 -- | Monads supporting modifying transaction skeletons with modalities.
 class (Monad m) => MonadModal m where
@@ -166,15 +170,16 @@ pkUtxos' pkh = map (second go) <$> pkUtxos pkh
 
 -- TODO: Finish documentation when issue #34 is solved
 
-waitTime :: (MonadMockChain m) => Pl.POSIXTime -> m ()
-waitTime mSec = getSlotConfig >>= waitNumSlots . msecDiffToSlotCount mSec
+waitNSlots :: (MonadMockChain m) => Integer -> m Pl.Slot
+waitNSlots n = do
+  when (n < 0) $ fail "waitNSlots: negative argument"
+  c <- currentSlot
+  awaitSlot $ c + fromIntegral n
 
-timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
-timeIs t = do
-  sc <- getSlotConfig
-  let targetSlot = Pl.getSlot $ Pl.posixTimeToEnclosingSlot sc t
-  curSlot <- getCurrentSlot
-  waitNumSlots $ targetSlot - curSlot
+waitNMilliSeconds :: (MonadMockChain m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
+waitNMilliSeconds n = do
+  t <- currentTime
+  awaitTime $ t + Pl.fromMilliSeconds n
 
 -- ** Deriving further 'MonadMockChain' instances
 
@@ -193,9 +198,10 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   txOutByRef = lift . txOutByRef
-  getSlotConfig = lift getSlotConfig
-  getCurrentSlot = lift getCurrentSlot
-  waitNumSlots = lift . waitNumSlots
+  currentSlot = lift currentSlot
+  currentTime = lift currentTime
+  awaitSlot = lift . awaitSlot
+  awaitTime = lift . awaitTime
 
 deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 
