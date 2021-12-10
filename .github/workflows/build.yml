@@ -17,6 +17,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: Accessing the nix cache.
         uses: actions/cache@v2
+        run: sudo su
         with:
           path: |
             /nix/store
