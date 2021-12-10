@@ -15,13 +15,15 @@ jobs:
         uses: cachix/install-nix-action@v13
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - name: Get sudo
-        run: sudo su
+      - name: Link the nix store somewhere else
+        run: |
+          mkdir -p ~/nix/store
+          sudo ln -fs $(pwd)/nix/store /nix/store
       - name: Accessing the nix cache.
         uses: actions/cache@v2
         with:
           path: |
-            /nix/store
+            ~/nix/store
           key: nix-cache-${{  hashFiles('shell.nix') }}
           restore-keys: |
             nix-cache
