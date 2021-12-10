@@ -184,7 +184,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = Pl.slotToBeginPOSIXTime <$> asks mceSlotConfig <*> gets mcstCurrentSlot
+  currentTime = asks (Pl.slotToBeginPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
 
   awaitSlot n
     | n >= 0 = modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + n}) >> currentSlot
