@@ -46,21 +46,3 @@ instance (C.AsContractError e) => MonadMockChain (C.Contract w s e) where
   currentTime = C.currentTime
   awaitSlot = C.awaitSlot
   awaitTime = C.awaitTime
-
-{- TODO: Trying to remove getSlotConfig from everywhere; if we really cant, then
-there is always infering the slot config from observation!
-
--- Hack to get a slot config from observations with a little linear extrapolation
--- assuming that time increases linearly :)
-hackedObserveSlotConfig :: (C.AsContractError e) => C.Contract w s e Pl.SlotConfig
-hackedObserveSlotConfig = do
-  s0 <- C.waitNSlots 1
-  t0ms <- Pl.getPOSIXTime <$> C.currentTime
-  s1 <- C.waitNSlots 1
-  t1ms <- Pl.getPOSIXTime <$> C.currentTime
-  -- time = m * slot + b
-  let deltaT = fromIntegral (t0ms - t1ms) :: Double
-  let m = deltaT / (fromIntegral $ s0 - s1)
-  let b = fromIntegral t1ms - m * fromIntegral s1
-  return $ Pl.SlotConfig (t1ms - t0ms) (Pl.POSIXTime $ round b)
--}

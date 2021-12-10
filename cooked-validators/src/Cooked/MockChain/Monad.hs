@@ -181,15 +181,6 @@ waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
-{-
-timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
-timeIs t = do
-  sc <- getSlotConfig
-  let targetSlot = Pl.getSlot $ Pl.posixTimeToEnclosingSlot sc t
-  curSlot <- currentSlot
-  waitNSlots $ targetSlot - curSlot
--}
-
 -- ** Deriving further 'MonadMockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
