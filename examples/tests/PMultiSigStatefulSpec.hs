@@ -52,7 +52,7 @@ mkParams = do
 
     mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
     mkThreadToken w = do
-      validateTxFromSkeleton $ mkThreadTokenInputSkel w
+      void $ validateTxSkel $ mkThreadTokenInputSkel w
       emptyUtxos <- pkUtxosSuchThat (walletPKHash w) (== mempty)
       case emptyUtxos of
         [] -> error "No empty UTxOs"
@@ -83,7 +83,7 @@ mkProposal reqSigs w pmt = do
                 -- we're working on.
                 PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
               ]
-      validateTxSkel skel
+      void $ validateTxSkel skel
       pure (params, fst spendableOut)
     _ -> error "No spendable outputs for the wallet"
   where
@@ -91,8 +91,9 @@ mkProposal reqSigs w pmt = do
 
 mkSign :: MonadMockChain m => Params -> Wallet -> Payment -> m ()
 mkSign params w pmt =
-  validateTxSkel $
-    txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
+  void $
+    validateTxSkel $
+      txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
   where
     pk = walletPK w
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
@@ -101,27 +102,29 @@ mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
-  validateTxSkel $
-    txSkel (wallet 1) $
-      PaysScript
-        (pmultisig params)
-        [ ( Accumulator thePayment (signPk . snd <$> signatures),
-            paymentValue thePayment <> paramsToken params
-          )
-        ] :
-      SpendsScript (pmultisig params) () initialProp :
-      (SpendsScript (pmultisig params) () <$> signatures)
+  void $
+    validateTxSkel $
+      txSkel (wallet 1) $
+        PaysScript
+          (pmultisig params)
+          [ ( Accumulator thePayment (signPk . snd <$> signatures),
+              paymentValue thePayment <> paramsToken params
+            )
+          ] :
+        SpendsScript (pmultisig params) () initialProp :
+        (SpendsScript (pmultisig params) () <$> signatures)
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
 mkPay thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
-  validateTxSkel $
-    txSkel
-      (wallet 1)
-      [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
-        SpendsScript (pmultisig params) () accumulated,
-        mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
-      ]
+  void $
+    validateTxSkel $
+      txSkel
+        (wallet 1)
+        [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
+          SpendsScript (pmultisig params) () accumulated,
+          mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+        ]
 
 -- *** Auxiliary Functions
 

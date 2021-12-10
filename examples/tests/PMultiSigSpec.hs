@@ -53,6 +53,7 @@ run1 = runMockChain $ do
   txSign (wallet 2) samplePmt >>= validateTxFromSkeleton
   txSign (wallet 3) samplePmt >>= validateTxFromSkeleton
   txExecute (wallet 4) >>= validateTxFromSkeleton
+  return ()
 
 -- Test spec
 spec :: Spec

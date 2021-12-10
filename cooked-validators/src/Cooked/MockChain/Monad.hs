@@ -13,6 +13,7 @@ import Control.Arrow (second)
 import Control.Monad.Reader
 import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
+import Data.Default
 import qualified Data.Map as M
 import Data.Maybe (fromJust)
 import Data.Void
@@ -52,16 +53,14 @@ import Test.QuickCheck.GenT
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  See [here](#mockchainanchor) for more details.
 class (MonadFail m) => MonadMockChain m where
-  -- | Generates and balances a transaction from a skeleton, then attemps to
-  -- validate such transaction.
-  --  A balanced transaction is such that @inputs + mints == outputs + fees@.
-  --  To balance a transaction, we need
-  --  access to the current UTxO state to chose which inputs to add in case
-  --  the output-side of the balancing equation is bigger.
+  -- | Generates and balances a transaction from a skeleton, then attemps to validate such
+  --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
+  --  To balance a transaction, we need access to the current UTxO state to chose
+  --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
-  --  If you want to work manually or skip balancing, check the helpers
-  -- from 'generateTx' and "Cooked.Tx.Generator".
-  validateTxSkel :: TxSkel -> m ()
+  --  Most of the times, you will want to use 'validateTxSkel', which passes the
+  -- default set of options around.
+  validateTxSkelOpts :: ValidateTxOpts -> TxSkel -> m Pl.TxId
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -94,11 +93,28 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
+-- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
+--  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
+--  for further discussion on this.
+newtype ValidateTxOpts = ValidateTxOpts
+  {adjustUnbalTx :: Bool}
+  deriving (Eq, Show)
+
+instance Default ValidateTxOpts where
+  def =
+    ValidateTxOpts
+      { adjustUnbalTx = True
+      }
+
+-- | Calls 'validateTxSkelOpts' with the default set of options
+validateTxSkel :: (MonadMockChain m) => TxSkel -> m Pl.TxId
+validateTxSkel = validateTxSkelOpts def
+
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
 type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
 
 -- | Generates, balances and validates a transaction from a 'TxSkel'
-validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
+validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m Pl.TxId
 validateTxFromSkeleton = validateTxSkel
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
@@ -192,7 +208,7 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
+  validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   index = lift index
   slotCounter = lift slotCounter

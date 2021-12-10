@@ -18,15 +18,15 @@ main = do
   twauditMain $
     testGroup
       "main"
-      [ spec
-      -- PMultiSigStatefulSpec.tests
+      [ spec,
+        PMultiSigStatefulSpec.tests
       ]
 
 legacySpec :: Spec
 legacySpec = do
-  -- describe "'Split' contract" SplitSpec.spec
-  -- describe "'PMultiSig' contract" PMultiSigSpec.spec
-  -- describe "'plutus-use-cases/Crowdfunding' contract" UseCaseCrowdfundingSpec.spec
-  -- describe "'plutus-use-cases/Multisig' contract" UseCaseMultisigSpec.spec
-  -- describe "'MarketMaker' contract" MarketMakerSpec.spec
+  describe "'Split' contract" SplitSpec.spec
+  describe "'PMultiSig' contract" PMultiSigSpec.spec
+  describe "'plutus-use-cases/Crowdfunding' contract" UseCaseCrowdfundingSpec.spec
+  describe "'plutus-use-cases/Multisig' contract" UseCaseMultisigSpec.spec
+  describe "'MarketMaker' contract" MarketMakerSpec.spec
   describe "'Forge' contract" ForgeSpec.spec

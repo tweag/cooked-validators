@@ -9,6 +9,7 @@
 
 module UseCaseCrowdfundingSpec where
 
+import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
@@ -62,30 +63,31 @@ crowdVal = typedValidator camp
 
 run1 :: Either MockChainError ((), UtxoState)
 run1 =
-  runMockChain $ do
-    freezeTime
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 3)
-        [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
-        ]
-    waitSlots 1
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 4)
-        [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
-        ]
-    -- We now set the time to be 25 seconds after the beginning.
-    timeIs $ originOfTime + Ledger.POSIXTime 25000
-    funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 1)
-        ( map (SpendsScript crowdVal Collect) funds
-            ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),
-                 ValidateIn $ Ledger.interval (originOfTime + Ledger.POSIXTime 20000) (originOfTime + Ledger.POSIXTime 27000)
-               ]
-        )
+  runMockChain $
+    void $ do
+      freezeTime
+      validateTxFromSkeleton $
+        txSkel
+          (wallet 3)
+          [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
+          ]
+      waitSlots 1
+      validateTxFromSkeleton $
+        txSkel
+          (wallet 4)
+          [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
+          ]
+      -- We now set the time to be 25 seconds after the beginning.
+      timeIs $ originOfTime + Ledger.POSIXTime 25000
+      funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
+      validateTxFromSkeleton $
+        txSkel
+          (wallet 1)
+          ( map (SpendsScript crowdVal Collect) funds
+              ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),
+                   ValidateIn $ Ledger.interval (originOfTime + Ledger.POSIXTime 20000) (originOfTime + Ledger.POSIXTime 27000)
+                 ]
+          )
 
 -- Test spec
 spec :: Spec

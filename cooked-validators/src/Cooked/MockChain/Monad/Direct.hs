@@ -159,14 +159,14 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
-  validateTxSkel = validateTx' <=< generateTx'
+  validateTxSkelOpts opts = validateTx' <=< generateTx' opts
   index = gets (Pl.getIndex . mcstIndex)
   slotCounter = gets mcstSlotCtr
   modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
   utxosSuchThat = utxosSuchThat'
 
 -- | Check 'validateTx' for details
-validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
+validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
 validateTx' tx = do
   s <- slot
   ix <- gets mcstIndex
@@ -187,11 +187,10 @@ validateTx' tx = do
         ( \st ->
             st
               { mcstIndex = ix',
-                mcstDatums =
-                  (mcstDatums st `M.difference` consumedDHs')
-                    `M.union` Pl.txData tx
+                mcstDatums = (mcstDatums st `M.difference` consumedDHs') `M.union` Pl.txData tx
               }
         )
+      return $ Pl.txId tx
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
@@ -234,13 +233,14 @@ utxosSuchThat' addr datumPred = do
             else return Nothing
 
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
-generateTx' skel = do
+generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
+generateTx' opts skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err -> throwError $ MCETxError err
     Right (ubtx, allSigners) -> do
-      balancedTx <- balanceTxFrom (txMainSigner skel) ubtx
+      let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
+      balancedTx <- balanceTxFrom (txMainSigner skel) (adjust ubtx)
       return $ foldl (flip txAddSignature) balancedTx allSigners
   where
     -- Update the map of pretty printed representations in the mock chain state
