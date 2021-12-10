@@ -186,9 +186,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   currentTime = asks (Pl.slotToBeginPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
 
-  awaitSlot n
-    | n >= 0 = modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + n}) >> currentSlot
-    | otherwise = error "One cannot set time to a previous instant."
+  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
   awaitTime t = do
     sc <- asks mceSlotConfig
