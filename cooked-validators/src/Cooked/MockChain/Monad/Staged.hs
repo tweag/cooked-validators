@@ -14,7 +14,6 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.Tx.Constraints
 import Data.Foldable
 import qualified Ledger as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -27,9 +26,10 @@ import qualified Prettyprinter.Render.String as PP
 data MockChainOp a where
   ValidateTxSkel :: TxSkel -> MockChainOp ()
   TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
-  GetSlotConfig :: MockChainOp Pl.SlotConfig
-  GetCurrentSlot :: MockChainOp Integer
-  WaitNumSlots :: Integer -> MockChainOp ()
+  GetCurrentSlot :: MockChainOp Pl.Slot
+  AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
+  GetCurrentTime :: MockChainOp Pl.POSIXTime
+  AwaitTime :: Pl.POSIXTime -> MockChainOp Pl.POSIXTime
   UtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
@@ -108,9 +108,10 @@ instance Monad StagedMockChain where
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
 interpretOp (ValidateTxSkel skel) = validateTxSkel skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
-interpretOp GetSlotConfig = getSlotConfig
-interpretOp GetCurrentSlot = getCurrentSlot
-interpretOp (WaitNumSlots n) = waitNumSlots n
+interpretOp GetCurrentSlot = currentSlot
+interpretOp GetCurrentTime = currentTime
+interpretOp (AwaitSlot s) = awaitSlot s
+interpretOp (AwaitTime t) = awaitTime t
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 
@@ -120,9 +121,10 @@ instance MonadFail StagedMockChain where
 instance MonadMockChain StagedMockChain where
   validateTxSkel = singleton . ValidateTxSkel
   txOutByRef = singleton . TxOutByRef
-  getSlotConfig = singleton GetSlotConfig
-  getCurrentSlot = singleton GetCurrentSlot
-  waitNumSlots = singleton . WaitNumSlots
+  currentSlot = singleton GetCurrentSlot
+  currentTime = singleton GetCurrentTime
+  awaitSlot = singleton . AwaitSlot
+  awaitTime = singleton . AwaitTime
   utxosSuchThat addr = singleton . UtxosSuchThat addr
 
 instance MonadModal StagedMockChain where
