@@ -101,17 +101,27 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
--- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
---  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
---  for further discussion on this.
-newtype ValidateTxOpts = ValidateTxOpts
-  {adjustUnbalTx :: Bool}
+data ValidateTxOpts = ValidateTxOpts
+  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
+    --  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
+    --  for further discussion on this.
+    --
+    -- By default, this is set to @True@.
+    adjustUnbalTx :: Bool,
+    -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
+    --  repeatedely calls 'Plutus.Contract.Request.awaitTxConfirmed'.
+    --
+    --  /This has NO effect when running outside of the @Contract@ monad/.
+    --  By default, this is set to @True@.
+    awaitTxConfirmed :: Bool
+  }
   deriving (Eq, Show)
 
 instance Default ValidateTxOpts where
   def =
     ValidateTxOpts
-      { adjustUnbalTx = True
+      { adjustUnbalTx = True,
+        awaitTxConfirmed = True
       }
 
 -- | Calls 'validateTxSkelOpts' with the default set of options

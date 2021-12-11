@@ -21,12 +21,13 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherError . T.pack
 
 instance (C.AsContractError e) => MonadMockChain (C.Contract w s e) where
-  validateTxSkel txSkel0 = do
+  validateTxSkelOpts opts txSkel0 = do
     let (lkups, constrs, additionalSigners) = toLedgerConstraints @Void (txConstraints txSkel0)
     unless (null additionalSigners) $
       fail "validateTxSkel: cannot validate a tx that requires others to sign when running in the Contract monad"
-    tx <- C.submitTxConstraintsWith lkups constrs
-    C.awaitTxConfirmed (Pl.getCardanoTxId tx)
+    txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
+    when (awaitTxConfirmed opts) $ C.awaitTxConfirmed txId
+    return txId
 
   utxosSuchThat addr datumPred = do
     allUtxos <- M.toList <$> C.utxosAt addr
