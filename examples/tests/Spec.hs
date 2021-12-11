@@ -18,10 +18,12 @@ main = do
   twauditMain $
     testGroup
       "main"
-      [ spec
-      -- PMultiSigStatefulSpec.tests
+      [ spec,
+        PMultiSigStatefulSpec.tests
       ]
 
+-- TODO: Revive these tests; maybe even get rid of a few contracts because adapating
+-- that many tests everytime plutus changes is too painful
 legacySpec :: Spec
 legacySpec = do
   -- describe "'Split' contract" SplitSpec.spec

@@ -11,7 +11,6 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
-import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable

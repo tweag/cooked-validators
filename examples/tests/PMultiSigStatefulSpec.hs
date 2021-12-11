@@ -16,10 +16,12 @@ module PMultiSigStatefulSpec where
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
 import qualified Ledger as Pl
+import qualified Ledger.Ada as Pl
 import PMultiSigStateful
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
@@ -81,7 +83,12 @@ mkProposal reqSigs w pmt = do
                 -- We don't have SpendsPK or PaysPK wrt the wallet `w`
                 -- because the balancing mechanism chooses the same (first) output
                 -- we're working on.
-                PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
+                PaysScript
+                  (pmultisig params)
+                  [ ( Accumulator pmt [],
+                      minAda <> paymentValue pmt <> threadToken
+                    )
+                  ]
               ]
       void $ validateTxSkel skel
       pure (params, fst spendableOut)
@@ -89,26 +96,42 @@ mkProposal reqSigs w pmt = do
   where
     wpkh = walletPKHash w
 
+-- | Creates a signature UTxO, signaling that the wallet holder agrees
+--   with the payment. Adding a signature locks the minimum amount of Ada
+--   in this UTxO; that value should idaelly later be returned to the signer, but
+--   instead we'll give all of the value to the receiver of the payment, as a tip
+--   on top of their payment. This is to avoid complex scenarios where someone signed
+--   twice, or even an attack where the attacker would execute the mkPay transaction
+--   but keep all the locked ada to themselves.
 mkSign :: MonadMockChain m => Params -> Wallet -> Payment -> m ()
 mkSign params w pmt =
   void $
     validateTxSkel $
-      txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
+      txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mkSignLockedCost)]]
   where
     pk = walletPK w
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
+
+    -- Whenever a wallet is signing a payment, it must lock away a certain amount of ada
+    -- in an UTxO, otherwise, the Sign UTxO can't be created.
+    mkSignLockedCost :: Pl.Value
+    mkSignLockedCost = Pl.lovelaceValueOf 1 -- see issue #46
+
+minAda :: Pl.Value
+minAda = Pl.lovelaceValueOf 2000000
 
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
+  let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxSkel $
       txSkel (wallet 1) $
         PaysScript
           (pmultisig params)
           [ ( Accumulator thePayment (signPk . snd <$> signatures),
-              paymentValue thePayment <> paramsToken params
+              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
             )
           ] :
         SpendsScript (pmultisig params) () initialProp :
@@ -121,7 +144,9 @@ mkPay thePayment params tokenOutRef = do
     validateTxSkel $
       txSkel
         (wallet 1)
-        [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
+        -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
+        -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
+        [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
           SpendsScript (pmultisig params) () accumulated,
           mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
         ]
@@ -158,10 +183,10 @@ sampleTrace1 =
       |wallet 1 proposes a payment, which receives three signatures, then is
       |\emph{collected} and \emph{payed}.
       |]
-    $ testCase "Example Trivial Trace" $ isRight (runMockChain trace) @? "Trace failed"
+    $ testCase "Example Trivial Trace" $ isRight (runMockChain mtrace) @? "Trace failed"
   where
-    trace :: MonadMockChain m => m ()
-    trace = do
+    mtrace :: MonadMockChain m => m ()
+    mtrace = do
       (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
       mkSign params (wallet 1) thePayment
       mkSign params (wallet 2) thePayment
@@ -169,7 +194,7 @@ sampleTrace1 =
       mkCollect thePayment params
       mkPay thePayment params tokenOutRef
       where
-        thePayment = Payment 4200 (walletPKHash $ last knownWallets)
+        thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
 
 qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
@@ -295,7 +320,13 @@ anyParams =
     <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
 
 successParams :: QC.Gen ThresholdParams
-successParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p >= reqSigs p)
+successParams =
+  anyParams
+    `QC.suchThat` ( \p ->
+                      let u = numUniqueSigs p
+                       in u >= reqSigs p
+                            && u == fromIntegral (length (sigWallets p))
+                  )
 
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
