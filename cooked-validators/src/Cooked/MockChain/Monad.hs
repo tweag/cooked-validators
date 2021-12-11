@@ -11,10 +11,8 @@ module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
-import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Data.Map as M
 import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
@@ -71,16 +69,26 @@ class (MonadFail m) => MonadMockChain m where
     (Maybe a -> Pl.Value -> Bool) ->
     m [(SpendableOut, Maybe a)]
 
-  -- | Returns the current map of unspent outputs, called the 'Pl.UtxoIndex' in Plutus.
-  --  By default, the slots are increased in a constant rate. If you want more control over
-  --  that please check
-  index :: m (M.Map Pl.TxOutRef Pl.TxOut)
+  -- | Returns an output given a reference to it
+  txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
-  -- | Returns the current slot counter, which is responsible for mocking the passage of time
-  slotCounter :: m SlotCounter
+  -- | Returns the current slot number
+  currentSlot :: m Pl.Slot
 
-  -- | Modifies the slot counter
-  modifySlotCounter :: (SlotCounter -> SlotCounter) -> m ()
+  -- | Returns the current time
+  currentTime :: m Pl.POSIXTime
+
+  -- | Either waits until the given slot then returns the current slot.
+  --  Note that that it might not wait for anything if the current slot
+  --  is larger than the argument.
+  awaitSlot :: Pl.Slot -> m Pl.Slot
+
+  -- | Wait until the slot where the given time falls into and return latest time
+  -- we know has passed.
+  --
+  -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
+  -- waits until slot 2 and returns the value `POSIXTime 5`.
+  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 -- | Monads supporting modifying transaction skeletons with modalities.
 class (Monad m) => MonadModal m where
@@ -119,7 +127,7 @@ validateTxFromSkeleton = validateTxSkel
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
-  Just txOut <- M.lookup txORef <$> index
+  Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
 -- | Public-key UTxO's have no datum, hence, can be selected easily with
@@ -148,7 +156,7 @@ scriptUtxosSuchThat v predicate =
 -- | Returns the output associated with a given reference
 outFromOutRef :: (MonadMockChain m) => Pl.TxOutRef -> m Pl.TxOut
 outFromOutRef outref = do
-  mo <- M.lookup outref <$> index
+  mo <- txOutByRef outref
   case mo of
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
@@ -176,23 +184,18 @@ pkUtxos' pkh = map (second go) <$> pkUtxos pkh
 -- and trying to exercise certain branches of certain validators. The functions below attempt
 -- to make that a little easier.
 
--- | Stops increasing time altogether.
-freezeTime :: (MonadMockChain m) => m ()
-freezeTime = modifySlotCounter scFreezeTime
-
 -- TODO: Finish documentation when issue #34 is solved
 
-waitSlots :: (MonadMockChain m) => Integer -> m ()
-waitSlots n = modifySlotCounter (scWaitSlots n)
+waitNSlots :: (MonadMockChain m) => Integer -> m Pl.Slot
+waitNSlots n = do
+  when (n < 0) $ fail "waitNSlots: negative argument"
+  c <- currentSlot
+  awaitSlot $ c + fromIntegral n
 
-waitTime :: (MonadMockChain m) => Pl.POSIXTime -> m ()
-waitTime mSec = modifySlotCounter (scWait mSec)
-
-slotIs :: (MonadMockChain m) => Integer -> m ()
-slotIs n = modifySlotCounter (scSlotIs n)
-
-timeIs :: (MonadMockChain m) => Pl.POSIXTime -> m ()
-timeIs t = modifySlotCounter (scTimeIs t)
+waitNMilliSeconds :: (MonadMockChain m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
+waitNMilliSeconds n = do
+  t <- currentTime
+  awaitTime $ t + Pl.fromMilliSeconds n
 
 -- ** Deriving further 'MonadMockChain' instances
 
@@ -210,9 +213,11 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
   validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  index = lift index
-  slotCounter = lift slotCounter
-  modifySlotCounter = lift . modifySlotCounter
+  txOutByRef = lift . txOutByRef
+  currentSlot = lift currentSlot
+  currentTime = lift currentTime
+  awaitSlot = lift . awaitSlot
+  awaitTime = lift . awaitTime
 
 deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 

@@ -15,7 +15,6 @@ import Cooked.MockChain.Time
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
-import qualified Data.Map as M
 import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
@@ -29,9 +28,11 @@ import qualified Prettyprinter.Render.String as PP
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
   ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
-  Index :: MockChainOp (M.Map Pl.TxOutRef Pl.TxOut)
-  GetSlotCounter :: MockChainOp SlotCounter
-  ModifySlotCounter :: (SlotCounter -> SlotCounter) -> MockChainOp ()
+  TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
+  GetCurrentSlot :: MockChainOp Pl.Slot
+  AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
+  GetCurrentTime :: MockChainOp Pl.POSIXTime
+  AwaitTime :: Pl.POSIXTime -> MockChainOp Pl.POSIXTime
   UtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
@@ -109,9 +110,11 @@ instance Monad StagedMockChain where
 -- | Interprets a single operation in the direct 'MockChainT' monad.
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
 interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
-interpretOp Index = index
-interpretOp GetSlotCounter = slotCounter
-interpretOp (ModifySlotCounter f) = modifySlotCounter f
+interpretOp (TxOutByRef ref) = txOutByRef ref
+interpretOp GetCurrentSlot = currentSlot
+interpretOp GetCurrentTime = currentTime
+interpretOp (AwaitSlot s) = awaitSlot s
+interpretOp (AwaitTime t) = awaitTime t
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 
@@ -120,9 +123,11 @@ instance MonadFail StagedMockChain where
 
 instance MonadMockChain StagedMockChain where
   validateTxSkelOpts opts = singleton . ValidateTxSkel opts
-  index = singleton Index
-  slotCounter = singleton GetSlotCounter
-  modifySlotCounter = singleton . ModifySlotCounter
+  txOutByRef = singleton . TxOutByRef
+  currentSlot = singleton GetCurrentSlot
+  currentTime = singleton GetCurrentTime
+  awaitSlot = singleton . AwaitSlot
+  awaitTime = singleton . AwaitTime
   utxosSuchThat addr = singleton . UtxosSuchThat addr
 
 instance MonadModal StagedMockChain where
