@@ -2,44 +2,10 @@ module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Time
-import Cooked.MockChain.Wallet
-import qualified Data.Set as S
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Contexts as Pl
-import qualified Ledger.Index as Pl
-import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Tx as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.V1.Ledger.Address as Pl
-import qualified Plutus.V1.Ledger.Credential as Pl
 import qualified Plutus.V1.Ledger.Crypto as Pl
 import qualified PlutusTx.Numeric as Pl
-
--- | Balances a transaction with money from a given wallet. For every transaction,
---  it must be the case that @inputs + mint == outputs + fee@.
-balanceTxFrom :: (MonadMockChain m) => Wallet -> Pl.UnbalancedTx -> m Pl.Tx
-balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  -- We start by gathering all the inputs and summing it
-  let tx = tx0 {Pl.txFee = Pl.minFee tx0}
-  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
-  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
-  let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
-  let wPKH = walletPKHash w
-  (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
-  -- All the UTxOs signed by the sender of the transaction and useful to balance it
-  -- are added to the inputs.
-  let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
-  -- A new output is opened with the leftover of the added inputs.
-  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
-  config <- slotConfig <$> slotCounter
-  return
-    tx
-      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
-        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
-        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
-      }
 
 balanceWithUTxOsOf ::
   (MonadMockChain m) =>

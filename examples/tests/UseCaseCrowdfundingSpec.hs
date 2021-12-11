@@ -9,6 +9,7 @@
 
 module UseCaseCrowdfundingSpec where
 
+import Control.Monad.Writer
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
@@ -48,47 +49,44 @@ instance TScripts.ValidatorTypes Crowdfunding where
 
 deriving instance Haskell.Show CampaignAction
 
--- We now declare the typed validator of the campaign.
-
-originOfTime :: Ledger.POSIXTime
-originOfTime = Ledger.POSIXTime 1596059091000
-
--- A simple campaign starting at the origin of time (ie slot 0).
--- The campaign lasts 20 seconds and the funds can be redeemed between 20 and 30 seconds.
-camp = theCampaign originOfTime
-
-crowdVal :: TScripts.TypedValidator Crowdfunding
-crowdVal = typedValidator camp
-
-run1 :: Either MockChainError ((), UtxoState)
+-- run1 :: Either MockChainError ((), UtxoState)
 run1 =
-  runMockChain $ do
-    freezeTime
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 3)
-        [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
-        ]
-    waitSlots 1
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 4)
-        [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
-        ]
-    -- We now set the time to be 25 seconds after the beginning.
-    timeIs $ originOfTime + Ledger.POSIXTime 25000
-    funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
-    validateTxFromSkeleton $
-      txSkel
-        (wallet 1)
-        ( map (SpendsScript crowdVal Collect) funds
-            ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),
-                 ValidateIn $ Ledger.interval (originOfTime + Ledger.POSIXTime 20000) (originOfTime + Ledger.POSIXTime 27000)
-               ]
-        )
+  head $
+    runWriterT $
+      runMockChainT $
+        interpret $ do
+          t <- currentTime
+          -- A simple campaign starting now;
+          -- The campaign lasts 20 seconds and the funds can be redeemed between 20 and 30 seconds.
+          let camp = theCampaign t
+              crowdVal = typedValidator camp
+
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 3)
+              [ PaysScript crowdVal [(walletPKHash (wallet 3), Ada.lovelaceValueOf 4000)]
+              ]
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 4)
+              [ PaysScript crowdVal [(walletPKHash (wallet 4), Ada.lovelaceValueOf 6000)]
+              ]
+          -- We now set the time to be 25 seconds after the beginning; because
+          -- each validateTxFromSkeleton increases the slot counter, we actually
+          -- say 20000ms in here, since there were two slots that passed
+          _ <- waitNMilliSeconds 20000
+          funds <- scriptUtxosSuchThat crowdVal (\_ _ -> True)
+          validateTxFromSkeleton $
+            txSkel
+              (wallet 1)
+              ( map (SpendsScript crowdVal Collect) funds
+                  ++ [ PaysPK (walletPKHash $ wallet 1) (Ada.lovelaceValueOf 10000),
+                       ValidateIn $ Ledger.interval (t + Ledger.POSIXTime 20000) (t + Ledger.POSIXTime 27000)
+                     ]
+              )
 
 -- Test spec
 spec :: Spec
 spec = do
   it "succeeds on the example run" $ do
-    run1 `shouldSatisfy` isRight
+    run1 `shouldSatisfy` (isRight . fst)
