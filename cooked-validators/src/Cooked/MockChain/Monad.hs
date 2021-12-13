@@ -113,7 +113,12 @@ data ValidateTxOpts = ValidateTxOpts
     --
     --  /This has NO effect when running outside of the @Contract@ monad/.
     --  By default, this is set to @True@.
-    awaitTxConfirmed :: Bool
+    awaitTxConfirmed :: Bool,
+    -- | Does /NOT/ increase the slot counter automatically on this submission.
+    -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
+    -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
+    -- This has no effect when running in 'Plutus.Contract.Contract'.
+    autoSlotIncrease :: Bool
   }
   deriving (Eq, Show)
 
@@ -121,7 +126,8 @@ instance Default ValidateTxOpts where
   def =
     ValidateTxOpts
       { adjustUnbalTx = True,
-        awaitTxConfirmed = True
+        awaitTxConfirmed = True,
+        autoSlotIncrease = True
       }
 
 -- | Calls 'validateTxSkelOpts' with the default set of options

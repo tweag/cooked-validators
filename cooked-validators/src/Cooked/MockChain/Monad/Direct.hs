@@ -176,7 +176,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
   validateTxSkelOpts opts skel = do
     tx <- generateTx' opts skel
     txId <- validateTx' tx
-    modify' $ \st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1}
+    when (autoSlotIncrease opts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return txId
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
@@ -191,7 +191,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   awaitTime t = do
     sc <- asks mceSlotConfig
-    s <- awaitSlot (Pl.posixTimeToEnclosingSlot sc t)
+    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
     return $ Pl.slotToBeginPOSIXTime sc s
 
 -- | Check 'validateTx' for details

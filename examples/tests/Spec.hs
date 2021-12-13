@@ -2,7 +2,6 @@ module Main where
 
 import qualified ForgeSpec
 import qualified MarketMakerSpec
-import qualified PMultiSigSpec
 import qualified PMultiSigStatefulSpec
 import qualified SplitSpec
 import Test.Hspec
@@ -10,7 +9,6 @@ import Test.Tasty
 import Test.Tasty.Hspec
 import Test.Tasty.Ingredients.MetadataReporter
 import qualified UseCaseCrowdfundingSpec
-import qualified UseCaseMultisigSpec
 
 main :: IO ()
 main = do
@@ -19,7 +17,8 @@ main = do
     testGroup
       "main"
       [ spec,
-        PMultiSigStatefulSpec.tests
+        PMultiSigStatefulSpec.tests,
+        UseCaseCrowdfundingSpec.tests
       ]
 
 -- TODO: Revive these tests; maybe even get rid of a few contracts because adapating
