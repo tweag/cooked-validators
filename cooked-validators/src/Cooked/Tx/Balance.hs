@@ -1,11 +1,17 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
 import Cooked.MockChain.Monad
+import Data.Kind
 import qualified Ledger.Contexts as Pl
 import qualified Ledger.Value as Pl
 import qualified Plutus.V1.Ledger.Crypto as Pl
-import qualified PlutusTx.Numeric as Pl
+import PlutusTx.Numeric ((+), (-))
+import Prelude hiding ((+), (-))
 
 balanceWithUTxOsOf ::
   (MonadMockChain m) =>
@@ -15,7 +21,24 @@ balanceWithUTxOsOf ::
 balanceWithUTxOsOf val wPKH =
   spendValueFrom val <$> pkUtxos' wPKH
 
-spendValueFrom :: Pl.Value -> [(Pl.TxOutRef, Pl.TxOut)] -> ([Pl.TxOutRef], Pl.Value)
+class (Eq (BOutRef out)) => BalancableOut out where
+  -- | The 'BOutRef's are only used to keep track of what outputs were used during balancing.
+  -- They might as well be identity (type) functions if 'out' is cheap and comparable.
+  type BOutRef out = (result :: Type) | result -> out
+
+  outValue :: out -> Pl.Value
+
+instance BalancableOut Pl.TxOut where
+  type BOutRef Pl.TxOut = Pl.TxOutRef
+
+  outValue = Pl.txOutValue
+
+spendValueFrom ::
+  forall out.
+  BalancableOut out =>
+  Pl.Value ->
+  [(BOutRef out, out)] ->
+  ([BOutRef out], Pl.Value)
 spendValueFrom val utxos =
   -- We then go through the output value and investigate for each token
   -- if there is a way to balance it.
@@ -28,9 +51,9 @@ spendValueFrom val utxos =
       Pl.CurrencySymbol ->
       Pl.TokenName ->
       Integer ->
-      [Pl.TxOutRef] ->
+      [BOutRef out] ->
       Pl.Value ->
-      ([Pl.TxOutRef], Pl.Value)
+      ([BOutRef out], Pl.Value)
     addInputToBalance curr token i usedUTxO leftOver =
       if i < 0
         then -- If the input of the transaction is already too big,
@@ -50,11 +73,11 @@ spendValueFrom val utxos =
                   let (newUsedUTxOs, additionalLeftover) =
                         necessaryUtxosFor curr token (i - thisTokLeftOver) utxos usedUTxO
                    in -- The part taken form the leftover, is not in the previous leftover anymore.
-                      let prevLeftOver = leftOver Pl.- Pl.singleton curr token thisTokLeftOver
+                      let prevLeftOver = leftOver - Pl.singleton curr token thisTokLeftOver
                        in (usedUTxO ++ newUsedUTxOs, prevLeftOver <> additionalLeftover)
                 else -- If the leftover contains more (or exactly) money than required,
                 -- then it is simply taken from the left-over.
-                  (usedUTxO, leftOver Pl.- Pl.singleton curr token i)
+                  (usedUTxO, leftOver - Pl.singleton curr token i)
 
 -- Given an asset name (both currency and token),
 -- an integer n, a list of UTxOs and the subset of those which are already used,
@@ -68,12 +91,13 @@ spendValueFrom val utxos =
 -- >    == ([o1, o2, o3], 10)
 --
 necessaryUtxosFor ::
+  BalancableOut out =>
   Pl.CurrencySymbol ->
   Pl.TokenName ->
   Integer ->
-  [(Pl.TxOutRef, Pl.TxOut)] ->
-  [Pl.TxOutRef] ->
-  ([Pl.TxOutRef], Pl.Value)
+  [(BOutRef out, out)] ->
+  [BOutRef out] ->
+  ([BOutRef out], Pl.Value)
 necessaryUtxosFor _ _ 0 _ _ = ([], mempty)
 necessaryUtxosFor curr token n ((oref, o) : os) usedUTxO
   -- If an output has already been added to the transaction previously,
@@ -81,16 +105,16 @@ necessaryUtxosFor curr token n ((oref, o) : os) usedUTxO
   | oref `elem` usedUTxO = necessaryUtxosFor curr token n os usedUTxO
   -- If the output has more than required, we add it to the transaction
   -- and update the leftover accordingly.
-  | valOf (Pl.txOutValue o) > n = ([oref], Pl.txOutValue o Pl.- Pl.singleton curr token n)
+  | valOf (outValue o) > n = ([oref], outValue o - Pl.singleton curr token n)
   -- If the output does not contain the token we are looking for at all,
   -- then it is pointless to add it in the transaction.
-  | valOf (Pl.txOutValue o) == 0 = necessaryUtxosFor curr token n os usedUTxO
+  | valOf (outValue o) == 0 = necessaryUtxosFor curr token n os usedUTxO
   -- If the output partially fulfill our expectation, we grab it into the transaction,
   -- and continue our investigation.
   | otherwise =
-    let foundAmount = valOf (Pl.txOutValue o)
-     in let valLeftover = Pl.txOutValue o Pl.- Pl.singleton curr token foundAmount
-         in ((oref :) *** (valLeftover Pl.+)) $
+    let foundAmount = valOf (outValue o)
+     in let valLeftover = outValue o - Pl.singleton curr token foundAmount
+         in ((oref :) *** (valLeftover +)) $
               necessaryUtxosFor curr token (n - foundAmount) os usedUTxO
   where
     valOf val = Pl.valueOf val curr token
