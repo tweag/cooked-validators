@@ -33,6 +33,18 @@ instance BalancableOut Pl.TxOut where
 
   outValue = Pl.txOutValue
 
+-- | A helper to make sure that @input + mint = output + fees@ holds for a transaction.
+--
+-- Namely, @val@ is @output - input@, and @utxos@ is the list of the unspent outputs
+-- that can be used to balance the transaction.
+--
+-- If a token value in @val@ is negative,
+-- it means that the transaction got more of that token as input than as output.
+-- We don't balance it in this case,
+-- since we don't want to (and can't, really) choose where that extra output goes.
+--
+-- This function returns the UTXOs that were spent (a subset of @utxos@) and any leftover value
+-- (in case some UTXOs had more output than we actually need to balance the transaction).
 spendValueFrom ::
   forall out.
   BalancableOut out =>
