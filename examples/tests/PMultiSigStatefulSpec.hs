@@ -293,9 +293,10 @@ sampleGroup1 =
           $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
             forAllTrP
               successParams
-              ( \p ->
-                  mkProposalForParams p
-                    >>= \i -> somewhere (dupTokenAttack i) (mkTraceForParams p i)
+              ( \p -> do
+                  i <- mkProposalForParams p
+                  w3utxos <- pkUtxos (walletPKHash $ wallet 9)
+                  somewhere (dupTokenAttack (head w3utxos) i) (mkTraceForParams p i)
               )
               (const (QC.property . isLeft))
       ]
@@ -340,13 +341,19 @@ mkTraceForParams tParms (parms, tokenRef) = do
   mkCollect (pmt tParms) parms
   mkPay (pmt tParms) parms tokenRef
 
+-- Modifies a transaction skeleton by attempting to mint one more provenance token.
+dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
+dupTokenAttack sOut (parms, tokenRef) (TxSkel l s cs) =
+  Just $ TxSkel (Just $ DupTokenAttacked l) s (cs ++ attack)
+  where
+    attack =
+      [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),
+        SpendsPK sOut,
+        SignedBy [wallet 9],
+        PaysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
+      ]
+
 data DupTokenAttacked where
   DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
 
 deriving instance Show DupTokenAttacked
-
-dupTokenAttack :: (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
-dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
-  Just $ TxSkel (Just $ DupTokenAttacked l) s (attack : cs)
-  where
-    attack = mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
