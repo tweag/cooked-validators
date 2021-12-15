@@ -164,6 +164,9 @@ utxoState0 = mcstToUtxoState mockChainSt0
 mockChainSt0 :: MockChainSt
 mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty def
 
+instance Default MockChainSt where
+  def = mockChainSt0
+
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
 

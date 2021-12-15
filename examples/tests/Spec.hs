@@ -18,7 +18,8 @@ main = do
       "main"
       [ spec,
         PMultiSigStatefulSpec.tests,
-        UseCaseCrowdfundingSpec.tests
+        UseCaseCrowdfundingSpec.tests,
+        SplitSpec.tests
       ]
 
 -- TODO: Revive these tests; maybe even get rid of a few contracts because adapating

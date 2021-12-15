@@ -13,6 +13,7 @@ dependencies:
   - bytestring
   - containers
   - data-default
+  - deepseq
   - either
   - flat
   - foldl
@@ -35,6 +36,7 @@ dependencies:
   - tasty
   - text
   - transformers
+  - HUnit
   - QuickCheck
   - quickcheck-transformer
 
