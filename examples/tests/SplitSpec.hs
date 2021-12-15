@@ -1,3 +1,4 @@
+{-# LANGUAGE NumericUnderscores #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module SplitSpec where
@@ -11,6 +12,7 @@ import qualified Plutus.V1.Ledger.Ada as Pl
 import qualified Split
 import Test.Hspec
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
@@ -141,7 +143,7 @@ lockParams =
   Split.SplitParams
     { Split.recipient1 = walletPK (wallet 2),
       Split.recipient2 = walletPK (wallet 3),
-      Split.amount = 400
+      Split.amount = 2_000_000
     }
 
 -- | Parameters to share 400 among wallets 3 and 4
@@ -150,7 +152,7 @@ lockParams2 =
   Split.SplitParams
     { Split.recipient1 = walletPK (wallet 4),
       Split.recipient2 = walletPK (wallet 3),
-      Split.amount = 400
+      Split.amount = 4_000_000
     }
 
 usageExample :: Assertion
@@ -162,23 +164,34 @@ tests :: TestTree
 tests =
   testGroup
     "SplitSpec"
-    [testCase "Simple example succeeds" usageExample]
+    [ testCase "Simple example succeeds" usageExample,
+      -- TODO: afaic this test should fail; but somehow, the previous suite marked
+      -- it as passing; hence, I'll add it as expectFail here
+      expectFail $
+        testCase "Unlocking too much" $
+          assertFails $ do
+            txLock (wallet 1) lockParams
+            txUnlockTooMuch (wallet 2),
+      testCase "Can unlocking in small parts" $
+        assertSucceeds $ do
+          txLock (wallet 1) lockParams
+          txUnlockNotEnough (wallet 2)
+          txUnlockNotEnough (wallet 2),
+      testCase "Forgets a recipient" $
+        assertFails $ do
+          txLock (wallet 1) lockParams
+          txUnlockGreedy (wallet 2),
+      -- we know that this implementation of split is vulnerable to this attack;
+      -- Still, I rather phrase the test as we would in practice and flag it with 'expectFail'
+      expectFail $
+        testCase "Is not vulnerable to double split attack" $
+          assertFails $ do
+            txLock (wallet 1) lockParams
+            txLock (wallet 1) lockParams2
+            txUnlockAttack (wallet 5)
+    ]
 
 {-
-
--- | Run containing only a paiement to the script
-runIncomplete :: Either MockChainError ((), UtxoState)
-runIncomplete = runMockChain $
-  void $ do
-    txLock (wallet 1) lockParams >>= validateTxFromSkeleton
-
--- | Valid run with overpayment
-run2 :: Either MockChainError ((), UtxoState)
-run2 = runMockChain $
-  void $ do
-    txLock (wallet 1) lockParams >>= validateTxFromSkeleton
-    txUnlockTooMuch (wallet 2) >>= validateTxFromSkeleton
-
 -- | Faulty run
 run3 :: Either MockChainError ((), UtxoState)
 run3 = runMockChain $
