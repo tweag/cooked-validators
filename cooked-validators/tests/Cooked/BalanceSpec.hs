@@ -39,14 +39,14 @@ instance BalancableOut MockBalancable where
   type BOutRef MockBalancable = MockBalancable
   outValue = getMBValue
 
-instance Arbitrary Pl.BuiltinByteString where
-  arbitrary = PlI.BuiltinByteString . BS.pack . getASCIIString <$> arbitrary
+strings :: Int -> [Pl.BuiltinByteString]
+strings m = [PlI.BuiltinByteString $ BS.singleton c | c <- take m ['a'..]]
 
 instance Arbitrary Pl.CurrencySymbol where
-  arbitrary = Pl.CurrencySymbol <$> arbitrary
+  arbitrary = Pl.CurrencySymbol <$> elements (strings 5)
 
 instance Arbitrary Pl.TokenName where
-  arbitrary = Pl.TokenName <$> arbitrary
+  arbitrary = Pl.TokenName <$> elements (strings 5)
 
 instance (Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
   arbitrary = Map.fromList <$> arbitrary
@@ -80,8 +80,10 @@ instance (ArbitraryMod cntMod, Arbitrary (cntMod Integer)) => Arbitrary (ValueWi
     pure $ ValueWithMods $ mconcat syms
 
 instance Arbitrary MockBalancable where
-  arbitrary = MockBalancable . vwmValue @Identity <$> arbitrary
+  arbitrary = MockBalancable . vwmValue @Positive <$> arbitrary
 
+allUtxosCurrsToks :: [MockBalancable] -> [(Pl.CurrencySymbol, Pl.TokenName)]
+allUtxosCurrsToks bs = [ (curr, tok) | (curr, tok, _) <- Pl.flattenValue $ foldMap getMBValue bs ]
 
 spec :: SpecWith ()
 spec = do
@@ -104,6 +106,24 @@ spec = do
         let (usedUtxos, leftovers) = spendValueFrom @MockBalancable mempty utxos
         usedUtxos `shouldBe` []
         leftovers `shouldBe` mempty
+    it "if a (curr, tok) pair is unbalanced, it's used" $
+      property $ \(ValueWithMods diff :: ValueWithMods Positive) utxos -> do
+        let utxosCurrsToks = allUtxosCurrsToks $ fst <$> utxos
+            (usedUtxos, _) = spendValueFrom diff utxos
+            usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
+        forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
+          when ((curr, tok) `elem` utxosCurrsToks) $
+            (curr, tok) `shouldSatisfy` (`elem` usedUtxosCurrsToks)
+    xit "pointwise sum of spent and leftover" $
+      -- If @(usedUtxos, leftovers) = spendValueFrom diff utxos@, then,
+      -- for each (curr, token) in @usedUtxos@,
+      -- @usedUtxos ! (curr, token) = diff ! (curr, token) + leftovers ! (curr, token)@.
+      property $ \(ValueWithMods diff :: ValueWithMods Positive) utxos -> do
+        let (usedUtxos, leftovers) = spendValueFrom @MockBalancable diff utxos
+            usedUtxosTotal = Pl.flattenValue $ foldMap getMBValue usedUtxos
+        forM_ usedUtxosTotal $ \(curr, token, utxoVal) -> do
+          let rhsVal = Pl.valueOf (diff <> leftovers) curr token
+          (diff, leftovers, usedUtxosTotal) `shouldSatisfy` const (rhsVal == utxoVal)
 
 outsOf :: Int -> Pl.UtxoIndex -> [(Pl.TxOutRef, Pl.TxOut)]
 outsOf i utxoIndex =
