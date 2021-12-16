@@ -12,23 +12,11 @@ import qualified UseCaseCrowdfundingSpec
 
 main :: IO ()
 main = do
-  spec <- testSpec "Legacy Hspec suite" legacySpec
   twauditMain $
     testGroup
       "main"
-      [ spec,
-        PMultiSigStatefulSpec.tests,
+      [ PMultiSigStatefulSpec.tests,
         UseCaseCrowdfundingSpec.tests,
-        SplitSpec.tests
+        SplitSpec.tests,
+        ForgeSpec.tests
       ]
-
--- TODO: Revive these tests; maybe even get rid of a few contracts because adapating
--- that many tests everytime plutus changes is too painful
-legacySpec :: Spec
-legacySpec = do
-  -- describe "'Split' contract" SplitSpec.spec
-  -- describe "'PMultiSig' contract" PMultiSigSpec.spec
-  -- describe "'plutus-use-cases/Crowdfunding' contract" UseCaseCrowdfundingSpec.spec
-  -- describe "'plutus-use-cases/Multisig' contract" UseCaseMultisigSpec.spec
-  -- describe "'MarketMaker' contract" MarketMakerSpec.spec
-  describe "'Forge' contract" ForgeSpec.spec
