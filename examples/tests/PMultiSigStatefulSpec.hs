@@ -98,7 +98,7 @@ mkProposal reqSigs w pmt = do
 
 -- | Creates a signature UTxO, signaling that the wallet holder agrees
 --   with the payment. Adding a signature locks the minimum amount of Ada
---   in this UTxO; that value should idaelly later be returned to the signer, but
+--   in this UTxO; that value should ideally later be returned to the signer, but
 --   instead we'll give all of the value to the receiver of the payment, as a tip
 --   on top of their payment. This is to avoid complex scenarios where someone signed
 --   twice, or even an attack where the attacker would execute the mkPay transaction

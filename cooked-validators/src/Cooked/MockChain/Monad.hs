@@ -53,7 +53,7 @@ import Test.QuickCheck.GenT
 class (MonadFail m) => MonadMockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
-  --  To balance a transaction, we need access to the current UTxO state to chose
+  --  To balance a transaction, we need access to the current UTxO state to choose
   --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
   --  Most of the times, you will want to use 'validateTxSkel', which passes the

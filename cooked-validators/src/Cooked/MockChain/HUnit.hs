@@ -7,7 +7,7 @@ import Cooked.MockChain.UtxoState
 import Test.HUnit.Base
 
 -- | Produces a HUnit 'Assertion' that all universes of the non-deterministic
---  trace @tr@ succeeds, i.e., satisfy @isRight@.
+--  trace @tr@ succeed, i.e., satisfy @isRight@.
 assertSucceeds :: StagedMockChain a -> Assertion
 assertSucceeds tr =
   mapM_ (uncurry succeeds1) $ interpretAndRun tr
@@ -19,7 +19,7 @@ assertSucceeds tr =
         msg = "Expected success, received:\n " ++ show err
 
 -- | Produces a HUnit 'Assertion' asserting that all universes of the non-deterministic
---  trace @tr@ fails, i.e., satisfy @isLeft@.
+--  trace @tr@ fail, i.e., satisfy @isLeft@.
 assertFails :: StagedMockChain a -> Assertion
 assertFails tr =
   mapM_ (uncurry succeeds1) $ interpretAndRun tr
