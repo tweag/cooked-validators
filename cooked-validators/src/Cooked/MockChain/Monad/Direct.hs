@@ -134,35 +134,35 @@ mapMockChainT ::
 mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
 
 -- | Executes a 'MockChainT' from some initial state.
-runMockChainTFrom ::
+runMockChainTRaw ::
   (Monad m) =>
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 =
+runMockChainTRaw i0 =
   runExceptT
     . fmap (second mcstToUtxoState)
     . flip runStateT i0
     . flip runReaderT def
     . unMockChain
 
-runMockChainFrom :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
-runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
+runMockChainRaw :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainRaw i0 = runIdentity . runMockChainTRaw i0
 
 -- | Executes a 'MockChainT' from the cannonical initial state.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
-runMockChainT = runMockChainTFrom mockChainSt0
+runMockChainT = runMockChainTRaw mockChainSt0
 
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
 -- | Executes a 'MockChainT' from an initial state with the given initial value distribution.
-runMockChainTWithDistribution ::
+runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTWithDistribution distribution = runMockChainTFrom mockChainSt0'
+runMockChainTFrom distribution = runMockChainTRaw mockChainSt0'
   where
     mockChainSt0' :: MockChainSt
     mockChainSt0' = MockChainSt utxoIndex0' M.empty M.empty def
@@ -170,10 +170,10 @@ runMockChainTWithDistribution distribution = runMockChainTFrom mockChainSt0'
     utxoIndex0' = utxoIndex0From distribution
 
 -- | Executes a 'MockChain' from an initial state with the given initial value distribution.
-runMockChainWithDistribution ::
+runMockChainFrom ::
   InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
-runMockChainWithDistribution distribution =
-  runIdentity . runMockChainTWithDistribution distribution
+runMockChainFrom distribution =
+  runIdentity . runMockChainTFrom distribution
 
 -- Canonical initial values
 
