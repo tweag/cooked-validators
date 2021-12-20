@@ -156,6 +156,25 @@ runMockChainT = runMockChainTFrom mockChainSt0
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
+-- | Executes a 'MockChainT' from an initial state with the given initial value distribution.
+runMockChainTWithDistribution ::
+  (Monad m) =>
+  InitialDistribution ->
+  MockChainT m a ->
+  m (Either MockChainError (a, UtxoState))
+runMockChainTWithDistribution distribution = runMockChainTFrom mockChainSt0'
+  where
+    mockChainSt0' :: MockChainSt
+    mockChainSt0' = MockChainSt utxoIndex0' M.empty M.empty def
+    utxoIndex0' :: Pl.UtxoIndex
+    utxoIndex0' = utxoIndex0From distribution
+
+-- | Executes a 'MockChain' from an initial state with the given initial value distribution.
+runMockChainWithDistribution ::
+  InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainWithDistribution distribution =
+  runIdentity . runMockChainTWithDistribution distribution
+
 -- Canonical initial values
 
 utxoState0 :: UtxoState
