@@ -11,7 +11,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Value as Pl hiding (currencySymbol)
+import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins.Class as Pl
 
 -- * MockChain Wallets
