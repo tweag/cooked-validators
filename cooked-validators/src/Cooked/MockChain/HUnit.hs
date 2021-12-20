@@ -1,6 +1,5 @@
 module Cooked.MockChain.HUnit where
 
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState

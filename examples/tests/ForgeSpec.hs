@@ -52,7 +52,7 @@ openForge bbId w = do
   let oneAuthToken = Value.assetClassValue (authToken bbId) 1
   let wPKH = walletPKHash w
   void $
-    validateTxFromSkeleton $
+    validateTxSkel $
       txSkelLbl
         OpenForge
         w
@@ -70,7 +70,7 @@ smiths :: (MonadMockChain m) => BigBossId -> Wallet -> Integer -> m ()
 smiths bbId w val = do
   (outSmith, datSmith@(Forge owner forged)) : _ <- scriptUtxosSuchThat (smithVal bbId) (\d _ -> d `belongsTo` w)
   void $
-    validateTxFromSkeleton $
+    validateTxSkel $
       txSkelLbl
         (Smiths val)
         w

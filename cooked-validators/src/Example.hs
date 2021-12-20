@@ -12,7 +12,7 @@ import qualified Ledger.Ada as Pl
 example :: Either MockChainError ((), UtxoState)
 example = runMockChain $ do
   void $
-    validateTxFromSkeleton $
+    validateTxSkel $
       txSkel
         (wallet 1)
         [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200)]

@@ -138,17 +138,20 @@ findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
 findDatum txInfo inInfo =
   Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
 
--- | In order to find the relevant accumulators we look at the 'getContinuingOutputs',
+-- | In order to find the relevant accumulators we should use the 'getContinuingOutputs',
 -- which returns those outputs that pay to the same address of whatever is beeing
 -- redeemed.
 --
--- If we used 'txInfoOutputs' without checking the address explicitely, we would
--- be making this script vulnerable to the datum hijack attack.
--- You can find more about it at "MarketMaker.DatumHijacking" and its respective
--- test suite to see how that would work.
+-- Here, we used 'txInfoOutputs' without checking the address explicitely,
+-- MAKING THIS SCRIPT VULNERABLE to the datum hijack attack.
+-- You can find more about it at "PMultiSigStateful.DatumHijacking" and its respective
+-- test suite to see how that works.
 {-# INLINEABLE findAccumulators #-}
 findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
-findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
+-- If you're reading this function, this is how this should be to be safe against
+-- a datum hijacking attack:
+-- findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
+findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
   where
     txInfo = scriptContextTxInfo ctx
 

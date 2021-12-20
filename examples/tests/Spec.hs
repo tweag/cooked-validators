@@ -1,7 +1,6 @@
 module Main where
 
 import qualified ForgeSpec
-import qualified MarketMakerSpec
 import qualified PMultiSigStatefulSpec
 import qualified SplitSpec
 import Test.Hspec

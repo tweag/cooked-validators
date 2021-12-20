@@ -15,6 +15,7 @@ module PMultiSigStatefulSpec where
 
 import Control.Monad
 import Cooked.MockChain
+import Cooked.MockChain.HUnit
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Either (isLeft, isRight)
@@ -22,11 +23,14 @@ import Data.Function (on)
 import Data.List (nub, nubBy)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
+import qualified Ledger.Typed.Scripts as Scripts
 import PMultiSigStateful
+import qualified PMultiSigStateful.DatumHijacking as HJ
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 import qualified Test.Tasty.Metadata as TW
 import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
@@ -172,7 +176,8 @@ tests =
   testGroup
     "PMultiSigStateful"
     [ sampleTrace1,
-      sampleGroup1
+      sampleGroup1,
+      datumHijackingTrace
     ]
 
 sampleTrace1 :: TestTree
@@ -183,7 +188,7 @@ sampleTrace1 =
       |wallet 1 proposes a payment, which receives three signatures, then is
       |\emph{collected} and \emph{payed}.
       |]
-    $ testCase "Example Trivial Trace" $ isRight (runMockChain mtrace) @? "Trace failed"
+    $ testCase "Example Trivial Trace" $ assertSucceeds mtrace
   where
     mtrace :: MonadMockChain m => m ()
     mtrace = do
@@ -273,7 +278,7 @@ sampleGroup1 =
           $ testProperty "Can execute payment with enough signatures" $
             forAllTrP
               successParams
-              (\p -> mkProposalForParams p >>= mkTraceForParams p)
+              (\p -> propose p >>= execute p)
               (const qcIsRight),
         TW.bug
           TW.Critical
@@ -283,7 +288,7 @@ sampleGroup1 =
           $ testProperty "Cannot execute payment without enough signatures" $
             forAllTrP
               failureParams
-              (\p -> mkProposalForParams p >>= mkTraceForParams p)
+              (\p -> propose p >>= execute p)
               (const (QC.property . isLeft)),
         TW.bug
           TW.Critical
@@ -294,9 +299,9 @@ sampleGroup1 =
             forAllTrP
               successParams
               ( \p -> do
-                  i <- mkProposalForParams p
+                  i <- propose p
                   w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                  somewhere (dupTokenAttack (head w3utxos) i) (mkTraceForParams p i)
+                  somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
               )
               (const (QC.property . isLeft))
       ]
@@ -332,14 +337,16 @@ successParams =
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
 
-mkProposalForParams :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
-mkProposalForParams parms = mkProposal (reqSigs parms) (proposerWallet parms) (pmt parms)
+propose :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+propose parms = mkProposal (reqSigs parms) (proposerWallet parms) (pmt parms)
 
-mkTraceForParams :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
-mkTraceForParams tParms (parms, tokenRef) = do
+execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+execute tParms (parms, tokenRef) = do
   forM_ (sigWallets tParms) $ \wId -> mkSign parms (wallet wId) (pmt tParms)
   mkCollect (pmt tParms) parms
   mkPay (pmt tParms) parms tokenRef
+
+-- ** Auth Token Ducplication Attack
 
 -- Modifies a transaction skeleton by attempting to mint one more provenance token.
 dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
@@ -357,3 +364,52 @@ data DupTokenAttacked where
   DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
 
 deriving instance Show DupTokenAttacked
+
+-- ** Datum Hijacking Attack
+
+datumHijackingTrace :: TestTree
+datumHijackingTrace =
+  TW.bug
+    TW.Critical
+    [str|Performs a datum-hijacking attack by using a fake validator with an
+        |isomorphic datum type. This is supposed to succeed because we
+        |deliberately injected this failure in our script.
+      |]
+    $ expectFail $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+
+attacker :: Wallet
+attacker = wallet 9
+
+-- checks are done on the datum of the contract instead of the address of it.
+fakeValidator :: Scripts.TypedValidator HJ.Stealer
+fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
+
+datumHijacking :: (MonadMockChain m) => m ()
+datumHijacking = do
+  (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
+  mkSign params (wallet 1) thePayment
+  mkSign params (wallet 2) thePayment
+  mkSign params (wallet 3) thePayment
+  mkFakeCollect thePayment params
+  where
+    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
+
+trPayment :: Payment -> HJ.Payment
+trPayment (Payment val dest) = HJ.Payment val dest
+
+mkFakeCollect :: MonadMockChain m => Payment -> Params -> m ()
+mkFakeCollect thePayment params = do
+  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
+  signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
+  let signatureValues = mconcat $ map (sOutValue . fst) signatures
+  void $
+    validateTxSkel $
+      txSkel (wallet 1) $
+        PaysScript
+          fakeValidator
+          [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
+            )
+          ] :
+        SpendsScript (pmultisig params) () initialProp :
+        (SpendsScript (pmultisig params) () <$> signatures)

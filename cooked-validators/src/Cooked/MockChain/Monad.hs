@@ -137,10 +137,6 @@ validateTxSkel = validateTxSkelOpts def
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
 type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
 
--- | Generates, balances and validates a transaction from a 'TxSkel'
-validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m Pl.TxId
-validateTxFromSkeleton = validateTxSkel
-
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
