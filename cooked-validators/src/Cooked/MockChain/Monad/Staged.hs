@@ -11,8 +11,11 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
+import Cooked.MockChain.UtxoState
 import Cooked.Tx.Constraints
+import Data.Default
 import Data.Foldable
+import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
@@ -24,7 +27,7 @@ import qualified Prettyprinter.Render.String as PP
 --  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
-  ValidateTxSkel :: TxSkel -> MockChainOp ()
+  ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
   TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainOp Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
@@ -106,7 +109,7 @@ instance Monad StagedMockChain where
 
 -- | Interprets a single operation in the direct 'MockChainT' monad.
 interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
-interpretOp (ValidateTxSkel skel) = validateTxSkel skel
+interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
 interpretOp GetCurrentSlot = currentSlot
 interpretOp GetCurrentTime = currentTime
@@ -119,7 +122,7 @@ instance MonadFail StagedMockChain where
   fail = singleton . Fail
 
 instance MonadMockChain StagedMockChain where
-  validateTxSkel = singleton . ValidateTxSkel
+  validateTxSkelOpts opts = singleton . ValidateTxSkel opts
   txOutByRef = singleton . TxOutByRef
   currentSlot = singleton GetCurrentSlot
   currentTime = singleton GetCurrentTime
@@ -166,12 +169,24 @@ interpret = goDet
     -- When interpreting a new modality, we just compose them by pushing it into the stack
     goMod ms (Modify m block cont) = goMod (m : ms) block >> goMod ms cont
     -- Finally, when interpreting a instruction, we evaluate the modalities
-    goMod ms (Instr (ValidateTxSkel skel) f) =
-      asum $ map (uncurry (validateThenGoMod f)) $ interpModalities ms skel
+    goMod ms (Instr (ValidateTxSkel opts skel) f) =
+      asum $ map (uncurry (validateThenGoMod opts f)) $ interpModalities ms skel
     goMod ms (Instr op f) = interpBind op (goMod ms . f)
 
-    validateThenGoMod :: (() -> StagedMockChain a) -> TxSkel -> [Modality TxSkel] -> InterpMockChain a
-    validateThenGoMod f skel ms = interpBind (ValidateTxSkel skel) (goMod ms . f)
+    validateThenGoMod :: ValidateTxOpts -> (Pl.TxId -> StagedMockChain a) -> TxSkel -> [Modality TxSkel] -> InterpMockChain a
+    validateThenGoMod opts f skel ms = interpBind (ValidateTxSkel opts skel) (goMod ms . f)
+
+-- | Interprets and runs the mockchain computation from a given initial state.
+interpretAndRunFrom ::
+  StagedMockChain a ->
+  MockChainSt ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRunFrom smc st0 = runWriterT $ runMockChainTFrom st0 (interpret smc)
+
+interpretAndRun ::
+  StagedMockChain a ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRun smc = interpretAndRunFrom smc def
 
 -- * Modalities
 
@@ -211,8 +226,13 @@ interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
 prettyMockChainOp :: MockChainOp a -> TraceDescr
-prettyMockChainOp (ValidateTxSkel skel) =
-  trSingleton $ PP.hang 2 $ PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
+prettyMockChainOp (ValidateTxSkel opts skel) =
+  trSingleton $
+    PP.hang 2 $
+      PP.vsep $
+        catMaybes [Just "ValidateTxSkel", mopts, Just $ prettyTxSkel skel]
+  where
+    mopts = if opts == def then Nothing else Just ("Opts:" <+> PP.viaShow opts)
 prettyMockChainOp (Fail reason) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
 prettyMockChainOp _ = mempty

@@ -12,6 +12,7 @@ module Cooked.MockChain.Monad where
 import Control.Arrow (second)
 import Control.Monad.Reader
 import Cooked.Tx.Constraints
+import Data.Default
 import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
@@ -50,16 +51,14 @@ import Test.QuickCheck.GenT
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  See [here](#mockchainanchor) for more details.
 class (MonadFail m) => MonadMockChain m where
-  -- | Generates and balances a transaction from a skeleton, then attemps to
-  -- validate such transaction.
-  --  A balanced transaction is such that @inputs + mints == outputs + fees@.
-  --  To balance a transaction, we need
-  --  access to the current UTxO state to chose which inputs to add in case
-  --  the output-side of the balancing equation is bigger.
+  -- | Generates and balances a transaction from a skeleton, then attemps to validate such
+  --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
+  --  To balance a transaction, we need access to the current UTxO state to choose
+  --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
-  --  If you want to work manually or skip balancing, check the helpers
-  -- from 'generateTx' and "Cooked.Tx.Generator".
-  validateTxSkel :: TxSkel -> m ()
+  --  Most of the times, you will want to use 'validateTxSkel', which passes the
+  -- default set of options around.
+  validateTxSkelOpts :: ValidateTxOpts -> TxSkel -> m Pl.TxId
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -102,12 +101,41 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
+data ValidateTxOpts = ValidateTxOpts
+  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
+    --  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
+    --  for further discussion on this.
+    --
+    -- By default, this is set to @True@.
+    adjustUnbalTx :: Bool,
+    -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
+    --  repeatedely calls 'Plutus.Contract.Request.awaitTxConfirmed'.
+    --
+    --  /This has NO effect when running outside of the @Contract@ monad/.
+    --  By default, this is set to @True@.
+    awaitTxConfirmed :: Bool,
+    -- | Whether to increase the slot counter automatically on this submission.
+    -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
+    -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
+    -- This has no effect when running in 'Plutus.Contract.Contract'.
+    autoSlotIncrease :: Bool
+  }
+  deriving (Eq, Show)
+
+instance Default ValidateTxOpts where
+  def =
+    ValidateTxOpts
+      { adjustUnbalTx = True,
+        awaitTxConfirmed = True,
+        autoSlotIncrease = True
+      }
+
+-- | Calls 'validateTxSkelOpts' with the default set of options
+validateTxSkel :: (MonadMockChain m) => TxSkel -> m Pl.TxId
+validateTxSkel = validateTxSkelOpts def
+
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
 type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
-
--- | Generates, balances and validates a transaction from a 'TxSkel'
-validateTxFromSkeleton :: (MonadMockChain m) => TxSkel -> m ()
-validateTxFromSkeleton = validateTxSkel
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -195,7 +223,7 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
+  validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot

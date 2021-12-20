@@ -18,6 +18,7 @@ dependencies:
   - tasty-quickcheck
   - tasty-expected-failure
   - heredoc
+  - HUnit
   - tasty-hspec # should be removed after rewriting test suite with tasty-hunit and tasty-quickcheck
   # Dependencies of the example contracts, these come from the client
   - aeson
@@ -32,7 +33,6 @@ dependencies:
   - hspec
   - lens
   - mtl
-  - playground-common
   - plutus-contract
   - plutus-core
   - plutus-ledger
@@ -41,6 +41,7 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
+  - playground-common
   - scientific
   - serialise >= 0.2.3.0
   - streaming
