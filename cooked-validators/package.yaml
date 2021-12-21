@@ -13,6 +13,7 @@ dependencies:
   - bytestring
   - containers
   - data-default
+  - deepseq
   - either
   - flat
   - foldl
@@ -20,10 +21,10 @@ dependencies:
   - freer-simple
   - lens
   - mtl
-  - playground-common
   - plutus-contract
   - plutus-core
   - plutus-ledger
+  - plutus-ledger-constraints
   - plutus-ledger-api
   - plutus-pab
   - plutus-tx
@@ -35,6 +36,7 @@ dependencies:
   - tasty
   - text
   - transformers
+  - HUnit
   - QuickCheck
   - quickcheck-transformer
 

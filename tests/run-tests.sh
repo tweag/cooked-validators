@@ -22,6 +22,12 @@ while [[ $# -ne "0" ]]; do
   esac
 done
 
+if $ci; then
+  pushd ..
+  cabal update
+  popd
+fi
+
 ## Runs ormolu on all .hs files in a given project; sets the ormolu_ok
 ## variable to `false` in case ormolu fails. It also creates an artifact
 ## explaining the failure inside the tests folder.
