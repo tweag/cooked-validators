@@ -26,6 +26,7 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Scripts
 import PMultiSigStateful
 import qualified PMultiSigStateful.DatumHijacking as HJ
+import PMultiSigStateful.ToUPLC
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
@@ -177,7 +178,8 @@ tests =
     "PMultiSigStateful"
     [ sampleTrace1,
       sampleGroup1,
-      datumHijackingTrace
+      datumHijackingTrace,
+      fromRawPLCTrace
     ]
 
 sampleTrace1 :: TestTree
@@ -408,6 +410,47 @@ mkFakeCollect thePayment params = do
         PaysScript
           fakeValidator
           [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
+            )
+          ] :
+        SpendsScript (pmultisig params) () initialProp :
+        (SpendsScript (pmultisig params) () <$> signatures)
+
+-- ** Loading From Raw UPLC
+
+fromRawPLCTrace :: TestTree
+fromRawPLCTrace =
+  TW.bug
+    TW.Critical
+    [str|Attempts to use a script loaded from a ByteString in one of the calls to \emph{PaysScript}
+      |]
+    $ testCase "can be loaded from raw UPLC" $ assertSucceeds fromRawPLC
+
+fromRawPLC :: (MonadMockChain m) => m ()
+fromRawPLC = do
+  (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
+  mkSign params (wallet 1) thePayment
+  mkSign params (wallet 2) thePayment
+  mkSign params (wallet 3) thePayment
+  mkCollectToRaw thePayment params
+  mkPay thePayment params tokenOutRef
+  where
+    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
+
+mkCollectToRaw :: MonadMockChain m => Payment -> Params -> m ()
+mkCollectToRaw thePayment params = do
+  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
+  signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
+  let signatureValues = mconcat $ map (sOutValue . fst) signatures
+  script <- case uplcFromBS (pmultisigBS params) of
+    Left err -> fail ("mkCollectRaw: " ++ err)
+    Right r -> return r
+  void $
+    validateTxSkel $
+      txSkel (wallet 1) $
+        PaysScript
+          script
+          [ ( toBuiltinData $ Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
               paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
             )
           ] :
