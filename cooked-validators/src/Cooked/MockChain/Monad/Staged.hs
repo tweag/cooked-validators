@@ -181,7 +181,7 @@ interpretAndRunFrom ::
   StagedMockChain a ->
   MockChainSt ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunFrom smc st0 = runWriterT $ runMockChainTFrom st0 (interpret smc)
+interpretAndRunFrom smc st0 = runWriterT $ runMockChainTRaw st0 (interpret smc)
 
 interpretAndRun ::
   StagedMockChain a ->
