@@ -27,6 +27,7 @@ import qualified Ledger.Typed.Scripts as Scripts
 import PMultiSigStateful
 import qualified PMultiSigStateful.DatumHijacking as HJ
 import PMultiSigStateful.ToUPLC
+import PlutusTx (toBuiltinData)
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
@@ -450,7 +451,7 @@ mkCollectToRaw thePayment params = do
       txSkel (wallet 1) $
         PaysScript
           script
-          [ ( toBuiltinData $ Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+          [ ( toBuiltinData $ Accumulator thePayment (signPk . snd <$> signatures),
               paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
             )
           ] :
