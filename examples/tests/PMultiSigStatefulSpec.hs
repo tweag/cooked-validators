@@ -181,8 +181,7 @@ tests =
     "PMultiSigStateful"
     [ sampleTrace1,
       sampleGroup1,
-      datumHijackingTrace,
-      fromRawPLCTrace
+      datumHijackingTrace
     ]
 
 sampleTrace1 :: TestTree
@@ -377,16 +376,18 @@ datumHijackingTrace =
   TW.bug
     TW.Critical
     [str|Performs a datum-hijacking attack by using a fake validator with an
-        |isomorphic datum type. This is supposed to succeed because we
-        |deliberately injected this failure in our script.
+        |isomorphic datum type. This attack can be used in scripts that forget
+        |to check the address of an output. Most of the times, if a script
+        |uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
+        |chances are said script will be vulnerable.
       |]
-    $ expectFail $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+    $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9
 
 -- checks are done on the datum of the contract instead of the address of it.
-fakeValidator :: Scripts.TypedValidator HJ.Stealer
+fakeValidator :: Pl.TypedValidator HJ.Stealer
 fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
 
 datumHijacking :: (MonadMockChain m) => m ()
@@ -418,68 +419,3 @@ mkFakeCollect thePayment params = do
           ] :
         SpendsScript (pmultisig params) () initialProp :
         (SpendsScript (pmultisig params) () <$> signatures)
-
--- ** Loading From Raw UPLC
-
-fromRawPLCTrace :: TestTree
-fromRawPLCTrace =
-  TW.bug
-    TW.Critical
-    [str|Attempts to use a script loaded from a ByteString in one of the calls to \emph{PaysScript}
-      |]
-    $ testCase "can be loaded from raw UPLC" $ assertSucceeds fromRawPLC
-
-fromRawPLC :: (MonadMockChain m) => m ()
-fromRawPLC = do
-  (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
-  mkSign params (wallet 1) thePayment
-  mkSign params (wallet 2) thePayment
-  mkSign params (wallet 3) thePayment
-  mkCollectToRaw thePayment params
-  mkPayRaw thePayment params tokenOutRef
-  where
-    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
-
-mkCollectToRaw :: MonadMockChain m => Payment -> Params -> m ()
-mkCollectToRaw thePayment params = do
-  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
-  signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
-  let signatureValues = mconcat $ map (sOutValue . fst) signatures
-  script <- case uplcFromBS (pmultisigBS params) of
-    Left err -> fail ("mkCollectRaw: " ++ err)
-    Right r -> return r
-  void $
-    validateTxSkel $
-      txSkel (wallet 1) $
-        PaysScript
-          script
-          [ ( Pl.toBuiltinData $ Accumulator thePayment (signPk . snd <$> signatures),
-              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-            )
-          ] :
-        SpendsScript (pmultisig params) () initialProp :
-        (SpendsScript (pmultisig params) () <$> signatures)
-
-isAccumulatorRaw :: Maybe Pl.BuiltinData -> Pl.Value -> Bool
-isAccumulatorRaw (Just rawDatum) _ =
-  case Pl.fromBuiltinData rawDatum of
-    Just (Accumulator _ _) -> True
-    _ -> False
-isAccumulatorRaw _ _ = False
-
-mkPayRaw :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
-mkPayRaw thePayment params tokenOutRef = do
-  script <- case uplcFromBS (pmultisigBS params) of
-    Left err -> fail ("mkPaytRaw: " ++ err)
-    Right r -> return r
-  [accumulated] <- utxosSuchThat (Pl.validatorAddress script) isAccumulatorRaw
-  void $
-    validateTxSkel $
-      txSkel
-        (wallet 1)
-        -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
-        -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
-        [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
-          SpendsScript script (Pl.toBuiltinData ()) (second fromJust accumulated),
-          mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
-        ]

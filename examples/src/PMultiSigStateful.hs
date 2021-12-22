@@ -150,9 +150,10 @@ findDatum txInfo inInfo =
 findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
 -- If you're reading this function, this is how this should be to be safe against
 -- a datum hijacking attack:
--- findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
-findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
+findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
   where
+    -- findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
+
     txInfo = scriptContextTxInfo ctx
 
     toAcc (Api.TxOut _ outVal (Just dh))
