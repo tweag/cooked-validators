@@ -13,6 +13,7 @@
 
 module PMultiSigStatefulSpec where
 
+import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
 import Cooked.MockChain.HUnit
@@ -21,12 +22,14 @@ import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
+import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Typed.Scripts as Scripts
-import PMultiSigStateful
+import qualified Ledger.Typed.Scripts as Pl
+import PMultiSigStateful hiding (fromJust)
 import qualified PMultiSigStateful.DatumHijacking as HJ
 import PMultiSigStateful.ToUPLC
+import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
@@ -383,7 +386,7 @@ attacker :: Wallet
 attacker = wallet 9
 
 -- checks are done on the datum of the contract instead of the address of it.
-fakeValidator :: Scripts.TypedValidator HJ.Stealer
+fakeValidator :: Pl.TypedValidator HJ.Stealer
 fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
 
 datumHijacking :: (MonadMockChain m) => m ()
@@ -433,7 +436,7 @@ fromRawPLC = do
   mkSign params (wallet 2) thePayment
   mkSign params (wallet 3) thePayment
   mkCollectToRaw thePayment params
-  mkPay thePayment params tokenOutRef
+  mkPayRaw thePayment params tokenOutRef
   where
     thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
 
@@ -450,9 +453,33 @@ mkCollectToRaw thePayment params = do
       txSkel (wallet 1) $
         PaysScript
           script
-          [ ( toBuiltinData $ Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+          [ ( Pl.toBuiltinData $ Accumulator thePayment (signPk . snd <$> signatures),
               paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
             )
           ] :
         SpendsScript (pmultisig params) () initialProp :
         (SpendsScript (pmultisig params) () <$> signatures)
+
+isAccumulatorRaw :: Maybe Pl.BuiltinData -> Pl.Value -> Bool
+isAccumulatorRaw (Just rawDatum) _ =
+  case Pl.fromBuiltinData rawDatum of
+    Just (Accumulator _ _) -> True
+    _ -> False
+isAccumulatorRaw _ _ = False
+
+mkPayRaw :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
+mkPayRaw thePayment params tokenOutRef = do
+  script <- case uplcFromBS (pmultisigBS params) of
+    Left err -> fail ("mkPaytRaw: " ++ err)
+    Right r -> return r
+  [accumulated] <- utxosSuchThat (Pl.validatorAddress script) isAccumulatorRaw
+  void $
+    validateTxSkel $
+      txSkel
+        (wallet 1)
+        -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
+        -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
+        [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
+          SpendsScript script (Pl.toBuiltinData ()) (second fromJust accumulated),
+          mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+        ]
