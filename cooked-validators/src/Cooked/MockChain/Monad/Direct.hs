@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -5,12 +6,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
 import Control.Applicative
-import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -20,10 +22,12 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import Data.Bifunctor (Bifunctor (second))
 import Data.Default
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
+import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -176,6 +180,8 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
+  type SupportedCtrFeatures (MockChainT m) = '[ 'Multisign]
+
   validateTxSkelOpts opts skel = do
     tx <- generateTx' opts skel
     txId <- validateTx' tx
@@ -265,7 +271,7 @@ utxosSuchThat' addr datumPred = do
             else return Nothing
 
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
+generateTx' :: forall m fs. (Monad m, fs ~ SupportedCtrFeatures (MockChainT m)) => ValidateTxOpts -> TxSkel fs -> MockChainT m Pl.Tx
 generateTx' opts skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
@@ -276,7 +282,7 @@ generateTx' opts skel = do
       return $ foldl (flip txAddSignature) balancedTx allSigners
   where
     -- Update the map of pretty printed representations in the mock chain state
-    updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
+    updateDatumStr :: TxSkel fs -> MockChainSt -> MockChainSt
     updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
       st
         { mcstStrDatums =
@@ -315,3 +321,17 @@ rstr (a, mb) = (a,) <$> mb
 
 assocl :: (a, (b, c)) -> ((a, b), c)
 assocl (a, (b, c)) = ((a, b), c)
+
+-- | Generates an unbalanced transaction from a skeleton; A
+--  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
+--  In order to submit a transaction, it must be balanced, otherwise
+--  we will see a @ValueNotPreserved@ error.
+--
+--  See "Cooked.Tx.Balance" for balancing capabilities or stick to
+--  'generateTx', which generates /and/ balances a transaction.
+generateUnbalTx :: TxSkel (SupportedCtrFeatures (MockChainT m)) -> Either Pl.MkTxError (Pl.UnbalancedTx, [Wallet])
+generateUnbalTx sk =
+  let (lkups, constrs, walsStorage) = toLedgerConstraints @Void $ txConstraints sk
+      txUnsigned = Pl.mkTx lkups constrs
+      wals = case walsStorage of WithWallets ws -> ws
+   in second (,txMainSigner sk : wals) txUnsigned

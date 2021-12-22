@@ -1,5 +1,7 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Contract where
@@ -21,10 +23,11 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherError . T.pack
 
 instance (C.AsContractError e) => MonadMockChain (C.Contract w s e) where
+  type SupportedCtrFeatures (C.Contract w s e) = '[]
+
   validateTxSkelOpts opts txSkel0 = do
-    let (lkups, constrs, additionalSigners) = toLedgerConstraints @Void (txConstraints txSkel0)
-    unless (null additionalSigners) $
-      fail "validateTxSkel: cannot validate a tx that requires others to sign when running in the Contract monad"
+    let (lkups, constrs, additionalSignersStorage) = toLedgerConstraints @Void (txConstraints txSkel0)
+    case additionalSignersStorage of NoWallets -> pure ()
     txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
     when (awaitTxConfirmed opts) $ C.awaitTxConfirmed txId
     return txId

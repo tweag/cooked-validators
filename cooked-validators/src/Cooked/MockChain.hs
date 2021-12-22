@@ -28,7 +28,7 @@ import qualified Ledger as Pl
 -- | Spends some value from a pubkey by selecting the needed utxos belonging
 --  to that pubkey and returning the leftover to the same pubkey.
 --  This function is here to avoid an import cycle.
-spentByPK :: MonadMockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
+spentByPK :: MonadMockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint (SupportedCtrFeatures m)]
 spentByPK pkh val = do
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts

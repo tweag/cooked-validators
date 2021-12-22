@@ -1,12 +1,18 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import Cooked.MockChain.Wallet
+import Data.Kind (Type)
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -43,14 +49,21 @@ sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
+data CtrFeature = Multisign
+
+type family Elem (f :: CtrFeature) (features :: [CtrFeature]) :: Bool where
+  Elem f '[] = 'False
+  Elem f (f ': fs) = 'True
+  Elem f (a ': fs) = Elem f fs
+
 -- | Our own first-class constraint type. The advantage over the regular plutus constraint
 --  type is that we get to add whatever we need and we hide away the type variables in existentials.
-data Constraint where
+data Constraint (features :: [CtrFeature]) :: Type where
   PaysScript ::
     (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a)) =>
     Pl.TypedValidator a ->
     [(Pl.DatumType a, Pl.Value)] ->
-    Constraint
+    Constraint features
   SpendsScript ::
     ( Pl.ToData (Pl.DatumType a),
       Pl.ToData (Pl.RedeemerType a),
@@ -60,25 +73,25 @@ data Constraint where
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
-    Constraint
+    Constraint features
   -- TODO: something like stepscript below could be nice!
   -- StepsScript  :: (Pl.ToData a, Pl.ToData redeemer)
   --              => Pl.Validator -> redeemer -> (SpendableOut, a) -> (a -> a) -> Constraint
 
-  PaysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
-  SpendsPK :: SpendableOut -> Constraint
+  PaysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint features
+  SpendsPK :: SpendableOut -> Constraint features
   Mints ::
     (Pl.ToData a, Show a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
-    Constraint
-  Before :: Pl.POSIXTime -> Constraint
-  After :: Pl.POSIXTime -> Constraint
-  ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy :: [Wallet] -> Constraint
+    Constraint features
+  Before :: Pl.POSIXTime -> Constraint features
+  After :: Pl.POSIXTime -> Constraint features
+  ValidateIn :: Pl.POSIXTimeRange -> Constraint features
+  SignedBy :: 'Multisign `Elem` features ~ 'True => [Wallet] -> Constraint features
 
-mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint features
 mints = Mints @() Nothing
 
 -- | A Transaction skeleton is a set of our constraints,
@@ -92,19 +105,19 @@ mints = Mints @() Nothing
 --
 -- This way we can (A) modify the show behavior if we want and (B)
 -- not worry about constructing consistent strings when constructing transactions
-data TxSkel where
+data TxSkel features where
   TxSkel ::
     (Show x) =>
     { txLabel :: Maybe x,
       txMainSigner :: Wallet,
-      txConstraints :: [Constraint]
+      txConstraints :: [Constraint features]
     } ->
-    TxSkel
+    TxSkel features
 
 -- | Constructs a skeleton without a default label
-txSkel :: Wallet -> [Constraint] -> TxSkel
+txSkel :: Wallet -> [Constraint features] -> TxSkel features
 txSkel = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x) => x -> Wallet -> [Constraint] -> TxSkel
+txSkelLbl :: (Show x) => x -> Wallet -> [Constraint features] -> TxSkel features
 txSkelLbl x = TxSkel (Just x)

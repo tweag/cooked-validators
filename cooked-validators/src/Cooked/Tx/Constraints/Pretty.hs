@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -18,7 +19,7 @@ prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
-prettyTxSkel :: TxSkel -> Doc ann
+prettyTxSkel :: TxSkel features -> Doc ann
 prettyTxSkel (TxSkel lbl signer constr) =
   PP.vsep $
     map ("-" <+>) $
@@ -34,7 +35,7 @@ prettyWallet pkh =
   where
     phash = prettyHash pkh
 
-prettyConstraint :: Constraint -> Doc ann
+prettyConstraint :: Constraint features -> Doc ann
 prettyConstraint (PaysScript val outs) =
   prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) outs)
 prettyConstraint (SpendsScript val red outdat) =

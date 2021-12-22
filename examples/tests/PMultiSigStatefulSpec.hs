@@ -53,7 +53,7 @@ mkParams = do
   out <- mkThreadToken (wallet 1)
   pure $ Params (walletPK <$> knownWallets) 2 $ threadTokenAssetClass out
   where
-    mkThreadTokenInputSkel :: Wallet -> TxSkel
+    mkThreadTokenInputSkel :: Wallet -> TxSkel fs
     mkThreadTokenInputSkel w = txSkel w [PaysPK (walletPKHash w) mempty]
 
     mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
@@ -349,7 +349,12 @@ execute tParms (parms, tokenRef) = do
 -- ** Auth Token Ducplication Attack
 
 -- Modifies a transaction skeleton by attempting to mint one more provenance token.
-dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
+dupTokenAttack ::
+  (fs ~ SupportedCtrFeatures StagedMockChain) =>
+  SpendableOut ->
+  (Params, Pl.TxOutRef) ->
+  TxSkel fs ->
+  Maybe (TxSkel fs)
 dupTokenAttack sOut (parms, tokenRef) (TxSkel l s cs) =
   Just $ TxSkel (Just $ DupTokenAttacked l) s (cs ++ attack)
   where

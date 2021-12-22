@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Cooked.MockChain.Monad.Staged where
 
@@ -22,12 +25,14 @@ import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
 
+type StagedFeatures = '[ 'Multisign]
+
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
 --  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
-  ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
+  ValidateTxSkel :: ValidateTxOpts -> TxSkel StagedFeatures -> MockChainOp Pl.TxId
   TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainOp Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
@@ -52,7 +57,7 @@ data StagedMockChain a where
   --
   -- Where the pure function ([a] -> b) is the observation over the non-determistic computation,
   -- or, we stick to not observing the computation at all:
-  Modify :: Modality TxSkel -> StagedMockChain () -> StagedMockChain a -> StagedMockChain a
+  Modify :: Modality (TxSkel StagedFeatures) -> StagedMockChain () -> StagedMockChain a -> StagedMockChain a
 
 singleton :: MockChainOp a -> StagedMockChain a
 singleton op = Instr op Return
@@ -122,6 +127,8 @@ instance MonadFail StagedMockChain where
   fail = singleton . Fail
 
 instance MonadMockChain StagedMockChain where
+  type SupportedCtrFeatures StagedMockChain = StagedFeatures
+
   validateTxSkelOpts opts = singleton . ValidateTxSkel opts
   txOutByRef = singleton . TxOutByRef
   currentSlot = singleton GetCurrentSlot
@@ -130,7 +137,7 @@ instance MonadMockChain StagedMockChain where
   awaitTime = singleton . AwaitTime
   utxosSuchThat addr = singleton . UtxosSuchThat addr
 
-instance MonadModal StagedMockChain where
+instance MonadModal StagedFeatures StagedMockChain where
   somewhere m tree = Modify (Somewhere m) tree (Return ())
   everywhere m tree = Modify (Everywhere m) tree (Return ())
 
@@ -157,7 +164,7 @@ interpret = goDet
 
     -- Interprets a staged MockChain with modalities over the transactions
     -- that are meant to be submitted.
-    goMod :: [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
+    goMod :: [Modality (TxSkel StagedFeatures)] -> StagedMockChain a -> InterpMockChain a
     -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
     -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
     --
@@ -173,7 +180,7 @@ interpret = goDet
       asum $ map (uncurry (validateThenGoMod opts f)) $ interpModalities ms skel
     goMod ms (Instr op f) = interpBind op (goMod ms . f)
 
-    validateThenGoMod :: ValidateTxOpts -> (Pl.TxId -> StagedMockChain a) -> TxSkel -> [Modality TxSkel] -> InterpMockChain a
+    validateThenGoMod :: ValidateTxOpts -> (Pl.TxId -> StagedMockChain a) -> TxSkel StagedFeatures -> [Modality (TxSkel StagedFeatures)] -> InterpMockChain a
     validateThenGoMod opts f skel ms = interpBind (ValidateTxSkel opts skel) (goMod ms . f)
 
 -- | Interprets and runs the mockchain computation from a given initial state.

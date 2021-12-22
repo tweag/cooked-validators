@@ -1,11 +1,15 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Cooked.MockChain.Monad where
 
@@ -51,6 +55,8 @@ import Test.QuickCheck.GenT
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  See [here](#mockchainanchor) for more details.
 class (MonadFail m) => MonadMockChain m where
+  type SupportedCtrFeatures m :: [CtrFeature]
+
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
   --  To balance a transaction, we need access to the current UTxO state to choose
@@ -58,7 +64,7 @@ class (MonadFail m) => MonadMockChain m where
   --
   --  Most of the times, you will want to use 'validateTxSkel', which passes the
   -- default set of options around.
-  validateTxSkelOpts :: ValidateTxOpts -> TxSkel -> m Pl.TxId
+  validateTxSkelOpts :: ValidateTxOpts -> TxSkel (SupportedCtrFeatures m) -> m Pl.TxId
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -91,15 +97,15 @@ class (MonadFail m) => MonadMockChain m where
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 -- | Monads supporting modifying transaction skeletons with modalities.
-class (Monad m) => MonadModal m where
+class (Monad m) => MonadModal fs m where
   -- | Applies a modification to all transactions in a tree
-  everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
+  everywhere :: (TxSkel fs -> TxSkel fs) -> m () -> m ()
 
   -- | Applies a modification to some transactions in a tree, note that
   -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
   -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
-  somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
+  somewhere :: (TxSkel fs -> Maybe (TxSkel fs)) -> m () -> m ()
 
 data ValidateTxOpts = ValidateTxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
@@ -131,11 +137,11 @@ instance Default ValidateTxOpts where
       }
 
 -- | Calls 'validateTxSkelOpts' with the default set of options
-validateTxSkel :: (MonadMockChain m) => TxSkel -> m Pl.TxId
+validateTxSkel :: (MonadMockChain m) => TxSkel (SupportedCtrFeatures m) -> m Pl.TxId
 validateTxSkel = validateTxSkelOpts def
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
+type MonadModalMockChain m = (MonadMockChain m, MonadModal (SupportedCtrFeatures m) m)
 
 spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -223,6 +229,8 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+  type SupportedCtrFeatures (AsTrans t m) = SupportedCtrFeatures m
+
   validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   txOutByRef = lift . txOutByRef
@@ -235,10 +243,10 @@ deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain
 
 deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
-instance MonadModal m => MonadModal (ReaderT r m) where
+instance MonadModal fs m => MonadModal fs (ReaderT r m) where
   everywhere f m = ReaderT (everywhere f . runReaderT m)
   somewhere f m = ReaderT (somewhere f . runReaderT m)
 
-instance MonadModal m => MonadModal (GenT m) where
+instance MonadModal fs m => MonadModal fs (GenT m) where
   everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
   somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))

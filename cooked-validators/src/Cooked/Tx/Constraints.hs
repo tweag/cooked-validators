@@ -1,7 +1,13 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Cooked.Tx.Constraints
   ( module Cooked.Tx.Constraints.Type,
@@ -10,16 +16,14 @@ module Cooked.Tx.Constraints
     extractDatumStrFromConstraint,
     toLedgerConstraint,
     toLedgerConstraints,
-    generateUnbalTx,
+    WalletStorage (..),
   )
 where
 
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
-import Data.Bifunctor (Bifunctor (second))
 import qualified Data.Map.Strict as M
-import Data.Void
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
@@ -27,11 +31,25 @@ import qualified PlutusTx as Pl
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
 
-type LedgerConstraint a =
-  (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), [Wallet])
+data WalletStorage b where
+  NoWallets :: WalletStorage 'False
+  WithWallets :: [Wallet] -> WalletStorage 'True
+
+instance Semigroup (WalletStorage fs) where
+  NoWallets <> NoWallets = NoWallets
+  WithWallets ws1 <> WithWallets ws2 = WithWallets $ ws1 <> ws2
+
+instance Monoid (WalletStorage 'False) where
+  mempty = NoWallets
+
+instance Monoid (WalletStorage 'True) where
+  mempty = WithWallets []
+
+type LedgerConstraint fs a =
+  (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a), WalletStorage ('Multisign `Elem` fs))
 
 -- | Map from datum hashes to string representation of all the datum carried
-extractDatumStrFromConstraint :: Constraint -> M.Map Pl.DatumHash String
+extractDatumStrFromConstraint :: Constraint fs -> M.Map Pl.DatumHash String
 extractDatumStrFromConstraint (PaysScript _validator datumsAndValues) =
   M.fromList
     . map ((\d -> (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d, show d)) . fst)
@@ -42,7 +60,7 @@ extractDatumStrFromConstraint _ = M.empty
 
 -- | Converts our constraint into a 'LedgerConstraint',
 --  which later can be used to generate a transaction.
-toLedgerConstraint :: Constraint -> LedgerConstraint a
+toLedgerConstraint :: Monoid (WalletStorage ('Multisign `Elem` fs)) => Constraint fs -> LedgerConstraint fs a
 toLedgerConstraint (SpendsScript v r ((oref, o), _a)) = (lkups, constr, mempty)
   where
     lkups =
@@ -78,22 +96,9 @@ toLedgerConstraint (After t) = (mempty, constr, mempty)
   where
     constr = Pl.mustValidateIn (Pl.from t)
 toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r, mempty)
-toLedgerConstraint (SignedBy wals) = (mempty, mempty, wals)
+toLedgerConstraint (SignedBy wals) = (mempty, mempty, WithWallets wals)
 
-toLedgerConstraints :: [Constraint] -> LedgerConstraint a
+toLedgerConstraints :: forall a fs. Monoid (WalletStorage ('Multisign `Elem` fs)) => [Constraint fs] -> LedgerConstraint fs a
 toLedgerConstraints cs = (mconcat lkups, mconcat constrs, mconcat wals)
   where
     (lkups, constrs, wals) = unzip3 $ map toLedgerConstraint cs
-
--- | Generates an unbalanced transaction from a skeleton; A
---  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
---  In order to submit a transaction, it must be balanced, otherwise
---  we will see a @ValueNotPreserved@ error.
---
---  See "Cooked.Tx.Balance" for balancing capabilities or stick to
---  'generateTx', which generates /and/ balances a transaction.
-generateUnbalTx :: TxSkel -> Either Pl.MkTxError (Pl.UnbalancedTx, [Wallet])
-generateUnbalTx sk =
-  let (lkups, constrs, wals) = toLedgerConstraints @Void $ txConstraints sk
-   in let txUnsigned = Pl.mkTx lkups constrs
-       in second (,txMainSigner sk : wals) txUnsigned
