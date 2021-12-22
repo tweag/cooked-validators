@@ -93,25 +93,23 @@ mPrettyValue =
     . Pl.getValue
 
 prettyCurrencyAndAmount :: Pl.CurrencySymbol -> Pl.Map Pl.TokenName Integer -> Doc ann
-prettyCurrencyAndAmount symbol amountMap =
-  case (symbol, Pl.toList amountMap) of
-    ("", [("", adaAmount)]) ->
-      "Ada"
-        <> Prettyprinter.colon
-        <> Prettyprinter.space
-        <> Prettyprinter.pretty adaAmount
-    _ -> Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList $ amountMap
+prettyCurrencyAndAmount symbol =
+  Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList
   where
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
     prettySymbol = Prettyprinter.pretty . take 7 . show
 
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
-      Prettyprinter.parens
-        ( prettySymbol symbol
-            <+> "$"
-            <+> Prettyprinter.pretty name
-        )
+      ( if symbol == Pl.CurrencySymbol ""
+          then (if name == Pl.TokenName "" then "Ada" else Prettyprinter.pretty name)
+          else
+            Prettyprinter.parens
+              ( prettySymbol symbol
+                  <+> "$"
+                  <+> Prettyprinter.pretty name
+              )
+      )
         <> ":"
         <> Prettyprinter.space
         <> Prettyprinter.pretty n

@@ -177,16 +177,16 @@ interpret = goDet
     validateThenGoMod opts f skel ms = interpBind (ValidateTxSkel opts skel) (goMod ms . f)
 
 -- | Interprets and runs the mockchain computation from a given initial state.
-interpretAndRunFrom ::
+interpretAndRunRaw ::
   StagedMockChain a ->
   MockChainSt ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunFrom smc st0 = runWriterT $ runMockChainTFrom st0 (interpret smc)
+interpretAndRunRaw smc st0 = runWriterT $ runMockChainTRaw st0 (interpret smc)
 
 interpretAndRun ::
   StagedMockChain a ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRun smc = interpretAndRunFrom smc def
+interpretAndRun smc = interpretAndRunRaw smc def
 
 -- * Modalities
 
