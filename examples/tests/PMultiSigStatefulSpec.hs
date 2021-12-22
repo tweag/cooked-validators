@@ -22,11 +22,10 @@ import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
-import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Pl
-import PMultiSigStateful hiding (fromJust)
+import PMultiSigStateful
 import qualified PMultiSigStateful.DatumHijacking as HJ
 import PMultiSigStateful.ToUPLC
 import qualified PlutusTx.IsData.Class as Pl
