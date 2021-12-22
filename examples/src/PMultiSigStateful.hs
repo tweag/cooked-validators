@@ -142,18 +142,17 @@ findDatum txInfo inInfo =
 -- which returns those outputs that pay to the same address of whatever is beeing
 -- redeemed.
 --
--- Here, we used 'txInfoOutputs' without checking the address explicitely,
--- MAKING THIS SCRIPT VULNERABLE to the datum hijack attack.
+-- Here, had we used 'txInfoOutputs' without checking the address explicitely,
+-- it would MAKE THIS SCRIPT VULNERABLE to the datum hijack attack.
 -- You can find more about it at "PMultiSigStateful.DatumHijacking" and its respective
 -- test suite to see how that works.
 {-# INLINEABLE findAccumulators #-}
 findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
--- If you're reading this function, this is how this should be to be safe against
--- a datum hijacking attack:
+-- If you're reading this function, this is how this script would have to
+-- be modified to become vulnerable to a datum hijacking attack:
+-- findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
 findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
   where
-    -- findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
-
     txInfo = scriptContextTxInfo ctx
 
     toAcc (Api.TxOut _ outVal (Just dh))
