@@ -5,12 +5,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
 import Control.Applicative
-import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -20,10 +20,12 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import Data.Bifunctor (Bifunctor (second))
 import Data.Default
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
+import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -282,6 +284,19 @@ utxosSuchThat' addr datumPred = do
           if datumPred (Just a) val
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
+
+-- | Generates an unbalanced transaction from a skeleton; A
+--  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
+--  In order to submit a transaction, it must be balanced, otherwise
+--  we will see a @ValueNotPreserved@ error.
+--
+--  See "Cooked.Tx.Balance" for balancing capabilities or stick to
+--  'generateTx', which generates /and/ balances a transaction.
+generateUnbalTx :: TxSkel -> Either Pl.MkTxError (Pl.UnbalancedTx, [Wallet])
+generateUnbalTx sk =
+  let (lkups, constrs, wals) = toLedgerConstraints @Void $ txConstraints sk
+   in let txUnsigned = Pl.mkTx lkups constrs
+       in second (,txMainSigner sk : wals) txUnsigned
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
