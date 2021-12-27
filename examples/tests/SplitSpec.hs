@@ -16,27 +16,25 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadMockChain m => Wallet -> Split.SplitParams -> m ()
+txLock :: MonadMockChain m => Wallet -> Split.SplitDatum -> m ()
 txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints)
   where
     constraints =
       [ PaysScript
           Split.splitValidator
-          [ ( Split.makeDatum params,
-              Pl.lovelaceValueOf $ Split.amount params
-            )
+          [ (params, Pl.lovelaceValueOf $ Split.amount params)
           ]
       ]
 
 -- | Label for 'txLock' skeleton
-newtype TxLock = TxLock Split.SplitParams deriving (Show)
+newtype TxLock = TxLock Split.SplitDatum deriving (Show)
 
 -- | Whether a script output concerns a given wallet (i.e. the wallet is a
 -- recipient)
 isARecipient :: Wallet -> Split.SplitDatum -> a -> Bool
 isARecipient w datum _ =
   let wHash = walletPKHash w
-   in elem wHash [Split.datumRecipient1 datum, Split.datumRecipient2 datum]
+   in elem wHash [Split.recipient1 datum, Split.recipient2 datum]
 
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
 txUnlock :: (MonadMockChain m) => Wallet -> m ()
@@ -138,20 +136,20 @@ txUnlockGreedy :: MonadMockChain m => Wallet -> m ()
 txUnlockGreedy w = txUnlock' (Just w) (Just w) Nothing w
 
 -- | Parameters to share 400 among wallets 2 and 3
-lockParams :: Split.SplitParams
+lockParams :: Split.SplitDatum
 lockParams =
-  Split.SplitParams
-    { Split.recipient1 = walletPK (wallet 2),
-      Split.recipient2 = walletPK (wallet 3),
+  Split.SplitDatum
+    { Split.recipient1 = walletPKHash (wallet 2),
+      Split.recipient2 = walletPKHash (wallet 3),
       Split.amount = 2_000_000
     }
 
 -- | Parameters to share 400 among wallets 3 and 4
-lockParams2 :: Split.SplitParams
+lockParams2 :: Split.SplitDatum
 lockParams2 =
-  Split.SplitParams
-    { Split.recipient1 = walletPK (wallet 4),
-      Split.recipient2 = walletPK (wallet 3),
+  Split.SplitDatum
+    { Split.recipient1 = walletPKHash (wallet 4),
+      Split.recipient2 = walletPKHash (wallet 3),
       Split.amount = 4_000_000
     }
 

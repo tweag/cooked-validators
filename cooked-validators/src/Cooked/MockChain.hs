@@ -6,6 +6,7 @@ module Cooked.MockChain
     module Cooked.MockChain.Monad.Direct,
     module Cooked.MockChain.Monad,
     module Cooked.MockChain.QuickCheck,
+    module Cooked.MockChain.RawUPLC,
     module Cooked.MockChain.HUnit,
     SpendableOut,
     spentByPK,
@@ -18,6 +19,7 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.QuickCheck
+import Cooked.MockChain.RawUPLC
 import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet

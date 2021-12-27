@@ -13,6 +13,7 @@
 
 module PMultiSigStatefulSpec where
 
+import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
 import Cooked.MockChain.HUnit
@@ -23,9 +24,11 @@ import Data.Function (on)
 import Data.List (nub, nubBy)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Typed.Scripts as Scripts
+import qualified Ledger.Typed.Scripts as Pl
 import PMultiSigStateful
 import qualified PMultiSigStateful.DatumHijacking as HJ
+import PMultiSigStateful.ToUPLC
+import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
@@ -372,16 +375,18 @@ datumHijackingTrace =
   TW.bug
     TW.Critical
     [str|Performs a datum-hijacking attack by using a fake validator with an
-        |isomorphic datum type. This is supposed to succeed because we
-        |deliberately injected this failure in our script.
+        |isomorphic datum type. This attack can be used in scripts that forget
+        |to check the address of an output. Most of the times, if a script
+        |uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
+        |chances are said script will be vulnerable.
       |]
-    $ expectFail $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+    $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9
 
 -- checks are done on the datum of the contract instead of the address of it.
-fakeValidator :: Scripts.TypedValidator HJ.Stealer
+fakeValidator :: Pl.TypedValidator HJ.Stealer
 fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
 
 datumHijacking :: (MonadMockChain m) => m ()
