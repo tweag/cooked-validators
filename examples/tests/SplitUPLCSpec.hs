@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module SplitUPLCSpec where
@@ -8,25 +9,27 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
+import qualified Ledger as Pl (scriptAddress)
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Plutus.V1.Ledger.Ada as Pl
 import PlutusTx.Builtins
 import qualified PlutusTx.IsData.Class as Pl
 import qualified Split
 import Split.ToUPLC (splitBS)
+import qualified SplitSpec
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadMockChain m => Wallet -> Pl.TypedValidator Pl.Any -> Split.SplitDatum -> m ()
+txLock :: MonadMockChain m => Wallet -> Pl.TypedValidator Split.Split -> Split.SplitDatum -> m ()
 txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constraints)
   where
     constraints =
       [ PaysScript
           script
-          [ ( Pl.toBuiltinData datum,
+          [ ( datum,
               Pl.lovelaceValueOf $ Split.amount datum
             )
           ]
@@ -35,20 +38,11 @@ txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constr
 -- | Label for 'txLock' skeleton
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
 
--- | Whether a script output concerns a given wallet (i.e. the wallet is a
--- recipient)
-isARecipient :: Wallet -> BuiltinData -> a -> Bool
-isARecipient w d _
-  | Just datum <- Pl.fromBuiltinData d =
-    let wHash = walletPKHash w
-     in elem wHash [Split.recipient1 datum, Split.recipient2 datum]
-  | otherwise = False
-
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadMockChain m) => Wallet -> Pl.TypedValidator Pl.Any -> m ()
+txUnlock :: (MonadMockChain m) => Wallet -> Pl.TypedValidator Split.Split -> m ()
 txUnlock issuer script = do
-  (output, datum) : _ <- scriptUtxosSuchThat script (isARecipient issuer)
-  let Just (Split.SplitDatum r1 r2 amount) = Pl.fromBuiltinData datum
+  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
+    scriptUtxosSuchThat script (SplitSpec.isARecipient issuer)
   let half = div amount 2
   let share1 = half
   let share2 = amount - half
@@ -57,7 +51,7 @@ txUnlock issuer script = do
       txSkelLbl
         TxUnlock
         issuer
-        [ SpendsScript script (Pl.toBuiltinData ()) (output, Pl.toBuiltinData datum),
+        [ SpendsScript script () (output, datum),
           PaysPK r1 (Pl.lovelaceValueOf share1),
           PaysPK r2 (Pl.lovelaceValueOf share2)
         ]
@@ -80,9 +74,18 @@ tests =
     "SplitSpec imported from UPLC"
     [ testCase "Simple example succeeds" $
         assertSucceeds $ do
-          script <- case uplcFromBS splitBS of
+          script <- case unsafeTypedValidatorFromBS splitBS of
             Left err -> fail "couldn't load the Split contract from its binary repr"
             Right r -> return r
           txLock (wallet 1) script lockParams
-          txUnlock (wallet 2) script
+          txUnlock (wallet 2) script,
+      -- This is marked as an expected failure until we sort issue 57 out
+      expectFail $
+        testCase "Same address as compiled script" $
+          case unsafeTypedValidatorFromBS @Split.Split splitBS of
+            Left err -> assertFailure "couldn't load the Split contract from its binary repr"
+            Right res ->
+              let defAddr = Pl.scriptAddress $ Pl.validatorScript Split.splitValidator
+                  bsAddr = Pl.scriptAddress $ Pl.validatorScript res
+               in defAddr @=? bsAddr
     ]

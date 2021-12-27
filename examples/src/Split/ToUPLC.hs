@@ -11,7 +11,8 @@ import qualified PlutusTx
 import Split
 
 -- | Compiles the split contract down to a bytestring, that can later be loaded
---  as a arbitrary UPLC contract.
+--  as a arbitrary UPLC contract. To see how to handle scripts with parameters,
+--  please check "PMultiSigStateful.ToUPLC".
 splitBS :: ByteString
 splitBS =
   flat $
