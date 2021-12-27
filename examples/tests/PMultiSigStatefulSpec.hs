@@ -51,7 +51,7 @@ import Text.Heredoc
 -- | Initializes the system and returns the parameters; in this case,
 --  initialization is simple. All we have to do is create the thread token
 --  that gets passed to the proposal.
-mkParams :: MonadMockChain m => m Params
+mkParams :: MonadBlockChain m => m Params
 mkParams = do
   out <- mkThreadToken (wallet 1)
   pure $ Params (walletPK <$> knownWallets) 2 $ threadTokenAssetClass out
@@ -59,7 +59,7 @@ mkParams = do
     mkThreadTokenInputSkel :: Wallet -> TxSkel
     mkThreadTokenInputSkel w = txSkel w [PaysPK (walletPKHash w) mempty]
 
-    mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
+    mkThreadToken :: MonadBlockChain m => Wallet -> m Pl.TxOutRef
     mkThreadToken w = do
       void $ validateTxSkel $ mkThreadTokenInputSkel w
       emptyUtxos <- pkUtxosSuchThat (walletPKHash w) (== mempty)
@@ -74,7 +74,7 @@ data ProposalSkel = ProposalSkel Integer Payment
   deriving (Show)
 
 -- | Next, we can create proposals, which are simply an accumulator with no signees
-mkProposal :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, Pl.TxOutRef)
+mkProposal :: MonadBlockChain m => Integer -> Wallet -> Payment -> m (Params, Pl.TxOutRef)
 mkProposal reqSigs w pmt = do
   utxos <- pkUtxos wpkh
   case utxos of
@@ -110,7 +110,7 @@ mkProposal reqSigs w pmt = do
 --   on top of their payment. This is to avoid complex scenarios where someone signed
 --   twice, or even an attack where the attacker would execute the mkPay transaction
 --   but keep all the locked ada to themselves.
-mkSign :: MonadMockChain m => Params -> Wallet -> Payment -> m ()
+mkSign :: MonadBlockChain m => Params -> Wallet -> Payment -> m ()
 mkSign params w pmt =
   void $
     validateTxSkel $
@@ -127,7 +127,7 @@ mkSign params w pmt =
 minAda :: Pl.Value
 minAda = Pl.lovelaceValueOf 2000000
 
-mkCollect :: MonadMockChain m => Payment -> Params -> m ()
+mkCollect :: MonadBlockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
@@ -144,7 +144,7 @@ mkCollect thePayment params = do
         SpendsScript (pmultisig params) () initialProp :
         (SpendsScript (pmultisig params) () <$> signatures)
 
-mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
+mkPay :: MonadBlockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
 mkPay thePayment params tokenOutRef = do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
   void $
@@ -193,7 +193,7 @@ sampleTrace1 =
       |]
     $ testCase "Example Trivial Trace" $ assertSucceeds mtrace
   where
-    mtrace :: MonadMockChain m => m ()
+    mtrace :: MonadBlockChain m => m ()
     mtrace = do
       (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
       mkSign params (wallet 1) thePayment
@@ -217,7 +217,7 @@ qcIsRight (Right _) = QC.property True
 --
 --  What is happening, though? Well, say we write a trace:
 --
---  > tr :: (MonadMockChain m) => GenT m ()
+--  > tr :: (MonadBlockChain m) => GenT m ()
 --  > tr = do
 --  >   x <- choose (0, 10)
 --  >   y <- choose (0, 10)
@@ -242,7 +242,7 @@ qcIsRight (Right _) = QC.property True
 --
 --  Now say we change @tr@ to:
 --
---  > tr2 :: (MonadMockChain m) => GenT m ()
+--  > tr2 :: (MonadBlockChain m) => GenT m ()
 --  > tr2 = do
 --  >   x <- choose (0, 10)
 --  >   y <- choose (0, 10)
@@ -340,10 +340,10 @@ successParams =
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
 
-propose :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+propose :: MonadBlockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
 propose parms = mkProposal (reqSigs parms) (proposerWallet parms) (pmt parms)
 
-execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+execute :: MonadBlockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
 execute tParms (parms, tokenRef) = do
   forM_ (sigWallets tParms) $ \wId -> mkSign parms (wallet wId) (pmt tParms)
   mkCollect (pmt tParms) parms
@@ -389,7 +389,7 @@ attacker = wallet 9
 fakeValidator :: Pl.TypedValidator HJ.Stealer
 fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
 
-datumHijacking :: (MonadMockChain m) => m ()
+datumHijacking :: (MonadBlockChain m) => m ()
 datumHijacking = do
   (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
   mkSign params (wallet 1) thePayment
@@ -402,7 +402,7 @@ datumHijacking = do
 trPayment :: Payment -> HJ.Payment
 trPayment (Payment val dest) = HJ.Payment val dest
 
-mkFakeCollect :: MonadMockChain m => Payment -> Params -> m ()
+mkFakeCollect :: MonadBlockChain m => Payment -> Params -> m ()
 mkFakeCollect thePayment params = do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign

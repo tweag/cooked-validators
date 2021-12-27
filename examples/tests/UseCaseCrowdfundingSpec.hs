@@ -57,7 +57,7 @@ deriving instance Show CampaignAction
 
 -- | Generates an aribtrary campaign with a the collection deadline set as
 -- a delta on top of the payment deadline.
-genCampaign :: (MonadMockChain m) => Integer -> Wallet -> GenT m (Ledger.POSIXTime, Campaign)
+genCampaign :: (MonadBlockChain m) => Integer -> Wallet -> GenT m (Ledger.POSIXTime, Campaign)
 genCampaign collectDelta owner = do
   startTime <- currentTime
   deadline <- Ledger.POSIXTime <$> choose (20000, 40000)
@@ -70,7 +70,7 @@ genCampaign collectDelta owner = do
       }
 
 -- | Provides some funds to the campaign
-paysCampaign :: (MonadMockChain m) => Campaign -> Wallet -> Ledger.Value -> m ()
+paysCampaign :: (MonadBlockChain m) => Campaign -> Wallet -> Ledger.Value -> m ()
 paysCampaign c w val =
   void $
     validateTxSkelOpts (def {autoSlotIncrease = False}) $
@@ -79,7 +79,7 @@ paysCampaign c w val =
         [PaysScript (typedValidator c) [(walletPKHash w, val)]]
 
 -- | Retrieve funds as being the owner
-retrieveFunds :: (MonadMockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
+retrieveFunds :: (MonadBlockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
 retrieveFunds t c owner = do
   funds <- scriptUtxosSuchThat (typedValidator c) (\_ _ -> True)
   void $
@@ -110,7 +110,7 @@ ownerCanRetrieveFunds =
         |]
     $ testCase "Funds can be retrieved" $ isRight (runMockChain mtrace) @? "Trace failed"
   where
-    mtrace :: MonadMockChain m => m ()
+    mtrace :: MonadBlockChain m => m ()
     mtrace = do
       t <- currentTime
       -- A simple campaign starting now;

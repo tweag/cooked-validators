@@ -26,13 +26,13 @@ import Test.QuickCheck.GenT
 -- $mockchainmonad
 -- #mockchainanchor#
 --
--- The 'MonadMockChain' class provides the basic interface
+-- The 'MonadBlockChain' class provides the basic interface
 -- to write traces for validator scripts using the transaction generator from
 -- the constraints from "Cooked.Tx.Constraints".
 --
 -- A /trace/ is a sequence of transactions that bring the system into a given state:
 --
--- > tr :: (MonadMockChain m) => m ()
+-- > tr :: (MonadBlockChain m) => m ()
 --
 -- It is strongly recomended that you write your code polymorphic over the monad @m@,
 -- in order to be able to choose different interpretations at run time.
@@ -50,7 +50,7 @@ import Test.QuickCheck.GenT
 
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  See [here](#mockchainanchor) for more details.
-class (MonadFail m) => MonadMockChain m where
+class (MonadFail m) => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
   --  To balance a transaction, we need access to the current UTxO state to choose
@@ -131,20 +131,20 @@ instance Default ValidateTxOpts where
       }
 
 -- | Calls 'validateTxSkelOpts' with the default set of options
-validateTxSkel :: (MonadMockChain m) => TxSkel -> m Pl.TxId
+validateTxSkel :: (MonadBlockChain m) => TxSkel -> m Pl.TxId
 validateTxSkel = validateTxSkelOpts def
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m)
+type MonadModalMockChain m = (MonadBlockChain m, MonadModal m)
 
-spendableRef :: (MonadMockChain m) => Pl.TxOutRef -> m SpendableOut
+spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
 -- | Public-key UTxO's have no datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (MonadMockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
+pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
 pkUtxosSuchThat pkh predicate =
   map fst
     <$> utxosSuchThat @_ @Void
@@ -155,7 +155,7 @@ pkUtxosSuchThat pkh predicate =
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
 --  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
 scriptUtxosSuchThat ::
-  (MonadMockChain m, Pl.FromData (Pl.DatumType tv)) =>
+  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
   (Pl.DatumType tv -> Pl.Value -> Bool) ->
   m [(SpendableOut, Pl.DatumType tv)]
@@ -166,7 +166,7 @@ scriptUtxosSuchThat v predicate =
       (maybe (const False) predicate)
 
 -- | Returns the output associated with a given reference
-outFromOutRef :: (MonadMockChain m) => Pl.TxOutRef -> m Pl.TxOut
+outFromOutRef :: (MonadBlockChain m) => Pl.TxOutRef -> m Pl.TxOut
 outFromOutRef outref = do
   mo <- txOutByRef outref
   case mo of
@@ -174,12 +174,12 @@ outFromOutRef outref = do
     Nothing -> fail ("No output associated with: " ++ show outref)
 
 -- | Return all utxos belonging to a pubkey
-pkUtxos :: (MonadMockChain m) => Pl.PubKeyHash -> m [SpendableOut]
+pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
 pkUtxos = flip pkUtxosSuchThat (const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
-pkUtxos' :: (MonadMockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
+pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
 pkUtxos' pkh = map (second go) <$> pkUtxos pkh
   where
     go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
@@ -198,31 +198,31 @@ pkUtxos' pkh = map (second go) <$> pkUtxos pkh
 
 -- TODO: Finish documentation when issue #34 is solved
 
-waitNSlots :: (MonadMockChain m) => Integer -> m Pl.Slot
+waitNSlots :: (MonadBlockChain m) => Integer -> m Pl.Slot
 waitNSlots n = do
   when (n < 0) $ fail "waitNSlots: negative argument"
   c <- currentSlot
   awaitSlot $ c + fromIntegral n
 
-waitNMilliSeconds :: (MonadMockChain m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
+waitNMilliSeconds :: (MonadBlockChain m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
 waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
--- ** Deriving further 'MonadMockChain' instances
+-- ** Deriving further 'MonadBlockChain' instances
 
--- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadMockChain'
+-- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
 -- for any 'MonadTrans'.
 --
--- For example, to derive 'MonadMockChain m => MonadMockChain (ReaderT r m)', you'd write
+-- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
 --
--- > deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+-- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 --
 -- and avoid the boilerplate of defining all the methods of the class yourself.
 newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
-instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   txOutByRef = lift . txOutByRef
@@ -231,9 +231,9 @@ instance (MonadTrans t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (As
   awaitSlot = lift . awaitSlot
   awaitTime = lift . awaitTime
 
-deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
-deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
+deriving via (AsTrans GenT m) instance MonadBlockChain m => MonadBlockChain (GenT m)
 
 instance MonadModal m => MonadModal (ReaderT r m) where
   everywhere f m = ReaderT (everywhere f . runReaderT m)

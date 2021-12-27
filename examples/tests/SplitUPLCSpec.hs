@@ -23,7 +23,7 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadMockChain m => Wallet -> Pl.TypedValidator Split.Split -> Split.SplitDatum -> m ()
+txLock :: MonadBlockChain m => Wallet -> Pl.TypedValidator Split.Split -> Split.SplitDatum -> m ()
 txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constraints)
   where
     constraints =
@@ -39,7 +39,7 @@ txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constr
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
 
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadMockChain m) => Wallet -> Pl.TypedValidator Split.Split -> m ()
+txUnlock :: (MonadBlockChain m) => Wallet -> Pl.TypedValidator Split.Split -> m ()
 txUnlock issuer script = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat script (SplitSpec.isARecipient issuer)

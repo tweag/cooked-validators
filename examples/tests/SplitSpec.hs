@@ -16,7 +16,7 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadMockChain m => Wallet -> Split.SplitDatum -> m ()
+txLock :: MonadBlockChain m => Wallet -> Split.SplitDatum -> m ()
 txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints)
   where
     constraints =
@@ -37,7 +37,7 @@ isARecipient w datum _ =
    in elem wHash [Split.recipient1 datum, Split.recipient2 datum]
 
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadMockChain m) => Wallet -> m ()
+txUnlock :: (MonadBlockChain m) => Wallet -> m ()
 txUnlock issuer = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
@@ -61,7 +61,7 @@ data TxUnlock = TxUnlock deriving (Show)
 -- @txUnlock' Nothing Nothing Nothing == txUnlock@, but we keep
 -- two functions for pedagogical purposes.
 txUnlock' ::
-  MonadMockChain m =>
+  MonadBlockChain m =>
   -- | Optionally override first recipient
   Maybe Wallet ->
   -- | Optionally override second recipient
@@ -104,7 +104,7 @@ data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) derivin
 -- amount, and sharing the same second recipient.
 -- Attack: the second recipient is paid only one of his shares, the remainder
 -- goes to the issuer of the transaction.
-txUnlockAttack :: MonadMockChain m => Wallet -> m ()
+txUnlockAttack :: MonadBlockChain m => Wallet -> m ()
 txUnlockAttack issuer = do
   (output1, datum1@(Split.SplitDatum r11 r12 amount))
     : (output2, datum2@(Split.SplitDatum r21 _ _))
@@ -124,15 +124,15 @@ txUnlockAttack issuer = do
 data TxUnlockAttack = TxUnlockAttack deriving (Show)
 
 -- | Transaction that does not pay enough to the recipients
-txUnlockNotEnough :: MonadMockChain m => Wallet -> m ()
+txUnlockNotEnough :: MonadBlockChain m => Wallet -> m ()
 txUnlockNotEnough = txUnlock' Nothing Nothing (Just (`div` 2))
 
 -- | Transaction that gives everything to the first recipient
-txUnlockTooMuch :: MonadMockChain m => Wallet -> m ()
+txUnlockTooMuch :: MonadBlockChain m => Wallet -> m ()
 txUnlockTooMuch = txUnlock' Nothing Nothing (Just (* 2))
 
 -- | Transaction that pays everything to the issuer
-txUnlockGreedy :: MonadMockChain m => Wallet -> m ()
+txUnlockGreedy :: MonadBlockChain m => Wallet -> m ()
 txUnlockGreedy w = txUnlock' (Just w) (Just w) Nothing w
 
 -- | Parameters to share 400 among wallets 2 and 3

@@ -194,7 +194,7 @@ utxoIndex0 = utxoIndex0From initialDistribution
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadMockChain (MockChainT m) where
+instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkelOpts opts skel = do
     tx <- generateTx' opts skel
     txId <- validateTx' tx

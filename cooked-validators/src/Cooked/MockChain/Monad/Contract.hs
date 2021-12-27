@@ -16,11 +16,11 @@ import qualified Ledger as Pl
 import qualified Plutus.Contract as C
 import qualified PlutusTx as Pl
 
--- TODO shall MonadFail really be the constraint on the MonadMockChain class?
+-- TODO shall MonadFail really be the constraint on the MonadBlockChain class?
 instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherError . T.pack
 
-instance (C.AsContractError e) => MonadMockChain (C.Contract w s e) where
+instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   validateTxSkelOpts opts txSkel0 = do
     let (lkups, constrs, additionalSigners) = toLedgerConstraints @Void (txConstraints txSkel0)
     unless (null additionalSigners) $

@@ -27,7 +27,7 @@ minAda = Ada.lovelaceValueOf 2000000
 
 -- | Grabs the first UTxO belonging to the given wallet, uses it to initialize the
 --  main NFT; then mints said nft and creates a 'BigBoss' datum.
-initBigBoss :: (MonadMockChain m) => Wallet -> m BigBossId
+initBigBoss :: (MonadBlockChain m) => Wallet -> m BigBossId
 initBigBoss w = do
   (Validation.TxOutRef h i, _) : _ <- pkUtxos' (walletPKHash w)
   let bbId = (h, i)
@@ -45,7 +45,7 @@ initBigBoss w = do
 data InitBigBoss = InitBigBoss deriving (Show)
 
 -- | Opens up a new forge belonging to a given wallet
-openForge :: (MonadMockChain m) => BigBossId -> Wallet -> m ()
+openForge :: (MonadBlockChain m) => BigBossId -> Wallet -> m ()
 openForge bbId w = do
   [(outBB, datBB@(BigBoss l))] <- scriptUtxosSuchThat (bigBossVal bbId) (\_ _ -> True)
   let oneBBNFT = Value.assetClassValue (bigBossNFT bbId) 1
@@ -66,7 +66,7 @@ data OpenForge = OpenForge deriving (Show)
 
 -- | Smiths from the first forge that came out of the given 'BigBossId' and belongs to
 --  the given wallet
-smiths :: (MonadMockChain m) => BigBossId -> Wallet -> Integer -> m ()
+smiths :: (MonadBlockChain m) => BigBossId -> Wallet -> Integer -> m ()
 smiths bbId w val = do
   (outSmith, datSmith@(Forge owner forged)) : _ <- scriptUtxosSuchThat (smithVal bbId) (\d _ -> d `belongsTo` w)
   void $

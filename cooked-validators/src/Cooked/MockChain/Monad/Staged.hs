@@ -24,7 +24,7 @@ import qualified Prettyprinter.Render.String as PP
 
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
---  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
+--  On top of the operations from 'MonadBlockChain' we also have 'Fail' to make
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
   ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
@@ -121,7 +121,7 @@ interpretOp (Fail str) = fail str
 instance MonadFail StagedMockChain where
   fail = singleton . Fail
 
-instance MonadMockChain StagedMockChain where
+instance MonadBlockChain StagedMockChain where
   validateTxSkelOpts opts = singleton . ValidateTxSkel opts
   txOutByRef = singleton . TxOutByRef
   currentSlot = singleton GetCurrentSlot
