@@ -9,7 +9,13 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository code.
+      - name: Check out repository code (from PR).
+        if: github.ref != 'refs/heads/main'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Check out repository code (from main).
+        if: github.ref == 'refs/heads/main'
         uses: actions/checkout@v2
       - name: Install nix.
         uses: cachix/install-nix-action@v13

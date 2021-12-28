@@ -9,6 +9,19 @@ at the transaction level.
 
 ## Getting Started
 
-Please, make sure to
+If you want to _build_ `cooked-validators`, please follow the instructions 
+to [set up your environment](../README.md#developer-tools-and-environment). 
+
+For _using_ `cooked-validators` in your project, you can add the following
+to your `cabal.project` file:
+```
+source-repository-package
+ type: git
+ location: https://github.com/tweag/plutus-libs
+ tag: <whatever-tag-or-commit-you-want>
+ subdir:
+   cooked-validators
+```
+ 
 
 [plutus]: https://github.com/input-output-hk/plutus
