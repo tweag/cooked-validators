@@ -11,5 +11,5 @@ if [[ ! -z "$changes" ]]; then
   git config user.email github-actions@github.com
   git add $changes
   git commit -m "Generated cabal files"
-  git push origin $1
+  git push
 fi
