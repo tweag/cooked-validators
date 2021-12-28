@@ -22,9 +22,7 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
 
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   validateTxSkelOpts opts txSkel0 = do
-    let (lkups, constrs, additionalSigners) = toLedgerConstraints @Void (txConstraints txSkel0)
-    unless (null additionalSigners) $
-      fail "validateTxSkel: cannot validate a tx that requires others to sign when running in the Contract monad"
+    let (lkups, constrs) = toLedgerConstraints @Void (txConstraints txSkel0)
     txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
     when (awaitTxConfirmed opts) $ C.awaitTxConfirmed txId
     return txId

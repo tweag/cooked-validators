@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Cooked.MockChain.Monad.Staged where
 
@@ -12,6 +13,7 @@ import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
@@ -39,6 +41,8 @@ data MockChainOp a where
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainOp [(SpendableOut, Maybe a)]
   Fail :: String -> MockChainOp a
+  FindWalletByPKH :: Pl.PubKeyHash -> MockChainOp (Maybe Wallet)
+  WithWallets :: [Wallet] -> StagedMockChain a -> MockChainOp a
 
 data StagedMockChain a where
   Return :: a -> StagedMockChain a
@@ -108,7 +112,7 @@ instance Monad StagedMockChain where
 -- that diamond (ie., Somewhere) implies some sort of progress.
 
 -- | Interprets a single operation in the direct 'MockChainT' monad.
-interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
+interpretOp :: MockChainOp a -> MockChainT (WriterT TraceDescr []) a
 interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
 interpretOp GetCurrentSlot = currentSlot
@@ -117,6 +121,8 @@ interpretOp (AwaitSlot s) = awaitSlot s
 interpretOp (AwaitTime t) = awaitTime t
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
+interpretOp (FindWalletByPKH pkh) = findWalletByPKH pkh
+interpretOp (WithWallets ws act) = withWallets ws (interpret act)
 
 instance MonadFail StagedMockChain where
   fail = singleton . Fail
@@ -129,6 +135,11 @@ instance MonadBlockChain StagedMockChain where
   awaitSlot = singleton . AwaitSlot
   awaitTime = singleton . AwaitTime
   utxosSuchThat addr = singleton . UtxosSuchThat addr
+
+instance MonadHasWallets StagedMockChain where
+  type MWallet StagedMockChain = Wallet
+  findWalletByPKH = singleton . FindWalletByPKH
+  withWallets ws act = singleton $ WithWallets ws act
 
 instance MonadModal StagedMockChain where
   somewhere m tree = Modify (Somewhere m) tree (Return ())

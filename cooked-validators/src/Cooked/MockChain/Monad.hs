@@ -2,10 +2,11 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Cooked.MockChain.Monad where
 
@@ -13,6 +14,7 @@ import Control.Arrow (second)
 import Control.Monad.Reader
 import Cooked.Tx.Constraints
 import Data.Default
+import Data.Kind
 import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
@@ -101,6 +103,13 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
+class (Monad m) => MonadHasWallets m where
+  type MWallet m :: Type
+
+  findWalletByPKH :: Pl.PubKeyHash -> m (Maybe (MWallet m))
+
+  withWallets :: [MWallet m] -> m a -> m a
+
 data ValidateTxOpts = ValidateTxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
     --  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
@@ -135,7 +144,7 @@ validateTxSkel :: (MonadBlockChain m) => TxSkel -> m Pl.TxId
 validateTxSkel = validateTxSkelOpts def
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadBlockChain m, MonadModal m)
+type MonadModalMockChain m = (MonadBlockChain m, MonadHasWallets m, MonadModal m)
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -231,9 +240,20 @@ instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (
   awaitSlot = lift . awaitSlot
   awaitTime = lift . awaitTime
 
+{- TODO would be great to have this and MonadModal too
+instance (MonadTrans t, MonadHasWallets m, Monad (t m)) => MonadHasWallets (AsTrans t m) where
+  type MWallet (AsTrans t m) = MWallet m
+  findWalletByPKH = lift . findWalletByPKH
+  withWallets ws act = lift $ withWallets _ act
+-}
+
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
+--deriving via (AsTrans (ReaderT r) m) instance MonadHasWallets m => MonadHasWallets (ReaderT r m)
+
 deriving via (AsTrans GenT m) instance MonadBlockChain m => MonadBlockChain (GenT m)
+
+--deriving via (AsTrans GenT m) instance MonadHasWallets m => MonadHasWallets (GenT m)
 
 instance MonadModal m => MonadModal (ReaderT r m) where
   everywhere f m = ReaderT (everywhere f . runReaderT m)
@@ -242,3 +262,8 @@ instance MonadModal m => MonadModal (ReaderT r m) where
 instance MonadModal m => MonadModal (GenT m) where
   everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
   somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
+
+instance MonadHasWallets m => MonadHasWallets (GenT m) where
+  type MWallet (GenT m) = MWallet m
+  findWalletByPKH = lift . findWalletByPKH
+  withWallets ws act = GenT (\r i -> withWallets ws (unGenT act r i))

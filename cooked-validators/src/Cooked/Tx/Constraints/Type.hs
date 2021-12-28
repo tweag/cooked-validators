@@ -76,7 +76,7 @@ data Constraint where
   Before :: Pl.POSIXTime -> Constraint
   After :: Pl.POSIXTime -> Constraint
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy :: [Wallet] -> Constraint
+  SignedBy :: [Pl.PubKeyHash] -> Constraint
 
 mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
 mints = Mints @() Nothing

@@ -359,7 +359,7 @@ dupTokenAttack sOut (parms, tokenRef) (TxSkel l s cs) =
     attack =
       [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),
         SpendsPK sOut,
-        SignedBy [wallet 9],
+        signedByWallets [wallet 9],
         PaysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
       ]
 

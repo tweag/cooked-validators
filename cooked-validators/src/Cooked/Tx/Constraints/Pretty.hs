@@ -54,8 +54,7 @@ prettyConstraint (Mints mr policies val) =
         fmap (("Redeemer:" <+>) . prettyDatum) mr,
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
-prettyConstraint (SignedBy ws) =
-  prettyEnum "SignedBy" "-" $ map (prettyWallet . walletPKHash) ws
+prettyConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
 prettyConstraint _ = "<constraint without pretty def>"
 
 prettyHash :: (Show a) => a -> Doc ann

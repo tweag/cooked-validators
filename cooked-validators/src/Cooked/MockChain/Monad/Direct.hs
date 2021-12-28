@@ -6,6 +6,7 @@
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
@@ -20,8 +21,9 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
-import Data.Bifunctor (Bifunctor (second))
+import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
+import Data.Either.Combinators
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
@@ -85,13 +87,14 @@ data MockChainError
   | FailWith String
   deriving (Show, Eq)
 
-newtype MockChainEnv = MockChainEnv
-  { mceSlotConfig :: Pl.SlotConfig
+data MockChainEnv = MockChainEnv
+  { mceSlotConfig :: Pl.SlotConfig,
+    mceKnownWallets :: M.Map Pl.PubKeyHash Wallet
   }
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def
+  def = MockChainEnv def (toPKHMap knownWallets)
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -218,6 +221,13 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
     return $ Pl.slotToBeginPOSIXTime sc s
 
+instance (Monad m) => MonadHasWallets (MockChainT m) where
+  type MWallet (MockChainT m) = Wallet
+
+  findWalletByPKH pkh = asks $ M.lookup pkh . mceKnownWallets
+
+  withWallets ws = local $ \env -> env {mceKnownWallets = mceKnownWallets env <> toPKHMap ws}
+
 -- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
 validateTx' tx = do
@@ -292,22 +302,31 @@ utxosSuchThat' addr datumPred = do
 --
 --  See "Cooked.Tx.Balance" for balancing capabilities or stick to
 --  'generateTx', which generates /and/ balances a transaction.
-generateUnbalTx :: TxSkel -> Either Pl.MkTxError (Pl.UnbalancedTx, [Wallet])
+generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
 generateUnbalTx sk =
-  let (lkups, constrs, wals) = toLedgerConstraints @Void $ txConstraints sk
-   in let txUnsigned = Pl.mkTx lkups constrs
-       in second (,txMainSigner sk : wals) txUnsigned
+  let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
+   in first MCETxError $ Pl.mkTx lkups constrs
+
+collectSigners :: (Monad m) => TxSkel -> MockChainT m (Either MockChainError [Wallet])
+collectSigners skel = do
+  eithersWallets <- forM pkhs $ \pkh -> maybeToRight (FailWith $ "Wallet not found for pkh " <> show pkh) <$> findWalletByPKH pkh
+  pure $ (txMainSigner skel :) <$> sequence eithersWallets
+  where
+    pkhs = concatMap exSigners $ txConstraints skel
+    exSigners (SignedBy hashes) = hashes
+    exSigners _ = []
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
 generateTx' opts skel = do
   modify $ updateDatumStr skel
-  case generateUnbalTx skel of
-    Left err -> throwError $ MCETxError err
-    Right (ubtx, allSigners) -> do
+  eitherSigners <- collectSigners skel
+  case (,) <$> generateUnbalTx skel <*> eitherSigners of
+    Left err -> throwError err
+    Right (ubtx, signers) -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       balancedTx <- balanceTxFrom (txMainSigner skel) (adjust ubtx)
-      return $ foldl (flip txAddSignature) balancedTx allSigners
+      return $ foldl (flip txAddSignature) balancedTx signers
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
