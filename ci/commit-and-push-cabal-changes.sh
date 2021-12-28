@@ -1,6 +1,6 @@
 #! /bin/bash
 
-if [[ "$1" -ne "--ci" ]]; then
+if ! $CI; then
   echo "This script is meant to be ran in CI; it will mess up your local git config otherwise"
   exit 0
 fi

@@ -20,7 +20,7 @@ that generates and sends the necessary transactions to the blockchain. We can do
 part of that with `cooked-validators`, in a very similar fashion to how we would do it
 in the `Contract` monad.
 
-TODO: Finish this quick example once PR #55 goes in
+TODO: Finish this quick example section once PR #55 goes in
 
 ## Using `cooked-validators`
 
