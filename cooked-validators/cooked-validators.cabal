@@ -12,7 +12,6 @@ extra-source-files:
 
 library
   exposed-modules:
-      AnotherExample
       Cooked.MockChain
       Cooked.MockChain.HUnit
       Cooked.MockChain.Monad
