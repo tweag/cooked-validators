@@ -3,7 +3,7 @@ set -uo pipefail
 
 show_help() {
   cat <<EOF
-usage: ./tests/run-tests.sh [--ci]
+usage: ./ci/run-tests.sh [--ci]
 
   Note the script is ran from the repo root; Running without --ci
   will run "ormolu --mode inplace" and fix offending files.
@@ -36,7 +36,7 @@ run_ormolu() {
   echo "Running ormolu on $proj"
   local ormolu_res=0
   if $ci; then
-    ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "tests/${proj}-ormolu.artifact")
+    ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "ci/${proj}-ormolu.artifact")
     ormolu_res=$?
   else 
     ormolu --mode inplace $(find ./$proj -name '*.hs') 
@@ -44,7 +44,7 @@ run_ormolu() {
   fi 
 
   if $ci && [[ "$ormolu_res" -eq "0" ]]; then
-    rm "tests/${proj}-ormolu.artifact"
+    rm "ci/${proj}-ormolu.artifact"
   fi
 
   return $ormolu_res
@@ -60,7 +60,7 @@ run_cabal_test() {
 
   local cabal_res=0
   if $ci; then
-    cabal run tests | tee "../tests/${proj}-cabal-test.artifact"
+    cabal run tests | tee "../ci/${proj}-cabal-test.artifact"
     cabal_res=$?
   else
     cabal run tests
@@ -70,7 +70,7 @@ run_cabal_test() {
   popd
 
   if $ci && [[ "$cabal_res" -eq "0" ]]; then
-    rm "tests/$proj-cabal-test.artifact"
+    rm "ci/$proj-cabal-test.artifact"
   fi
 
   return $cabal_res
@@ -83,15 +83,15 @@ run_hlint() {
 
   local hlint_res=0
   if $ci; then
-    hlint --hint="tests/hlint.yaml" ${proj} | tee "tests/${proj}-hlint.artifact"
+    hlint --hint="ci/hlint.yaml" ${proj} | tee "ci/${proj}-hlint.artifact"
     hlint_res=$?
   else
-    hlint --hint="tests/hlint.yaml" ${proj}
+    hlint --hint="ci/hlint.yaml" ${proj}
     hlint_res=$?
   fi
 
   if $ci && [[ "$hlint_res" -eq "0" ]]; then
-    rm "tests/$proj-hlint.artifact"
+    rm "ci/$proj-hlint.artifact"
   fi
 
   return $hlint_res

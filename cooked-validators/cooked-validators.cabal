@@ -1,0 +1,112 @@
+cabal-version: 3.4
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           cooked-validators
+version:        0.0.0
+build-type:     Simple
+extra-source-files:
+    README.md
+
+library
+  exposed-modules:
+      Cooked.MockChain
+      Cooked.MockChain.HUnit
+      Cooked.MockChain.Monad
+      Cooked.MockChain.Monad.Contract
+      Cooked.MockChain.Monad.Direct
+      Cooked.MockChain.Monad.Staged
+      Cooked.MockChain.QuickCheck
+      Cooked.MockChain.RawUPLC
+      Cooked.MockChain.Time
+      Cooked.MockChain.UtxoState
+      Cooked.MockChain.Wallet
+      Cooked.Tx.Balance
+      Cooked.Tx.Constraints
+      Cooked.Tx.Constraints.Pretty
+      Cooked.Tx.Constraints.Type
+      Example
+  other-modules:
+      Paths_cooked_validators
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.9 && <5
+    , bytestring
+    , containers
+    , data-default
+    , deepseq
+    , either
+    , flat
+    , foldl
+    , freer-extras
+    , freer-simple
+    , lens
+    , mtl
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-ledger-constraints
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
+    , plutus-use-cases
+    , prettyprinter
+    , quickcheck-transformer
+    , scientific
+    , streaming
+    , tasty
+    , text
+    , transformers
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Cooked.BalanceSpec
+      Paths_cooked_validators
+  hs-source-dirs:
+      tests/
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.9 && <5
+    , bytestring
+    , containers
+    , cooked-validators
+    , data-default
+    , deepseq
+    , either
+    , flat
+    , foldl
+    , freer-extras
+    , freer-simple
+    , hspec
+    , lens
+    , mtl
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-ledger-constraints
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
+    , plutus-use-cases
+    , prettyprinter
+    , quickcheck-transformer
+    , scientific
+    , streaming
+    , tasty
+    , text
+    , transformers
+  default-language: Haskell2010
