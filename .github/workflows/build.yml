@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Check out repository code.
         uses: actions/checkout@v2
+        ref: ${{ github.ref }}
       - name: Install nix.
         uses: cachix/install-nix-action@v13
         with:
