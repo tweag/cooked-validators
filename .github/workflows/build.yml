@@ -11,8 +11,6 @@ jobs:
     steps:
       - name: Check out repository code.
         uses: actions/checkout@v2
-        with:
-          ref: ${{ github.ref }}
       - name: Install nix.
         uses: cachix/install-nix-action@v13
         with:
@@ -41,5 +39,5 @@ jobs:
           nix-shell --run "./ci/run-tests.sh --ci" --allowed-uris 'https://github.com/NixOS/nixpkgs https://github.com/input-output-hk https://github.com/NixOS/nixpkgs-channels' --option trusted-public-keys "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" --option substituters "https://hydra.iohk.io https://iohk.cachix.org https://cache.nixos.org/" nix/ci.nix
       - name: Commit and push cabal files if necessary
         if: success() && github.ref != 'refs/heads/main'
-        run: ci/commit-and-push-cabal-changes.sh "${GITHUB_HEAD_REF:11}" 
+        run: ci/commit-and-push-cabal-changes.sh "${GITHUB_HEAD_REF}" 
 
