@@ -12,6 +12,7 @@ extra-source-files:
 
 library
   exposed-modules:
+      AnotherExample
       Cooked.MockChain
       Cooked.MockChain.HUnit
       Cooked.MockChain.Monad
@@ -72,6 +73,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.BalanceSpec
+      Cooked.QuickValueSpec
       Paths_cooked_validators
   hs-source-dirs:
       tests/
