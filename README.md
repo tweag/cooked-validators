@@ -15,7 +15,7 @@ This repository hosts many projects. You are likely only interested in [cooked-v
 
 ### [cooked-validators](cooked-validators)
 
-- Property-based test Plutus contracts with no code duplication.
+- Property-based testing of Plutus contracts with no code duplication.
 - Interacts seamlessly with Plutus `Contract` monad.
 - Supports loading UPLC contracts from bytestrings for testing.
 
