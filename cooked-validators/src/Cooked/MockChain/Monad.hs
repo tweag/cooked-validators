@@ -14,14 +14,15 @@ import Control.Arrow (second)
 import Control.Monad.Reader
 import Cooked.Tx.Constraints
 import Data.Default
-import Data.Kind
 import Data.Maybe (fromJust)
 import Data.Void
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
 import Test.QuickCheck.GenT
+import Cooked.MockChain.Wallet
 
 -- * MockChain Monad
 
@@ -74,6 +75,11 @@ class (MonadFail m) => MonadBlockChain m where
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
+  -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
+  --  this is a proxy to 'Pl.ownPubKey'; when running in mock mode, the return value can be
+  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
+  ownPaymentPubKeyHash :: m Pl.PubKeyHash
+
   -- | Returns the current slot number
   currentSlot :: m Pl.Slot
 
@@ -103,12 +109,23 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
-class (Monad m) => MonadHasWallets m where
-  type MWallet m :: Type
+-- |Monad supporting mock operations such as changing the signing wallets and
+-- retreiving 'SlotConfig'
+class (MonadBlockChain m) => MonadMockChain m where
+  -- |Sets a list of wallets that will sign every transaction emitted
+  -- in the respective block
+  signingWith :: NE.NonEmpty Wallet -> m a -> m a
 
-  findWalletByPKH :: Pl.PubKeyHash -> m (Maybe (MWallet m))
+  -- |Returns the current set of signing wallets.
+  askSigners :: m (NE.NonEmpty Wallet)
 
-  withWallets :: [MWallet m] -> m a -> m a
+-- |Runs a given block of computations signing transactions as @w@.
+as :: (MonadMockChain m) => m a -> Wallet -> m a
+as ma w = signingWith (w NE.:| []) ma
+
+-- |Flipped version of 'as'
+signs :: (MonadMockChain m) => Wallet -> m a -> m a
+signs = flip as
 
 data ValidateTxOpts = ValidateTxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
@@ -143,8 +160,14 @@ instance Default ValidateTxOpts where
 validateTxSkel :: (MonadBlockChain m) => TxSkel -> m Pl.TxId
 validateTxSkel = validateTxSkelOpts def
 
+validateTxConstr :: (MonadBlockChain m) => [Constraint] -> m Pl.TxId
+validateTxConstr = validateTxSkel . txSkel
+
+validateTxConstr' :: (Show lbl , MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
+validateTxConstr' lbl = validateTxSkel . txSkelLbl lbl
+
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadBlockChain m, MonadHasWallets m, MonadModal m)
+type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m)
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -234,6 +257,7 @@ newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkelOpts opts = lift . validateTxSkelOpts opts
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot
   currentTime = lift currentTime
@@ -253,7 +277,7 @@ deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockCha
 
 deriving via (AsTrans GenT m) instance MonadBlockChain m => MonadBlockChain (GenT m)
 
---deriving via (AsTrans GenT m) instance MonadHasWallets m => MonadHasWallets (GenT m)
+-- deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
 instance MonadModal m => MonadModal (ReaderT r m) where
   everywhere f m = ReaderT (everywhere f . runReaderT m)
@@ -263,7 +287,6 @@ instance MonadModal m => MonadModal (GenT m) where
   everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
   somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
 
-instance MonadHasWallets m => MonadHasWallets (GenT m) where
-  type MWallet (GenT m) = MWallet m
-  findWalletByPKH = lift . findWalletByPKH
-  withWallets ws act = GenT (\r i -> withWallets ws (unGenT act r i))
+instance MonadMockChain m => MonadMockChain (GenT m) where
+  signingWith w ma = GenT (\r i -> signingWith w (unGenT ma r i))
+  askSigners = GenT (\_ _ -> askSigners)

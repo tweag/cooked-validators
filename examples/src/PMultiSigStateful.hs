@@ -45,6 +45,7 @@ import qualified Ledger.Typed.Scripts as Scripts
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as Api
 import qualified PlutusTx
+import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
@@ -53,7 +54,7 @@ import qualified Prelude as Haskell
 --  and the threshold number of signatures. Moreover, we pass the threadToken NFT
 --  that will identify legitimate datums as a parameter, as this will only be known at run-time.
 data Params = Params
-  { pmspSignatories :: [Ledger.PubKey],
+  { pmspSignatories :: AssocMap.Map Api.PubKeyHash Ledger.PubKey,
     pmspRequiredSigs :: Integer,
     pmspThreadToken :: Value.AssetClass
   }
@@ -87,8 +88,8 @@ instance Eq Payment where
 -- | The datum is either a signature of a payment or
 --  an accumulator collecting signatures for a given payment.
 data Datum
-  = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
-  | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
+  = Accumulator {payment :: Payment, signees :: [Ledger.PubKeyHash]}
+  | Sign {signPk :: Ledger.PubKeyHash, signSignature :: Ledger.Signature}
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -244,13 +245,15 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
         allInputsRelevant = length newSignees == length otherInputs
 
         extractSig Accumulator {} = Nothing
-        extractSig (Sign signPk s)
-          | signPk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
-          | signPk `elem` signees = Nothing -- Already signed this payment -- wrong
-          | not $ verifySig signPk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
-          -- Note that if it succeeds, than the payment this Sign is for necessarily matches
-          -- the payment in the Accumulator, since `payment` comes from the Accumulator.
-          | otherwise = Just signPk -- The above didn't get triggered, so presumably it's right
+        extractSig (Sign signPkh s)
+          | signPkh `elem` signees = Nothing -- Already signed this payment -- wrong
+          | otherwise =
+              case AssocMap.lookup signPkh pmspSignatories of
+                Nothing -> Nothing -- Not a signatory -- wrong
+                Just pk ->
+                  if verifySig pk (sha2_256 $ packPayment payment) s
+                  then Just signPkh
+                  else Nothing -- Sig verification failed -- wrong
 
 -- Here's a wrapper to verify a signature. It is important that the parameters to verifySignature
 -- are, in order: pk, msg then signature.
