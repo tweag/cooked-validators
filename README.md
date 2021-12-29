@@ -7,7 +7,7 @@ _These libraries are a research prototype under active development_
   - [IMPORTANT: Nix Cache](#nix)
   - [Updating Plutus](#updating-plutus)
 
-This repository has a collection of the libraries we use for developping and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
+This repository contains a collection of the libraries we use for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
 
 ## Projects
 
