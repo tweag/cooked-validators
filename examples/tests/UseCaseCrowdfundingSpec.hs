@@ -70,27 +70,27 @@ genCampaign collectDelta owner = do
       }
 
 -- | Provides some funds to the campaign
-paysCampaign :: (MonadBlockChain m) => Campaign -> Wallet -> Ledger.Value -> m ()
+paysCampaign :: (MonadMockChain m) => Campaign -> Wallet -> Ledger.Value -> m ()
 paysCampaign c w val =
   void $
-    validateTxSkelOpts (def {autoSlotIncrease = False}) $
-      txSkel
-        w
-        [PaysScript (typedValidator c) [(walletPKHash w, val)]]
+    signs w $
+      validateTxSkelOpts (def {autoSlotIncrease = False}) $
+        txSkel
+          [PaysScript (typedValidator c) [(walletPKHash w, val)]]
 
 -- | Retrieve funds as being the owner
-retrieveFunds :: (MonadBlockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
+retrieveFunds :: (MonadMockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
 retrieveFunds t c owner = do
   funds <- scriptUtxosSuchThat (typedValidator c) (\_ _ -> True)
   void $
-    validateTxSkelOpts (def {autoSlotIncrease = False}) $
-      txSkel
-        owner
-        ( map (SpendsScript (typedValidator c) Collect) funds
-            ++ [ PaysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds),
-                 ValidateIn $ collectionRange c
-               ]
-        )
+    signs owner $
+      validateTxSkelOpts (def {autoSlotIncrease = False}) $
+        txSkel
+          ( map (SpendsScript (typedValidator c) Collect) funds
+              ++ [ PaysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds),
+                   ValidateIn $ collectionRange c
+                 ]
+          )
 
 -- * Tests
 
@@ -110,7 +110,7 @@ ownerCanRetrieveFunds =
         |]
     $ testCase "Funds can be retrieved" $ isRight (runMockChain mtrace) @? "Trace failed"
   where
-    mtrace :: MonadBlockChain m => m ()
+    mtrace :: MonadMockChain m => m ()
     mtrace = do
       t <- currentTime
       -- A simple campaign starting now;
