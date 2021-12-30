@@ -152,7 +152,7 @@ tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
 tracePayWallet11 =
   runMockChain $ do
     validateTxConstr
-        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
     validateTxConstr
-        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
     MockChainT get

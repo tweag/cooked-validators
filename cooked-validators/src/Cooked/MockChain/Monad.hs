@@ -12,17 +12,17 @@ module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import Data.Void
-import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
 import Test.QuickCheck.GenT
-import Cooked.MockChain.Wallet
 
 -- * MockChain Monad
 
@@ -109,21 +109,21 @@ class (Monad m) => MonadModal m where
   -- in @x@, there would be no progress.
   somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
--- |Monad supporting mock operations such as changing the signing wallets and
--- retreiving 'SlotConfig'
+-- | Monad supporting mock operations such as changing the signing wallets and
+--  retreiving 'SlotConfig'
 class (MonadBlockChain m) => MonadMockChain m where
-  -- |Sets a list of wallets that will sign every transaction emitted
-  -- in the respective block
+  -- | Sets a list of wallets that will sign every transaction emitted
+  --  in the respective block
   signingWith :: NE.NonEmpty Wallet -> m a -> m a
 
-  -- |Returns the current set of signing wallets.
+  -- | Returns the current set of signing wallets.
   askSigners :: m (NE.NonEmpty Wallet)
 
--- |Runs a given block of computations signing transactions as @w@.
+-- | Runs a given block of computations signing transactions as @w@.
 as :: (MonadMockChain m) => m a -> Wallet -> m a
 as ma w = signingWith (w NE.:| []) ma
 
--- |Flipped version of 'as'
+-- | Flipped version of 'as'
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
@@ -163,7 +163,7 @@ validateTxSkel = validateTxSkelOpts def
 validateTxConstr :: (MonadBlockChain m) => [Constraint] -> m Pl.TxId
 validateTxConstr = validateTxSkel . txSkel
 
-validateTxConstr' :: (Show lbl , MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
+validateTxConstr' :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
 validateTxConstr' lbl = validateTxSkel . txSkelLbl lbl
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.

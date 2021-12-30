@@ -15,9 +15,9 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import qualified Data.List.NonEmpty as NE
 import Data.Default
 import Data.Foldable
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
@@ -46,7 +46,6 @@ data MockChainOp a where
   --
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
   AskSigners :: MockChainOp (NE.NonEmpty Wallet)
-
 
 data StagedMockChain a where
   Return :: a -> StagedMockChain a

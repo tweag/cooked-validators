@@ -24,7 +24,8 @@ txLock params = void $ validateTxConstr' (TxLock params) constraints
           [ (params, Pl.lovelaceValueOf $ Split.amount params)
           ]
       ]
-      -- TODO w
+
+-- TODO w
 
 -- | Label for 'txLock' skeleton
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
@@ -51,7 +52,7 @@ txUnlock issuer = do
         PaysPK r1 (Pl.lovelaceValueOf share1),
         PaysPK r2 (Pl.lovelaceValueOf share2)
       ]
-    `as` issuer
+      `as` issuer
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)

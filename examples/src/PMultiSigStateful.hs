@@ -248,10 +248,10 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
         extractSig (Sign signPkh s)
           | signPkh `elem` signees = Nothing -- Already signed this payment -- wrong
           | otherwise =
-              case AssocMap.lookup signPkh pmspSignatories of
-                Nothing -> Nothing -- Not a signatory -- wrong
-                Just pk ->
-                  if verifySig pk (sha2_256 $ packPayment payment) s
+            case AssocMap.lookup signPkh pmspSignatories of
+              Nothing -> Nothing -- Not a signatory -- wrong
+              Just pk ->
+                if verifySig pk (sha2_256 $ packPayment payment) s
                   then Just signPkh
                   else Nothing -- Sig verification failed -- wrong
 

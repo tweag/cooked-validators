@@ -38,10 +38,10 @@ initBigBoss = do
   let oneBBNFT = Value.assetClassValue (bigBossNFT bbId) 1
   void $
     validateTxConstr'
-        InitBigBoss
-        [ mints [bigBossPolicy bbId] oneBBNFT,
-          PaysScript (bigBossVal bbId) [(BigBoss [], oneBBNFT <> minAda)]
-        ]
+      InitBigBoss
+      [ mints [bigBossPolicy bbId] oneBBNFT,
+        PaysScript (bigBossVal bbId) [(BigBoss [], oneBBNFT <> minAda)]
+      ]
   return bbId
 
 data InitBigBoss = InitBigBoss deriving (Show)
@@ -55,12 +55,12 @@ openForge bbId = do
   wPKH <- ownPaymentPubKeyHash
   void $
     validateTxConstr'
-        OpenForge
-        [ SpendsScript (bigBossVal bbId) Open (outBB, datBB),
-          mints [authTokenPolicy bbId] oneAuthToken,
-          PaysScript (bigBossVal bbId) [(BigBoss [wPKH], oneBBNFT <> minAda)],
-          PaysScript (smithVal bbId) [(Forge wPKH 0, oneAuthToken <> minAda)]
-        ]
+      OpenForge
+      [ SpendsScript (bigBossVal bbId) Open (outBB, datBB),
+        mints [authTokenPolicy bbId] oneAuthToken,
+        PaysScript (bigBossVal bbId) [(BigBoss [wPKH], oneBBNFT <> minAda)],
+        PaysScript (smithVal bbId) [(Forge wPKH 0, oneAuthToken <> minAda)]
+      ]
 
 data OpenForge = OpenForge deriving (Show)
 
@@ -72,12 +72,12 @@ smiths bbId val = do
   (outSmith, datSmith@(Forge owner forged)) : _ <- scriptUtxosSuchThat (smithVal bbId) (\d _ -> d `belongsTo` pkh)
   void $
     validateTxConstr'
-        (Smiths val)
-        [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
-          mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val),
-          PaysScript (smithVal bbId) [(Forge owner (forged + val), sOutValue outSmith)],
-          PaysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
-        ]
+      (Smiths val)
+      [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
+        mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val),
+        PaysScript (smithVal bbId) [(Forge owner (forged + val), sOutValue outSmith)],
+        PaysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
+      ]
   where
     belongsTo (Forge owner _) pkh = owner == pkh
 

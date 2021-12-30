@@ -28,9 +28,9 @@ import qualified Ledger.Typed.Scripts as Pl
 import PMultiSigStateful
 import qualified PMultiSigStateful.DatumHijacking as HJ
 import PMultiSigStateful.ToUPLC
+import qualified PlutusTx.AssocMap as AssocMap
 import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
-import qualified PlutusTx.AssocMap as AssocMap
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
 import Test.Tasty
@@ -68,9 +68,8 @@ mkParams =
         [] -> error "No empty UTxOs"
         ((out, _) : _) -> pure out
 
-
 pkTable :: AssocMap.Map Pl.PubKeyHash Pl.PubKey
-pkTable = AssocMap.fromList $ map (\w -> (walletPKHash w , walletPK w)) knownWallets
+pkTable = AssocMap.fromList $ map (\w -> (walletPKHash w, walletPK w)) knownWallets
 
 -- | This is a label that gets attached to the mkProposal transaction; it helps
 --  us identify what that transaction is doing without carefully inspecting its
@@ -88,19 +87,20 @@ mkProposal reqSigs pmt = do
       let klass = threadTokenAssetClass $ fst spendableOut
       let params = Params pkTable reqSigs klass
       let threadToken = paramsToken params
-      _ <- validateTxConstr'
-              (ProposalSkel reqSigs pmt)
-              [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
-                -- We don't have SpendsPK or PaysPK wrt the wallet `w`
-                -- because the balancing mechanism chooses the same (first) output
-                -- we're working on.
-                PaysScript
-                  (pmultisig params)
-                  [ ( Accumulator pmt [],
-                      minAda <> paymentValue pmt <> threadToken
-                    )
-                  ]
+      _ <-
+        validateTxConstr'
+          (ProposalSkel reqSigs pmt)
+          [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
+            -- We don't have SpendsPK or PaysPK wrt the wallet `w`
+            -- because the balancing mechanism chooses the same (first) output
+            -- we're working on.
+            PaysScript
+              (pmultisig params)
+              [ ( Accumulator pmt [],
+                  minAda <> paymentValue pmt <> threadToken
+                )
               ]
+          ]
       pure (params, fst spendableOut)
     _ -> error "No spendable outputs for the wallet"
 
@@ -133,26 +133,26 @@ mkCollect thePayment params = signs (wallet 1) $ do
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
-        PaysScript
-          (pmultisig params)
-          [ ( Accumulator thePayment (signPk . snd <$> signatures),
-              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-            )
-          ] :
-        SpendsScript (pmultisig params) () initialProp :
-        (SpendsScript (pmultisig params) () <$> signatures)
+      PaysScript
+        (pmultisig params)
+        [ ( Accumulator thePayment (signPk . snd <$> signatures),
+            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
+          )
+        ] :
+      SpendsScript (pmultisig params) () initialProp :
+      (SpendsScript (pmultisig params) () <$> signatures)
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
 mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
   void $
     validateTxConstr
-        -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
-        -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
-        [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
-          SpendsScript (pmultisig params) () accumulated,
-          mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
-        ]
+      -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
+      -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
+      [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
+        SpendsScript (pmultisig params) () accumulated,
+        mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+      ]
 
 -- *** Auxiliary Functions
 
@@ -405,11 +405,11 @@ mkFakeCollect thePayment params = do
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
-        PaysScript
-          fakeValidator
-          [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
-              paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-            )
-          ] :
-        SpendsScript (pmultisig params) () initialProp :
-        (SpendsScript (pmultisig params) () <$> signatures)
+      PaysScript
+        fakeValidator
+        [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
+          )
+        ] :
+      SpendsScript (pmultisig params) () initialProp :
+      (SpendsScript (pmultisig params) () <$> signatures)

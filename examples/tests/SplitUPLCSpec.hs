@@ -52,7 +52,7 @@ txUnlock issuer script = do
         PaysPK r1 (Pl.lovelaceValueOf share1),
         PaysPK r2 (Pl.lovelaceValueOf share2)
       ]
-    `as` issuer
+      `as` issuer
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)

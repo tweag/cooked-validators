@@ -25,7 +25,7 @@ paymentAfterCustomInitialization :: Either MockChainError ((), UtxoState)
 paymentAfterCustomInitialization =
   runMockChainFrom customInitialDistribution $ do
     validateTxConstr
-        [PaysPK (walletPKHash $ wallet 2) (quickValue "goldenCoins" 12)]
+      [PaysPK (walletPKHash $ wallet 2) (quickValue "goldenCoins" 12)]
     return ()
 
 quickValuesInitialisation :: Either MockChainError ((), UtxoState)
