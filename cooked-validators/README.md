@@ -1,6 +1,7 @@
 # Cooked Validators
 
 * [A Quick Example](#a-quick-example)
+* [Guidelines](#guidelines)
 * [Using `cooked-validators`](#using-cooked-validators)
 
 Build Cardano transactions and interact with your [Plutus][plutus] validators.
@@ -99,7 +100,7 @@ machinery to do so. For example,
 
 ```haskell
 test2 :: TestTree
-test2 = testProperty "Arbitrary simple succeeds" $ traceSucceeds $ do
+test2 = testProperty "Arbitrary simple trace succeeds" $ traceSucceeds $ do
   w1  <-  wallet <$> choose (1, 9)
   w2  <- (wallet <$> choose (1, 9)) `suchThat` (/= w1)
   amm <- choose (2_000_000, 4_000_000) -- must be at least minAdaPerUTxO
