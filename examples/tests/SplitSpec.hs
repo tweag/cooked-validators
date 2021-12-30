@@ -1,5 +1,4 @@
 {-# LANGUAGE NumericUnderscores #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module SplitSpec where
 
@@ -16,8 +15,8 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadBlockChain m => Wallet -> Split.SplitDatum -> m ()
-txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints)
+txLock :: MonadBlockChain m => Split.SplitDatum -> m ()
+txLock params = void $ validateTxConstr' (TxLock params) constraints
   where
     constraints =
       [ PaysScript
@@ -25,6 +24,7 @@ txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints
           [ (params, Pl.lovelaceValueOf $ Split.amount params)
           ]
       ]
+      -- TODO w
 
 -- | Label for 'txLock' skeleton
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
@@ -37,7 +37,7 @@ isARecipient w datum _ =
    in elem wHash [Split.recipient1 datum, Split.recipient2 datum]
 
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadBlockChain m) => Wallet -> m ()
+txUnlock :: (MonadMockChain m) => Wallet -> m ()
 txUnlock issuer = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
@@ -45,14 +45,13 @@ txUnlock issuer = do
   let share1 = half
   let share2 = amount - half
   void $
-    validateTxSkel $
-      txSkelLbl
-        TxUnlock
-        issuer
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf share1),
-          PaysPK r2 (Pl.lovelaceValueOf share2)
-        ]
+    validateTxConstr'
+      TxUnlock
+      [ SpendsScript Split.splitValidator () (output, datum),
+        PaysPK r1 (Pl.lovelaceValueOf share1),
+        PaysPK r2 (Pl.lovelaceValueOf share2)
+      ]
+    `as` issuer
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)
@@ -61,7 +60,7 @@ data TxUnlock = TxUnlock deriving (Show)
 -- @txUnlock' Nothing Nothing Nothing == txUnlock@, but we keep
 -- two functions for pedagogical purposes.
 txUnlock' ::
-  MonadBlockChain m =>
+  MonadMockChain m =>
   -- | Optionally override first recipient
   Maybe Wallet ->
   -- | Optionally override second recipient
@@ -91,11 +90,10 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
             )
           ]
   void $
-    validateTxSkel $
-      txSkelLbl
-        (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))
-        issuer
-        (constraints <> [remainderConstraint | remainder > 0])
+    validateTxConstr'
+      (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))
+      (constraints <> [remainderConstraint | remainder > 0])
+      `as` issuer
 
 data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) deriving (Show)
 
@@ -104,7 +102,7 @@ data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) derivin
 -- amount, and sharing the same second recipient.
 -- Attack: the second recipient is paid only one of his shares, the remainder
 -- goes to the issuer of the transaction.
-txUnlockAttack :: MonadBlockChain m => Wallet -> m ()
+txUnlockAttack :: MonadMockChain m => Wallet -> m ()
 txUnlockAttack issuer = do
   (output1, datum1@(Split.SplitDatum r11 r12 amount))
     : (output2, datum2@(Split.SplitDatum r21 _ _))
@@ -119,20 +117,20 @@ txUnlockAttack issuer = do
           PaysPK r21 half,
           PaysPK (walletPKHash issuer) half
         ]
-  void $ validateTxSkel $ txSkelLbl TxUnlockAttack issuer constraints
+  void $ validateTxConstr' TxUnlockAttack constraints `as` issuer
 
 data TxUnlockAttack = TxUnlockAttack deriving (Show)
 
 -- | Transaction that does not pay enough to the recipients
-txUnlockNotEnough :: MonadBlockChain m => Wallet -> m ()
+txUnlockNotEnough :: MonadMockChain m => Wallet -> m ()
 txUnlockNotEnough = txUnlock' Nothing Nothing (Just (`div` 2))
 
 -- | Transaction that gives everything to the first recipient
-txUnlockTooMuch :: MonadBlockChain m => Wallet -> m ()
+txUnlockTooMuch :: MonadMockChain m => Wallet -> m ()
 txUnlockTooMuch = txUnlock' Nothing Nothing (Just (* 2))
 
 -- | Transaction that pays everything to the issuer
-txUnlockGreedy :: MonadBlockChain m => Wallet -> m ()
+txUnlockGreedy :: MonadMockChain m => Wallet -> m ()
 txUnlockGreedy w = txUnlock' (Just w) (Just w) Nothing w
 
 -- | Parameters to share 400 among wallets 2 and 3
@@ -155,7 +153,7 @@ lockParams2 =
 
 usageExample :: Assertion
 usageExample = assertSucceeds $ do
-  txLock (wallet 1) lockParams
+  txLock lockParams `as` wallet 1
   txUnlock (wallet 2)
 
 tests :: TestTree
@@ -168,23 +166,23 @@ tests =
       expectFail $
         testCase "Unlocking too much" $
           assertFails $ do
-            txLock (wallet 1) lockParams
+            txLock lockParams `as` wallet 1
             txUnlockTooMuch (wallet 2),
       testCase "Can unlocking in small parts" $
         assertSucceeds $ do
-          txLock (wallet 1) lockParams
+          txLock lockParams `as` wallet 1
           txUnlockNotEnough (wallet 2)
           txUnlockNotEnough (wallet 2),
       testCase "Forgets a recipient" $
         assertFails $ do
-          txLock (wallet 1) lockParams
+          txLock lockParams `as` wallet 1
           txUnlockGreedy (wallet 2),
       -- we know that this implementation of split is vulnerable to this attack;
       -- Still, I rather phrase the test as we would in practice and flag it with 'expectFail'
       expectFail $
         testCase "Is not vulnerable to double split attack" $
           assertFails $ do
-            txLock (wallet 1) lockParams
-            txLock (wallet 1) lockParams2
+            txLock lockParams `as` wallet 1
+            txLock lockParams2 `as` wallet 1
             txUnlockAttack (wallet 5)
     ]
