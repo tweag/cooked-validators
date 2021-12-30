@@ -40,8 +40,8 @@ PlutusTx.makeLift ''StealerParams
 
 -- | Now we replicate the structure of the attacked contract's datum.
 data StealerDatum
-  = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
-  | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
+  = Accumulator {payment :: Payment, signees :: [Ledger.PubKeyHash]}
+  | Sign {signPk :: Ledger.PubKeyHash}
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 

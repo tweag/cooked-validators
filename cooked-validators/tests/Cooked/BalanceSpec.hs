@@ -151,12 +151,8 @@ outsOf i utxoIndex =
 tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
 tracePayWallet11 =
   runMockChain $ do
-    validateTxSkel $
-      txSkel
-        (wallet 1)
-        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-    validateTxSkel $
-      txSkel
-        (wallet 3)
-        [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+    validateTxConstr
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+    validateTxConstr
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
     MockChainT get

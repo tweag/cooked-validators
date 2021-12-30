@@ -18,12 +18,12 @@ prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
-prettyTxSkel :: TxSkel -> Doc ann
-prettyTxSkel (TxSkel lbl signer constr) =
+prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
+prettyTxSkel signers (TxSkel lbl constr) =
   PP.vsep $
     map ("-" <+>) $
       catMaybes
-        [ Just $ "Signer:" <+> prettyWallet (walletPKHash signer),
+        [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
           fmap (("Label:" <+>) . prettyDatum) lbl,
           Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
         ]

@@ -1,6 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE TypeApplications #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module SplitUPLCSpec where
 
@@ -23,8 +22,8 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadBlockChain m => Wallet -> Pl.TypedValidator Split.Split -> Split.SplitDatum -> m ()
-txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constraints)
+txLock :: MonadBlockChain m => Pl.TypedValidator Split.Split -> Split.SplitDatum -> m ()
+txLock script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) constraints)
   where
     constraints =
       [ PaysScript
@@ -39,7 +38,7 @@ txLock w script datum = void $ validateTxSkel (txSkelLbl (TxLock datum) w constr
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
 
 -- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadBlockChain m) => Wallet -> Pl.TypedValidator Split.Split -> m ()
+txUnlock :: (MonadMockChain m) => Wallet -> Pl.TypedValidator Split.Split -> m ()
 txUnlock issuer script = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat script (SplitSpec.isARecipient issuer)
@@ -47,14 +46,13 @@ txUnlock issuer script = do
   let share1 = half
   let share2 = amount - half
   void $
-    validateTxSkel $
-      txSkelLbl
-        TxUnlock
-        issuer
-        [ SpendsScript script () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf share1),
-          PaysPK r2 (Pl.lovelaceValueOf share2)
-        ]
+    validateTxConstr'
+      TxUnlock
+      [ SpendsScript script () (output, datum),
+        PaysPK r1 (Pl.lovelaceValueOf share1),
+        PaysPK r2 (Pl.lovelaceValueOf share2)
+      ]
+      `as` issuer
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)
@@ -77,7 +75,7 @@ tests =
           script <- case unsafeTypedValidatorFromBS splitBS of
             Left err -> fail "couldn't load the Split contract from its binary repr"
             Right r -> return r
-          txLock (wallet 1) script lockParams
+          txLock script lockParams `as` wallet 1
           txUnlock (wallet 2) script,
       -- This is marked as an expected failure until we sort issue 57 out
       expectFail $

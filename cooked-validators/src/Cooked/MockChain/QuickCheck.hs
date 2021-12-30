@@ -4,7 +4,6 @@
 module Cooked.MockChain.QuickCheck where
 
 import Control.Monad.Writer
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState

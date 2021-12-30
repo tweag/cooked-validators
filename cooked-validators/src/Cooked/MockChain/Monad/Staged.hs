@@ -17,6 +17,7 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
@@ -41,8 +42,10 @@ data MockChainOp a where
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainOp [(SpendableOut, Maybe a)]
   Fail :: String -> MockChainOp a
-  FindWalletByPKH :: Pl.PubKeyHash -> MockChainOp (Maybe Wallet)
-  WithWallets :: [Wallet] -> StagedMockChain a -> MockChainOp a
+  OwnPubKey :: MockChainOp Pl.PubKeyHash
+  --
+  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
+  AskSigners :: MockChainOp (NE.NonEmpty Wallet)
 
 data StagedMockChain a where
   Return :: a -> StagedMockChain a
@@ -121,25 +124,26 @@ interpretOp (AwaitSlot s) = awaitSlot s
 interpretOp (AwaitTime t) = awaitTime t
 interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
-interpretOp (FindWalletByPKH pkh) = findWalletByPKH pkh
-interpretOp (WithWallets ws act) = withWallets ws (interpret act)
+interpretOp OwnPubKey = ownPaymentPubKeyHash
+interpretOp AskSigners = askSigners
+interpretOp (SigningWith ws act) = signingWith ws (interpret act)
 
 instance MonadFail StagedMockChain where
   fail = singleton . Fail
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkelOpts opts = singleton . ValidateTxSkel opts
+  utxosSuchThat addr = singleton . UtxosSuchThat addr
   txOutByRef = singleton . TxOutByRef
+  ownPaymentPubKeyHash = singleton OwnPubKey
   currentSlot = singleton GetCurrentSlot
   currentTime = singleton GetCurrentTime
   awaitSlot = singleton . AwaitSlot
   awaitTime = singleton . AwaitTime
-  utxosSuchThat addr = singleton . UtxosSuchThat addr
 
-instance MonadHasWallets StagedMockChain where
-  type MWallet StagedMockChain = Wallet
-  findWalletByPKH = singleton . FindWalletByPKH
-  withWallets ws act = singleton $ WithWallets ws act
+instance MonadMockChain StagedMockChain where
+  signingWith ws = singleton . SigningWith ws
+  askSigners = singleton AskSigners
 
 instance MonadModal StagedMockChain where
   somewhere m tree = Modify (Somewhere m) tree (Return ())
@@ -159,7 +163,11 @@ interpret :: StagedMockChain a -> InterpMockChain a
 interpret = goDet
   where
     interpBind :: MockChainOp a -> (a -> InterpMockChain b) -> InterpMockChain b
-    interpBind op f = lift (tell $ prettyMockChainOp op) >> interpretOp op >>= f
+    interpBind op f = do
+      signers <- askSigners
+      lift (tell $ prettyMockChainOp signers op)
+      a <- interpretOp op
+      f a
 
     goDet :: StagedMockChain a -> InterpMockChain a
     goDet (Return a) = return a
@@ -190,14 +198,15 @@ interpret = goDet
 -- | Interprets and runs the mockchain computation from a given initial state.
 interpretAndRunRaw ::
   StagedMockChain a ->
+  MockChainEnv ->
   MockChainSt ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunRaw smc st0 = runWriterT $ runMockChainTRaw st0 (interpret smc)
+interpretAndRunRaw smc e0 st0 = runWriterT $ runMockChainTRaw e0 st0 (interpret smc)
 
 interpretAndRun ::
   StagedMockChain a ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRun smc = interpretAndRunRaw smc def
+interpretAndRun smc = interpretAndRunRaw smc def def
 
 -- * Modalities
 
@@ -236,17 +245,17 @@ interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: MockChainOp a -> TraceDescr
-prettyMockChainOp (ValidateTxSkel opts skel) =
+prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
+prettyMockChainOp signers (ValidateTxSkel opts skel) =
   trSingleton $
     PP.hang 2 $
       PP.vsep $
-        catMaybes [Just "ValidateTxSkel", mopts, Just $ prettyTxSkel skel]
+        catMaybes [Just "ValidateTxSkel", mopts, Just $ prettyTxSkel (NE.toList signers) skel]
   where
     mopts = if opts == def then Nothing else Just ("Opts:" <+> PP.viaShow opts)
-prettyMockChainOp (Fail reason) =
+prettyMockChainOp _ (Fail reason) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ = mempty
+prettyMockChainOp _ _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
