@@ -12,11 +12,11 @@ library
   exposed-modules:
       Forge
       Forge.ExampleTokens
-      PMultiSig
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
       Split
+      Split.OffChain
       Split.ToUPLC
   other-modules:
       Paths_examples
