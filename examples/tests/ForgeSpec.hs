@@ -25,6 +25,9 @@ import Test.Tasty.HUnit
 minAda :: Ledger.Value
 minAda = Ada.lovelaceValueOf 2000000
 
+-- TODO: Fix this hidden assumption that wallet 1 is the de-facto ownPaymentPubKeyHash
+-- in this module
+
 -- | Grabs the first UTxO belonging to the given wallet, uses it to initialize the
 --  main NFT; then mints said nft and creates a 'BigBoss' datum.
 initBigBoss :: (MonadBlockChain m) => m BigBossId
