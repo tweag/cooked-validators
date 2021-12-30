@@ -1,5 +1,4 @@
 {-# LANGUAGE NumericUnderscores #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module SplitSpec where
 
@@ -16,8 +15,8 @@ import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadMockChain m => Wallet -> Split.SplitDatum -> m ()
-txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints)
+txLock :: MonadBlockChain m => Split.SplitDatum -> m ()
+txLock params = void $ validateTxConstr' (TxLock params) constraints
   where
     constraints =
       [ PaysScript
@@ -25,6 +24,8 @@ txLock w params = void $ validateTxSkel (txSkelLbl (TxLock params) w constraints
           [ (params, Pl.lovelaceValueOf $ Split.amount params)
           ]
       ]
+
+-- TODO w
 
 -- | Label for 'txLock' skeleton
 newtype TxLock = TxLock Split.SplitDatum deriving (Show)
@@ -45,14 +46,13 @@ txUnlock issuer = do
   let share1 = half
   let share2 = amount - half
   void $
-    validateTxSkel $
-      txSkelLbl
-        TxUnlock
-        issuer
-        [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK r1 (Pl.lovelaceValueOf share1),
-          PaysPK r2 (Pl.lovelaceValueOf share2)
-        ]
+    validateTxConstr'
+      TxUnlock
+      [ SpendsScript Split.splitValidator () (output, datum),
+        PaysPK r1 (Pl.lovelaceValueOf share1),
+        PaysPK r2 (Pl.lovelaceValueOf share2)
+      ]
+      `as` issuer
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)
@@ -91,11 +91,10 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
             )
           ]
   void $
-    validateTxSkel $
-      txSkelLbl
-        (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))
-        issuer
-        (constraints <> [remainderConstraint | remainder > 0])
+    validateTxConstr'
+      (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))
+      (constraints <> [remainderConstraint | remainder > 0])
+      `as` issuer
 
 data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) deriving (Show)
 
@@ -119,7 +118,7 @@ txUnlockAttack issuer = do
           PaysPK r21 half,
           PaysPK (walletPKHash issuer) half
         ]
-  void $ validateTxSkel $ txSkelLbl TxUnlockAttack issuer constraints
+  void $ validateTxConstr' TxUnlockAttack constraints `as` issuer
 
 data TxUnlockAttack = TxUnlockAttack deriving (Show)
 
@@ -155,7 +154,7 @@ lockParams2 =
 
 usageExample :: Assertion
 usageExample = assertSucceeds $ do
-  txLock (wallet 1) lockParams
+  txLock lockParams `as` wallet 1
   txUnlock (wallet 2)
 
 tests :: TestTree
@@ -168,23 +167,23 @@ tests =
       expectFail $
         testCase "Unlocking too much" $
           assertFails $ do
-            txLock (wallet 1) lockParams
+            txLock lockParams `as` wallet 1
             txUnlockTooMuch (wallet 2),
       testCase "Can unlocking in small parts" $
         assertSucceeds $ do
-          txLock (wallet 1) lockParams
+          txLock lockParams `as` wallet 1
           txUnlockNotEnough (wallet 2)
           txUnlockNotEnough (wallet 2),
       testCase "Forgets a recipient" $
         assertFails $ do
-          txLock (wallet 1) lockParams
+          txLock lockParams `as` wallet 1
           txUnlockGreedy (wallet 2),
       -- we know that this implementation of split is vulnerable to this attack;
       -- Still, I rather phrase the test as we would in practice and flag it with 'expectFail'
       expectFail $
         testCase "Is not vulnerable to double split attack" $
           assertFails $ do
-            txLock (wallet 1) lockParams
-            txLock (wallet 1) lockParams2
+            txLock lockParams `as` wallet 1
+            txLock lockParams2 `as` wallet 1
             txUnlockAttack (wallet 5)
     ]

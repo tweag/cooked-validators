@@ -4,7 +4,6 @@
 module Cooked.MockChain.QuickCheck where
 
 import Control.Monad.Writer
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState
@@ -21,7 +20,7 @@ import Test.QuickCheck.GenT
 --
 -- OLD COMMENT; incorporate later:
 --  Enables the user to quantify over possible traces from a distribution of traces
---  written through 'GenT' and 'MonadMockChain'. In case of failure, the user will
+--  written through 'GenT' and 'MonadBlockChain'. In case of failure, the user will
 --  see a descripion of the transactions that were issued by the generated trace.
 --
 --  This generator does /not/ shrink the trace. The reason for that is that

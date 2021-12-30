@@ -15,7 +15,7 @@ import PlutusTx.Numeric ((+), (-))
 import Prelude hiding ((+), (-))
 
 balanceWithUTxOsOf ::
-  (MonadMockChain m) =>
+  (MonadBlockChain m) =>
   Pl.Value ->
   Pl.PubKeyHash ->
   m ([Pl.TxOutRef], Pl.Value)

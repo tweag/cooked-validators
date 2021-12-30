@@ -6,7 +6,6 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import Cooked.MockChain.Wallet
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -76,14 +75,13 @@ data Constraint where
   Before :: Pl.POSIXTime -> Constraint
   After :: Pl.POSIXTime -> Constraint
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy :: [Wallet] -> Constraint
+  SignedBy :: [Pl.PubKeyHash] -> Constraint
 
 mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
 mints = Mints @() Nothing
 
 -- | A Transaction skeleton is a set of our constraints,
--- a wallet which will sign the generated transaction and
--- an optional showable label, which is very useful when displaying
+-- and an optional showable label, which is useful when displaying
 -- traces. The label was encoded as an existential to enable us to
 -- create ad-hoc datatypes and pass their values around, for instance:
 --
@@ -92,19 +90,20 @@ mints = Mints @() Nothing
 --
 -- This way we can (A) modify the show behavior if we want and (B)
 -- not worry about constructing consistent strings when constructing transactions
+--
+-- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
     (Show x) =>
     { txLabel :: Maybe x,
-      txMainSigner :: Wallet,
       txConstraints :: [Constraint]
     } ->
     TxSkel
 
 -- | Constructs a skeleton without a default label
-txSkel :: Wallet -> [Constraint] -> TxSkel
+txSkel :: [Constraint] -> TxSkel
 txSkel = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x) => x -> Wallet -> [Constraint] -> TxSkel
+txSkelLbl :: (Show x) => x -> [Constraint] -> TxSkel
 txSkelLbl x = TxSkel (Just x)
