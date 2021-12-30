@@ -5,12 +5,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
 import Control.Applicative
-import Control.Arrow (second)
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -20,10 +21,13 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
+import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -83,13 +87,14 @@ data MockChainError
   | FailWith String
   deriving (Show, Eq)
 
-newtype MockChainEnv = MockChainEnv
-  { mceSlotConfig :: Pl.SlotConfig
+data MockChainEnv = MockChainEnv
+  { mceSlotConfig :: Pl.SlotConfig,
+    mceSigners :: NE.NonEmpty Wallet
   }
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def
+  def = MockChainEnv def (wallet 1 NE.:| [])
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -133,43 +138,49 @@ mapMockChainT ::
   MockChainT n b
 mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
 
--- | Executes a 'MockChainT' from some initial state.
+-- | Executes a 'MockChainT' from some initial state and environment.
 runMockChainTRaw ::
   (Monad m) =>
+  MockChainEnv ->
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTRaw i0 =
+runMockChainTRaw e0 i0 =
   runExceptT
     . fmap (second mcstToUtxoState)
     . flip runStateT i0
-    . flip runReaderT def
+    . flip runReaderT e0
     . unMockChain
 
-runMockChainRaw :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
-runMockChainRaw i0 = runIdentity . runMockChainTRaw i0
+-- | See 'runMockChainTRaw'
+runMockChainRaw :: MockChainEnv -> MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainRaw e0 i0 = runIdentity . runMockChainTRaw e0 i0
 
--- | Executes a 'MockChainT' from the cannonical initial state.
+-- | Executes a 'MockChainT' from the cannonical initial state and environment. The cannonical
+--  environment uses the default 'SlotConfig' and @[Cooked.MockChain.Wallet.wallet 1]@ as the sole
+--  wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
-runMockChainT = runMockChainTRaw mockChainSt0
+runMockChainT = runMockChainTRaw def def
 
+-- | See 'runMockChainT'
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
--- | Executes a 'MockChainT' from an initial state with the given initial value distribution.
+-- | Executes a 'MockChainT' from an initial state set up with the given initial value distribution.
+-- Similar to 'runMockChainT', uses the default environment
 runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom distribution = runMockChainTRaw mockChainSt0'
+runMockChainTFrom distribution = runMockChainTRaw def mockChainSt0'
   where
     mockChainSt0' :: MockChainSt
     mockChainSt0' = MockChainSt utxoIndex0' M.empty M.empty def
     utxoIndex0' :: Pl.UtxoIndex
     utxoIndex0' = utxoIndex0From distribution
 
--- | Executes a 'MockChain' from an initial state with the given initial value distribution.
+-- | See 'runMockChainTFrom'
 runMockChainFrom ::
   InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
 runMockChainFrom distribution =
@@ -194,7 +205,7 @@ utxoIndex0 = utxoIndex0From initialDistribution
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadMockChain (MockChainT m) where
+instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkelOpts opts skel = do
     tx <- generateTx' opts skel
     txId <- validateTx' tx
@@ -202,6 +213,8 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
     return txId
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
+
+  ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
 
   utxosSuchThat = utxosSuchThat'
 
@@ -215,6 +228,11 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
     sc <- asks mceSlotConfig
     s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
     return $ Pl.slotToBeginPOSIXTime sc s
+
+instance (Monad m) => MonadMockChain (MockChainT m) where
+  signingWith ws = local $ \env -> env {mceSigners = ws}
+
+  askSigners = asks mceSigners
 
 -- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
@@ -283,16 +301,29 @@ utxosSuchThat' addr datumPred = do
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
 
+-- | Generates an unbalanced transaction from a skeleton; A
+--  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
+--  In order to submit a transaction, it must be balanced, otherwise
+--  we will see a @ValueNotPreserved@ error.
+--
+--  See "Cooked.Tx.Balance" for balancing capabilities or stick to
+--  'generateTx', which generates /and/ balances a transaction.
+generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
+generateUnbalTx sk =
+  let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
+   in first MCETxError $ Pl.mkTx lkups constrs
+
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
 generateTx' opts skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
-    Left err -> throwError $ MCETxError err
-    Right (ubtx, allSigners) -> do
+    Left err -> throwError err
+    Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
-      balancedTx <- balanceTxFrom (txMainSigner skel) (adjust ubtx)
-      return $ foldl (flip txAddSignature) balancedTx allSigners
+      signers <- askSigners
+      balancedTx <- balanceTxFrom (NE.head signers) (adjust ubtx)
+      return $ foldl (flip txAddSignature) balancedTx (NE.toList signers)
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt

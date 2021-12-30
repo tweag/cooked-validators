@@ -55,6 +55,9 @@ walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 walletSK :: CW.MockWallet -> Pl.PrivateKey
 walletSK = CW.privateKey
 
+toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
+toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
+
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
