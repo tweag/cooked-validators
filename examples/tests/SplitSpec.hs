@@ -9,53 +9,11 @@ import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
 import qualified Plutus.V1.Ledger.Ada as Pl
 import qualified Split
+import Split.OffChain
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
-
--- | Transaction to lock some amount from a given wallet to the script
-txLock :: MonadBlockChain m => Split.SplitDatum -> m ()
-txLock params = void $ validateTxConstr' (TxLock params) constraints
-  where
-    constraints =
-      [ PaysScript
-          Split.splitValidator
-          [ (params, Pl.lovelaceValueOf $ Split.amount params)
-          ]
-      ]
-
--- TODO w
-
--- | Label for 'txLock' skeleton
-newtype TxLock = TxLock Split.SplitDatum deriving (Show)
-
--- | Whether a script output concerns a given wallet (i.e. the wallet is a
--- recipient)
-isARecipient :: Wallet -> Split.SplitDatum -> a -> Bool
-isARecipient w datum _ =
-  let wHash = walletPKHash w
-   in elem wHash [Split.recipient1 datum, Split.recipient2 datum]
-
--- | Unlocks the first 'SplitDatum' where the issuer wallet is a recipient of
-txUnlock :: (MonadMockChain m) => Wallet -> m ()
-txUnlock issuer = do
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
-  let half = div amount 2
-  let share1 = half
-  let share2 = amount - half
-  void $
-    validateTxConstr'
-      TxUnlock
-      [ SpendsScript Split.splitValidator () (output, datum),
-        PaysPK r1 (Pl.lovelaceValueOf share1),
-        PaysPK r2 (Pl.lovelaceValueOf share2)
-      ]
-      `as` issuer
-
--- | Label for 'txUnlock' skeleton
-data TxUnlock = TxUnlock deriving (Show)
 
 -- | A more general version of 'txUnlock' above. In fact,
 -- @txUnlock' Nothing Nothing Nothing == txUnlock@, but we keep
@@ -73,7 +31,7 @@ txUnlock' ::
   m ()
 txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat Split.splitValidator (isARecipient issuer)
+    scriptUtxosSuchThat Split.splitValidator (isARecipient $ walletPKHash issuer)
   let half = div amount 2
       share1 = fromMaybe id mAmountChanger half
       share2 = fromMaybe id mAmountChanger (amount - half)
@@ -154,8 +112,8 @@ lockParams2 =
 
 usageExample :: Assertion
 usageExample = assertSucceeds $ do
-  txLock lockParams `as` wallet 1
-  txUnlock (wallet 2)
+  txLock Split.splitValidator lockParams `as` wallet 1
+  txUnlock Split.splitValidator `as` wallet 2
 
 tests :: TestTree
 tests =
@@ -167,23 +125,23 @@ tests =
       expectFail $
         testCase "Unlocking too much" $
           assertFails $ do
-            txLock lockParams `as` wallet 1
+            txLock Split.splitValidator lockParams `as` wallet 1
             txUnlockTooMuch (wallet 2),
       testCase "Can unlocking in small parts" $
         assertSucceeds $ do
-          txLock lockParams `as` wallet 1
+          txLock Split.splitValidator lockParams `as` wallet 1
           txUnlockNotEnough (wallet 2)
           txUnlockNotEnough (wallet 2),
       testCase "Forgets a recipient" $
         assertFails $ do
-          txLock lockParams `as` wallet 1
+          txLock Split.splitValidator lockParams `as` wallet 1
           txUnlockGreedy (wallet 2),
       -- we know that this implementation of split is vulnerable to this attack;
       -- Still, I rather phrase the test as we would in practice and flag it with 'expectFail'
       expectFail $
         testCase "Is not vulnerable to double split attack" $
           assertFails $ do
-            txLock lockParams `as` wallet 1
-            txLock lockParams2 `as` wallet 1
+            txLock Split.splitValidator lockParams `as` wallet 1
+            txLock Split.splitValidator lockParams2 `as` wallet 1
             txUnlockAttack (wallet 5)
     ]
