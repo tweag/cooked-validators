@@ -1,9 +1,12 @@
+{-# OPTIONS_GHC -Wno-dodgy-exports #-}
+
 module Cooked.MockChain
   ( module Cooked.MockChain.Time,
     module Cooked.MockChain.UtxoState,
     module Cooked.MockChain.Wallet,
     module Cooked.MockChain.Monad.Staged,
     module Cooked.MockChain.Monad.Direct,
+    module Cooked.MockChain.Monad.Contract, -- you're wrong GHC, it exports an important instance.
     module Cooked.MockChain.Monad,
     module Cooked.MockChain.QuickCheck,
     module Cooked.MockChain.RawUPLC,
@@ -16,6 +19,7 @@ where
 import Control.Arrow (second)
 import Cooked.MockChain.HUnit
 import Cooked.MockChain.Monad
+import Cooked.MockChain.Monad.Contract ()
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.QuickCheck
