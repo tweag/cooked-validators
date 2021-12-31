@@ -97,7 +97,7 @@ run_hlint() {
   return $hlint_res
 }
 
-projects=("cooked-validators" "examples" "tasty-twaudit-metadata")
+projects=("cooked-validators" "examples")
 ormolu_ok=true
 cabal_ok=true
 hlint_ok=true
