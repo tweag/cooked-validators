@@ -1,15 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TupleSections #-}
 
 module PMultiSigStatefulSpec where
 
@@ -36,7 +30,6 @@ import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
-import qualified Test.Tasty.Metadata as TW
 import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 import Text.Heredoc
 
@@ -181,13 +174,7 @@ tests =
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  TW.bug
-    TW.Critical
-    [str|Ensuring that the PMultiSigContract can be used in a trivial scenario where
-      |wallet 1 proposes a payment, which receives three signatures, then is
-      |\emph{collected} and \emph{payed}.
-      |]
-    $ testCase "Example Trivial Trace" $ assertSucceeds mtrace
+  testCase "Example Trivial Trace" $ assertSucceeds mtrace
   where
     mtrace :: MonadMockChain m => m ()
     mtrace = do
@@ -270,39 +257,25 @@ sampleGroup1 =
   localOption (QuickCheckTests 25) $
     testGroup
       "Property-based Test Examples"
-      [ TW.bug'
-          "sec:simple-traces"
-          TW.Critical
-          [str|Traces that use enough unique signatures should always succeed|]
-          $ testProperty "Can execute payment with enough signatures" $
-            forAllTrP
-              successParams
-              (\p -> propose p >>= execute p)
-              (const qcIsRight),
-        TW.bug
-          TW.Critical
-          [str|On the other hand, if we do \emph{not} collect enough unique
-          |signatures, the validator should block the payment.
-          |]
-          $ testProperty "Cannot execute payment without enough signatures" $
-            forAllTrP
-              failureParams
-              (\p -> propose p >>= execute p)
-              (const (QC.property . isLeft)),
-        TW.bug
-          TW.Critical
-          [str|On successful traces, it must be impossible to duplicate the
-          |authentication token
-          |]
-          $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
-            forAllTrP
-              successParams
-              ( \p -> do
-                  i <- propose p
-                  w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                  somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
-              )
-              (const (QC.property . isLeft))
+      [ testProperty "Can execute payment with enough signatures" $
+          forAllTrP
+            successParams
+            (\p -> propose p >>= execute p)
+            (const qcIsRight),
+        testProperty "Cannot execute payment without enough signatures" $
+          forAllTrP
+            failureParams
+            (\p -> propose p >>= execute p)
+            (const (QC.property . isLeft)),
+        testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
+          forAllTrP
+            successParams
+            ( \p -> do
+                i <- propose p
+                w3utxos <- pkUtxos (walletPKHash $ wallet 9)
+                somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
+            )
+            (const (QC.property . isLeft))
       ]
 
 data ThresholdParams = ThresholdParams
@@ -366,17 +339,13 @@ deriving instance Show DupTokenAttacked
 
 -- ** Datum Hijacking Attack
 
+-- Performs a datum-hijacking attack by using a fake validator with an
+-- isomorphic datum type. This attack can be used in scripts that forget
+-- to check the address of an output. Most of the times, if a script
+-- uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
+-- chances are said script will be vulnerable.
 datumHijackingTrace :: TestTree
-datumHijackingTrace =
-  TW.bug
-    TW.Critical
-    [str|Performs a datum-hijacking attack by using a fake validator with an
-        |isomorphic datum type. This attack can be used in scripts that forget
-        |to check the address of an output. Most of the times, if a script
-        |uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
-        |chances are said script will be vulnerable.
-      |]
-    $ testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9

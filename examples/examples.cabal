@@ -59,7 +59,6 @@ library
     , tasty-hspec
     , tasty-hunit
     , tasty-quickcheck
-    , tasty-twaudit-metadata
     , text
     , transformers
   default-language: Haskell2010
@@ -113,7 +112,6 @@ test-suite spec
     , tasty-hspec
     , tasty-hunit
     , tasty-quickcheck
-    , tasty-twaudit-metadata
     , text
     , transformers
   default-language: Haskell2010

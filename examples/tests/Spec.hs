@@ -7,12 +7,11 @@ import qualified SplitUPLCSpec
 import Test.Hspec
 import Test.Tasty
 import Test.Tasty.Hspec
-import Test.Tasty.Ingredients.MetadataReporter
 import qualified UseCaseCrowdfundingSpec
 
 main :: IO ()
 main = do
-  twauditMain $
+  defaultMain $
     testGroup
       "main"
       [ PMultiSigStatefulSpec.tests,

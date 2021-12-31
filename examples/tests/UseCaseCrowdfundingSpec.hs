@@ -34,7 +34,6 @@ import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.HUnit
-import qualified Test.Tasty.Metadata as TW
 import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 import Text.Heredoc
 
@@ -103,12 +102,7 @@ tests =
 
 ownerCanRetrieveFunds :: TestTree
 ownerCanRetrieveFunds =
-  TW.bug
-    TW.Critical
-    [str|Generates an example trace showing a campaign being ran to completion.
-        |This shoul invariably succeed.
-        |]
-    $ testCase "Funds can be retrieved" $ isRight (runMockChain mtrace) @? "Trace failed"
+  testCase "Funds can be retrieved" $ isRight (runMockChain mtrace) @? "Trace failed"
   where
     mtrace :: MonadMockChain m => m ()
     mtrace = do
@@ -121,37 +115,34 @@ ownerCanRetrieveFunds =
       waitNMilliSeconds 25000
       retrieveFunds t c (wallet 1)
 
+-- Generates an arbitrary campaign, then generates arbitrary payments that execute
+-- all within the \hs{campaignDeadline}, then collect the funds within \hs{campaignCollectionDeadline}.
+-- This should invariably succeed.
 ownerCanRetrieveFundsQC :: TestTree
 ownerCanRetrieveFundsQC =
-  TW.bug
-    TW.Critical
-    [str|Generates an arbitrary campaign, then generates arbitrary payments that execute
-        |all within the \hs{campaignDeadline}, then collect the funds within \hs{campaignCollectionDeadline}.
-        |This should invariably succeed.
-        |]
-    $ testProperty "Funds can be retrieved (QuickCheck)" $
-      forAllTrP
-        ((,) <$> choose (10000, 20000) <*> (wallet <$> choose (1, 10)))
-        ( \(d, owner) -> do
-            -- generates a campaign with at least d milliseconds of available time between
-            -- deadline and collection deadline
-            (t0, c) <- genCampaign d owner
+  testProperty "Funds can be retrieved (QuickCheck)" $
+    forAllTrP
+      ((,) <$> choose (10000, 20000) <*> (wallet <$> choose (1, 10)))
+      ( \(d, owner) -> do
+          -- generates a campaign with at least d milliseconds of available time between
+          -- deadline and collection deadline
+          (t0, c) <- genCampaign d owner
 
-            -- Generates and the payments:
-            payments <- resize 6 $ listOf1 ((,) <$> choose (1, 10) <*> choose (2000, 10000))
-            forM_ payments $ \(w, amount) -> do
-              paysCampaign c (wallet w) (Ada.lovelaceValueOf $ amount * 1000)
+          -- Generates and the payments:
+          payments <- resize 6 $ listOf1 ((,) <$> choose (1, 10) <*> choose (2000, 10000))
+          forM_ payments $ \(w, amount) -> do
+            paysCampaign c (wallet w) (Ada.lovelaceValueOf $ amount * 1000)
 
-            -- Now we must wait for the campaign deadline to pass, otherwise the
-            -- funds won't be collectible
-            awaitTime (campaignDeadline c)
-            retrieveFunds t0 c owner
+          -- Now we must wait for the campaign deadline to pass, otherwise the
+          -- funds won't be collectible
+          awaitTime (campaignDeadline c)
+          retrieveFunds t0 c owner
 
-            -- Finally, return the amount of money gathered by the owner
-            return $ sum $ map snd payments
-        )
-        ( \(_, _owner) res -> case res of
-            Left err -> QC.counterexample (show err) False
-            -- TODO: check owner funds increased by amount or is at least the given amount, idk
-            Right (_amount, _st) -> QC.property True
-        )
+          -- Finally, return the amount of money gathered by the owner
+          return $ sum $ map snd payments
+      )
+      ( \(_, _owner) res -> case res of
+          Left err -> QC.counterexample (show err) False
+          -- TODO: check owner funds increased by amount or is at least the given amount, idk
+          Right (_amount, _st) -> QC.property True
+      )

@@ -2,7 +2,7 @@
 
 * [Projects](#projects)
 * [Developer Tools and Env](#developer-tools-and-environment)
-  - [__IMPORTANT:__ Setting up the nix cache](#nix)
+  - [__IMPORTANT:__ Setting up the nix cache](#important-configure-your-nix-cache)
   - [Updating Plutus](#updating-plutus)
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
@@ -20,10 +20,6 @@ These libraries are a research prototype under active development, they comes _a
 ### [examples](examples)
 
 - Example contracts and their test suites written using `cooked-validators`
-
-### [tasty-twaudit-metadata](tasty-twaudit-metadata)
-
-- Work-in-progress of internal library that we use to generate LaTeX reports.
 
 ## Developer Tools and Environment
 

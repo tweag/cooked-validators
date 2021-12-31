@@ -9,7 +9,6 @@ dependencies:
   - base >= 4.9 && < 5
   # Internal dependencies of the test suite
   - cooked-validators
-  - tasty-twaudit-metadata
   # Other libraries that you will likely need to write a good test-suide:
   - QuickCheck
   - quickcheck-transformer
