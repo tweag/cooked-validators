@@ -85,8 +85,8 @@ mints = Mints @() Nothing
 -- traces. The label was encoded as an existential to enable us to
 -- create ad-hoc datatypes and pass their values around, for instance:
 --
--- > data ProposePaymentLbl = ProposePayment Wallet Value deriving Show
--- > f = ... (txSkelLbl (ProposePayment w val) ...) ...
+-- > data ProposePaymentLbl = ProposePayment Value deriving Show
+-- > f = ... (txSkelLbl (ProposePayment val) ...) ...
 --
 -- This way we can (A) modify the show behavior if we want and (B)
 -- not worry about constructing consistent strings when constructing transactions

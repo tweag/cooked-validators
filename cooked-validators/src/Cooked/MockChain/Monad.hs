@@ -24,35 +24,21 @@ import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validato
 import qualified PlutusTx as Pl (FromData)
 import Test.QuickCheck.GenT
 
--- * MockChain Monad
-
--- $mockchainmonad
--- #mockchainanchor#
---
--- The 'MonadBlockChain' class provides the basic interface
--- to write traces for validator scripts using the transaction generator from
--- the constraints from "Cooked.Tx.Constraints".
---
--- A /trace/ is a sequence of transactions that bring the system into a given state:
---
--- > tr :: (MonadBlockChain m) => m ()
---
--- It is strongly recomended that you write your code polymorphic over the monad @m@,
--- in order to be able to choose different interpretations at run time.
--- The two immediately interesting interpretations can be found at "Cooked.MockChain.Base"
--- and "Cooked.MockChain.Staged". The main difference is that under /Base/ you will find
--- a direct interpretation based on a combination of @StateT UtxoIntex@ and @Except@, whereas
--- in /Staged/ there is a staged interpertation that produces an AST which can later be modified.
--- For example, say you want to look at 'UtxoState's that result from executing variations over @tr@
--- above, where of the transactions is omitted. You can:
---
--- > omitOne :: StagedMockChain a -> [StagedMockChain a]
--- >
--- > allVariations :: [Either MockChainError ((), UtxoState)]
--- > allVariations = map runMockChain (interpret $ omitOne tr)
+-- * BlokChain Monad
 
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
---  See [here](#mockchainanchor) for more details.
+--  The operations within 'MonadBlockChain' have an implementation over the 'Plutus.Contract.Contract'
+--  monad and can be used to build the first layer of off-chain code that
+--  needs to interact with code in the @Contract@ monad.
+--
+-- It is strongly recomended that you write your code polymorphic for some monad @m@:
+--
+-- > f :: (MonadBlockChain m) => m ()
+--
+-- This enables you to choose different interpretations at run time. The two immediately interesting
+-- interpretations are running your code within the
+-- 'Plutus.Contract.Contract' monad to generate and submit transactions and to
+-- test the code by running it in the 'Cooked.MockChain.Monad.Direct.MockChain' monad, provided in this library,
 class (MonadFail m) => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
@@ -98,19 +84,16 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- | Monads supporting modifying transaction skeletons with modalities.
-class (Monad m) => MonadModal m where
-  -- | Applies a modification to all transactions in a tree
-  everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
-
-  -- | Applies a modification to some transactions in a tree, note that
-  -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
-  -- progress, hence if it is not possible to apply the transformation anywhere
-  -- in @x@, there would be no progress.
-  somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
-
--- | Monad supporting mock operations such as changing the signing wallets and
---  retreiving 'SlotConfig'
+-- | The 'Plutus.Contract.Contract' monad has certain design decisions
+-- that make it suboptimal for testing. Therefore, we divided the abstract
+-- interface into those functions that have an interpretation in
+-- 'Plutus.Contract.Contract' and those that do not.
+--
+-- For example, a function returning a value of type @Contract@ can be thought
+-- of as an interaction with a plutus contract from a /single user/ point of view.
+-- When testing, however, we might want to interact with a contract from multiple different users.
+-- Changing the set of wallets that sign a transaction has no interpretation
+-- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
 class (MonadBlockChain m) => MonadMockChain m where
   -- | Sets a list of wallets that will sign every transaction emitted
   --  in the respective block
@@ -127,6 +110,7 @@ as ma w = signingWith (w NE.:| []) ma
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
+-- | Set of options to modify the behavior of transaction validation.
 data ValidateTxOpts = ValidateTxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
     --  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
@@ -160,9 +144,11 @@ instance Default ValidateTxOpts where
 validateTxSkel :: (MonadBlockChain m) => TxSkel -> m Pl.TxId
 validateTxSkel = validateTxSkelOpts def
 
+-- | Calls 'validateTxSkelOpts' with the default set of options and no label.
 validateTxConstr :: (MonadBlockChain m) => [Constraint] -> m Pl.TxId
 validateTxConstr = validateTxSkel . txSkel
 
+-- | Calls 'validateTxSkelOpts' with the default set of options but passes an arbitrary showable label to it.
 validateTxConstr' :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
 validateTxConstr' lbl = validateTxSkel . txSkelLbl lbl
 
@@ -225,10 +211,8 @@ pkUtxos' pkh = map (second go) <$> pkUtxos pkh
 -- Slots are integers that monotonically increase and model the passage of time. By looking
 -- at the current slot, a validator gets to know that it is being executed within a certain
 -- window of wall-clock time. Things can get annoying pretty fast when trying to mock traces
--- and trying to exercise certain branches of certain validators. The functions below attempt
--- to make that a little easier.
-
--- TODO: Finish documentation when issue #34 is solved
+-- and trying to exercise certain branches of certain validators, make sure you also see
+-- read the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
 waitNSlots :: (MonadBlockChain m) => Integer -> m Pl.Slot
 waitNSlots n = do
@@ -240,6 +224,19 @@ waitNMilliSeconds :: (MonadBlockChain m) => Pl.DiffMilliSeconds -> m Pl.POSIXTim
 waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
+
+-- ** Modalities
+
+-- | Monads supporting modifying transaction skeletons with modalities.
+class (Monad m) => MonadModal m where
+  -- | Applies a modification to all transactions in a tree
+  everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
+
+  -- | Applies a modification to some transactions in a tree, note that
+  -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
+  -- progress, hence if it is not possible to apply the transformation anywhere
+  -- in @x@, there would be no progress.
+  somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
 
 -- ** Deriving further 'MonadBlockChain' instances
 

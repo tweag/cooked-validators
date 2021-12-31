@@ -21,12 +21,15 @@ import qualified Ledger.Constraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
 import qualified PlutusTx as Pl
 
--- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints' and '[Wallet]'
+-- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
 
 type LedgerConstraint a =
   (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a))
 
--- | Map from datum hashes to string representation of all the datum carried
+-- | Map from datum hashes to string representation of all the datums carried.
+-- We use this in order to display data to the use when testing. Its often
+-- easier to read the original datatype that was placed into a UTxO
+-- instead of its respective @toBuilinData@ image.
 extractDatumStrFromConstraint :: Constraint -> M.Map Pl.DatumHash String
 extractDatumStrFromConstraint (PaysScript _validator datumsAndValues) =
   M.fromList
@@ -37,7 +40,9 @@ extractDatumStrFromConstraint (SpendsScript _validator _redeemer (_out, datum)) 
 extractDatumStrFromConstraint _ = M.empty
 
 -- | Converts our constraint into a 'LedgerConstraint',
---  which later can be used to generate a transaction.
+--  which later can be used to generate a transaction. The universally
+--  quantified type-variable is there on purpose, to enable us to
+--  easily spend from multiple scripts at the same time.
 toLedgerConstraint :: Constraint -> LedgerConstraint a
 toLedgerConstraint (SpendsScript v r ((oref, o), _a)) = (lkups, constr)
   where
@@ -76,10 +81,12 @@ toLedgerConstraint (After t) = (mempty, constr)
 toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
 toLedgerConstraint (SignedBy hashes) = (mempty, foldMap Pl.mustBeSignedBy hashes)
 
+-- | Converts a list of constraints into a 'LedgerConstraint'
 toLedgerConstraints :: [Constraint] -> LedgerConstraint a
 toLedgerConstraints cs = (mconcat lkups, mconcat constrs)
   where
     (lkups, constrs) = unzip $ map toLedgerConstraint cs
 
+-- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> Constraint
 signedByWallets = SignedBy . map walletPKHash
