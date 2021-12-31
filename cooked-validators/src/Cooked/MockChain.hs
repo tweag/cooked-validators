@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wno-dodgy-exports #-}
 
+-- | Exports all the machinery necessary for using 'MonadBlockChain' and
+--  'MonadMockChain' for writing and testing contracts.
 module Cooked.MockChain
   ( module Cooked.MockChain.Time,
     module Cooked.MockChain.UtxoState,
@@ -36,22 +38,7 @@ import qualified Ledger as Pl
 --  This function is here to avoid an import cycle.
 spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
 spentByPK pkh val = do
+  -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
   (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
-
-{-
-
--- TODO: Maybe split spentByPK into a pure function, for exaple:
-
--- | Spends some value from a pubkey by selecting the needed utxos belonging
---  to that pubkey and returning the leftover to the same pubkey.
---  This function is here to avoid an import cycle.
-spentByPK :: Pl.Value -> [(Pl.TxOutRef, Pl.TxOut)] -> [Constraint]
-spentByPK allOuts val = do
-  let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
-
--- Then, at call sites:
-spentByPK val <$> pkUtxos pk
--}

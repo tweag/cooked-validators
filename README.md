@@ -34,14 +34,14 @@ This results in a simpler nix setup that is easy to extend with different tools 
 
 ### __IMPORTANT:__ Configure your nix cache!
 
-Plutus uses a custom GHC version. To avoid having to build this GHC, make sure you 
+Plutus uses a custom GHC version. To avoid having to build this GHC, make sure you
 set up the IOHK binary nix cache as instructed [here](https://github.com/input-output-hk/plutus#iohk-binary-cache).
 
 ### Seamless Integration with `direnv`
 
 We recommend using `direnv` to automatically bring in the nix dependencies
 when entering the project directory. Just run `direnv allow` at the root of the repo.
-To cache the nix environment and make direnv load instantaneously, you can 
+To cache the nix environment and make direnv load instantaneously, you can
 and use [nix-direnv](https://github.com/nix-community/nix-direnv#with-nix-env).
 Several editors have support for `direnv`. If you use emacs, we recomend using [`envrc-mode`](https://github.com/purcell/envrc).
 
