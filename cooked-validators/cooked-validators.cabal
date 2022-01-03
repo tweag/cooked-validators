@@ -48,6 +48,7 @@ library
     , freer-extras
     , freer-simple
     , lens
+    , monad-control
     , mtl
     , plutus-contract
     , plutus-core
@@ -93,6 +94,7 @@ test-suite spec
     , freer-simple
     , hspec
     , lens
+    , monad-control
     , mtl
     , plutus-contract
     , plutus-core

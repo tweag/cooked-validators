@@ -7,11 +7,13 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
+import Control.Monad.Trans.Control
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
@@ -261,29 +263,35 @@ instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (
   awaitSlot = lift . awaitSlot
   awaitTime = lift . awaitTime
 
-{- TODO would be great to have this and MonadModal too
-instance (MonadTrans t, MonadHasWallets m, Monad (t m)) => MonadHasWallets (AsTrans t m) where
-  type MWallet (AsTrans t m) = MWallet m
-  findWalletByPKH = lift . findWalletByPKH
-  withWallets ws act = lift $ withWallets _ act
--}
+-- This might be assigned a more general type,
+-- but this type is more inference-friendly, and it also seems to communicate the idea better.
+unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
+f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
+
+instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+  signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
+  askSigners = lift askSigners
+
+instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
+  everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
+  somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
+
+-- GenT is similar to ReaderT (QC.QCGen, Int),
+-- so we can borrow inspiration for the instances from the latter.
+instance MonadTransControl GenT where
+  type StT GenT a = a
+
+  liftWith f = GenT (\r i -> f (\act -> unGenT act r i))
+  restoreT = lift
 
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
---deriving via (AsTrans (ReaderT r) m) instance MonadHasWallets m => MonadHasWallets (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+
+deriving via (AsTrans (ReaderT r) m) instance MonadModal m => MonadModal (ReaderT r m)
 
 deriving via (AsTrans GenT m) instance MonadBlockChain m => MonadBlockChain (GenT m)
 
--- deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
+deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
 
-instance MonadModal m => MonadModal (ReaderT r m) where
-  everywhere f m = ReaderT (everywhere f . runReaderT m)
-  somewhere f m = ReaderT (somewhere f . runReaderT m)
-
-instance MonadModal m => MonadModal (GenT m) where
-  everywhere f m = GenT (\r i -> everywhere f (unGenT m r i))
-  somewhere f m = GenT (\r i -> somewhere f (unGenT m r i))
-
-instance MonadMockChain m => MonadMockChain (GenT m) where
-  signingWith w ma = GenT (\r i -> signingWith w (unGenT ma r i))
-  askSigners = GenT (\_ _ -> askSigners)
+deriving via (AsTrans GenT m) instance MonadModal m => MonadModal (GenT m)
