@@ -229,14 +229,15 @@ waitNMilliSeconds n = do
 
 -- | Monads supporting modifying transaction skeletons with modalities.
 class (Monad m) => MonadModal m where
-  -- | Applies a modification to all transactions in a tree
-  everywhere :: (TxSkel -> TxSkel) -> m () -> m ()
+  -- | Applies a modification to all possible transactions in a tree. If a modification
+  -- cannot be applied anywhewhere, this is the identity: @everywhere (const Nothing) x == x@.
+  everywhere :: (TxSkel -> Maybe TxSkel) -> m a -> m a
 
   -- | Applies a modification to some transactions in a tree, note that
   -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
   -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
-  somewhere :: (TxSkel -> Maybe TxSkel) -> m () -> m ()
+  somewhere :: (TxSkel -> Maybe TxSkel) -> m a -> m a
 
 -- ** Deriving further 'MonadBlockChain' instances
 

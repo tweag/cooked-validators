@@ -23,10 +23,12 @@ import qualified Prettyprinter
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph.
 newtype UtxoState = UtxoState {utxoState :: M.Map Pl.Address [(Pl.Value, Maybe UtxoDatum)]}
+  deriving (Eq)
 
 -- | A 'UtxoDatum' contains a datum whic his @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
 -- but we also include @show x@ to be able to print this value in a more user friendly fashion.
 data UtxoDatum = UtxoDatum {utxoDatum :: Pl.Datum, utxoShow :: String}
+  deriving (Eq)
 
 instance Show UtxoDatum where
   show = utxoShow

@@ -63,6 +63,7 @@ library
     , scientific
     , streaming
     , tasty
+    , tasty-hunit
     , text
     , transformers
   default-language: Haskell2010
@@ -72,6 +73,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.BalanceSpec
+      Cooked.MockChain.Monad.StagedSpec
       Cooked.QuickValueSpec
       Paths_cooked_validators
   hs-source-dirs:
@@ -108,6 +110,7 @@ test-suite spec
     , scientific
     , streaming
     , tasty
+    , tasty-hunit
     , text
     , transformers
   default-language: Haskell2010
