@@ -7,7 +7,6 @@ import Cooked.MockChain
 import Data.Default
 import Test.HUnit
 import Test.Hspec
-import Test.QuickCheck
 
 imcEq :: (Show a, Eq a) => InterpMockChain a -> InterpMockChain a -> Assertion
 imcEq a b = go a @?= go b
