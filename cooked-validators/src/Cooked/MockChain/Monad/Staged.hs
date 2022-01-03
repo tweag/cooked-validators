@@ -50,7 +50,7 @@ data MockChainOp a where
 data StagedMockChain a where
   Return :: a -> StagedMockChain a
   Instr :: MockChainOp a -> (a -> StagedMockChain b) -> StagedMockChain b
-  -- Modify is implemented as a seoarate constructor into `StagedMockChain` to simplify
+  -- Modify is implemented as a separate constructor into `StagedMockChain` to simplify
   -- the definition of `interpretOp`; otherwise, we'd need to pass the set of modalities
   -- one is interpreting into `interpretOp`.
   Modify :: Modality TxSkel -> StagedMockChain a -> (a -> StagedMockChain b) -> StagedMockChain b
