@@ -50,16 +50,10 @@ data MockChainOp a where
 data StagedMockChain a where
   Return :: a -> StagedMockChain a
   Instr :: MockChainOp a -> (a -> StagedMockChain b) -> StagedMockChain b
-  -- Here's the catch! Because modify will yield a list of results, its as if
-  -- the modified tree returned a list of things; but the type can't be
-  -- StagedMockChain [a] because then, StagedMockChain wouldn't be a functor.
-  -- We have two options, define:
-  --
-  -- Modify :: TxModality -> StagedMockchain a -> ([a] -> b) -> StagedMockChain b
-  --
-  -- Where the pure function ([a] -> b) is the observation over the non-determistic computation,
-  -- or, we stick to not observing the computation at all:
-  Modify :: Modality TxSkel -> StagedMockChain () -> StagedMockChain a -> StagedMockChain a
+  -- Modify is implemented as a separate constructor into `StagedMockChain` to simplify
+  -- the definition of `interpretOp`; otherwise, we'd need to pass the set of modalities
+  -- one is interpreting into `interpretOp`.
+  Modify :: Modality TxSkel -> StagedMockChain a -> (a -> StagedMockChain b) -> StagedMockChain b
 
 singleton :: MockChainOp a -> StagedMockChain a
 singleton op = Instr op Return
@@ -67,7 +61,7 @@ singleton op = Instr op Return
 instance Functor StagedMockChain where
   fmap f (Return x) = Return $ f x
   fmap f (Instr op cont) = Instr op (fmap f . cont)
-  fmap f (Modify h m cont) = Modify h m (fmap f cont)
+  fmap f (Modify h m cont) = Modify h m (fmap f . cont)
 
 instance Applicative StagedMockChain where
   pure = Return
@@ -76,7 +70,7 @@ instance Applicative StagedMockChain where
 instance Monad StagedMockChain where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
-  (Modify h tree cont) >>= f = Modify h tree (cont >>= f)
+  (Modify h tree cont) >>= f = Modify h tree (cont >=> f)
 
 -- I) return x >>= f ~ f x
 --
@@ -87,7 +81,7 @@ instance Monad StagedMockChain where
 -- Induction on m; case m of
 --   Return x -> Rturn x >>= return ~ return x ~ Return x
 --   Instr i m -> Instr i m >>= return ~ Instr i (m >=> return) ~ Instr i m
---   Modify h t c -> Modify h t c >>= return ~ Modify h t (c >>= return) ~ Modify h t c
+--   Modify h t c -> Modify h t c >>= return ~ Modify h t (c >=> return) ~ Modify h t c
 --
 --
 -- III) (h >>= g) >>= j ~ h >>= (g >=> j)
@@ -105,9 +99,9 @@ instance Monad StagedMockChain where
 --             ~  Instr i m >>= (h >=> j)
 --
 --   Modify h t c -> (Modify h t c >>= h) >>= j
---                 ~ Modify h t (c >>= h) >>= j
---                 ~ Modify h t ((c >>= h) >>= j)
---                 ~ Modify h t (c >>= (h >=> j))
+--                 ~ Modify h t (c >=> h) >>= j
+--                 ~ Modify h t ((c >=> h) >>= j)
+--                 ~ Modify h t (c >=> (h >=> j))
 --                 ~ Modify h t c >>= (h >=> j)
 --
 -- On our particular case, it must be that (Modify (Everwhere f) Return c ~ c),
@@ -146,8 +140,8 @@ instance MonadMockChain StagedMockChain where
   askSigners = singleton AskSigners
 
 instance MonadModal StagedMockChain where
-  somewhere m tree = Modify (Somewhere m) tree (Return ())
-  everywhere m tree = Modify (Everywhere m) tree (Return ())
+  somewhere m tree = Modify (Somewhere m) tree Return
+  everywhere m tree = Modify (Everywhere m) tree Return
 
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
@@ -172,21 +166,18 @@ interpret = goDet
     goDet :: StagedMockChain a -> InterpMockChain a
     goDet (Return a) = return a
     goDet (Instr op f) = interpBind op (goDet . f)
-    goDet (Modify c block cont) = goMod [c] block >> goDet cont
+    goDet (Modify c block cont) = goMod [c] block >>= goDet . cont
 
     -- Interprets a staged MockChain with modalities over the transactions
     -- that are meant to be submitted.
     goMod :: [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
     -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
     -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
-    --
-    -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
-    --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
     goMod ms (Return a)
       | any isSomewhere ms = empty
       | otherwise = return a
     -- When interpreting a new modality, we just compose them by pushing it into the stack
-    goMod ms (Modify m block cont) = goMod (m : ms) block >> goMod ms cont
+    goMod ms (Modify m block cont) = goMod (m : ms) block >>= goMod ms . cont
     -- Finally, when interpreting a instruction, we evaluate the modalities
     goMod ms (Instr (ValidateTxSkel opts skel) f) =
       asum $ map (uncurry (validateThenGoMod opts f)) $ interpModalities ms skel
@@ -211,7 +202,7 @@ interpretAndRun smc = interpretAndRunRaw smc def def
 -- * Modalities
 
 -- | Modalities apply a function to a trace;
-data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> a)
+data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> Maybe a)
 
 isSomewhere :: Modality a -> Bool
 isSomewhere (Somewhere _) = True
@@ -232,9 +223,11 @@ isSomewhere _ = False
 --  of a modality, and which modalities to consider when continuing to evaluate such universe.
 interpModalities :: [Modality a] -> a -> [(a, [Modality a])]
 interpModalities [] s = [(s, [])]
-interpModalities (Everywhere f : ms) s = map here $ interpModalities ms s
+interpModalities (Everywhere f : ms) s = concatMap here $ interpModalities ms s
   where
-    here (hs, mods) = (f hs, Everywhere f : mods)
+    here (hs, mods)
+      | Just fhs <- f hs = [(fhs, Everywhere f : mods)]
+      | otherwise = []
 interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities ms s
   where
     hereOrThere (hs, mods)

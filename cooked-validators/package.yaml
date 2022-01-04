@@ -35,6 +35,7 @@ dependencies:
   - scientific
   - streaming
   - tasty
+  - tasty-hunit
   - text
   - transformers
   - HUnit
