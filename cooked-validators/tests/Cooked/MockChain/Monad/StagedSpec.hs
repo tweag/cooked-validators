@@ -42,9 +42,9 @@ spec = do
         interpret (everywhere (const Nothing) tr) `imcEq` interpret tr
 
   it "Somewhere is exponential in branch number" $
-    -- We'll make a trace @tr = a >> b@ with two transactions. Then, we'll execute:
+    -- If we make a trace @tr = a >> b@ with two transactions, Then execute:
     --
-    -- > somewhere f $ somewhere g $ tr
+    -- > tr' = somewhere f $ somewhere g $ tr
     --
     -- And we expect there to be four traces as a result:
     --
@@ -53,11 +53,13 @@ spec = do
     -- > 3. g a >> f b
     -- > 4. a >> f (g b)
     --
-    -- Because we're choosing @f = g = id@, we exept the four traces to be equal to tr.
+    -- If we execute @somewhere k tr'@ instead, we should expect to see 8 branches.
+    -- Because we're choosing @f = g = k = id@, we exept the eight traces to be equal to tr.
     let tr =
           validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200)]
             >> validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 8400)]
-     in interpret (somewhere Just $ somewhere Just tr) `imcEq` asum (replicate 4 $ interpret tr)
+     in interpret (somewhere Just $ somewhere Just $ somewhere Just tr)
+          `imcEq` asum (replicate 8 $ interpret tr)
 
   it "Modality order is respected" $
     let -- Sample trace
