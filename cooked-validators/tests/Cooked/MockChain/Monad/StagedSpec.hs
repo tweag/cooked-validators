@@ -83,7 +83,7 @@ spec = do
           g x = x * 5
           ms = [Somewhere (Just . f), Somewhere (Just . g)]
           x = 12
-       in map (id *** length) (interpModalities ms x)
+       in map (second length) (interpModalities ms x)
             @?= [ (f (g x), 0),
                   (g x, 1),
                   (f x, 1),
