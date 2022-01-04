@@ -229,17 +229,22 @@ waitNMilliSeconds n = do
 
 -- ** Modalities
 
--- | Monads supporting modifying transaction skeletons with modalities.
+-- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'
+-- and 'everywhere' functions receive an argument of type @Action m -> Maybe (Action m)@ because
+-- we want (a) all branches of @somewhere f tree@ to have a guarantee that they had exactly one action
+-- modified by @f@ and (b) we want 'everywhere' to be the dual of 'somewhere', so its type must be the same.
 class (Monad m) => MonadModal m where
-  -- | Applies a modification to all possible transactions in a tree. If a modification
+  type Action m :: *
+
+  -- | Applies a modification to all possible actions in a tree. If a modification
   -- cannot be applied anywhere, this is the identity: @everywhere (const Nothing) x == x@.
-  everywhere :: (TxSkel -> Maybe TxSkel) -> m a -> m a
+  everywhere :: (Action m -> Maybe (Action m)) -> m a -> m a
 
   -- | Applies a modification to some transactions in a tree, note that
   -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
   -- progress, hence if it is not possible to apply the transformation anywhere
   -- in @x@, there would be no progress.
-  somewhere :: (TxSkel -> Maybe TxSkel) -> m a -> m a
+  somewhere :: (Action m -> Maybe (Action m)) -> m a -> m a
 
 -- ** Deriving further 'MonadBlockChain' instances
 
@@ -274,6 +279,7 @@ instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockCh
   askSigners = lift askSigners
 
 instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
+  type Action (AsTrans t m) = Action m
   everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
   somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
 
