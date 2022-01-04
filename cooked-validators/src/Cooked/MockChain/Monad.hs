@@ -17,6 +17,7 @@ import Control.Monad.Trans.Control
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
+import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import Data.Void
@@ -234,7 +235,7 @@ waitNMilliSeconds n = do
 -- we want (a) all branches of @somewhere f tree@ to have a guarantee that they had exactly one action
 -- modified by @f@ and (b) we want 'everywhere' to be the dual of 'somewhere', so its type must be the same.
 class (Monad m) => MonadModal m where
-  type Action m :: *
+  type Action m :: Type
 
   -- | Applies a modification to all possible actions in a tree. If a modification
   -- cannot be applied anywhere, this is the identity: @everywhere (const Nothing) x == x@.
@@ -256,7 +257,7 @@ class (Monad m) => MonadModal m where
 -- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 --
 -- and avoid the boilerplate of defining all the methods of the class yourself.
-newtype AsTrans t (m :: * -> *) a = AsTrans {getTrans :: t m a}
+newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
