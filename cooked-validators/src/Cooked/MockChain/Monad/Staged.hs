@@ -77,19 +77,19 @@ instance Monad StagedMockChain where
 -- | Interprets a single operation in the direct 'MockChainT' monad. We need to
 -- pass around the modalities since some operations refer back to 'StagedMockChain',
 -- and that needs to be interpreted taking into account the existing modalities.
-interpretOp :: [Modality TxSkel] -> MockChainOp a -> MockChainT (WriterT TraceDescr []) a
-interpretOp _ (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
-interpretOp _ (TxOutByRef ref) = txOutByRef ref
-interpretOp _ GetCurrentSlot = currentSlot
-interpretOp _ GetCurrentTime = currentTime
-interpretOp _ (AwaitSlot s) = awaitSlot s
-interpretOp _ (AwaitTime t) = awaitTime t
-interpretOp _ (UtxosSuchThat addr predi) = utxosSuchThat addr predi
-interpretOp _ (Fail str) = fail str
-interpretOp _ OwnPubKey = ownPaymentPubKeyHash
-interpretOp _ AskSigners = askSigners
-interpretOp m (SigningWith ws act) = signingWith ws (interpretNonDet m act)
-interpretOp m (Modify m' block) = interpretNonDet (m' : m) block
+interpretOp :: MockChainOp a -> InterpMockChainMod a
+interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
+interpretOp (TxOutByRef ref) = txOutByRef ref
+interpretOp GetCurrentSlot = currentSlot
+interpretOp GetCurrentTime = currentTime
+interpretOp (AwaitSlot s) = awaitSlot s
+interpretOp (AwaitTime t) = awaitTime t
+interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
+interpretOp (Fail str) = fail str
+interpretOp OwnPubKey = ownPaymentPubKeyHash
+interpretOp AskSigners = askSigners
+interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
+interpretOp (Modify m' block) = lift (modify (m' :)) >> interpretNonDet block
 
 instance MonadFail StagedMockChain where
   fail = singleton . Fail
@@ -113,6 +113,8 @@ instance MonadModal StagedMockChain where
   somewhere m tree = singleton (Modify (Somewhere m) tree)
   everywhere m tree = singleton (Modify (Everywhere m) tree)
 
+type InterpMockChainMod = MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] []))
+
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
 -- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
@@ -124,19 +126,22 @@ type InterpMockChain = MockChainT (WriterT TraceDescr [])
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = interpretNonDet []
+interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . interpretNonDet
 
 -- | Interprets a 'StagedMockChain' that must be modified with a certain
 -- list of modalities (the order matters! the modality at the head will be the first to be applied).
-interpretNonDet :: forall a. [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
-interpretNonDet ms (Return a)
+interpretNonDet :: forall a. StagedMockChain a -> InterpMockChainMod a
+interpretNonDet (Return a) = do
+  ms <- lift get
   -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
   -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
-  | any isSomewhere ms = empty
-  | otherwise = return a
+  if any isSomewhere ms then empty else return a
+interpretNonDet _ = undefined
+
+{-
 -- When interpreting a 'ValidateTxSkel', we evaluate the modalities and return a union
 -- of all possible outcomes.
-interpretNonDet ms (Instr (ValidateTxSkel opts skel) f) =
+interpretNonDet (Instr (ValidateTxSkel opts skel) f) =
   asum $ map (uncurry interpAux) $ interpModalities ms skel
   where
     interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChain a
@@ -145,25 +150,15 @@ interpretNonDet ms (Instr (ValidateTxSkel opts skel) f) =
 -- interpretNonDet ms (Instr (Modify m block) cont) =
 --   interpretNonDet (m : ms) block >>= interpretNonDet ms . cont
 -- Interpreting any other instruction is just a matter of interpreting a bind
-interpretNonDet ms (Instr op f) =
-  MockChainT $
-    ReaderT $ \env -> StateT $ \st ->
-      ExceptT $
-        WriterT $
-          let outcomes = runWriterT $ runExceptT $ flip runStateT st $ flip runReaderT env $ unMockChain $ interpOp' ms op
-           in flip concatMap outcomes $ \case
-                (Left err, w) -> [(Left err, w)]
-                (Right (a, st'), w) ->
-                  -- PROBLEM! final is always empty if (f a == Return) and ms has a `Somewhere`
-                  let final = runWriterT $ runExceptT $ flip runStateT st' $ flip runReaderT env $ unMockChain $ interpretNonDet ms (f a)
-                   in map (second (w <>)) final
+interpretNonDet (Instr op f) = __
+-}
 
 -- | Auxiliar function to interpret a bind.
-interpOp' :: [Modality TxSkel] -> MockChainOp a -> InterpMockChain a
-interpOp' ms op = do
+interpAndTellOp :: MockChainOp a -> InterpMockChainMod a
+interpAndTellOp op = do
   signers <- askSigners
   lift (tell $ prettyMockChainOp signers op)
-  interpretOp ms op
+  interpretOp op
 
 -- | Interprets and runs the mockchain computation from a given initial state.
 interpretAndRunRaw ::
