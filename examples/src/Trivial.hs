@@ -88,6 +88,31 @@ savePirFile = case PlutusTx.getPir $$(PlutusTx.compile [||validateTrivial||]) of
   Just res -> Haskell.writeFile "trivial.pir" (Haskell.show $ P.prettyClassicDebug res)
   Nothing -> Haskell.undefined
 
+{-# INLINEABLE validateEvenMoreTrivial #-}
+validateEvenMoreTrivial :: [Integer] -> Integer -> ScriptContext -> Bool
+validateEvenMoreTrivial [] yyy zzz = False
+validateEvenMoreTrivial (xxx : xxxs) yyy zzz = True
+
+data MoreTrivial
+
+instance Scripts.ValidatorTypes MoreTrivial where
+  type RedeemerType MoreTrivial = Integer
+  type DatumType MoreTrivial = [Integer]
+
+trivialValidator2 :: Scripts.TypedValidator MoreTrivial
+trivialValidator2 =
+  Scripts.mkTypedValidator @MoreTrivial
+    $$(PlutusTx.compile [||validateEvenMoreTrivial||])
+    $$(PlutusTx.compile [||wrap||])
+  where
+    wrap = Scripts.wrapValidator @[Integer] @Integer
+
+-- In order to inspect the pir file, you can generate it with the function below,
+-- but we'll sumarize the important bits at the end of the file.
+savePlcFile :: Haskell.IO ()
+savePlcFile = case PlutusTx.getPlc $$(PlutusTx.compile [||validateEvenMoreTrivial||]) of
+  res -> Haskell.writeFile "trivial2.plc" (Haskell.show $ P.prettyClassicDebug res)
+
 -- |
 --
 -- * Symbolic Execution and Hashes
