@@ -5,29 +5,37 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
 import Control.Applicative
-import Control.Arrow (second)
-import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Identity
+import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
+import Data.Bifunctor (Bifunctor (first, second))
+import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
+import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Constraints as Pl
+import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
 import Ledger.Orphans ()
+import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
 
@@ -65,9 +73,12 @@ data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
     mcstDatums :: M.Map Pl.DatumHash Pl.Datum,
     mcstStrDatums :: M.Map Pl.DatumHash String,
-    mcstSlotCtr :: SlotCounter
+    mcstCurrentSlot :: Pl.Slot
   }
   deriving (Show)
+
+instance Default Pl.Slot where
+  def = Pl.Slot 0
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError
@@ -76,10 +87,19 @@ data MockChainError
   | FailWith String
   deriving (Show, Eq)
 
+data MockChainEnv = MockChainEnv
+  { mceSlotConfig :: Pl.SlotConfig,
+    mceSigners :: NE.NonEmpty Wallet
+  }
+  deriving (Show)
+
+instance Default MockChainEnv where
+  def = MockChainEnv def (wallet 1 NE.:| [])
+
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
-  {unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
+  {unMockChain :: ReaderT MockChainEnv (StateT MockChainSt (ExceptT MockChainError m)) a}
+  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadReader MockChainEnv)
 
 -- | Non-transformer variant
 type MockChain = MockChainT Identity
@@ -87,20 +107,16 @@ type MockChain = MockChainT Identity
 -- Custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
   return = pure
-  MockChainT x >>= f =
-    MockChainT $ do
-      xres <- x
-      modify' (\st -> st {mcstSlotCtr = scIncrease (mcstSlotCtr st)})
-      unMockChain (f xres)
+  MockChainT x >>= f = MockChainT $ x >>= unMockChain . f
 
 instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
 instance MonadTrans MockChainT where
-  lift = MockChainT . lift . lift
+  lift = MockChainT . lift . lift . lift
 
 instance (Monad m, Alternative m) => Alternative (MockChainT m) where
-  empty = MockChainT $ StateT $ const $ ExceptT empty
+  empty = MockChainT $ ReaderT $ const $ StateT $ const $ ExceptT empty
   (<|>) = combineMockChainT (<|>)
 
 combineMockChainT ::
@@ -110,37 +126,65 @@ combineMockChainT ::
   MockChainT m x ->
   MockChainT m x
 combineMockChainT f ma mb = MockChainT $
-  StateT $ \s ->
-    let resA = runExceptT $ runStateT (unMockChain ma) s
-        resB = runExceptT $ runStateT (unMockChain mb) s
-     in ExceptT $ f resA resB
-
-onSlot :: (SlotCounter -> SlotCounter) -> MockChainSt -> MockChainSt
-onSlot f mcst = mcst {mcstSlotCtr = f (mcstSlotCtr mcst)}
+  ReaderT $ \r ->
+    StateT $ \s ->
+      let resA = runExceptT $ runStateT (runReaderT (unMockChain ma) r) s
+          resB = runExceptT $ runStateT (runReaderT (unMockChain mb) r) s
+       in ExceptT $ f resA resB
 
 mapMockChainT ::
   (m (Either MockChainError (a, MockChainSt)) -> n (Either MockChainError (b, MockChainSt))) ->
   MockChainT m a ->
   MockChainT n b
-mapMockChainT f = MockChainT . mapStateT (mapExceptT f) . unMockChain
+mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
 
--- | Executes a 'MockChainT' from some initial state.
-runMockChainTFrom ::
+-- | Executes a 'MockChainT' from some initial state and environment.
+runMockChainTRaw ::
   (Monad m) =>
+  MockChainEnv ->
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 = runExceptT . fmap (second mcstToUtxoState) . flip runStateT i0 . unMockChain
+runMockChainTRaw e0 i0 =
+  runExceptT
+    . fmap (second mcstToUtxoState)
+    . flip runStateT i0
+    . flip runReaderT e0
+    . unMockChain
 
-runMockChainFrom :: MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
-runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
+-- | See 'runMockChainTRaw'
+runMockChainRaw :: MockChainEnv -> MockChainSt -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainRaw e0 i0 = runIdentity . runMockChainTRaw e0 i0
 
--- | Executes a 'MockChainT' from the cannonical initial state.
+-- | Executes a 'MockChainT' from the cannonical initial state and environment. The cannonical
+--  environment uses the default 'SlotConfig' and @[Cooked.MockChain.Wallet.wallet 1]@ as the sole
+--  wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
-runMockChainT = runMockChainTFrom mockChainSt0
+runMockChainT = runMockChainTRaw def def
 
+-- | See 'runMockChainT'
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
+
+-- | Executes a 'MockChainT' from an initial state set up with the given initial value distribution.
+-- Similar to 'runMockChainT', uses the default environment
+runMockChainTFrom ::
+  (Monad m) =>
+  InitialDistribution ->
+  MockChainT m a ->
+  m (Either MockChainError (a, UtxoState))
+runMockChainTFrom distribution = runMockChainTRaw def mockChainSt0'
+  where
+    mockChainSt0' :: MockChainSt
+    mockChainSt0' = MockChainSt utxoIndex0' M.empty M.empty def
+    utxoIndex0' :: Pl.UtxoIndex
+    utxoIndex0' = utxoIndex0From distribution
+
+-- | See 'runMockChainTFrom'
+runMockChainFrom ::
+  InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainFrom distribution =
+  runIdentity . runMockChainTFrom distribution
 
 -- Canonical initial values
 
@@ -148,7 +192,10 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty slotCounter0
+mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty def
+
+instance Default MockChainSt where
+  def = mockChainSt0
 
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
@@ -158,21 +205,42 @@ utxoIndex0 = utxoIndex0From initialDistribution
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadMockChain (MockChainT m) where
-  validateTxSkel = validateTx' <=< generateTx'
-  index = gets (Pl.getIndex . mcstIndex)
-  slotCounter = gets mcstSlotCtr
-  modifySlotCounter f = modify (\st -> st {mcstSlotCtr = f $ mcstSlotCtr st})
+instance (Monad m) => MonadBlockChain (MockChainT m) where
+  validateTxSkelOpts opts skel = do
+    tx <- generateTx' opts skel
+    txId <- validateTx' tx
+    when (autoSlotIncrease opts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    return txId
+
+  txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
+
+  ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
+
   utxosSuchThat = utxosSuchThat'
-  somewhere _ _ = fail "somewhere: Cannot apply modalities in a direct MockChainT; there's nowhere to backtrack to"
-  everywhere _ _ = fail "everywhere: Cannot apply modalities in a direct MockChainT; there's nowhere to backtrack to"
+
+  currentSlot = gets mcstCurrentSlot
+
+  currentTime = asks (Pl.slotToBeginPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
+
+  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
+
+  awaitTime t = do
+    sc <- asks mceSlotConfig
+    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
+    return $ Pl.slotToBeginPOSIXTime sc s
+
+instance (Monad m) => MonadMockChain (MockChainT m) where
+  signingWith ws = local $ \env -> env {mceSigners = ws}
+
+  askSigners = asks mceSigners
 
 -- | Check 'validateTx' for details
-validateTx' :: (Monad m) => Pl.Tx -> MockChainT m ()
+validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
 validateTx' tx = do
-  s <- slot
+  s <- currentSlot
   ix <- gets mcstIndex
-  let res = Pl.runValidation (Pl.validateTransaction s tx) ix
+  slotCfg <- asks mceSlotConfig
+  let res = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
   -- case trace (show $ snd res) $ fst res of
   case fst res of
     (Just err, _) -> throwError (MCEValidationError err)
@@ -188,11 +256,10 @@ validateTx' tx = do
         ( \st ->
             st
               { mcstIndex = ix',
-                mcstDatums =
-                  (mcstDatums st `M.difference` consumedDHs')
-                    `M.union` Pl.txData tx
+                mcstDatums = (mcstDatums st `M.difference` consumedDHs') `M.union` Pl.txData tx
               }
         )
+      return $ Pl.txId tx
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
@@ -234,15 +301,29 @@ utxosSuchThat' addr datumPred = do
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
 
+-- | Generates an unbalanced transaction from a skeleton; A
+--  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
+--  In order to submit a transaction, it must be balanced, otherwise
+--  we will see a @ValueNotPreserved@ error.
+--
+--  See "Cooked.Tx.Balance" for balancing capabilities or stick to
+--  'generateTx', which generates /and/ balances a transaction.
+generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
+generateUnbalTx sk =
+  let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
+   in first MCETxError $ Pl.mkTx lkups constrs
+
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
-generateTx' skel = do
+generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
+generateTx' opts skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
-    Left err -> throwError $ MCETxError err
-    Right (ubtx, allSigners) -> do
-      balancedTx <- balanceTxFrom (txMainSigner skel) ubtx
-      return $ foldl (flip txAddSignature) balancedTx allSigners
+    Left err -> throwError err
+    Right ubtx -> do
+      let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
+      signers <- askSigners
+      balancedTx <- balanceTxFrom (NE.head signers) (adjust ubtx)
+      return $ foldl (flip txAddSignature) balancedTx (NE.toList signers)
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
@@ -253,9 +334,29 @@ generateTx' skel = do
               mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
         }
 
--- | Returns the current internal slot count.
-slot :: (Monad m) => MockChainT m Pl.Slot
-slot = gets (Pl.Slot . currentSlot . mcstSlotCtr)
+-- | Balances a transaction with money from a given wallet. For every transaction,
+--  it must be the case that @inputs + mint == outputs + fee@.
+balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
+  -- We start by gathering all the inputs and summing it
+  let tx = tx0 {Pl.txFee = Pl.minFee tx0}
+  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
+  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
+  let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
+  let wPKH = walletPKHash w
+  (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
+  -- All the UTxOs signed by the sender of the transaction and useful to balance it
+  -- are added to the inputs.
+  let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
+  -- A new output is opened with the leftover of the added inputs.
+  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
+  config <- asks mceSlotConfig
+  return
+    tx
+      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
+        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
+        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
+      }
 
 -- * Utilities
 

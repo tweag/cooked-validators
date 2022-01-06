@@ -23,10 +23,12 @@ import qualified Prettyprinter
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph.
 newtype UtxoState = UtxoState {utxoState :: M.Map Pl.Address [(Pl.Value, Maybe UtxoDatum)]}
+  deriving (Eq)
 
 -- | A 'UtxoDatum' contains a datum whic his @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
 -- but we also include @show x@ to be able to print this value in a more user friendly fashion.
 data UtxoDatum = UtxoDatum {utxoDatum :: Pl.Datum, utxoShow :: String}
+  deriving (Eq)
 
 instance Show UtxoDatum where
   show = utxoShow
@@ -93,25 +95,23 @@ mPrettyValue =
     . Pl.getValue
 
 prettyCurrencyAndAmount :: Pl.CurrencySymbol -> Pl.Map Pl.TokenName Integer -> Doc ann
-prettyCurrencyAndAmount symbol amountMap =
-  case (symbol, Pl.toList amountMap) of
-    ("", [("", adaAmount)]) ->
-      "Ada"
-        <> Prettyprinter.colon
-        <> Prettyprinter.space
-        <> Prettyprinter.pretty adaAmount
-    _ -> Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList $ amountMap
+prettyCurrencyAndAmount symbol =
+  Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList
   where
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
     prettySymbol = Prettyprinter.pretty . take 7 . show
 
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
-      Prettyprinter.parens
-        ( prettySymbol symbol
-            <+> "$"
-            <+> Prettyprinter.pretty name
-        )
+      ( if symbol == Pl.CurrencySymbol ""
+          then (if name == Pl.TokenName "" then "Ada" else Prettyprinter.pretty name)
+          else
+            Prettyprinter.parens
+              ( prettySymbol symbol
+                  <+> "$"
+                  <+> Prettyprinter.pretty name
+              )
+      )
         <> ":"
         <> Prettyprinter.space
         <> Prettyprinter.pretty n

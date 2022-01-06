@@ -30,28 +30,13 @@ import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
 
-data SplitParams = SplitParams
-  { recipient1 :: Ledger.PubKey,
-    recipient2 :: Ledger.PubKey,
+data SplitDatum = SplitDatum
+  { recipient1 :: Ledger.PubKeyHash,
+    recipient2 :: Ledger.PubKeyHash,
     amount :: Integer
   }
   deriving stock (Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-data SplitDatum = SplitDatum
-  { datumRecipient1 :: Ledger.PubKeyHash,
-    datumRecipient2 :: Ledger.PubKeyHash,
-    datumAmount :: Integer
-  }
-  deriving stock (Haskell.Show, Generic)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-makeDatum :: SplitParams -> SplitDatum
-makeDatum (SplitParams recipient1 recipient2 amount) =
-  SplitDatum
-    (Ledger.pubKeyHash recipient1)
-    (Ledger.pubKeyHash recipient2)
-    amount
 
 type SplitRedeemer = ()
 

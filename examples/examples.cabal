@@ -1,0 +1,117 @@
+cabal-version: 3.4
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           examples
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Forge
+      Forge.ExampleTokens
+      PMultiSigStateful
+      PMultiSigStateful.DatumHijacking
+      PMultiSigStateful.ToUPLC
+      Split
+      Split.OffChain
+      Split.ToUPLC
+  other-modules:
+      Paths_examples
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.9 && <5
+    , bytestring
+    , containers
+    , cooked-validators
+    , data-default
+    , either
+    , flat
+    , foldl
+    , freer-extras
+    , freer-simple
+    , heredoc
+    , hspec
+    , lens
+    , mtl
+    , playground-common
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
+    , plutus-use-cases
+    , quickcheck-transformer
+    , scientific
+    , serialise >=0.2.3.0
+    , streaming
+    , tasty
+    , tasty-expected-failure
+    , tasty-hspec
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , transformers
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      ForgeSpec
+      PMultiSigStatefulSpec
+      SplitSpec
+      SplitUPLCSpec
+      UseCaseCrowdfundingSpec
+      Paths_examples
+  hs-source-dirs:
+      tests
+  build-depends:
+      HUnit
+    , QuickCheck
+    , aeson
+    , base >=4.9 && <5
+    , bytestring
+    , containers
+    , cooked-validators
+    , data-default
+    , either
+    , examples
+    , flat
+    , foldl
+    , freer-extras
+    , freer-simple
+    , heredoc
+    , hspec
+    , lens
+    , mtl
+    , playground-common
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
+    , plutus-use-cases
+    , quickcheck-transformer
+    , scientific
+    , serialise >=0.2.3.0
+    , streaming
+    , tasty
+    , tasty-expected-failure
+    , tasty-hspec
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , transformers
+  default-language: Haskell2010

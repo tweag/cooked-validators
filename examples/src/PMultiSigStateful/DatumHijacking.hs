@@ -9,15 +9,16 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- This module creates a simple "datum hijacking" example.
--- The "datum hijacking" attack consists in creating a contract
--- with the same structure of datum as the attacked contract.
--- Whenever one checks that an output has the expected datum,
--- since serialization only relies on the structure,
--- (serialized datums have the shape "Const 1 (int 24)")
--- it is possible to put an output of our own contract instead of a legitimate
--- output.
-module MarketMaker.DatumHijacking where
+-- | This module creates a simple "datum hijacking" example.
+--  The "datum hijacking" attack consists in creating a contract
+--  with a datum that is isomorphic to the one of the contract being attacked.
+--  This means that if the script checks for an output containing, for example,
+--  a datum @tgt = LegitimateDatum a b c@; that will get translated to checking
+--  that some value @x@ of type @Data@ is such that @x == toBuiltinData tgt@.
+--  Because @toBuiltinData@ yields identical representations to isomorphic datatypes,
+--  it is possible to put an output of our own contract instead of a legitimate
+--  output.
+module PMultiSigStateful.DatumHijacking where
 
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
@@ -37,14 +38,26 @@ newtype StealerParams = StealerParams
 
 PlutusTx.makeLift ''StealerParams
 
--- Here we reproduce the shape of datum of the 'MarketMaker' contract,
--- so only one constructor, which takes one integer parameter.
-newtype StealerDatum = StealerDatum
-  {fake :: Integer}
-  deriving stock (Haskell.Show)
+-- | Now we replicate the structure of the attacked contract's datum.
+data StealerDatum
+  = Accumulator {payment :: Payment, signees :: [Ledger.PubKeyHash]}
+  | Sign {signPk :: Ledger.PubKeyHash}
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data Payment = Payment
+  { paymentAmount :: Integer,
+    paymentRecipient :: Ledger.PubKeyHash
+  }
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+PlutusTx.makeLift ''Payment
+PlutusTx.unstableMakeIsData ''Payment
 
 type StealerRedeemer = ()
 
+-- | The validation is trivial; make sure only the selaker can redeem the value later.
 validateSteal :: StealerParams -> StealerDatum -> StealerRedeemer -> Contexts.ScriptContext -> Bool
 validateSteal (StealerParams pkh) _ _ context =
   let info = Contexts.scriptContextTxInfo context

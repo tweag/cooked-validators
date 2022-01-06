@@ -3,127 +3,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Cooked.MockChain.Monad.Staged where
 
 import Control.Applicative
 import Control.Monad.Except
+import Control.Monad.State.Strict
 import Control.Monad.Writer
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
-import Cooked.MockChain.Time
+import Cooked.MockChain.UtxoState
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
+import Data.Default
 import Data.Foldable
-import qualified Data.Map as M
+import qualified Data.List.NonEmpty as NE
+import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
-
--- | This is an initial encoding of the MockChain operations, it provides
---  a simple way of altering the AST of a trace before actually executing it.
---  On top of the operations from 'MonadMockChain' we also have 'Fail' to make
---  sure the resulting monad will be an instance of 'MonadFail'.
-data MockChainOp a where
-  ValidateTxSkel :: TxSkel -> MockChainOp ()
-  Index :: MockChainOp (M.Map Pl.TxOutRef Pl.TxOut)
-  GetSlotCounter :: MockChainOp SlotCounter
-  ModifySlotCounter :: (SlotCounter -> SlotCounter) -> MockChainOp ()
-  UtxosSuchThat ::
-    (Pl.FromData a) =>
-    Pl.Address ->
-    (Maybe a -> Pl.Value -> Bool) ->
-    MockChainOp [(SpendableOut, Maybe a)]
-  Fail :: String -> MockChainOp a
-
-data StagedMockChain a where
-  Return :: a -> StagedMockChain a
-  Instr :: MockChainOp a -> (a -> StagedMockChain b) -> StagedMockChain b
-  -- Here's the catch! Because modify will yield a list of results, its as if
-  -- the modified tree returned a list of things; but the type can't be
-  -- StagedMockChain [a] because then, StagedMockChain wouldn't be a functor.
-  -- We have two options, define:
-  --
-  -- Modify :: TxModality -> StagedMockchain a -> ([a] -> b) -> StagedMockChain b
-  --
-  -- Where the pure function ([a] -> b) is the observation over the non-determistic computation,
-  -- or, we stick to not observing the computation at all:
-  Modify :: Modality TxSkel -> StagedMockChain () -> StagedMockChain a -> StagedMockChain a
-
-singleton :: MockChainOp a -> StagedMockChain a
-singleton op = Instr op Return
-
-instance Functor StagedMockChain where
-  fmap f (Return x) = Return $ f x
-  fmap f (Instr op cont) = Instr op (fmap f . cont)
-  fmap f (Modify h m cont) = Modify h m (fmap f cont)
-
-instance Applicative StagedMockChain where
-  pure = Return
-  (<*>) = ap
-
-instance Monad StagedMockChain where
-  (Return x) >>= f = f x
-  (Instr i m) >>= f = Instr i (m >=> f)
-  (Modify h tree cont) >>= f = Modify h tree (cont >>= f)
-
--- I) return x >>= f ~ f x
---
--- Holds definitionally
---
--- II) m >>= return ~ m
---
--- Induction on m; case m of
---   Return x -> Rturn x >>= return ~ return x ~ Return x
---   Instr i m -> Instr i m >>= return ~ Instr i (m >=> return) ~ Instr i m
---   Modify h t c -> Modify h t c >>= return ~ Modify h t (c >>= return) ~ Modify h t c
---
---
--- III) (h >>= g) >>= j ~ h >>= (g >=> j)
---
--- Induction on h; case h of
---   Return x -> (Return x >>= g) >>= j
---             ~ g x >>= j
---             ~ (g >=> j) x
---             ~ Return x >>= (g >=> j)
---
---   Instr i m -> (Instr i m >>= h) >>= j
---             ~  Instr i (m >=> h) >>= j
---             ~  Instr i ((m >=> h) >=> j)
---             ~  Instr i (m >=> (h >=> j))
---             ~  Instr i m >>= (h >=> j)
---
---   Modify h t c -> (Modify h t c >>= h) >>= j
---                 ~ Modify h t (c >>= h) >>= j
---                 ~ Modify h t ((c >>= h) >>= j)
---                 ~ Modify h t (c >>= (h >=> j))
---                 ~ Modify h t c >>= (h >=> j)
---
--- On our particular case, it must be that (Modify (Everwhere f) Return c ~ c),
--- and (Modify (Somewhere f) Return c ~ empty) following the intuition of modal logics
--- that diamond (ie., Somewhere) implies some sort of progress.
-
--- | Interprets a single operation in the direct 'MockChainT' monad.
-interpretOp :: (Monad m) => MockChainOp a -> MockChainT m a
-interpretOp (ValidateTxSkel skel) = validateTxSkel skel
-interpretOp Index = index
-interpretOp GetSlotCounter = slotCounter
-interpretOp (ModifySlotCounter f) = modifySlotCounter f
-interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
-interpretOp (Fail str) = fail str
-
-instance MonadFail StagedMockChain where
-  fail = singleton . Fail
-
-instance MonadMockChain StagedMockChain where
-  validateTxSkel = singleton . ValidateTxSkel
-  index = singleton Index
-  slotCounter = singleton GetSlotCounter
-  modifySlotCounter = singleton . ModifySlotCounter
-  utxosSuchThat addr = singleton . UtxosSuchThat addr
-  somewhere m tree = Modify (Somewhere m) tree (Return ())
-  everywhere m tree = Modify (Everywhere m) tree (Return ())
 
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
@@ -136,41 +37,142 @@ type InterpMockChain = MockChainT (WriterT TraceDescr [])
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = goDet
+interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . interpretNonDet
+
+-- | This is an initial encoding of the MockChain operations, it provides
+--  a simple way of altering the AST of a trace before actually executing it.
+--  On top of the operations from 'MonadBlockChain' we also have 'Fail' to make
+--  sure the resulting monad will be an instance of 'MonadFail'.
+data MockChainOp a where
+  ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
+  TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
+  GetCurrentSlot :: MockChainOp Pl.Slot
+  AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
+  GetCurrentTime :: MockChainOp Pl.POSIXTime
+  AwaitTime :: Pl.POSIXTime -> MockChainOp Pl.POSIXTime
+  UtxosSuchThat ::
+    (Pl.FromData a) =>
+    Pl.Address ->
+    (Maybe a -> Pl.Value -> Bool) ->
+    MockChainOp [(SpendableOut, Maybe a)]
+  Fail :: String -> MockChainOp a
+  OwnPubKey :: MockChainOp Pl.PubKeyHash
+  --
+  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
+  AskSigners :: MockChainOp (NE.NonEmpty Wallet)
+  --
+  Modify :: Modality TxSkel -> StagedMockChain a -> MockChainOp a
+
+data Staged (op :: * -> *) :: * -> * where
+  Return :: a -> Staged op a
+  Instr :: op a -> (a -> Staged op b) -> Staged op b
+
+type StagedMockChain = Staged MockChainOp
+
+singleton :: MockChainOp a -> StagedMockChain a
+singleton op = Instr op Return
+
+instance Functor StagedMockChain where
+  fmap f (Return x) = Return $ f x
+  fmap f (Instr op cont) = Instr op (fmap f . cont)
+
+instance Applicative StagedMockChain where
+  pure = Return
+  (<*>) = ap
+
+instance Monad StagedMockChain where
+  (Return x) >>= f = f x
+  (Instr i m) >>= f = Instr i (m >=> f)
+
+-- | Interprets a single operation in the direct 'MockChainT' monad. We need to
+-- pass around the modalities since some operations refer back to 'StagedMockChain',
+-- and that needs to be interpreted taking into account the existing modalities.
+interpretOp :: MockChainOp a -> InterpMockChainMod a
+interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
+interpretOp (TxOutByRef ref) = txOutByRef ref
+interpretOp GetCurrentSlot = currentSlot
+interpretOp GetCurrentTime = currentTime
+interpretOp (AwaitSlot s) = awaitSlot s
+interpretOp (AwaitTime t) = awaitTime t
+interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
+interpretOp (Fail str) = fail str
+interpretOp OwnPubKey = ownPaymentPubKeyHash
+interpretOp AskSigners = askSigners
+interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
+interpretOp (Modify m' block) = lift (modify (m' :)) >> interpretNonDet block
+
+-- | This is an internal type that keeps track of the list of modalities that
+-- are present in each branch, it's isomorphic to:
+--
+--  > St -> ListMods -> [((Either Err (a, St) , TraceDescr), ListMods)]
+type InterpMockChainMod = MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] []))
+
+-- | Interprets a 'StagedMockChain' that must be modified with a certain list of modalities.
+interpretNonDet :: forall a. StagedMockChain a -> InterpMockChainMod a
+interpretNonDet (Return a) = do
+  ms <- lift get
+  -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
+  -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
+  if any isSomewhere ms then empty else return a
+-- When interpreting a 'ValidateTxSkel', we evaluate the modalities and return a union
+-- of all possible outcomes.
+interpretNonDet (Instr (ValidateTxSkel opts skel) f) = do
+  ms <- lift get
+  asum $ map (uncurry interpAux) $ interpModalities ms skel
   where
-    interpBind :: MockChainOp a -> (a -> InterpMockChain b) -> InterpMockChain b
-    interpBind op f = lift (tell $ prettyMockChainOp op) >> interpretOp op >>= f
+    interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChainMod a
+    interpAux skel' ms' = lift (put ms') >> interpAndTellOp (ValidateTxSkel opts skel') >>= interpretNonDet . f
+-- Interpreting any other instruction is just a matter of interpreting a bind
+interpretNonDet (Instr op f) = interpAndTellOp op >>= interpretNonDet . f
 
-    goDet :: StagedMockChain a -> InterpMockChain a
-    goDet (Return a) = return a
-    goDet (Instr op f) = interpBind op (goDet . f)
-    goDet (Modify c block cont) = goMod [c] block >> goDet cont
+-- | Auxiliar function to interpret a bind.
+interpAndTellOp :: MockChainOp a -> InterpMockChainMod a
+interpAndTellOp op = do
+  signers <- askSigners
+  lift (tell $ prettyMockChainOp signers op)
+  interpretOp op
 
-    -- Interprets a staged MockChain with modalities over the transactions
-    -- that are meant to be submitted.
-    goMod :: [Modality TxSkel] -> StagedMockChain a -> InterpMockChain a
-    -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
-    -- returned empty. If we return a, it would correspond to a trace where the modality was never applied.
-    --
-    -- TODO: I'm not entirely sure about this, actually! In particular, it means that the law
-    --       we devised above can't hold! Modify (Somewhere f) (Return ()) x >>= h ~> empty
-    goMod ms (Return a)
-      | any isSomewhere ms = empty
-      | otherwise = return a
-    -- When interpreting a new modality, we just compose them by pushing it into the stack
-    goMod ms (Modify m block cont) = goMod (m : ms) block >> goMod ms cont
-    -- Finally, when interpreting a instruction, we evaluate the modalities
-    goMod ms (Instr (ValidateTxSkel skel) f) =
-      asum $ map (uncurry (validateThenGoMod f)) $ interpModalities ms skel
-    goMod ms (Instr op f) = interpBind op (goMod ms . f)
+-- | Interprets and runs the mockchain computation from a given initial state.
+interpretAndRunRaw ::
+  StagedMockChain a ->
+  MockChainEnv ->
+  MockChainSt ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRunRaw smc e0 st0 = runWriterT $ runMockChainTRaw e0 st0 (interpret smc)
 
-    validateThenGoMod :: (() -> StagedMockChain a) -> TxSkel -> [Modality TxSkel] -> InterpMockChain a
-    validateThenGoMod f skel ms = interpBind (ValidateTxSkel skel) (goMod ms . f)
+interpretAndRun ::
+  StagedMockChain a ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRun smc = interpretAndRunRaw smc def def
+
+-- * MonadBlockChain Instance
+
+instance MonadFail StagedMockChain where
+  fail = singleton . Fail
+
+instance MonadBlockChain StagedMockChain where
+  validateTxSkelOpts opts = singleton . ValidateTxSkel opts
+  utxosSuchThat addr = singleton . UtxosSuchThat addr
+  txOutByRef = singleton . TxOutByRef
+  ownPaymentPubKeyHash = singleton OwnPubKey
+  currentSlot = singleton GetCurrentSlot
+  currentTime = singleton GetCurrentTime
+  awaitSlot = singleton . AwaitSlot
+  awaitTime = singleton . AwaitTime
+
+instance MonadMockChain StagedMockChain where
+  signingWith ws = singleton . SigningWith ws
+  askSigners = singleton AskSigners
+
+instance MonadModal StagedMockChain where
+  type Action StagedMockChain = TxSkel
+  somewhere m tree = singleton (Modify (Somewhere m) tree)
+  everywhere m tree = singleton (Modify (Everywhere m) tree)
 
 -- * Modalities
 
--- | Modalieis apply a function to a trace;
-data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> a)
+-- | Modalities apply a function to a trace;
+data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> Maybe a)
 
 isSomewhere :: Modality a -> Bool
 isSomewhere (Somewhere _) = True
@@ -191,9 +193,11 @@ isSomewhere _ = False
 --  of a modality, and which modalities to consider when continuing to evaluate such universe.
 interpModalities :: [Modality a] -> a -> [(a, [Modality a])]
 interpModalities [] s = [(s, [])]
-interpModalities (Everywhere f : ms) s = map here $ interpModalities ms s
+interpModalities (Everywhere f : ms) s = concatMap here $ interpModalities ms s
   where
-    here (hs, mods) = (f hs, Everywhere f : mods)
+    here (hs, mods)
+      | Just fhs <- f hs = [(fhs, Everywhere f : mods)]
+      | otherwise = [(s, Everywhere f : mods)]
 interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities ms s
   where
     hereOrThere (hs, mods)
@@ -204,18 +208,23 @@ interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: MockChainOp a -> TraceDescr
-prettyMockChainOp (ValidateTxSkel skel) =
-  trSingleton $ PP.hang 2 $ PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
-prettyMockChainOp (Fail reason) =
+prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
+prettyMockChainOp signers (ValidateTxSkel opts skel) =
+  trSingleton $
+    PP.hang 2 $
+      PP.vsep $
+        catMaybes [Just "ValidateTxSkel", mopts, Just $ prettyTxSkel (NE.toList signers) skel]
+  where
+    mopts = if opts == def then Nothing else Just ("Opts:" <+> PP.viaShow opts)
+prettyMockChainOp _ (Fail reason) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ = mempty
+prettyMockChainOp _ _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
 --    1) Naturally, these make for efficient concatenation
 --    2) More importantly, this makes it easy to define the empty 'TraceDescr'
---       as @TraceDescr id@ instead of reliying on 'PP.emptyDoc', which generates
+--       as @TraceDescr id@ instead of relying on 'PP.emptyDoc', which generates
 --       empty lines when used with 'PP.vsep'. This avoids generating these empty lines
 newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
 

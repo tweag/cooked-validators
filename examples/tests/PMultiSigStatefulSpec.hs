@@ -1,32 +1,35 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TupleSections #-}
 
 module PMultiSigStatefulSpec where
 
+import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
+import Cooked.MockChain.HUnit
 import Cooked.Tx.Constraints
+import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
 import qualified Ledger as Pl
+import qualified Ledger.Ada as Pl
+import qualified Ledger.Typed.Scripts as Pl
 import PMultiSigStateful
+import qualified PMultiSigStateful.DatumHijacking as HJ
+import PMultiSigStateful.ToUPLC
+import qualified PlutusTx.AssocMap as AssocMap
+import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
 import Test.QuickCheck.GenT
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
-import qualified Test.Tasty.Metadata as TW
 import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
 import Text.Heredoc
 
@@ -42,21 +45,24 @@ import Text.Heredoc
 -- | Initializes the system and returns the parameters; in this case,
 --  initialization is simple. All we have to do is create the thread token
 --  that gets passed to the proposal.
-mkParams :: MonadMockChain m => m Params
-mkParams = do
-  out <- mkThreadToken (wallet 1)
-  pure $ Params (walletPK <$> knownWallets) 2 $ threadTokenAssetClass out
+mkParams :: MonadBlockChain m => m Params
+mkParams =
+  Params pkTable 2 . threadTokenAssetClass <$> mkThreadToken
   where
-    mkThreadTokenInputSkel :: Wallet -> TxSkel
-    mkThreadTokenInputSkel w = txSkel w [PaysPK (walletPKHash w) mempty]
+    mkThreadTokenInputSkel :: Pl.PubKeyHash -> TxSkel
+    mkThreadTokenInputSkel pkh = txSkel [PaysPK pkh mempty]
 
-    mkThreadToken :: MonadMockChain m => Wallet -> m Pl.TxOutRef
-    mkThreadToken w = do
-      validateTxFromSkeleton $ mkThreadTokenInputSkel w
-      emptyUtxos <- pkUtxosSuchThat (walletPKHash w) (== mempty)
+    mkThreadToken :: MonadBlockChain m => m Pl.TxOutRef
+    mkThreadToken = do
+      pkh <- ownPaymentPubKeyHash
+      void $ validateTxSkel $ mkThreadTokenInputSkel pkh
+      emptyUtxos <- pkUtxosSuchThat pkh (== mempty)
       case emptyUtxos of
         [] -> error "No empty UTxOs"
         ((out, _) : _) -> pure out
+
+pkTable :: AssocMap.Map Pl.PubKeyHash Pl.PubKey
+pkTable = AssocMap.fromList $ map (\w -> (walletPKHash w, walletPK w)) knownWallets
 
 -- | This is a label that gets attached to the mkProposal transaction; it helps
 --  us identify what that transaction is doing without carefully inspecting its
@@ -65,62 +71,80 @@ data ProposalSkel = ProposalSkel Integer Payment
   deriving (Show)
 
 -- | Next, we can create proposals, which are simply an accumulator with no signees
-mkProposal :: MonadMockChain m => Integer -> Wallet -> Payment -> m (Params, Pl.TxOutRef)
-mkProposal reqSigs w pmt = do
+mkProposal :: MonadBlockChain m => Integer -> Payment -> m (Params, Pl.TxOutRef)
+mkProposal reqSigs pmt = do
+  wpkh <- ownPaymentPubKeyHash
   utxos <- pkUtxos wpkh
   case utxos of
     (spendableOut : _) -> do
       let klass = threadTokenAssetClass $ fst spendableOut
-      let params = Params (walletPK <$> knownWallets) reqSigs klass
+      let params = Params pkTable reqSigs klass
       let threadToken = paramsToken params
-      let skel =
-            txSkelLbl
-              (ProposalSkel reqSigs pmt)
-              w
-              [ Mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
-                -- We don't have SpendsPK or PaysPK wrt the wallet `w`
-                -- because the balancing mechanism chooses the same (first) output
-                -- we're working on.
-                PaysScript (pmultisig params) [(Accumulator pmt [], paymentValue pmt <> threadToken)]
+      _ <-
+        validateTxConstr'
+          (ProposalSkel reqSigs pmt)
+          [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
+            -- We don't have SpendsPK or PaysPK wrt the wallet `w`
+            -- because the balancing mechanism chooses the same (first) output
+            -- we're working on.
+            PaysScript
+              (pmultisig params)
+              [ ( Accumulator pmt [],
+                  minAda <> paymentValue pmt <> threadToken
+                )
               ]
-      validateTxSkel skel
+          ]
       pure (params, fst spendableOut)
     _ -> error "No spendable outputs for the wallet"
-  where
-    wpkh = walletPKHash w
 
-mkSign :: MonadMockChain m => Params -> Wallet -> Payment -> m ()
-mkSign params w pmt =
-  validateTxSkel $
-    txSkel w [PaysScript (pmultisig params) [(Sign pk sig, mempty)]]
+-- | Creates a signature UTxO, signaling that the wallet holder agrees
+--   with the payment. Adding a signature locks the minimum amount of Ada
+--   in this UTxO; that value should ideally later be returned to the signer, but
+--   instead we'll give all of the value to the receiver of the payment, as a tip
+--   on top of their payment. This is to avoid complex scenarios where someone signed
+--   twice, or even an attack where the attacker would execute the mkPay transaction
+--   but keep all the locked ada to themselves.
+mkSign :: MonadBlockChain m => Params -> Payment -> Pl.PrivateKey -> m ()
+mkSign params pmt sk = do
+  pkh <- ownPaymentPubKeyHash
+  void $ validateTxConstr [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
   where
-    pk = walletPK w
-    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) (walletSK w)
+    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk
+
+    -- Whenever a wallet is signing a payment, it must lock away a certain amount of ada
+    -- in an UTxO, otherwise, the Sign UTxO can't be created.
+    mkSignLockedCost :: Pl.Value
+    mkSignLockedCost = Pl.lovelaceValueOf 1 -- see issue #46
+
+minAda :: Pl.Value
+minAda = Pl.lovelaceValueOf 2000000
 
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
-mkCollect thePayment params = do
+mkCollect thePayment params = signs (wallet 1) $ do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
-  validateTxSkel $
-    txSkel (wallet 1) $
+  let signatureValues = mconcat $ map (sOutValue . fst) signatures
+  void $
+    validateTxConstr $
       PaysScript
         (pmultisig params)
         [ ( Accumulator thePayment (signPk . snd <$> signatures),
-            paymentValue thePayment <> paramsToken params
+            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
           )
         ] :
       SpendsScript (pmultisig params) () initialProp :
       (SpendsScript (pmultisig params) () <$> signatures)
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
-mkPay thePayment params tokenOutRef = do
+mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
   [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
-  validateTxSkel $
-    txSkel
-      (wallet 1)
-      [ PaysPK (paymentRecipient thePayment) (paymentValue thePayment),
+  void $
+    validateTxConstr
+      -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
+      -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
+      [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
         SpendsScript (pmultisig params) () accumulated,
-        Mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
+        mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
       ]
 
 -- *** Auxiliary Functions
@@ -144,29 +168,24 @@ tests =
   testGroup
     "PMultiSigStateful"
     [ sampleTrace1,
-      sampleGroup1
+      sampleGroup1,
+      datumHijackingTrace
     ]
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  TW.bug
-    TW.Critical
-    [str|Ensuring that the PMultiSigContract can be used in a trivial scenario where
-      |wallet 1 proposes a payment, which receives three signatures, then is
-      |\emph{collected} and \emph{payed}.
-      |]
-    $ testCase "Example Trivial Trace" $ isRight (runMockChain trace) @? "Trace failed"
+  testCase "Example Trivial Trace" $ assertSucceeds mtrace
   where
-    trace :: MonadMockChain m => m ()
-    trace = do
-      (params, tokenOutRef) <- mkProposal 2 (wallet 1) thePayment
-      mkSign params (wallet 1) thePayment
-      mkSign params (wallet 2) thePayment
-      mkSign params (wallet 3) thePayment
+    mtrace :: MonadMockChain m => m ()
+    mtrace = do
+      (params, tokenOutRef) <- mkProposal 2 thePayment `as` wallet 1
+      mkSign params thePayment (walletSK $ wallet 1) `as` wallet 1
+      mkSign params thePayment (walletSK $ wallet 2) `as` wallet 2
+      mkSign params thePayment (walletSK $ wallet 3) `as` wallet 3
       mkCollect thePayment params
       mkPay thePayment params tokenOutRef
       where
-        thePayment = Payment 4200 (walletPKHash $ last knownWallets)
+        thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
 
 qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
@@ -181,7 +200,7 @@ qcIsRight (Right _) = QC.property True
 --
 --  What is happening, though? Well, say we write a trace:
 --
---  > tr :: (MonadMockChain m) => GenT m ()
+--  > tr :: (MonadBlockChain m) => GenT m ()
 --  > tr = do
 --  >   x <- choose (0, 10)
 --  >   y <- choose (0, 10)
@@ -206,7 +225,7 @@ qcIsRight (Right _) = QC.property True
 --
 --  Now say we change @tr@ to:
 --
---  > tr2 :: (MonadMockChain m) => GenT m ()
+--  > tr2 :: (MonadBlockChain m) => GenT m ()
 --  > tr2 = do
 --  >   x <- choose (0, 10)
 --  >   y <- choose (0, 10)
@@ -238,38 +257,25 @@ sampleGroup1 =
   localOption (QuickCheckTests 25) $
     testGroup
       "Property-based Test Examples"
-      [ TW.bug'
-          "sec:simple-traces"
-          TW.Critical
-          [str|Traces that use enough unique signatures should always succeed|]
-          $ testProperty "Can execute payment with enough signatures" $
-            forAllTrP
-              successParams
-              (\p -> mkProposalForParams p >>= mkTraceForParams p)
-              (const qcIsRight),
-        TW.bug
-          TW.Critical
-          [str|On the other hand, if we do \emph{not} collect enough unique
-          |signatures, the validator should block the payment.
-          |]
-          $ testProperty "Cannot execute payment without enough signatures" $
-            forAllTrP
-              failureParams
-              (\p -> mkProposalForParams p >>= mkTraceForParams p)
-              (const (QC.property . isLeft)),
-        TW.bug
-          TW.Critical
-          [str|On successful traces, it must be impossible to duplicate the
-          |authentication token
-          |]
-          $ testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
-            forAllTrP
-              successParams
-              ( \p ->
-                  mkProposalForParams p
-                    >>= \i -> somewhere (dupTokenAttack i) (mkTraceForParams p i)
-              )
-              (const (QC.property . isLeft))
+      [ testProperty "Can execute payment with enough signatures" $
+          forAllTrP
+            successParams
+            (\p -> propose p >>= execute p)
+            (const qcIsRight),
+        testProperty "Cannot execute payment without enough signatures" $
+          forAllTrP
+            failureParams
+            (\p -> propose p >>= execute p)
+            (const (QC.property . isLeft)),
+        testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
+          forAllTrP
+            successParams
+            ( \p -> do
+                i <- propose p
+                w3utxos <- pkUtxos (walletPKHash $ wallet 9)
+                somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
+            )
+            (const (QC.property . isLeft))
       ]
 
 data ThresholdParams = ThresholdParams
@@ -292,27 +298,87 @@ anyParams =
     <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
 
 successParams :: QC.Gen ThresholdParams
-successParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p >= reqSigs p)
+successParams =
+  anyParams
+    `QC.suchThat` ( \p ->
+                      let u = numUniqueSigs p
+                       in u >= reqSigs p
+                            && u == fromIntegral (length (sigWallets p))
+                  )
 
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
 
-mkProposalForParams :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
-mkProposalForParams parms = mkProposal (reqSigs parms) (proposerWallet parms) (pmt parms)
+propose :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+propose parms = mkProposal (reqSigs parms) (pmt parms) `as` proposerWallet parms
 
-mkTraceForParams :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
-mkTraceForParams tParms (parms, tokenRef) = do
-  forM_ (sigWallets tParms) $ \wId -> mkSign parms (wallet wId) (pmt tParms)
+execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+execute tParms (parms, tokenRef) = do
+  forM_ (sigWallets tParms) $ \wId -> mkSign parms (pmt tParms) (walletSK $ wallet wId) `as` wallet wId
   mkCollect (pmt tParms) parms
   mkPay (pmt tParms) parms tokenRef
+
+-- ** Auth Token Ducplication Attack
+
+-- Modifies a transaction skeleton by attempting to mint one more provenance token.
+dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
+dupTokenAttack sOut (parms, tokenRef) (TxSkel l cs) =
+  Just $ TxSkel (Just $ DupTokenAttacked l) (cs ++ attack)
+  where
+    attack =
+      [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),
+        SpendsPK sOut,
+        signedByWallets [wallet 9],
+        PaysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
+      ]
 
 data DupTokenAttacked where
   DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
 
 deriving instance Show DupTokenAttacked
 
-dupTokenAttack :: (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
-dupTokenAttack (parms, tokenRef) (TxSkel l s cs) =
-  Just $ TxSkel (Just $ DupTokenAttacked l) s (attack : cs)
+-- ** Datum Hijacking Attack
+
+-- Performs a datum-hijacking attack by using a fake validator with an
+-- isomorphic datum type. This attack can be used in scripts that forget
+-- to check the address of an output. Most of the times, if a script
+-- uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
+-- chances are said script will be vulnerable.
+datumHijackingTrace :: TestTree
+datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+
+attacker :: Wallet
+attacker = wallet 9
+
+-- checks are done on the datum of the contract instead of the address of it.
+fakeValidator :: Pl.TypedValidator HJ.Stealer
+fakeValidator = HJ.stealerValidator $ HJ.StealerParams (walletPKHash $ wallet 9)
+
+datumHijacking :: (MonadMockChain m) => m ()
+datumHijacking = do
+  (params, tokenOutRef) <- mkProposal 2 thePayment `as` wallet 1
+  mkSign params thePayment (walletSK $ wallet 1) `as` wallet 1
+  mkSign params thePayment (walletSK $ wallet 2) `as` wallet 2
+  mkSign params thePayment (walletSK $ wallet 3) `as` wallet 3
+  mkFakeCollect thePayment params
   where
-    attack = Mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms)
+    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
+
+trPayment :: Payment -> HJ.Payment
+trPayment (Payment val dest) = HJ.Payment val dest
+
+mkFakeCollect :: MonadBlockChain m => Payment -> Params -> m ()
+mkFakeCollect thePayment params = do
+  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
+  signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
+  let signatureValues = mconcat $ map (sOutValue . fst) signatures
+  void $
+    validateTxConstr $
+      PaysScript
+        fakeValidator
+        [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
+            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
+          )
+        ] :
+      SpendsScript (pmultisig params) () initialProp :
+      (SpendsScript (pmultisig params) () <$> signatures)

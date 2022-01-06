@@ -4,7 +4,6 @@
 module Cooked.MockChain.QuickCheck where
 
 import Control.Monad.Writer
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState
@@ -21,7 +20,7 @@ import Test.QuickCheck.GenT
 --
 -- OLD COMMENT; incorporate later:
 --  Enables the user to quantify over possible traces from a distribution of traces
---  written through 'GenT' and 'MonadMockChain'. In case of failure, the user will
+--  written through 'GenT' and 'MonadBlockChain'. In case of failure, the user will
 --  see a descripion of the transactions that were issued by the generated trace.
 --
 --  This generator does /not/ shrink the trace. The reason for that is that
@@ -30,10 +29,10 @@ import Test.QuickCheck.GenT
 --  in reality, the test failed for entirely different reasons.
 
 -- | The type of trace generators parameterized by some values.
-type GenTraceParm parm a = forall m. (MonadMockChain m) => parm -> GenT m a
+type GenTraceParm parm a = parm -> GenT StagedMockChain a
 
 -- | The type of trace generators with no paramters
-type GenTrace a = forall m. (MonadMockChain m) => GenT m a
+type GenTrace a = GenT StagedMockChain a
 
 -- | Very general quantification mechanism for traces. This function is mostly used
 --  internally as the implementation for its simpler cousins like 'forAllTr', 'forSomeTr',

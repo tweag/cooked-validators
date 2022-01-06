@@ -18,12 +18,12 @@ prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
-prettyTxSkel :: TxSkel -> Doc ann
-prettyTxSkel (TxSkel lbl signer constr) =
+prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
+prettyTxSkel signers (TxSkel lbl constr) =
   PP.vsep $
     map ("-" <+>) $
       catMaybes
-        [ Just $ "Signer:" <+> prettyWallet (walletPKHash signer),
+        [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
           fmap (("Label:" <+>) . prettyDatum) lbl,
           Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
         ]
@@ -47,14 +47,14 @@ prettyConstraint (PaysPK pkh val) =
 prettyConstraint (SpendsPK out) =
   let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyConstraint (Mints policies val) =
+prettyConstraint (Mints mr policies val) =
   prettyEnum "Mints" "-" $
     catMaybes
       [ mPrettyValue val,
+        fmap (("Redeemer:" <+>) . prettyDatum) mr,
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
-prettyConstraint (SignedBy ws) =
-  prettyEnum "SignedBy" "-" $ map (prettyWallet . walletPKHash) ws
+prettyConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
 prettyConstraint _ = "<constraint without pretty def>"
 
 prettyHash :: (Show a) => a -> Doc ann

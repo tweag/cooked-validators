@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -10,6 +11,8 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Value as Pl
+import qualified PlutusTx.Builtins.Class as Pl
 
 -- * MockChain Wallets
 
@@ -52,6 +55,9 @@ walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 walletSK :: CW.MockWallet -> Pl.PrivateKey
 walletSK = CW.privateKey
 
+toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
+toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
+
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
@@ -70,7 +76,7 @@ type InitialDistribution = M.Map Wallet Pl.Value
 initialDistribution :: InitialDistribution
 initialDistribution = M.fromList $ zip knownWallets (repeat def)
   where
-    def = Pl.lovelaceValueOf 100_000
+    def = Pl.lovelaceValueOf 100_000_000
 
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
@@ -80,3 +86,34 @@ initialTxFor initDist =
     }
   where
     initDist' = M.toList initDist
+
+-- "Quick" currency is a convenience to manipulate assets that are supposed to
+-- be already in the wild when running a mock chain. For example, a market
+-- maker would exchange Ada against other assets called "coins". Defining a
+-- minting policy for those coins is tedious and not interesting. The following
+-- functions make it easy to manipulate such assets identified by a token name.
+--
+-- For example, `runMockChainWithDistribution (initialDistribution' [wallet 1,
+-- quickValue "coin" 50])` provides 50 coins to wallet 1 alongside the default
+-- 100_000_000 lovelace in the initial state.
+
+-- | Extension of the default initial distribution with additional value in
+-- some wallets.
+initialDistribution' :: [(Wallet, Pl.Value)] -> InitialDistribution
+initialDistribution' = M.unionWith (<>) initialDistribution . M.fromList
+
+-- | The currency symbol of the "quick" is empty. Like Ada.
+quickCurrencySymbol :: Pl.CurrencySymbol
+quickCurrencySymbol = Pl.CurrencySymbol ""
+
+-- | Token name of a "quick" asset class
+quickTokenName :: String -> Pl.TokenName
+quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString
+
+-- | "Quick" asset class from a token name
+quickAssetClass :: String -> Pl.AssetClass
+quickAssetClass = curry Pl.AssetClass quickCurrencySymbol . quickTokenName
+
+-- | Constructor for "quick" values from token name and amount
+quickValue :: String -> Integer -> Pl.Value
+quickValue = Pl.assetClassValue . quickAssetClass

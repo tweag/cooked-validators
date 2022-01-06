@@ -45,6 +45,7 @@ import qualified Ledger.Typed.Scripts as Scripts
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as Api
 import qualified PlutusTx
+import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
@@ -53,7 +54,7 @@ import qualified Prelude as Haskell
 --  and the threshold number of signatures. Moreover, we pass the threadToken NFT
 --  that will identify legitimate datums as a parameter, as this will only be known at run-time.
 data Params = Params
-  { pmspSignatories :: [Ledger.PubKey],
+  { pmspSignatories :: AssocMap.Map Api.PubKeyHash Ledger.PubKey,
     pmspRequiredSigs :: Integer,
     pmspThreadToken :: Value.AssetClass
   }
@@ -87,8 +88,8 @@ instance Eq Payment where
 -- | The datum is either a signature of a payment or
 --  an accumulator collecting signatures for a given payment.
 data Datum
-  = Accumulator {payment :: Payment, signees :: [Ledger.PubKey]}
-  | Sign {signPk :: Ledger.PubKey, signSignature :: Ledger.Signature}
+  = Accumulator {payment :: Payment, signees :: [Ledger.PubKeyHash]}
+  | Sign {signPk :: Ledger.PubKeyHash, signSignature :: Ledger.Signature}
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -138,16 +139,19 @@ findDatum :: TxInfo -> Validation.TxInInfo -> Maybe Datum
 findDatum txInfo inInfo =
   Validation.txOutDatumHash (Validation.txInInfoResolved inInfo) >>= findDatumByHash txInfo
 
--- | In order to find the relevant accumulators we look at the 'getContinuingOutputs',
+-- | In order to find the relevant accumulators we should use the 'getContinuingOutputs',
 -- which returns those outputs that pay to the same address of whatever is beeing
 -- redeemed.
 --
--- If we used 'txInfoOutputs' without checking the address explicitely, we would
--- be making this script vulnerable to the datum hijack attack.
--- You can find more about it at "MarketMaker.DatumHijacking" and its respective
--- test suite to see how that would work.
+-- Here, had we used 'txInfoOutputs' without checking the address explicitely,
+-- it would MAKE THIS SCRIPT VULNERABLE to the datum hijack attack.
+-- You can find more about it at "PMultiSigStateful.DatumHijacking" and its respective
+-- test suite to see how that works.
 {-# INLINEABLE findAccumulators #-}
 findAccumulators :: ScriptContext -> [(Datum, Api.Value)]
+-- If you're reading this function, this is how this script would have to
+-- be modified to become vulnerable to a datum hijacking attack:
+-- findAccumulators ctx = mapMaybe toAcc $ txInfoOutputs txInfo
 findAccumulators ctx = mapMaybe toAcc $ getContinuingOutputs ctx
   where
     txInfo = scriptContextTxInfo ctx
@@ -206,7 +210,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 
     validateAcc
       | [(Accumulator payment' signees', outVal)] <- findAccumulators ctx =
-        traceIfFalse "T0" (Value.valueOf outVal Api.adaSymbol Api.adaToken == paymentAmount payment)
+        traceIfFalse "T0" (Value.valueOf outVal Api.adaSymbol Api.adaToken >= paymentAmount payment)
           && traceIfFalse "T1" (Value.valueOf outVal provTokSym provTokName == 1)
           && traceIfFalse "T2" (verifyInAccThreadToken (not $ null signees'))
           && traceIfFalse "T3" (payment == payment')
@@ -241,13 +245,15 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
         allInputsRelevant = length newSignees == length otherInputs
 
         extractSig Accumulator {} = Nothing
-        extractSig (Sign signPk s)
-          | signPk `notElem` pmspSignatories = Nothing -- Not a signatory -- wrong
-          | signPk `elem` signees = Nothing -- Already signed this payment -- wrong
-          | not $ verifySig signPk (sha2_256 $ packPayment payment) s = Nothing -- Sig verification failed -- wrong
-          -- Note that if it succeeds, than the payment this Sign is for necessarily matches
-          -- the payment in the Accumulator, since `payment` comes from the Accumulator.
-          | otherwise = Just signPk -- The above didn't get triggered, so presumably it's right
+        extractSig (Sign signPkh s)
+          | signPkh `elem` signees = Nothing -- Already signed this payment -- wrong
+          | otherwise =
+            case AssocMap.lookup signPkh pmspSignatories of
+              Nothing -> Nothing -- Not a signatory -- wrong
+              Just pk ->
+                if verifySig pk (sha2_256 $ packPayment payment) s
+                  then Just signPkh
+                  else Nothing -- Sig verification failed -- wrong
 
 -- Here's a wrapper to verify a signature. It is important that the parameters to verifySignature
 -- are, in order: pk, msg then signature.
