@@ -12,14 +12,11 @@ module Split.OffChain where
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Data.Aeson (FromJSON, ToJSON)
-import GHC.Generics (Generic)
 import qualified Ledger as Pl
 import qualified Ledger.Typed.Scripts as Pl
-import Playground.Contract
+import Playground.Contract hiding (ownPaymentPubKeyHash)
 import qualified Plutus.Contract as C
 import qualified Plutus.V1.Ledger.Ada as Pl
-import Schema (ToSchema)
 import Split
 import qualified Wallet.Emulator.Wallet as C
 
@@ -87,7 +84,7 @@ mkSchemaDefinitions ''SplitSchema
 mkSplitData :: LockArgs -> SplitDatum
 mkSplitData LockArgs {recipient1Wallet, recipient2Wallet, totalAda} =
   let convert :: C.Wallet -> Pl.PubKeyHash
-      convert = Pl.pubKeyHash . C.walletPubKey
+      convert = Pl.unPaymentPubKeyHash . C.mockWalletPaymentPubKeyHash
    in SplitDatum
         { recipient1 = convert recipient1Wallet,
           recipient2 = convert recipient2Wallet,

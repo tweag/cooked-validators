@@ -61,7 +61,7 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature w = Pl.addSignature (walletSK w) "mock-passphrase"
+txAddSignature w = Pl.addSignature' (walletSK w)
 
 -- * Initial distribution of funds
 

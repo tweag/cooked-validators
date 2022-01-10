@@ -50,7 +50,7 @@ data Crowdfunding
 
 instance TScripts.ValidatorTypes Crowdfunding where
   type RedeemerType Crowdfunding = CampaignAction
-  type DatumType Crowdfunding = Ledger.PubKeyHash
+  type DatumType Crowdfunding = Ledger.PaymentPubKeyHash
 
 deriving instance Show CampaignAction
 
@@ -65,7 +65,7 @@ genCampaign collectDelta owner = do
     Campaign
       { campaignDeadline = startTime + deadline,
         campaignCollectionDeadline = startTime + collectDeadline,
-        campaignOwner = walletPKHash owner
+        campaignOwner = Ledger.PaymentPubKeyHash $ walletPKHash owner
       }
 
 -- | Provides some funds to the campaign
@@ -75,7 +75,7 @@ paysCampaign c w val =
     signs w $
       validateTxSkelOpts (def {autoSlotIncrease = False}) $
         txSkel
-          [PaysScript (typedValidator c) [(walletPKHash w, val)]]
+          [PaysScript (typedValidator c) [(Ledger.PaymentPubKeyHash $ walletPKHash w, val)]]
 
 -- | Retrieve funds as being the owner
 retrieveFunds :: (MonadMockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
