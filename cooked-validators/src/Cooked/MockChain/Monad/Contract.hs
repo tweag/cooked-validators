@@ -41,7 +41,7 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
 
   txOutByRef ref = fmap Pl.toTxOut <$> C.txOutFromRef ref
 
-  ownPaymentPubKeyHash = C.ownPubKeyHash
+  ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownPaymentPubKeyHash
 
   currentSlot = C.currentSlot
   currentTime = C.currentTime

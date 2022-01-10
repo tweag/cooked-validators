@@ -31,7 +31,7 @@ instance Ord Wallet where
   compare = compare `on` CW.mwWalletId
 
 knownWallets :: [Wallet]
-knownWallets = CW.knownWallets
+knownWallets = CW.knownMockWallets
 
 wallet :: Int -> Wallet
 wallet j
@@ -44,7 +44,7 @@ walletPKHashToId = flip M.lookup walletPKHashToIdMap
     walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
 
 walletPK :: Wallet -> Pl.PubKey
-walletPK = CW.pubKey
+walletPK = Pl.unPaymentPubKey . CW.paymentPubKey
 
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
@@ -53,7 +53,7 @@ walletAddress :: Wallet -> Pl.Address
 walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
 walletSK :: CW.MockWallet -> Pl.PrivateKey
-walletSK = CW.privateKey
+walletSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
 toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
@@ -61,7 +61,7 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature w = Pl.addSignature (CW.privateKey w)
+txAddSignature w = Pl.addSignature (walletSK w) "mock-passphrase"
 
 -- * Initial distribution of funds
 

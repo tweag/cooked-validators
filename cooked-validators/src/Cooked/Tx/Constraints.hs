@@ -59,7 +59,7 @@ toLedgerConstraint (PaysScript v outs) = (lkups, constr)
           (Pl.validatorHash $ Pl.validatorScript v)
           (Pl.Datum $ Pl.toBuiltinData d)
           val
-toLedgerConstraint (PaysPK p v) = (mempty, Pl.mustPayToPubKey p v)
+toLedgerConstraint (PaysPK p v) = (mempty, Pl.mustPayToPubKey (Pl.PaymentPubKeyHash p) v)
 toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
   where
     lkups = Pl.unspentOutputs (M.singleton oref o)
@@ -79,7 +79,7 @@ toLedgerConstraint (After t) = (mempty, constr)
   where
     constr = Pl.mustValidateIn (Pl.from t)
 toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
-toLedgerConstraint (SignedBy hashes) = (mempty, foldMap Pl.mustBeSignedBy hashes)
+toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
 
 -- | Converts a list of constraints into a 'LedgerConstraint'
 toLedgerConstraints :: [Constraint] -> LedgerConstraint a
