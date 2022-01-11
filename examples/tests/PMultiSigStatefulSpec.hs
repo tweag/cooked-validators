@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -109,7 +110,7 @@ mkSign params pmt sk = do
   pkh <- ownPaymentPubKeyHash
   void $ validateTxConstr [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
   where
-    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk
+    sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
     -- Whenever a wallet is signing a payment, it must lock away a certain amount of ada
     -- in an UTxO, otherwise, the Sign UTxO can't be created.
