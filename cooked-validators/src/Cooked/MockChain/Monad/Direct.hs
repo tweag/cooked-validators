@@ -344,7 +344,11 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
+  let tgt = rhs Pl.- lhs
+  trace ("Balancing: " ++ show tgt) (return ())
   (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
+  trace ("  Using extra UTxOs:" ++ show usedUTxOs) (return ())
+  trace ("  Leftovers are:" ++ show leftOver) (return ())
   -- All the UTxOs signed by the sender of the transaction and useful to balance it
   -- are added to the inputs.
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
