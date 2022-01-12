@@ -37,6 +37,8 @@ import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
 
+import Debug.Trace
+
 -- * Direct Emulation
 
 -- $mockchaindocstr
@@ -345,20 +347,22 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
   let tgt = rhs Pl.- lhs
-  trace ("Balancing: " ++ show tgt) (return ())
+  -- trace ("Balancing: " ++ show tgt) (return ())
   (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
-  trace ("  Using extra UTxOs:" ++ show usedUTxOs) (return ())
-  trace ("  Leftovers are:" ++ show leftOver) (return ())
+  -- trace ("  Using extra UTxOs:" ++ show usedUTxOs) (return ())
+  -- trace ("  Leftovers are:" ++ show leftOver) (return ())
   -- All the UTxOs signed by the sender of the transaction and useful to balance it
   -- are added to the inputs.
   let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
   -- A new output is opened with the leftover of the added inputs.
-  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
+  let txOuts' = if leftOver == mempty
+                then []
+                else [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing]
   config <- asks mceSlotConfig
   return
     tx
       { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
-        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
+        Pl.txOutputs = Pl.txOutputs tx ++ txOuts',
         Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
       }
 
