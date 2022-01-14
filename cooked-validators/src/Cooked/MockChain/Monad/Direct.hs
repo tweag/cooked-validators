@@ -325,7 +325,10 @@ generateTx' opts skel = do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       signers <- askSigners
       balancedTx <- balanceTxFrom (NE.head signers) (adjust ubtx)
-      return $ foldl (flip txAddSignature) balancedTx (NE.toList signers)
+      return $ foldl (flip txAddSignature)
+                     -- HACK: optionally apply a transformation to a balanced tx before sending it in.
+                     (applyRawModTx (modBalancedTx opts) balancedTx)
+                     (NE.toList signers)
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
