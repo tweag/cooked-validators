@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Cooked.Tx.Constraints.Type where
 
@@ -10,6 +11,7 @@ import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
+import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
 --  underlying 'Pl.ChainIndexTxOut'.
@@ -42,20 +44,26 @@ sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
+type SpendsConstrs a =
+  ( Pl.ToData (Pl.DatumType a),
+    Pl.ToData (Pl.RedeemerType a),
+    Show (Pl.DatumType a),
+    Show (Pl.RedeemerType a),
+    Eq (Pl.DatumType a),
+    Eq (Pl.RedeemerType a),
+    Typeable a
+  )
+
 -- | Our own first-class constraint type. The advantage over the regular plutus constraint
 --  type is that we get to add whatever we need and we hide away the type variables in existentials.
 data Constraint where
   PaysScript ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a)) =>
+    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
     Pl.TypedValidator a ->
     [(Pl.DatumType a, Pl.Value)] ->
     Constraint
   SpendsScript ::
-    ( Pl.ToData (Pl.DatumType a),
-      Pl.ToData (Pl.RedeemerType a),
-      Show (Pl.DatumType a),
-      Show (Pl.RedeemerType a)
-    ) =>
+    (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
