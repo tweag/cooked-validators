@@ -136,7 +136,9 @@ data ValidateTxOpts = ValidateTxOpts
     -- | HUGE HACK; DON'T BRING IT UPSTREAM LIKE THIS
     --
     -- Applies a modification to a transaction after balancing, but before signing.
-    modBalancedTx :: RawModTx
+    modBalancedTx :: RawModTx,
+    debugBalanceTx :: Bool,
+    noBalance :: Bool
   }
   deriving (Eq, Show)
 
@@ -163,7 +165,9 @@ instance Default ValidateTxOpts where
       { adjustUnbalTx = True,
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
-        modBalancedTx = Id
+        modBalancedTx = Id,
+        debugBalanceTx = False,
+        noBalance = False
       }
 
 -- | Calls 'validateTxSkelOpts' with the default set of options

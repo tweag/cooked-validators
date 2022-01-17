@@ -23,6 +23,7 @@ import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
+import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
@@ -324,7 +325,9 @@ generateTx' opts skel = do
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       signers <- askSigners
-      balancedTx <- balanceTxFrom (NE.head signers) (adjust ubtx)
+      balancedTx <- if noBalance opts
+                   then fakeBalance (adjust ubtx)
+                   else balanceTxFrom (debugBalanceTx opts) (NE.head signers) (adjust ubtx)
       return $ foldl (flip txAddSignature)
                      -- HACK: optionally apply a transformation to a balanced tx before sending it in.
                      (applyRawModTx (modBalancedTx opts) balancedTx)
@@ -341,8 +344,8 @@ generateTx' opts skel = do
 
 -- | Balances a transaction with money from a given wallet. For every transaction,
 --  it must be the case that @inputs + mint == outputs + fee@.
-balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
+balanceTxFrom :: (Monad m) => Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- We start by gathering all the inputs and summing it
   let tx = tx0 {Pl.txFee = Pl.minFee tx0}
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
@@ -350,26 +353,58 @@ balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
   let tgt = rhs Pl.- lhs
-  -- trace ("Balancing: " ++ show tgt) (return ())
+  when dbg $ trace ("!! Balancing: " ++ show tgt) (return ())
   (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
-  -- trace ("  Using extra UTxOs:" ++ show usedUTxOs) (return ())
-  -- trace ("  Leftovers are:" ++ show leftOver) (return ())
+  when dbg $ trace ("  - Using UTxOs:" ++ show usedUTxOs) (return ())
+  when dbg $ trace ("  - Leftovers are:" ++ show leftOver) (return ())
   -- All the UTxOs signed by the sender of the transaction and useful to balance it
   -- are added to the inputs.
-  let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
-  -- A new output is opened with the leftover of the added inputs.
-  let txOuts' = if leftOver == mempty
-                then []
-                else [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing]
+  let txIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
+  -- Get the inputs which are NOT in the transaction yet
+  let newTxIns' = S.difference txIns' (Pl.txInputs tx)
+  -- Get the inputs which are in the transaction already
+  let reusedTxIns = S.difference txIns' newTxIns'
+
+  -- The leftover was computed assuming that the transaction
+  -- will consume all outputs in txIns, but when some of them where
+  -- already in the transaction, we need to recompute the leftover to subtract the
+  -- reusedTxIns from there.
+  reusedTxInsValue <- mconcat <$> mapM (fmap Pl.txOutValue . outFromOutRef . Pl.txInRef) (S.toList reusedTxIns)
+  let adjustedLeftOver = leftOver Pl.- reusedTxInsValue
+
+  when dbg $ trace ("  - Reused UTxOs are:" ++ show reusedTxIns) (return ())
+  when dbg $ trace ("  - Adjusted Leftovers are:" ++ show adjustedLeftOver) (return ())
+
+  -- Now, we check whether there already is an output for wPKH, if not, we add it; then we
+  -- modify it.
+  let txOuts' = case L.findIndex ((== Just wPKH) . addressIsPK . Pl.txOutAddress) (Pl.txOutputs tx) of
+                  Just i -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
+                  _ -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
   config <- asks mceSlotConfig
   return
     tx
-      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
-        Pl.txOutputs = Pl.txOutputs tx ++ txOuts',
+      { Pl.txInputs = Pl.txInputs tx <> newTxIns',
+        Pl.txOutputs = txOuts',
         Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
       }
 
+fakeBalance :: (Monad m) => Pl.UnbalancedTx -> MockChainT m Pl.Tx
+fakeBalance (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
+  let tx = tx0 {Pl.txFee = Pl.minFee tx0}
+  config <- asks mceSlotConfig
+  return
+    tx {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
+
+
 -- * Utilities
+
+adjustOutputValueAt f i xs =
+  let (pref, Pl.TxOut addr val stak:rest) = L.splitAt i xs
+   in pref ++ Pl.TxOut addr (f val) stak : rest
+
+addressIsPK addr = case Pl.addressCredential addr of
+                     Pl.PubKeyCredential pkh -> Just pkh
+                     _ -> Nothing
 
 rstr :: (Monad m) => (a, m b) -> m (a, b)
 rstr (a, mb) = (a,) <$> mb
