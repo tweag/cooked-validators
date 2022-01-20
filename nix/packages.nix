@@ -42,7 +42,6 @@ in {
         git
         cacert # git SSL
         pkg-config # required by libsystemd-journal
-        systemd.dev
 
         # haskell development tools pulled from regular nixpkgs
         hpack
@@ -52,7 +51,7 @@ in {
         # iohk-specific stuff that we require
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
-     ];
+     ] ++ lib.optional (stdenv.isLinux) systemd.dev;
 
   # Besides what's needed for building, we also want our instance of the
   # the haskell-language-server
