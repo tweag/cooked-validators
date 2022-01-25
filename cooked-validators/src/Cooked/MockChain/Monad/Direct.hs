@@ -30,6 +30,8 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
+import qualified Ledger.Value as Pl
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
@@ -37,6 +39,8 @@ import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
+
+import Data.Function(on)
 
 import Debug.Trace
 
@@ -375,11 +379,17 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   when dbg $ trace ("  - Reused UTxOs are:" ++ show reusedTxIns) (return ())
   when dbg $ trace ("  - Adjusted Leftovers are:" ++ show adjustedLeftOver) (return ())
 
-  -- Now, we check whether there already is an output for wPKH, if not, we add it; then we
-  -- modify it.
-  let txOuts' = case L.findIndex ((== Just wPKH) . addressIsPK . Pl.txOutAddress) (Pl.txOutputs tx) of
-                  Just i -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
-                  _ -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
+  -- Now, we check whether there already is an output for wPKH. In particular, we choose the output for wPKH
+  -- with the most Ada to adjust, trying to make sure we to minimize the risk of producing an output with
+  -- less than minAda.
+  --
+  -- PROPERTY: never create transactions with outputs with less than min ada!!
+  let pkhOuts = L.sortBy (flip compare `on` adaVal)
+              $ filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd)
+              $ zip [0..] (Pl.txOutputs tx)
+  let txOuts' = case pkhOuts of
+                  [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
+                  (i,_):_ -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
   config <- asks mceSlotConfig
   return
     tx
@@ -387,6 +397,9 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
         Pl.txOutputs = txOuts',
         Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
       }
+  where
+    adaVal :: (a, Pl.TxOut) -> Integer
+    adaVal = Pl.getLovelace . Pl.fromValue . Pl.txOutValue . snd
 
 fakeBalance :: (Monad m) => Pl.UnbalancedTx -> MockChainT m Pl.Tx
 fakeBalance (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
