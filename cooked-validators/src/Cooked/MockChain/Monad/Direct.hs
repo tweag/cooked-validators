@@ -30,7 +30,6 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -411,10 +410,12 @@ fakeBalance (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
 
 -- * Utilities
 
+adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> Int -> [Pl.TxOut] -> [Pl.TxOut]
 adjustOutputValueAt f i xs =
   let (pref, Pl.TxOut addr val stak:rest) = L.splitAt i xs
    in pref ++ Pl.TxOut addr (f val) stak : rest
 
+addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
 addressIsPK addr = case Pl.addressCredential addr of
                      Pl.PubKeyCredential pkh -> Just pkh
                      _ -> Nothing
