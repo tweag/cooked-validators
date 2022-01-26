@@ -183,7 +183,8 @@ validateTxConstr' :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m P
 validateTxConstr' lbl = validateTxSkel . txSkelLbl lbl
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m)
+-- Hence, modal actions are TxSkel's.
+type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
