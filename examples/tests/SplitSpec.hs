@@ -115,6 +115,13 @@ usageExample = assertSucceeds $ do
   txLock Split.splitValidator lockParams `as` wallet 1
   txUnlock Split.splitValidator `as` wallet 2
 
+
+ex :: (MonadMockChain m) => m ()
+ex = do
+  txLock Split.splitValidator lockParams `as` wallet 1
+  txLock Split.splitValidator lockParams2 `as` wallet 1
+  txUnlock Split.splitValidator `as` wallet 2
+
 tests :: TestTree
 tests =
   testGroup

@@ -42,7 +42,7 @@ data Params = Params
 PlutusTx.makeLift ''Params
 
 newtype DatumBigBoss = BigBoss [Api.PubKeyHash]
-  deriving stock (Haskell.Show)
+  deriving stock (Haskell.Eq, Haskell.Show)
 
 PlutusTx.unstableMakeIsData ''DatumBigBoss
 
@@ -65,7 +65,7 @@ data DatumSmith = Forge
   { owner :: Api.PubKeyHash,
     forged :: Integer
   }
-  deriving stock (Haskell.Show, Generic)
+  deriving stock (Haskell.Eq, Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 PlutusTx.unstableMakeIsData ''DatumSmith

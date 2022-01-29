@@ -6,32 +6,16 @@
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
-import Cooked.MockChain.Monad
 import Data.Kind
 import Data.Function (on)
 import Data.List (sortBy)
 import qualified Ledger.Contexts as Pl
 import qualified Ledger.Value as Pl
 import qualified Ledger.Ada as Pl
-import qualified Plutus.V1.Ledger.Crypto as Pl
 import PlutusTx.Numeric ((+), (-))
 import Prelude hiding ((+), (-))
 
-balanceWithUTxOsOf ::
-  (MonadBlockChain m) =>
-  Pl.Value ->
-  Pl.PubKeyHash ->
-  m ([Pl.TxOutRef], Pl.Value)
-balanceWithUTxOsOf val wPKH =
-  -- HACK: We'll order outputs and try to use those with the most ada first;
-  -- should hopefully help with: https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
-  -- Nevertheless, we need a better solution
-  spendValueFrom val . sortBy (flip compare `on` adaVal) <$> pkUtxos' wPKH
-  where
-    adaVal :: (Pl.TxOutRef, Pl.TxOut) -> Integer
-    adaVal = Pl.getLovelace . Pl.fromValue . Pl.txOutValue . snd
-
-class (Eq (BOutRef out)) => BalancableOut out where
+class (Show out, Show (BOutRef out), Eq (BOutRef out)) => BalancableOut out where
   -- | The 'BOutRef's are only used to keep track of what outputs were used during balancing.
   -- They might as well be identity (type) functions if 'out' is cheap and comparable.
   type BOutRef out = (result :: Type) | result -> out
@@ -44,6 +28,23 @@ instance BalancableOut (Pl.TxOutRef, Pl.TxOut) where
 
   outValue = Pl.txOutValue . snd
   outRef = fst
+
+-- |This function will try to select a selection of outputs from the set of available
+-- outputs given to it in order to have enough to balance out the given value.
+balanceWithUTxOs ::
+  forall out.
+  (BalancableOut out) =>
+  Pl.Value ->
+  [out] ->
+  ([BOutRef out], Pl.Value)
+balanceWithUTxOs val =
+  -- HACK: We'll order outputs and try to use those with the most ada first;
+  -- should hopefully help with: https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
+  -- Nevertheless, we need a better solution
+  spendValueFrom val . sortBy (flip compare `on` adaVal)
+  where
+    adaVal :: out -> Integer
+    adaVal = Pl.getLovelace . Pl.fromValue . outValue
 
 -- | A helper to make sure that @input + mint = output + fees@ holds for a transaction.
 --
@@ -59,7 +60,7 @@ instance BalancableOut (Pl.TxOutRef, Pl.TxOut) where
 -- (in case some UTXOs had more output than we actually need to balance the transaction).
 spendValueFrom ::
   forall out.
-  (BalancableOut out, Show (BOutRef out), Show out) =>
+  (BalancableOut out) =>
   Pl.Value ->
   [out] ->
   ([BOutRef out], Pl.Value)

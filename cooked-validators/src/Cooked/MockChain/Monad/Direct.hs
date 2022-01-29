@@ -23,12 +23,14 @@ import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
+import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
+import Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
@@ -38,10 +40,6 @@ import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
-
-import Data.Function(on)
-
-import Debug.Trace
 
 -- * Direct Emulation
 
@@ -328,13 +326,16 @@ generateTx' opts skel = do
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       signers <- askSigners
-      balancedTx <- if noBalance opts
-                   then fakeBalance (adjust ubtx)
-                   else balanceTxFrom (debugBalanceTx opts) (NE.head signers) (adjust ubtx)
-      return $ foldl (flip txAddSignature)
-                     -- HACK: optionally apply a transformation to a balanced tx before sending it in.
-                     (applyRawModTx (modBalancedTx opts) balancedTx)
-                     (NE.toList signers)
+      balancedTx <-
+        if noBalance opts
+          then fakeBalance (adjust ubtx)
+          else balanceTxFrom (debugBalanceTx opts) (NE.head signers) (adjust ubtx)
+      return $
+        foldl
+          (flip txAddSignature)
+          -- HACK: optionally apply a transformation to a balanced tx before sending it in.
+          (applyRawModTx (modBalancedTx opts) balancedTx)
+          (NE.toList signers)
   where
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
@@ -357,7 +358,11 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let wPKH = walletPKHash w
   let tgt = rhs Pl.- lhs
   when dbg $ trace ("!! Balancing: " ++ show tgt) (return ())
-  (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
+  let usedInTxIns = S.map Pl.txInRef (Pl.txInputs tx)
+  pool <- pkUtxos' wPKH
+  let (usedUTxOs, leftOver) =
+        balanceWithUTxOs (rhs Pl.- lhs) $
+          filter ((`S.notMember` usedInTxIns) . fst) pool
   when dbg $ trace ("  - Using UTxOs:" ++ show usedUTxOs) (return ())
   when dbg $ trace ("  - Leftovers are:" ++ show leftOver) (return ())
   -- All the UTxOs signed by the sender of the transaction and useful to balance it
@@ -383,12 +388,13 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   -- less than minAda.
   --
   -- PROPERTY: never create transactions with outputs with less than min ada!!
-  let pkhOuts = L.sortBy (flip compare `on` adaVal)
-              $ filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd)
-              $ zip [0..] (Pl.txOutputs tx)
+  let pkhOuts =
+        L.sortBy (flip compare `on` adaVal) $
+          filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
+            zip [0 ..] (Pl.txOutputs tx)
   let txOuts' = case pkhOuts of
-                  [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
-                  (i,_):_ -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
+        [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
+        (i, _) : _ -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
   config <- asks mceSlotConfig
   return
     tx
@@ -407,18 +413,17 @@ fakeBalance (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   return
     tx {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
 
-
 -- * Utilities
 
 adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> Int -> [Pl.TxOut] -> [Pl.TxOut]
 adjustOutputValueAt f i xs =
-  let (pref, Pl.TxOut addr val stak:rest) = L.splitAt i xs
+  let (pref, Pl.TxOut addr val stak : rest) = L.splitAt i xs
    in pref ++ Pl.TxOut addr (f val) stak : rest
 
 addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
 addressIsPK addr = case Pl.addressCredential addr of
-                     Pl.PubKeyCredential pkh -> Just pkh
-                     _ -> Nothing
+  Pl.PubKeyCredential pkh -> Just pkh
+  _ -> Nothing
 
 rstr :: (Monad m) => (a, m b) -> m (a, b)
 rstr (a, mb) = (a,) <$> mb

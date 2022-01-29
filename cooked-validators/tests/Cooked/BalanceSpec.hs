@@ -10,6 +10,7 @@
 
 module Cooked.BalanceSpec (spec) where
 
+import qualified Data.List as L
 import Control.Monad.Identity
 import Control.Monad.State
 import Cooked.MockChain
@@ -18,6 +19,7 @@ import Cooked.Tx.Constraints
 import qualified Data.ByteString.Char8 as BS
 import Data.Kind
 import qualified Data.Map as M
+import Data.Maybe (mapMaybe)
 import Data.String
 import qualified Ledger.Crypto as Pl
 import qualified Ledger.Index as Pl
@@ -32,16 +34,96 @@ import Test.Hspec
 import Test.QuickCheck
 import qualified Wallet.Emulator.Wallet as Pl
 
-newtype MockBalancable = MockBalancable {getMBValue :: Pl.Value}
+-- Instead of relying on Plutus TxOut and TxOutRef, we mock our own
+-- version of it for testing, this way we can generate aribtrary values.
+
+newtype MockReference = MockReference {mrRef :: String}
   deriving (Eq, Show)
 
-instance BalancableOut MockBalancable where
-  type BOutRef MockBalancable = MockBalancable
-  outValue = getMBValue
-  outRef = id
+newtype MockBalancable = MockBalancable {mbValue :: Pl.Value}
+  deriving (Eq, Show)
 
-strings :: Int -> [Pl.BuiltinByteString]
-strings m = [PlI.BuiltinByteString $ BS.singleton c | c <- take m ['a' ..]]
+type MockOutOutRef = (MockReference, MockBalancable)
+
+instance BalancableOut (MockReference, MockBalancable) where
+  type BOutRef (MockReference, MockBalancable) = MockReference
+  outValue = mbValue . snd
+  outRef = fst
+
+spec :: SpecWith ()
+spec = do
+  describe "spendValueFrom" $ do
+    -- In a simple case, where one has only one output, it is simply to balance it.
+    it "spends money from the output" $
+      let txOut1 = outsOf 1 utxoIndex0
+       in shouldBe
+            (spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1)
+            (map fst txOut1, Pl.lovelaceValueOf 99_990_000)
+    -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
+    it "spends money from the outputs" $
+      let Right (st, _) = tracePayWallet11
+       in let txOut11 = outsOf 11 $ mcstIndex st
+           in shouldBe
+                (spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11)
+                (map fst txOut11, Pl.lovelaceValueOf 400_000)
+    it "spends nothing if nothing to balance" $
+      property $ \(IndependentUtxos utxos) -> do
+        let (usedUtxos, leftovers) = spendValueFrom @MockOutOutRef mempty utxos
+        usedUtxos `shouldBe` []
+        leftovers `shouldBe` mempty
+    it "if a (curr, tok) pair is unbalanced, it's used" $
+      property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
+        let utxosCurrsToks = allUtxosCurrsToks (map snd utxos)
+            (usedUtxosRefs, _) = spendValueFrom @MockOutOutRef diff utxos
+            usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
+            usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
+        forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
+          when ((curr, tok) `elem` utxosCurrsToks) $
+            (curr, tok) `shouldSatisfy` (`elem` usedUtxosCurrsToks)
+    it "pointwise sum of spent and leftover" $
+      -- If @(usedUtxos, leftovers) = spendValueFrom diff utxos@, then,
+      -- for each (curr, token) in @usedUtxos@,
+      -- if there's enough of that pair in utxos, then
+      -- @usedUtxos ! (curr, token) = diff ! (curr, token) + leftovers ! (curr, token)@.
+      -- otherwise @usedUtxos ! (curr, token) = utxos ! (curr, token)@.
+      --
+      -- TODO this latter case is not necessarily a must-have for our implementation.
+      property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
+        let (usedUtxosRefs, leftovers) = spendValueFrom @MockOutOutRef diff utxos
+            usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
+            usedUtxosTotal = Pl.flattenValue $ foldMap mbValue usedUtxos
+            allUtxosValue = foldMap outValue utxos
+        forM_ usedUtxosTotal $ \(curr, token, utxoVal) -> do
+          let rhsVal = Pl.valueOf (diff <> leftovers) curr token
+              availableVal = Pl.valueOf allUtxosValue curr token
+          if availableVal >= Pl.valueOf diff curr token
+            then (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == rhsVal)
+            else (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == availableVal)
+
+outsOf :: Int -> Pl.UtxoIndex -> [(Pl.TxOutRef, Pl.TxOut)]
+outsOf i utxoIndex =
+  M.foldlWithKey
+    ( \acc k tx ->
+        case Pl.txOutPubKey tx of
+          Nothing -> acc
+          Just pk ->
+            if pk == walletPKHash (wallet i)
+              then (k, tx) : acc
+              else acc
+    )
+    []
+    (Pl.getIndex utxoIndex)
+
+tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
+tracePayWallet11 =
+  runMockChain $ do
+    validateTxConstr
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+    validateTxConstr
+      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+    MockChainT get
+
+-- * Helper Instances
 
 instance Arbitrary Pl.CurrencySymbol where
   arbitrary = Pl.CurrencySymbol <$> elements (strings 5)
@@ -80,79 +162,22 @@ instance (ArbitraryMod cntMod, Arbitrary (cntMod Integer)) => Arbitrary (ValueWi
         pure [Pl.singleton sym tok cnt | (tok, cnt) <- symToks]
     pure $ ValueWithMods $ mconcat syms
 
+instance Arbitrary MockReference where
+  arbitrary = MockReference <$> (vectorOf 5 $ elements ['a'..'z'])
+
 instance Arbitrary MockBalancable where
   arbitrary = MockBalancable . vwmValue @Positive <$> arbitrary
 
+newtype IndependentUtxos = IndependentUtxos [MockOutOutRef]
+  deriving (Eq, Show)
+
+instance Arbitrary IndependentUtxos where
+  arbitrary = IndependentUtxos <$> (arbitrary `suchThat` (unique . map fst))
+    where
+      unique l = l == L.nub l
+
 allUtxosCurrsToks :: [MockBalancable] -> [(Pl.CurrencySymbol, Pl.TokenName)]
-allUtxosCurrsToks bs = [(curr, tok) | (curr, tok, _) <- Pl.flattenValue $ foldMap getMBValue bs]
+allUtxosCurrsToks bs = [(curr, tok) | (curr, tok, _) <- Pl.flattenValue $ foldMap mbValue bs]
 
-spec :: SpecWith ()
-spec = do
-  describe "spendValueFrom" $ do
-    -- In a simple case, where one has only one output, it is simply to balance it.
-    it "spends money from the output" $
-      let txOut1 = outsOf 1 utxoIndex0
-       in shouldBe
-            (spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1)
-            (map fst txOut1, Pl.lovelaceValueOf 99_990_000)
-    -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
-    it "spends money from the outputs" $
-      let Right (st, _) = tracePayWallet11
-       in let txOut11 = outsOf 11 $ mcstIndex st
-           in shouldBe
-                (spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11)
-                (map fst txOut11, Pl.lovelaceValueOf 400_000)
-    it "spends nothing if nothing to balance" $
-      property $ \utxos -> do
-        let (usedUtxos, leftovers) = spendValueFrom @MockBalancable mempty utxos
-        usedUtxos `shouldBe` []
-        leftovers `shouldBe` mempty
-    it "if a (curr, tok) pair is unbalanced, it's used" $
-      property $ \(ValueWithMods diff :: ValueWithMods Positive) utxos -> do
-        let utxosCurrsToks = allUtxosCurrsToks utxos
-            (usedUtxos, _) = spendValueFrom diff utxos
-            usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
-        forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
-          when ((curr, tok) `elem` utxosCurrsToks) $
-            (curr, tok) `shouldSatisfy` (`elem` usedUtxosCurrsToks)
-    it "pointwise sum of spent and leftover" $
-      -- If @(usedUtxos, leftovers) = spendValueFrom diff utxos@, then,
-      -- for each (curr, token) in @usedUtxos@,
-      -- if there's enough of that pair in utxos, then
-      -- @usedUtxos ! (curr, token) = diff ! (curr, token) + leftovers ! (curr, token)@.
-      -- otherwise @usedUtxos ! (curr, token) = utxos ! (curr, token)@.
-      --
-      -- TODO this latter case is not necessarily a must-have for our implementation.
-      property $ \(ValueWithMods diff :: ValueWithMods Positive) utxos -> do
-        let (usedUtxos, leftovers) = spendValueFrom @MockBalancable diff utxos
-            usedUtxosTotal = Pl.flattenValue $ foldMap getMBValue usedUtxos
-            allUtxosValue = foldMap getMBValue utxos
-        forM_ usedUtxosTotal $ \(curr, token, utxoVal) -> do
-          let rhsVal = Pl.valueOf (diff <> leftovers) curr token
-              availableVal = Pl.valueOf allUtxosValue curr token
-          if availableVal >= Pl.valueOf diff curr token
-            then (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == rhsVal)
-            else (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == availableVal)
-
-outsOf :: Int -> Pl.UtxoIndex -> [(Pl.TxOutRef, Pl.TxOut)]
-outsOf i utxoIndex =
-  M.foldlWithKey
-    ( \acc k tx ->
-        case Pl.txOutPubKey tx of
-          Nothing -> acc
-          Just pk ->
-            if pk == walletPKHash (wallet i)
-              then (k, tx) : acc
-              else acc
-    )
-    []
-    (Pl.getIndex utxoIndex)
-
-tracePayWallet11 :: Either MockChainError (MockChainSt, UtxoState)
-tracePayWallet11 =
-  runMockChain $ do
-    validateTxConstr
-      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-    validateTxConstr
-      [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-    MockChainT get
+strings :: Int -> [Pl.BuiltinByteString]
+strings m = [PlI.BuiltinByteString $ BS.singleton c | c <- take m ['a' ..]]
