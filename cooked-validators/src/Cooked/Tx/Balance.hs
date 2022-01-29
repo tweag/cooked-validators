@@ -40,7 +40,7 @@ balanceWithUTxOs ::
 balanceWithUTxOs val =
   -- HACK: We'll order outputs and try to use those with the most ada first;
   -- should hopefully help with: https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
-  -- Nevertheless, we need a better solution
+  -- Nevertheless, we might eventually need a better solution
   spendValueFrom val . sortBy (flip compare `on` (adaValueOf . outValue))
   where
     adaValueOf = Pl.getLovelace . Pl.fromValue

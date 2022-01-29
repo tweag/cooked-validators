@@ -363,27 +363,28 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
           -- It is important that we only consider utxos that have not been spent in the transaction as "available"
           filter ((`S.notMember` usedInTxIns) . fst) allUtxos
 
-  unless (excess == mempty) $
-    fail ("Excessive value on transaction: " ++ show excess)
+  -- Now, we will add the necessary utxos to the transaction,
+  let newTxIns = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
 
-  let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
-  -- At this point,
-  -- Now, we check whether there already is an output for wPKH. In particular, we choose the output for wPKH
-  -- with the most Ada to adjust, trying to make sure we to minimize the risk of producing an output with
-  -- less than minAda.
-  --
-  -- PROPERTY: never create transactions with outputs with less than min ada!!
-  let pkhOuts =
+  -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
+  let adjustedLeftOver = leftOver <> excess
+
+  -- Now, all we have to do is choose (or create) an output for wPKH to add the adjusted leftOver value too.
+  -- Because we cannot create a transaction that produces a UTxO with less than Ledger.minAdaTxOut,
+  -- we make sure to complement only the largest txOut belonging to wPKH.
+  let pkhOutWithMostAda =
+        map fst $
         L.sortBy (flip compare `on` adaVal) $
           filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
             zip [0 ..] (Pl.txOutputs tx)
-  let txOuts' = case pkhOuts of
-        [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing]
-        (i, _) : _ -> adjustOutputValueAt (Pl.+ leftOver) i (Pl.txOutputs tx)
+
+  let txOuts' = case pkhOutWithMostAda of
+        [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
+        i : _ -> adjustOutputValueAt (<> adjustedLeftOver) i (Pl.txOutputs tx)
   config <- asks mceSlotConfig
   return
     tx
-      { Pl.txInputs = Pl.txInputs tx <> newTxIns',
+      { Pl.txInputs = Pl.txInputs tx <> newTxIns,
         Pl.txOutputs = txOuts',
         Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
       }
