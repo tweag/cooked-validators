@@ -58,23 +58,29 @@ spec = do
       let txOut1 = outsOf 1 utxoIndex0
        in shouldBe
             (spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1)
-            (map fst txOut1, Pl.lovelaceValueOf 99_990_000)
+            (map fst txOut1, Pl.lovelaceValueOf 99_990_000, mempty)
     -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
     it "spends money from the outputs" $
       let Right (st, _) = tracePayWallet11
        in let txOut11 = outsOf 11 $ mcstIndex st
            in shouldBe
                 (spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11)
-                (map fst txOut11, Pl.lovelaceValueOf 400_000)
+                (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty)
     it "spends nothing if nothing to balance" $
       property $ \(IndependentUtxos utxos) -> do
-        let (usedUtxos, leftovers) = spendValueFrom @MockOutOutRef mempty utxos
+        let (usedUtxos, leftovers, excess) = spendValueFrom @MockOutOutRef mempty utxos
         usedUtxos `shouldBe` []
         leftovers `shouldBe` mempty
+        excess `shouldBe` mempty
+    it "excess negates all negative values" $
+      property $ \diff (IndependentUtxos utxos) -> do
+        let (_, _, excess) = spendValueFrom @MockOutOutRef diff utxos
+            negativeValues = unflattenValue $ filter (\(_, _, i) -> i < 0) $ Pl.flattenValue diff
+         in (excess <> negativeValues) `shouldBe` mempty
     it "if a (curr, tok) pair is unbalanced, it's used" $
       property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
         let utxosCurrsToks = allUtxosCurrsToks (map snd utxos)
-            (usedUtxosRefs, _) = spendValueFrom @MockOutOutRef diff utxos
+            (usedUtxosRefs, _, _) = spendValueFrom @MockOutOutRef diff utxos
             usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
             usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
         forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
@@ -89,7 +95,7 @@ spec = do
       --
       -- TODO this latter case is not necessarily a must-have for our implementation.
       property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
-        let (usedUtxosRefs, leftovers) = spendValueFrom @MockOutOutRef diff utxos
+        let (usedUtxosRefs, leftovers, _) = spendValueFrom @MockOutOutRef diff utxos
             usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
             usedUtxosTotal = Pl.flattenValue $ foldMap mbValue usedUtxos
             allUtxosValue = foldMap outValue utxos
@@ -162,6 +168,12 @@ instance (ArbitraryMod cntMod, Arbitrary (cntMod Integer)) => Arbitrary (ValueWi
         pure [Pl.singleton sym tok cnt | (tok, cnt) <- symToks]
     pure $ ValueWithMods $ mconcat syms
 
+instance Arbitrary Pl.Value where
+  arbitrary = vwmValue <$> x
+    where
+      x :: Gen (ValueWithMods Identity)
+      x = arbitrary
+
 instance Arbitrary MockReference where
   arbitrary = MockReference <$> (vectorOf 5 $ elements ['a'..'z'])
 
@@ -181,3 +193,6 @@ allUtxosCurrsToks bs = [(curr, tok) | (curr, tok, _) <- Pl.flattenValue $ foldMa
 
 strings :: Int -> [Pl.BuiltinByteString]
 strings m = [PlI.BuiltinByteString $ BS.singleton c | c <- take m ['a' ..]]
+
+unflattenValue :: [(Pl.CurrencySymbol, Pl.TokenName, Integer)] -> Pl.Value
+unflattenValue = mconcat . map (\(s, t, i) -> Pl.singleton s t i)

@@ -356,33 +356,18 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
-  let tgt = rhs Pl.- lhs
-  when dbg $ trace ("!! Balancing: " ++ show tgt) (return ())
   let usedInTxIns = S.map Pl.txInRef (Pl.txInputs tx)
-  pool <- pkUtxos' wPKH
-  let (usedUTxOs, leftOver) =
+  allUtxos <- pkUtxos' wPKH
+  let (usedUTxOs, leftOver, excess) =
         balanceWithUTxOs (rhs Pl.- lhs) $
-          filter ((`S.notMember` usedInTxIns) . fst) pool
-  when dbg $ trace ("  - Using UTxOs:" ++ show usedUTxOs) (return ())
-  when dbg $ trace ("  - Leftovers are:" ++ show leftOver) (return ())
-  -- All the UTxOs signed by the sender of the transaction and useful to balance it
-  -- are added to the inputs.
-  let txIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
-  -- Get the inputs which are NOT in the transaction yet
-  let newTxIns' = S.difference txIns' (Pl.txInputs tx)
-  -- Get the inputs which are in the transaction already
-  let reusedTxIns = S.difference txIns' newTxIns'
+          -- It is important that we only consider utxos that have not been spent in the transaction as "available"
+          filter ((`S.notMember` usedInTxIns) . fst) allUtxos
 
-  -- The leftover was computed assuming that the transaction
-  -- will consume all outputs in txIns, but when some of them where
-  -- already in the transaction, we need to recompute the leftover to subtract the
-  -- reusedTxIns from there.
-  reusedTxInsValue <- mconcat <$> mapM (fmap Pl.txOutValue . outFromOutRef . Pl.txInRef) (S.toList reusedTxIns)
-  let adjustedLeftOver = leftOver Pl.- reusedTxInsValue
+  unless (excess == mempty) $
+    fail ("Excessive value on transaction: " ++ show excess)
 
-  when dbg $ trace ("  - Reused UTxOs are:" ++ show reusedTxIns) (return ())
-  when dbg $ trace ("  - Adjusted Leftovers are:" ++ show adjustedLeftOver) (return ())
-
+  let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
+  -- At this point,
   -- Now, we check whether there already is an output for wPKH. In particular, we choose the output for wPKH
   -- with the most Ada to adjust, trying to make sure we to minimize the risk of producing an output with
   -- less than minAda.
@@ -393,8 +378,8 @@ balanceTxFrom dbg w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
           filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
             zip [0 ..] (Pl.txOutputs tx)
   let txOuts' = case pkhOuts of
-        [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) adjustedLeftOver Nothing]
-        (i, _) : _ -> adjustOutputValueAt (Pl.+ adjustedLeftOver) i (Pl.txOutputs tx)
+        [] -> Pl.txOutputs tx ++ [Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing]
+        (i, _) : _ -> adjustOutputValueAt (Pl.+ leftOver) i (Pl.txOutputs tx)
   config <- asks mceSlotConfig
   return
     tx
