@@ -39,7 +39,7 @@ constraints:
 -- These packages appear in our dependency tree and are very slow to build.
 -- Empirically, turning off optimization shaves off ~50% build time.
 -- It also mildly improves recompilation avoidance.
--- For development work we don't care about performance so much, so this is okay.
+-- For deve work we don't care about performance so much, so this is okay.
 package cardano-ledger-alonzo
   optimization: False
 package ouroboros-consensus-shelley
@@ -66,7 +66,7 @@ package cardano-crypto-praos
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus-apps.git
-  tag: v2021-12-20
+  tag: v2022-01-17
   subdir:
     freer-extras
     plutus-chain-index
@@ -227,9 +227,6 @@ source-repository-package
     libs/cardano-ledger-pretty
     semantics/small-steps-test
 
--- A lot of plutus-apps dependencies have to be synchronized with the dependencies of
--- cardano-node. If you update cardano-node, please make sure that all dependencies
--- of cardano-node are also updated.
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-node.git
@@ -237,19 +234,6 @@ source-repository-package
   --sha256: 00k9fqrm0gphjji23x0nc9z6bqh8bqrncgivn3mi3csacjzicrrx
   subdir:
     cardano-api
-    cardano-node
-    cardano-cli
-
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/cardano-config
-  tag: e9de7a2cf70796f6ff26eac9f9540184ded0e4e6
-  --sha256: 1wm1c99r5zvz22pdl8nhkp13falvqmj8dgkm8fxskwa9ydqz01ld
-
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/optparse-applicative
-  tag: 7497a29cb998721a9068d5725d49461f2bba0e7a
 
 source-repository-package
   type: git
@@ -276,3 +260,4 @@ source-repository-package
    plutus-core
    plutus-tx
    plutus-tx-plugin
+
