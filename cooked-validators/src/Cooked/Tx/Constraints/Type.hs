@@ -7,6 +7,7 @@
 
 module Cooked.Tx.Constraints.Type where
 
+import Data.Default
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -102,14 +103,91 @@ data TxSkel where
   TxSkel ::
     (Show x) =>
     { txLabel :: Maybe x,
+      -- | Set of options to use when generating this transaction.
+      txOpts :: TxOpts,
       txConstraints :: [Constraint]
     } ->
     TxSkel
 
--- | Constructs a skeleton without a default label
+-- | Constructs a skeleton without a default label and with default 'TxOpts'
 txSkel :: [Constraint] -> TxSkel
-txSkel = TxSkel @() Nothing
+txSkel = txSkelOpts def
+
+-- | Constructs a skeleton without a default label, but with custom options
+txSkelOpts :: TxOpts -> [Constraint] -> TxSkel
+txSkelOpts = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
 txSkelLbl :: (Show x) => x -> [Constraint] -> TxSkel
-txSkelLbl x = TxSkel (Just x)
+txSkelLbl x = TxSkel (Just x) def
+
+-- | Set of options to modify the behavior of generating and validating some transaction. Some of these
+-- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
+-- running in 'MockChainT'. If nothing is explicitely stated, the option has an effect independently of the
+-- running context.
+data TxOpts = TxOpts
+  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
+    --  has the necessary minimum amount of Ada.
+    --
+    -- By default, this is set to @False@, given this is the default behavior in Plutus:
+    -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
+    adjustUnbalTx :: Bool,
+    -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
+    --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
+    --  If you /do NOT/ wish to do so, please set this to @False@.
+    --
+    --  /This has NO effect when running outside of 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    awaitTxConfirmed :: Bool,
+    -- | Whether to increase the slot counter automatically on this submission.
+    -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
+    -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    autoSlotIncrease :: Bool,
+    -- | Applies a modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
+    -- and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
+    -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
+    -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to 'Id'.
+    unsafeModTx :: RawModTx,
+    -- | Whether or not to skip balancing the transaction altogether.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @False@.
+    noBalance :: Bool
+  }
+  deriving (Eq, Show)
+
+-- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
+-- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
+
+-- | Wraps a function that can be applied to a transaction right before submitting it.
+--  We have a distinguished datatype to be able to provide a little more info on
+--  the show instance.
+data RawModTx = Id | RawModTx (Pl.Tx -> Pl.Tx)
+
+applyRawModTx :: RawModTx -> Pl.Tx -> Pl.Tx
+applyRawModTx Id tx = tx
+applyRawModTx (RawModTx f) tx = f tx
+
+instance Eq RawModTx where
+  Id == Id = True
+  _ == _ = False
+
+instance Show RawModTx where
+  show Id = "Id"
+  show (RawModTx _) = "RawModTx"
+
+instance Default TxOpts where
+  def =
+    TxOpts
+      { adjustUnbalTx = False,
+        awaitTxConfirmed = True,
+        autoSlotIncrease = True,
+        unsafeModTx = Id,
+        noBalance = False
+      }

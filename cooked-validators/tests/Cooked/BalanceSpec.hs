@@ -126,7 +126,7 @@ spec = do
       let tr =
             validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
               >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-              >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 1_700_000)]
+              >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 3_700_000)]
               >> signs (wallet 11) (validateTxConstr [PaysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
        in runMockChain tr `shouldSatisfy` isRight
 

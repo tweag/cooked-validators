@@ -211,10 +211,10 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkelOpts opts skel = do
-    tx <- generateTx' opts skel
+  validateTxSkel skel = do
+    tx <- generateTx' skel
     txId <- validateTx' tx
-    when (autoSlotIncrease opts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return txId
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
@@ -319,8 +319,8 @@ generateUnbalTx sk =
    in first MCETxError $ Pl.mkTx lkups constrs
 
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
-generateTx' opts skel = do
+generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
+generateTx' skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err -> throwError err
@@ -331,10 +331,12 @@ generateTx' opts skel = do
       return $
         foldl
           (flip txAddSignature)
-          -- HACK: optionally apply a transformation to a balanced tx before sending it in.
-          (applyRawModTx (modBalancedTx opts) balancedTx)
+          -- optionally apply a transformation to a balanced tx before sending it in.
+          (applyRawModTx (unsafeModTx opts) balancedTx)
           (NE.toList signers)
   where
+    opts = txOpts skel
+
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
     updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
