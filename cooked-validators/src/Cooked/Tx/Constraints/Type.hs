@@ -1,9 +1,9 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ConstraintKinds #-}
 
 module Cooked.Tx.Constraints.Type where
 
@@ -49,8 +49,6 @@ type SpendsConstrs a =
     Pl.ToData (Pl.RedeemerType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
-    Eq (Pl.DatumType a),
-    Eq (Pl.RedeemerType a),
     Typeable a
   )
 

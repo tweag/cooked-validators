@@ -132,7 +132,6 @@ data ValidateTxOpts = ValidateTxOpts
     -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
     -- This has no effect when running in 'Plutus.Contract.Contract'.
     autoSlotIncrease :: Bool,
-
     -- | HUGE HACK; DON'T BRING IT UPSTREAM LIKE THIS
     --
     -- Applies a modification to a transaction after balancing, but before signing.
@@ -153,6 +152,7 @@ applyRawModTx (RawModTx f) tx = f tx
 instance Eq RawModTx where
   Id == Id = True
   _ == _ = False
+
 instance Show RawModTx where
   show Id = "Id"
   show (RawModTx _) = "RawModTx"

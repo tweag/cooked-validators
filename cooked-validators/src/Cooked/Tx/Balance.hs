@@ -83,9 +83,9 @@ spendValueFrom val utxos =
     addInputToBalance curr token i (usedUTxO, leftOver, excess) =
       if i < 0
         then -- If the input of the transaction is already too big,
-          -- then we can't solve it by adding inputs to it. Instead, we keep the
-          -- excess value separate from the leftover and let the user decide what to
-          -- do with it later.
+        -- then we can't solve it by adding inputs to it. Instead, we keep the
+        -- excess value separate from the leftover and let the user decide what to
+        -- do with it later.
           (usedUTxO, leftOver, excess <> Pl.singleton curr token (negate i))
         else
           let thisTokLeftOver = Pl.valueOf leftOver curr token

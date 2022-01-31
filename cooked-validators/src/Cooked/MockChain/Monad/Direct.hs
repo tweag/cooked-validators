@@ -357,12 +357,12 @@ balanceTxFrom :: (Monad m) => Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m 
 balanceTxFrom skipBalancing w ubtx = do
   tx <- setFeeAndValidRange ubtx
   if skipBalancing
-  then return tx
-  else do
-    bres <- calcBalanceTx w tx
-    case applyBalanceTx w bres tx of
-      Just tx' -> return tx'
-      Nothing -> throwError $ MCEUnbalanceable tx bres
+    then return tx
+    else do
+      bres <- calcBalanceTx w tx
+      case applyBalanceTx w bres tx of
+        Just tx' -> return tx'
+        Nothing -> throwError $ MCEUnbalanceable tx bres
 
 data BalanceTxRes = BalanceTxRes
   { newInputs :: [Pl.TxOutRef],
@@ -417,8 +417,8 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
     asum $
       [ wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx), -- 1.
         guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
-      ] ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
-
+      ]
+        ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
   let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
   return $
     tx
@@ -436,11 +436,12 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
     -- The indexes of outputs belonging to w sorted by amount of ada.
     wOutsIxSorted :: [Int]
     wOutsIxSorted =
-      map fst $ sortByMoreAda $
+      map fst $
+        sortByMoreAda $
           filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
             zip [0 ..] (Pl.txOutputs tx)
 
-    sortByMoreAda :: [(a, Pl.TxOut)] ->  [(a, Pl.TxOut)]
+    sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
     sortByMoreAda = L.sortBy (flip compare `on` (adaVal . Pl.txOutValue . snd))
 
     adaVal :: Pl.Value -> Integer
@@ -459,8 +460,8 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
     -- of the leftover.
     consumeRemainder :: (Pl.TxOutRef, Pl.TxOut) -> Maybe ([Pl.TxOutRef], [Pl.TxOut])
     consumeRemainder (remRef, remOut) =
-       let v = leftover <> Pl.txOutValue remOut
-        in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
+      let v = leftover <> Pl.txOutValue remOut
+       in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
 
 -- * Utilities
 

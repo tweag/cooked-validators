@@ -10,14 +10,15 @@
 
 module Cooked.BalanceSpec (spec) where
 
-import qualified Data.List as L
 import Control.Monad.Identity
 import Control.Monad.State
 import Cooked.MockChain
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import qualified Data.ByteString.Char8 as BS
+import Data.Either
 import Data.Kind
+import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe)
 import Data.String
@@ -33,7 +34,6 @@ import qualified PlutusTx.Builtins.Internal as PlI
 import Test.Hspec
 import Test.QuickCheck
 import qualified Wallet.Emulator.Wallet as Pl
-import Data.Either
 
 -- Instead of relying on Plutus TxOut and TxOutRef, we mock our own
 -- version of it for testing, this way we can generate aribtrary values.
@@ -114,20 +114,21 @@ spec = do
     -- Here wallet 11 will have 8.4 Ada, and it will want to pay 8 to wallet 1, but its not possible.
     -- It would leave it with a 0.4 ada UTxO which is less than min ada.
     it "Fails for unbalanceable transactions" $
-      let tr = validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-               >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-               >> signs (wallet 11) (validateTxConstr [PaysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
-      in runMockChain tr `shouldSatisfy` isLeft
+      let tr =
+            validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+              >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+              >> signs (wallet 11) (validateTxConstr [PaysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
+       in runMockChain tr `shouldSatisfy` isLeft
 
     -- Unlike the test above, we now want to see this being possible, but the transaction will need
     -- to consume the additional utxo of wallet 11.
     it "Uses additional utxos on demand" $
-      let tr = validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-               >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-               >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 1_700_000)]
-               >> signs (wallet 11) (validateTxConstr [PaysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
-      in runMockChain tr `shouldSatisfy` isRight
-
+      let tr =
+            validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+              >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+              >> validateTxConstr [PaysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 1_700_000)]
+              >> signs (wallet 11) (validateTxConstr [PaysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
+       in runMockChain tr `shouldSatisfy` isRight
 
 outsOf :: Int -> Pl.UtxoIndex -> [(Pl.TxOutRef, Pl.TxOut)]
 outsOf i utxoIndex =
@@ -198,7 +199,7 @@ instance Arbitrary Pl.Value where
       x = arbitrary
 
 instance Arbitrary MockReference where
-  arbitrary = MockReference <$> (vectorOf 5 $ elements ['a'..'z'])
+  arbitrary = MockReference <$> vectorOf 5 (elements ['a' .. 'z'])
 
 instance Arbitrary MockBalancable where
   arbitrary = MockBalancable . vwmValue @Positive <$> arbitrary
