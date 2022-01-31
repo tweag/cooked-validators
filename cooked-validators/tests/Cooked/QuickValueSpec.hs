@@ -1,12 +1,11 @@
-{-# LANGUAGE NumericUnderscores #-}
 module Cooked.QuickValueSpec (spec) where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Data.Default
 import qualified Data.Map as Map
 import qualified Ledger.Value as Pl
 import Test.Hspec
-import Data.Default
 
 spec :: SpecWith ()
 spec = do
@@ -28,7 +27,7 @@ paymentAfterCustomInitialization =
   runMockChainFrom customInitialDistribution $ do
     validateTxConstrOpts
       -- we have to adjust the tx in order for it not to fail with ValueLessThanMinAda
-      (def { adjustUnbalTx = True })
+      (def {adjustUnbalTx = True})
       [PaysPK (walletPKHash $ wallet 2) (quickValue "goldenCoins" 12)]
     return ()
 

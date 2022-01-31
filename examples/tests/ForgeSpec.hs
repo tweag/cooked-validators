@@ -37,7 +37,7 @@ initBigBoss = do
   let bbId = (h, i)
   let oneBBNFT = Value.assetClassValue (bigBossNFT bbId) 1
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       InitBigBoss
       [ mints [bigBossPolicy bbId] oneBBNFT,
         PaysScript (bigBossVal bbId) [(BigBoss [], oneBBNFT <> minAda)]
@@ -54,7 +54,7 @@ openForge bbId = do
   let oneAuthToken = Value.assetClassValue (authToken bbId) 1
   wPKH <- ownPaymentPubKeyHash
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       OpenForge
       [ SpendsScript (bigBossVal bbId) Open (outBB, datBB),
         mints [authTokenPolicy bbId] oneAuthToken,
@@ -71,7 +71,7 @@ smiths bbId val = do
   pkh <- ownPaymentPubKeyHash
   (outSmith, datSmith@(Forge owner forged)) : _ <- scriptUtxosSuchThat (smithVal bbId) (\d _ -> d `belongsTo` pkh)
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       (Smiths val)
       [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
         mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val),

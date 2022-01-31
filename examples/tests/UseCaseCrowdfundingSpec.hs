@@ -73,9 +73,9 @@ paysCampaign :: (MonadMockChain m) => Campaign -> Wallet -> Ledger.Value -> m ()
 paysCampaign c w val =
   void $
     signs w $
-      validateTxSkelOpts (def {autoSlotIncrease = False}) $
-        txSkel
-          [PaysScript (typedValidator c) [(walletPKHash w, val)]]
+      validateTxConstrOpts
+        (def {autoSlotIncrease = False})
+        [PaysScript (typedValidator c) [(walletPKHash w, val)]]
 
 -- | Retrieve funds as being the owner
 retrieveFunds :: (MonadMockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
@@ -83,13 +83,13 @@ retrieveFunds t c owner = do
   funds <- scriptUtxosSuchThat (typedValidator c) (\_ _ -> True)
   void $
     signs owner $
-      validateTxSkelOpts (def {autoSlotIncrease = False}) $
-        txSkel
-          ( map (SpendsScript (typedValidator c) Collect) funds
-              ++ [ PaysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds),
-                   ValidateIn $ collectionRange c
-                 ]
-          )
+      validateTxConstrOpts
+        (def {autoSlotIncrease = False})
+        ( map (SpendsScript (typedValidator c) Collect) funds
+            ++ [ PaysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds),
+                 ValidateIn $ collectionRange c
+               ]
+        )
 
 -- * Tests
 

@@ -12,14 +12,11 @@ module Split.OffChain where
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Data.Aeson (FromJSON, ToJSON)
-import GHC.Generics (Generic)
 import qualified Ledger as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Playground.Contract
 import qualified Plutus.Contract as C
 import qualified Plutus.V1.Ledger.Ada as Pl
-import Schema (ToSchema)
 import Split
 import qualified Wallet.Emulator.Wallet as C
 
@@ -32,7 +29,7 @@ import qualified Wallet.Emulator.Wallet as C
 txLock :: MonadBlockChain m => Pl.TypedValidator Split -> SplitDatum -> m ()
 txLock script datum =
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       (TxLock datum)
       [ PaysScript
           script
@@ -60,7 +57,7 @@ txUnlock script = do
   let share1 = half
   let share2 = amount - half
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       TxUnlock
       [ SpendsScript script () (output, datum),
         PaysPK r1 (Pl.lovelaceValueOf share1),

@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+
 module Cooked.MockChain.Monad.StagedSpec (spec) where
 
 import Control.Applicative
@@ -97,4 +98,4 @@ spec = do
           ms = [Everywhere (Just . f), Everywhere (Just . g)]
           x = 12
        in map (second length) (interpModalities ms x)
-            @?= [ (f (g x), 2) ] -- applied both, but since they stay there, there's still 2.
+            @?= [(f (g x), 2)] -- applied both, but since they stay there, there's still 2.
