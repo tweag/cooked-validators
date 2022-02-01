@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -8,7 +9,8 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Char
-import Data.Maybe (catMaybes)
+import Data.Default
+import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import Prettyprinter (Doc, (<+>))
@@ -19,12 +21,13 @@ prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl constr) =
+prettyTxSkel signers (TxSkel lbl opts constr) =
   PP.vsep $
     map ("-" <+>) $
       catMaybes
         [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
           fmap (("Label:" <+>) . prettyDatum) lbl,
+          fmap ("Opts:" <+>) (prettyOpts opts),
           Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
         ]
 
@@ -85,6 +88,30 @@ prettyDatumVal ::
   Doc ann
 prettyDatumVal _ d value =
   PP.align $ PP.vsep $ catMaybes [Just $ prettyDatum d, mPrettyValue value]
+
+-- | Prettifies a 'TxOpts'; returns 'Nothing' if we're looking at default options.
+prettyOpts :: TxOpts -> Maybe (Doc ann)
+prettyOpts opts = case mapMaybe cmpAgainstDefAndPrint fields of
+  [] -> Nothing
+  xs -> Just $ PP.sep $ map (PP.semi <+>) xs
+  where
+    cmpAgainstDefAndPrint :: Field TxOpts -> Maybe (Doc ann)
+    cmpAgainstDefAndPrint (Field fn f)
+      | f opts == f def = Nothing
+      | otherwise = Just $ PP.pretty fn <> PP.colon <+> PP.viaShow (f opts)
+
+    -- Internal: if you add fields to TxOpts, make sure to add them here.
+    fields :: [Field TxOpts]
+    fields =
+      [ Field "adjustUnbalTx" adjustUnbalTx,
+        Field "awaitTxConfirmed" awaitTxConfirmed,
+        Field "autoSlotIncrease" autoSlotIncrease,
+        Field "unsafeModTx" unsafeModTx,
+        Field "balance" balance
+      ]
+
+data Field record where
+  Field :: (Show x, Eq x) => String -> (record -> x) -> Field record
 
 -- * Shortening Hashes from Show Instances
 

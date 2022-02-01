@@ -48,9 +48,8 @@ class (MonadFail m) => MonadBlockChain m where
   --  To balance a transaction, we need access to the current UTxO state to choose
   --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
-  --  Most of the times, you will want to use 'validateTxSkel', which passes the
-  -- default set of options around.
-  validateTxSkelOpts :: ValidateTxOpts -> TxSkel -> m Pl.TxId
+  --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
+  validateTxSkel :: TxSkel -> m Pl.TxId
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -113,50 +112,21 @@ as ma w = signingWith (w NE.:| []) ma
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
--- | Set of options to modify the behavior of transaction validation.
-data ValidateTxOpts = ValidateTxOpts
-  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
-    --  has the necessary minimum amount of Ada. Check https://github.com/tweag/audit-plutus-libs/issues/37
-    --  for further discussion on this.
-    --
-    -- By default, this is set to @True@.
-    adjustUnbalTx :: Bool,
-    -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
-    --  repeatedely calls 'Plutus.Contract.Request.awaitTxConfirmed'.
-    --
-    --  /This has NO effect when running outside of the @Contract@ monad/.
-    --  By default, this is set to @True@.
-    awaitTxConfirmed :: Bool,
-    -- | Whether to increase the slot counter automatically on this submission.
-    -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
-    -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
-    -- This has no effect when running in 'Plutus.Contract.Contract'.
-    autoSlotIncrease :: Bool
-  }
-  deriving (Eq, Show)
+-- | Calls 'validateTxSkel' with a skeleton that is set with some specific options.
+validateTxConstrOpts :: (MonadBlockChain m) => TxOpts -> [Constraint] -> m Pl.TxId
+validateTxConstrOpts opts = validateTxSkel . txSkelOpts opts
 
-instance Default ValidateTxOpts where
-  def =
-    ValidateTxOpts
-      { adjustUnbalTx = True,
-        awaitTxConfirmed = True,
-        autoSlotIncrease = True
-      }
-
--- | Calls 'validateTxSkelOpts' with the default set of options
-validateTxSkel :: (MonadBlockChain m) => TxSkel -> m Pl.TxId
-validateTxSkel = validateTxSkelOpts def
-
--- | Calls 'validateTxSkelOpts' with the default set of options and no label.
+-- | Calls 'validateTx' with the default set of options and no label.
 validateTxConstr :: (MonadBlockChain m) => [Constraint] -> m Pl.TxId
 validateTxConstr = validateTxSkel . txSkel
 
--- | Calls 'validateTxSkelOpts' with the default set of options but passes an arbitrary showable label to it.
-validateTxConstr' :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
-validateTxConstr' lbl = validateTxSkel . txSkelLbl lbl
+-- | Calls 'validateTxSkel' with the default set of options but passes an arbitrary showable label to it.
+validateTxConstrLbl :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
+validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m)
+-- Hence, modal actions are TxSkel's.
+type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
@@ -261,7 +231,7 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
-  validateTxSkelOpts opts = lift . validateTxSkelOpts opts
+  validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef

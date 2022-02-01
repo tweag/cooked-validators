@@ -23,12 +23,16 @@ import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
+import Data.Foldable (asum)
+import Data.Function (on)
+import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
@@ -84,6 +88,7 @@ instance Default Pl.Slot where
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
+  | MCEUnbalanceable Pl.Tx BalanceTxRes
   | FailWith String
   deriving (Show, Eq)
 
@@ -206,10 +211,10 @@ utxoIndex0 = utxoIndex0From initialDistribution
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkelOpts opts skel = do
-    tx <- generateTx' opts skel
+  validateTxSkel skel = do
+    tx <- generateTx' skel
     txId <- validateTx' tx
-    when (autoSlotIncrease opts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return txId
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
@@ -314,17 +319,24 @@ generateUnbalTx sk =
    in first MCETxError $ Pl.mkTx lkups constrs
 
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => ValidateTxOpts -> TxSkel -> MockChainT m Pl.Tx
-generateTx' opts skel = do
+generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
+generateTx' skel = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err -> throwError err
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       signers <- askSigners
-      balancedTx <- balanceTxFrom (NE.head signers) (adjust ubtx)
-      return $ foldl (flip txAddSignature) balancedTx (NE.toList signers)
+      balancedTx <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust ubtx)
+      return $
+        foldl
+          (flip txAddSignature)
+          -- optionally apply a transformation to a balanced tx before sending it in.
+          (applyRawModTx (unsafeModTx opts) balancedTx)
+          (NE.toList signers)
   where
+    opts = txOpts skel
+
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
     updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
@@ -334,31 +346,131 @@ generateTx' opts skel = do
               mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
         }
 
--- | Balances a transaction with money from a given wallet. For every transaction,
---  it must be the case that @inputs + mint == outputs + fee@.
-balanceTxFrom :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-balanceTxFrom w (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  -- We start by gathering all the inputs and summing it
+-- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment.
+-- TODO: bring in FeeConfig: https://github.com/tweag/plutus-libs/issues/10
+setFeeAndValidRange :: (Monad m) => Pl.UnbalancedTx -> MockChainT m Pl.Tx
+setFeeAndValidRange (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   let tx = tx0 {Pl.txFee = Pl.minFee tx0}
+  config <- asks mceSlotConfig
+  return
+    tx {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
+
+balanceTxFrom :: (Monad m) => Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom skipBalancing w ubtx = do
+  tx <- setFeeAndValidRange ubtx
+  if skipBalancing
+    then return tx
+    else do
+      bres <- calcBalanceTx w tx
+      case applyBalanceTx w bres tx of
+        Just tx' -> return tx'
+        Nothing -> throwError $ MCEUnbalanceable tx bres
+
+data BalanceTxRes = BalanceTxRes
+  { newInputs :: [Pl.TxOutRef],
+    returnValue :: Pl.Value,
+    remainderUtxos :: [(Pl.TxOutRef, Pl.TxOut)]
+  }
+  deriving (Eq, Show)
+
+-- | Calculate the changes needed to balance a transaction with money from a given wallet.
+-- Every transaction that is sent to the chain must be balanced, that is: @inputs + mint == outputs + fee@.
+calcBalanceTx :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m BalanceTxRes
+calcBalanceTx w tx = do
+  -- We start by gathering all the inputs and summing it
   lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
-  (usedUTxOs, leftOver) <- balanceWithUTxOsOf (rhs Pl.- lhs) wPKH
-  -- All the UTxOs signed by the sender of the transaction and useful to balance it
-  -- are added to the inputs.
-  let txIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) usedUTxOs
-  -- A new output is opened with the leftover of the added inputs.
-  let txOut' = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) leftOver Nothing
-  config <- asks mceSlotConfig
-  return
-    tx
-      { Pl.txInputs = Pl.txInputs tx <> S.fromList txIns',
-        Pl.txOutputs = Pl.txOutputs tx ++ [txOut'],
-        Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange
+  let usedInTxIns = S.map Pl.txInRef (Pl.txInputs tx)
+  allUtxos <- pkUtxos' wPKH
+  -- It is important that we only consider utxos that have not been spent in the transaction as "available"
+  let availableUtxos = filter ((`S.notMember` usedInTxIns) . fst) allUtxos
+  let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
+  return $
+    BalanceTxRes
+      { -- Now, we will add the necessary utxos to the transaction,
+        newInputs = usedUTxOs,
+        -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
+        returnValue = leftOver <> excess,
+        -- We also return the remainder utxos that could still be used in case
+        -- we can't 'applyBalanceTx' this 'BalanceTxRes'.
+        remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
       }
 
+-- | Once we calculated what is needed to balance a transaction @tx@, we still need to
+-- apply those changes to @tx@. Because of the 'Ledger.minAdaTxOut' constraint, this
+-- might not be possible: imagine the leftover is less than 'Ledger.minAdaTxOut', but
+-- the transaction has no output addressed to the sending wallet. If we just
+-- create a new ouput for @w@ and place the leftover there the resulting tx will fail to validate
+-- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
+-- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
+-- way to balance this transaction.
+applyBalanceTx :: Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
+applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
+  -- Here we'll try a few things, in order, until one of them succeeds:
+  --   1. pick out the best possible output to adjust and adjust it as long as it remains with
+  --      more than 'Pl.minAdaTxOut'. No need for additional inputs.
+  --   2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible, create a new output
+  --      to return leftover. No need for additional inputs.
+  --   3. Attempt to consume other possible utxos from 'w' in order to combine them
+  --      and return the leftover.
+  (txInsDelta, txOuts') <-
+    asum $
+      [ wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx), -- 1.
+        guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
+      ]
+        ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
+  let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
+  return $
+    tx
+      { Pl.txInputs = Pl.txInputs tx <> newTxIns',
+        Pl.txOutputs = txOuts'
+      }
+  where
+    wPKH = walletPKHash w
+    mkOutWithVal v = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) v Nothing
+
+    -- The best output to attempt and modify, if any, is the one with the most ada,
+    -- which is at the head of wOutsIxSorted:
+    wOutsBest = fst <$> L.uncons wOutsIxSorted
+
+    -- The indexes of outputs belonging to w sorted by amount of ada.
+    wOutsIxSorted :: [Int]
+    wOutsIxSorted =
+      map fst $
+        sortByMoreAda $
+          filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
+            zip [0 ..] (Pl.txOutputs tx)
+
+    sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
+    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . Pl.txOutValue . snd))
+
+    adaVal :: Pl.Value -> Integer
+    adaVal = Pl.getLovelace . Pl.fromValue
+
+    isAtLeastMinAda :: Pl.Value -> Bool
+    isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
+
+    adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [Pl.TxOut] -> Int -> Maybe [Pl.TxOut]
+    adjustOutputValueAt f xs i =
+      let (pref, Pl.TxOut addr val stak : rest) = L.splitAt i xs
+          val' = f val
+       in guard (isAtLeastMinAda val') >> return (pref ++ Pl.TxOut addr val' stak : rest)
+
+    -- Given a list of available utxos; attept to consume them if they would enable the returning
+    -- of the leftover.
+    consumeRemainder :: (Pl.TxOutRef, Pl.TxOut) -> Maybe ([Pl.TxOutRef], [Pl.TxOut])
+    consumeRemainder (remRef, remOut) =
+      let v = leftover <> Pl.txOutValue remOut
+       in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
+
 -- * Utilities
+
+addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
+addressIsPK addr = case Pl.addressCredential addr of
+  Pl.PubKeyCredential pkh -> Just pkh
+  _ -> Nothing
 
 rstr :: (Monad m) => (a, m b) -> m (a, b)
 rstr (a, mb) = (a,) <$> mb
