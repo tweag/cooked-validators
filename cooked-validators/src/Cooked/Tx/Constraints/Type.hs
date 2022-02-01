@@ -146,19 +146,19 @@ data TxOpts = TxOpts
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
     autoSlotIncrease :: Bool,
-    -- | Applies a modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
-    -- and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
+    -- | Applies an arbitrary modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
+    - and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to 'Id'.
     unsafeModTx :: RawModTx,
-    -- | Whether or not to skip balancing the transaction altogether.
+    -- | Whether to balance the transaction or not.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    -- By default, this is set to @False@.
-    noBalance :: Bool
+    -- By default, this is set to @True@.
+    balance :: Bool
   }
   deriving (Eq, Show)
 
@@ -189,5 +189,5 @@ instance Default TxOpts where
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
         unsafeModTx = Id,
-        noBalance = False
+        balance = True
       }

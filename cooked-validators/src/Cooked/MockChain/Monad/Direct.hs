@@ -327,7 +327,7 @@ generateTx' skel = do
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       signers <- askSigners
-      balancedTx <- balanceTxFrom (noBalance opts) (NE.head signers) (adjust ubtx)
+      balancedTx <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust ubtx)
       return $
         foldl
           (flip txAddSignature)
