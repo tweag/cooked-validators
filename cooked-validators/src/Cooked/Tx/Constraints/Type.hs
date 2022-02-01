@@ -147,7 +147,7 @@ data TxOpts = TxOpts
     --  By default, this is set to @True@.
     autoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
-    - and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
+    -- and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
     --
