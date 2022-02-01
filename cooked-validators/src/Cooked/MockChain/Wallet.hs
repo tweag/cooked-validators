@@ -13,6 +13,7 @@ import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins.Class as Pl
+import Data.Default
 
 -- * MockChain Wallets
 
@@ -71,12 +72,22 @@ txAddSignature w = Pl.addSignature' (walletSK w)
 -- the underlying plutus definitions to make it easer when we have
 -- to plug our own, if we ever have the need
 
-type InitialDistribution = M.Map Wallet Pl.Value
+newtype InitialDistribution = InitialDistribution { distribution :: M.Map Wallet Pl.Value }
+  deriving (Eq, Show)
 
-initialDistribution :: InitialDistribution
-initialDistribution = M.fromList $ zip knownWallets (repeat def)
-  where
-    def = Pl.lovelaceValueOf 100_000_000
+instance Semigroup InitialDistribution where
+  (InitialDistribution i) <> (InitialDistribution j) = InitialDistribution $ M.unionWith (<>) i j
+
+instance Monoid InitialDistribution where
+  mempty = InitialDistribution M.empty
+
+instance Default InitialDistribution where
+  def = InitialDistribution $ M.fromList $ zip knownWallets (repeat defLovelace)
+    where
+      defLovelace = Pl.lovelaceValueOf 100_000_000
+
+distributionFromList :: [(Wallet, Pl.Value)] -> InitialDistribution
+distributionFromList = InitialDistribution . M.fromList
 
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
@@ -85,7 +96,7 @@ initialTxFor initDist =
       Pl.txOutputs = map (\wv -> Pl.TxOut (walletAddress $ fst wv) (snd wv) Nothing) initDist'
     }
   where
-    initDist' = M.toList initDist
+    initDist' = M.toList $ distribution initDist
 
 -- "Quick" currency is a convenience to manipulate assets that are supposed to
 -- be already in the wild when running a mock chain. For example, a market
@@ -100,7 +111,7 @@ initialTxFor initDist =
 -- | Extension of the default initial distribution with additional value in
 -- some wallets.
 initialDistribution' :: [(Wallet, Pl.Value)] -> InitialDistribution
-initialDistribution' = M.unionWith (<>) initialDistribution . M.fromList
+initialDistribution' = (def <>) . distributionFromList
 
 -- | The currency symbol of the "quick" is empty. Like Ada.
 quickCurrencySymbol :: Pl.CurrencySymbol

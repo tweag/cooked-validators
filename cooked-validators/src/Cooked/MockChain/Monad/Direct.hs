@@ -57,11 +57,11 @@ import qualified PlutusTx.Numeric as Pl
 
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState s =
-  UtxoState . M.fromListWith (++) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
+  UtxoState . M.fromListWith (<>) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
-    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, [(Pl.Value, Maybe UtxoDatum)])
+    go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, UtxoValueSet)
     go1 _ (Pl.TxOut addr val mdh) = do
-      (addr, [(val, mdh >>= go2)])
+      (addr, UtxoValueSet [(val, mdh >>= go2)])
 
     go2 :: Pl.DatumHash -> Maybe UtxoDatum
     go2 datumHash = do
@@ -199,6 +199,9 @@ utxoState0 = mcstToUtxoState mockChainSt0
 mockChainSt0 :: MockChainSt
 mockChainSt0 = MockChainSt utxoIndex0 M.empty M.empty def
 
+mockChainSt0From :: InitialDistribution -> MockChainSt
+mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) M.empty M.empty def
+
 instance Default MockChainSt where
   def = mockChainSt0
 
@@ -206,7 +209,7 @@ utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
 utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
 
 utxoIndex0 :: Pl.UtxoIndex
-utxoIndex0 = utxoIndex0From initialDistribution
+utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 

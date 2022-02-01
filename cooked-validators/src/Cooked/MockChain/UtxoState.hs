@@ -1,40 +1,169 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cooked.MockChain.UtxoState
-  ( UtxoState (..),
-    UtxoDatum (..),
-    prettyUtxoState,
-    prettyCurrencyAndAmount,
-    prettyAddressTypeAndHash,
-    mPrettyValue,
-  )
-where
+module Cooked.MockChain.UtxoState where
 
+import Control.Arrow (second)
 import Cooked.MockChain.Wallet
+import Data.Function (on)
+import qualified Data.List as L
 import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
+import qualified Plutus.V1.Ledger.Ada as Ada
 import qualified PlutusTx.AssocMap as Pl
+import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter
 
--- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph.
-newtype UtxoState = UtxoState {utxoState :: M.Map Pl.Address [(Pl.Value, Maybe UtxoDatum)]}
+-- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
+-- Each address has a set of UTxOs that consist in a value and some potential datum.
+newtype UtxoState = UtxoState {utxoState :: M.Map Pl.Address UtxoValueSet}
   deriving (Eq)
 
--- | A 'UtxoDatum' contains a datum whic his @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
+instance Semigroup UtxoState where
+  (UtxoState a) <> (UtxoState b) = UtxoState $ M.unionWith (<>) a b
+
+-- | Represents a /set/ of values, yet, we use a list instead of a set because 'Pl.Value'
+-- doesn't implement 'Ord' and because it is possible that we want to distinguish between utxo states
+-- that have additional utxos, even if these could have been merged together.
+newtype UtxoValueSet = UtxoValueSet {utxoValueSet :: [(Pl.Value, Maybe UtxoDatum)]}
+  deriving (Show)
+
+instance Eq UtxoValueSet where
+  (UtxoValueSet xs) == (UtxoValueSet ys) = xs' == ys'
+    where
+      k (val, m) = (Pl.flattenValue val, m)
+      xs' = L.sortBy (compare `on` k) xs
+      ys' = L.sortBy (compare `on` k) ys
+
+instance Semigroup UtxoValueSet where
+  UtxoValueSet a <> UtxoValueSet b = UtxoValueSet $ a ++ b
+
+instance Monoid UtxoValueSet where
+  mempty = UtxoValueSet []
+
+-- | Computes the total value in a set
+utxoValueSetTotal :: UtxoValueSet -> Pl.Value
+utxoValueSetTotal = mconcat . map fst . utxoValueSet
+
+-- | Computes the total value in the entire state
+utxoStateTotal :: UtxoState -> Pl.Value
+utxoStateTotal = mconcat . map utxoValueSetTotal . M.elems . utxoState
+
+-- | A 'UtxoDatum' contains a datum which is @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
 -- but we also include @show x@ to be able to print this value in a more user friendly fashion.
 data UtxoDatum = UtxoDatum {utxoDatum :: Pl.Datum, utxoShow :: String}
-  deriving (Eq)
+  deriving (Eq, Ord)
 
 instance Show UtxoDatum where
   show = utxoShow
 
 instance Show UtxoState where
   show = show . prettyUtxoState
+
+-- * Differences between two 'UtxoState'
+
+-- | The differences between two states @a@ and @b@ is a map whose keys
+-- are @M.keys a `union` M.keys b@ and values dictate what happened to that
+-- particular value set with a 'UtxoValueSetDiff'
+type UtxoStateDiff = M.Map Pl.Address UtxoValueSetDiff
+
+-- | A 'UtxoValueSet' can have been inserted, deleted or modified.
+data UtxoValueSetDiff
+  = Inserted UtxoValueSet
+  | Deleted UtxoValueSet
+  | -- | In case it has been modified, the order is irrelevant; hence we just need to keep the deltas around.
+    Modified
+      { modDeleted :: UtxoValueSet,
+        modInserted :: UtxoValueSet,
+        modUnchanged :: UtxoValueSet
+      }
+  deriving (Show)
+
+-- | Computes the numeric difference between the new total and the old total
+-- of the source and destinations of this diff of set of values
+utxoValueSetDiffTotal :: UtxoValueSetDiff -> Pl.Value
+utxoValueSetDiffTotal (Inserted ins) = utxoValueSetTotal ins
+utxoValueSetDiffTotal (Deleted del) = Pl.negate $ utxoValueSetTotal del
+utxoValueSetDiffTotal (Modified del ins _) = utxoValueSetTotal ins <> Pl.negate (utxoValueSetTotal del)
+
+-- | Computes the total difference in value between a new state and between an old state.
+-- If this difference is positive for some token @t@, it means some @t@ it was burnt. If this
+-- difference is negative, some @t@ was minted.
+utxoStateDiffTotal :: UtxoStateDiff -> Pl.Value
+utxoStateDiffTotal = mconcat . map utxoValueSetDiffTotal . M.elems
+
+-- | Computes the difference between two states.
+utxoStateDiff :: UtxoState -> UtxoState -> UtxoStateDiff
+utxoStateDiff (UtxoState stA) (UtxoState stB) =
+  M.union (M.mapWithKey deleteOrModify stA) (M.map Inserted $ M.difference stB stA)
+  where
+    deleteOrModify :: Pl.Address -> UtxoValueSet -> UtxoValueSetDiff
+    deleteOrModify addr valA@(UtxoValueSet a) =
+      case M.lookup addr stB of
+        Nothing -> Deleted valA
+        Just (UtxoValueSet b) ->
+          Modified
+            { modDeleted = UtxoValueSet $ a L.\\ b,
+              modInserted = UtxoValueSet $ b L.\\ a,
+              modUnchanged = UtxoValueSet $ a `L.intersect` b
+            }
+
+-- | Returns the source of a difference. Satisfies: @utxoStateDiffSrc (utxoStateDiff a b) == a@
+utxoStateDiffSrc :: UtxoStateDiff -> UtxoState
+utxoStateDiffSrc = UtxoState . M.foldlWithKey keepIfModOrDel M.empty
+  where
+    keepIfModOrDel :: M.Map Pl.Address UtxoValueSet -> Pl.Address -> UtxoValueSetDiff -> M.Map Pl.Address UtxoValueSet
+    keepIfModOrDel m addr (Deleted v) = M.insert addr v m
+    keepIfModOrDel m addr (Modified del _ins unch) = M.insert addr (del <> unch) m
+    keepIfModOrDel m _ _ = m
+
+-- | Returns the target of a difference. Satisfies: @utxoStateDiffTgt (utxoStateDiff a b) == b@
+utxoStateDiffTgt :: UtxoStateDiff -> UtxoState
+utxoStateDiffTgt = UtxoState . M.foldlWithKey keepIfModOrIns M.empty
+  where
+    keepIfModOrIns :: M.Map Pl.Address UtxoValueSet -> Pl.Address -> UtxoValueSetDiff -> M.Map Pl.Address UtxoValueSet
+    keepIfModOrIns m addr (Inserted v) = M.insert addr v m
+    keepIfModOrIns m addr (Modified _del ins unch) = M.insert addr (ins <> unch) m
+    keepIfModOrIns m _ _ = m
+
+-- * Relations between states
+
+-- | Returns whether two states are equal except for arbitrary differences in Ada.
+--  This implies that the set of addresses in each state is the same, hence, the "equal" prefix.
+--  If you don't care about that, check 'equivModuloAtMost'.
+equalModuloAda :: UtxoState -> UtxoState -> Bool
+equalModuloAda a b = M.foldl (\acu -> (acu &&) . eqModAda) True $ utxoStateDiff a b
+  where
+    -- If the address was modified, the states are equal modulo Ada if the modifications
+    -- contain only ada
+    eqModAda (Modified del ins _) =
+      let valDiff = utxoValueSetTotal ins <> Pl.negate (utxoValueSetTotal del)
+       in hasOnlyAda valDiff
+    -- If the address was deleted or inserted, the states are different in other ways
+    -- other than just ada.
+    eqModAda _ = False
+
+    hasOnlyAda :: Pl.Value -> Bool
+    hasOnlyAda v = case Pl.flattenValue v of
+      [] -> True
+      [(sym, tok, _)] -> sym == Ada.adaSymbol && tok == Ada.adaToken
+      _ -> False
+
+-- | Returns whether the difference in value between two states is at most
+--  a given bound. Note that the difference in value between states can be negative,
+--  hence, the order of parameters matters here. See 'utxoStateDiffTotal' for more.
+equivModuloAtMost :: Pl.Value -> UtxoState -> UtxoState -> Bool
+equivModuloAtMost maxV a b =
+  noNegativeToken . (maxV <>) . Pl.negate $ utxoStateDiffTotal $ utxoStateDiff a b
+  where
+    noNegativeToken :: Pl.Value -> Bool
+    noNegativeToken = all (\(_, _, i) -> i >= 0) . Pl.flattenValue
+
+-- * Pretty-printing
 
 -- | Pretty prints a 'UtxoState'.
 -- The entire point of producing a 'UtxoState' instead of a 'Pl.UtxoIndex' is to
@@ -44,7 +173,7 @@ prettyUtxoState :: UtxoState -> Doc ann
 prettyUtxoState =
   Prettyprinter.vsep
     . List.intersperse Prettyprinter.emptyDoc
-    . map (uncurry prettyAddress)
+    . map (uncurry prettyAddress . second utxoValueSet)
     . M.toList
     . utxoState
 
