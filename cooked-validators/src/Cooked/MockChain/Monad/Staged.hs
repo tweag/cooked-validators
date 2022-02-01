@@ -25,6 +25,35 @@ import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
 
+-- * Interpreting and Running 'StagedMockChain'
+
+-- | Interprets and runs the mockchain computation from a given initial state.
+interpretAndRunRaw ::
+  StagedMockChain a ->
+  MockChainEnv ->
+  MockChainSt ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRunRaw smc e0 st0 = runWriterT $ runMockChainTRaw e0 st0 (interpret smc)
+
+-- | Interprets and runs the mockchain computation from a given 'InitialDistribution'
+interpretAndRunFrom ::
+  InitialDistribution ->
+  StagedMockChain a ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRunFrom i0 smc = interpretAndRunRaw smc def st0
+  where
+    st0 = def {mcstIndex = utxoIndex0From i0}
+
+-- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
+interpretAndRun ::
+  StagedMockChain a ->
+  [(Either MockChainError (a, UtxoState), TraceDescr)]
+interpretAndRun = interpretAndRunFrom def
+
+-- * Interpreting 'StagedMockChain'
+
+-- |The semantic domain in which 'StagedMockChain' gets interpreted; see
+-- the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
 -- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
@@ -131,18 +160,6 @@ interpAndTellOp op = do
   lift (tell $ prettyMockChainOp signers op)
   interpretOp op
 
--- | Interprets and runs the mockchain computation from a given initial state.
-interpretAndRunRaw ::
-  StagedMockChain a ->
-  MockChainEnv ->
-  MockChainSt ->
-  [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunRaw smc e0 st0 = runWriterT $ runMockChainTRaw e0 st0 (interpret smc)
-
-interpretAndRun ::
-  StagedMockChain a ->
-  [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRun smc = interpretAndRunRaw smc def def
 
 -- * MonadBlockChain Instance
 
