@@ -82,7 +82,7 @@ mkProposal reqSigs pmt = do
       let params = Params pkTable reqSigs klass
       let threadToken = paramsToken params
       _ <-
-        validateTxConstr'
+        validateTxConstrLbl
           (ProposalSkel reqSigs pmt)
           [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
             -- We don't have SpendsPK or PaysPK wrt the wallet `w`
@@ -108,14 +108,19 @@ mkProposal reqSigs pmt = do
 mkSign :: MonadBlockChain m => Params -> Payment -> Pl.PrivateKey -> m ()
 mkSign params pmt sk = do
   pkh <- ownPaymentPubKeyHash
-  void $ validateTxConstr [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
+  void $
+    validateTxConstrOpts
+      (def {adjustUnbalTx = True})
+      [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
   where
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
     -- Whenever a wallet is signing a payment, it must lock away a certain amount of ada
     -- in an UTxO, otherwise, the Sign UTxO can't be created.
+    -- Hence, we'll create the script utxo with 1 lovelace but we'll validate with adjustUnbalTx
+    -- set to @True@, which will increase this value to however many lovelace are currently needed.
     mkSignLockedCost :: Pl.Value
-    mkSignLockedCost = Pl.lovelaceValueOf 1 -- see issue #46
+    mkSignLockedCost = Pl.lovelaceValueOf 1
 
 minAda :: Pl.Value
 minAda = Pl.lovelaceValueOf 2000000
@@ -323,8 +328,8 @@ execute tParms (parms, tokenRef) = do
 
 -- Modifies a transaction skeleton by attempting to mint one more provenance token.
 dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
-dupTokenAttack sOut (parms, tokenRef) (TxSkel l cs) =
-  Just $ TxSkel (Just $ DupTokenAttacked l) (cs ++ attack)
+dupTokenAttack sOut (parms, tokenRef) (TxSkel l opts cs) =
+  Just $ TxSkel (Just $ DupTokenAttacked l) opts (cs ++ attack)
   where
     attack =
       [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),

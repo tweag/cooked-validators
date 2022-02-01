@@ -40,5 +40,5 @@ spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
 spentByPK pkh val = do
   -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
   allOuts <- pkUtxos pkh
-  let (toSpend, leftOver) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
+  let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
   (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend

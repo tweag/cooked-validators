@@ -19,7 +19,6 @@ import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (catMaybes)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
@@ -44,7 +43,7 @@ interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . interpretNonDet
 --  On top of the operations from 'MonadBlockChain' we also have 'Fail' to make
 --  sure the resulting monad will be an instance of 'MonadFail'.
 data MockChainOp a where
-  ValidateTxSkel :: ValidateTxOpts -> TxSkel -> MockChainOp Pl.TxId
+  ValidateTxSkel :: TxSkel -> MockChainOp Pl.TxId
   TxOutByRef :: Pl.TxOutRef -> MockChainOp (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainOp Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainOp Pl.Slot
@@ -88,7 +87,7 @@ instance Monad StagedMockChain where
 -- pass around the modalities since some operations refer back to 'StagedMockChain',
 -- and that needs to be interpreted taking into account the existing modalities.
 interpretOp :: MockChainOp a -> InterpMockChainMod a
-interpretOp (ValidateTxSkel opts skel) = validateTxSkelOpts opts skel
+interpretOp (ValidateTxSkel skel) = validateTxSkel skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
 interpretOp GetCurrentSlot = currentSlot
 interpretOp GetCurrentTime = currentTime
@@ -99,7 +98,7 @@ interpretOp (Fail str) = fail str
 interpretOp OwnPubKey = ownPaymentPubKeyHash
 interpretOp AskSigners = askSigners
 interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
-interpretOp (Modify m' block) = lift (modify (m' :)) >> interpretNonDet block
+interpretOp (Modify m' block) = lift (modify (++ [m'])) >> interpretNonDet block
 
 -- | This is an internal type that keeps track of the list of modalities that
 -- are present in each branch, it's isomorphic to:
@@ -116,12 +115,12 @@ interpretNonDet (Return a) = do
   if any isSomewhere ms then empty else return a
 -- When interpreting a 'ValidateTxSkel', we evaluate the modalities and return a union
 -- of all possible outcomes.
-interpretNonDet (Instr (ValidateTxSkel opts skel) f) = do
+interpretNonDet (Instr (ValidateTxSkel skel) f) = do
   ms <- lift get
   asum $ map (uncurry interpAux) $ interpModalities ms skel
   where
     interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChainMod a
-    interpAux skel' ms' = lift (put ms') >> interpAndTellOp (ValidateTxSkel opts skel') >>= interpretNonDet . f
+    interpAux skel' ms' = lift (put ms') >> interpAndTellOp (ValidateTxSkel skel') >>= interpretNonDet . f
 -- Interpreting any other instruction is just a matter of interpreting a bind
 interpretNonDet (Instr op f) = interpAndTellOp op >>= interpretNonDet . f
 
@@ -151,7 +150,7 @@ instance MonadFail StagedMockChain where
   fail = singleton . Fail
 
 instance MonadBlockChain StagedMockChain where
-  validateTxSkelOpts opts = singleton . ValidateTxSkel opts
+  validateTxSkel = singleton . ValidateTxSkel
   utxosSuchThat addr = singleton . UtxosSuchThat addr
   txOutByRef = singleton . TxOutByRef
   ownPaymentPubKeyHash = singleton OwnPubKey
@@ -209,13 +208,10 @@ interpModalities (Somewhere f : ms) s = concatMap hereOrThere $ interpModalities
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
 prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
-prettyMockChainOp signers (ValidateTxSkel opts skel) =
+prettyMockChainOp signers (ValidateTxSkel skel) =
   trSingleton $
     PP.hang 2 $
-      PP.vsep $
-        catMaybes [Just "ValidateTxSkel", mopts, Just $ prettyTxSkel (NE.toList signers) skel]
-  where
-    mopts = if opts == def then Nothing else Just ("Opts:" <+> PP.viaShow opts)
+      PP.vsep ["ValidateTxSkel", prettyTxSkel (NE.toList signers) skel]
 prettyMockChainOp _ (Fail reason) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
 prettyMockChainOp _ _ = mempty

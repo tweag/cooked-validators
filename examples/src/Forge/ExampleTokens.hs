@@ -13,21 +13,15 @@
 
 module Forge.ExampleTokens where
 
-import Data.Aeson (FromJSON, ToJSON)
 import qualified Forge
-import GHC.Generics (Generic)
 import qualified Ledger
-import qualified Ledger.Ada as Ada
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import qualified Plutus.Contracts.Currency as Currency
-import qualified Plutus.V2.Ledger.Api as Api
 import qualified PlutusTx
 import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (Applicative (..))
-import Schema (ToSchema)
-import qualified Prelude as Haskell
 
 -- * Minting Policies
 

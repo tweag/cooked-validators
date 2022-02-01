@@ -28,7 +28,7 @@ lockParams =
   Split.SplitDatum
     { Split.recipient1 = walletPKHash (wallet 2),
       Split.recipient2 = walletPKHash (wallet 3),
-      Split.amount = 2_000_000
+      Split.amount = 20_000_000
     }
 
 tests :: TestTree

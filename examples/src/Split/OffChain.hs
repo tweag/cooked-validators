@@ -29,7 +29,7 @@ import qualified Wallet.Emulator.Wallet as C
 txLock :: MonadBlockChain m => Pl.TypedValidator Split -> SplitDatum -> m ()
 txLock script datum =
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       (TxLock datum)
       [ PaysScript
           script
@@ -57,7 +57,7 @@ txUnlock script = do
   let share1 = half
   let share2 = amount - half
   void $
-    validateTxConstr'
+    validateTxConstrLbl
       TxUnlock
       [ SpendsScript script () (output, datum),
         PaysPK r1 (Pl.lovelaceValueOf share1),
