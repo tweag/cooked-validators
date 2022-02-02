@@ -13,13 +13,14 @@ extra-source-files:
 library
   exposed-modules:
       Cooked.MockChain
-      Cooked.MockChain.HUnit
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.Staged
-      Cooked.MockChain.QuickCheck
       Cooked.MockChain.RawUPLC
+      Cooked.MockChain.Testing.Common
+      Cooked.MockChain.Testing.HUnit
+      Cooked.MockChain.Testing.QuickCheck
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet

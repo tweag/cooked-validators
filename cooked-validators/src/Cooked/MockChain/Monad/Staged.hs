@@ -10,7 +10,7 @@ module Cooked.MockChain.Monad.Staged where
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State.Strict
-import Control.Monad.Writer
+import Control.Monad.Writer.Strict
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
@@ -28,7 +28,7 @@ import qualified Prettyprinter.Render.String as PP
 
 -- | Interprets and runs the mockchain computation from a given initial state.
 interpretAndRunWith ::
-  (forall m . Monad m => MockChainT m a -> m res) ->
+  (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, TraceDescr)]
 interpretAndRunWith f smc = runWriterT $ f (interpret smc)
@@ -41,8 +41,8 @@ interpretAndRun = interpretAndRunWith runMockChainT
 
 -- * Interpreting 'StagedMockChain'
 
--- |The semantic domain in which 'StagedMockChain' gets interpreted; see
--- the 'interpret' function for more.
+-- | The semantic domain in which 'StagedMockChain' gets interpreted; see
+--  the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
 -- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
@@ -80,6 +80,9 @@ data MockChainOp a where
   Modify :: Modality TxSkel -> StagedMockChain a -> MockChainOp a
   --
   Fail :: String -> MockChainOp a
+  --
+  MPlus :: StagedMockChain a -> StagedMockChain a -> MockChainOp a
+  MZero :: MockChainOp a
 
 data Staged (op :: * -> *) :: * -> * where
   Return :: a -> Staged op a
@@ -102,6 +105,13 @@ instance Monad StagedMockChain where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
 
+instance MonadFail StagedMockChain where
+  fail = singleton . Fail
+
+instance Alternative StagedMockChain where
+  empty = singleton MZero
+  a <|> b = singleton $ MPlus a b
+
 -- | Interprets a single operation in the direct 'MockChainT' monad. We need to
 -- pass around the modalities since some operations refer back to 'StagedMockChain',
 -- and that needs to be interpreted taking into account the existing modalities.
@@ -118,6 +128,18 @@ interpretOp OwnPubKey = ownPaymentPubKeyHash
 interpretOp AskSigners = askSigners
 interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
 interpretOp (Modify m' block) = lift (modify (++ [m'])) >> interpretNonDet block
+interpretOp MZero = lift $ lift $ lift mzero
+interpretOp (MPlus a b) = combineInterpMockChainMod (interpretNonDet a) (interpretNonDet b)
+  where
+    combineInterpMockChainMod ::
+      MonadPlus m =>
+      InterpMockChainMod m a ->
+      InterpMockChainMod m a ->
+      InterpMockChainMod m a
+    combineInterpMockChainMod = combineMockChainT $ \ma mb ->
+      WriterT $
+        StateT $ \s ->
+          runStateT (runWriterT ma) s `mplus` runStateT (runWriterT mb) s
 
 -- | This is an internal type that keeps track of the list of modalities that
 -- are present in each branch, it's isomorphic to:
@@ -151,9 +173,6 @@ interpAndTellOp op = do
   interpretOp op
 
 -- * MonadBlockChain Instance
-
-instance MonadFail StagedMockChain where
-  fail = singleton . Fail
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singleton . ValidateTxSkel
