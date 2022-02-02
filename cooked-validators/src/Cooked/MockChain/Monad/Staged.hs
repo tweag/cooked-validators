@@ -16,7 +16,6 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import Data.Default
 import Data.Foldable
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
@@ -28,27 +27,17 @@ import qualified Prettyprinter.Render.String as PP
 -- * Interpreting and Running 'StagedMockChain'
 
 -- | Interprets and runs the mockchain computation from a given initial state.
-interpretAndRunRaw ::
+interpretAndRunWith ::
+  (forall m . Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
-  MockChainEnv ->
-  MockChainSt ->
-  [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunRaw smc e0 st0 = runWriterT $ runMockChainTRaw e0 st0 (interpret smc)
-
--- | Interprets and runs the mockchain computation from a given 'InitialDistribution'
-interpretAndRunFrom ::
-  InitialDistribution ->
-  StagedMockChain a ->
-  [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRunFrom i0 smc = interpretAndRunRaw smc def st0
-  where
-    st0 = def {mcstIndex = utxoIndex0From i0}
+  [(res, TraceDescr)]
+interpretAndRunWith f smc = runWriterT $ f (interpret smc)
 
 -- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
   StagedMockChain a ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
-interpretAndRun = interpretAndRunFrom def
+interpretAndRun = interpretAndRunWith runMockChainT
 
 -- * Interpreting 'StagedMockChain'
 
@@ -83,13 +72,14 @@ data MockChainOp a where
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainOp [(SpendableOut, Maybe a)]
-  Fail :: String -> MockChainOp a
   OwnPubKey :: MockChainOp Pl.PubKeyHash
   --
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
   AskSigners :: MockChainOp (NE.NonEmpty Wallet)
   --
   Modify :: Modality TxSkel -> StagedMockChain a -> MockChainOp a
+  --
+  Fail :: String -> MockChainOp a
 
 data Staged (op :: * -> *) :: * -> * where
   Return :: a -> Staged op a
@@ -115,7 +105,7 @@ instance Monad StagedMockChain where
 -- | Interprets a single operation in the direct 'MockChainT' monad. We need to
 -- pass around the modalities since some operations refer back to 'StagedMockChain',
 -- and that needs to be interpreted taking into account the existing modalities.
-interpretOp :: MockChainOp a -> InterpMockChainMod a
+interpretOp :: MonadPlus m => MockChainOp a -> InterpMockChainMod m a
 interpretOp (ValidateTxSkel skel) = validateTxSkel skel
 interpretOp (TxOutByRef ref) = txOutByRef ref
 interpretOp GetCurrentSlot = currentSlot
@@ -132,11 +122,11 @@ interpretOp (Modify m' block) = lift (modify (++ [m'])) >> interpretNonDet block
 -- | This is an internal type that keeps track of the list of modalities that
 -- are present in each branch, it's isomorphic to:
 --
---  > St -> ListMods -> [((Either Err (a, St) , TraceDescr), ListMods)]
-type InterpMockChainMod = MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] []))
+--  > St -> ListMods -> m ((Either Err (a, St) , TraceDescr), ListMods)
+type InterpMockChainMod m = MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m))
 
 -- | Interprets a 'StagedMockChain' that must be modified with a certain list of modalities.
-interpretNonDet :: forall a. StagedMockChain a -> InterpMockChainMod a
+interpretNonDet :: forall m a. MonadPlus m => StagedMockChain a -> InterpMockChainMod m a
 interpretNonDet (Return a) = do
   ms <- lift get
   -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
@@ -148,18 +138,17 @@ interpretNonDet (Instr (ValidateTxSkel skel) f) = do
   ms <- lift get
   asum $ map (uncurry interpAux) $ interpModalities ms skel
   where
-    interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChainMod a
+    interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChainMod m a
     interpAux skel' ms' = lift (put ms') >> interpAndTellOp (ValidateTxSkel skel') >>= interpretNonDet . f
 -- Interpreting any other instruction is just a matter of interpreting a bind
 interpretNonDet (Instr op f) = interpAndTellOp op >>= interpretNonDet . f
 
 -- | Auxiliar function to interpret a bind.
-interpAndTellOp :: MockChainOp a -> InterpMockChainMod a
+interpAndTellOp :: forall m a. MonadPlus m => MockChainOp a -> InterpMockChainMod m a
 interpAndTellOp op = do
   signers <- askSigners
   lift (tell $ prettyMockChainOp signers op)
   interpretOp op
-
 
 -- * MonadBlockChain Instance
 
