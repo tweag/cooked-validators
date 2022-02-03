@@ -196,17 +196,17 @@ qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
 qcIsRight (Right _) = QC.property True
 
--- | This is a test tree with quickcheck properties. 
+-- | This is a test tree with quickcheck properties.
 --  When using the QuickCheck forAll in conjunction to 'somewhere'
 --  one might run significantly more tests than expected.
 --
 --  Say that we have:
---  
+--
 --  > tr2 parm = somewhere mod $ do
 --  >   mkTxA parm
 --  >   mkTxB parm
 --
---  This represents a set of two traces: 
+--  This represents a set of two traces:
 --
 --  > { mod mkTxA >> mkTxB  , mkTxA >> mod mkTxB }
 --
