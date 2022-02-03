@@ -196,64 +196,27 @@ qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
 qcIsRight (Right _) = QC.property True
 
--- | This is a test tree with quickcheck properties. A word of caution is necessary as the
---  semantics of 'GenT' and 'somewhere'/'everywhere' can be easily confused and lead to
---  tests that take way too long to run.
+-- | This is a test tree with quickcheck properties. 
+--  When using the QuickCheck forAll in conjunction to 'somewhere'
+--  one might run significantly more tests than expected.
 --
---  TL;DR: if using 'somewhere' in your test, make sure to set
---  @localOption (QuickCheckTests x)@ for some x smaller than the default (100).
+--  Say that we have:
+--  
+--  > tr2 parm = somewhere mod $ do
+--  >   mkTxA parm
+--  >   mkTxB parm
 --
---  What is happening, though? Well, say we write a trace:
+--  This represents a set of two traces: 
 --
---  > tr :: (MonadBlockChain m) => GenT m ()
---  > tr = do
---  >   x <- choose (0, 10)
---  >   y <- choose (0, 10)
---  >   validateTxFromSkel (mkTx x)
---  >   validateTxFromSkel (mkTx y)
+--  > { mod mkTxA >> mkTxB  , mkTxA >> mod mkTxB }
 --
---  If interpreted with @m ~ StagedMockChain@, the @tr@ above denotes a
---  probability distribution over functions that return a list of possible outcomes,
---  that is:
+--  Now say we call:
 --
---  > interpret (runGenT tr)
---  >   :: Gen (MockChainT (WriterT TraceDesc []) ())
---
---  Now thats a mouthful of monad transformers to look at, if we expand them all we get:
---
---  > Gen (MockChainSt -> [(Either MockChainErr (), TraceDesc)])
---
---  In the particular case of tr, above, we get a probability distribution of
---  traces that return only one possible result. The probability distribution is
---  over the choice of values for @x@ and @y@. Regardless of that, the trace produces
---  a single result which consists of validating transactions @mkTx x@ and @mkTx y@.
---
---  Now say we change @tr@ to:
---
---  > tr2 :: (MonadBlockChain m) => GenT m ()
---  > tr2 = do
---  >   x <- choose (0, 10)
---  >   y <- choose (0, 10)
---  >   somewhere mod $ do
---  >     validateTxFromSkel (mkTx x)
---  >     validateTxFromSkel (mkTx y)
---
---  Now, the probability distribution is still over the choice of values for @x@ and @y@,
---  but for any given such choice, we return a function that given an initial state
---  returns /two/ possible results:
---
---  1. One where we validate transactions @mod (mkTx x)@ and @mkTx y@
---  2. One where we validate transactions @mkTx x@ and @mod (mkTx y)@
---
---  When using the 'forAllTr' and 'forAllTrP' combinators, we're actualy
---  testing the 'QC.conjoin' of all possible universes returned by trace.
---  Hence, if we run the following 'testTree' with default options:
---
---  > testProperty "propName" $ forAllTr tr2 somePredicate
+--  > testProperty "propName" $ forAll genParm (testSucceeds . tr2)
 --
 --  QuickCheck will run the property 100 times, but each of those runs
 --  we will be checking two different traces. So all in all, we will look
---  at 200 traces. A more reasonable option is to use:
+--  at 200 traces. Make sure to use 'localOption' to reduce that if necessary:
 --
 --  > localOption (QuickCheckTests 25) $
 --  >   testProperty "propName" $ forAllTr tr2 somePredicate
