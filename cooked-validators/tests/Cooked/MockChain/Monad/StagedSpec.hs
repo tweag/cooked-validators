@@ -5,7 +5,7 @@ module Cooked.MockChain.Monad.StagedSpec (spec) where
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
-import Control.Monad.Writer
+import Control.Monad.Writer.Strict
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default

@@ -79,7 +79,7 @@ data MockChainSt = MockChainSt
     mcstStrDatums :: M.Map Pl.DatumHash String,
     mcstCurrentSlot :: Pl.Slot
   }
-  deriving (Show)
+  deriving (Show, Eq)
 
 instance Default Pl.Slot where
   def = Pl.Slot 0

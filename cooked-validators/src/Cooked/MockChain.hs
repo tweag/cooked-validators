@@ -10,22 +10,20 @@ module Cooked.MockChain
     module Cooked.MockChain.Monad.Direct,
     module Cooked.MockChain.Monad.Contract, -- you're wrong GHC, it exports an important instance.
     module Cooked.MockChain.Monad,
-    module Cooked.MockChain.QuickCheck,
     module Cooked.MockChain.RawUPLC,
-    module Cooked.MockChain.HUnit,
+    module Cooked.MockChain.Testing,
     SpendableOut,
     spentByPK,
   )
 where
 
 import Control.Arrow (second)
-import Cooked.MockChain.HUnit
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Contract ()
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
-import Cooked.MockChain.QuickCheck
 import Cooked.MockChain.RawUPLC
+import Cooked.MockChain.Testing
 import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet

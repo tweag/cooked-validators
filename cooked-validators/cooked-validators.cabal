@@ -18,9 +18,7 @@ library
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
-      Cooked.MockChain.Testing.Common
-      Cooked.MockChain.Testing.HUnit
-      Cooked.MockChain.Testing.QuickCheck
+      Cooked.MockChain.Testing
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet
@@ -61,7 +59,6 @@ library
     , plutus-tx-plugin
     , plutus-use-cases
     , prettyprinter
-    , quickcheck-transformer
     , scientific
     , streaming
     , tasty
@@ -110,7 +107,6 @@ test-suite spec
     , plutus-tx-plugin
     , plutus-use-cases
     , prettyprinter
-    , quickcheck-transformer
     , scientific
     , streaming
     , tasty
