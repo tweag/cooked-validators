@@ -88,7 +88,7 @@ tests =
   testGroup
     "ForgeSpec"
     [ testCase "Can create a forge and smith tokens" $
-        assertSucceeds $ do
+        testSucceeds $ do
           bbId <- initBigBoss `as` wallet 1
           openForge bbId `as` wallet 3
           smiths bbId 100 `as` wallet 3

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -31,7 +32,6 @@ import qualified Plutus.V1.Ledger.Scripts as Scripts
 import qualified PlutusTx (compile)
 import Test.Hspec
 import qualified Test.QuickCheck as QC
-import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck (QuickCheckTests (..), testProperty)
@@ -56,10 +56,9 @@ deriving instance Show CampaignAction
 
 -- | Generates an aribtrary campaign with a the collection deadline set as
 -- a delta on top of the payment deadline.
-genCampaign :: (MonadBlockChain m) => Integer -> Wallet -> GenT m (Ledger.POSIXTime, Campaign)
-genCampaign collectDelta owner = do
+genCampaign :: (MonadBlockChain m) => Integer -> Ledger.POSIXTime -> Wallet -> m (Ledger.POSIXTime, Campaign)
+genCampaign collectDelta deadline owner = do
   startTime <- currentTime
-  deadline <- Ledger.POSIXTime <$> choose (20000, 40000)
   let collectDeadline = deadline + Ledger.POSIXTime collectDelta
   return . (startTime,) $
     Campaign
@@ -121,17 +120,16 @@ ownerCanRetrieveFunds =
 ownerCanRetrieveFundsQC :: TestTree
 ownerCanRetrieveFundsQC =
   testProperty "Funds can be retrieved (QuickCheck)" $
-    forAllTrP
-      ((,) <$> choose (10000, 20000) <*> (wallet <$> choose (1, 10)))
-      ( \(d, owner) -> do
+    QC.forAll
+      genParms
+      ( \MyParms {..} -> testSucceeds @QC.Property $ do
           -- generates a campaign with at least d milliseconds of available time between
           -- deadline and collection deadline
-          (t0, c) <- genCampaign d owner
+          (t0, c) <- genCampaign d deadline owner
 
           -- Generates and the payments:
-          payments <- resize 6 $ listOf1 ((,) <$> choose (1, 10) <*> choose (2000, 10000))
           forM_ payments $ \(w, amount) -> do
-            paysCampaign c (wallet w) (Ada.lovelaceValueOf $ amount * 1000)
+            paysCampaign c w (Ada.lovelaceValueOf $ amount * 1000)
 
           -- Now we must wait for the campaign deadline to pass, otherwise the
           -- funds won't be collectible
@@ -141,8 +139,17 @@ ownerCanRetrieveFundsQC =
           -- Finally, return the amount of money gathered by the owner
           return $ sum $ map snd payments
       )
-      ( \(_, _owner) res -> case res of
-          Left err -> QC.counterexample (show err) False
-          -- TODO: check owner funds increased by amount or is at least the given amount, idk
-          Right (_amount, _st) -> QC.property True
-      )
+  where
+    genParms =
+      MyParms <$> QC.choose (10000, 20000)
+        <*> (wallet <$> QC.choose (1, 10))
+        <*> (Ledger.POSIXTime <$> QC.choose (20000, 40000))
+        <*> QC.resize 6 (QC.listOf1 ((,) <$> (wallet <$> QC.choose (1, 10)) <*> QC.choose (2000, 10000)))
+
+data MyParms = MyParms
+  { d :: Integer,
+    owner :: Wallet,
+    deadline :: Ledger.POSIXTime,
+    payments :: [(Wallet, Integer)]
+  }
+  deriving (Show)

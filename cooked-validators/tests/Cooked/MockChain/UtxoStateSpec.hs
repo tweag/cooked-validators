@@ -4,8 +4,10 @@ module Cooked.MockChain.UtxoStateSpec where
 
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
+import Cooked.MockChain.UtxoState.Testing
 import Cooked.MockChain.Wallet
 import qualified Ledger.Ada as Ada
+import Test.HUnit (Assertion)
 import Test.Hspec
 
 utxoStateFromID :: InitialDistribution -> UtxoState

@@ -36,7 +36,7 @@ tests =
   testGroup
     "SplitSpec imported from UPLC"
     [ testCase "Simple example succeeds" $
-        assertSucceeds $ do
+        testSucceeds $ do
           script <- case unsafeTypedValidatorFromBS splitBS of
             Left err -> fail "couldn't load the Split contract from its binary repr"
             Right r -> return r

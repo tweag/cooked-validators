@@ -112,7 +112,7 @@ lockParams2 =
     }
 
 usageExample :: Assertion
-usageExample = assertSucceeds $ do
+usageExample = testSucceeds $ do
   txLock Split.splitValidator lockParams `as` wallet 1
   txUnlock Split.splitValidator `as` wallet 2
 
@@ -131,23 +131,23 @@ tests =
       -- it as passing; hence, I'll add it as expectFail here
       expectFail $
         testCase "Unlocking too much" $
-          assertFails $ do
+          testFails $ do
             txLock Split.splitValidator lockParams `as` wallet 1
             txUnlockTooMuch (wallet 2),
       testCase "Cannot unlock in small parts" $
-        assertFails $ do
+        testFails $ do
           txLock Split.splitValidator lockParams `as` wallet 1
           txUnlockNotEnough (wallet 2)
           txUnlockNotEnough (wallet 2),
       testCase "Forgets a recipient" $
-        assertFails $ do
+        testFails $ do
           txLock Split.splitValidator lockParams `as` wallet 1
           txUnlockGreedy (wallet 2),
       -- we know that this implementation of split is vulnerable to this attack;
       -- Still, I rather phrase the test as we would in practice and flag it with 'expectFail'
       expectFail $
         testCase "Is not vulnerable to double split attack" $
-          assertFails $ do
+          testFails $ do
             txLock Split.splitValidator lockParams `as` wallet 1
             txLock Split.splitValidator lockParams2 `as` wallet 1
             txUnlockAttack (wallet 5)

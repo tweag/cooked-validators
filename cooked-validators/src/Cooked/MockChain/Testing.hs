@@ -12,6 +12,7 @@ import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Data.Default
+import Debug.Trace
 import qualified Test.HUnit.Lang as HU
 import qualified Test.QuickCheck as QC
 
@@ -40,8 +41,27 @@ class IsProp prop where
   testFailureMsg :: String -> prop
   testFailureMsg msg = testCounterexample msg testFailure
 
+testBool :: (IsProp prop) => Bool -> prop
+testBool True = testSuccess
+testBool False = testFailure
+
 testAll :: (IsProp prop) => (a -> prop) -> [a] -> prop
 testAll f = testConjoin . map f
+
+infix 4 .==.
+
+(.==.) :: (IsProp prop, Eq a) => a -> a -> prop
+a .==. b = testBool $ a == b
+
+infixr 3 .&&.
+
+(.&&.) :: (IsProp prop) => prop -> prop -> prop
+a .&&. b = testConjoin [a, b]
+
+infixr 2 .||.
+
+(.||.) :: (IsProp prop) => prop -> prop -> prop
+a .||. b = testDisjoin [a, b]
 
 -- | Ensuprop that all results produced by the staged mockchain /succeed/, starting
 -- from the default initial distribution
@@ -195,3 +215,12 @@ instance IsProp QC.Property where
   testSuccess = QC.property True
   testConjoin = QC.conjoin
   testDisjoin = QC.disjoin
+
+-- TODO: Discuss this instance; its here to enable us to easily
+-- run things in a repl but I'm not sure whether to ignore the counterexample
+-- messages or not.
+instance IsProp Bool where
+  testCounterexample msg False = trace msg False
+  testCounterexample _ True = True
+  testConjoin = and
+  testDisjoin = or

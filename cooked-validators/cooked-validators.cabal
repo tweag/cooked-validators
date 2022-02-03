@@ -21,6 +21,7 @@ library
       Cooked.MockChain.Testing
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoState
+      Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints

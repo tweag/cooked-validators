@@ -5,13 +5,13 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 module PMultiSigStatefulSpec where
 
 import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
-import Cooked.MockChain.HUnit
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Either (isLeft, isRight)
@@ -27,7 +27,6 @@ import qualified PlutusTx.AssocMap as AssocMap
 import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
-import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
@@ -180,7 +179,7 @@ tests =
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  testCase "Example Trivial Trace" $ assertSucceeds mtrace
+  testCase "Example Trivial Trace" $ testSucceeds mtrace
   where
     mtrace :: MonadMockChain m => m ()
     mtrace = do
@@ -264,24 +263,19 @@ sampleGroup1 =
     testGroup
       "Property-based Test Examples"
       [ testProperty "Can execute payment with enough signatures" $
-          forAllTrP
+          QC.forAll
             successParams
-            (\p -> propose p >>= execute p)
-            (const qcIsRight),
+            (\p -> testSucceeds @QC.Property $ propose p >>= execute p),
         testProperty "Cannot execute payment without enough signatures" $
-          forAllTrP
-            failureParams
-            (\p -> propose p >>= execute p)
-            (const (QC.property . isLeft)),
+          QC.forAll failureParams (\p -> testFails @QC.Property $ propose p >>= execute p),
         testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
-          forAllTrP
+          QC.forAll
             successParams
-            ( \p -> do
+            ( \p -> testFails @QC.Property $ do
                 i <- propose p
                 w3utxos <- pkUtxos (walletPKHash $ wallet 9)
                 somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
             )
-            (const (QC.property . isLeft))
       ]
 
 data ThresholdParams = ThresholdParams
@@ -298,10 +292,10 @@ numUniqueSigs = fromIntegral . length . nub . sigWallets
 anyParams :: QC.Gen ThresholdParams
 anyParams =
   ThresholdParams
-    <$> choose (1, 5)
-    <*> resize 5 (listOf (choose (1, 8)))
-    <*> (wallet <$> choose (1, 8))
-    <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
+    <$> QC.choose (1, 5)
+    <*> QC.resize 5 (QC.listOf (QC.choose (1, 8)))
+    <*> (wallet <$> QC.choose (1, 8))
+    <*> (Payment <$> QC.choose (1200, 4200) <*> (walletPKHash . wallet <$> QC.choose (1, 8)))
 
 successParams :: QC.Gen ThresholdParams
 successParams =
@@ -315,10 +309,10 @@ successParams =
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
 
-propose :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+propose :: MonadMockChain m => ThresholdParams -> m (Params, Pl.TxOutRef)
 propose parms = mkProposal (reqSigs parms) (pmt parms) `as` proposerWallet parms
 
-execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> m ()
 execute tParms (parms, tokenRef) = do
   forM_ (sigWallets tParms) $ \wId -> mkSign parms (pmt tParms) (walletSK $ wallet wId) `as` wallet wId
   mkCollect (pmt tParms) parms
@@ -351,7 +345,7 @@ deriving instance Show DupTokenAttacked
 -- uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
 -- chances are said script will be vulnerable.
 datumHijackingTrace :: TestTree
-datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ testFails datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9

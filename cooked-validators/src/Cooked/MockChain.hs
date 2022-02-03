@@ -5,6 +5,7 @@
 module Cooked.MockChain
   ( module Cooked.MockChain.Time,
     module Cooked.MockChain.UtxoState,
+    module Cooked.MockChain.UtxoState.Testing,
     module Cooked.MockChain.Wallet,
     module Cooked.MockChain.Monad.Staged,
     module Cooked.MockChain.Monad.Direct,
@@ -26,6 +27,7 @@ import Cooked.MockChain.RawUPLC
 import Cooked.MockChain.Testing
 import Cooked.MockChain.Time
 import Cooked.MockChain.UtxoState
+import Cooked.MockChain.UtxoState.Testing
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints (Constraint (..), SpendableOut)

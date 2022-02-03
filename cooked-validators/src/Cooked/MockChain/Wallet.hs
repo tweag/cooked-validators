@@ -5,6 +5,7 @@
 
 module Cooked.MockChain.Wallet where
 
+import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl
@@ -13,7 +14,6 @@ import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins.Class as Pl
-import Data.Default
 
 -- * MockChain Wallets
 
@@ -72,7 +72,7 @@ txAddSignature w = Pl.addSignature' (walletSK w)
 -- the underlying plutus definitions to make it easer when we have
 -- to plug our own, if we ever have the need
 
-newtype InitialDistribution = InitialDistribution { distribution :: M.Map Wallet Pl.Value }
+newtype InitialDistribution = InitialDistribution {distribution :: M.Map Wallet Pl.Value}
   deriving (Eq, Show)
 
 instance Semigroup InitialDistribution where

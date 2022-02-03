@@ -12,7 +12,6 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.V1.Ledger.Ada as Ada
 import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
@@ -129,39 +128,6 @@ utxoStateDiffTgt = UtxoState . M.foldlWithKey keepIfModOrIns M.empty
     keepIfModOrIns m addr (Inserted v) = M.insert addr v m
     keepIfModOrIns m addr (Modified _del ins unch) = M.insert addr (ins <> unch) m
     keepIfModOrIns m _ _ = m
-
--- * Relations between states
-
--- | Returns whether two states are equal except for arbitrary differences in Ada.
---  This implies that the set of addresses in each state is the same, hence, the "equal" prefix.
---  If you don't care about that, check 'equivModuloAtMost'.
-equalModuloAda :: UtxoState -> UtxoState -> Bool
-equalModuloAda a b = M.foldl (\acu -> (acu &&) . eqModAda) True $ utxoStateDiff a b
-  where
-    -- If the address was modified, the states are equal modulo Ada if the modifications
-    -- contain only ada
-    eqModAda (Modified del ins _) =
-      let valDiff = utxoValueSetTotal ins <> Pl.negate (utxoValueSetTotal del)
-       in hasOnlyAda valDiff
-    -- If the address was deleted or inserted, the states are different in other ways
-    -- other than just ada.
-    eqModAda _ = False
-
-    hasOnlyAda :: Pl.Value -> Bool
-    hasOnlyAda v = case Pl.flattenValue v of
-      [] -> True
-      [(sym, tok, _)] -> sym == Ada.adaSymbol && tok == Ada.adaToken
-      _ -> False
-
--- | Returns whether the difference in value between two states is at most
---  a given bound. Note that the difference in value between states can be negative,
---  hence, the order of parameters matters here. See 'utxoStateDiffTotal' for more.
-equivModuloAtMost :: Pl.Value -> UtxoState -> UtxoState -> Bool
-equivModuloAtMost maxV a b =
-  noNegativeToken . (maxV <>) . Pl.negate $ utxoStateDiffTotal $ utxoStateDiff a b
-  where
-    noNegativeToken :: Pl.Value -> Bool
-    noNegativeToken = all (\(_, _, i) -> i >= 0) . Pl.flattenValue
 
 -- * Pretty-printing
 

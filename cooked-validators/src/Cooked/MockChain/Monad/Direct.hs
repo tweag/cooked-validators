@@ -187,7 +187,6 @@ runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
-
 -- Canonical initial values
 
 utxoState0 :: UtxoState
