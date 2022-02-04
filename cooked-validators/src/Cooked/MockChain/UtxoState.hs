@@ -89,9 +89,9 @@ utxoValueSetDiffTotal (Inserted ins) = utxoValueSetTotal ins
 utxoValueSetDiffTotal (Deleted del) = Pl.negate $ utxoValueSetTotal del
 utxoValueSetDiffTotal (Modified del ins _) = utxoValueSetTotal ins <> Pl.negate (utxoValueSetTotal del)
 
--- | Computes the total difference in value between a new state and between an old state.
--- If this difference is positive for some token @t@, it means some @t@ it was burnt. If this
--- difference is negative, some @t@ was minted.
+-- | Computes the total difference in value between a new state and an old state:
+-- @utxoStateDiff new old@. If this difference is positive for some token @t@,
+-- it means some @t@ it was burnt. If it is negative, some @t@ was minted.
 utxoStateDiffTotal :: UtxoStateDiff -> Pl.Value
 utxoStateDiffTotal = mconcat . map utxoValueSetDiffTotal . M.elems
 

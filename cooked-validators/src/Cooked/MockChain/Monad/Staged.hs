@@ -26,7 +26,9 @@ import qualified Prettyprinter.Render.String as PP
 
 -- * Interpreting and Running 'StagedMockChain'
 
--- | Interprets and runs the mockchain computation from a given initial state.
+-- | Interprets the staged mockchain then runs the resulting computation
+-- with a custom function. This can be used, for example, to supply
+-- a custom 'InitialDistribution' by providing 'runMockChainTFrom'.
 interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
