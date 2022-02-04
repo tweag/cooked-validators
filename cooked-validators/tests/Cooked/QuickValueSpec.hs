@@ -38,7 +38,7 @@ hasQuickValueAmount :: Wallet -> String -> Integer -> UtxoState -> Bool
 hasQuickValueAmount wallet quickValueName amount (UtxoState state) =
   case Map.lookup (walletAddress wallet) state of
     Nothing -> False
-    Just valuesAndDatums ->
+    Just (UtxoValueSet valuesAndDatums) ->
       amount
         == Pl.assetClassValueOf
           (mconcat (map fst valuesAndDatums))

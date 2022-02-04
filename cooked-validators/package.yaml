@@ -40,7 +40,6 @@ dependencies:
   - transformers
   - HUnit
   - QuickCheck
-  - quickcheck-transformer
 
 library:
   source-dirs: src
