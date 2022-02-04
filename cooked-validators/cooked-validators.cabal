@@ -13,15 +13,15 @@ extra-source-files:
 library
   exposed-modules:
       Cooked.MockChain
-      Cooked.MockChain.HUnit
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.Staged
-      Cooked.MockChain.QuickCheck
       Cooked.MockChain.RawUPLC
+      Cooked.MockChain.Testing
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoState
+      Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
@@ -60,7 +60,6 @@ library
     , plutus-tx-plugin
     , plutus-use-cases
     , prettyprinter
-    , quickcheck-transformer
     , scientific
     , streaming
     , tasty
@@ -75,6 +74,7 @@ test-suite spec
   other-modules:
       Cooked.BalanceSpec
       Cooked.MockChain.Monad.StagedSpec
+      Cooked.MockChain.UtxoStateSpec
       Cooked.QuickValueSpec
       Paths_cooked_validators
   hs-source-dirs:
@@ -108,7 +108,6 @@ test-suite spec
     , plutus-tx-plugin
     , plutus-use-cases
     , prettyprinter
-    , quickcheck-transformer
     , scientific
     , streaming
     , tasty

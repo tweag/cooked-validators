@@ -16,7 +16,6 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import Data.Default
 import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
@@ -25,7 +24,6 @@ import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified PlutusTx as Pl (FromData)
-import Test.QuickCheck.GenT
 
 -- * BlokChain Monad
 
@@ -254,22 +252,8 @@ instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => Mona
   everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
   somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
 
--- GenT is similar to ReaderT (QC.QCGen, Int),
--- so we can borrow inspiration for the instances from the latter.
-instance MonadTransControl GenT where
-  type StT GenT a = a
-
-  liftWith f = GenT (\r i -> f (\act -> unGenT act r i))
-  restoreT = lift
-
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadModal m => MonadModal (ReaderT r m)
-
-deriving via (AsTrans GenT m) instance MonadBlockChain m => MonadBlockChain (GenT m)
-
-deriving via (AsTrans GenT m) instance MonadMockChain m => MonadMockChain (GenT m)
-
-deriving via (AsTrans GenT m) instance MonadModal m => MonadModal (GenT m)

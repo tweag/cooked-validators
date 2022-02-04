@@ -5,13 +5,13 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
 module PMultiSigStatefulSpec where
 
 import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
-import Cooked.MockChain.HUnit
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Either (isLeft, isRight)
@@ -27,7 +27,6 @@ import qualified PlutusTx.AssocMap as AssocMap
 import qualified PlutusTx.IsData.Class as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Test.QuickCheck as QC
-import Test.QuickCheck.GenT
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
@@ -180,7 +179,7 @@ tests =
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  testCase "Example Trivial Trace" $ assertSucceeds mtrace
+  testCase "Example Trivial Trace" $ testSucceeds mtrace
   where
     mtrace :: MonadMockChain m => m ()
     mtrace = do
@@ -197,64 +196,27 @@ qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
 qcIsRight (Right _) = QC.property True
 
--- | This is a test tree with quickcheck properties. A word of caution is necessary as the
---  semantics of 'GenT' and 'somewhere'/'everywhere' can be easily confused and lead to
---  tests that take way too long to run.
+-- | This is a test tree with quickcheck properties.
+--  When using the QuickCheck forAll in conjunction to 'somewhere'
+--  one might run significantly more tests than expected.
 --
---  TL;DR: if using 'somewhere' in your test, make sure to set
---  @localOption (QuickCheckTests x)@ for some x smaller than the default (100).
+--  Say that we have:
 --
---  What is happening, though? Well, say we write a trace:
+--  > tr2 parm = somewhere mod $ do
+--  >   mkTxA parm
+--  >   mkTxB parm
 --
---  > tr :: (MonadBlockChain m) => GenT m ()
---  > tr = do
---  >   x <- choose (0, 10)
---  >   y <- choose (0, 10)
---  >   validateTxFromSkel (mkTx x)
---  >   validateTxFromSkel (mkTx y)
+--  This represents a set of two traces:
 --
---  If interpreted with @m ~ StagedMockChain@, the @tr@ above denotes a
---  probability distribution over functions that return a list of possible outcomes,
---  that is:
+--  > { mod mkTxA >> mkTxB  , mkTxA >> mod mkTxB }
 --
---  > interpret (runGenT tr)
---  >   :: Gen (MockChainT (WriterT TraceDesc []) ())
+--  Now say we call:
 --
---  Now thats a mouthful of monad transformers to look at, if we expand them all we get:
---
---  > Gen (MockChainSt -> [(Either MockChainErr (), TraceDesc)])
---
---  In the particular case of tr, above, we get a probability distribution of
---  traces that return only one possible result. The probability distribution is
---  over the choice of values for @x@ and @y@. Regardless of that, the trace produces
---  a single result which consists of validating transactions @mkTx x@ and @mkTx y@.
---
---  Now say we change @tr@ to:
---
---  > tr2 :: (MonadBlockChain m) => GenT m ()
---  > tr2 = do
---  >   x <- choose (0, 10)
---  >   y <- choose (0, 10)
---  >   somewhere mod $ do
---  >     validateTxFromSkel (mkTx x)
---  >     validateTxFromSkel (mkTx y)
---
---  Now, the probability distribution is still over the choice of values for @x@ and @y@,
---  but for any given such choice, we return a function that given an initial state
---  returns /two/ possible results:
---
---  1. One where we validate transactions @mod (mkTx x)@ and @mkTx y@
---  2. One where we validate transactions @mkTx x@ and @mod (mkTx y)@
---
---  When using the 'forAllTr' and 'forAllTrP' combinators, we're actualy
---  testing the 'QC.conjoin' of all possible universes returned by trace.
---  Hence, if we run the following 'testTree' with default options:
---
---  > testProperty "propName" $ forAllTr tr2 somePredicate
+--  > testProperty "propName" $ forAll genParm (testSucceeds . tr2)
 --
 --  QuickCheck will run the property 100 times, but each of those runs
 --  we will be checking two different traces. So all in all, we will look
---  at 200 traces. A more reasonable option is to use:
+--  at 200 traces. Make sure to use 'localOption' to reduce that if necessary:
 --
 --  > localOption (QuickCheckTests 25) $
 --  >   testProperty "propName" $ forAllTr tr2 somePredicate
@@ -264,24 +226,19 @@ sampleGroup1 =
     testGroup
       "Property-based Test Examples"
       [ testProperty "Can execute payment with enough signatures" $
-          forAllTrP
+          QC.forAll
             successParams
-            (\p -> propose p >>= execute p)
-            (const qcIsRight),
+            (\p -> testSucceeds @QC.Property $ propose p >>= execute p),
         testProperty "Cannot execute payment without enough signatures" $
-          forAllTrP
-            failureParams
-            (\p -> propose p >>= execute p)
-            (const (QC.property . isLeft)),
+          QC.forAll failureParams (\p -> testFails @QC.Property $ propose p >>= execute p),
         testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
-          forAllTrP
+          QC.forAll
             successParams
-            ( \p -> do
+            ( \p -> testFails @QC.Property $ do
                 i <- propose p
                 w3utxos <- pkUtxos (walletPKHash $ wallet 9)
                 somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
             )
-            (const (QC.property . isLeft))
       ]
 
 data ThresholdParams = ThresholdParams
@@ -298,10 +255,10 @@ numUniqueSigs = fromIntegral . length . nub . sigWallets
 anyParams :: QC.Gen ThresholdParams
 anyParams =
   ThresholdParams
-    <$> choose (1, 5)
-    <*> resize 5 (listOf (choose (1, 8)))
-    <*> (wallet <$> choose (1, 8))
-    <*> (Payment <$> choose (1200, 4200) <*> (walletPKHash . wallet <$> choose (1, 8)))
+    <$> QC.choose (1, 5)
+    <*> QC.resize 5 (QC.listOf (QC.choose (1, 8)))
+    <*> (wallet <$> QC.choose (1, 8))
+    <*> (Payment <$> QC.choose (1200, 4200) <*> (walletPKHash . wallet <$> QC.choose (1, 8)))
 
 successParams :: QC.Gen ThresholdParams
 successParams =
@@ -315,10 +272,10 @@ successParams =
 failureParams :: QC.Gen ThresholdParams
 failureParams = anyParams `QC.suchThat` (\p -> numUniqueSigs p < reqSigs p)
 
-propose :: MonadMockChain m => ThresholdParams -> GenT m (Params, Pl.TxOutRef)
+propose :: MonadMockChain m => ThresholdParams -> m (Params, Pl.TxOutRef)
 propose parms = mkProposal (reqSigs parms) (pmt parms) `as` proposerWallet parms
 
-execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> GenT m ()
+execute :: MonadMockChain m => ThresholdParams -> (Params, Pl.TxOutRef) -> m ()
 execute tParms (parms, tokenRef) = do
   forM_ (sigWallets tParms) $ \wId -> mkSign parms (pmt tParms) (walletSK $ wallet wId) `as` wallet wId
   mkCollect (pmt tParms) parms
@@ -351,7 +308,7 @@ deriving instance Show DupTokenAttacked
 -- uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
 -- chances are said script will be vulnerable.
 datumHijackingTrace :: TestTree
-datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ assertFails datumHijacking
+datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ testFails datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9

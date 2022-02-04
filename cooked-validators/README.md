@@ -74,13 +74,31 @@ endpoints = endpoint @"lock" (txLock . mkSplitData)
 And, because `Contract w s e` is an instance of `MonadBlockChain`, thats all there is to it, you can just reuse your `MonadBlockChain` code without any modifications. But we're not interested in _just using it_. We also want
 to make sure that our contract implementation is correct.
 
-### Unit Tests
+### Testing
 
-We can start by writing a unit test, that exercises our `splitValidator` and asserts that the execution succeeds:
+When writing tests we're often interested in interacting with our validators from
+the perspective of multiple wallets. That is where the `MonadMockChain` class comes in handy.
+It provides us with the means to execute some `tr :: (MonadBlockChain m) => m ()` from different
+wallets. For instance:
+
+```haskell
+-- Some contract functionality that gets used as part of 
+-- the production off-chain code
+tr :: (MonadBlockChain m) => m ()
+tr = do ... 
+
+-- In a testing scenario, runs @tr@ from Bob's wallet.
+trByBob :: (MonadMockChain m) => m ()
+trByBob = tr `as` bobWallet
+```
+
+#### Unit Tests
+
+Let us start by writing a unit test that exercises our `splitValidator` and ensures that the execution succeeds:
 
 ```haskell
 test1 :: TestTree
-test1 = testCase "Simple trace succeeds" $ assertSucceeds $ do
+test1 = testCase "Simple trace succeeds" $ testSucceeds $ do
   txLock lockParams `as` wallet 1
   txUnlock `as` wallet 2
  where
@@ -89,29 +107,44 @@ test1 = testCase "Simple trace succeeds" $ assertSucceeds $ do
 
 Here, we're executing `txLock lockParams` from `wallet 1`'s point of view, where we lock 2 ada to be
 split amongst wallets 2 and 3, then we attempt to unlock as wallet 2. Our expectation is that this should
-possible and hence, we use `assertSucceeds :: StagedMockChain a -> Test.HUnit.Assertion`. Note how we are
-using _the same_ `txLock` and `txUnlock`, but instantiated to a different type.
+possible, hence we use `testSucceeds` which ensures that all the transactions in that trace succeeded.
+It is worth noting that we are using _the same_ `txLock` and `txUnlock` that we used to
+create our endpoints, but instantiated to a different type when testing.
 
-### Property-based Tests
+#### Property-based Tests
 
-Now that we built some intuition on our system with our unit tests, we can lift them to property-based tests.
-Because `GenT m` is also a `MonadBlockChain` for `MonadBlockChain m`, we can rely on any existing quickcheck
-machinery to do so. For example,
+Going from unit tests to property-based tests requires nothing but standard `QuickCheck`:
+we use `Test.QuickCheck.forAll` to generate some parameters then specify our test using
+the combinators from [`Cooked.MockChain.Testing`](src/Cooked/MockChain/Testing.hs).
+
+Say that we wanted to lift `test1` above to a property-based test. We could do so by
+writing a `Test1Params` record, then writing a function that maps a `Test1Params` 
+into a `MonadMockChain`. To make the code snippet shorter, lets use a 4-tuple
+instead of defining a custom record:
 
 ```haskell
 test2 :: TestTree
-test2 = testProperty "Arbitrary simple trace succeeds" $ traceSucceeds $ do
-  w1  <-  wallet <$> choose (1, 9)
-  w2  <- (wallet <$> choose (1, 9)) `suchThat` (/= w1)
-  amm <- choose (2_000_000, 4_000_000) -- must be at least minAdaPerUTxO
-  let lockParams = SplitDatum (walletPKHash w1) (walletPKHash w2) amm
-  txLock lockParams `as` w1
-  w' <- oneOf [w1, w2]
-  txUnlock `as` w'
+test2 = testProperty "Arbitrary simple trace succeeds" $ 
+    forAll genParam $ \(w1, w2, amm, w') -> testSucceeds $ do
+      let lockParams = SplitDatum (walletPKHash w1) (walletPKHash w2) amm
+      txLock lockParams `as` w1
+      txUnlock `as` w'
+ where
+  genParams = do
+    w1  <-  wallet <$> choose (1, 9)
+    w2  <- (wallet <$> choose (1, 9)) `suchThat` (/= w1)
+    amm <- choose (2_000_000, 4_000_000) -- must be at least minAdaPerUTxO
+    w'  <- oneOf [w1, w2]
+    return (w1, w2, amm, w')
 ```
 
 Which conveniently provides us with a `Tx`-level property-based test to check the correctness
-of our `splitValidator`.
+of our `splitValidator`. Also worth noting here is that we're using the same `testSucceeds` predicate,
+which in this case returns a `Test.QuickCheck.Property`.
+In fact, `testSucceeds` has type `(IsProp prop) => StagedMockChain a -> prop` and lives under
+[`Cooked.MockChain.Testing`](src/Cooked/MockChain/Testing.hs). All of the predicate combinators in
+that module can be used with both `Test.HUnit` and `Test.QuickCheck` since we have 
+two `IsProp Assertion` and `IsProp Property` instances.
 
 ### Next Steps
 
