@@ -50,7 +50,7 @@ class (MonadFail m) => MonadBlockChain m where
   validateTxSkel :: TxSkel -> m Pl.TxId
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
-  --  Additionally, return the datum present in there if it happened to be a script output. It is important
+  --  Additionally, return any datum present in the specific output. It is important
   --  to use @-XTypeApplications@ and pass a value for type variable @a@ below.
   utxosSuchThat ::
     (Pl.FromData a) =>
@@ -63,8 +63,14 @@ class (MonadFail m) => MonadBlockChain m where
 
   -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
   --  this is a proxy to 'Pl.ownPubKey'; when running in mock mode, the return value can be
-  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
+  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownWallet".
   ownPaymentPubKeyHash :: m Pl.PubKeyHash
+
+  -- | Returns the hash of our own staking public key. When running in the "Plutus.Contract.Contract" monad
+  -- this will error because there is no equivalent method in there yet; when running in mock mode,
+  -- the return value can be controlled with 'signingWith': the head of the non-empty list will
+  -- be considered as the "ownWallet".
+  ownStakingPubKeyHash :: m Pl.PubKeyHash
 
   -- | Returns the current slot number
   currentSlot :: m Pl.Slot
@@ -131,14 +137,19 @@ spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- | Public-key UTxO's have no datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
+-- | Public-key UTxO's that have no datum, hence, can be selected easily with
+--  a simpler variant of 'utxosSuchThat'.
+pkUtxosSuchThat ::
+  (MonadBlockChain m) =>
+  Pl.PubKeyHash ->
+  (Pl.Value -> Bool) ->
+  m [SpendableOut]
 pkUtxosSuchThat pkh predicate =
   map fst
-    <$> utxosSuchThat @_ @Void
+    <$> utxosSuchThat @_ @()
+      -- TODO: StakingCredential?
       (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-      (maybe predicate absurd)
+      (const predicate)
 
 -- | Script UTxO's always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@

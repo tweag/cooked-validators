@@ -75,6 +75,7 @@ data MockChainOp a where
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainOp [(SpendableOut, Maybe a)]
   OwnPubKey :: MockChainOp Pl.PubKeyHash
+  OwnStakingPubKey :: MockChainOp Pl.PubKeyHash
   --
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
   AskSigners :: MockChainOp (NE.NonEmpty Wallet)
@@ -181,6 +182,7 @@ instance MonadBlockChain StagedMockChain where
   utxosSuchThat addr = singleton . UtxosSuchThat addr
   txOutByRef = singleton . TxOutByRef
   ownPaymentPubKeyHash = singleton OwnPubKey
+  ownStakingPubKeyHash = singleton OwnStakingPubKey
   currentSlot = singleton GetCurrentSlot
   currentTime = singleton GetCurrentTime
   awaitSlot = singleton . AwaitSlot
