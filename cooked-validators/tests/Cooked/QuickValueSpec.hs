@@ -28,7 +28,7 @@ paymentAfterCustomInitialization =
     validateTxConstrOpts
       -- we have to adjust the tx in order for it not to fail with ValueLessThanMinAda
       (def {adjustUnbalTx = True})
-      [paysPK (walletPKHash $ wallet 2) (quickValue "goldenCoins" 12)]
+      [PaysPK (walletPKHash $ wallet 2) (quickValue "goldenCoins" 12)]
     return ()
 
 quickValuesInitialisation :: Either MockChainError ((), UtxoState)

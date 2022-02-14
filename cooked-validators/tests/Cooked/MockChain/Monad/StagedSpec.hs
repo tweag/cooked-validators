@@ -25,10 +25,10 @@ assertAll space f = mapM_ f space
 possibleTraces :: [StagedMockChain ()]
 possibleTraces =
   [ return (),
-    void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)],
+    void $ validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)],
     void $ do
-      validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
-      validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
+      validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
+      validateTxConstr [PaysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
   ]
 
 spec :: Spec
@@ -58,8 +58,8 @@ spec = do
     -- If we execute @somewhere k tr'@ instead, we should expect to see 8 branches.
     -- Because we're choosing @f = g = k = id@, we exept the eight traces to be equal to tr.
     let tr =
-          validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
-            >> validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 8_400_000)]
+          validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
+            >> validateTxConstr [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 8_400_000)]
      in interpret (somewhere Just $ somewhere Just $ somewhere Just tr)
           `imcEq` asum (replicate 8 $ interpret tr)
 
@@ -67,13 +67,12 @@ spec = do
     let -- Sample trace
         tr f g =
           validateTxConstr
-            [ paysPK
+            [ PaysPK
                 (walletPKHash $ wallet 2)
                 (f $ g $ Pl.lovelaceValueOf 4_200_000)
             ]
         -- Function to modify some specific skeletons
-        app f (TxSkel l opts [PaysPKWithDatum pk stak dat val]) =
-          Just $ TxSkel l opts [PaysPKWithDatum pk stak dat (f val)]
+        app f (TxSkel l opts [PaysPK tgt val]) = Just $ TxSkel l opts [PaysPK tgt (f val)]
         app f _ = Nothing
         -- Two transformations
         f x = Pl.lovelaceValueOf 3_000_000

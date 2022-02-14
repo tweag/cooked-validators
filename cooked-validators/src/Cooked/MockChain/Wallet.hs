@@ -5,9 +5,6 @@
 
 module Cooked.MockChain.Wallet where
 
-import qualified Cardano.Wallet.Primitive.Types as CW
-import qualified Data.ByteArray as BA
-import qualified Data.ByteString as BS
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -15,7 +12,6 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins.Class as Pl
 
@@ -27,38 +23,21 @@ import qualified PlutusTx.Builtins.Class as Pl
 -- provide our own wrapper on top of them to make sure that we can easily deal
 -- changes from Plutus.
 
-data Wallet = Wallet
-  { mockWallet :: CW.MockWallet,
-    stakeKey :: Crypto.PrivateKey
-  }
-
--- I'll rely on the previous show instance not to mess with pretty printing
--- at this point in time.
-instance Show Wallet where
-  show = show . mockWallet
-
-fromMockWallet :: CW.MockWallet -> Wallet
-fromMockWallet mw = Wallet mw staking
-  where
-    staking = Crypto.generateFromSeed' (pack $ CW.mwWalletId mw)
-
-    -- seeds have to be at least 32 bytes long
-    pack :: CW.WalletId -> BS.ByteString
-    pack (CW.WalletId bs) = BA.pack . take 32 . (++ repeat 0) . BA.unpack $ bs
+type Wallet = CW.MockWallet
 
 instance Eq Wallet where
-  (==) = (==) `on` (CW.mwWalletId . mockWallet)
+  (==) = (==) `on` CW.mwWalletId
 
 instance Ord Wallet where
-  compare = compare `on` (CW.mwWalletId . mockWallet)
+  compare = compare `on` CW.mwWalletId
 
 knownWallets :: [Wallet]
-knownWallets = map fromMockWallet CW.knownMockWallets
+knownWallets = CW.knownMockWallets
 
 wallet :: Int -> Wallet
 wallet j
   | j > 0 && j <= 10 = let i = j - 1 in knownWallets !! i
-  | otherwise = fromMockWallet $ CW.fromWalletNumber (CW.WalletNumber $ fromIntegral j)
+  | otherwise = CW.fromWalletNumber (CW.WalletNumber $ fromIntegral j)
 
 walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
 walletPKHashToId = flip M.lookup walletPKHashToIdMap
@@ -66,28 +45,16 @@ walletPKHashToId = flip M.lookup walletPKHashToIdMap
     walletPKHashToIdMap = M.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
 
 walletPK :: Wallet -> Pl.PubKey
-walletPK = Pl.unPaymentPubKey . CW.paymentPubKey . mockWallet
-
-walletStakingPK :: Wallet -> Pl.PubKey
-walletStakingPK = Crypto.toPublicKey . stakeKey
+walletPK = Pl.unPaymentPubKey . CW.paymentPubKey
 
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
 
-walletStakingPKHash :: Wallet -> Pl.PubKeyHash
-walletStakingPKHash = Crypto.pubKeyHash . walletStakingPK
-
 walletAddress :: Wallet -> Pl.Address
-walletAddress w =
-  Pl.Address
-    (Pl.PubKeyCredential $ walletPKHash w)
-    (Just $ Pl.StakingHash . Pl.PubKeyCredential . walletStakingPKHash $ w)
+walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
 
-walletPaymentSK :: Wallet -> Pl.PrivateKey
-walletPaymentSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey . mockWallet
-
-walletStakingSK :: Wallet -> Pl.PrivateKey
-walletStakingSK = stakeKey
+walletSK :: CW.MockWallet -> Pl.PrivateKey
+walletSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
 toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
@@ -95,7 +62,7 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 -- * Signs a transaction
 
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature w = Pl.addSignature' (walletStakingSK w)
+txAddSignature w = Pl.addSignature' (walletSK w)
 
 -- * Initial distribution of funds
 

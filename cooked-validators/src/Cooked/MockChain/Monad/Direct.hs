@@ -28,7 +28,7 @@ import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
-import Data.Maybe (catMaybes, isJust, mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
@@ -220,8 +220,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
 
-  ownStakingPubKeyHash = asks (walletStakingPKHash . NE.head . mceSigners)
-
   utxosSuchThat = utxosSuchThat'
 
   currentSlot = gets mcstCurrentSlot
@@ -280,25 +278,24 @@ utxosSuchThat' addr datumPred = do
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
-    go oref (Pl.TxOut oaddr val mdatumH) = do
-      -- We begin by attempting to lookup the given datum hash in our map of managed datums.
-      managedDatums <- gets mcstDatums
-      let mdatum = mdatumH >>= (`M.lookup` managedDatums)
-      -- Now, depending on whether we're looking at a utxo that belongs to a pk or a script,
-      -- there's a slight difference in treatment:
+    go oref (Pl.TxOut oaddr val mdatumH) =
       case Pl.addressCredential oaddr of
-        -- PubKey outputs are not required to have a datum, hence, if we have noe we pass it to the
-        -- predicate, otherwise we don't.
-        Pl.PubKeyCredential _ -> do
-          let ma = mdatum >>= Pl.fromBuiltinData . Pl.getDatum
-          if datumPred ma val
-            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, ma)
+        -- A PK credential has no datum; just check whether we want to select this output or not.
+        Pl.PubKeyCredential _ ->
+          if datumPred Nothing val
+            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, Nothing)
             else return Nothing
-        -- Script addresses, on the other hand, /must/ have a datum present. Hence, we check
-        -- that and fail accordingly if needed.
+        -- A script credential, on the other hand, must have a datum. Hence, we'll go look on our map of
+        -- managed datum for a relevant datum, try to convert it to a value of type @a@ then see
+        -- if the user wants to select said output.
         Pl.ScriptCredential (Pl.ValidatorHash vh) -> do
+          managedDatums <- gets mcstDatums
           datumH <- maybe (fail $ "ScriptCredential with no datum hash: " ++ show oref) return mdatumH
-          datum <- maybe (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref) return mdatum
+          datum <-
+            maybe
+              (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref)
+              return
+              $ M.lookup datumH managedDatums
           a <-
             maybe
               (fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?")

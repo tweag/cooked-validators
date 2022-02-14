@@ -40,9 +40,6 @@ dependencies:
   - transformers
   - HUnit
   - QuickCheck
-  - cardano-crypto
-  - cardano-wallet-core
-  - memory
 
 library:
   source-dirs: src

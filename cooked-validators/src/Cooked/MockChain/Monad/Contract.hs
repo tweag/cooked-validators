@@ -43,14 +43,6 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
 
   ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownPaymentPubKeyHash
 
-  ownStakingPubKeyHash =
-    fail $
-      concat
-        [ "Cannot return our own staking public key when running under 'Contract'.",
-          "If you believe you should be able to do so, please submit an issue and",
-          "we will address this asap"
-        ]
-
   currentSlot = C.currentSlot
   currentTime = C.currentTime
   awaitSlot = C.awaitSlot

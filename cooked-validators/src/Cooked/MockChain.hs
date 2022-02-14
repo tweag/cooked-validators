@@ -30,7 +30,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.UtxoState.Testing
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
-import Cooked.Tx.Constraints (Constraint (..), SpendableOut, paysPK)
+import Cooked.Tx.Constraints (Constraint (..), SpendableOut)
 import qualified Ledger as Pl
 
 -- | Spends some value from a pubkey by selecting the needed utxos belonging
@@ -41,4 +41,4 @@ spentByPK pkh val = do
   -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (paysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
+  (PaysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend

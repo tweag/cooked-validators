@@ -39,8 +39,6 @@ library
     , aeson
     , base >=4.9 && <5
     , bytestring
-    , cardano-crypto
-    , cardano-wallet-core
     , containers
     , data-default
     , deepseq
@@ -50,7 +48,6 @@ library
     , freer-extras
     , freer-simple
     , lens
-    , memory
     , monad-control
     , mtl
     , plutus-contract
@@ -88,8 +85,6 @@ test-suite spec
     , aeson
     , base >=4.9 && <5
     , bytestring
-    , cardano-crypto
-    , cardano-wallet-core
     , containers
     , cooked-validators
     , data-default
@@ -101,7 +96,6 @@ test-suite spec
     , freer-simple
     , hspec
     , lens
-    , memory
     , monad-control
     , mtl
     , plutus-contract
