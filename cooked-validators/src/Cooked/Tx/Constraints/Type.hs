@@ -67,11 +67,13 @@ data Constraint where
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
     Constraint
-  -- TODO: something like stepscript below could be nice!
-  -- StepsScript  :: (Pl.ToData a, Pl.ToData redeemer)
-  --              => Pl.Validator -> redeemer -> (SpendableOut, a) -> (a -> a) -> Constraint
-
-  PaysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
+  PaysPKWithDatum ::
+    (Pl.ToData a, Show a) =>
+    Pl.PubKeyHash ->
+    Maybe Pl.StakePubKeyHash ->
+    Maybe a ->
+    Pl.Value ->
+    Constraint
   SpendsPK :: SpendableOut -> Constraint
   Mints ::
     (Pl.ToData a, Show a) =>
@@ -83,6 +85,9 @@ data Constraint where
   After :: Pl.POSIXTime -> Constraint
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
   SignedBy :: [Pl.PubKeyHash] -> Constraint
+
+paysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
+paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 
 mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
 mints = Mints @() Nothing

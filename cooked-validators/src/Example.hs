@@ -16,4 +16,4 @@ example = runMockChain $ do
   void $
     validateTxSkel $
       txSkel
-        [PaysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200)]
+        [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200)]
