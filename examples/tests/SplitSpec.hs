@@ -37,8 +37,8 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
       share2 = fromMaybe id mAmountChanger (amount - half)
       constraints =
         [ SpendsScript Split.splitValidator () (output, datum),
-          PaysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
-          PaysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
+          paysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
+          paysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
         ]
       remainder = amount - share1 - share2
       remainderConstraint =
@@ -73,9 +73,9 @@ txUnlockAttack issuer = do
       constraints =
         [ SpendsScript Split.splitValidator () (output1, datum1),
           SpendsScript Split.splitValidator () (output2, datum2),
-          PaysPK r11 half1,
-          PaysPK r12 (if amount1 > amount2 then half1 else half2),
-          PaysPK r21 half2
+          paysPK r11 half1,
+          paysPK r12 (if amount1 > amount2 then half1 else half2),
+          paysPK r21 half2
         ]
   void $ validateTxConstrLbl TxUnlockAttack constraints `as` issuer
 

@@ -23,7 +23,7 @@ import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
+import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import qualified PlutusTx as Pl (FromData)
 
 -- * BlokChain Monad
@@ -129,26 +129,16 @@ spendableRef txORef = do
 -- | Script UTxO's datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
 --  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
---
---  If you don't care about staking credentials, refer to the simpler 'scriptUtxosSuchThat''.
 scriptUtxosSuchThat ::
-  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
-  Pl.TypedValidator tv ->
-  (Maybe Pl.StakingCredential -> Pl.DatumType tv -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Pl.DatumType tv)]
-scriptUtxosSuchThat v predicate =
-  map (second fromJust)
-    <$> utxosSuchThat
-      (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v)
-      (maybe (const False) . predicate)
-
--- | Analogous to 'scriptUtxosSuchThat', but ignores the staking credential.
-scriptUtxosSuchThat' ::
   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
   (Pl.DatumType tv -> Pl.Value -> Bool) ->
   m [(SpendableOut, Pl.DatumType tv)]
-scriptUtxosSuchThat' v = scriptUtxosSuchThat v . const
+scriptUtxosSuchThat v predicate =
+  map (second fromJust)
+    <$> addrUtxosSuchThat
+      (Pl.validatorAddress v)
+      (maybe (const False) predicate)
 
 -- | Public-key UTxO's that satisfy a given predicate. Simpler variant of 'utxosSuchThat';
 --

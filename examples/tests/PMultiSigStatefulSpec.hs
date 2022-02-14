@@ -50,13 +50,13 @@ mkParams =
   Params pkTable 2 . threadTokenAssetClass <$> mkThreadToken
   where
     mkThreadTokenInputSkel :: Pl.PubKeyHash -> TxSkel
-    mkThreadTokenInputSkel pkh = txSkel [PaysPK pkh mempty]
+    mkThreadTokenInputSkel pkh = txSkel [paysPK pkh mempty]
 
     mkThreadToken :: MonadBlockChain m => m Pl.TxOutRef
     mkThreadToken = do
       pkh <- ownPaymentPubKeyHash
       void $ validateTxSkel $ mkThreadTokenInputSkel pkh
-      emptyUtxos <- pkUtxosSuchThat pkh (== mempty)
+      emptyUtxos <- pkUtxos pkh
       case emptyUtxos of
         [] -> error "No empty UTxOs"
         ((out, _) : _) -> pure out
@@ -147,7 +147,7 @@ mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
     validateTxConstr
       -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
       -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
-      [ PaysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
+      [ paysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
         SpendsScript (pmultisig params) () accumulated,
         mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
       ]
@@ -292,7 +292,7 @@ dupTokenAttack sOut (parms, tokenRef) (TxSkel l opts cs) =
       [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),
         SpendsPK sOut,
         signedByWallets [wallet 9],
-        PaysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
+        paysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
       ]
 
 data DupTokenAttacked where

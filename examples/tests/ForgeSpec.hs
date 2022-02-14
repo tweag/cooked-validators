@@ -76,7 +76,7 @@ smiths bbId val = do
       [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
         mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val),
         PaysScript (smithVal bbId) [(Forge owner (forged + val), sOutValue outSmith)],
-        PaysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
+        paysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
       ]
   where
     belongsTo (Forge owner _) pkh = owner == pkh

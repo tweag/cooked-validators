@@ -13,6 +13,7 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import qualified Ledger as Pl
+import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)
 import qualified Plutus.Contract as C
@@ -60,8 +61,8 @@ txUnlock script = do
     validateTxConstrLbl
       TxUnlock
       [ SpendsScript script () (output, datum),
-        PaysPK r1 (Pl.lovelaceValueOf share1),
-        PaysPK r2 (Pl.lovelaceValueOf share2)
+        paysPK r1 (Pl.lovelaceValueOf share1),
+        paysPK r2 (Pl.lovelaceValueOf share2)
       ]
 
 -- | Label for 'txUnlock' skeleton
