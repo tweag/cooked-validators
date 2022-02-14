@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -49,14 +50,28 @@ class (MonadFail m) => MonadBlockChain m where
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
   validateTxSkel :: TxSkel -> m Pl.TxId
 
-  -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
-  --  Additionally, return the datum present in there if it happened to be a script output. It is important
-  --  to use @-XTypeApplications@ and pass a value for type variable @a@ below.
+  -- | Returns a list of spendable outputs that belong to a given credential and satisfy a given predicate;
+  --  Additionally, return the datum present in there. It is important to use @-XTypeApplications@ and
+  --  pass a value for type variable @a@ below.
   utxosSuchThat ::
+    (Pl.FromData a) =>
+    Pl.Credential ->
+    (Maybe Pl.StakingCredential -> Maybe a -> Pl.Value -> Bool) ->
+    m [(SpendableOut, Maybe a)]
+
+  -- | Search for UTxOs belonging to a given address, which includes a specific staking credential.
+  --  To search for addresses irrespective of their staking credential use one of:
+  --  'utxosSuchThat', 'pkUtxosSuchThat' or 'scriptUtxosSuchThat'.
+  addrUtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
     m [(SpendableOut, Maybe a)]
+  -- This is here because the Contract monad is inflexible and doesn't allow us to search
+  -- for credentials irrespective of their staking credential; so 'utxosSuchThat' crashes in
+  -- the contract monad...
+  addrUtxosSuchThat (Pl.Address cred stak) predi =
+    utxosSuchThat cred (\stak' -> if stak == stak' then predi else \_ _ -> False)
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
@@ -84,32 +99,6 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- | The 'Plutus.Contract.Contract' monad has certain design decisions
--- that make it suboptimal for testing. Therefore, we divided the abstract
--- interface into those functions that have an interpretation in
--- 'Plutus.Contract.Contract' and those that do not.
---
--- For example, a function returning a value of type @Contract@ can be thought
--- of as an interaction with a plutus contract from a /single user/ point of view.
--- When testing, however, we might want to interact with a contract from multiple different users.
--- Changing the set of wallets that sign a transaction has no interpretation
--- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
-class (MonadBlockChain m) => MonadMockChain m where
-  -- | Sets a list of wallets that will sign every transaction emitted
-  --  in the respective block
-  signingWith :: NE.NonEmpty Wallet -> m a -> m a
-
-  -- | Returns the current set of signing wallets.
-  askSigners :: m (NE.NonEmpty Wallet)
-
--- | Runs a given block of computations signing transactions as @w@.
-as :: (MonadMockChain m) => m a -> Wallet -> m a
-as ma w = signingWith (w NE.:| []) ma
-
--- | Flipped version of 'as'
-signs :: (MonadMockChain m) => Wallet -> m a -> m a
-signs = flip as
-
 -- | Calls 'validateTxSkel' with a skeleton that is set with some specific options.
 validateTxConstrOpts :: (MonadBlockChain m) => TxOpts -> [Constraint] -> m Pl.TxId
 validateTxConstrOpts opts = validateTxSkel . txSkelOpts opts
@@ -122,38 +111,6 @@ validateTxConstr = validateTxSkel . txSkel
 validateTxConstrLbl :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
--- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
--- Hence, modal actions are TxSkel's.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
-
-spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
-spendableRef txORef = do
-  Just txOut <- txOutByRef txORef
-  return (txORef, fromJust (Pl.fromTxOut txOut))
-
--- | Public-key UTxO's have no datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
-pkUtxosSuchThat pkh predicate =
-  map fst
-    <$> utxosSuchThat @_ @Void
-      (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-      (maybe predicate absurd)
-
--- | Script UTxO's always have a datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
---  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
-scriptUtxosSuchThat ::
-  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
-  Pl.TypedValidator tv ->
-  (Pl.DatumType tv -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Pl.DatumType tv)]
-scriptUtxosSuchThat v predicate =
-  map (second fromJust)
-    <$> utxosSuchThat
-      (Pl.Address (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v) Nothing)
-      (maybe (const False) predicate)
-
 -- | Returns the output associated with a given reference
 outFromOutRef :: (MonadBlockChain m) => Pl.TxOutRef -> m Pl.TxOut
 outFromOutRef outref = do
@@ -162,9 +119,65 @@ outFromOutRef outref = do
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
 
+spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
+spendableRef txORef = do
+  Just txOut <- txOutByRef txORef
+  return (txORef, fromJust (Pl.fromTxOut txOut))
+
+-- ** Selecting UTxOs
+
+-- | Script UTxO's datum, hence, can be selected easily with
+--  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
+--  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
+--
+--  If you don't care about staking credentials, refer to the simpler 'scriptUtxosSuchThat''.
+scriptUtxosSuchThat ::
+  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
+  Pl.TypedValidator tv ->
+  (Maybe Pl.StakingCredential -> Pl.DatumType tv -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Pl.DatumType tv)]
+scriptUtxosSuchThat v predicate =
+  map (second fromJust)
+    <$> utxosSuchThat
+      (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v)
+      (maybe (const False) . predicate)
+
+-- | Analogous to 'scriptUtxosSuchThat', but ignores the staking credential.
+scriptUtxosSuchThat' ::
+  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
+  Pl.TypedValidator tv ->
+  (Pl.DatumType tv -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Pl.DatumType tv)]
+scriptUtxosSuchThat' v = scriptUtxosSuchThat v . const
+
+-- | Public-key UTxO's that satisfy a given predicate. Simpler variant of 'utxosSuchThat';
+--
+--  If you don't care about staking credentials, refer to the simpler 'pkUtxosSuchThat''
+--  or even 'pkUtxosWithVal' if you also don't care for the datums.
+pkUtxosSuchThat ::
+  (MonadBlockChain m, Pl.FromData a) =>
+  Pl.PubKeyHash ->
+  (Maybe Pl.StakingCredential -> Maybe a -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Maybe a)]
+pkUtxosSuchThat pkh = utxosSuchThat (Pl.PubKeyCredential pkh)
+
+-- | Analogous to 'pkUtxosSuchThat', but ignores the staking credential.
+pkUtxosSuchThat' ::
+  (MonadBlockChain m, Pl.FromData a) =>
+  Pl.PubKeyHash ->
+  (Maybe a -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Maybe a)]
+pkUtxosSuchThat' pkh = pkUtxosSuchThat pkh . const
+
+-- | Return all utxos belonging to a pubkey containing a value that satisfies the
+--   provided predicate. Ignores staking credentials and datums. Check 'pkUtxosSuchThat'
+--   for a more fine grained selection.
+pkUtxosWithVal :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
+pkUtxosWithVal pk predi = map fst <$> pkUtxosSuchThat' @_ @Void pk (const predi)
+
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos = flip pkUtxosSuchThat (const True)
+pkUtxos = flip pkUtxosWithVal (const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
@@ -196,7 +209,39 @@ waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
+-- ** Monad /Mock/ Chain: multiple identities
+
+-- | The 'Plutus.Contract.Contract' monad has certain design decisions
+-- that make it suboptimal for testing. Therefore, we divided the abstract
+-- interface into those functions that have an interpretation in
+-- 'Plutus.Contract.Contract' and those that do not.
+--
+-- For example, a function returning a value of type @Contract@ can be thought
+-- of as an interaction with a plutus contract from a /single user/ point of view.
+-- When testing, however, we might want to interact with a contract from multiple different users.
+-- Changing the set of wallets that sign a transaction has no interpretation
+-- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
+class (MonadBlockChain m) => MonadMockChain m where
+  -- | Sets a list of wallets that will sign every transaction emitted
+  --  in the respective block
+  signingWith :: NE.NonEmpty Wallet -> m a -> m a
+
+  -- | Returns the current set of signing wallets.
+  askSigners :: m (NE.NonEmpty Wallet)
+
+-- | Runs a given block of computations signing transactions as @w@.
+as :: (MonadMockChain m) => m a -> Wallet -> m a
+as ma w = signingWith (w NE.:| []) ma
+
+-- | Flipped version of 'as'
+signs :: (MonadMockChain m) => Wallet -> m a -> m a
+signs = flip as
+
 -- ** Modalities
+
+-- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
+-- Hence, modal actions are TxSkel's.
+type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
 
 -- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'
 -- and 'everywhere' functions receive an argument of type @Action m -> Maybe (Action m)@ because

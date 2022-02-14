@@ -19,6 +19,7 @@ import Cooked.Tx.Constraints
 import Data.Foldable
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
+import qualified Ledger.Credential as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -71,8 +72,8 @@ data MockChainOp a where
   AwaitTime :: Pl.POSIXTime -> MockChainOp Pl.POSIXTime
   UtxosSuchThat ::
     (Pl.FromData a) =>
-    Pl.Address ->
-    (Maybe a -> Pl.Value -> Bool) ->
+    Pl.Credential ->
+    (Maybe Pl.StakingCredential -> Maybe a -> Pl.Value -> Bool) ->
     MockChainOp [(SpendableOut, Maybe a)]
   OwnPubKey :: MockChainOp Pl.PubKeyHash
   --
@@ -252,7 +253,7 @@ prettyMockChainOp _ _ = mempty
 newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
 
 trSingleton :: Doc ann -> TraceDescr
-trSingleton d = TraceDescr (fmap (const ()) d :)
+trSingleton d = TraceDescr (void d :)
 
 instance Show TraceDescr where
   show (TraceDescr gen) =
