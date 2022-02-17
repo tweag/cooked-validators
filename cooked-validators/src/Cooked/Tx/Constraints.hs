@@ -66,7 +66,11 @@ toLedgerConstraint (PaysPKWithDatum p stak dat v) = (lkups, constr)
   where
     mData = fmap (Pl.Datum . Pl.toBuiltinData) dat
 
-    lkups = maybe mempty Pl.otherData mData
+    lkups =
+      maybe mempty Pl.otherData mData
+        -- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
+        -- a different 'WithOwnStakePubKeyHash' constraint?
+        <> maybe mempty Pl.ownStakePubKeyHash stak
     constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
 toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
   where
