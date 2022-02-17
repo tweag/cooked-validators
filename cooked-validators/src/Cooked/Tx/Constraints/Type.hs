@@ -67,6 +67,11 @@ data Constraint where
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
     Constraint
+  -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
+  -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'
+  -- to update the script lookups, hence, generating a transaction with /two/ 'PaysPKWithDatum' with
+  -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
+  -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
   PaysPKWithDatum ::
     (Pl.ToData a, Show a) =>
     Pl.PubKeyHash ->

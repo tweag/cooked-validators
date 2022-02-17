@@ -278,24 +278,25 @@ utxosSuchThat' addr datumPred = do
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
-    go oref (Pl.TxOut oaddr val mdatumH) =
-      case Pl.addressCredential oaddr of
-        -- A PK credential has no datum; just check whether we want to select this output or not.
-        Pl.PubKeyCredential _ ->
-          if datumPred Nothing val
-            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, Nothing)
+    go oref (Pl.TxOut oaddr@(Pl.Address ocred _) val mdatumH) = do
+      -- We begin by attempting to lookup the given datum hash in our map of managed datums.
+      managedDatums <- gets mcstDatums
+      let mdatum = mdatumH >>= (`M.lookup` managedDatums)
+      -- Now, depending on whether we're looking at a utxo that belongs to a pk or a script,
+      -- there's a slight difference in treatment:
+      case ocred of
+        -- PubKey outputs are not required to have a datum, hence, we don't care if mdatum is Nothing.
+        Pl.PubKeyCredential _ -> do
+          let ma = mdatum >>= Pl.fromBuiltinData . Pl.getDatum
+          if datumPred ma val
+            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, ma)
             else return Nothing
-        -- A script credential, on the other hand, must have a datum. Hence, we'll go look on our map of
-        -- managed datum for a relevant datum, try to convert it to a value of type @a@ then see
-        -- if the user wants to select said output.
+        -- Script addresses, on the other hand, /must/ have a datum present. Hence, we check that mdatum
+        -- is a just. If this happens, it probably means there's a bug in cooked and we lost some datum.
+        -- Therefore, we check a few different things in order to provide a better debugging experience.
         Pl.ScriptCredential (Pl.ValidatorHash vh) -> do
-          managedDatums <- gets mcstDatums
           datumH <- maybe (fail $ "ScriptCredential with no datum hash: " ++ show oref) return mdatumH
-          datum <-
-            maybe
-              (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref)
-              return
-              $ M.lookup datumH managedDatums
+          datum <- maybe (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref) return mdatum
           a <-
             maybe
               (fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?")

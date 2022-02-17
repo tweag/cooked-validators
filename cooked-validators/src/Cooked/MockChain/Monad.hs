@@ -102,14 +102,15 @@ spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- | Public-key UTxO's have no datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
-pkUtxosSuchThat pkh predicate =
-  map fst
-    <$> utxosSuchThat @_ @Void
-      (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-      (maybe predicate absurd)
+-- | Select public-key UTxO's that might contain some datum but no staking address.
+-- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
+-- you must use 'utxosSuchThat' directly.
+pkUtxosSuchThat ::
+  (MonadBlockChain m, Pl.FromData a) =>
+  Pl.PubKeyHash ->
+  (Maybe a -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Maybe a)]
+pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
 
 -- | Script UTxO's always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
@@ -135,7 +136,7 @@ outFromOutRef outref = do
 
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos = flip pkUtxosSuchThat (const True)
+pkUtxos = fmap (map fst) . flip (pkUtxosSuchThat @_ @Void) (const $ const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
