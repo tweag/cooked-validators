@@ -50,28 +50,14 @@ class (MonadFail m) => MonadBlockChain m where
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
   validateTxSkel :: TxSkel -> m Pl.TxId
 
-  -- | Returns a list of spendable outputs that belong to a given credential and satisfy a given predicate;
-  --  Additionally, return the datum present in there. It is important to use @-XTypeApplications@ and
-  --  pass a value for type variable @a@ below.
+  -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
+  --  Additionally, return the datum present in there if it happened to be a script output. It is important
+  --  to use @-XTypeApplications@ and pass a value for type variable @a@ below.
   utxosSuchThat ::
-    (Pl.FromData a) =>
-    Pl.Credential ->
-    (Maybe Pl.StakingCredential -> Maybe a -> Pl.Value -> Bool) ->
-    m [(SpendableOut, Maybe a)]
-
-  -- | Search for UTxOs belonging to a given address, which includes a specific staking credential.
-  --  To search for addresses irrespective of their staking credential use one of:
-  --  'utxosSuchThat', 'pkUtxosSuchThat' or 'scriptUtxosSuchThat'.
-  addrUtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
     m [(SpendableOut, Maybe a)]
-  -- This is here because the Contract monad is inflexible and doesn't allow us to search
-  -- for credentials irrespective of their staking credential; so 'utxosSuchThat' crashes in
-  -- the contract monad...
-  addrUtxosSuchThat (Pl.Address cred stak) predi =
-    utxosSuchThat cred (\stak' -> if stak == stak' then predi else \_ _ -> False)
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
@@ -111,22 +97,21 @@ validateTxConstr = validateTxSkel . txSkel
 validateTxConstrLbl :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
--- | Returns the output associated with a given reference
-outFromOutRef :: (MonadBlockChain m) => Pl.TxOutRef -> m Pl.TxOut
-outFromOutRef outref = do
-  mo <- txOutByRef outref
-  case mo of
-    Just o -> return o
-    Nothing -> fail ("No output associated with: " ++ show outref)
-
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- ** Selecting UTxOs
+-- | Public-key UTxO's have no datum, hence, can be selected easily with
+--  a simpler variant of 'utxosSuchThat'
+pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
+pkUtxosSuchThat pkh predicate =
+  map fst
+    <$> utxosSuchThat @_ @Void
+      (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
+      (maybe predicate absurd)
 
--- | Script UTxO's datum, hence, can be selected easily with
+-- | Script UTxO's always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
 --  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
 scriptUtxosSuchThat ::
@@ -136,38 +121,21 @@ scriptUtxosSuchThat ::
   m [(SpendableOut, Pl.DatumType tv)]
 scriptUtxosSuchThat v predicate =
   map (second fromJust)
-    <$> addrUtxosSuchThat
+    <$> utxosSuchThat
       (Pl.validatorAddress v)
       (maybe (const False) predicate)
 
--- | Public-key UTxO's that satisfy a given predicate. Simpler variant of 'utxosSuchThat';
---
---  If you don't care about staking credentials, refer to the simpler 'pkUtxosSuchThat''
---  or even 'pkUtxosWithVal' if you also don't care for the datums.
-pkUtxosSuchThat ::
-  (MonadBlockChain m, Pl.FromData a) =>
-  Pl.PubKeyHash ->
-  (Maybe Pl.StakingCredential -> Maybe a -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Maybe a)]
-pkUtxosSuchThat pkh = utxosSuchThat (Pl.PubKeyCredential pkh)
-
--- | Analogous to 'pkUtxosSuchThat', but ignores the staking credential.
-pkUtxosSuchThat' ::
-  (MonadBlockChain m, Pl.FromData a) =>
-  Pl.PubKeyHash ->
-  (Maybe a -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Maybe a)]
-pkUtxosSuchThat' pkh = pkUtxosSuchThat pkh . const
-
--- | Return all utxos belonging to a pubkey containing a value that satisfies the
---   provided predicate. Ignores staking credentials and datums. Check 'pkUtxosSuchThat'
---   for a more fine grained selection.
-pkUtxosWithVal :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
-pkUtxosWithVal pk predi = map fst <$> pkUtxosSuchThat' @_ @Void pk (const predi)
+-- | Returns the output associated with a given reference
+outFromOutRef :: (MonadBlockChain m) => Pl.TxOutRef -> m Pl.TxOut
+outFromOutRef outref = do
+  mo <- txOutByRef outref
+  case mo of
+    Just o -> return o
+    Nothing -> fail ("No output associated with: " ++ show outref)
 
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos = flip pkUtxosWithVal (const True)
+pkUtxos = flip pkUtxosSuchThat (const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.

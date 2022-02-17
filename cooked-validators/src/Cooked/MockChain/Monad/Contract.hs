@@ -27,17 +27,17 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
     when (awaitTxConfirmed $ txOpts txSkel0) $ C.awaitTxConfirmed txId
     return txId
 
-  -- TODO: We're completely ignoring staking credentials here... would be
-  -- nice to issue a warning or something when the user uses this.
-  utxosSuchThat _ _ =
-    fail $
-      unwords
-        [ "The staking credential is being completely ignored.",
-          "Make sure to use addrUtxosSuchThat and craft the address",
-          "with any relevant staking credential you might have"
-        ]
-
-  addrUtxosSuchThat = addrUtxosSuchThatContract
+  utxosSuchThat addr datumPred = do
+    allUtxos <- M.toList <$> C.utxosAt addr
+    maybeUtxosWithDatums <- forM allUtxos $ \utxo -> do
+      let (Pl.TxOut _ val datumHash) = Pl.toTxOut $ snd utxo
+      datum <- maybe (pure Nothing) C.datumFromHash datumHash
+      let typedDatum = datum >>= Pl.fromBuiltinData . Pl.getDatum
+      pure $
+        if datumPred typedDatum val
+          then Just (utxo, typedDatum)
+          else Nothing
+    pure $ catMaybes maybeUtxosWithDatums
 
   txOutByRef ref = fmap Pl.toTxOut <$> C.txOutFromRef ref
 
@@ -47,21 +47,3 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   currentTime = C.currentTime
   awaitSlot = C.awaitSlot
   awaitTime = C.awaitTime
-
-addrUtxosSuchThatContract ::
-  forall w s e a.
-  (C.AsContractError e, Pl.FromData a) =>
-  Pl.Address ->
-  (Maybe a -> Pl.Value -> Bool) ->
-  C.Contract w s e [(SpendableOut, Maybe a)]
-addrUtxosSuchThatContract addr datumPred = do
-  allUtxos <- M.toList <$> C.utxosAt addr
-  maybeUtxosWithDatums <- forM allUtxos $ \utxo -> do
-    let (Pl.TxOut _ val datumHash) = Pl.toTxOut $ snd utxo
-    datum <- maybe (pure Nothing) C.datumFromHash datumHash
-    let typedDatum = datum >>= Pl.fromBuiltinData . Pl.getDatum
-    pure $
-      if datumPred typedDatum val
-        then Just (utxo, typedDatum)
-        else Nothing
-  pure $ catMaybes maybeUtxosWithDatums
