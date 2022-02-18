@@ -136,7 +136,7 @@ outFromOutRef outref = do
 
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos = fmap (map fst) . flip (pkUtxosSuchThat @_ @Void) (const $ const True)
+pkUtxos pkh = map fst <$> pkUtxosSuchThat @_ @Void pkh (const $ const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.

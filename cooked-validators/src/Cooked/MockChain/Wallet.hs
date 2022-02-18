@@ -68,11 +68,22 @@ walletAddress w =
 walletSK :: CW.MockWallet -> Pl.PrivateKey
 walletSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey
 
--- Massive hack to be able to open a MockPrivateKey
+-- Massive hack to be able to open a MockPrivateKey; this is needed because
+-- the constructor and accessor to MockPrivateKey are not exported. Hence,
+-- we make an isomorphic datatype, unsafeCoerce to this datatype then extract
+-- whatever we need from it.
 newtype HACK = HACK {please :: Crypto.XPrv}
 
+-- | Don't use this; its a hack and will be deprecated once we have time
+--  to make a PR into plutus exporting the things we need. If you use this anyway,
+--  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic
+--  because @MockPrivateKey@ is not exported either; having a dedicated function makes
+--  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.
+hackUnMockPrivateKey :: a -> Crypto.XPrv
+hackUnMockPrivateKey = please . unsafeCoerce
+
 walletStakingSK :: Wallet -> Maybe Pl.PrivateKey
-walletStakingSK = fmap (please . unsafeCoerce) . CW.mwStakeKey
+walletStakingSK = fmap hackUnMockPrivateKey . CW.mwStakeKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
 toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]

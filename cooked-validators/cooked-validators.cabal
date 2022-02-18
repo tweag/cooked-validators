@@ -78,6 +78,7 @@ test-suite spec
       Cooked.BalanceSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
+      Cooked.MockChain.WalletSpec
       Cooked.QuickValueSpec
       Paths_cooked_validators
   hs-source-dirs:
