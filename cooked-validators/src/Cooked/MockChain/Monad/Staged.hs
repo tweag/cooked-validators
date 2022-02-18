@@ -252,7 +252,7 @@ prettyMockChainOp _ _ = mempty
 newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
 
 trSingleton :: Doc ann -> TraceDescr
-trSingleton d = TraceDescr (fmap (const ()) d :)
+trSingleton d = TraceDescr (void d :)
 
 instance Show TraceDescr where
   show (TraceDescr gen) =

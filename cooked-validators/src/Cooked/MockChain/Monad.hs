@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -22,7 +23,7 @@ import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
+import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import qualified PlutusTx as Pl (FromData)
 
 -- * BlokChain Monad
@@ -84,32 +85,6 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- | The 'Plutus.Contract.Contract' monad has certain design decisions
--- that make it suboptimal for testing. Therefore, we divided the abstract
--- interface into those functions that have an interpretation in
--- 'Plutus.Contract.Contract' and those that do not.
---
--- For example, a function returning a value of type @Contract@ can be thought
--- of as an interaction with a plutus contract from a /single user/ point of view.
--- When testing, however, we might want to interact with a contract from multiple different users.
--- Changing the set of wallets that sign a transaction has no interpretation
--- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
-class (MonadBlockChain m) => MonadMockChain m where
-  -- | Sets a list of wallets that will sign every transaction emitted
-  --  in the respective block
-  signingWith :: NE.NonEmpty Wallet -> m a -> m a
-
-  -- | Returns the current set of signing wallets.
-  askSigners :: m (NE.NonEmpty Wallet)
-
--- | Runs a given block of computations signing transactions as @w@.
-as :: (MonadMockChain m) => m a -> Wallet -> m a
-as ma w = signingWith (w NE.:| []) ma
-
--- | Flipped version of 'as'
-signs :: (MonadMockChain m) => Wallet -> m a -> m a
-signs = flip as
-
 -- | Calls 'validateTxSkel' with a skeleton that is set with some specific options.
 validateTxConstrOpts :: (MonadBlockChain m) => TxOpts -> [Constraint] -> m Pl.TxId
 validateTxConstrOpts opts = validateTxSkel . txSkelOpts opts
@@ -122,23 +97,20 @@ validateTxConstr = validateTxSkel . txSkel
 validateTxConstrLbl :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
--- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
--- Hence, modal actions are TxSkel's.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
-
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- | Public-key UTxO's have no datum, hence, can be selected easily with
---  a simpler variant of 'utxosSuchThat'
-pkUtxosSuchThat :: (MonadBlockChain m) => Pl.PubKeyHash -> (Pl.Value -> Bool) -> m [SpendableOut]
-pkUtxosSuchThat pkh predicate =
-  map fst
-    <$> utxosSuchThat @_ @Void
-      (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-      (maybe predicate absurd)
+-- | Select public-key UTxO's that might contain some datum but no staking address.
+-- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
+-- you must use 'utxosSuchThat' directly.
+pkUtxosSuchThat ::
+  (MonadBlockChain m, Pl.FromData a) =>
+  Pl.PubKeyHash ->
+  (Maybe a -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Maybe a)]
+pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
 
 -- | Script UTxO's always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
@@ -151,7 +123,7 @@ scriptUtxosSuchThat ::
 scriptUtxosSuchThat v predicate =
   map (second fromJust)
     <$> utxosSuchThat
-      (Pl.Address (Pl.ScriptCredential $ Pl.validatorHash $ Pl.validatorScript v) Nothing)
+      (Pl.validatorAddress v)
       (maybe (const False) predicate)
 
 -- | Returns the output associated with a given reference
@@ -164,7 +136,7 @@ outFromOutRef outref = do
 
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos = flip pkUtxosSuchThat (const True)
+pkUtxos pkh = map fst <$> pkUtxosSuchThat @_ @Void pkh (const $ const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
@@ -196,7 +168,39 @@ waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
+-- ** Monad /Mock/ Chain: multiple identities
+
+-- | The 'Plutus.Contract.Contract' monad has certain design decisions
+-- that make it suboptimal for testing. Therefore, we divided the abstract
+-- interface into those functions that have an interpretation in
+-- 'Plutus.Contract.Contract' and those that do not.
+--
+-- For example, a function returning a value of type @Contract@ can be thought
+-- of as an interaction with a plutus contract from a /single user/ point of view.
+-- When testing, however, we might want to interact with a contract from multiple different users.
+-- Changing the set of wallets that sign a transaction has no interpretation
+-- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
+class (MonadBlockChain m) => MonadMockChain m where
+  -- | Sets a list of wallets that will sign every transaction emitted
+  --  in the respective block
+  signingWith :: NE.NonEmpty Wallet -> m a -> m a
+
+  -- | Returns the current set of signing wallets.
+  askSigners :: m (NE.NonEmpty Wallet)
+
+-- | Runs a given block of computations signing transactions as @w@.
+as :: (MonadMockChain m) => m a -> Wallet -> m a
+as ma w = signingWith (w NE.:| []) ma
+
+-- | Flipped version of 'as'
+signs :: (MonadMockChain m) => Wallet -> m a -> m a
+signs = flip as
+
 -- ** Modalities
+
+-- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
+-- Hence, modal actions are TxSkel's.
+type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
 
 -- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'
 -- and 'everywhere' functions receive an argument of type @Action m -> Maybe (Action m)@ because

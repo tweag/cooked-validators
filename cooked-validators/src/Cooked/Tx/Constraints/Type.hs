@@ -67,11 +67,18 @@ data Constraint where
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
     Constraint
-  -- TODO: something like stepscript below could be nice!
-  -- StepsScript  :: (Pl.ToData a, Pl.ToData redeemer)
-  --              => Pl.Validator -> redeemer -> (SpendableOut, a) -> (a -> a) -> Constraint
-
-  PaysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
+  -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
+  -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'
+  -- to update the script lookups, hence, generating a transaction with /two/ 'PaysPKWithDatum' with
+  -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
+  -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
+  PaysPKWithDatum ::
+    (Pl.ToData a, Show a) =>
+    Pl.PubKeyHash ->
+    Maybe Pl.StakePubKeyHash ->
+    Maybe a ->
+    Pl.Value ->
+    Constraint
   SpendsPK :: SpendableOut -> Constraint
   Mints ::
     (Pl.ToData a, Show a) =>
@@ -83,6 +90,9 @@ data Constraint where
   After :: Pl.POSIXTime -> Constraint
   ValidateIn :: Pl.POSIXTimeRange -> Constraint
   SignedBy :: [Pl.PubKeyHash] -> Constraint
+
+paysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
+paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 
 mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
 mints = Mints @() Nothing

@@ -45,8 +45,16 @@ prettyConstraint (SpendsScript val red outdat) =
     ("SpendsScript" <+> prettyTypedValidator val)
     "-"
     ["Redeemer:" <+> PP.viaShow red, prettyOutputDatum val outdat]
-prettyConstraint (PaysPK pkh val) =
-  prettyEnum ("PaysPK" <+> prettyWallet pkh) PP.emptyDoc (catMaybes [mPrettyValue val])
+prettyConstraint (PaysPKWithDatum pkh stak dat val) =
+  prettyEnum
+    ("PaysPK" <+> prettyWallet pkh)
+    PP.emptyDoc
+    ( catMaybes
+        [ fmap (("StakePKH:" <+>) . PP.pretty) stak,
+          fmap (("Datum:" <+>) . prettyDatum) dat,
+          mPrettyValue val
+        ]
+    )
 prettyConstraint (SpendsPK out) =
   let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]

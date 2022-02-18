@@ -16,8 +16,9 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import qualified Data.Map.Strict as M
-import qualified Ledger as Pl hiding (unspentOutputs)
+import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.Constraints as Pl
+import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
 import qualified PlutusTx as Pl
 
@@ -37,6 +38,8 @@ extractDatumStrFromConstraint (PaysScript _validator datumsAndValues) =
     $ datumsAndValues
 extractDatumStrFromConstraint (SpendsScript _validator _redeemer (_out, datum)) =
   M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
+extractDatumStrFromConstraint (PaysPKWithDatum _pk _stak mdat _v) =
+  maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
 extractDatumStrFromConstraint _ = M.empty
 
 -- | Converts our constraint into a 'LedgerConstraint',
@@ -59,7 +62,16 @@ toLedgerConstraint (PaysScript v outs) = (lkups, constr)
           (Pl.validatorHash $ Pl.validatorScript v)
           (Pl.Datum $ Pl.toBuiltinData d)
           val
-toLedgerConstraint (PaysPK p v) = (mempty, Pl.mustPayToPubKey (Pl.PaymentPubKeyHash p) v)
+toLedgerConstraint (PaysPKWithDatum p stak dat v) = (lkups, constr)
+  where
+    mData = fmap (Pl.Datum . Pl.toBuiltinData) dat
+
+    lkups =
+      maybe mempty Pl.otherData mData
+        -- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
+        -- a different 'WithOwnStakePubKeyHash' constraint?
+        <> maybe mempty Pl.ownStakePubKeyHash stak
+    constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
 toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
   where
     lkups = Pl.unspentOutputs (M.singleton oref o)

@@ -60,8 +60,8 @@ txUnlock script = do
     validateTxConstrLbl
       TxUnlock
       [ SpendsScript script () (output, datum),
-        PaysPK r1 (Pl.lovelaceValueOf share1),
-        PaysPK r2 (Pl.lovelaceValueOf share2)
+        paysPK r1 (Pl.lovelaceValueOf share1),
+        paysPK r2 (Pl.lovelaceValueOf share2)
       ]
 
 -- | Label for 'txUnlock' skeleton

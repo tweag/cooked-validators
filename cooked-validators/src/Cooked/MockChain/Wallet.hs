@@ -5,6 +5,7 @@
 
 module Cooked.MockChain.Wallet where
 
+import qualified Cardano.Crypto.Wallet as Crypto
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -12,8 +13,10 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins.Class as Pl
+import Unsafe.Coerce
 
 -- * MockChain Wallets
 
@@ -47,14 +50,40 @@ walletPKHashToId = flip M.lookup walletPKHashToIdMap
 walletPK :: Wallet -> Pl.PubKey
 walletPK = Pl.unPaymentPubKey . CW.paymentPubKey
 
+walletStakingPK :: Wallet -> Maybe Pl.PubKey
+walletStakingPK = fmap Crypto.toPublicKey . walletStakingSK
+
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
 
+walletStakingPKHash :: Wallet -> Maybe Pl.PubKeyHash
+walletStakingPKHash = fmap Crypto.pubKeyHash . walletStakingPK
+
 walletAddress :: Wallet -> Pl.Address
-walletAddress = (`Pl.Address` Nothing) . Pl.PubKeyCredential . walletPKHash
+walletAddress w =
+  Pl.Address
+    (Pl.PubKeyCredential $ walletPKHash w)
+    (Pl.StakingHash . Pl.PubKeyCredential <$> walletStakingPKHash w)
 
 walletSK :: CW.MockWallet -> Pl.PrivateKey
 walletSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey
+
+-- Massive hack to be able to open a MockPrivateKey; this is needed because
+-- the constructor and accessor to MockPrivateKey are not exported. Hence,
+-- we make an isomorphic datatype, unsafeCoerce to this datatype then extract
+-- whatever we need from it.
+newtype HACK = HACK {please :: Crypto.XPrv}
+
+-- | Don't use this; its a hack and will be deprecated once we have time
+--  to make a PR into plutus exporting the things we need. If you use this anyway,
+--  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic
+--  because @MockPrivateKey@ is not exported either; having a dedicated function makes
+--  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.
+hackUnMockPrivateKey :: a -> Crypto.XPrv
+hackUnMockPrivateKey = please . unsafeCoerce
+
+walletStakingSK :: Wallet -> Maybe Pl.PrivateKey
+walletStakingSK = fmap hackUnMockPrivateKey . CW.mwStakeKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
 toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
