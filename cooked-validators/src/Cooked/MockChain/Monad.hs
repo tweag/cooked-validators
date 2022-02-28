@@ -16,13 +16,14 @@ import Control.Arrow (second)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import qualified PlutusTx as Pl (FromData)
 
@@ -188,6 +189,9 @@ class (MonadBlockChain m) => MonadMockChain m where
   -- | Returns the current set of signing wallets.
   askSigners :: m (NE.NonEmpty Wallet)
 
+  -- | Returns the slot configuration of the mock chain.
+  slotConfig :: m Pl.SlotConfig
+
 -- | Runs a given block of computations signing transactions as @w@.
 as :: (MonadMockChain m) => m a -> Wallet -> m a
 as ma w = signingWith (w NE.:| []) ma
@@ -250,6 +254,7 @@ f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
   askSigners = lift askSigners
+  slotConfig = lift slotConfig
 
 instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
   type Action (AsTrans t m) = Action m

@@ -19,6 +19,7 @@ import Cooked.Tx.Constraints
 import Data.Foldable
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
+import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -78,6 +79,7 @@ data MockChainOp a where
   --
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainOp a
   AskSigners :: MockChainOp (NE.NonEmpty Wallet)
+  GetSlotConfig :: MockChainOp Pl.SlotConfig
   --
   Modify :: Modality TxSkel -> StagedMockChain a -> MockChainOp a
   --
@@ -128,6 +130,7 @@ interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
 interpretOp (Fail str) = fail str
 interpretOp OwnPubKey = ownPaymentPubKeyHash
 interpretOp AskSigners = askSigners
+interpretOp GetSlotConfig = slotConfig
 interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
 interpretOp (Modify m' block) = lift (modify (++ [m'])) >> interpretNonDet block
 interpretOp MZero = lift $ lift $ lift mzero
@@ -189,6 +192,7 @@ instance MonadBlockChain StagedMockChain where
 instance MonadMockChain StagedMockChain where
   signingWith ws = singleton . SigningWith ws
   askSigners = singleton AskSigners
+  slotConfig = singleton GetSlotConfig
 
 instance MonadModal StagedMockChain where
   type Action StagedMockChain = TxSkel
