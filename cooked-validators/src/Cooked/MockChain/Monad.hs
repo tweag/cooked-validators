@@ -16,7 +16,7 @@ import Control.Arrow (second)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.Tx.Constraints
 import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)

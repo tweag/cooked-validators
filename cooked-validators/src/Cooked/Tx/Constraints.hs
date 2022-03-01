@@ -9,23 +9,16 @@ module Cooked.Tx.Constraints
     signedByWallets,
     toLedgerConstraint,
     toLedgerConstraints,
-    spentByPK,
-    validateAtSlot,
-    validateNow,
   )
 where
 
-import Control.Arrow (second)
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Balance (spendValueFrom)
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.TxConstraints as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
 import qualified PlutusTx as Pl
 
@@ -109,24 +102,3 @@ toLedgerConstraints cs = (mconcat lkups, mconcat constrs)
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> Constraint
 signedByWallets = SignedBy . map walletPKHash
-
--- ** Some supplementary constraints, relying on being in the monad.
-
--- | Spends some value from a pubkey by selecting the needed utxos belonging
---  to that pubkey and returning the leftover to the same pubkey.
---  This function is here to avoid an import cycle.
-spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
-spentByPK pkh val = do
-  -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
-  allOuts <- pkUtxos pkh
-  let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (paysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
-
-validateAtSlot :: MonadMockChain m => Pl.Slot -> m Constraint
-validateAtSlot s = do
-  slotConf <- slotConfig
-  return $ ValidateIn $ Pl.slotToPOSIXTimeRange slotConf s
-
-validateNow :: MonadMockChain m => m Constraint
-validateNow =
-  validateAtSlot =<< currentSlot
