@@ -3,7 +3,8 @@
 -- | Exports all the machinery necessary for using 'MonadBlockChain' and
 --  'MonadMockChain' for writing and testing contracts.
 module Cooked.MockChain
-  ( module Cooked.MockChain.Time,
+  ( module Cooked.MockChain.Constraints,
+    module Cooked.MockChain.Time,
     module Cooked.MockChain.UtxoState,
     module Cooked.MockChain.UtxoState.Testing,
     module Cooked.MockChain.Wallet,
@@ -17,6 +18,7 @@ module Cooked.MockChain
   )
 where
 
+import Cooked.MockChain.Constraints
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Contract ()
 import Cooked.MockChain.Monad.Direct
