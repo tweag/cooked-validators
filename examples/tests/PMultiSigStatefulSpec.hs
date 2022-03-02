@@ -12,7 +12,7 @@ module PMultiSigStatefulSpec where
 import Control.Arrow (second)
 import Control.Monad
 import Cooked.MockChain
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints hiding (Payment)
 import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
@@ -50,7 +50,7 @@ mkParams =
   Params pkTable 2 . threadTokenAssetClass <$> mkThreadToken
   where
     mkThreadTokenInputSkel :: Pl.PubKeyHash -> TxSkel
-    mkThreadTokenInputSkel pkh = txSkel [paysPK pkh mempty]
+    mkThreadTokenInputSkel pkh = txSkel (txSpecPays [paysPK pkh mempty])
 
     mkThreadToken :: MonadBlockChain m => m Pl.TxOutRef
     mkThreadToken = do
@@ -83,17 +83,20 @@ mkProposal reqSigs pmt = do
       _ <-
         validateTxConstrLbl
           (ProposalSkel reqSigs pmt)
-          [ mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken,
-            -- We don't have SpendsPK or PaysPK wrt the wallet `w`
-            -- because the balancing mechanism chooses the same (first) output
-            -- we're working on.
-            PaysScript
-              (pmultisig params)
-              [ ( Accumulator pmt [],
-                  minAda <> paymentValue pmt <> threadToken
-                )
-              ]
-          ]
+          ( def
+              { txPayments =
+                  [ PaysScript
+                      (pmultisig params)
+                      (Accumulator pmt [])
+                      (minAda <> paymentValue pmt <> threadToken)
+                  ],
+                txMinting =
+                  [mints [threadTokenPolicy (fst spendableOut) threadTokenName] threadToken]
+              }
+          )
+      -- We don't have SpendsPK or PaysPK wrt the wallet `w`
+      -- because the balancing mechanism chooses the same (first) output
+      -- we're working on.
       pure (params, fst spendableOut)
     _ -> error "No spendable outputs for the wallet"
 
@@ -110,7 +113,7 @@ mkSign params pmt sk = do
   void $
     validateTxConstrOpts
       (def {adjustUnbalTx = True})
-      [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
+      (txSpecPays [PaysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost])
   where
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
@@ -131,14 +134,15 @@ mkCollect thePayment params = signs (wallet 1) $ do
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
-      PaysScript
-        (pmultisig params)
-        [ ( Accumulator thePayment (signPk . snd <$> signatures),
-            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-          )
-        ] :
-      SpendsScript (pmultisig params) () initialProp :
-      (SpendsScript (pmultisig params) () <$> signatures)
+      txSpecSpendsAndPays
+        ( SpendsScript (pmultisig params) () initialProp :
+          (SpendsScript (pmultisig params) () <$> signatures)
+        )
+        [ PaysScript
+            (pmultisig params)
+            (Accumulator thePayment (signPk . snd <$> signatures))
+            (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
+        ]
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
 mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
@@ -147,10 +151,11 @@ mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
     validateTxConstr
       -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
       -- locked in all the sign UTxOs, which was accumulated in the Accumulate datum.
-      [ paysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params)),
-        SpendsScript (pmultisig params) () accumulated,
-        mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
-      ]
+      def
+        { txSpendings = [SpendsScript (pmultisig params) () accumulated],
+          txPayments = [paysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params))],
+          txMinting = [mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params]
+        }
 
 -- *** Auxiliary Functions
 
@@ -285,15 +290,18 @@ execute tParms (parms, tokenRef) = do
 
 -- Modifies a transaction skeleton by attempting to mint one more provenance token.
 dupTokenAttack :: SpendableOut -> (Params, Pl.TxOutRef) -> TxSkel -> Maybe TxSkel
-dupTokenAttack sOut (parms, tokenRef) (TxSkel l opts cs) =
-  Just $ TxSkel (Just $ DupTokenAttacked l) opts (cs ++ attack)
+dupTokenAttack sOut (parms, tokenRef) (TxSkel l opts spec) =
+  Just $ TxSkel (Just $ DupTokenAttacked l) opts attack
   where
     attack =
-      [ mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms),
-        SpendsPK sOut,
-        signedByWallets [wallet 9],
-        paysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut)
-      ]
+      spec
+        { txSpendings = SpendsPK sOut : txSpendings spec,
+          txPayments =
+            paysPK (walletPKHash $ wallet 9) (paramsToken parms <> sOutValue sOut) : txPayments spec,
+          txMinting =
+            mints [threadTokenPolicy tokenRef threadTokenName] (paramsToken parms) : txMinting spec,
+          txSignatories = walletPKHash (wallet 9) : txSignatories spec
+        }
 
 data DupTokenAttacked where
   DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
@@ -337,11 +345,12 @@ mkFakeCollect thePayment params = do
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
-      PaysScript
-        fakeValidator
-        [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
-            paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-          )
-        ] :
-      SpendsScript (pmultisig params) () initialProp :
-      (SpendsScript (pmultisig params) () <$> signatures)
+      txSpecSpendsAndPays
+        ( SpendsScript (pmultisig params) () initialProp :
+          (SpendsScript (pmultisig params) () <$> signatures)
+        )
+        [ PaysScript
+            fakeValidator
+            (HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures))
+            (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
+        ]

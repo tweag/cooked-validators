@@ -8,6 +8,8 @@
 module Cooked.Tx.Constraints.Type where
 
 import Data.Default
+import Data.Map.Strict (Map)
+import Data.Set (Set)
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -45,6 +47,16 @@ sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
+-- TODO Remove eventually
+
+-- | Our own first-class constraint type. The advantage over the regular plutus constraint
+--  type is that we get to add whatever we need and we hide away the type variables in existentials.
+data Constraint
+  = Spending Spending
+  | Payment Payment
+  | Minting Minting
+  | ConstraintMisc ConstraintMisc
+
 type SpendsConstrs a =
   ( Pl.ToData (Pl.DatumType a),
     Pl.ToData (Pl.RedeemerType a),
@@ -53,20 +65,26 @@ type SpendsConstrs a =
     Typeable a
   )
 
--- | Our own first-class constraint type. The advantage over the regular plutus constraint
---  type is that we get to add whatever we need and we hide away the type variables in existentials.
-data Constraint where
-  PaysScript ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
-    Pl.TypedValidator a ->
-    [(Pl.DatumType a, Pl.Value)] ->
-    Constraint
+-- TODO Spending/Payment -> Consuming/Producing
+--
+-- TODO SpendsPK should expose datum now that we can pay pk with datum
+-- Check if the txout carries that info
+data Spending where
   SpendsScript ::
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
-    Constraint
+    Spending
+  SpendsPK :: SpendableOut -> Spending
+
+data Payment where
+  PaysScript ::
+    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
+    Pl.TypedValidator a ->
+    Pl.DatumType a ->
+    Pl.Value ->
+    Payment
   -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
   -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'
   -- to update the script lookups, hence, generating a transaction with /two/ 'PaysPKWithDatum' with
@@ -78,23 +96,63 @@ data Constraint where
     Maybe Pl.StakePubKeyHash ->
     Maybe a ->
     Pl.Value ->
-    Constraint
-  SpendsPK :: SpendableOut -> Constraint
+    Payment
+
+paysPK :: Pl.PubKeyHash -> Pl.Value -> Payment
+paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
+
+data TimeConstraint
+  = Before Pl.POSIXTime
+  | After Pl.POSIXTime
+  | ValidateIn Pl.POSIXTimeRange
+
+-- TODO Unsued for now, should we remove since it is easy to put back if
+-- needed in the future?
+type ConstraintMisc = ()
+
+data TxSpec = TxSpec
+  { txSpendings :: [Spending],
+    txPayments :: [Payment],
+    txMinting :: [Minting],
+    -- TODO Move back the non utxo constraints to constraintsmisc for this pr
+    txTimeConstraint :: Maybe TimeConstraint,
+    txSignatories :: [Pl.PubKeyHash],
+    -- TODO Unsued for now, should we remove?
+    txConstraintsMisc :: [ConstraintMisc]
+  }
+
+instance Default TxSpec where
+  def =
+    TxSpec
+      { txSpendings = [],
+        txPayments = [],
+        txMinting = [],
+        txTimeConstraint = Nothing,
+        txSignatories = [],
+        txConstraintsMisc = []
+      }
+
+-- Some smart constructors for the simplest `TxSpec`
+
+txSpecPays :: [Payment] -> TxSpec
+txSpecPays xs = def {txPayments = xs}
+
+txSpecSpends :: [Spending] -> TxSpec
+txSpecSpends xs = def {txSpendings = xs}
+
+txSpecSpendsAndPays :: [Spending] -> [Payment] -> TxSpec
+txSpecSpendsAndPays spendings payments =
+  def {txSpendings = spendings, txPayments = payments}
+
+data Minting where
   Mints ::
     (Pl.ToData a, Show a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
-    Constraint
-  Before :: Pl.POSIXTime -> Constraint
-  After :: Pl.POSIXTime -> Constraint
-  ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy :: [Pl.PubKeyHash] -> Constraint
+    Minting
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
-paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
-
-mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+mints :: [Pl.MintingPolicy] -> Pl.Value -> Minting
 mints = Mints @() Nothing
 
 -- | A Transaction skeleton is a set of our constraints,
@@ -115,20 +173,20 @@ data TxSkel where
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
-      txConstraints :: [Constraint]
+      txSpec :: TxSpec
     } ->
     TxSkel
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'
-txSkel :: [Constraint] -> TxSkel
+txSkel :: TxSpec -> TxSkel
 txSkel = txSkelOpts def
 
 -- | Constructs a skeleton without a default label, but with custom options
-txSkelOpts :: TxOpts -> [Constraint] -> TxSkel
+txSkelOpts :: TxOpts -> TxSpec -> TxSkel
 txSkelOpts = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x) => x -> [Constraint] -> TxSkel
+txSkelLbl :: (Show x) => x -> TxSpec -> TxSkel
 txSkelLbl x = TxSkel (Just x) def
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
@@ -171,6 +229,19 @@ data TxOpts = TxOpts
     balance :: Bool
   }
   deriving (Eq, Show)
+
+-- | Intermediate representation of a transaction under construction.
+-- This serves a similar role as Plutus' `UnbalancedTx`
+data TxBlueprint = TxBlueprint
+  { txbpInputs :: [Pl.TxIn],
+    txbpOutputs :: [Pl.TxOut],
+    txbpMint :: Pl.Value,
+    txbpMintScripts :: Set Pl.MintingPolicy,
+    txbpData :: Map Pl.DatumHash Pl.Datum,
+    txbpRedeemers :: Pl.Redeemers,
+    txbpSignatories :: [Pl.PubKeyHash],
+    txbpValidityTimeRange :: Pl.POSIXTimeRange
+  }
 
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'

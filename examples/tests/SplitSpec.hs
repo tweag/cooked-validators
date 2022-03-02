@@ -35,23 +35,21 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
   let half = div amount 2
       share1 = fromMaybe id mAmountChanger half
       share2 = fromMaybe id mAmountChanger (amount - half)
-      constraints =
-        [ SpendsScript Split.splitValidator () (output, datum),
-          paysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
+      spendings = [SpendsScript Split.splitValidator () (output, datum)]
+      payments =
+        [ paysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
           paysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
         ]
       remainder = amount - share1 - share2
-      remainderConstraint =
+      remainderPayment =
         PaysScript
           Split.splitValidator
-          [ ( Split.SplitDatum r1 r2 remainder,
-              Pl.lovelaceValueOf remainder
-            )
-          ]
+          (Split.SplitDatum r1 r2 remainder)
+          (Pl.lovelaceValueOf remainder)
   void $
     validateTxConstrLbl
       (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))
-      (constraints <> [remainderConstraint | remainder > 0])
+      (txSpecSpendsAndPays spendings (payments <> [remainderPayment | remainder > 0]))
       `as` issuer
 
 data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) deriving (Show)
@@ -70,14 +68,16 @@ txUnlockAttack issuer = do
   unless (r12 == r22) (fail "second recipiend must match")
   let half1 = Pl.lovelaceValueOf (amount1 `div` 2)
       half2 = Pl.lovelaceValueOf (amount2 `div` 2)
-      constraints =
+      spendings =
         [ SpendsScript Split.splitValidator () (output1, datum1),
-          SpendsScript Split.splitValidator () (output2, datum2),
-          paysPK r11 half1,
+          SpendsScript Split.splitValidator () (output2, datum2)
+        ]
+      payments =
+        [ paysPK r11 half1,
           paysPK r12 (if amount1 > amount2 then half1 else half2),
           paysPK r21 half2
         ]
-  void $ validateTxConstrLbl TxUnlockAttack constraints `as` issuer
+  void $ validateTxConstrLbl TxUnlockAttack (txSpecSpendsAndPays spendings payments) `as` issuer
 
 data TxUnlockAttack = TxUnlockAttack deriving (Show)
 

@@ -39,9 +39,10 @@ initBigBoss = do
   void $
     validateTxConstrLbl
       InitBigBoss
-      [ mints [bigBossPolicy bbId] oneBBNFT,
-        PaysScript (bigBossVal bbId) [(BigBoss [], oneBBNFT <> minAda)]
-      ]
+      def
+        { txMinting = [mints [bigBossPolicy bbId] oneBBNFT],
+          txPayments = [PaysScript (bigBossVal bbId) (BigBoss []) (oneBBNFT <> minAda)]
+        }
   return bbId
 
 data InitBigBoss = InitBigBoss deriving (Show)
@@ -56,11 +57,14 @@ openForge bbId = do
   void $
     validateTxConstrLbl
       OpenForge
-      [ SpendsScript (bigBossVal bbId) Open (outBB, datBB),
-        mints [authTokenPolicy bbId] oneAuthToken,
-        PaysScript (bigBossVal bbId) [(BigBoss [wPKH], oneBBNFT <> minAda)],
-        PaysScript (smithVal bbId) [(Forge wPKH 0, oneAuthToken <> minAda)]
-      ]
+      def
+        { txMinting = [mints [authTokenPolicy bbId] oneAuthToken],
+          txSpendings = [SpendsScript (bigBossVal bbId) Open (outBB, datBB)],
+          txPayments =
+            [ PaysScript (bigBossVal bbId) (BigBoss [wPKH]) (oneBBNFT <> minAda),
+              PaysScript (smithVal bbId) (Forge wPKH 0) (oneAuthToken <> minAda)
+            ]
+        }
 
 data OpenForge = OpenForge deriving (Show)
 
@@ -73,15 +77,24 @@ smiths bbId val = do
   void $
     validateTxConstrLbl
       (Smiths val)
-      [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
-        mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val),
-        PaysScript (smithVal bbId) [(Forge owner (forged + val), sOutValue outSmith)],
-        paysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
-      ]
+      def
+        { txMinting = [mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val)],
+          txSpendings = [SpendsScript (smithVal bbId) Adjust (outSmith, datSmith)],
+          txPayments =
+            [ PaysScript (smithVal bbId) (Forge owner (forged + val)) (sOutValue outSmith),
+              paysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
+            ]
+        }
   where
     belongsTo (Forge owner _) pkh = owner == pkh
 
 newtype Smiths = Smiths Integer deriving (Show)
+
+example :: Either MockChainError ((), UtxoState)
+example = runMockChain . void $ do
+  bbId <- initBigBoss `as` wallet 1
+  openForge bbId `as` wallet 3
+  smiths bbId 100 `as` wallet 3
 
 tests :: TestTree
 tests =

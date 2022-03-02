@@ -21,11 +21,12 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherError . T.pack
 
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
-  validateTxSkel txSkel0 = do
-    let (lkups, constrs) = toLedgerConstraints @Void (txConstraints txSkel0)
-    txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
-    when (awaitTxConfirmed $ txOpts txSkel0) $ C.awaitTxConfirmed txId
-    return txId
+  validateTxSkel txSkel0 = error "not reimplemented yet" -- TODO
+  -- do
+  --   let (lkups, constrs) = toLedgerConstraints @Void (txConstraints txSkel0)
+  --   txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
+  --   when (awaitTxConfirmed $ txOpts txSkel0) $ C.awaitTxConfirmed txId
+  --   return txId
 
   utxosSuchThat addr datumPred = do
     allUtxos <- M.toList <$> C.utxosAt addr

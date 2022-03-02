@@ -37,8 +37,4 @@ import qualified Ledger as Pl
 --  to that pubkey and returning the leftover to the same pubkey.
 --  This function is here to avoid an import cycle.
 spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
-spentByPK pkh val = do
-  -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
-  allOuts <- pkUtxos pkh
-  let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (paysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
+spentByPK pkh val = error "not reimplemented yet" -- TODO reimplement

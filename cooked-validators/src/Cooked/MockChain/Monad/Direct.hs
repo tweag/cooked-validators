@@ -313,16 +313,18 @@ utxosSuchThat' addr datumPred = do
 --
 --  See "Cooked.Tx.Balance" for balancing capabilities or stick to
 --  'generateTx', which generates /and/ balances a transaction.
-generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
-generateUnbalTx sk =
-  let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
-   in first MCETxError $ Pl.mkTx lkups constrs
+-- TODO remove Either?
+generateUnbalTx :: TxSpec -> Either MockChainError Pl.UnbalancedTx
+generateUnbalTx = Right . txFromTxSpec
+
+-- let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
+--  in first MCETxError $ Pl.mkTx lkups constrs
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
 generateTx' skel = do
-  modify $ updateDatumStr skel
-  case generateUnbalTx skel of
+  modify $ updateDatumStr (txSpec skel)
+  case generateUnbalTx (txSpec skel) of
     Left err -> throwError err
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
@@ -338,12 +340,13 @@ generateTx' skel = do
     opts = txOpts skel
 
     -- Update the map of pretty printed representations in the mock chain state
-    updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
-    updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
+    updateDatumStr :: TxSpec -> MockChainSt -> MockChainSt
+    updateDatumStr txSpec st@MockChainSt {mcstStrDatums} =
       st
         { mcstStrDatums =
-            M.unions $
-              mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
+            M.union
+              mcstStrDatums
+              (extractDatumStrFromTxSpec txSpec)
         }
 
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment.

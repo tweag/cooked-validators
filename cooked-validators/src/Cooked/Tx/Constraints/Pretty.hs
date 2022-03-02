@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Cooked.Tx.Constraints.Pretty where
 
@@ -21,14 +22,14 @@ prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl opts constr) =
+prettyTxSkel signers (TxSkel lbl opts spec) =
   PP.vsep $
     map ("-" <+>) $
       catMaybes
         [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
           fmap (("Label:" <+>) . prettyDatum) lbl,
           fmap ("Opts:" <+>) (prettyOpts opts),
-          Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
+          Just $ "Spec:" <+> prettyTxSpec spec
         ]
 
 prettyWallet :: Pl.PubKeyHash -> Doc ann
@@ -37,15 +38,39 @@ prettyWallet pkh =
   where
     phash = prettyHash pkh
 
-prettyConstraint :: Constraint -> Doc ann
-prettyConstraint (PaysScript val outs) =
-  prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) outs)
-prettyConstraint (SpendsScript val red outdat) =
+prettyTxSpec :: TxSpec -> Doc ann
+prettyTxSpec TxSpec {..} =
+  PP.vsep $
+    map ("-" <+>) $
+      catMaybes
+        [ aux "Spendings" prettySpending txSpendings,
+          aux "Payments" prettyPayment txPayments,
+          aux "Mintings" prettyMinting txMinting,
+          prettyTimeConstraint <$> txTimeConstraint,
+          aux "Signed by" prettyWallet txSignatories
+        ]
+  where
+    aux :: Doc ann -> (a -> Doc ann) -> [a] -> Maybe (Doc ann)
+    aux _ _ [] = Nothing
+    aux label prettyElem elems = Just $ prettyEnum label "-" (prettyElem <$> elems)
+
+prettySpending :: Spending -> Doc ann
+prettySpending (SpendsScript val red outdat) =
   prettyEnum
     ("SpendsScript" <+> prettyTypedValidator val)
     "-"
     ["Redeemer:" <+> PP.viaShow red, prettyOutputDatum val outdat]
-prettyConstraint (PaysPKWithDatum pkh stak dat val) =
+prettySpending (SpendsPK out) =
+  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
+   in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
+
+prettyPayment :: Payment -> Doc ann
+prettyPayment (PaysScript validator datum value) =
+  prettyEnum
+    ("PaysScript" <+> prettyTypedValidator validator)
+    "-"
+    [prettyDatumVal validator datum value]
+prettyPayment (PaysPKWithDatum pkh stak dat val) =
   prettyEnum
     ("PaysPK" <+> prettyWallet pkh)
     PP.emptyDoc
@@ -55,18 +80,20 @@ prettyConstraint (PaysPKWithDatum pkh stak dat val) =
           mPrettyValue val
         ]
     )
-prettyConstraint (SpendsPK out) =
-  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
-   in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyConstraint (Mints mr policies val) =
+
+prettyMinting :: Minting -> Doc ann
+prettyMinting (Mints mr policies val) =
   prettyEnum "Mints" "-" $
     catMaybes
       [ mPrettyValue val,
         fmap (("Redeemer:" <+>) . prettyDatum) mr,
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
-prettyConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
-prettyConstraint _ = "<constraint without pretty def>"
+
+prettyTimeConstraint :: TimeConstraint -> Doc ann
+prettyTimeConstraint (Before t) = "Validates before" <+> PP.space <+> PP.pretty t
+prettyTimeConstraint (After t) = "Validates after" <+> PP.space <+> PP.pretty t
+prettyTimeConstraint (ValidateIn trange) = "Validates in" <+> PP.space <+> PP.pretty trange
 
 prettyHash :: (Show a) => a -> Doc ann
 prettyHash = PP.pretty . take 6 . show

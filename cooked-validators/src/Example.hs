@@ -1,8 +1,12 @@
+{-# LANGUAGE NumericUnderscores #-}
+
 module Example where
 
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Data.Default (def)
+import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 
 -- * MockChain Example
@@ -16,4 +20,40 @@ example = runMockChain $ do
   void $
     validateTxSkel $
       txSkel
-        [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200)]
+        ( TxSpec
+            { txSpendings = [],
+              txPayments = [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 42_000_000)],
+              txMinting = [],
+              txTimeConstraint = Nothing,
+              txSignatories = [walletPKHash (wallet 1)],
+              txConstraintsMisc = []
+            }
+        )
+
+alice :: Wallet
+alice = wallet 1
+
+bob :: Wallet
+bob = wallet 2
+
+alicePkh :: Pl.PubKeyHash
+alicePkh = walletPKHash alice
+
+bobPkh :: Pl.PubKeyHash
+bobPkh = walletPKHash bob
+
+ada :: Integer -> Pl.Value
+ada = Pl.lovelaceValueOf . (* 1_000_000)
+
+example2 :: Either MockChainError ((), UtxoState)
+example2 = runMockChain . void $ do
+  void $ validateTxConstr (txSpecPays [paysPK alicePkh (ada 42)]) `as` bob
+  void $
+    validateTxConstr
+      ( txSpecPays
+          [ paysPK bobPkh (ada 10),
+            paysPK bobPkh (ada 20),
+            paysPK bobPkh (ada 30)
+          ]
+      )
+      `as` alice
