@@ -28,20 +28,19 @@ p .|| q = \md vl -> p md vl || q md vl
 
 -- | Lifts a predicate over values to a 'UtxoPredicate' by ignoring the datum
 valueSat :: (Pl.Value -> Bool) -> UtxoPredicate a
-valueSat = const
+valueSat predi _ = predi
 
 -- | Lifts a predicate over datums to a 'UtxoPredicate' by forcing the datum
 --  to be present and satisfy the predicate.
 datumSat :: (a -> Bool) -> UtxoPredicate a
-datumSat p = maybe (const False) (const . p)
+datumSat _ Nothing _ = False
+datumSat predi (Just a) _ = predi a
 
 -- * Predicatesover Values
 
 -- | Returns whether or not a given value has a currency symbol present.
 hasCurrencySymbol :: Pl.CurrencySymbol -> Pl.Value -> Bool
-hasCurrencySymbol cs (Pl.Value vl) = case Map.lookup cs vl of
-  Just _ -> True
-  _ -> False
+hasCurrencySymbol cs (Pl.Value vl) = Map.member cs vl
 
 -- | Returns whether or not a given value has an asset class present
 hasAssetClass :: Pl.AssetClass -> Pl.Value -> Bool
