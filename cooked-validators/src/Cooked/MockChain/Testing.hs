@@ -13,6 +13,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Data.Default
 import Debug.Trace
+import Ledger.Index (ValidationError (ScriptFailure))
 import qualified Test.HUnit.Lang as HU
 import qualified Test.QuickCheck as QC
 
@@ -63,33 +64,66 @@ infixr 2 .||.
 (.||.) :: (IsProp prop) => prop -> prop -> prop
 a .||. b = testDisjoin [a, b]
 
--- | Ensuprop that all results produced by the staged mockchain /succeed/, starting
+-- | Ensure that all results produced by the staged mockchain /succeed/, starting
 -- from the default initial distribution
 testSucceeds :: (IsProp prop) => StagedMockChain a -> prop
 testSucceeds = testSucceedsFrom def
 
--- | Ensuprop that all results produced by the staged mockchain /fail/ starting
+-- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from the default initial distribution
 testFails :: (IsProp prop, Show a) => StagedMockChain a -> prop
 testFails = testFailsFrom def
 
--- | Ensuprop that all results produced by the staged mockchain succeed starting
--- from some initial distribution
+-- | Ensure that all results produced by the staged mockchain succeed starting
+-- from some initial distribution but doesn't impose any additional condition on success.
+-- Use 'testSucceedsFrom'' for that.
 testSucceedsFrom ::
   (IsProp prop) =>
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom = testAllSatisfiesFrom (either (testFailureMsg . show) (const testSuccess))
+testSucceedsFrom = testSucceedsFrom' (\_ _ -> testSuccess)
 
--- | Ensuprop that all results produced by the staged mockchain /succeed/ starting
+-- | Ensure that all results produced by the staged mockchain succeed starting
+-- from some initial distribution. Additionally impose a condition over the
+-- resulting state and value.
+testSucceedsFrom' ::
+  (IsProp prop) =>
+  (a -> UtxoState -> prop) ->
+  InitialDistribution ->
+  StagedMockChain a ->
+  prop
+testSucceedsFrom' prop = testAllSatisfiesFrom (either (testFailureMsg . show) (uncurry prop))
+
+-- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from some initial distribution
 testFailsFrom ::
   (IsProp prop, Show a) =>
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom = testAllSatisfiesFrom (either (const testSuccess) (testFailureMsg . show))
+testFailsFrom = testFailsFrom' (const testSuccess)
+
+-- | Ensure that all results produced by the staged mockchain /fail/ starting
+-- from some initial distribution, moreover, ensures that a certain predicate
+-- over the error holds.
+testFailsFrom' ::
+  (IsProp prop, Show a) =>
+  (MockChainError -> prop) ->
+  InitialDistribution ->
+  StagedMockChain a ->
+  prop
+testFailsFrom' predi = testAllSatisfiesFrom (either predi (testFailureMsg . show))
+
+-- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
+-- This is particularly important when writing negative tests. For example, if we are simulating
+-- an attack and writing a test with 'testFailsFrom', we might have made a mistake in the attack,
+-- yielding a test that fails for reasons such as @ValueLessThanMinAda@ or @ValueNotPreserved@, which
+-- does not rule out the attack being caught by the validator script. For these scenarios it is
+-- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
+isCekEvaluationFailure :: (IsProp prop) => MockChainError -> prop
+isCekEvaluationFailure (MCEValidationError (_, ScriptFailure _)) = testSuccess
+isCekEvaluationFailure e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ show e
 
 -- | Ensure that all results produced by the set of traces encoded by the 'StagedMockChain'
 -- satisfy the given predicate. If you wish to build custom predicates
@@ -129,7 +163,7 @@ testBinaryRelatedBy rel = testSatisfiesFrom' $ \case
     (Left errA, Left errB) ->
       testFailureMsg $
         concat
-          [ "Expected two outcomes, the both with:",
+          [ "Expected two outcomes, both failed with:",
             show errA,
             "; ",
             show errB,
@@ -215,6 +249,11 @@ instance IsProp QC.Property where
   testSuccess = QC.property True
   testConjoin = QC.conjoin
   testDisjoin = QC.disjoin
+
+-- | Here we provide our own universsal quantifier instead of 'QC.forAll', so we can monomorphize
+--  it to returning a 'QC.Property'
+forAll :: (Show a) => QC.Gen a -> (a -> QC.Property) -> QC.Property
+forAll = QC.forAll
 
 -- TODO: Discuss this instance; its here to enable us to easily
 -- run things in a repl but I'm not sure whether to ignore the counterexample

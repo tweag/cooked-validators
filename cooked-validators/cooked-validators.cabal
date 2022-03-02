@@ -5,7 +5,7 @@ cabal-version: 3.4
 -- see: https://github.com/sol/hpack
 
 name:           cooked-validators
-version:        0.0.0
+version:        0.1.0
 build-type:     Simple
 extra-source-files:
     README.md
@@ -21,6 +21,7 @@ library
       Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing
       Cooked.MockChain.Time
+      Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
       Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet

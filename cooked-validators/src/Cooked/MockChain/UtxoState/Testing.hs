@@ -3,11 +3,11 @@
 module Cooked.MockChain.UtxoState.Testing where
 
 import Cooked.MockChain.Testing
+import Cooked.MockChain.UtxoPredicate (hasOnlyAda)
 import Cooked.MockChain.UtxoState
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.V1.Ledger.Ada as Ada
 import qualified PlutusTx.Numeric as Pl
 
 -- * Relations between states
@@ -22,16 +22,13 @@ equalModuloAda a b = testAll (eqModAda . snd) $ M.toList $ utxoStateDiff a b
     -- contain only ada
     eqModAda (Modified del ins _) =
       let valDiff = utxoValueSetTotal ins <> Pl.negate (utxoValueSetTotal del)
-       in hasOnlyAda valDiff
+       in hasOnlyAdaWithMsg valDiff
     -- If the address was deleted or inserted, the states are different in other ways
     -- other than just ada.
     eqModAda _ = testSuccess
 
-    hasOnlyAda :: (IsProp prop) => Pl.Value -> prop
-    hasOnlyAda v = case Pl.flattenValue v of
-      [] -> testSuccess
-      [(sym, tok, _)] -> sym .==. Ada.adaSymbol .&&. tok .==. Ada.adaToken
-      _ -> testFailureMsg "Value has more than just Ada"
+    hasOnlyAdaWithMsg val =
+      testCounterexample ("Has more than just Ada: " ++ show val) $ testBool $ hasOnlyAda val
 
 -- | Returns whether the difference in value between two states is at most
 --  a given bound. Note that the difference in value between states can be negative,
