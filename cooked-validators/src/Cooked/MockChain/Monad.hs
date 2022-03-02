@@ -15,12 +15,12 @@ module Cooked.MockChain.Monad where
 import Control.Arrow (second)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
-import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
@@ -56,7 +56,7 @@ class (MonadFail m) => MonadBlockChain m where
   utxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
-    (Maybe a -> Pl.Value -> Bool) ->
+    UtxoPredicate a ->
     m [(SpendableOut, Maybe a)]
 
   -- | Returns an output given a reference to it
@@ -106,11 +106,22 @@ spendableRef txORef = do
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
 -- you must use 'utxosSuchThat' directly.
 pkUtxosSuchThat ::
+  forall a m.
   (MonadBlockChain m, Pl.FromData a) =>
   Pl.PubKeyHash ->
-  (Maybe a -> Pl.Value -> Bool) ->
+  UtxoPredicate a ->
   m [(SpendableOut, Maybe a)]
 pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
+
+-- | Select public-key UTxO's that do not contain some datum nor staking address.
+-- This is just a simpler variant of 'pkUtxosSuchThat'.
+pkUtxosSuchThatValue ::
+  (MonadBlockChain m) =>
+  Pl.PubKeyHash ->
+  (Pl.Value -> Bool) ->
+  m [SpendableOut]
+pkUtxosSuchThatValue pkh predi =
+  map fst <$> pkUtxosSuchThat @() pkh (valueSat predi)
 
 -- | Script UTxO's always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
@@ -118,6 +129,7 @@ pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothin
 scriptUtxosSuchThat ::
   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
+  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
   (Pl.DatumType tv -> Pl.Value -> Bool) ->
   m [(SpendableOut, Pl.DatumType tv)]
 scriptUtxosSuchThat v predicate =
@@ -136,7 +148,7 @@ outFromOutRef outref = do
 
 -- | Return all utxos belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
-pkUtxos pkh = map fst <$> pkUtxosSuchThat @_ @Void pkh (const $ const True)
+pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 
 -- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.

@@ -4,6 +4,7 @@
 --  'MonadMockChain' for writing and testing contracts.
 module Cooked.MockChain
   ( module Cooked.MockChain.Time,
+    module Cooked.MockChain.UtxoPredicate,
     module Cooked.MockChain.UtxoState,
     module Cooked.MockChain.UtxoState.Testing,
     module Cooked.MockChain.Wallet,
@@ -26,6 +27,7 @@ import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.RawUPLC
 import Cooked.MockChain.Testing
 import Cooked.MockChain.Time
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.UtxoState.Testing
 import Cooked.MockChain.Wallet

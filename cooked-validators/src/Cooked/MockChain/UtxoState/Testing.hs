@@ -31,7 +31,7 @@ equalModuloAda a b = testAll (eqModAda . snd) $ M.toList $ utxoStateDiff a b
     hasOnlyAda v = case Pl.flattenValue v of
       [] -> testSuccess
       [(sym, tok, _)] -> sym .==. Ada.adaSymbol .&&. tok .==. Ada.adaToken
-      _ -> testFailureMsg "Value has more than just Ada"
+      _ -> testFailureMsg $ "Value has more than just Ada: " ++ show v
 
 -- | Returns whether the difference in value between two states is at most
 --  a given bound. Note that the difference in value between states can be negative,
