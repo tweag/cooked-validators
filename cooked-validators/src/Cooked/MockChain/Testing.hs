@@ -116,9 +116,14 @@ testFailsFrom' ::
 testFailsFrom' predi = testAllSatisfiesFrom (either predi (testFailureMsg . show))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
+-- This is particularly important when writing negative tests. For example, if we are simulating
+-- an attack and writing a test with 'testFailsFrom', we might have made a mistake in the attack,
+-- yielding a test that fails for reasons such as @ValueLessThanMinAda@ or @ValueNotPreserved@, which
+-- does not rule out the attack being caught by the validator script. For these scenarios it is
+-- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
 isCekEvaluationFailure :: (IsProp prop) => MockChainError -> prop
 isCekEvaluationFailure (MCEValidationError (_, ScriptFailure _)) = testSuccess
-isCekEvaluationFailure e = testFailureMsg $ "not a validation error: " ++ show e
+isCekEvaluationFailure e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ show e
 
 -- | Ensure that all results produced by the set of traces encoded by the 'StagedMockChain'
 -- satisfy the given predicate. If you wish to build custom predicates
