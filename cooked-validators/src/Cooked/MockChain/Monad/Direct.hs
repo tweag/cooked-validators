@@ -238,6 +238,8 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   askSigners = asks mceSigners
 
+  slotConfig = asks mceSlotConfig
+
 -- | Check 'validateTx' for details
 validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
 validateTx' tx = do
