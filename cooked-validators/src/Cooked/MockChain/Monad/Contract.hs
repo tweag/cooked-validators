@@ -1,3 +1,4 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -21,10 +22,10 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherError . T.pack
 
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
-  validateTxSkel txSkel0 = do
-    let (lkups, constrs) = toLedgerConstraints @Void (txConstraints txSkel0)
+  validateTxSkel TxSkel {txConstraints, txOpts} = do
+    let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
     txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
-    when (awaitTxConfirmed $ txOpts txSkel0) $ C.awaitTxConfirmed txId
+    when (awaitTxConfirmed txOpts) $ C.awaitTxConfirmed txId
     return txId
 
   utxosSuchThat addr datumPred = do

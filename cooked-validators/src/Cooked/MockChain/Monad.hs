@@ -87,15 +87,15 @@ class (MonadFail m) => MonadBlockChain m where
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 -- | Calls 'validateTxSkel' with a skeleton that is set with some specific options.
-validateTxConstrOpts :: (MonadBlockChain m) => TxOpts -> [Constraint] -> m Pl.TxId
+validateTxConstrOpts :: (MonadBlockChain m, ConstraintsSpec constraints) => TxOpts -> constraints -> m Pl.TxId
 validateTxConstrOpts opts = validateTxSkel . txSkelOpts opts
 
 -- | Calls 'validateTx' with the default set of options and no label.
-validateTxConstr :: (MonadBlockChain m) => [Constraint] -> m Pl.TxId
+validateTxConstr :: (MonadBlockChain m, ConstraintsSpec constraints) => constraints -> m Pl.TxId
 validateTxConstr = validateTxSkel . txSkel
 
 -- | Calls 'validateTxSkel' with the default set of options but passes an arbitrary showable label to it.
-validateTxConstrLbl :: (Show lbl, MonadBlockChain m) => lbl -> [Constraint] -> m Pl.TxId
+validateTxConstrLbl :: (Show lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut

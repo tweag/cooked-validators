@@ -316,20 +316,25 @@ utxosSuchThat' addr datumPred = do
 --  See "Cooked.Tx.Balance" for balancing capabilities or stick to
 --  'generateTx', which generates /and/ balances a transaction.
 generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
-generateUnbalTx sk =
-  let (lkups, constrs) = toLedgerConstraints @Void $ txConstraints sk
+generateUnbalTx TxSkel {txConstraints} =
+  let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
    in first MCETxError $ Pl.mkTx lkups constrs
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
-generateTx' skel = do
+generateTx' skel@(TxSkel _ _ constraintsSpec) = do
   modify $ updateDatumStr skel
   case generateUnbalTx skel of
     Left err -> throwError err
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
+      let (_ :=>: outputConstraints) = toConstraints constraintsSpec
+      reorderedUbtx <-
+        if forceOutputOrdering opts
+          then applyTxOutConstraintOrder outputConstraints ubtx
+          else return ubtx
       signers <- askSigners
-      balancedTx <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust ubtx)
+      balancedTx <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
       return $
         foldl
           (flip txAddSignature)
@@ -344,9 +349,14 @@ generateTx' skel = do
     updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
       st
         { mcstStrDatums =
-            M.unions $
-              mcstStrDatums : (extractDatumStrFromConstraint <$> txConstraints)
+            M.union mcstStrDatums . extractDatumStr . toConstraints $ txConstraints
         }
+
+    -- Order outputs according to the order of output constraints
+    applyTxOutConstraintOrder :: MonadFail m => [OutConstraint] -> Pl.UnbalancedTx -> m Pl.UnbalancedTx
+    applyTxOutConstraintOrder ocs tx = do
+      txOuts' <- orderTxOutputs ocs . Pl.txOutputs . Pl.unBalancedTxTx $ tx
+      return tx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx tx) {Pl.txOutputs = txOuts'}}
 
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment.
 -- TODO: bring in FeeConfig: https://github.com/tweag/plutus-libs/issues/10

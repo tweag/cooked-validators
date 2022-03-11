@@ -21,15 +21,16 @@ prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl opts constr) =
-  PP.vsep $
-    map ("-" <+>) $
-      catMaybes
-        [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
-          fmap (("Label:" <+>) . prettyDatum) lbl,
-          fmap ("Opts:" <+>) (prettyOpts opts),
-          Just $ prettyEnum "Constraints:" "/\\" (map prettyConstraint constr)
-        ]
+prettyTxSkel signers (TxSkel lbl opts constraintsSpec) =
+  let (cs :=>: ocs) = toConstraints constraintsSpec
+   in PP.vsep $
+        map ("-" <+>) $
+          catMaybes
+            [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
+              fmap (("Label:" <+>) . prettyDatum) lbl,
+              fmap ("Opts:" <+>) (prettyOpts opts),
+              Just $ prettyEnum "Constraints:" "/\\" $ map prettyMiscConstraint cs <> map prettyOutConstraint ocs
+            ]
 
 prettyWallet :: Pl.PubKeyHash -> Doc ann
 prettyWallet pkh =
@@ -37,15 +38,10 @@ prettyWallet pkh =
   where
     phash = prettyHash pkh
 
-prettyConstraint :: Constraint -> Doc ann
-prettyConstraint (PaysScript val outs) =
+prettyOutConstraint :: OutConstraint -> Doc ann
+prettyOutConstraint (PaysScript val outs) =
   prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) outs)
-prettyConstraint (SpendsScript val red outdat) =
-  prettyEnum
-    ("SpendsScript" <+> prettyTypedValidator val)
-    "-"
-    ["Redeemer:" <+> PP.viaShow red, prettyOutputDatum val outdat]
-prettyConstraint (PaysPKWithDatum pkh stak dat val) =
+prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
   prettyEnum
     ("PaysPK" <+> prettyWallet pkh)
     PP.emptyDoc
@@ -55,18 +51,20 @@ prettyConstraint (PaysPKWithDatum pkh stak dat val) =
           mPrettyValue val
         ]
     )
-prettyConstraint (SpendsPK out) =
+
+prettyMiscConstraint :: MiscConstraint -> Doc ann
+prettyMiscConstraint (SpendsPK out) =
   let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyConstraint (Mints mr policies val) =
+prettyMiscConstraint (Mints mr policies val) =
   prettyEnum "Mints" "-" $
     catMaybes
       [ mPrettyValue val,
         fmap (("Redeemer:" <+>) . prettyDatum) mr,
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
-prettyConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
-prettyConstraint _ = "<constraint without pretty def>"
+prettyMiscConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
+prettyMiscConstraint _ = "<constraint without pretty def>"
 
 prettyHash :: (Show a) => a -> Doc ann
 prettyHash = PP.pretty . take 6 . show
@@ -134,7 +132,7 @@ prettyDatum = PP.align . prettyWordPunct . map fixHashes . words' . show
     -- TODO: It might be worthwhile to make a little parser for haskell records
     -- and actually prettify the output. Legibility is a massively important
     -- factor for us to be able to diagnose tests that go wrong.
-    isHashChar c = ('a' <= c && c <= 'f') || isDigit c
+    isHashChar c = 'a' <= c && c <= 'f' || isDigit c
 
     fixHashes :: WordPunct -> WordPunct
     fixHashes (Punct str) = Punct str

@@ -59,10 +59,11 @@ txUnlock script = do
   void $
     validateTxConstrLbl
       TxUnlock
-      [ SpendsScript script () (output, datum),
-        paysPK r1 (Pl.lovelaceValueOf share1),
-        paysPK r2 (Pl.lovelaceValueOf share2)
-      ]
+      ( [SpendsScript script () (output, datum)]
+          :=>: [ paysPK r1 (Pl.lovelaceValueOf share1),
+                 paysPK r2 (Pl.lovelaceValueOf share2)
+               ]
+      )
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)
