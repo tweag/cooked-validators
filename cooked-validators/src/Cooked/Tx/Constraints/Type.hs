@@ -107,9 +107,8 @@ instance Monoid Constraints where
   mempty = [] :=>: []
 
 -- | This typeclass provides user-friendly convenience to overload the
--- 'txConstraints' field of 'TxSkel'. For instance, this makes it optional to
--- use the '(:=>:)' operator when using only misc or output constraints (much
--- like the legacy behavior).
+-- 'txConstraints' field of 'TxSkel'. For instance, this enables us to ommit the '(:=>:)'
+-- constructor whenever we're using only one kind of constraints.
 -- It also opens up future alternative of constraint specification.
 class ConstraintsSpec a where
   toConstraints :: a -> Constraints
