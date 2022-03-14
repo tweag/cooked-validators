@@ -120,12 +120,12 @@ instance Constraint Constraints where
 -- | Generate the 'Pl.TxOut' transaction output associated to a given output
 -- constraint 'OutConstraint'.
 outConstraintToTxOut :: OutConstraint -> Pl.TxOut
-outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
+outConstraintToTxOut (PaysPKWithDatum pkh _mStakePkh mDatum value) =
   Pl.TxOut
     { Pl.txOutAddress =
         Pl.Address
           (Pl.PubKeyCredential pkh)
-          (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStakePkh),
+          Nothing,
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
     }
