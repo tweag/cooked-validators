@@ -29,8 +29,15 @@ import qualified PlutusTx as Pl
 type LedgerConstraint a =
   (Pl.ScriptLookups a, Pl.TxConstraints (Pl.RedeemerType a) (Pl.DatumType a))
 
--- | Class for common operations on output and misc constraints.
-class Constraint constraint where
+-- | Convenience class for common operations on what can be converted to
+-- 'LedgerConstraint' (in other words native Plutus `Pl.TxConstraints`). This
+-- covers output constraints 'OutConstraint', miscelaneous constraints
+-- 'MiscConstraint', and combinations of both within 'Constraints'.
+--
+-- As a user, you should not have to deal with or worry about this class and
+-- stick with the 'ConstraintsSpec' instances to specify constraints in
+-- transaction skeletons 'TxSkel'.
+class ToLedgerConstraint constraint where
   -- | Map from datum hashes to string representation of all the datums carried.
   -- We use this in order to display data to the use when testing. Its often
   -- easier to read the original datatype that was placed into a UTxO
@@ -43,7 +50,7 @@ class Constraint constraint where
   --  easily spend from multiple scripts at the same time.
   toLedgerConstraint :: constraint -> LedgerConstraint a
 
-instance Constraint MiscConstraint where
+instance ToLedgerConstraint MiscConstraint where
   extractDatumStr (SpendsScript _validator _redeemer (_out, datum)) =
     M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
   extractDatumStr _ = M.empty
@@ -75,7 +82,7 @@ instance Constraint MiscConstraint where
   toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
   toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
 
-instance Constraint OutConstraint where
+instance ToLedgerConstraint OutConstraint where
   extractDatumStr (PaysScript _validator datumsAndValues) =
     M.fromList
       . map ((\d -> (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d, show d)) . fst)
@@ -103,7 +110,7 @@ instance Constraint OutConstraint where
             (Pl.Datum $ Pl.toBuiltinData d)
             val
 
-instance Constraint Constraints where
+instance ToLedgerConstraint Constraints where
   extractDatumStr (miscConstraints :=>: outConstraints) =
     M.union
       (M.unions (extractDatumStr <$> miscConstraints))
