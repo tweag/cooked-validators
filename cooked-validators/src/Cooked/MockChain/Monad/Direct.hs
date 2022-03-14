@@ -329,10 +329,10 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
       let (_ :=>: outputConstraints) = toConstraints constraintsSpec
-      reorderedUbtx <-
-        if forceOutputOrdering opts
-          then applyTxOutConstraintOrder outputConstraints ubtx
-          else return ubtx
+      let reorderedUbtx =
+            if forceOutputOrdering opts
+              then applyTxOutConstraintOrder outputConstraints ubtx
+              else ubtx
       signers <- askSigners
       balancedTx <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
       return $
@@ -353,10 +353,10 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
         }
 
     -- Order outputs according to the order of output constraints
-    applyTxOutConstraintOrder :: MonadFail m => [OutConstraint] -> Pl.UnbalancedTx -> m Pl.UnbalancedTx
-    applyTxOutConstraintOrder ocs tx = do
-      txOuts' <- orderTxOutputs ocs . Pl.txOutputs . Pl.unBalancedTxTx $ tx
-      return tx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx tx) {Pl.txOutputs = txOuts'}}
+    applyTxOutConstraintOrder :: [OutConstraint] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+    applyTxOutConstraintOrder ocs tx =
+      let txOuts' = orderTxOutputs ocs . Pl.txOutputs . Pl.unBalancedTxTx $ tx
+       in tx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx tx) {Pl.txOutputs = txOuts'}}
 
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment.
 -- TODO: bring in FeeConfig: https://github.com/tweag/plutus-libs/issues/10

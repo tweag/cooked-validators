@@ -117,43 +117,44 @@ instance Constraint Constraints where
           (toLedgerConstraint <$> miscConstraints)
             <> (toLedgerConstraint <$> outConstraints)
 
--- | Look for the 'Pl.TxOut' corresponding to an output constraint
--- 'OutConstraint' among the outputs of a transaction.
-findGeneratedTxOutput :: OutConstraint -> [Pl.TxOut] -> Maybe Pl.TxOut
--- TODO Also check staking credentials
-findGeneratedTxOutput (PaysPKWithDatum targetPkh _mTargetStakePkh mTargetDatum targetVal) =
-  List.find aux
-  where
-    aux :: Pl.TxOut -> Bool
-    aux (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _mStakeCredential) val mDatumHash) =
-      pkh == targetPkh
-        && val == targetVal
-        && mDatumHash == (Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mTargetDatum)
-    aux _ = False
-findGeneratedTxOutput (PaysScript targetTypedValidator [(targetTypedDatum, targetVal)]) =
-  List.find aux
-  where
-    aux :: Pl.TxOut -> Bool
-    aux (Pl.TxOut (Pl.Address (Pl.ScriptCredential validatorHash) _) val (Just datumHash)) =
-      validatorHash == Pl.validatorHash (Pl.validatorScript targetTypedValidator)
-        && val == targetVal
-        && datumHash == (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ targetTypedDatum)
-    aux _ = False
-findGeneratedTxOutput (PaysScript _ _) = const Nothing
+-- | Generate the 'Pl.TxOut' transaction output associated to a given output
+-- constraint 'OutConstraint'.
+outConstraintToTxOut :: OutConstraint -> Pl.TxOut
+outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
+  Pl.TxOut
+    { Pl.txOutAddress =
+        Pl.Address
+          (Pl.PubKeyCredential pkh)
+          (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStakePkh),
+      Pl.txOutValue = value,
+      Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
+    }
+outConstraintToTxOut (PaysScript validator [(datum, value)]) =
+  Pl.TxOut
+    { Pl.txOutAddress = Pl.scriptAddress (Pl.validatorScript validator),
+      Pl.txOutValue = value,
+      Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+    }
+-- TODO remove after we simplify 'PaysScript'
+outConstraintToTxOut _ = error "Only PaysScript constraint with one datum and value are handled"
 
 -- | Reorders the outputs of a transaction according to the ordered list of
 -- output constraints that generate them. Fails in case of mismatch. The
 -- reordered outputs are put at the beginning of the list.
-orderTxOutputs :: MonadFail m => [OutConstraint] -> [Pl.TxOut] -> m [Pl.TxOut]
--- TODO Check staking credentials
-orderTxOutputs [] txOuts = return txOuts
-orderTxOutputs (oc : ocs) txOuts =
-  case findGeneratedTxOutput oc txOuts of
-    Nothing ->
-      fail $
-        "Could not locate output corresponding to constraint "
-          <> show (prettyOutConstraint oc)
-    Just txOut -> (txOut :) <$> orderTxOutputs ocs (List.delete txOut txOuts)
+-- orderTxOutputs :: MonadFail m => [OutConstraint] -> [Pl.TxOut] -> m [Pl.TxOut]
+-- -- TODO Check staking credentials
+-- orderTxOutputs [] txOuts = return txOuts
+-- orderTxOutputs (oc : ocs) txOuts =
+--   case findGeneratedTxOutput oc txOuts of
+--     Nothing ->
+--       fail $
+--         "Could not locate output corresponding to constraint "
+--           <> show (prettyOutConstraint oc)
+--     Just txOut -> (txOut :) <$> orderTxOutputs ocs (List.delete txOut txOuts)
+orderTxOutputs :: [OutConstraint] -> [Pl.TxOut] -> [Pl.TxOut]
+orderTxOutputs expected given =
+  let res = map outConstraintToTxOut expected
+   in res ++ (given List.\\ res)
 
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> MiscConstraint
