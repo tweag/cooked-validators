@@ -57,6 +57,18 @@ type SpendsConstrs a =
 -- Our own first-class constraint types. The advantage over the regular plutus constraint
 -- type is that we get to add whatever we need and we hide away the type variables in existentials.
 
+-- | The main constraints datatype. It combines output constraints
+-- ('OutConstraint') in a specific order that is respected by the generated
+-- transaction, and miscellaneous constraints 'MiscConstraint' including input
+-- constraints, time constraints, or signature requirements.
+data Constraints = [MiscConstraint] :=>: [OutConstraint]
+
+instance Semigroup Constraints where
+  (c1 :=>: oc1) <> (c2 :=>: oc2) = (c1 <> c2) :=>: (oc1 <> oc2)
+
+instance Monoid Constraints where
+  mempty = [] :=>: []
+
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
   SpendsScript ::
@@ -96,15 +108,6 @@ data OutConstraint where
     Maybe a ->
     Pl.Value ->
     OutConstraint
-
--- | Combination of output and misc constraints.
-data Constraints = [MiscConstraint] :=>: [OutConstraint]
-
-instance Semigroup Constraints where
-  (c1 :=>: oc1) <> (c2 :=>: oc2) = (c1 <> c2) :=>: (oc1 <> oc2)
-
-instance Monoid Constraints where
-  mempty = [] :=>: []
 
 -- | This typeclass provides user-friendly convenience to overload the
 -- 'txConstraints' field of 'TxSkel'. For instance, this makes it optional to
