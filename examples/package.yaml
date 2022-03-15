@@ -45,6 +45,7 @@ dependencies:
   - streaming
   - text
   - transformers
+  - time
 
 library:
   source-dirs: src
