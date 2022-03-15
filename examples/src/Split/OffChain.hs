@@ -33,10 +33,8 @@ txLock script datum =
       (TxLock datum)
       [ PaysScript
           script
-          [ ( datum,
-              Pl.lovelaceValueOf $ Split.amount datum
-            )
-          ]
+          datum
+          (Pl.lovelaceValueOf (Split.amount datum))
       ]
 
 -- | Label for 'txLock' skeleton, making it immediately recognizable

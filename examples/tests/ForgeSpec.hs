@@ -40,7 +40,7 @@ initBigBoss = do
     validateTxConstrLbl
       InitBigBoss
       ( [mints [bigBossPolicy bbId] oneBBNFT]
-          :=>: [PaysScript (bigBossVal bbId) [(BigBoss [], oneBBNFT <> minAda)]]
+          :=>: [PaysScript (bigBossVal bbId) (BigBoss []) (oneBBNFT <> minAda)]
       )
   return bbId
 
@@ -59,8 +59,8 @@ openForge bbId = do
       ( [ SpendsScript (bigBossVal bbId) Open (outBB, datBB),
           mints [authTokenPolicy bbId] oneAuthToken
         ]
-          :=>: [ PaysScript (bigBossVal bbId) [(BigBoss [wPKH], oneBBNFT <> minAda)],
-                 PaysScript (smithVal bbId) [(Forge wPKH 0, oneAuthToken <> minAda)]
+          :=>: [ PaysScript (bigBossVal bbId) (BigBoss [wPKH]) (oneBBNFT <> minAda),
+                 PaysScript (smithVal bbId) (Forge wPKH 0) (oneAuthToken <> minAda)
                ]
       )
 
@@ -78,7 +78,7 @@ smiths bbId val = do
       ( [ SpendsScript (smithVal bbId) Adjust (outSmith, datSmith),
           mints [smithingPolicy bbId] (Value.assetClassValue (smithed bbId) val)
         ]
-          :=>: [ PaysScript (smithVal bbId) [(Forge owner (forged + val), sOutValue outSmith)],
+          :=>: [ PaysScript (smithVal bbId) (Forge owner (forged + val)) (sOutValue outSmith),
                  paysPK pkh (Value.assetClassValue (smithed bbId) val <> minAda)
                ]
       )

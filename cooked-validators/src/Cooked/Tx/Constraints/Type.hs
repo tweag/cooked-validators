@@ -94,7 +94,8 @@ data OutConstraint where
   PaysScript ::
     (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
     Pl.TypedValidator a ->
-    [(Pl.DatumType a, Pl.Value)] ->
+    Pl.DatumType a ->
+    Pl.Value ->
     OutConstraint
   -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
   -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'

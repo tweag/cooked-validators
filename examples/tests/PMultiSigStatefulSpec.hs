@@ -90,10 +90,8 @@ mkProposal reqSigs pmt = do
                      -- we're working on.
                      PaysScript
                        (pmultisig params)
-                       [ ( Accumulator pmt [],
-                           minAda <> paymentValue pmt <> threadToken
-                         )
-                       ]
+                       (Accumulator pmt [])
+                       (minAda <> paymentValue pmt <> threadToken)
                    ]
           )
       pure (params, fst spendableOut)
@@ -112,7 +110,7 @@ mkSign params pmt sk = do
   void $
     validateTxConstrOpts
       (def {adjustUnbalTx = True})
-      [PaysScript (pmultisig params) [(Sign pkh sig, mkSignLockedCost)]]
+      [PaysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost]
   where
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
@@ -138,10 +136,8 @@ mkCollect thePayment params = signs (wallet 1) $ do
       )
         :=>: [ PaysScript
                  (pmultisig params)
-                 [ ( Accumulator thePayment (signPk . snd <$> signatures),
-                     paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-                   )
-                 ]
+                 (Accumulator thePayment (signPk . snd <$> signatures))
+                 (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
              ]
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
@@ -347,8 +343,6 @@ mkFakeCollect thePayment params = do
       )
         :=>: [ PaysScript
                  fakeValidator
-                 [ ( HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures),
-                     paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues
-                   )
-                 ]
+                 (HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures))
+                 (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
              ]

@@ -44,10 +44,8 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
       remainderConstraint =
         PaysScript
           Split.splitValidator
-          [ ( Split.SplitDatum r1 r2 remainder,
-              Pl.lovelaceValueOf remainder
-            )
-          ]
+          (Split.SplitDatum r1 r2 remainder)
+          (Pl.lovelaceValueOf remainder)
   void $
     validateTxConstrLbl
       (TxUnlock' mRecipient1 mRecipient2 (fmap ($ 100) mAmountChanger))

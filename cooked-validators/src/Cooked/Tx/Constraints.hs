@@ -83,10 +83,8 @@ instance ToLedgerConstraint MiscConstraint where
   toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
 
 instance ToLedgerConstraint OutConstraint where
-  extractDatumStr (PaysScript _validator datumsAndValues) =
-    M.fromList
-      . map ((\d -> (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d, show d)) . fst)
-      $ datumsAndValues
+  extractDatumStr (PaysScript _validator datum _value) =
+    M.singleton (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum) (show datum)
   extractDatumStr (PaysPKWithDatum _pk _stak mdat _v) =
     maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
 
@@ -100,15 +98,14 @@ instance ToLedgerConstraint OutConstraint where
           -- a different 'WithOwnStakePubKeyHash' constraint?
           <> maybe mempty Pl.ownStakePubKeyHash stak
       constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
-  toLedgerConstraint (PaysScript v outs) = (lkups, constr)
+  toLedgerConstraint (PaysScript v datum value) = (lkups, constr)
     where
       lkups = Pl.otherScript (Pl.validatorScript v)
-      constr = mconcat $
-        flip map outs $ \(d, val) ->
-          Pl.mustPayToOtherScript
-            (Pl.validatorHash $ Pl.validatorScript v)
-            (Pl.Datum $ Pl.toBuiltinData d)
-            val
+      constr =
+        Pl.mustPayToOtherScript
+          (Pl.validatorHash $ Pl.validatorScript v)
+          (Pl.Datum $ Pl.toBuiltinData datum)
+          value
 
 instance ToLedgerConstraint Constraints where
   extractDatumStr (miscConstraints :=>: outConstraints) =
@@ -136,14 +133,12 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
     }
-outConstraintToTxOut (PaysScript validator [(datum, value)]) =
+outConstraintToTxOut (PaysScript validator datum value) =
   Pl.TxOut
     { Pl.txOutAddress = Pl.scriptAddress (Pl.validatorScript validator),
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
     }
--- TODO remove after we simplify 'PaysScript'
-outConstraintToTxOut _ = error "Only PaysScript constraint with one datum and value are handled"
 
 -- | Reorders the outputs of a transaction according to the ordered list of
 -- output constraints that generate them. Fails in case of mismatch. The
