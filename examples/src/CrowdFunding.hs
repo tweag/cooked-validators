@@ -68,21 +68,24 @@ data CrowdFundingRedeemer =
 getCurrentValue :: ScriptContext -> Maybe Value
 getCurrentValue = (fmap (txOutValue . txInInfoResolved)) . findOwnInput
 
--- Retrieves the current time and compares it to a time range
-validateTimeRange :: POSIXTimeRange -> POSIXTimeRange -> Bool
-validateTimeRange tRange pRange = pRange == (tRange \/ pRange)
+-- Retrieves the current transition time range and compares it to the project time range
+validateTimeRange :: POSIXTimeRange -> ScriptContext -> Bool
+validateTimeRange range =
+  (== range) .
+  (\/ range) .
+  txInfoValidRange .
+  scriptContextTxInfo
 
 -- The sum of all input lovelaces should be greater than the threshold
-validateTotalSum :: ScriptContext -> Integer -> Bool
-validateTotalSum ctx threshold =
-  (<= threshold) $
-  getLovelace $
-  fromValue $
-  mconcat $
-  fmap (txOutValue . txInInfoResolved) $
-  txInfoInputs $
-  scriptContextTxInfo $
-  ctx
+validateTotalSum :: Integer -> ScriptContext -> Bool
+validateTotalSum threshold =
+  (<= threshold) .
+  getLovelace .
+  fromValue .
+  mconcat .
+  fmap (txOutValue . txInInfoResolved) .
+  txInfoInputs .
+  scriptContextTxInfo
 
 -- Checks if the given Datum corresponds to a project proposal
 isProjectProposal :: Maybe CrowdFundingDatum -> Bool
@@ -103,13 +106,13 @@ validateSingleProposal _ = True
 
 validateCrowdFunding :: CrowdFundingDatum -> CrowdFundingRedeemer -> ScriptContext -> Bool
 -- We can always cancel the project regarding the project proposal
-validateCrowdFunding (ProjectProposal _    _  _      _       ) Cancel _   = True
+validateCrowdFunding (ProjectProposal _ _ _ _) Cancel _   = True
 -- To launch the project, we need to check if the total amount of money is enough
 -- We also need to check whether the current time is part of the time range
 -- Finally, we need to check if there is a single instance of a project proposal
-validateCrowdFunding (ProjectProposal _    id threshold range) (Launch _ _) ctx =
-  traceIfFalse "Current time not in the time range." (validateTimeRange (txInfoValidRange (scriptContextTxInfo ctx)) range) &&
-  traceIfFalse "The project has not reach its funding threshold." (validateTotalSum ctx threshold) &&
+validateCrowdFunding (ProjectProposal _ _ threshold range) (Launch _ _) ctx =
+  traceIfFalse "Current time not in the time range." (validateTimeRange range ctx) &&
+  traceIfFalse "The project has not reach its funding threshold." (validateTotalSum threshold ctx) &&
   traceIfFalse "There are multiple project proposals." (validateSingleProposal ctx)
 validateCrowdFunding (Funding hash id) (Launch _ _) ctx = True
 validateCrowdFunding (Funding hash id) Cancel ctx = True
