@@ -20,37 +20,101 @@ module CrowdFunding where
 
 -- Plutus related imports
 import Ledger.Contexts
-import qualified PlutusTx
+import qualified PlutusTx as PlTx
+import PlutusTx.Builtins.Internal hiding (snd)
 import qualified Ledger.Typed.Scripts as Scripts
+import Ledger.Address
+import Ledger.Credential
+import Ledger.Crypto
+import Ledger
+import Ledger.Time
+import PlutusTx.Prelude (traceIfFalse)
 
 -- Some basic types
 import Data.String
-import Data.Int
 import Data.Bool
-import Data.Time
-import Data.Aeson
+import Data.Aeson hiding (Value)
 import GHC.Generics
 import Prelude
+import Schema
 
--- The datum for the Crowd Funding smart contract
--- A peer either proposes a project with an ID and a goal,
--- or a peer can contribute to a project with a certain ID
+{-
+The datum for the CrowdFunding smart contract. A peer can either :
+* propose a project with its address, an id, a goal and a time range
+* contribute to a project with its address and an id
+-}
 data CrowdFundingDatum =
-  ProjectProposal String Integer Day |
-  Funding String
-  deriving stock (Eq, Show, Generic)
+  ProjectProposal PubKeyHash String Integer POSIXTimeRange |
+  Funding         PubKeyHash String
+  deriving stock    (Eq    , Show    , Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-type CrowdFundingRedeemer = ()
+{-
+The redeemer for the CrowdFunding smart contract. The project can either be :
+* launched, with the following parameters :
+  - an AssetClass : the nature of the tokens to give to contributors
+  - a power of 10 : the number of parts in which the project shall be split among contributors
+  - the time at which this transaction is launched
+* cancelled
+-}
+data CrowdFundingRedeemer =
+  Launch AssetClass Integer POSIXTime |
+  Cancel
+  deriving stock (Eq, Show, Generic)
+  deriving anyclass (ToJSON, FromJSON)  
 
-{-# INLINEABLE validateCrowdFunding #-}
+-- Retrieves the value for the current input
+getCurrentValue :: ScriptContext -> Maybe Value
+getCurrentValue = (fmap (txOutValue . txInInfoResolved)) . findOwnInput
+
+-- Retrieves the current time and compares it to a time range
+validateTimeRange :: POSIXTime -> POSIXTimeRange -> Bool
+validateTimeRange time range = True
+
+-- Compares the sum of all inputs, with the threshold
+validateTotalSum :: ScriptContext -> Integer -> Bool
+validateTotalSum ctx threshold =
+  (_>= threshold) $
+  (get "") $
+  (get "") $
+  getValue $
+  (mconcat (fmap (txOutValue . txInInfoResolved))) $
+  txInfoInput $ ctx
+
+-- Checks if the given Datum corresponds to a project proposal
+isProjectProposal :: CrowdFundingDatum -> Bool
+isProjectProposal (ProjectProposal _ _ _ _) = True
+isProjectProposal _ = False
+
+-- Check that the context only contains a single instance of a project proposal
+validateSingleProposal :: ScriptContext -> Bool
+validateSingleProposal =
+  (== 1) .
+  length .
+  (filter isProjectProposal) .
+  (fmap (fromJSON . toJSON . snd)) .
+  txInfoData .
+  scriptContextTxInfo
+
+--  1 == length (filter isProjectProposal (fmap snd (txInfoData (scriptContextTxInfo ctx))))
+
 validateCrowdFunding :: CrowdFundingDatum -> CrowdFundingRedeemer -> ScriptContext -> Bool
-validateCrowdFunding datum redeemer context = True
+-- We can always cancel the project regarding the project proposal
+validateCrowdFunding (ProjectProposal _    _  _      _       ) Cancel _   = True
+-- To launch the project, we need to check if the total amount of money is enough
+-- We also need to check whether the current time is part of the time range
+-- Finally, we need to check if there is a single instance of a project proposal
+validateCrowdFunding (ProjectProposal _    id threshold range) (Launch _ _ time) ctx =
+  traceIfFalse "Current time not in the time range." (validateTimeRange time range) &&
+  traceIfFalse "The project has not reach its funding threshold." (validateTotalSum ctx threshold) &&
+  traceIfFalse "There are multiple project proposals." (validateSingleProposal ctx)
+validateCrowdFunding (Funding hash id) (Launch _ _ _) ctx = True
+validateCrowdFunding (Funding hash id) Cancel ctx = True
 
 -- data CrowdFunding
 
--- PlutusTx.makeLift ''CrowdFundingDatum
--- PlutusTx.unstableMakeIsData ''CrowdFundingDatum
+-- PlTx.makeLift ''CrowdFundingDatum
+-- PlTx.unstableMakeIsData ''CrowdFundingDatum
 
 -- instance Scripts.ValidatorTypes CrowdFunding where
 --   type RedeemerType CrowdFunding = CrowdFundingRedeemer
@@ -59,8 +123,8 @@ validateCrowdFunding datum redeemer context = True
 -- crowdFundingValidator :: Scripts.TypedValidator CrowdFunding
 -- crowdFundingValidator =
 --   Scripts.mkTypedValidator @CrowdFunding
---     $$(PlutusTx.compile [||validateCrowdFunding||])
---     $$(PlutusTx.compile [||wrap||])
+--     $$(PlTx.compile [||validateCrowdFunding||])
+--     $$(PlTx.compile [||wrap||])
 --   where
 --     wrap = Scripts.wrapValidator @CrowdFundingDatum @CrowdFundingRedeemer
 
