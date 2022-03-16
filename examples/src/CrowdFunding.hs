@@ -28,7 +28,9 @@ import Ledger.Credential
 import Ledger.Crypto
 import Ledger
 import Ledger.Time
+import Ledger.Ada
 import PlutusTx.Prelude (traceIfFalse)
+import PlutusTx.Lattice
 
 -- Some basic types
 import Data.String
@@ -54,11 +56,10 @@ The redeemer for the CrowdFunding smart contract. The project can either be :
 * launched, with the following parameters :
   - an AssetClass : the nature of the tokens to give to contributors
   - a power of 10 : the number of parts in which the project shall be split among contributors
-  - the time at which this transaction is launched
 * cancelled
 -}
 data CrowdFundingRedeemer =
-  Launch AssetClass Integer POSIXTime |
+  Launch AssetClass Integer |
   Cancel
   deriving stock (Eq, Show, Generic)
   deriving anyclass (ToJSON, FromJSON)  
@@ -68,33 +69,35 @@ getCurrentValue :: ScriptContext -> Maybe Value
 getCurrentValue = (fmap (txOutValue . txInInfoResolved)) . findOwnInput
 
 -- Retrieves the current time and compares it to a time range
-validateTimeRange :: POSIXTime -> POSIXTimeRange -> Bool
-validateTimeRange time range = True
+validateTimeRange :: POSIXTimeRange -> POSIXTimeRange -> Bool
+validateTimeRange tRange pRange = pRange == (tRange \/ pRange)
 
--- Compares the sum of all inputs, with the threshold
+-- The sum of all input lovelaces should be greater than the threshold
 validateTotalSum :: ScriptContext -> Integer -> Bool
 validateTotalSum ctx threshold =
-  (_>= threshold) $
-  (get "") $
-  (get "") $
-  getValue $
-  (mconcat (fmap (txOutValue . txInInfoResolved))) $
-  txInfoInput $ ctx
+  (<= threshold) $
+  getLovelace $
+  fromValue $
+  mconcat $
+  fmap (txOutValue . txInInfoResolved) $
+  txInfoInputs $
+  scriptContextTxInfo $
+  ctx
 
 -- Checks if the given Datum corresponds to a project proposal
-isProjectProposal :: CrowdFundingDatum -> Bool
-isProjectProposal (ProjectProposal _ _ _ _) = True
+isProjectProposal :: Maybe CrowdFundingDatum -> Bool
+isProjectProposal (Just (ProjectProposal _ _ _ _)) = True
 isProjectProposal _ = False
 
--- Check that the context only contains a single instance of a project proposal
+-- Checks that the context only contains a single instance of a project proposal
 validateSingleProposal :: ScriptContext -> Bool
-validateSingleProposal =
-  (== 1) .
-  length .
-  (filter isProjectProposal) .
-  (fmap (fromJSON . toJSON . snd)) .
-  txInfoData .
-  scriptContextTxInfo
+validateSingleProposal _ = True
+  -- (== 1) .
+  -- length .
+  -- (filter isProjectProposal) .
+  -- (fmap (PlTx.fromBuiltinData . snd)) .
+  -- txInfoData .
+  -- scriptContextTxInfo
 
 --  1 == length (filter isProjectProposal (fmap snd (txInfoData (scriptContextTxInfo ctx))))
 
@@ -104,11 +107,11 @@ validateCrowdFunding (ProjectProposal _    _  _      _       ) Cancel _   = True
 -- To launch the project, we need to check if the total amount of money is enough
 -- We also need to check whether the current time is part of the time range
 -- Finally, we need to check if there is a single instance of a project proposal
-validateCrowdFunding (ProjectProposal _    id threshold range) (Launch _ _ time) ctx =
-  traceIfFalse "Current time not in the time range." (validateTimeRange time range) &&
+validateCrowdFunding (ProjectProposal _    id threshold range) (Launch _ _) ctx =
+  traceIfFalse "Current time not in the time range." (validateTimeRange (txInfoValidRange (scriptContextTxInfo ctx)) range) &&
   traceIfFalse "The project has not reach its funding threshold." (validateTotalSum ctx threshold) &&
   traceIfFalse "There are multiple project proposals." (validateSingleProposal ctx)
-validateCrowdFunding (Funding hash id) (Launch _ _ _) ctx = True
+validateCrowdFunding (Funding hash id) (Launch _ _) ctx = True
 validateCrowdFunding (Funding hash id) Cancel ctx = True
 
 -- data CrowdFunding
