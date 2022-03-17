@@ -114,7 +114,8 @@ validateTotalSum threshold =
 
 {-# INLINEABLE validateSingleProposal #-}
 -- Checks that the context only contains a single instance of a project proposal
--- and that all fundings are directed towards that proposal
+-- and that all fundings are directed towards that proposal. This also checks
+-- that there are no additionnal irrelevant inputs
 validateSingleProposal :: Contexts.ScriptContext -> Bool
 validateSingleProposal ctx =
   let txInfo = Ledger.scriptContextTxInfo ctx in
@@ -127,8 +128,7 @@ validateSingleProposal ctx =
     validateDatumsContent (Just ppName) (Just fpName) [] = ppName == fpName
     validateDatumsContent (Just ppName) Nothing [] = True
     validateDatumsContent Nothing _ [] = False
-    validateDatumsContent (Just ppName) mfpName ((ProjectProposal _ nppName _ _) : l) =
-      if (nppName == ppName) then validateDatumsContent (Just ppName) mfpName l else False
+    validateDatumsContent (Just ppName) mfpName ((ProjectProposal _ nppName _ _) : l) = False
     validateDatumsContent Nothing mfpName ((ProjectProposal _ nppName _ _) : l) =
       validateDatumsContent (Just nppName) mfpName l
     validateDatumsContent mppName (Just fpName) ((Funding _ nfpName) : l) =
