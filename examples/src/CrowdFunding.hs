@@ -21,6 +21,7 @@ module CrowdFunding where
 -- Plutus related imports
 import qualified Ledger
 import qualified Ledger.Contexts as Contexts
+import qualified Ledger.Typed.Scripts as Scripts
 import qualified PlutusTx
 import qualified Ledger.Ada as Ada
 import PlutusTx.Prelude hiding (Applicative (..))
@@ -41,6 +42,7 @@ data CrowdFundingDatum =
 
 -- Some magic so that Plutus understands that CrowdFundingDatum is supposed to be used as a Datum
 PlutusTx.unstableMakeIsData ''CrowdFundingDatum
+PlutusTx.makeLift ''CrowdFundingDatum
 
 -- Retrieving a CrowdFundingDatum of a given input in a transaction
 findDatum :: Ledger.TxInfo -> Ledger.TxInInfo -> Maybe CrowdFundingDatum
@@ -60,6 +62,10 @@ data CrowdFundingRedeemer =
   Cancel
   deriving stock (Haskell.Eq, Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)  
+
+-- The same magic for the redeemer
+PlutusTx.unstableMakeIsData ''CrowdFundingRedeemer
+PlutusTx.makeLift ''CrowdFundingRedeemer
 
 {-# INLINEABLE getCurrentValue #-}
 -- Retrieves the value for the current input
@@ -96,7 +102,7 @@ isProjectProposal _ = False
 {-# INLINEABLE validateSingleProposal #-}
 -- Checks that the context only contains a single instance of a project proposal
 validateSingleProposal :: Contexts.ScriptContext -> Bool
-validateSingleProposal = Haskell.undefined
+validateSingleProposal _ = True -- Haskell.undefined
   -- (== 1) .
   -- length .
   -- (filter isProjectProposal) .
@@ -116,25 +122,22 @@ validateCrowdFunding (ProjectProposal _ _ threshold range) (Launch _ _) ctx =
   traceIfFalse "Current time not in the time range."              (validateTimeRange range ctx) &&
   traceIfFalse "The project has not reach its funding threshold." (validateTotalSum threshold ctx) &&
   traceIfFalse "There are multiple project proposals."            (validateSingleProposal ctx)
-validateCrowdFunding (Funding hash id) (Launch _ _) ctx = Haskell.undefined
-validateCrowdFunding (Funding hash id) Cancel ctx = Haskell.undefined
+validateCrowdFunding (Funding hash id) (Launch _ _) ctx = True -- Haskell.undefined
+validateCrowdFunding (Funding hash id) Cancel ctx = True -- Haskell.undefined
 
--- data CrowdFunding
+data CrowdFunding
 
--- PlTx.makeLift ''CrowdFundingDatum
--- PlTx.unstableMakeIsData ''CrowdFundingDatum
+instance Scripts.ValidatorTypes CrowdFunding where
+  type RedeemerType CrowdFunding = CrowdFundingRedeemer
+  type DatumType CrowdFunding = CrowdFundingDatum
 
--- instance Scripts.ValidatorTypes CrowdFunding where
---   type RedeemerType CrowdFunding = CrowdFundingRedeemer
---   type DatumType CrowdFunding = CrowdFundingDatum
-
--- crowdFundingValidator :: Scripts.TypedValidator CrowdFunding
--- crowdFundingValidator =
---   Scripts.mkTypedValidator @CrowdFunding
---     $$(PlTx.compile [||validateCrowdFunding||])
---     $$(PlTx.compile [||wrap||])
---   where
---     wrap = Scripts.wrapValidator @CrowdFundingDatum @CrowdFundingRedeemer
+crowdFundingValidator :: Scripts.TypedValidator CrowdFunding
+crowdFundingValidator =
+  Scripts.mkTypedValidator @CrowdFunding
+    $$(PlutusTx.compile [||validateCrowdFunding||])
+    $$(PlutusTx.compile [||wrap||])
+  where
+    wrap = Scripts.wrapValidator @CrowdFundingDatum @CrowdFundingRedeemer
 
 
 
