@@ -44,6 +44,7 @@ data CrowdFundingDatum =
 PlutusTx.unstableMakeIsData ''CrowdFundingDatum
 PlutusTx.makeLift ''CrowdFundingDatum
 
+{-# INLINEABLE findDatum #-}
 -- Retrieving a CrowdFundingDatum of a given input in a transaction
 findDatum :: Ledger.TxInfo -> Ledger.TxInInfo -> Maybe CrowdFundingDatum
 findDatum txInfo txInInfo = do
@@ -52,14 +53,30 @@ findDatum txInfo txInInfo = do
   Ledger.Datum d <- Contexts.findDatum hash txInfo
   PlutusTx.fromBuiltinData d
 
+{-# INLINEABLE catMaybes #-}
+catMaybes :: [ Maybe a ] -> [ a ]
+catMaybes [] = []
+catMaybes (Nothing : l) = catMaybes l
+catMaybes ((Just x) : l) = x : catMaybes l
+  
+{-# INLINEABLE findAllDatums #-}
+-- Retrieves all the instances of CrowdFundingDatum in a script
+findAllDatums :: Ledger.TxInfo -> [ CrowdFundingDatum ]
+findAllDatums txInfo = catMaybes (fmap (findDatum txInfo) (Ledger.txInfoInputs txInfo))
+
+{-# INLINEABLE findProjectOwnerKey #-}
+-- This retrieves the first PubKeyHash from a project proposal, often assuming there is only one
+findProjectOwnerKey :: Ledger.TxInfo -> Maybe Ledger.PubKeyHash
+findProjectOwnerKey = findFirstProjectProposal . findAllDatums
+  where
+    findFirstProjectProposal [] = Nothing
+    findFirstProjectProposal ((Funding _ _) : l) = findFirstProjectProposal l
+    findFirstProjectProposal ((ProjectProposal pkh _ _ _) : _) = Just pkh
+  
 {- The redeemer for the CrowdFunding smart contract. The project can either be :
-* launched, with the following parameters :
-  - an AssetClass : the nature of the tokens to give to contributors
-  - a power of 10 : the number of parts in which the project shall be split among contributors
-* cancelled -}
+Launched or cancelled -}
 data CrowdFundingRedeemer =
-  Launch Ledger.AssetClass Integer |
-  Cancel
+  Launch | Cancel
   deriving stock (Haskell.Eq, Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)  
 
@@ -70,7 +87,9 @@ PlutusTx.makeLift ''CrowdFundingRedeemer
 {-# INLINEABLE getCurrentValue #-}
 -- Retrieves the value for the current input
 getCurrentValue :: Contexts.ScriptContext -> Maybe Ledger.Value
-getCurrentValue = (fmap (Ledger.txOutValue . Contexts.txInInfoResolved)) . Contexts.findOwnInput
+getCurrentValue =
+  (fmap (Ledger.txOutValue . Contexts.txInInfoResolved)) .
+  Contexts.findOwnInput
 
 {-# INLINEABLE validateTimeRange #-}
 -- Retrieves the current transition time range and compares it to the project time range
@@ -93,36 +112,63 @@ validateTotalSum threshold =
   Contexts.txInfoInputs .
   Contexts.scriptContextTxInfo
 
-{-# INLINEABLE isProjectProposal #-}
--- Checks if the given Datum corresponds to a project proposal
-isProjectProposal :: Maybe CrowdFundingDatum -> Bool
-isProjectProposal (Just (ProjectProposal _ _ _ _)) = True
-isProjectProposal _ = False
-
 {-# INLINEABLE validateSingleProposal #-}
 -- Checks that the context only contains a single instance of a project proposal
+-- and that all fundings are directed towards that proposal
 validateSingleProposal :: Contexts.ScriptContext -> Bool
-validateSingleProposal _ = True -- Haskell.undefined
-  -- (== 1) .
-  -- length .
-  -- (filter isProjectProposal) .
-  -- (fmap (PlTx.fromBuiltinData . snd)) .
-  -- txInfoData .
-  -- scriptContextTxInfo
+validateSingleProposal ctx =
+  let txInfo = Ledger.scriptContextTxInfo ctx in
+    let txInInfos = Ledger.txInfoInputs txInfo in 
+      let datums = findAllDatums txInfo in
+        length datums == length txInInfos &&
+        validateDatumsContent Nothing Nothing datums
+  where
+    validateDatumsContent :: Maybe BuiltinByteString -> Maybe BuiltinByteString -> [ CrowdFundingDatum ] -> Bool
+    validateDatumsContent (Just ppName) (Just fpName) [] = ppName == fpName
+    validateDatumsContent (Just ppName) Nothing [] = True
+    validateDatumsContent Nothing _ [] = False
+    validateDatumsContent (Just ppName) mfpName ((ProjectProposal _ nppName _ _) : l) =
+      if (nppName == ppName) then validateDatumsContent (Just ppName) mfpName l else False
+    validateDatumsContent Nothing mfpName ((ProjectProposal _ nppName _ _) : l) =
+      validateDatumsContent (Just nppName) mfpName l
+    validateDatumsContent mppName (Just fpName) ((Funding _ nfpName) : l) =
+      if (nfpName == fpName) then validateDatumsContent mppName (Just fpName) l else False
+    validateDatumsContent mppName Nothing ((Funding _ nfpName) : l) =
+      validateDatumsContent mppName (Just nfpName) l
+  
+
+-- Checks if there is a single input in the context
+{-# INLINEABLE validateSingleInput #-}
+validateSingleInput :: Contexts.ScriptContext -> Bool
+validateSingleInput =
+  (== 1) .
+  length .
+  Ledger.txInfoInputs .
+  Ledger.scriptContextTxInfo
+
+-- Checks if the peer that launched the script is also the owner of the project
+{-# INLINEABLE validateOwnerIdentity #-}
+validateOwnerIdentity :: Contexts.ScriptContext -> Bool
+validateOwnerIdentity ctx = let txInfo = Ledger.scriptContextTxInfo ctx in
+  case findProjectOwnerKey txInfo of
+    Nothing -> False
+    Just pkh -> pkh `elem` (Ledger.txInfoSignatories txInfo)
   
 {-# INLINEABLE validateCrowdFunding #-}
 validateCrowdFunding :: CrowdFundingDatum -> CrowdFundingRedeemer -> Contexts.ScriptContext -> Bool
--- We can always cancel the project regarding the project proposal, or not
--- Make sure there is no other input belonging to the current script when we are in this case
-validateCrowdFunding (ProjectProposal _ _ _ _) Cancel _   = True
--- To launch the project, we need to check if the total amount of money is enough
--- We also need to check whether the current time is part of the time range
--- Finally, we need to check if there is a single instance of a project proposal
-validateCrowdFunding (ProjectProposal _ _ threshold range) (Launch _ _) ctx =
-  traceIfFalse "Current time not in the time range."              (validateTimeRange range ctx) &&
+validateCrowdFunding (ProjectProposal _ _ _ _) Cancel ctx =
+  -- We can cancel the project if the current input is the only one in the script
+  traceIfFalse "Cancelling a project requires the project proposal as a single input." (validateSingleInput ctx) &&
+  -- And if the peer that cancels it is part of the signatures for the transaction
+  traceIfFalse "Only the project owner can cancel it." (validateOwnerIdentity ctx)
+validateCrowdFunding (ProjectProposal _ _ threshold range) Launch ctx =
+  -- To launch the project, we need to check if the total amount of money is enough
+  traceIfFalse "Current time not in the time range." (validateTimeRange range ctx) &&
+  -- We also need to check whether the current time is part of the time range
   traceIfFalse "The project has not reach its funding threshold." (validateTotalSum threshold ctx) &&
-  traceIfFalse "There are multiple project proposals."            (validateSingleProposal ctx)
-validateCrowdFunding (Funding hash id) (Launch _ _) ctx = True -- Haskell.undefined
+  -- Finally, we need to check if the inputs all point toward a single project proposal
+  traceIfFalse "There are multiple project proposals." (validateSingleProposal ctx)
+validateCrowdFunding (Funding hash id) Launch ctx = True -- Haskell.undefined
 validateCrowdFunding (Funding hash id) Cancel ctx = True -- Haskell.undefined
 
 data CrowdFunding
@@ -138,10 +184,3 @@ crowdFundingValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.wrapValidator @CrowdFundingDatum @CrowdFundingRedeemer
-
-
-
-
-
-
-
