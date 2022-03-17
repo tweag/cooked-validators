@@ -11,22 +11,22 @@ import qualified Ledger.TimeSlot as Pl
 
 -- | Spends some value from a pubkey by selecting the needed utxos belonging
 --  to that pubkey and returning the leftover to the same pubkey.
-spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m [Constraint]
+spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m Constraints
 spentByPK pkh val = do
   -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
   allOuts <- pkUtxos pkh
   let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
-  (paysPK pkh leftOver :) . map SpendsPK <$> mapM spendableRef toSpend
+  (:=>: [paysPK pkh leftOver]) . map SpendsPK <$> mapM spendableRef toSpend
 
 -- | Enforces the transaction to be vadiated at a precise slot.
 -- It requires to be in the mock chain monad, since slots can be translated to an explicit time range
 -- only after inspecting the slot configuration.
-validateAtSlot :: MonadMockChain m => Pl.Slot -> m Constraint
+validateAtSlot :: MonadMockChain m => Pl.Slot -> m MiscConstraint
 validateAtSlot s = do
   slotConf <- slotConfig
   return $ ValidateIn $ Pl.slotToPOSIXTimeRange slotConf s
 
 -- | Validates the transaction in the current time slot of the mock chain.
-validateNow :: MonadMockChain m => m Constraint
+validateNow :: MonadMockChain m => m MiscConstraint
 validateNow =
   validateAtSlot =<< currentSlot

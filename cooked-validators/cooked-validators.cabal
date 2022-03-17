@@ -5,7 +5,7 @@ cabal-version: 3.4
 -- see: https://github.com/sol/hpack
 
 name:           cooked-validators
-version:        0.1.0
+version:        0.2.0
 build-type:     Simple
 extra-source-files:
     README.md
@@ -81,6 +81,7 @@ test-suite spec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
       Cooked.MockChain.WalletSpec
+      Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
       Paths_cooked_validators
   hs-source-dirs:

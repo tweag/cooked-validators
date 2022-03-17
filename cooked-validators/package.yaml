@@ -2,7 +2,7 @@ verbatim:
   cabal-version: 3.4
 
 name: cooked-validators
-version: 0.1.0
+version: 0.2.0
 extra-source-files:
   - README.md
 

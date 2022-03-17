@@ -72,9 +72,11 @@ spec = do
                 (f $ g $ Pl.lovelaceValueOf 4_200_000)
             ]
         -- Function to modify some specific skeletons
-        app f (TxSkel l opts [PaysPKWithDatum pk stak dat val]) =
-          Just $ TxSkel l opts [PaysPKWithDatum pk stak dat (f val)]
-        app f _ = Nothing
+        app f (TxSkel l opts constraintsSpec) =
+          case toConstraints constraintsSpec of
+            [] :=>: [PaysPKWithDatum pk stak dat val] ->
+              Just $ TxSkel l opts [PaysPKWithDatum pk stak dat (f val)]
+            _ -> Nothing
         -- Two transformations
         f x = Pl.lovelaceValueOf 3_000_000
         g x = Pl.lovelaceValueOf (2 * Pl.getLovelace (Pl.fromValue x))

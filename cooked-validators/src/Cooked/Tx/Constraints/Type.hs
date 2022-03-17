@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -53,20 +54,49 @@ type SpendsConstrs a =
     Typeable a
   )
 
--- | Our own first-class constraint type. The advantage over the regular plutus constraint
---  type is that we get to add whatever we need and we hide away the type variables in existentials.
-data Constraint where
-  PaysScript ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
-    Pl.TypedValidator a ->
-    [(Pl.DatumType a, Pl.Value)] ->
-    Constraint
+-- Our own first-class constraint types. The advantage over the regular plutus constraint
+-- type is that we get to add whatever we need and we hide away the type variables in existentials.
+
+-- | The main constraints datatype. It combines output constraints
+-- ('OutConstraint') in a specific order that is respected by the generated
+-- transaction, and miscellaneous constraints 'MiscConstraint' including input
+-- constraints, time constraints, or signature requirements.
+data Constraints = [MiscConstraint] :=>: [OutConstraint]
+
+instance Semigroup Constraints where
+  (c1 :=>: oc1) <> (c2 :=>: oc2) = (c1 <> c2) :=>: (oc1 <> oc2)
+
+instance Monoid Constraints where
+  mempty = [] :=>: []
+
+-- | Constraints which do not specify new transaction outputs
+data MiscConstraint where
   SpendsScript ::
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
-    Constraint
+    MiscConstraint
+  SpendsPK :: SpendableOut -> MiscConstraint
+  Mints ::
+    (Pl.ToData a, Show a) =>
+    Maybe a ->
+    [Pl.MintingPolicy] ->
+    Pl.Value ->
+    MiscConstraint
+  Before :: Pl.POSIXTime -> MiscConstraint
+  After :: Pl.POSIXTime -> MiscConstraint
+  ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint
+  SignedBy :: [Pl.PubKeyHash] -> MiscConstraint
+
+-- | Constraints which specify new transaction outputs
+data OutConstraint where
+  PaysScript ::
+    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
+    Pl.TypedValidator a ->
+    Pl.DatumType a ->
+    Pl.Value ->
+    OutConstraint
   -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
   -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'
   -- to update the script lookups, hence, generating a transaction with /two/ 'PaysPKWithDatum' with
@@ -78,23 +108,34 @@ data Constraint where
     Maybe Pl.StakePubKeyHash ->
     Maybe a ->
     Pl.Value ->
-    Constraint
-  SpendsPK :: SpendableOut -> Constraint
-  Mints ::
-    (Pl.ToData a, Show a) =>
-    Maybe a ->
-    [Pl.MintingPolicy] ->
-    Pl.Value ->
-    Constraint
-  Before :: Pl.POSIXTime -> Constraint
-  After :: Pl.POSIXTime -> Constraint
-  ValidateIn :: Pl.POSIXTimeRange -> Constraint
-  SignedBy :: [Pl.PubKeyHash] -> Constraint
+    OutConstraint
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> Constraint
+-- | This typeclass provides user-friendly convenience to overload the
+-- 'txConstraints' field of 'TxSkel'. For instance, this enables us to ommit the '(:=>:)'
+-- constructor whenever we're using only one kind of constraints.
+-- It also opens up future alternative of constraint specification.
+class ConstraintsSpec a where
+  toConstraints :: a -> Constraints
+
+instance ConstraintsSpec Constraints where
+  toConstraints = id
+
+instance ConstraintsSpec [MiscConstraint] where
+  toConstraints = (:=>: [])
+
+instance ConstraintsSpec MiscConstraint where
+  toConstraints = toConstraints . (: [])
+
+instance ConstraintsSpec [OutConstraint] where
+  toConstraints = ([] :=>:)
+
+instance ConstraintsSpec OutConstraint where
+  toConstraints = toConstraints . (: [])
+
+paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
 paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 
-mints :: [Pl.MintingPolicy] -> Pl.Value -> Constraint
+mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 mints = Mints @() Nothing
 
 -- | A Transaction skeleton is a set of our constraints,
@@ -111,24 +152,24 @@ mints = Mints @() Nothing
 -- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
-    (Show x) =>
+    (Show x, ConstraintsSpec constraints) =>
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
-      txConstraints :: [Constraint]
+      txConstraints :: constraints
     } ->
     TxSkel
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'
-txSkel :: [Constraint] -> TxSkel
+txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
 txSkel = txSkelOpts def
 
 -- | Constructs a skeleton without a default label, but with custom options
-txSkelOpts :: TxOpts -> [Constraint] -> TxSkel
+txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
 txSkelOpts = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x) => x -> [Constraint] -> TxSkel
+txSkelLbl :: (Show x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
 txSkelLbl x = TxSkel (Just x) def
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
@@ -156,6 +197,11 @@ data TxOpts = TxOpts
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
     autoSlotIncrease :: Bool,
+    -- | Reorders the transaction outputs to fit the ordering of output
+    -- constraints. Those outputs are put at the very beginning of the list.
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    forceOutputOrdering :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
     -- and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
@@ -198,6 +244,7 @@ instance Default TxOpts where
       { adjustUnbalTx = False,
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
+        forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True
       }
