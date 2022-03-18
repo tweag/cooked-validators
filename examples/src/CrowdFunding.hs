@@ -129,18 +129,17 @@ validateSingleProposal ctx =
     validateDatumsContent mppName Nothing ((Funding _ nfpName) : l) =
       validateDatumsContent mppName (Just nfpName) l
   
-
--- Checks if there is a single input or output in the context
 {-# INLINEABLE validateSingleElt #-}
+-- Checks if there is a single input or output in the context
 validateSingleElt :: Bool -> Context.ScriptContext -> Bool
 validateSingleElt isInput ctx = let txInfo = Ledger.scriptContextTxInfo ctx in
   if isInput then sizeOne $ Ledger.txInfoInputs $ txInfo else sizeOne $ Ledger.txInfoOutputs $ txInfo
   where
     sizeOne :: [ a ] -> Bool
     sizeOne = (== 1) . length
-
--- Checks if a PubKeyHash appears in the signatures of a script
+    
 {-# INLINEABLE validateOwnerSignature #-}
+-- Checks if a PubKeyHash appears in the signatures of a script
 validateOwnerSignature :: Ledger.PubKeyHash -> Context.ScriptContext -> Bool
 validateOwnerSignature pkh = 
     (elem pkh) .
@@ -183,7 +182,9 @@ validateCrowdFunding (ProjectProposal _ _ threshold range) Launch ctx =
   traceIfFalse "The project has not reach its funding threshold." (validateTotalSum threshold ctx) &&
   -- We also need to check if the inputs all point toward a single project proposal
   traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal ctx)
-validateCrowdFunding (Funding hash id) Launch ctx = True -- Haskell.undefined
+validateCrowdFunding (Funding hash id) Launch ctx =
+  -- We need to check if the inputs all point toward a single project proposal, which means the project proposal was also redeemed with Launch
+  traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal ctx)
 validateCrowdFunding (Funding pkh _) Cancel ctx =
   -- We check that the current peer signed the transaction
   traceIfFalse "A peer funding can only be cancelled by the peer in question." (validateOwnerSignature pkh ctx) &&
