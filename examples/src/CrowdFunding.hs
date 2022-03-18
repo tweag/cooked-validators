@@ -109,8 +109,8 @@ validateTotalSum threshold =
 -- Checks that the context only contains a single instance of a project proposal
 -- and that all fundings are directed towards that proposal. This also checks
 -- that there are no additionnal irrelevant inputs
-validateSingleProposal :: Context.ScriptContext -> Bool
-validateSingleProposal ctx =
+validateSingleProposal :: BuiltinByteString -> Context.ScriptContext -> Bool
+validateSingleProposal name ctx =
   let txInfo = Ledger.scriptContextTxInfo ctx in
     let txInInfos = Ledger.txInfoInputs txInfo in 
       let datums = findAllDatums txInfo in
@@ -118,10 +118,10 @@ validateSingleProposal ctx =
         validateDatumsContent Nothing Nothing datums
   where
     validateDatumsContent :: Maybe BuiltinByteString -> Maybe BuiltinByteString -> [ CrowdFundingDatum ] -> Bool
-    validateDatumsContent (Just ppName) (Just fpName) [] = ppName == fpName
-    validateDatumsContent (Just ppName) Nothing [] = True
+    validateDatumsContent (Just ppName) (Just fpName) [] = ppName == fpName && ppName == name
+    validateDatumsContent (Just _) Nothing [] = True
     validateDatumsContent Nothing _ [] = False
-    validateDatumsContent (Just ppName) mfpName ((ProjectProposal _ nppName _ _) : l) = False
+    validateDatumsContent (Just _) _ ((ProjectProposal _ _ _ _) : _) = False
     validateDatumsContent Nothing mfpName ((ProjectProposal _ nppName _ _) : l) =
       validateDatumsContent (Just nppName) mfpName l
     validateDatumsContent mppName (Just fpName) ((Funding _ nfpName) : l) =
@@ -175,16 +175,16 @@ validateCrowdFunding (ProjectProposal pkh _ _ _) Cancel ctx =
   traceIfFalse "Cancelling a project requires the project proposal as a single input." (validateSingleElt True ctx) &&
   -- And if the peer that cancels it is part of the signatures for the transaction
   traceIfFalse "Only the project owner can cancel it." (validateOwnerSignature pkh ctx)
-validateCrowdFunding (ProjectProposal _ _ threshold range) Launch ctx =
+validateCrowdFunding (ProjectProposal _ pName threshold range) Launch ctx =
   -- To launch the project, we need to check if the total amount of money is enough
   traceIfFalse "Current time not in the time range." (validateTimeRange range ctx) &&
   -- We also need to check whether the current time is part of the time range
   traceIfFalse "The project has not reach its funding threshold." (validateTotalSum threshold ctx) &&
   -- We also need to check if the inputs all point toward a single project proposal
-  traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal ctx)
-validateCrowdFunding (Funding hash id) Launch ctx =
+  traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal pName ctx)
+validateCrowdFunding (Funding _ pName) Launch ctx =
   -- We need to check if the inputs all point toward a single project proposal, which means the project proposal was also redeemed with Launch
-  traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal ctx)
+  traceIfFalse "The inputs do not correspond to a single project proposal alongside fundings for that project." (validateSingleProposal pName ctx)
 validateCrowdFunding (Funding pkh _) Cancel ctx =
   -- We check that the current peer signed the transaction
   traceIfFalse "A peer funding can only be cancelled by the peer in question." (validateOwnerSignature pkh ctx) &&
