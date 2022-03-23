@@ -33,10 +33,8 @@ txLock script datum =
       (TxLock datum)
       [ PaysScript
           script
-          [ ( datum,
-              Pl.lovelaceValueOf $ Split.amount datum
-            )
-          ]
+          datum
+          (Pl.lovelaceValueOf (Split.amount datum))
       ]
 
 -- | Label for 'txLock' skeleton, making it immediately recognizable
@@ -59,10 +57,11 @@ txUnlock script = do
   void $
     validateTxConstrLbl
       TxUnlock
-      [ SpendsScript script () (output, datum),
-        paysPK r1 (Pl.lovelaceValueOf share1),
-        paysPK r2 (Pl.lovelaceValueOf share2)
-      ]
+      ( [SpendsScript script () (output, datum)]
+          :=>: [ paysPK r1 (Pl.lovelaceValueOf share1),
+                 paysPK r2 (Pl.lovelaceValueOf share2)
+               ]
+      )
 
 -- | Label for 'txUnlock' skeleton
 data TxUnlock = TxUnlock deriving (Show)
