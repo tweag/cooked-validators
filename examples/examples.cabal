@@ -87,6 +87,7 @@ test-suite spec
     , data-default
     , either
     , examples
+    , extra
     , flat
     , foldl
     , freer-extras

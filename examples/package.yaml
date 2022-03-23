@@ -24,6 +24,7 @@ dependencies:
   - containers
   - data-default
   - either
+  - extra
   - flat
   - foldl
   - freer-extras
