@@ -21,6 +21,7 @@ import qualified GHC.Generics as Haskell
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Script
+import Playground.Contract (mkSchemaDefinitions)
 import Plutus.Contract
 import qualified Plutus.V1.Ledger.Ada as Script
 import qualified PlutusTx
@@ -28,7 +29,6 @@ import PlutusTx.Prelude
 import Schema (ToSchema)
 import qualified Wallet.Emulator.Wallet as Contract
 import qualified Prelude as Haskell
-import Playground.Contract (mkSchemaDefinitions)
 
 -- DATA AND REDEEMERS
 -- ==================
@@ -110,8 +110,9 @@ validateFunder FundData {projectOwnerKey} Fund ctx = run $ do
   -- this UTxO is spent before the expiry date
   guard $ expiryDate `Ledger.before` Ledger.txInfoValidRange tx
   -- the amount should be correct
-  let funders = filter (\(FundData { projectOwnerKey = k }, _) -> ownerKey == k) $
-                  findDataOf @FundData tx
+  let funders =
+        filter (\(FundData {projectOwnerKey = k}, _) -> ownerKey == k) $
+          findDataOf @FundData tx
       totalAmount = Ada.fromValue $ foldMap snd funders
   guard $ totalAmount >= minimalFunding
   -- and all of it goes to the owner
@@ -210,7 +211,7 @@ txCancelFund _ = do
   void $
     validateTxConstr
       ( [SpendsScript funderInstance Cancel (output, fd), SignedBy [pkh]]
-        :=>: [paysPK pkh (sOutValue output)]
+          :=>: [paysPK pkh (sOutValue output)]
       )
 
 txGetFunds :: (MonadBlockChain m) => () -> m ()
@@ -218,7 +219,7 @@ txGetFunds _ = Haskell.undefined
 
 endpoints :: (AsContractError e) => Promise w CrowdfundingSchema e ()
 endpoints =
-  endpoint @"startProject" txStartProject `select`
-  endpoint @"fundProject" txFundProject  `select`
-  endpoint @"cancelFund" txCancelFund  `select`
-  endpoint @"getFunds" txGetFunds
+  endpoint @"startProject" txStartProject
+    `select` endpoint @"fundProject" txFundProject
+    `select` endpoint @"cancelFund" txCancelFund
+    `select` endpoint @"getFunds" txGetFunds
