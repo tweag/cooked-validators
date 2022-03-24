@@ -58,19 +58,29 @@ import qualified Prelude as Haskell
 {- The datum for the CrowdFunding smart contract. A peer can either :
 * propose a project with its address, an id, a goal and a time range
 * contribute to a project with its address and an id -}
-data CrowdFundingDatum
+data Datum
   = ProjectProposal Ledger.PubKeyHash BuiltinByteString Integer Ledger.POSIXTimeRange
   | Funding Ledger.PubKeyHash BuiltinByteString
   deriving stock (Haskell.Eq, Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
--- Some magic so that Plutus understands that CrowdFundingDatum is supposed to be used as a Datum
-PlutusTx.unstableMakeIsData ''CrowdFundingDatum
-PlutusTx.makeLift ''CrowdFundingDatum
+-- Some magic so that Plutus understands that Datum is supposed to be used as a Datum
+PlutusTx.unstableMakeIsData ''Datum
+PlutusTx.makeLift ''Datum
+
+{-# INLINEABLE retrievePKH #-}
+retrievePKH :: Datum -> Ledger.PubKeyHash
+retrievePKH (ProjectProposal pkh _ _ _) = pkh
+retrievePKH (Funding pkh _) = pkh
+
+{-# INLINEABLE retrievePName #-}
+retrievePName :: Datum -> BuiltinByteString
+retrievePName (ProjectProposal _ pName _ _) = pName
+retrievePName (Funding _ pName) = pName
 
 {-# INLINEABLE findDatum #-}
--- Retrieving a CrowdFundingDatum of a given input in a transaction
-findDatum :: Ledger.TxInfo -> Ledger.TxInInfo -> Maybe CrowdFundingDatum
+-- Retrieving a Datum of a given input in a transaction
+findDatum :: Ledger.TxInfo -> Ledger.TxInInfo -> Maybe Datum
 findDatum txInfo txInInfo = do
   let txOut = Ledger.txInInfoResolved txInInfo
   hash <- Ledger.txOutDatumHash txOut
@@ -84,21 +94,21 @@ catMaybes (Nothing : l) = catMaybes l
 catMaybes ((Just x) : l) = x : catMaybes l
 
 {-# INLINEABLE findAllDatums #-}
--- Retrieves all the instances of CrowdFundingDatum in a script
-findAllDatums :: Ledger.TxInfo -> [CrowdFundingDatum]
+-- Retrieves all the instances of Datum in a script
+findAllDatums :: Ledger.TxInfo -> [Datum]
 findAllDatums txInfo = catMaybes (fmap (findDatum txInfo) (Ledger.txInfoInputs txInfo))
 
 {- The redeemer for the CrowdFunding smart contract. The project can either be :
 Launched or cancelled -}
-data CrowdFundingRedeemer
+data Redeemer
   = Launch
   | Cancel
   deriving stock (Haskell.Eq, Haskell.Show, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
 -- The same magic for the redeemer
-PlutusTx.unstableMakeIsData ''CrowdFundingRedeemer
-PlutusTx.makeLift ''CrowdFundingRedeemer
+PlutusTx.unstableMakeIsData ''Redeemer
+PlutusTx.makeLift ''Redeemer
 
 {-# INLINEABLE getCurrentValue #-}
 -- Retrieves the value for the current input
@@ -140,7 +150,7 @@ validateSingleProposal name ctx =
    in length datums == length txInInfos
         && validateDatumsContent Nothing Nothing datums
   where
-    validateDatumsContent :: Maybe BuiltinByteString -> Maybe BuiltinByteString -> [CrowdFundingDatum] -> Bool
+    validateDatumsContent :: Maybe BuiltinByteString -> Maybe BuiltinByteString -> [Datum] -> Bool
     validateDatumsContent (Just ppName) (Just fpName) [] = ppName == fpName && ppName == name
     validateDatumsContent (Just _) Nothing [] = True
     validateDatumsContent Nothing _ [] = False
@@ -155,12 +165,12 @@ validateSingleProposal name ctx =
 {-# INLINEABLE validateSingleElt #-}
 -- Checks if there is a single input or output in the context
 validateSingleElt :: Bool -> Context.ScriptContext -> Bool
-validateSingleElt isInput ctx =
-  let txInfo = Ledger.scriptContextTxInfo ctx
-      sizeOne = (== 1) . length
-   in if isInput
-        then sizeOne $ Ledger.txInfoInputs txInfo
-        else sizeOne $ Ledger.txInfoOutputs txInfo
+validateSingleElt isInput ctx = True
+  -- let txInfo = Ledger.scriptContextTxInfo ctx
+  --     sizeOne = (== 1) . length
+  --  in if isInput
+  --       then sizeOne $ Ledger.txInfoInputs txInfo
+  --       else sizeOne $ Ledger.txInfoOutputs txInfo
 
 {-# INLINEABLE validateOwnerSignature #-}
 -- Checks if a PubKeyHash appears in the signatures of a script
@@ -194,7 +204,7 @@ validateRefunding pkh ctx =
         == Ada.getLovelace (Ada.fromValue $ Ledger.valueSpent txInfo)
 
 {-# INLINEABLE validateCrowdFunding #-}
-validateCrowdFunding :: CrowdFundingDatum -> CrowdFundingRedeemer -> Context.ScriptContext -> Bool
+validateCrowdFunding :: Datum -> Redeemer -> Context.ScriptContext -> Bool
 validateCrowdFunding (ProjectProposal pkh _ _ _) Cancel ctx =
   -- We can cancel the project if there is only one input in the script.
   traceIfFalse "Cancelling a project requires the project proposal as a single input." (validateSingleElt True ctx)
@@ -223,13 +233,13 @@ validateCrowdFunding (Funding pkh _) Cancel ctx =
 data CrowdFunding
 
 instance Scripts.ValidatorTypes CrowdFunding where
-  type RedeemerType CrowdFunding = CrowdFundingRedeemer
-  type DatumType CrowdFunding = CrowdFundingDatum
+  type RedeemerType CrowdFunding = Redeemer
+  type DatumType CrowdFunding = Datum
 
-crowdFundingValidator :: Scripts.TypedValidator CrowdFunding
-crowdFundingValidator =
+validator :: Scripts.TypedValidator CrowdFunding
+validator =
   Scripts.mkTypedValidator @CrowdFunding
     $$(PlutusTx.compile [||validateCrowdFunding||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @CrowdFundingDatum @CrowdFundingRedeemer
+    wrap = Scripts.wrapValidator @Datum @Redeemer

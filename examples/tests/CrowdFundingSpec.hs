@@ -30,28 +30,33 @@ month = 3600 * 24 * 30
 -----------------------------------------------------
 
 -- A peer can create a project
-createProject :: MonadBlockChain m => Wallet -> Pl.BuiltinByteString -> Integer -> Pl.POSIXTime -> m ()
-createProject myWallet projectName threshold deadline =
+createProject :: MonadBlockChain m => Wallet -> Pl.BuiltinByteString -> Integer -> Pl.POSIXTime -> m Pl.TxId
+createProject myWallet projectName threshold deadline = do
   let myDatum = CF.ProjectProposal (walletPKHash myWallet) projectName threshold (Pl.to deadline)
-   in void $ validateTxSkel $ txSkel [PaysScript CF.crowdFundingValidator myDatum (ada 2)]
+  validateTxSkel $ txSkel [PaysScript CF.validator myDatum (ada 2)]
 
 -- A peer can fund a project
-fundProject :: MonadBlockChain m => Wallet -> Pl.BuiltinByteString -> Integer -> m ()
-fundProject myWallet projectName funding =
+fundProject :: MonadBlockChain m => Wallet -> Pl.BuiltinByteString -> Integer -> m Pl.TxId
+fundProject myWallet projectName funding = do
   let myDatum = CF.Funding (walletPKHash myWallet) projectName
-   in void $ validateTxSkel $ txSkelOpts (def {adjustUnbalTx = True}) [PaysScript CF.crowdFundingValidator myDatum (ada funding)]
+  validateTxSkel $ txSkelOpts (def {adjustUnbalTx = True}) [PaysScript CF.validator myDatum (ada funding)]
 
--- A project owner can cancel a project
--- cancelProject :: MonadBlockChain m => m ()
--- cancelProject = validateTxSkel $ txSkel []
+-- A peer can cancel a project
+cancelProject :: MonadBlockChain m => Pl.BuiltinByteString -> m [Pl.TxId]
+cancelProject projectName = do
+  l <- scriptUtxosSuchThat CF.validator (\d _ -> CF.retrievePName d == projectName)
+  mapM (\p@(sOut,datum) -> validateTxSkel $ txSkel ([ SpendsScript CF.validator CF.Cancel p ] :=>:
+                          [ paysPK (CF.retrievePKH datum) (sOutValue sOut) ])) l
 
 ------------------------
 -- Examples of traces --
 ------------------------
 
 exampleTrace :: MonadMockChain m => m ()
-exampleTrace = do
+exampleTrace = void $ do
   t <- currentTime
-  createProject alice "project1" 2_000_000 (t + month) `as` alice
-  fundProject bob "project1" 3 `as` bob
-  fundProject marc "project1" 4 `as` marc
+  createProject alice "project_alice" 2_000_000 (t + month) `as` alice
+  createProject bob "project_bob" 2_000_000 (t + month) `as` bob
+  fundProject bob "project_alice" 3 `as` bob
+  fundProject marc "project_alice" 4 `as` marc
+  cancelProject "project_alice" `as` alice
