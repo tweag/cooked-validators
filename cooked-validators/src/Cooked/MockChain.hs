@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-dodgy-exports #-}
+{-# Options_GHC -Wno-dodgy-exports #-}
 
 -- | Exports all the machinery necessary for using 'MonadBlockChain' and
 --  'MonadMockChain' for writing and testing contracts.
