@@ -10,7 +10,10 @@ import qualified CrowdFunding as CF
 import Data.Default (def)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
+import qualified Ledger.Value as Pl
 import qualified PlutusTx.Builtins as Pl
+import qualified Data.ByteString.Builder as Pl
+import qualified PlutusTx.Monoid as Pl
 
 --------------------------------
 -- Some top-level definitions --
@@ -47,6 +50,16 @@ cancelProject projectName = do
   l <- scriptUtxosSuchThat CF.validator (\d _ -> CF.retrievePName d == projectName)
   mapM (\p@(sOut,datum) -> validateTxSkel $ txSkel ([ SpendsScript CF.validator CF.Cancel p ] :=>:
                           [ paysPK (CF.retrievePKH datum) (sOutValue sOut) ])) l
+
+emptyValue :: Pl.Value
+emptyValue = Pl.mempty 
+
+startProject :: MonadBlockChain m => Pl.BuiltinByteString -> m Pl.TxId
+startProject projectName = do
+  l <- scriptUtxosSuchThat CF.validator  (\d _ -> CF.retrievePName d == projectName)
+  let totalValue = Pl.mconcat $ sOutValue . fst <$> l
+  undefined
+--  mapM (\p@(sOut,datum) -> validateTxSkel $ txSkel [ SpendsScript CF.validator CF.Launch p ])
 
 ------------------------
 -- Examples of traces --

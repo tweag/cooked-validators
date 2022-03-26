@@ -21,13 +21,8 @@ module CrowdFunding where
 -- Plutus related imports
 
 -- Some basic types
-import Data.Aeson
-  ( FromJSON,
-    ToJSON,
-  )
-import GHC.Generics
-  ( Generic,
-  )
+import Data.Aeson (FromJSON, ToJSON)
+import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Address as Address
@@ -35,25 +30,10 @@ import qualified Ledger.Contexts as Context
 import qualified Ledger.Credential as Credential
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified PlutusTx
-import PlutusTx.Prelude
-  ( Bool (..),
-    BuiltinByteString,
-    Eq ((==)),
-    Functor (fmap),
-    Integer,
-    JoinSemiLattice ((\/)),
-    Maybe (..),
-    Ord ((<=)),
-    elem,
-    flip,
-    length,
-    mconcat,
-    traceIfFalse,
-    ($),
-    (&&),
-    (.),
-  )
+import PlutusTx.Prelude hiding (Applicative (..))
 import qualified Prelude as Haskell
+import qualified Ledger as Legder
+import Ledger (isPayToScriptOut)
 
 {- The datum for the CrowdFunding smart contract. A peer can either :
 * propose a project with its address, an id, a goal and a time range
@@ -162,15 +142,15 @@ validateSingleProposal name ctx =
     validateDatumsContent mppName Nothing ((Funding _ nfpName) : l) =
       validateDatumsContent mppName (Just nfpName) l
 
-{-# INLINEABLE validateSingleElt #-}
--- Checks if there is a single input or output in the context
-validateSingleElt :: Bool -> Context.ScriptContext -> Bool
-validateSingleElt isInput ctx = True
-  -- let txInfo = Ledger.scriptContextTxInfo ctx
-  --     sizeOne = (== 1) . length
-  --  in if isInput
-  --       then sizeOne $ Ledger.txInfoInputs txInfo
-  --       else sizeOne $ Ledger.txInfoOutputs txInfo
+{-# INLINEABLE validateSingleScriptInput #-}
+  -- Checks if there is a single input in the context with the address of the script 
+validateSingleScriptInput :: Context.ScriptContext -> Bool 
+validateSingleScriptInput =
+  (== 1) .
+  length .
+  filter (Ledger.isPayToScriptOut . Ledger.txInInfoResolved) .
+  Ledger.txInfoInputs .
+  Legder.scriptContextTxInfo
 
 {-# INLINEABLE validateOwnerSignature #-}
 -- Checks if a PubKeyHash appears in the signatures of a script
@@ -207,7 +187,7 @@ validateRefunding pkh ctx =
 validateCrowdFunding :: Datum -> Redeemer -> Context.ScriptContext -> Bool
 validateCrowdFunding (ProjectProposal pkh _ _ _) Cancel ctx =
   -- We can cancel the project if there is only one input in the script.
-  traceIfFalse "Cancelling a project requires the project proposal as a single input." (validateSingleElt True ctx)
+  traceIfFalse "Cancelling a project requires the project proposal as a single script input." (validateSingleScriptInput ctx)
     -- And if the peer that cancels it is part of the signatures for the transaction
     && traceIfFalse "Only the project owner can cancel it." (validateOwnerSignature pkh ctx)
 validateCrowdFunding (ProjectProposal _ pName threshold range) Launch ctx =
@@ -224,7 +204,7 @@ validateCrowdFunding (Funding pkh _) Cancel ctx =
   -- We check that the current peer signed the transaction
   traceIfFalse "A peer funding can only be cancelled by the peer in question." (validateOwnerSignature pkh ctx)
     -- We check that there is a single output in the script.
-    && traceIfFalse "Cancelling a peer funding requires the refunding as a single output." (validateSingleElt False ctx)
+--    && traceIfFalse "Cancelling a peer funding requires the refunding as a single output." (validateSingleElt False ctx)
     -- We have to check that all inputs belong to the peer that cancels the transaction
     && traceIfFalse "Cancelling a peer funding requires the funding as a single input." (validateAllSameOrigin pkh ctx)
     -- We check that this output points toward the funder, and gives back his total amount of money.
