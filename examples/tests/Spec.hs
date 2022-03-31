@@ -1,5 +1,6 @@
 module Main where
 
+import qualified CrowdfundingSpec
 import qualified ForgeSpec
 import qualified PMultiSigStatefulSpec
 import qualified SplitSpec
@@ -14,7 +15,8 @@ main = do
   defaultMain $
     testGroup
       "main"
-      [ PMultiSigStatefulSpec.tests,
+      [ CrowdfundingSpec.tests,
+        PMultiSigStatefulSpec.tests,
         UseCaseCrowdfundingSpec.tests,
         SplitSpec.tests,
         SplitUPLCSpec.tests,

@@ -27,7 +27,6 @@ import qualified Plutus.V1.Ledger.Ada as Script
 import qualified PlutusTx
 import PlutusTx.Prelude
 import Schema (ToSchema)
-import qualified Wallet.Emulator.Wallet as Contract
 import qualified Prelude as Haskell
 
 -- DATA AND REDEEMERS
@@ -150,12 +149,14 @@ funderInstance =
 -- ========
 
 data FundProjectArgs = FundProjectArgs
-  { projectOwner :: Contract.Wallet,
+  { projectOwner :: Wallet,
     amount :: Ledger.Ada
   }
   deriving stock (Haskell.Show, Haskell.Generic)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
 
+-- deriving anyclass (ToSchema)
+
+{-
 type CrowdfundingSchema =
   Endpoint "startProject" ProjectData
     .\/ Endpoint "fundProject" FundProjectArgs
@@ -164,25 +165,12 @@ type CrowdfundingSchema =
 
 mkSchemaDefinitions ''CrowdfundingSchema
 
-{-
-
--- attempt at writing it using Plutus
-
-startProject :: Promise () CrowdfundingSchema T.Text ()
-startProject = endpoint @"startProject" $ \projectData@ProjectData { ownerKey } -> void $
-  submitTxConstraints ownerInstance $
-    mconcat [ Constraints.mustBeSignedBy ownerKey
-            , Constraints.mustPayToTheScript projectData mempty ]
-
-fundProject :: Promise () CrowdfundingSchema T.Text ()
-fundProject = endpoint @"fundProject" $ \FundProjectArgs { projectOwner, amount } -> void $ do
-  let fundData = FundData {
-    projectOwnerKey = Wallet.mockWalletPaymentPubKeyHash projectOwner
-  , funderKey = Haskell.undefined
-  }
-  submitTxConstraints funderInstance $
-    Constraints.mustPayToTheScript fundData (Ada.toValue amount)
-
+endpoints :: (AsContractError e) => Promise w CrowdfundingSchema e ()
+endpoints =
+  endpoint @"startProject" txStartProject
+    `select` endpoint @"fundProject" txFundProject
+    `select` endpoint @"cancelFund" txCancelFund
+    `select` endpoint @"getFunds" txGetFunds
 -}
 
 -- attempt using cooked-validators instead
@@ -191,18 +179,18 @@ txStartProject :: (MonadBlockChain m) => ProjectData -> m ()
 txStartProject datum =
   void $
     validateTxConstr
-      [PaysScript ownerInstance datum (Script.lovelaceValueOf 1)]
+      [PaysScript ownerInstance datum (Script.adaValueOf 2)]
 
 txFundProject ::
-  (MonadBlockChain m, Functor m) =>
+  (MonadBlockChain m) =>
   FundProjectArgs ->
   m ()
 txFundProject FundProjectArgs {projectOwner, amount} = do
-  myKey <- Ledger.PaymentPubKeyHash <$> Cooked.MockChain.ownPaymentPubKeyHash
-  let ownerKey = Contract.mockWalletPaymentPubKeyHash projectOwner
+  myKey <- Cooked.MockChain.ownPaymentPubKeyHash
+  let ownerKey = walletPKHash projectOwner
   void $
     validateTxConstr
-      [PaysScript funderInstance (FundData ownerKey myKey) (Ada.toValue amount)]
+      [PaysScript funderInstance (FundData (Ledger.PaymentPubKeyHash $ ownerKey) (Ledger.PaymentPubKeyHash $ myKey)) (Ada.toValue amount)]
 
 txCancelFund :: (MonadBlockChain m) => () -> m ()
 txCancelFund _ = do
@@ -216,10 +204,3 @@ txCancelFund _ = do
 
 txGetFunds :: (MonadBlockChain m) => () -> m ()
 txGetFunds _ = Haskell.undefined
-
-endpoints :: (AsContractError e) => Promise w CrowdfundingSchema e ()
-endpoints =
-  endpoint @"startProject" txStartProject
-    `select` endpoint @"fundProject" txFundProject
-    `select` endpoint @"cancelFund" txCancelFund
-    `select` endpoint @"getFunds" txGetFunds
