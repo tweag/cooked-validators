@@ -190,7 +190,7 @@ txFundProject FundProjectArgs {projectOwner, amount} = do
   let ownerKey = walletPKHash projectOwner
   void $
     validateTxConstr
-      [PaysScript funderInstance (FundData (Ledger.PaymentPubKeyHash $ ownerKey) (Ledger.PaymentPubKeyHash $ myKey)) (Ada.toValue amount)]
+      [PaysScript funderInstance (FundData (Ledger.PaymentPubKeyHash ownerKey) (Ledger.PaymentPubKeyHash myKey)) (Ada.toValue amount)]
 
 txCancelFund :: (MonadBlockChain m) => () -> m ()
 txCancelFund _ = do

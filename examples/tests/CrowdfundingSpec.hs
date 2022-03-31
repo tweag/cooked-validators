@@ -1,12 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -77,7 +71,7 @@ funderCanCancel =
           (Ada.adaOf 10)
           (t + 20000)
           (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
-      (txFundProject $ FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
       txCancelFund () `as` wallet 2
 
 otherFunderCannotCancel :: TestTree
@@ -92,5 +86,5 @@ otherFunderCannotCancel =
           (Ada.adaOf 10)
           (t + 20000)
           (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
-      (txFundProject $ FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
       txCancelFund () `as` wallet 3
