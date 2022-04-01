@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -104,11 +105,11 @@ successfulFunding =
       txStartProject $
         ProjectData
           (Ada.adaOf 10)
-          (t + 20000)
+          (t + 20_000_000)
           (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
       txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 7)) `as` wallet 2
       txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 7)) `as` wallet 3
-      waitNMilliSeconds 50000
+      waitNSlots 1
       txGetFunds () `as` wallet 1
 
 notEnoughFunding :: TestTree

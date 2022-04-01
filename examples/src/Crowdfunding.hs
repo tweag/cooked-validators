@@ -106,7 +106,7 @@ validateFunder FundData {projectOwnerKey} Fund ctx = run $ do
         findDataOf @ProjectData tx
   guard $ traceIfFalse "not owner key" $ ownerKey == projectOwnerKey
   -- this UTxO is spent before the expiry date
-  -- guard $ traceIfFalse "right expiry date" $ expiryDate `Ledger.before` Ledger.txInfoValidRange tx
+  -- guard $ traceIfFalse "right expiry date" $ expiryDate `Ledger.after` Ledger.txInfoValidRange tx
   -- the amount should be correct
   let funders =
         filter (\(FundData {projectOwnerKey = k}, _) -> ownerKey == k) $
