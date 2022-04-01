@@ -4,6 +4,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -21,8 +22,6 @@ import qualified GHC.Generics as Haskell
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Script
-import Playground.Contract (mkSchemaDefinitions)
-import Plutus.Contract
 import qualified Plutus.V1.Ledger.Ada as Script
 import qualified PlutusTx
 import PlutusTx.Prelude
@@ -100,20 +99,20 @@ validateFunder FundData {funderKey} Cancel ctx =
 -- of the project to get the funds locked from funders
 validateFunder FundData {projectOwnerKey} Fund ctx = run $ do
   let tx = Ledger.scriptContextTxInfo ctx
-  -- signed by the owner of the project
-  guard $ tx `isSignedByTx` projectOwnerKey
+  -- signed by the owner of the project\
+  guard $ traceIfFalse "not signed" $ tx `isSignedByTx` projectOwnerKey
   -- which is also the owner of the project
   let [(ProjectData {ownerKey, minimalFunding, expiryDate}, _)] =
         findDataOf @ProjectData tx
-  guard $ ownerKey == projectOwnerKey
+  guard $ traceIfFalse "not owner key" $ ownerKey == projectOwnerKey
   -- this UTxO is spent before the expiry date
-  guard $ expiryDate `Ledger.before` Ledger.txInfoValidRange tx
+  -- guard $ traceIfFalse "right expiry date" $ expiryDate `Ledger.before` Ledger.txInfoValidRange tx
   -- the amount should be correct
   let funders =
         filter (\(FundData {projectOwnerKey = k}, _) -> ownerKey == k) $
           findDataOf @FundData tx
       totalAmount = Ada.fromValue $ foldMap snd funders
-  guard $ totalAmount >= minimalFunding
+  guard $ traceIfFalse "not enogh funding" $ totalAmount >= minimalFunding
   -- and all of it goes to the owner
   guard $ Ada.fromValue (Ledger.valuePaidTo tx (Ledger.unPaymentPubKeyHash ownerKey)) >= totalAmount
 
@@ -203,4 +202,21 @@ txCancelFund _ = do
       )
 
 txGetFunds :: (MonadBlockChain m) => () -> m ()
-txGetFunds _ = Haskell.undefined
+txGetFunds _ = do
+  thisKey <- Cooked.MockChain.ownPaymentPubKeyHash
+  -- we need to have a single input with the project data
+  [ownerTxOut@(_output, ProjectData {minimalFunding})] <-
+    scriptUtxosSuchThat ownerInstance (\pd _ -> ownerKey pd == Ledger.PaymentPubKeyHash thisKey)
+  -- get all the money
+  funders <- scriptUtxosSuchThat funderInstance (\fd _ -> projectOwnerKey fd == Ledger.PaymentPubKeyHash thisKey)
+  let total = sum $ map (sOutValue . fst) funders
+  if Ada.fromValue total < minimalFunding
+    then Haskell.fail "not enough funding"
+    else
+      void $
+        validateTxConstr
+          ( ( SpendsScript ownerInstance GetFunds ownerTxOut :
+              map (SpendsScript funderInstance Fund) funders
+            )
+              :=>: [paysPK thisKey total]
+          )

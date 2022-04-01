@@ -36,7 +36,12 @@ tests =
   localOption (QuickCheckTests 25) $
     testGroup
       "Crowdfunding"
-      [ownerCanStartCampaign, funderCanCancel, otherFunderCannotCancel]
+      [ ownerCanStartCampaign,
+        funderCanCancel,
+        otherFunderCannotCancel,
+        successfulFunding,
+        notEnoughFunding
+      ]
 
 traceSucceeds :: (Show e) => Either e t -> IO ()
 traceSucceeds (Right _) = pure ()
@@ -88,3 +93,36 @@ otherFunderCannotCancel =
           (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
       txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
       txCancelFund () `as` wallet 3
+
+successfulFunding :: TestTree
+successfulFunding =
+  testCase "Successful funding" $ traceSucceeds (runMockChain mtrace)
+  where
+    mtrace :: MonadMockChain m => m ()
+    mtrace = do
+      t <- currentTime
+      txStartProject $
+        ProjectData
+          (Ada.adaOf 10)
+          (t + 20000)
+          (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 7)) `as` wallet 2
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 7)) `as` wallet 3
+      waitNMilliSeconds 50000
+      txGetFunds () `as` wallet 1
+
+notEnoughFunding :: TestTree
+notEnoughFunding =
+  testCase "Not enough funding" $ traceFails (runMockChain mtrace)
+  where
+    mtrace :: MonadMockChain m => m ()
+    mtrace = do
+      t <- currentTime
+      txStartProject $
+        ProjectData
+          (Ada.adaOf 10)
+          (t + 20000)
+          (Ledger.PaymentPubKeyHash $ walletPKHash (wallet 1))
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 2
+      txFundProject (FundProjectArgs (wallet 1) (Ada.adaOf 2)) `as` wallet 3
+      txGetFunds () `as` wallet 1
