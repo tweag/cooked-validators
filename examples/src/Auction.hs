@@ -117,9 +117,7 @@ validBid auction datum bid bidder ctx =
         && traceIfFalse
           "Validator does not lock lot and bid"
           (L.valueLockedBy txi selfh == lot auction <> Ada.lovelaceValueOf bid)
-        && case filter
-          (\o -> L.txOutAddress o == L.scriptHashAddress selfh)
-          (L.getContinuingOutputs ctx) of
+        && case L.getContinuingOutputs ctx of
           [o] ->
             traceIfFalse
               "Not in 'Bidding'-state after bidding"
