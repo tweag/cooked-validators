@@ -18,6 +18,7 @@ library
       Split
       Split.OffChain
       Split.ToUPLC
+      Auction
   other-modules:
       Paths_examples
   hs-source-dirs:
