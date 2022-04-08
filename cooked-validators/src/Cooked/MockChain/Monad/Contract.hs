@@ -19,7 +19,7 @@ import qualified PlutusTx as Pl
 
 -- TODO shall MonadFail really be the constraint on the MonadBlockChain class?
 instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
-  fail = C.throwError . review C._OtherError . T.pack
+  fail = C.throwError . review C._OtherContractError . T.pack
 
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   validateTxSkel TxSkel {txConstraints, txOpts} = do
@@ -40,7 +40,7 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
           else Nothing
     pure $ catMaybes maybeUtxosWithDatums
 
-  txOutByRef ref = fmap Pl.toTxOut <$> C.txOutFromRef ref
+  txOutByRef ref = fmap Pl.toTxOut <$> C.unspentTxOutFromRef ref
 
   ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownPaymentPubKeyHash
 

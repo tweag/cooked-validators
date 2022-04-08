@@ -34,7 +34,6 @@ import Data.Void
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
