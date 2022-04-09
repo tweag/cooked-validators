@@ -73,6 +73,7 @@ test-suite spec
       SplitUPLCSpec
       UseCaseCrowdfundingSpec
       Paths_examples
+      AuctionSpec
   hs-source-dirs:
       tests
   build-depends:

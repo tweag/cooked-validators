@@ -28,6 +28,7 @@ import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import qualified PlutusTx
 import PlutusTx.Prelude
+import qualified Prelude as Haskell
 
 -- | All the data associated with an auction.
 data Parameters = Parameters
@@ -54,8 +55,9 @@ data AuctionState
         -- | the last bidder's address
         lastBidder :: L.PubKeyHash
       }
+  deriving (Haskell.Show)
 
-instance Eq AuctionState where
+ instance Eq AuctionState where
   {- INLINEABLE (==) -}
   NoBids == NoBids = True
   Bidding a b == Bidding x y = a == x && b == y
@@ -74,6 +76,7 @@ data Action
     Hammer
   | -- | redeemer to claim money back (after the 'hammerDeadline')
     MoneyBack
+  deriving (Haskell.Show)
 
 {- INLINEABLE bidTimeRange -}
 bidTimeRange :: Parameters -> L.POSIXTimeRange
