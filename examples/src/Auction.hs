@@ -32,7 +32,9 @@ import PlutusTx.Prelude
 -- | All the data associated with an auction.
 data Parameters = Parameters
   { -- | no bids are accepted later than this
-    deadline :: L.POSIXTime,
+    bidDeadline :: L.POSIXTime,
+    -- | if the auction has not been closed by this deadline, the last bidder can get their money back
+    hammerDeadline :: L.POSIXTime,
     -- | minimum bid in the auction
     minBid :: Integer,
     -- | address of the seller
@@ -61,23 +63,29 @@ instance Eq AuctionState where
 
 -- | Actions to be taken in an auction. This will be the RedeemerType.
 data Action
-  = -- | redeemer to make a bid (before the 'deadline')
+  = -- | redeemer to make a bid (before the 'bidDeadline')
     Bid
       { -- | the new bidder's offer in Ada
         bid :: Integer,
         -- | the new bidder's address
         bidder :: L.PubKeyHash
       }
-  | -- | redeemer to close the auction (after the 'deadline')
+  | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
+  | -- | redeemer to claim money back (after the 'hammerDeadline')
+    MoneyBack
 
 {- INLINEABLE bidTimeRange -}
 bidTimeRange :: Parameters -> L.POSIXTimeRange
-bidTimeRange a = Interval.to (deadline a)
+bidTimeRange a = Interval.to (bidDeadline a)
 
 {- INLINEABLE hammerTimeRange -}
 hammerTimeRange :: Parameters -> L.POSIXTimeRange
-hammerTimeRange a = Interval.from (deadline a)
+hammerTimeRange a = Interval.from (bidDeadline a)
+
+{- INLINEABLE moneyBackTimeRange -}
+moneyBackTimeRange :: Parameters -> L.POSIXTimeRange
+moneyBackTimeRange a = Interval.from (hammerDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
 
@@ -96,7 +104,7 @@ receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
 -- | A new bid is valid if
--- * it is made before the deadline
+-- * it is made before the bidding deadline
 -- * it is greater than maximum of the lastBid and the minBid
 -- * it has been signed by the bidder
 -- * after the transaction
@@ -129,11 +137,12 @@ validBid auction datum bid bidder ctx =
           Bidding {lastBid, lastBidder} ->
             traceIfFalse "Cannot bid less than the last bid" (lastBid < bid)
               && traceIfFalse
-                "Last bidder is not paid enough"
+                "Last bidder is not paid back"
                 (lastBidder `receives` Ada.lovelaceValueOf lastBid)
 
 -- | A hammer ends the auction. It is valid if
--- * it is made after the deadline
+-- * it is made after the bidding deadline
+-- * it is signed by the seller
 -- * after the transaction
 --    * the last bidder has received the lot
 --    * the seller has received payment
@@ -144,8 +153,11 @@ validHammer auction datum ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
    in traceIfFalse
-        "Hammer befofer the deadline is not permitted"
+        "Hammer before the deadline is not permitted"
         (hammerTimeRange auction `Interval.contains` L.txInfoValidRange txi)
+        && traceIfFalse
+          "Hammer transaction not signed by the seller"
+          (txi `L.txSignedBy` seller auction)
         && case datum of
           NoBids -> True
           Bidding {lastBid, lastBidder} ->
@@ -156,11 +168,32 @@ validHammer auction datum ctx =
                 "Seller does not receive last bid"
                 (seller auction `receives` Ada.lovelaceValueOf lastBid)
 
+-- | If the auction was not closed by a hammer, the highest bidder
+-- might want their money back. This is valid if
+-- * it happens after the hammer deadline
+-- * after the transaction, the highest bidder (if there was one) has gotten their money
+
+{- INLINEABLE validMoneyBack -}
+validMoneyBack :: Parameters -> AuctionState -> L.ScriptContext -> Bool
+validMoneyBack auction datum ctx =
+  let txi = L.scriptContextTxInfo ctx
+      receives = receivesFrom txi
+   in traceIfFalse
+        "MoneyBack before the hammer deadline is not permitted"
+        (moneyBackTimeRange auction `Interval.contains` L.txInfoValidRange txi)
+        && case datum of
+          NoBids -> trace "Can not claim money back if there were no bids" False
+          Bidding {lastBid, lastBidder} ->
+            traceIfFalse
+              "Last bidder does not receive their money back"
+              (lastBidder `receives` Ada.lovelaceValueOf lastBid)
+
 {- INLINEABLE validate -}
 validate :: Parameters -> AuctionState -> Action -> L.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
   Bid {bid, bidder} -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
+  MoneyBack -> validMoneyBack auction datum ctx
 
 -- Plutus boilerplate
 
