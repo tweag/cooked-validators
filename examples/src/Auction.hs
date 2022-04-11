@@ -35,8 +35,6 @@ data Parameters = Parameters
   { -- | no bids are accepted later than this
     bidDeadline :: L.POSIXTime,
     -- | if the auction has not been closed by this deadline, the last bidder can get their money back
-    hammerDeadline :: L.POSIXTime,
-    -- | minimum bid in the auction
     minBid :: Integer,
     -- | address of the seller
     seller :: L.PubKeyHash,
@@ -46,7 +44,9 @@ data Parameters = Parameters
 
 -- | The state of the auction. This will be the DatumType.
 data AuctionState
-  = -- | state of an auction that has not yet had any bids
+  = -- | state of an auction that has not yet been opened by the seller locking the lot
+    Waiting
+  | -- | state of an auction that has not yet had any bids
     NoBids
   | -- | state of an auction that has had at least one bid
     Bidding
@@ -57,7 +57,7 @@ data AuctionState
       }
   deriving (Haskell.Show)
 
- instance Eq AuctionState where
+instance Eq AuctionState where
   {- INLINEABLE (==) -}
   NoBids == NoBids = True
   Bidding a b == Bidding x y = a == x && b == y
@@ -65,7 +65,9 @@ data AuctionState
 
 -- | Actions to be taken in an auction. This will be the RedeemerType.
 data Action
-  = -- | redeemer to make a bid (before the 'bidDeadline')
+  = -- | redeemer to open an auction. Locks the lot.
+    Open
+  | -- | redeemer to make a bid (before the 'bidDeadline')
     Bid
       { -- | the new bidder's offer in Ada
         bid :: Integer,
@@ -74,8 +76,6 @@ data Action
       }
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
-  | -- | redeemer to claim money back (after the 'hammerDeadline')
-    MoneyBack
   deriving (Haskell.Show)
 
 {- INLINEABLE bidTimeRange -}
@@ -85,10 +85,6 @@ bidTimeRange a = Interval.to (bidDeadline a)
 {- INLINEABLE hammerTimeRange -}
 hammerTimeRange :: Parameters -> L.POSIXTimeRange
 hammerTimeRange a = Interval.from (bidDeadline a)
-
-{- INLINEABLE moneyBackTimeRange -}
-moneyBackTimeRange :: Parameters -> L.POSIXTimeRange
-moneyBackTimeRange a = Interval.from (hammerDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
 
@@ -106,14 +102,44 @@ outputAuctionState txi o = do
 receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
+-- | It is only valid to open an auction if
+-- * it is not past the bidding deadline
+-- * the seller signs the transaction
+-- * the auction is not already running
+-- * after the transaction
+--     * the lot is locked by the validator
+--     * the validator is in the 'NoBids'-state
+
+{- INLINEABLE validOpen -}
+validOpen :: Parameters -> AuctionState -> L.ScriptContext -> Bool
+validOpen auction datum ctx =
+  let txi = L.scriptContextTxInfo ctx
+      selfh = L.ownHash ctx
+   in traceIfFalse
+        "Opening the auction past the deadline not permitted"
+        (bidTimeRange auction `Interval.contains` L.txInfoValidRange txi)
+        && traceIfFalse "Open transaction not signed by seller" (txi `L.txSignedBy` seller auction)
+        && case datum of
+          Waiting ->
+            traceIfFalse
+              "Validator does not lock lot"
+              (L.valueLockedBy txi selfh == lot auction)
+              && case L.getContinuingOutputs ctx of
+                [o] ->
+                  traceIfFalse
+                    "Not in 'NoBids'-status on a freshly opened auction"
+                    (outputAuctionState txi o == Just NoBids)
+                _ -> trace "There has to be exactly one continuing output state to the validator itself" False
+          _ -> trace "Can not open an auction that is already running" False
+
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
--- * it is greater than maximum of the lastBid and the minBid
 -- * it has been signed by the bidder
+-- * it is greater than maximum of the lastBid and the minBid
 -- * after the transaction
+--    * the state of the auction is 'Bidding' with the new bid and bidder
 --    * the validator locks both the lot and the new bid
 --    * the last bidder has gotten their money back from the validator
---    * the state of the auction is 'Bidding' with the new bid and bidder
 
 {- INLINEABLE validBid -}
 validBid :: Parameters -> AuctionState -> Integer -> L.PubKeyHash -> L.ScriptContext -> Bool
@@ -131,10 +157,11 @@ validBid auction datum bid bidder ctx =
         && case L.getContinuingOutputs ctx of
           [o] ->
             traceIfFalse
-              "Not in 'Bidding'-state after bidding"
+              "Not in the correct 'Bidding'-state after bidding"
               (outputAuctionState txi o == Just (Bidding bid bidder))
           _ -> trace "There has to be exactly one continuing output to the validator itself" False
         && case datum of
+          Waiting -> trace "Cannot bid on an auction that has not yet been opened" False
           NoBids ->
             traceIfFalse "Cannot bid less than the minimum bid" (minBid auction < bid)
           Bidding {lastBid, lastBidder} ->
@@ -145,10 +172,11 @@ validBid auction datum bid bidder ctx =
 
 -- | A hammer ends the auction. It is valid if
 -- * it is made after the bidding deadline
--- * it is signed by the seller
--- * after the transaction
+-- * after the transaction, if there have been bids:
 --    * the last bidder has received the lot
 --    * the seller has received payment
+-- * afer the transaction, if there have been no bids:
+--    * the seller gets their locked lot back
 
 {- INLINEABLE validHammer -}
 validHammer :: Parameters -> AuctionState -> L.ScriptContext -> Bool
@@ -158,11 +186,12 @@ validHammer auction datum ctx =
    in traceIfFalse
         "Hammer before the deadline is not permitted"
         (hammerTimeRange auction `Interval.contains` L.txInfoValidRange txi)
-        && traceIfFalse
-          "Hammer transaction not signed by the seller"
-          (txi `L.txSignedBy` seller auction)
         && case datum of
-          NoBids -> True
+          Waiting -> True
+          NoBids ->
+            traceIfFalse
+              "Seller does not get locked lot back"
+              (seller auction `receives` lot auction)
           Bidding {lastBid, lastBidder} ->
             traceIfFalse
               "Last bidder does not receive the lot"
@@ -171,32 +200,12 @@ validHammer auction datum ctx =
                 "Seller does not receive last bid"
                 (seller auction `receives` Ada.lovelaceValueOf lastBid)
 
--- | If the auction was not closed by a hammer, the highest bidder
--- might want their money back. This is valid if
--- * it happens after the hammer deadline
--- * after the transaction, the highest bidder (if there was one) has gotten their money
-
-{- INLINEABLE validMoneyBack -}
-validMoneyBack :: Parameters -> AuctionState -> L.ScriptContext -> Bool
-validMoneyBack auction datum ctx =
-  let txi = L.scriptContextTxInfo ctx
-      receives = receivesFrom txi
-   in traceIfFalse
-        "MoneyBack before the hammer deadline is not permitted"
-        (moneyBackTimeRange auction `Interval.contains` L.txInfoValidRange txi)
-        && case datum of
-          NoBids -> trace "Can not claim money back if there were no bids" False
-          Bidding {lastBid, lastBidder} ->
-            traceIfFalse
-              "Last bidder does not receive their money back"
-              (lastBidder `receives` Ada.lovelaceValueOf lastBid)
-
 {- INLINEABLE validate -}
 validate :: Parameters -> AuctionState -> Action -> L.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
+  Open -> validOpen auction datum ctx
   Bid {bid, bidder} -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
-  MoneyBack -> validMoneyBack auction datum ctx
 
 -- Plutus boilerplate
 

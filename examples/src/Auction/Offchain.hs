@@ -1,4 +1,4 @@
-module AuctionSpec where
+module Auction.Offchain where
 
 import qualified Auction as A
 import Control.Monad
@@ -10,6 +10,21 @@ import Ledger.Ada as Ada
 import Ledger.Typed.Scripts as Scripts
 
 -- * Basic transactions (intended to be valid if executed in the correct order)
+
+txOpen ::
+  (MonadBlockChain m) =>
+  Scripts.TypedValidator A.Auction ->
+  Wallet ->
+  L.Value ->
+  A.AuctionState ->
+  m ()
+txOpen script seller lot datum =
+  void $
+    validateTxConstrLbl
+      "Opening the auction"
+      ( [SignedBy [walletPKHash seller]]
+          :=>: [PaysScript script datum lot]
+      )
 
 txFirstBid ::
   (MonadBlockChain m) =>
@@ -43,7 +58,7 @@ txFurtherBid script bidder bid lastBidder lastBid datum = do
     scriptUtxosSuchThat
       script
       ( \d _ -> case d of
-          A.Bidding lastBid' lastBidder' -> lastBidder' == walletPKHash lastBidder
+          A.Bidding _ lastBidder' -> lastBidder' == walletPKHash lastBidder
           _ -> False
       )
   void $
@@ -57,16 +72,15 @@ txFurtherBid script bidder bid lastBidder lastBid datum = do
                ]
       )
 
-txHammer ::
+txHammerAfterBids ::
   (MonadBlockChain m) =>
   Scripts.TypedValidator A.Auction ->
   Wallet ->
   Wallet ->
   L.Value ->
   Integer ->
-  A.AuctionState ->
   m ()
-txHammer script buyer seller lot lastBid datum = do
+txHammerAfterBids script buyer seller lot lastBid = do
   [(buyerOutput, buyerDatum)] <-
     scriptUtxosSuchThat
       script
@@ -74,35 +88,35 @@ txHammer script buyer seller lot lastBid datum = do
           A.Bidding _ lastBidder -> lastBidder == walletPKHash buyer
           _ -> False
       )
+  os <- scriptUtxosSuchThat script (\_ _ -> True)
+  let (sellerOutput, sellerDatum) =
+        case filter (\o -> sOutValue (fst o) == Ada.lovelaceValueOf lastBid) os of
+          [o] -> o
   void $
     validateTxConstrLbl
       ("Hammer giving " ++ show lot ++ " to the last bidder " ++ show buyer ++ " and paying " ++ show lastBid ++ " Ada to the seller " ++ show seller)
-      ( [ SignedBy [walletPKHash seller],
-          SpendsScript script A.Hammer (buyerOutput, buyerDatum)
+      ( [ SpendsScript script A.Hammer (buyerOutput, buyerDatum),
+          SpendsScript script A.Hammer (sellerOutput, sellerDatum)
         ]
           :=>: [ paysPK (walletPKHash buyer) lot,
                  paysPK (walletPKHash seller) (Ada.lovelaceValueOf lastBid)
                ]
       )
 
-txMoneyBack ::
+txHammerNoBids ::
   (MonadBlockChain m) =>
   Scripts.TypedValidator A.Auction ->
   Wallet ->
-  Integer ->
-  A.AuctionState ->
+  L.Value ->
   m ()
-txMoneyBack script bidder bid datum = do
-  [(bidderOutput, bidderDatum)] <-
-    scriptUtxosSuchThat
-      script
-      ( \d _ -> case d of
-          A.Bidding _ lastBidder -> lastBidder == walletPKHash bidder
-          _ -> False
-      )
+txHammerNoBids script seller lot = do
+  os <- scriptUtxosSuchThat script (\_ _ -> True)
+  let (sellerOutput, sellerDatum) =
+        case filter (\o -> sOutValue (fst o) == lot) os of
+          [o] -> o
   void $
     validateTxConstrLbl
-      "Money back"
-      ( [SpendsScript script A.MoneyBack (bidderOutput, bidderDatum)]
-          :=>: [paysPK (walletPKHash bidder) (Ada.lovelaceValueOf bid)]
+      ("Hammer after no bids returning " ++ show lot ++ " to the seller " ++ show seller)
+      ( [SpendsScript script A.Hammer (sellerOutput, sellerDatum)]
+          :=>: [paysPK (walletPKHash seller) lot]
       )

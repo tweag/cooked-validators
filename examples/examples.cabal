@@ -19,6 +19,7 @@ library
       Split.OffChain
       Split.ToUPLC
       Auction
+      Auction.Offchain
   other-modules:
       Paths_examples
   hs-source-dirs:
@@ -73,7 +74,6 @@ test-suite spec
       SplitUPLCSpec
       UseCaseCrowdfundingSpec
       Paths_examples
-      AuctionSpec
   hs-source-dirs:
       tests
   build-depends:
