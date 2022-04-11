@@ -28,15 +28,15 @@ to the script:
 ```haskell
 txLock :: (MonadBlockChain m) => SplitDatum -> m ()
 txLock datum = void $ validateTxConstr
-      [PaysScript splitValidator [(datum, Pl.lovelaceValueOf $ Split.amount datum)]]
+      [PaysScript splitValidator datum (Pl.lovelaceValueOf $ Split.amount datum)]
 ```
 
 Note how `txLock` is defined for an arbitrary `m` such that `MonadBlockChain m`. In particular,
-it defined for `Contract` for also for [`MockChain`](src/Cooked/MockChain/Monad/Direct.hs)
-and [`StagedMockChain`](src/Cooked/MockChain/Monad/Staged.hs), which is what we will be using for
+it is defined for `Contract`, for [`MockChain`](src/Cooked/MockChain/Monad/Direct.hs),
+and also for [`StagedMockChain`](src/Cooked/MockChain/Monad/Staged.hs), which is what we will be using for
 testing our `splitValidator`.
 
-Unlocking funds is a little more interesting, to keep things simple we will unlock _the first_ split
+Unlocking funds is a little more interesting. To keep things simple we will unlock _the first_ split
 datum which we're a recipient of.
 
 ```haskell
@@ -82,10 +82,10 @@ It provides us with the means to execute some `tr :: (MonadBlockChain m) => m ()
 wallets. For instance:
 
 ```haskell
--- Some contract functionality that gets used as part of 
+-- Some contract functionality that gets used as part of
 -- the production off-chain code
 tr :: (MonadBlockChain m) => m ()
-tr = do ... 
+tr = do ...
 
 -- In a testing scenario, runs @tr@ from Bob's wallet.
 trByBob :: (MonadMockChain m) => m ()
@@ -118,13 +118,13 @@ we use `Test.QuickCheck.forAll` to generate some parameters then specify our tes
 the combinators from [`Cooked.MockChain.Testing`](src/Cooked/MockChain/Testing.hs).
 
 Say that we wanted to lift `test1` above to a property-based test. We could do so by
-writing a `Test1Params` record, then writing a function that maps a `Test1Params` 
+writing a `Test1Params` record, then writing a function that maps a `Test1Params`
 into a `MonadMockChain`. To make the code snippet shorter, lets use a 4-tuple
 instead of defining a custom record:
 
 ```haskell
 test2 :: TestTree
-test2 = testProperty "Arbitrary simple trace succeeds" $ 
+test2 = testProperty "Arbitrary simple trace succeeds" $
     forAll genParam $ \(w1, w2, amm, w') -> testSucceeds $ do
       let lockParams = SplitDatum (walletPKHash w1) (walletPKHash w2) amm
       txLock lockParams `as` w1
@@ -143,7 +143,7 @@ of our `splitValidator`. Also worth noting here is that we're using the same `te
 which in this case returns a `Test.QuickCheck.Property`.
 In fact, `testSucceeds` has type `(IsProp prop) => StagedMockChain a -> prop` and lives under
 [`Cooked.MockChain.Testing`](src/Cooked/MockChain/Testing.hs). All of the predicate combinators in
-that module can be used with both `Test.HUnit` and `Test.QuickCheck` since we have 
+that module can be used with both `Test.HUnit` and `Test.QuickCheck` since we have
 two `IsProp Assertion` and `IsProp Property` instances.
 
 ### Next Steps
@@ -176,7 +176,7 @@ action :: ActionParms -> Contract w s ContractError ()
 action x = guard (validParms x) >> txAction x
 ```
 
-In this case, we can write expressive tests that execute some action even with pottentially malformed
+In this case, we can write expressive tests that execute some action even with potentially malformed
 parameters, by using `txAction`. We only check for some internal consistency when defining the actual
 code that will be used as part of our user interface.
 
