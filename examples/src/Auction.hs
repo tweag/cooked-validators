@@ -31,23 +31,17 @@ import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
 -- | All the data associated with an auction.
-data Parameters = Parameters
+data Parameters' x = Parameters
   { -- | no bids are accepted later than this
     bidDeadline :: L.POSIXTime,
-    -- | if the auction has not been closed by this deadline, the last bidder can get their money back
-    minBid :: Integer
-  }
-
-data SellerInfo = SellerInfo
-  { -- | address of the seller
-    seller :: L.PubKeyHash,
+    minBid :: Integer,
+    -- | address of the seller
+    seller :: x,
     -- | value that is being auctioned
     lot :: L.Value
   }
-  deriving (Haskell.Show)
 
-instance Eq SellerInfo where
-  SellerInfo a b == SellerInfo x y = a == x && b == y
+type Parameters = Parameters' L.PubKeyHash
 
 data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
@@ -62,26 +56,22 @@ instance Eq BidderInfo where
 
 -- | The state of the auction. This will be the DatumType.
 data AuctionState
-  = -- | state of an auction that has not yet been opened by the seller locking the lot
-    Waiting
-  | -- | state of an auction that has not yet had any bids
-    NoBids SellerInfo
+ =
+   -- | state of an auction that has not yet had any bids
+    NoBids
   | -- | state of an auction that has had at least one bid
-    Bidding SellerInfo BidderInfo
+    Bidding BidderInfo
   deriving (Haskell.Show)
 
 instance Eq AuctionState where
   {- INLINEABLE (==) -}
-  Waiting == Waiting = True
-  NoBids a b == NoBids x y = a == x && b == y
-  Bidding a b == Bidding x y = a == x && b == y
+  NoBids == NoBids = True
+  Bidding a == Bidding x = a == x
   _ == _ = False
 
 -- | Actions to be taken in an auction. This will be the RedeemerType.
 data Action
-  = -- | redeemer to open an auction.
-    Open SellerInfo
-  | -- | redeemer to make a bid (before the 'bidDeadline')
+  = -- | redeemer to make a bid (before the 'bidDeadline')
     Bid BidderInfo
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
@@ -111,36 +101,6 @@ outputAuctionState txi o = do
 receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
--- | It is only valid to open an auction if
--- * it is not past the bidding deadline
--- * the seller signs the transaction
--- * the auction is not already running
--- * after the transaction
---     * the lot is locked by the validator
---     * the validator is in the 'NoBids'-state
-
-{- INLINEABLE validOpen -}
-validOpen :: Parameters -> AuctionState -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
-validOpen auction datum seller lot ctx =
-  let txi = L.scriptContextTxInfo ctx
-      selfh = L.ownHash ctx
-   in traceIfFalse
-        "Opening the auction past the deadline not permitted"
-        (bidTimeRange auction `Interval.contains` L.txInfoValidRange txi)
-        && traceIfFalse "Open transaction not signed by seller" (txi `L.txSignedBy` seller auction)
-        && case datum of
-          Waiting ->
-            traceIfFalse
-              "Validator does not lock lot"
-              (L.valueLockedBy txi selfh == lot auction)
-              && case L.getContinuingOutputs ctx of
-                [o] ->
-                  traceIfFalse
-                    "Not in 'NoBids'-status on a freshly opened auction"
-                    (outputAuctionState txi o == Just $ NoBids $ SellerInfo seller lot)
-                _ -> trace "There has to be exactly one continuing output to the validator itself" False
-          _ -> trace "Can not open an auction that is already running" False
-
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
 -- * it has been signed by the bidder
@@ -167,13 +127,12 @@ validBid auction datum bid bidder ctx =
           [o] ->
             traceIfFalse
               "Not in the correct 'Bidding'-state after bidding"
-              (outputAuctionState txi o == Just $ Bidding (BidderInfo bid bidder) (SellerInfo seller lot))
+              (outputAuctionState txi o == Just (Bidding (BidderInfo bid bidder)))
           _ -> trace "There has to be exactly one continuing output to the validator itself" False
         && case datum of
-          Waiting -> trace "Cannot bid on an auction that has not yet been opened" False
-          NoBids _ ->
+          NoBids ->
             traceIfFalse "Cannot bid less than the minimum bid" (minBid auction < bid)
-          Bidding (BidderInfo lastBid lastBidder) _ ->
+          Bidding (BidderInfo lastBid lastBidder) ->
             traceIfFalse "Cannot bid less than the last bid" (lastBid < bid)
               && traceIfFalse
                 "Last bidder is not paid back"
@@ -196,12 +155,11 @@ validHammer auction datum ctx =
         "Hammer before the deadline is not permitted"
         (hammerTimeRange auction `Interval.contains` L.txInfoValidRange txi)
         && case datum of
-          Waiting -> True
-          NoBids seller lot ->
+          NoBids ->
             traceIfFalse
               "Seller does not get locked lot back"
-              (seller `receives` lot)
-          Bidding {lastBid, lastBidder} ->
+              (seller auction `receives` lot auction)
+          Bidding (BidderInfo lastBid lastBidder) ->
             traceIfFalse
               "Last bidder does not receive the lot"
               (lastBidder `receives` lot auction)
@@ -212,13 +170,15 @@ validHammer auction datum ctx =
 {- INLINEABLE validate -}
 validate :: Parameters -> AuctionState -> Action -> L.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
-  Open {theSeller, theLot} -> validOpen auction datum theSeller theLot ctx
-  Bid {bid, bidder} -> validBid auction datum bid bidder ctx
+  Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
 
 -- Plutus boilerplate
 
 data Auction
+
+PlutusTx.makeLift ''BidderInfo
+PlutusTx.unstableMakeIsData ''BidderInfo
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
@@ -226,8 +186,8 @@ PlutusTx.unstableMakeIsData ''AuctionState
 PlutusTx.makeLift ''Action
 PlutusTx.unstableMakeIsData ''Action
 
-PlutusTx.makeLift ''Parameters
-PlutusTx.unstableMakeIsData ''Parameters
+PlutusTx.makeLift ''Parameters'
+PlutusTx.unstableMakeIsData ''Parameters'
 
 instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
