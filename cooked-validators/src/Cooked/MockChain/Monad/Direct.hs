@@ -254,14 +254,20 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 --  2. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-ledger/src/Ledger/Tx.hs#L126
 --  3. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Chain.hs#L209
 --  4. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
+--
+-- Finally; because 'Pl.fromPlutusTx' doesn't preserve signatures, we need the list of signers
+-- around to re-sign the transaction.
 runTransactionValidation ::
   Pl.Slot ->
   Pl.SlotConfig ->
   Pl.UtxoIndex ->
+  -- | List of required signers
   [Pl.PaymentPubKeyHash] ->
+  -- | List of signers
+  [Wallet] ->
   Pl.Tx ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
-runTransactionValidation s slotCfg ix reqSigners tx =
+runTransactionValidation s slotCfg ix reqSigners signers tx =
   let ((e1, idx'), evs) = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
       cIx = either (error . show) id $ Pl.fromPlutusIndex ix
       cTx = either (error . show) id $ Pl.fromPlutusTx cIx reqSigners tx
@@ -269,7 +275,7 @@ runTransactionValidation s slotCfg ix reqSigners tx =
         Pl.hasValidationErrors
           (fromIntegral s)
           cIx
-          cTx
+          (L.foldl' (flip txAddSignatureAPI) cTx signers)
    in (idx', e1 <|> e2, evs)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
@@ -279,7 +285,8 @@ validateTx' reqSigs tx = do
   s <- currentSlot
   ix <- gets mcstIndex
   slotCfg <- asks mceSlotConfig
-  let (ix', status, _evs) = runTransactionValidation s slotCfg ix reqSigs tx
+  signers <- askSigners
+  let (ix', status, _evs) = runTransactionValidation s slotCfg ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -357,6 +364,7 @@ generateUnbalTx TxSkel {txConstraints} =
 generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 generateTx' skel@(TxSkel _ _ constraintsSpec) = do
   modify $ updateDatumStr skel
+  signers <- askSigners
   case generateUnbalTx skel of
     Left err -> throwError err
     Right ubtx -> do
@@ -366,7 +374,6 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      signers <- askSigners
       (reqSigs, balancedTx) <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
       return . (reqSigs,) $
         foldl

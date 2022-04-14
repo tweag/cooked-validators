@@ -39,6 +39,7 @@ dependencies:
   - transformers
   - HUnit
   - QuickCheck
+  - cardano-api
   - cardano-crypto
   - cardano-wallet-core
   - memory
