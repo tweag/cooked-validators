@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -31,6 +32,7 @@ import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
+import Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
@@ -89,8 +91,16 @@ instance Default Pl.Slot where
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
-  | MCEUnbalanceable Pl.Tx BalanceTxRes
+  | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
   | FailWith String
+  deriving (Show, Eq)
+
+-- | Describes us which stage of the balancing process are we at. This is needed
+--  to distinguish the successive calls to balancing while computing fees from
+--  the final call to balancing
+data BalanceStage
+  = BalCalcFee
+  | BalFinalizing
   deriving (Show, Eq)
 
 data MockChainEnv = MockChainEnv
@@ -409,9 +419,18 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       config <- asks mceSlotConfig
+      -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
+      -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
+      -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
+      -- fee and then increasing, but that might require more iterations until its settled.
+      -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = Pl.lovelaceValueOf 3000000
       let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
-      fee <- calcFee 5 startingFee requiredSigners cUtxoIndex tx
+      fee <-
+        calcFee 5 startingFee requiredSigners cUtxoIndex tx
+          `catchError` \case
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex tx
+            e -> throwError e
       return $ tx {Pl.txFee = fee}
   where
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
@@ -425,7 +444,7 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       MockChainT m Pl.Value
     calcFee n fee reqSigs cUtxoIndex tx = do
       let tx1 = tx {Pl.txFee = fee}
-      attemptedTx <- balanceTxFromAux w tx1
+      attemptedTx <- balanceTxFromAux BalCalcFee w tx1
       case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee ->
@@ -444,14 +463,14 @@ balanceTxFrom skipBalancing w ubtx = do
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
-      else balanceTxFromAux w tx
+      else balanceTxFromAux BalFinalizing w tx
 
-balanceTxFromAux :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m Pl.Tx
-balanceTxFromAux w tx = do
+balanceTxFromAux :: (Monad m) => BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
+balanceTxFromAux stage w tx = do
   bres <- calcBalanceTx w tx
   case applyBalanceTx w bres tx of
     Just tx' -> return tx'
-    Nothing -> throwError $ MCEUnbalanceable tx bres
+    Nothing -> throwError $ MCEUnbalanceable stage tx bres
 
 data BalanceTxRes = BalanceTxRes
   { newInputs :: [Pl.TxOutRef],
