@@ -25,7 +25,7 @@ spec = do
 -- | Generates the transaction corresponding to a 'TxSkel' under the default
 -- distribution
 genTx :: TxSkel -> Maybe Pl.Tx
-genTx = fmap fst . rightToMaybe . runMockChain . generateTx'
+genTx = fmap fst . rightToMaybe . runMockChain . fmap snd . generateTx'
 
 -- | Pays 1_000 lovelace to 2 given wallets in a transaction that forces
 -- the ordering of the outputs
