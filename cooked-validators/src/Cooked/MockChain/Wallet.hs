@@ -7,6 +7,7 @@ module Cooked.MockChain.Wallet where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Crypto.Wallet as Crypto
+import Cooked.QuickCurrency
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -151,10 +152,6 @@ initialTxFor initDist =
 -- some wallets.
 initialDistribution' :: [(Wallet, Pl.Value)] -> InitialDistribution
 initialDistribution' = (def <>) . distributionFromList
-
--- | The currency symbol of the "quick" is empty. Like Ada.
-quickCurrencySymbol :: Pl.CurrencySymbol
-quickCurrencySymbol = Pl.CurrencySymbol ""
 
 -- | Token name of a "quick" asset class
 quickTokenName :: String -> Pl.TokenName
