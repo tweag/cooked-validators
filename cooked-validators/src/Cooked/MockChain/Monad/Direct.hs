@@ -223,7 +223,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = asks (Pl.slotToBeginPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
+  currentTime = asks (Pl.slotToEndPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
