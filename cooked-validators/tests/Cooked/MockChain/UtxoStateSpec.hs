@@ -14,15 +14,15 @@ utxoStateFromID :: InitialDistribution -> UtxoState
 utxoStateFromID = mcstToUtxoState . mockChainSt0From
 
 stA0 :: UtxoState
-stA0 = utxoStateFromID $ initialDistribution' [(wallet 3, quickValue "TOK_A" 42)]
+stA0 = utxoStateFromID $ initialDistribution' [(wallet 3, [quickValue "TOK_A" 42])]
 
 stA :: UtxoState
 stA =
   stA0
     <> utxoStateFromID
       ( distributionFromList
-          [ (wallet 1, Ada.lovelaceValueOf 123_000),
-            (wallet 2, Ada.lovelaceValueOf 123_000)
+          [ (wallet 1, [Ada.lovelaceValueOf 123_000]),
+            (wallet 2, [Ada.lovelaceValueOf 123_000])
           ]
       )
 
@@ -30,11 +30,11 @@ stB :: UtxoState
 stB =
   utxoStateFromID $
     initialDistribution'
-      [ (wallet 4, Ada.lovelaceValueOf 123_000),
-        (wallet 5, Ada.lovelaceValueOf 123_000),
-        (wallet 3, quickValue "TOK_A" 20),
-        (wallet 1, quickValue "TOK_A" 22),
-        (wallet 2, quickValue "TOK_B" 1)
+      [ (wallet 4, [Ada.lovelaceValueOf 123_000]),
+        (wallet 5, [Ada.lovelaceValueOf 123_000]),
+        (wallet 3, [quickValue "TOK_A" 20]),
+        (wallet 1, [quickValue "TOK_A" 22]),
+        (wallet 2, [quickValue "TOK_B" 1])
       ]
 
 spec :: SpecWith ()
