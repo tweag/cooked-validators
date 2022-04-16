@@ -33,7 +33,6 @@ import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
-import Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
@@ -461,16 +460,18 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
 balanceTxFrom :: (Monad m) => Bool -> Collateral -> Wallet -> Pl.UnbalancedTx -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 balanceTxFrom skipBalancing col w ubtx = do
   let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
-  tx0 <- setFeeAndValidRange w ubtx
-  tx <- setCollateral w col tx0
+  colTxIns <- calcCollateral w col
+  tx <-
+    setFeeAndValidRange w $
+      ubtx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx ubtx) {Pl.txCollateral = colTxIns}}
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
       else balanceTxFromAux BalFinalizing w tx
 
--- | Sets the collateral for a some transaction
-setCollateral :: (Monad m) => Wallet -> Collateral -> Pl.Tx -> MockChainT m Pl.Tx
-setCollateral w col tx = do
+-- | Calculates the collateral for a some transaction
+calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (S.Set Pl.TxIn)
+calcCollateral w col = do
   orefs <- case col of
     -- We're given a specific utxo to use as collateral
     CollateralUtxos r -> return r
@@ -482,7 +483,7 @@ setCollateral w col tx = do
         throwError MCENoSuitableCollateral
       return $ (: []) $ fst $ fst $ head souts
   let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
-  return $ tx {Pl.txCollateral = S.fromList txIns}
+  return $ S.fromList txIns
 
 balanceTxFromAux :: (Monad m) => BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux stage w tx = do

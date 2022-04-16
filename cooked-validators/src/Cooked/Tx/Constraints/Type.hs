@@ -266,5 +266,5 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True,
-        collateral = CollateralNone
+        collateral = CollateralAuto
       }
