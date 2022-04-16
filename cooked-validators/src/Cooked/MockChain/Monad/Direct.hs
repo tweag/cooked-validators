@@ -471,17 +471,18 @@ balanceTxFrom skipBalancing col w ubtx = do
 -- | Sets the collateral for a some transaction
 setCollateral :: (Monad m) => Wallet -> Collateral -> Pl.Tx -> MockChainT m Pl.Tx
 setCollateral w col tx = do
-  oref <- case col of
+  orefs <- case col of
     -- We're given a specific utxo to use as collateral
-    CollateralUtxo r -> return r
+    CollateralUtxos r -> return r
+    CollateralNone -> return []
     -- We must pick them; we'll first select
     CollateralAuto -> do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ fst $ fst $ head souts
-  let txIn = Pl.TxIn oref (Just Pl.ConsumePublicKeyAddress)
-  return $ tx {Pl.txCollateral = S.fromList [txIn]}
+      return $ (: []) $ fst $ fst $ head souts
+  let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
+  return $ tx {Pl.txCollateral = S.fromList txIns}
 
 balanceTxFromAux :: (Monad m) => BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux stage w tx = do

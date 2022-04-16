@@ -253,7 +253,8 @@ instance Show RawModTx where
 
 data Collateral
   = CollateralAuto
-  | CollateralUtxo Pl.TxOutRef
+  | CollateralNone
+  | CollateralUtxos [Pl.TxOutRef]
   deriving (Eq, Show)
 
 instance Default TxOpts where
@@ -265,5 +266,5 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True,
-        collateral = CollateralAuto
+        collateral = CollateralNone
       }

@@ -132,6 +132,17 @@ txAddSignatureAPI w = Validation.addSignature (walletSK w)
 newtype InitialDistribution = InitialDistribution {distribution :: M.Map Wallet [Pl.Value]}
   deriving (Eq, Show)
 
+-- | An initial distribution is valid if all utxos being created contain at least
+--  a minimum amount of Ada: 'minAda'.
+validInitialDistribution :: InitialDistribution -> Bool
+validInitialDistribution = all (all hasMinAda . snd) . M.toList . distribution
+  where
+    hasMinAda vl = minAda `Pl.leq` vl
+
+-- | Proxy to 'Pl.minAdaTxOut' as a 'Pl.Value'
+minAda :: Pl.Value
+minAda = Pl.toValue Pl.minAdaTxOut
+
 instance Semigroup InitialDistribution where
   (InitialDistribution i) <> (InitialDistribution j) = InitialDistribution $ M.unionWith (<>) i j
 
@@ -152,11 +163,14 @@ initialDistribution' :: [(Wallet, [Pl.Value])] -> InitialDistribution
 initialDistribution' = (def <>) . distributionFromList
 
 initialTxFor :: InitialDistribution -> Pl.Tx
-initialTxFor initDist =
-  mempty
-    { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
-      Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-    }
+initialTxFor initDist
+  | not $ validInitialDistribution initDist =
+    error "Not all UTxOs have at least minAda; this initial distribution is unusable"
+  | otherwise =
+    mempty
+      { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+        Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
+      }
   where
     initUtxosFor w v = Pl.TxOut (walletAddress w) v Nothing
 
