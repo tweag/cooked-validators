@@ -448,14 +448,10 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       attemptedTx <- balanceTxFromAux BalCalcFee w tx1
       case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
-        Right newFee ->
-          if newFee /= fee
-            then
-              if n == 0
-                then -- If we don't reach a fixed point, pick the larger fee
-                  pure (newFee PlutusTx.\/ fee)
-                else calcFee (n - 1) newFee reqSigs cUtxoIndex tx
-            else pure newFee
+        Right newFee
+          | newFee == fee -> pure newFee -- reached fixpoint
+          | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
+          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex tx
 
 balanceTxFrom :: (Monad m) => Bool -> Collateral -> Wallet -> Pl.UnbalancedTx -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 balanceTxFrom skipBalancing col w ubtx = do
