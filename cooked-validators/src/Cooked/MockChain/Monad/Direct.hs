@@ -18,6 +18,7 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Monad
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
@@ -92,6 +93,7 @@ data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
   | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
+  | MCENoSuitableCollateral
   | FailWith String
   deriving (Show, Eq)
 
@@ -384,7 +386,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      (reqSigs, balancedTx) <- balanceTxFrom (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
+      (reqSigs, balancedTx) <- balanceTxFrom (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
       return . (reqSigs,) $
         foldl
           (flip txAddSignature)
@@ -456,14 +458,30 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
                 else calcFee (n - 1) newFee reqSigs cUtxoIndex tx
             else pure newFee
 
-balanceTxFrom :: (Monad m) => Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-balanceTxFrom skipBalancing w ubtx = do
+balanceTxFrom :: (Monad m) => Bool -> Collateral -> Wallet -> Pl.UnbalancedTx -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
+balanceTxFrom skipBalancing col w ubtx = do
   let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
-  tx <- setFeeAndValidRange w ubtx
+  tx0 <- setFeeAndValidRange w ubtx
+  tx <- setCollateral w col tx0
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
       else balanceTxFromAux BalFinalizing w tx
+
+-- | Sets the collateral for a some transaction
+setCollateral :: (Monad m) => Wallet -> Collateral -> Pl.Tx -> MockChainT m Pl.Tx
+setCollateral w col tx = do
+  oref <- case col of
+    -- We're given a specific utxo to use as collateral
+    CollateralUtxo r -> return r
+    -- We must pick them; we'll first select
+    CollateralAuto -> do
+      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
+      when (null souts) $
+        throwError MCENoSuitableCollateral
+      return $ fst $ fst $ head souts
+  let txIn = Pl.TxIn oref (Just Pl.ConsumePublicKeyAddress)
+  return $ tx {Pl.txCollateral = S.fromList [txIn]}
 
 balanceTxFromAux :: (Monad m) => BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux stage w tx = do

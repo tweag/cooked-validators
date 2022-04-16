@@ -36,6 +36,11 @@ datumSat :: (a -> Bool) -> UtxoPredicate a
 datumSat _ Nothing _ = False
 datumSat predi (Just a) _ = predi a
 
+-- | Returns true when no datum is present
+noDatum :: UtxoPredicate a
+noDatum Nothing _ = True
+noDatum _ _ = False
+
 -- * Predicatesover Values
 
 -- | Returns whether or not a given value has a currency symbol present.
