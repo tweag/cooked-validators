@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Cooked.QuickCurrency where
+module Cooked.Currencies where
 
 import qualified Ledger
 import qualified Ledger.Contexts as Validation
@@ -33,3 +33,15 @@ quickCurrencyPolicy =
 
 quickCurrencySymbol :: Value.CurrencySymbol
 quickCurrencySymbol = Validation.scriptCurrencySymbol quickCurrencyPolicy
+
+{-# INLINEABLE mkPermanentCurrencyPolicy #-}
+mkPermanentCurrencyPolicy :: () -> Ledger.ScriptContext -> Bool
+mkPermanentCurrencyPolicy _ _ = False
+
+permanentCurrencyPolicy :: Scripts.MintingPolicy
+permanentCurrencyPolicy =
+  Ledger.mkMintingPolicyScript
+    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy mkPermanentCurrencyPolicy||])
+
+permanentCurrencySymbol :: Value.CurrencySymbol
+permanentCurrencySymbol = Validation.scriptCurrencySymbol permanentCurrencyPolicy

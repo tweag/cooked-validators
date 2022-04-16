@@ -7,7 +7,7 @@ module Cooked.MockChain.Wallet where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Crypto.Wallet as Crypto
-import Cooked.QuickCurrency
+import Cooked.Currencies
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -99,11 +99,6 @@ txAddSignature w = Pl.addSignature' (walletSK w)
 txAddSignatureAPI :: Wallet -> C.Tx C.AlonzoEra -> C.Tx C.AlonzoEra
 txAddSignatureAPI w = Validation.addSignature (walletSK w)
 
--- txAddSignatureCardanoTx :: Wallet -> Pl.CardanoTx -> Pl.CardanoTx
--- txAddSignatureCardanoTx w (Pl.EmulatorTx tx') = Pl.EmulatorTx $ txAddSignature w tx'
--- txAddSignatureCardanoTx w (Pl.CardanoApiTx scat) = undefined
--- txAddSignatureCardanoTx w (Pl.Both tx' scat) = undefined
-
 -- * Initial distribution of funds
 
 -- $initfundsdistr
@@ -112,7 +107,29 @@ txAddSignatureAPI w = Validation.addSignature (walletSK w)
 -- the underlying plutus definitions to make it easer when we have
 -- to plug our own, if we ever have the need
 
-newtype InitialDistribution = InitialDistribution {distribution :: M.Map Wallet Pl.Value}
+-- | Describes the initial distribution of /UTxOs/ per wallet. This is important since
+--  transaction validation must specify a /collateral/, hence, wallets must posses more
+--  than one UTxO to begin with in order to execute a transaction and have some collateral
+--  option. The @txCollateral@ is transfered to the node operator in case the transaction
+--  fails to validate.
+--
+--  An initial distribution defined by:
+--
+--  > i0 = InitialDistribution $ M.fromList
+--  >        [ (wallet 1 , [ Pl.lovelaveValueOf 42000000
+--  >                      , Pl.lovelaceValueOf 2000000 <> quickValue "TOK" 1
+--  >                      ]
+--  >        , (wallet 2 , [Pl.lovelaveValueOf 10000000])
+--  >        , (wallet 3 , [Pl.lovelaceValueOf 10000000 <> permanentValue "XYZ" 10])
+--  >        ]
+--
+--  Specifies a starting state where @wallet 1@ contains two /UTxOs/, one with 42 Ada
+--  and one with 2 Ada and one "TOK" token; @wallet 2@ contains a single /UTxO/ with 10 Ada and
+--  @wallet 3@ has 10 Ada and a permanent value. Check #quickvalues for more on quick
+--  and permanent values. (Remember: 1 Ada = 1000000 Lovelace)
+--
+--  Check the corresponding @Default InitialDistribution@ instance for the default value.
+newtype InitialDistribution = InitialDistribution {distribution :: M.Map Wallet [Pl.Value]}
   deriving (Eq, Show)
 
 instance Semigroup InitialDistribution where
@@ -122,45 +139,72 @@ instance Monoid InitialDistribution where
   mempty = InitialDistribution M.empty
 
 instance Default InitialDistribution where
-  def = InitialDistribution $ M.fromList $ zip knownWallets (repeat defLovelace)
+  def = InitialDistribution $ M.fromList $ zip knownWallets (repeat $ replicate 10 defLovelace)
     where
       defLovelace = Pl.lovelaceValueOf 100_000_000
 
-distributionFromList :: [(Wallet, Pl.Value)] -> InitialDistribution
+distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . M.fromList
+
+-- | Extension of the default initial distribution with additional value in
+-- some wallets.
+initialDistribution' :: [(Wallet, [Pl.Value])] -> InitialDistribution
+initialDistribution' = (def <>) . distributionFromList
 
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
   mempty
-    { Pl.txMint = mconcat (map snd initDist'),
-      Pl.txOutputs = map (\wv -> Pl.TxOut (walletAddress $ fst wv) (snd wv) Nothing) initDist'
+    { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+      Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
     }
   where
+    initUtxosFor w v = Pl.TxOut (walletAddress w) v Nothing
+
     initDist' = M.toList $ distribution initDist
 
--- "Quick" currency is a convenience to manipulate assets that are supposed to
--- be already in the wild when running a mock chain. For example, a market
--- maker would exchange Ada against other assets called "coins". Defining a
--- minting policy for those coins is tedious and not interesting. The following
--- functions make it easy to manipulate such assets identified by a token name.
+-- * Quick Values
+
+-- $quickvalues
+-- /Quick/ values are a convenience to manipulate assets that are supposed to
+-- be in existence when running a mock chain. For example, a market
+-- maker would exchange Ada against other assets. Yet, when writing traces
+-- for such contract we'd need to define a minting policy for those tokens,
+-- which is very repetivie, moreover, most of the times we'd want wallets to
+-- start with some positive valance of tokens.
 --
--- For example, `runMockChainWithDistribution (initialDistribution' [wallet 1,
--- quickValue "coin" 50])` provides 50 coins to wallet 1 alongside the default
--- 100_000_000 lovelace in the initial state.
+-- There are two classes of functions for using custom tokens on traces:
+--
+-- 1. The @quick@ prefixed functions provide access to tokens from the
+--    @const (const True)@ minting policy. That is, these can be minted and
+--    burnt at will, at any point in time.
+--
+-- 2. The @perpetual@ prefixed functions provide access to tokens from
+--    the @const (const False)@ minting policy. That is, these /cannot/ ever
+--    be minted or burnt and must be present in an initial distribution to be useful.
+--
+-- See the docs for 'InitialDistribution' for an example usage.
 
--- | Extension of the default initial distribution with additional value in
--- some wallets.
-initialDistribution' :: [(Wallet, Pl.Value)] -> InitialDistribution
-initialDistribution' = (def <>) . distributionFromList
-
--- | Token name of a "quick" asset class
+-- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to
+-- make it easy to distinguish between quick and permanent tokens.
 quickTokenName :: String -> Pl.TokenName
-quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString
+quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("q" ++)
 
--- | "Quick" asset class from a token name
+-- | /Quick/ asset class from a token name
 quickAssetClass :: String -> Pl.AssetClass
 quickAssetClass = curry Pl.AssetClass quickCurrencySymbol . quickTokenName
 
--- | Constructor for "quick" values from token name and amount
+-- | Constructor for /quick/ values from token name and amount
 quickValue :: String -> Integer -> Pl.Value
 quickValue = Pl.assetClassValue . quickAssetClass
+
+-- | Token name of a /permanent/ asset class
+permanentTokenName :: String -> Pl.TokenName
+permanentTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("p" ++)
+
+-- | /Permanent/ asset class from a token name
+permanentAssetClass :: String -> Pl.AssetClass
+permanentAssetClass = curry Pl.AssetClass permanentCurrencySymbol . permanentTokenName
+
+-- | Constructor for /Permanent/ values from token name and amount
+permanentValue :: String -> Integer -> Pl.Value
+permanentValue = Pl.assetClassValue . permanentAssetClass

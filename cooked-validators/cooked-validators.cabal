@@ -12,6 +12,7 @@ extra-source-files:
 
 library
   exposed-modules:
+      Cooked.Currencies
       Cooked.MockChain
       Cooked.MockChain.Constraints
       Cooked.MockChain.Monad
@@ -25,7 +26,6 @@ library
       Cooked.MockChain.UtxoState
       Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
-      Cooked.QuickCurrency
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Pretty
