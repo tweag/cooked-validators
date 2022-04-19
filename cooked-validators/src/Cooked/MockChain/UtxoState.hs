@@ -196,10 +196,24 @@ prettyCurrencyAndAmount symbol =
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
     prettySymbol = Prettyprinter.pretty . take 7 . show
 
+    prettyNumber :: [ Doc ann ] -> Integer -> [ Doc ann ]
+    prettyNumber acc 0 = acc
+    prettyNumber acc x = prettyNumber (Prettyprinter.pretty (x `mod` 10) : acc) (x `div` 10)
+
+    splitNumber :: [ Doc ann ] -> ([ Doc ann ] , Integer)
+    splitNumber [] = ([] , 0)
+    splitNumber (x : l) = case splitNumber l of
+      ([] , _) -> ([ x ] , 1)
+      (snl@(_:_) , 3) -> (x : snl , 1)
+      (h : t , n) -> (x <> h : t , n + 1)
+
+    prettySpacedNumber :: Integer -> [ Doc ann ]
+    prettySpacedNumber = fst . splitNumber . prettyNumber []
+
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
       ( if symbol == Pl.CurrencySymbol ""
-          then (if name == Pl.TokenName "" then "Ada" else Prettyprinter.pretty name)
+          then (if name == Pl.TokenName "" then "Lovelace" else Prettyprinter.pretty name)
           else
             Prettyprinter.parens
               ( prettySymbol symbol
@@ -209,7 +223,7 @@ prettyCurrencyAndAmount symbol =
       )
         <> ":"
         <> Prettyprinter.space
-        <> Prettyprinter.pretty n
+        <> Prettyprinter.fillSep (prettySpacedNumber n)
 
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash (Pl.Address addrCr _) =
