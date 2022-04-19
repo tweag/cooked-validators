@@ -7,8 +7,6 @@ import Cooked.Tx.Constraints
 import Data.Default
 import qualified Ledger as L
 import Ledger.Ada as Ada
-import Ledger.Typed.Scripts as Pl
-import qualified PlutusTx.Numeric as Pl
 
 txOpen ::
   (MonadBlockChain m) =>
@@ -82,18 +80,3 @@ txHammer p = do
               [ paysPK lastBidder (A.lot p),
                 paysPK (A.seller p) (Ada.lovelaceValueOf lastBid)
               ]
-
-testParams :: L.POSIXTime -> A.Parameters' ()
-testParams t =
-  A.Parameters'
-    { A.seller = (),
-      A.lot = Ada.lovelaceValueOf 1235,
-      A.minBid = 3,
-      A.bidDeadline = t + 6000000
-    }
-
-test = runMockChain $ do
-  t0 <- currentTime
-  p <- txOpen (testParams t0)
-  txBid p 3000000 `as` (wallet 3)
-  return ()
