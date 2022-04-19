@@ -73,6 +73,7 @@ test-suite spec
       SplitSpec
       SplitUPLCSpec
       UseCaseCrowdfundingSpec
+      AuctionSpec
       Paths_examples
   hs-source-dirs:
       tests

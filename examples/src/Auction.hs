@@ -132,9 +132,9 @@ validBid auction datum bid bidder ctx =
           _ -> trace "There has to be exactly one continuing output to the validator itself" False
         && case datum of
           NoBids ->
-            traceIfFalse "Cannot bid less than the minimum bid" (minBid auction < bid)
+            traceIfFalse "Cannot bid less than the minimum bid" (minBid auction <= bid)
           Bidding (BidderInfo lastBid lastBidder) ->
-            traceIfFalse "Cannot bid less than the last bid" (lastBid < bid)
+            traceIfFalse "Must bid more than the last bid" (lastBid < bid)
               && traceIfFalse
                 "Last bidder is not paid back"
                 (lastBidder `receives` Ada.lovelaceValueOf lastBid)

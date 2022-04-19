@@ -1,5 +1,6 @@
 module Main where
 
+import qualified AuctionSpec
 import qualified ForgeSpec
 import qualified PMultiSigStatefulSpec
 import qualified SplitSpec
@@ -18,5 +19,6 @@ main = do
         UseCaseCrowdfundingSpec.tests,
         SplitSpec.tests,
         SplitUPLCSpec.tests,
-        ForgeSpec.tests
+        ForgeSpec.tests,
+        AuctionSpec.tests
       ]
