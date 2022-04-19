@@ -31,7 +31,7 @@ import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
 -- | All the data associated with an auction.
-data Parameters' x = Parameters
+data Parameters' x = Parameters'
   { -- | no bids are accepted later than this
     bidDeadline :: L.POSIXTime,
     minBid :: Integer,
@@ -40,6 +40,7 @@ data Parameters' x = Parameters
     -- | value that is being auctioned
     lot :: L.Value
   }
+  deriving (Haskell.Show)
 
 type Parameters = Parameters' L.PubKeyHash
 
@@ -122,7 +123,7 @@ validBid auction datum bid bidder ctx =
         && traceIfFalse "Bid transaction not signed by bidder" (txi `L.txSignedBy` bidder)
         && traceIfFalse
           "Validator does not lock lot and bid"
-          (L.valueLockedBy txi selfh == lot auction <> Ada.lovelaceValueOf bid)
+          (L.valueLockedBy txi selfh `Value.geq` (lot auction <> Ada.lovelaceValueOf bid))
         && case L.getContinuingOutputs ctx of
           [o] ->
             traceIfFalse
@@ -200,3 +201,6 @@ auctionValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.wrapValidator @AuctionState @Action
+
+auctionAddress :: Parameters -> L.Address
+auctionAddress p = L.scriptAddress $ Scripts.validatorScript $ auctionValidator p
