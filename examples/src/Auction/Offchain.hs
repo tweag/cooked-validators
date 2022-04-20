@@ -4,27 +4,46 @@ import qualified Auction as A
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import qualified Ledger.Typed.Scripts as Scripts
 import Data.Default
 import qualified Ledger as L
 import Ledger.Ada as Ada
+import qualified Ledger.Value as Value
+-- import PlutusTx.Numeric as Pl
 
 txOpen ::
   (MonadBlockChain m) =>
-  A.Parameters' () ->
+  A.Parameters' () () ->
   m A.Parameters
 txOpen p = do
   seller <- ownPaymentPubKeyHash
-  let p' :: A.Parameters
+  utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot p)
+  let threadToken = A.threadTokenAssetClass (fst utxo) (A.lot p)
+      p' :: A.Parameters
       p' =
         A.Parameters'
-          { A.seller = seller,
-            A.lot = A.lot p,
+          { A.lot = A.lot p,
             A.minBid = A.minBid p,
-            A.bidDeadline = A.bidDeadline p
+            A.bidDeadline = A.bidDeadline p,
+            A.seller = seller,
+            A.threadToken = threadToken
           }
+
+      token :: L.Value
+      token = Value.assetClassValue threadToken 1
+
   _ <-
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) [PaysScript (A.auctionValidator p') A.NoBids (A.lot p)]
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        [ Mints
+            (Just (Scripts.validatorAddress (A.auctionValidator p')))
+            [A.threadTokenPolicy A.threadTokenName (fst utxo) (A.lot p')]
+            token,
+          SpendsPK utxo
+        ]
+          :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p <> token)
+                 -- paysPK seller (sOutValue utxo <> Pl.negate (A.lot p))
+               ]
   return p'
 
 previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
