@@ -197,12 +197,12 @@ prettyCurrencyAndAmount symbol =
     prettySymbol = Prettyprinter.pretty . take 7 . show
 
     prettySpacedNumber :: Integer -> Doc ann
-    prettySpacedNumber = aux "" 0
+    prettySpacedNumber = psnTerm "" 0
       where
-        aux :: Doc ann -> Integer -> Integer -> Doc ann
-        aux acc _ 0 = acc
-        aux acc 3 nb = aux (Prettyprinter.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-        aux acc n nb = aux (Prettyprinter.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
+        psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
+        psnTerm acc _ 0 = acc
+        psnTerm acc 3 nb = psnTerm (Prettyprinter.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+        psnTerm acc n nb = psnTerm (Prettyprinter.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
