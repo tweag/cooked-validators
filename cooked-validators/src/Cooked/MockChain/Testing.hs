@@ -231,7 +231,8 @@ instance IsProp HU.Assertion where
       adjustMsg :: HU.HUnitFailure -> HU.HUnitFailure
       adjustMsg (HU.HUnitFailure loc (HU.Reason txt)) =
         unsafePerformIO $ do
-          putStrLn ('\n' : joinMsg txt)
+          putStrLn ('\n' : msg)
+          putStrLn txt
           return $ HU.HUnitFailure loc (HU.Reason "")
       adjustMsg (HU.HUnitFailure loc (HU.ExpectedButGot pref x y)) =
         HU.HUnitFailure loc (HU.ExpectedButGot (maybe (Just msg) (Just . joinMsg) pref) x y)
