@@ -221,14 +221,14 @@ auctionValidator =
 -- the minting policy of that token.
 
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.ValidatorHash -> L.ScriptContext -> Bool
+mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.Address -> L.ScriptContext -> Bool
 mkPolicy tName lotOref lot validator ctx
   | amnt == Just 1 =
     traceIfFalse
       "Lot UTxO not consumed"
       (any (\i -> L.txInInfoOutRef i == lotOref) $ L.txInfoInputs txi)
       && case filter
-        (\o -> L.txOutAddress o == L.scriptHashAddress validator)
+        (\o -> L.txOutAddress o == validator)
         (L.txInfoOutputs txi) of
         [o] ->
           traceIfFalse
