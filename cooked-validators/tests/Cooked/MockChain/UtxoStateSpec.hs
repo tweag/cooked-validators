@@ -2,6 +2,7 @@
 
 module Cooked.MockChain.UtxoStateSpec where
 
+import Cooked.Currencies
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.UtxoState.Testing
