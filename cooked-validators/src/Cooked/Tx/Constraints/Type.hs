@@ -207,14 +207,27 @@ data TxOpts = TxOpts
     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
     --
+    -- One interesting use of this function is to observe a transaction just before it is being
+    -- sent for validation, with @unsafeModTx = RawModTx Debug.Trace.traceShowId@.
+    --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to 'Id'.
     unsafeModTx :: RawModTx,
-    -- | Whether to balance the transaction or not.
+    -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
+    --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
+    -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
+    -- and should adjust the fees accordingly. For now, there is no option to skip the fee computation because
+    -- without it, validation through "Ledger.Validation" would fail with @InsufficientFees@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
     balance :: Bool,
+    -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
+    -- and can be specified manually, or it can be chosen automatically, if any is available.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @CollateralAuto@.
+    collateral :: Collateral,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
@@ -254,6 +267,15 @@ instance Show RawModTx where
   show Id = "Id"
   show (RawModTx _) = "RawModTx"
 
+-- | Specifies how to select the collateral input
+data Collateral
+  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
+    CollateralAuto
+  | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
+    --  no collateral will be used whatsoever.
+    CollateralUtxos [Pl.TxOutRef]
+  deriving (Eq, Show)
+
 instance Default TxOpts where
   def =
     TxOpts
@@ -263,5 +285,6 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True,
+        collateral = CollateralAuto,
         balanceOutputPolicy = AdjustExistingOutput
       }

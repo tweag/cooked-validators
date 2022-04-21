@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -17,6 +18,7 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Monad
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
@@ -37,8 +39,10 @@ import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
+import qualified Ledger.Validation as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
@@ -88,8 +92,17 @@ instance Default Pl.Slot where
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
-  | MCEUnbalanceable Pl.Tx BalanceTxRes
+  | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
+  | MCENoSuitableCollateral
   | FailWith String
+  deriving (Show, Eq)
+
+-- | Describes us which stage of the balancing process are we at. This is needed
+--  to distinguish the successive calls to balancing while computing fees from
+--  the final call to balancing
+data BalanceStage
+  = BalCalcFee
+  | BalFinalizing
   deriving (Show, Eq)
 
 data MockChainEnv = MockChainEnv
@@ -211,8 +224,8 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skel = do
-    tx <- generateTx' skel
-    txId <- validateTx' tx
+    (reqSigs, tx) <- generateTx' skel
+    txId <- validateTx' reqSigs tx
     when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return txId
 
@@ -240,17 +253,61 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   slotConfig = asks mceSlotConfig
 
--- | Check 'validateTx' for details
-validateTx' :: (Monad m) => Pl.Tx -> MockChainT m Pl.TxId
-validateTx' tx = do
+-- | This validates a given 'Pl.Tx' in its proper context; this is a very tricky thing to do. We're basing
+--  ourselves off from how /plutus-apps/ is doing it.
+--
+--  TL;DR: we need to use "Ledger.Index" to compute the new 'Pl.UtxoIndex', but we neet to
+--  rely on "Ledger.Validation" to run the validation akin to how it happens on-chain, with
+--  proper checks on transactions fees and signatures.
+--
+--  For more details, check the following relevant pointers:
+--
+--  1. https://github.com/tweag/plutus-libs/issues/92
+--  2. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-ledger/src/Ledger/Tx.hs#L126
+--  3. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Chain.hs#L209
+--  4. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
+--
+-- Finally; because 'Pl.fromPlutusTx' doesn't preserve signatures, we need the list of signers
+-- around to re-sign the transaction.
+runTransactionValidation ::
+  Pl.Slot ->
+  Pl.SlotConfig ->
+  Pl.UtxoIndex ->
+  -- | List of required signers
+  [Pl.PaymentPubKeyHash] ->
+  -- | List of signers
+  [Wallet] ->
+  Pl.Tx ->
+  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
+runTransactionValidation s slotCfg ix reqSigners signers tx =
+  let ((e1, idx'), evs) = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
+      -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
+      -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
+      -- to keep this function pure.
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
+      cardanoTx = either (error . show) id $ Pl.fromPlutusTx cardanoIndex reqSigners tx
+
+      -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
+      e2 =
+        Pl.hasValidationErrors
+          (fromIntegral s)
+          cardanoIndex
+          (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
+   in (idx', e1 <|> e2, evs)
+
+-- | Check 'validateTx' for details; we pass the list of required signatories since
+-- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
+validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Pl.Tx -> MockChainT m Pl.TxId
+validateTx' reqSigs tx = do
   s <- currentSlot
   ix <- gets mcstIndex
   slotCfg <- asks mceSlotConfig
-  let res = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
+  signers <- askSigners
+  let (ix', status, _evs) = runTransactionValidation s slotCfg ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
-  case fst res of
-    (Just err, _) -> throwError (MCEValidationError err)
-    (Nothing, ix') -> do
+  case status of
+    Just err -> throwError (MCEValidationError err)
+    Nothing -> do
       -- Validation succeeded; now we update the indexes and the managed datums.
       -- The new mcstIndex is just `ix'`; the new mcstDatums is computed by
       -- removing the datum hashes have been consumed and adding
@@ -321,9 +378,10 @@ generateUnbalTx TxSkel {txConstraints} =
    in first MCETxError $ Pl.mkTx lkups constrs
 
 -- | Check 'generateTx' for details
-generateTx' :: (Monad m) => TxSkel -> MockChainT m Pl.Tx
+generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 generateTx' skel@(TxSkel _ _ constraintsSpec) = do
   modify $ updateDatumStr skel
+  signers <- askSigners
   case generateUnbalTx skel of
     Left err -> throwError err
     Right ubtx -> do
@@ -333,9 +391,8 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      signers <- askSigners
-      balancedTx <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
-      return $
+      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
+      return . (reqSigs,) $
         foldl
           (flip txAddSignature)
           -- optionally apply a transformation to a balanced tx before sending it in.
@@ -358,25 +415,90 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
       let txOuts' = orderTxOutputs ocs . Pl.txOutputs . Pl.unBalancedTxTx $ tx
        in tx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx tx) {Pl.txOutputs = txOuts'}}
 
--- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment.
--- TODO: bring in FeeConfig: https://github.com/tweag/plutus-libs/issues/10
-setFeeAndValidRange :: (Monad m) => Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
-  let tx = tx0 {Pl.txFee = Pl.minFee tx0}
-  config <- asks mceSlotConfig
-  return
-    tx {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
+-- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
+-- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
+-- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
+setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
+  utxos <- pkUtxos' (walletPKHash w)
+  let requiredSigners = M.keys reqSigs0
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
+    Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
+    Right cUtxoIndex -> do
+      config <- asks mceSlotConfig
+      -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
+      -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
+      -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
+      -- fee and then increasing, but that might require more iterations until its settled.
+      -- For now, let's keep it just like the folks from plutus-apps did it.
+      let startingFee = Pl.lovelaceValueOf 3000000
+      let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
+      fee <-
+        calcFee 5 startingFee requiredSigners cUtxoIndex tx
+          `catchError` \case
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex tx
+            e -> throwError e
+      return $ tx {Pl.txFee = fee}
+  where
+    -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
+    calcFee ::
+      (Monad m) =>
+      Int ->
+      Pl.Value ->
+      [Pl.PaymentPubKeyHash] ->
+      Pl.UTxO Pl.EmulatorEra ->
+      Pl.Tx ->
+      MockChainT m Pl.Value
+    calcFee n fee reqSigs cUtxoIndex tx = do
+      let tx1 = tx {Pl.txFee = fee}
+      attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
+      case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
+        Left err -> throwError $ FailWith $ "calcFee: " ++ show err
+        Right newFee
+          | newFee == fee -> pure newFee -- reached fixpoint
+          | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
+          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex tx
 
-balanceTxFrom :: (Monad m) => BalanceOutputPolicy -> Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-balanceTxFrom utxoPolicy skipBalancing w ubtx = do
-  tx <- setFeeAndValidRange ubtx
-  if skipBalancing
-    then return tx
-    else do
-      bres <- calcBalanceTx w tx
-      case applyBalanceTx utxoPolicy w bres tx of
-        Just tx' -> return tx'
-        Nothing -> throwError $ MCEUnbalanceable tx bres
+balanceTxFrom ::
+  (Monad m) =>
+  BalanceOutputPolicy ->
+  Bool ->
+  Collateral ->
+  Wallet ->
+  Pl.UnbalancedTx ->
+  MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
+balanceTxFrom bPol skipBalancing col w ubtx = do
+  let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
+  colTxIns <- calcCollateral w col
+  tx <-
+    setFeeAndValidRange bPol w $
+      ubtx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx ubtx) {Pl.txCollateral = colTxIns}}
+  (requiredSigners,)
+    <$> if skipBalancing
+      then return tx
+      else balanceTxFromAux bPol BalFinalizing w tx
+
+-- | Calculates the collateral for a some transaction
+calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (S.Set Pl.TxIn)
+calcCollateral w col = do
+  orefs <- case col of
+    -- We're given a specific utxo to use as collateral
+    CollateralUtxos r -> return r
+    -- We must pick them; we'll first select
+    CollateralAuto -> do
+      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
+      when (null souts) $
+        throwError MCENoSuitableCollateral
+      return $ (: []) $ fst $ fst $ head souts
+  let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
+  return $ S.fromList txIns
+
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
+balanceTxFromAux utxoPolicy stage w tx = do
+  bres <- calcBalanceTx w tx
+  case applyBalanceTx utxoPolicy w bres tx of
+    Just tx' -> return tx'
+    Nothing -> throwError $ MCEUnbalanceable stage tx bres
 
 data BalanceTxRes = BalanceTxRes
   { newInputs :: [Pl.TxOutRef],
