@@ -40,6 +40,7 @@ import qualified Ledger.Credential as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Validation as Pl
+import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
@@ -236,7 +237,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = asks (Pl.slotToBeginPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
+  currentTime = asks (Pl.slotToEndPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
@@ -390,7 +391,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      (reqSigs, balancedTx) <- balanceTxFrom (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
+      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
       return . (reqSigs,) $
         foldl
           (flip txAddSignature)
@@ -458,7 +459,14 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
           | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
           | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex tx
 
-balanceTxFrom :: (Monad m) => Bool -> Collateral -> Wallet -> Pl.UnbalancedTx -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
+balanceTxFrom ::
+  (Monad m) =>
+  BalanceOutputPolicy ->
+  Bool ->
+  Collateral ->
+  Wallet ->
+  Pl.UnbalancedTx ->
+  MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 balanceTxFrom skipBalancing col w ubtx = do
   let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
   colTxIns <- calcCollateral w col
@@ -532,18 +540,25 @@ calcBalanceTx w tx = do
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
 -- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
 -- way to balance this transaction.
-applyBalanceTx :: Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
-applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
+applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
+applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
   -- Here we'll try a few things, in order, until one of them succeeds:
-  --   1. pick out the best possible output to adjust and adjust it as long as it remains with
-  --      more than 'Pl.minAdaTxOut'. No need for additional inputs.
+  --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
+  --      more than 'Pl.minAdaTxOut'. No need for additional inputs. The "best possible" here means the ada-only
+  --      utxo with the most ada and without any datum hash. If the policy doesn't allow modifying an
+  --      existing utxo or no such utxo exists, we move on to the next option;
   --   2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible, create a new output
   --      to return leftover. No need for additional inputs.
   --   3. Attempt to consume other possible utxos from 'w' in order to combine them
   --      and return the leftover.
+
+  let adjustOutputs = case utxoPolicy of
+        DontAdjustExistingOutput -> empty
+        AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx)
+
   (txInsDelta, txOuts') <-
     asum $
-      [ wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx), -- 1.
+      [ adjustOutputs, -- 1.
         guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
       ]
         ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
@@ -566,7 +581,7 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
     wOutsIxSorted =
       map fst $
         sortByMoreAda $
-          filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
+          filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
             zip [0 ..] (Pl.txOutputs tx)
 
     sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
@@ -592,6 +607,14 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
        in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
 
 -- * Utilities
+
+-- | returns public key hash when txout contains only ada tokens and that no datum hash is specified.
+onlyAdaPkTxOut :: Pl.TxOut -> Maybe Pl.PubKeyHash
+onlyAdaPkTxOut (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _) v Nothing) =
+  case Pl.flattenValue v of
+    [(cs, tn, _)] | cs == Pl.adaSymbol && tn == Pl.adaToken -> Just pkh
+    _ -> Nothing
+onlyAdaPkTxOut _ = Nothing
 
 addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
 addressIsPK addr = case Pl.addressCredential addr of

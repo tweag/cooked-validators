@@ -31,8 +31,8 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   utxosSuchThat addr datumPred = do
     allUtxos <- M.toList <$> C.utxosAt addr
     maybeUtxosWithDatums <- forM allUtxos $ \utxo -> do
-      let (Pl.TxOut _ val datumHash) = Pl.toTxOut $ snd utxo
-      datum <- maybe (pure Nothing) C.datumFromHash datumHash
+      let (Pl.TxOut _ val _) = Pl.toTxOut $ snd utxo
+      datum <- datumFromTxOut $ snd utxo
       let typedDatum = datum >>= Pl.fromBuiltinData . Pl.getDatum
       pure $
         if datumPred typedDatum val
@@ -48,3 +48,9 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   currentTime = C.currentTime
   awaitSlot = C.awaitSlot
   awaitTime = C.awaitTime
+
+datumFromTxOut :: (C.AsContractError e) => Pl.ChainIndexTxOut -> C.Contract w s e (Maybe Pl.Datum)
+datumFromTxOut (Pl.PublicKeyChainIndexTxOut {}) = pure Nothing
+datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
+-- datum is always present in the nominal case, guaranteed by chain-index
+datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh

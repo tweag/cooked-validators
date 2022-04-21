@@ -227,9 +227,25 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @CollateralAuto@.
-    collateral :: Collateral
+    collateral :: Collateral,
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @AdjustExistingOutput@.
+    balanceOutputPolicy :: BalanceOutputPolicy
   }
   deriving (Eq, Show)
+
+-- | Whether to adjust existing public key outputs during
+-- transaction balancing.
+data BalanceOutputPolicy
+  = -- | Try to adjust an existing public key output with the change. If no
+    --   suitable output can be found, create a new change output.
+    AdjustExistingOutput
+  | -- | Do not change the existing outputs, always create a new change
+    --   output.
+    DontAdjustExistingOutput
+  deriving (Eq, Ord, Show)
 
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
@@ -269,5 +285,6 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True,
-        collateral = CollateralAuto
+        collateral = CollateralAuto,
+        balanceOutputPolicy = AdjustExistingOutput
       }
