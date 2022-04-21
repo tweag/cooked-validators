@@ -334,7 +334,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
       signers <- askSigners
-      balancedTx <- balanceTxFrom (adjustOutputPolicy opts) (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
+      balancedTx <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (NE.head signers) (adjust reorderedUbtx)
       return $
         foldl
           (flip txAddSignature)
@@ -367,7 +367,7 @@ setFeeAndValidRange (Pl.UnbalancedTx tx0 _reqSigs _uindex slotRange) = do
   return
     tx {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
 
-balanceTxFrom :: (Monad m) => AdjustOutputPolicy -> Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+balanceTxFrom :: (Monad m) => BalanceOutputPolicy -> Bool -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 balanceTxFrom utxoPolicy skipBalancing w ubtx = do
   tx <- setFeeAndValidRange ubtx
   if skipBalancing
@@ -418,15 +418,18 @@ calcBalanceTx w tx = do
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
 -- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
 -- way to balance this transaction.
-applyBalanceTx :: AdjustOutputPolicy -> Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
+applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
 applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
   -- Here we'll try a few things, in order, until one of them succeeds:
-  --   1. pick out the best possible output to adjust and adjust it as long as it remains with
-  --      more than 'Pl.minAdaTxOut'. No need for additional inputs.
+  --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
+  --      more than 'Pl.minAdaTxOut'. No need for additional inputs. The "best possible" here means the ada-only
+  --      utxo with the most ada and without any datum hash. If the policy doesn't allow modifying an
+  --      existing utxo or no such utxo exists, we move on to the next option;
   --   2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible, create a new output
   --      to return leftover. No need for additional inputs.
   --   3. Attempt to consume other possible utxos from 'w' in order to combine them
   --      and return the leftover.
+
   let adjustOutputs = case utxoPolicy of
         DontAdjustExistingOutput -> empty
         AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx)

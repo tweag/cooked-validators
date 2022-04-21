@@ -216,11 +216,11 @@ data TxOpts = TxOpts
     -- By default, this is set to @True@.
     balance :: Bool,
 
-    -- | The 'AdjustOutputPolicy' to apply when balancing the transaction.
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @AdjustExistingOutput@.
-    adjustOutputPolicy :: AdjustOutputPolicy
+    balanceOutputPolicy :: BalanceOutputPolicy
 
   }
   deriving (Eq, Show)
@@ -229,7 +229,7 @@ data TxOpts = TxOpts
 {-| Whether to adjust existing public key outputs during
 transaction balancing.
 -}
-data AdjustOutputPolicy
+data BalanceOutputPolicy
   = AdjustExistingOutput
   -- ^ Try to adjust an existing public key output with the change. If no
   --   suitable output can be found, create a new change output.
@@ -268,5 +268,5 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = Id,
         balance = True,
-        adjustOutputPolicy = AdjustExistingOutput
+        balanceOutputPolicy = AdjustExistingOutput
       }
