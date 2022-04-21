@@ -21,7 +21,7 @@ spec = do
 
 customInitialDistribution :: InitialDistribution
 customInitialDistribution =
-  initialDistribution' [(wallet 1, [Pl.lovelaceValueOf 2000000 <> quickValue "goldenCoins" 20])]
+  initialDistribution' [(wallet 1, [minAda <> quickValue "goldenCoins" 20])]
 
 paymentAfterCustomInitialization :: Either MockChainError ((), UtxoState)
 paymentAfterCustomInitialization =

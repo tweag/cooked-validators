@@ -251,10 +251,13 @@ instance Show RawModTx where
   show Id = "Id"
   show (RawModTx _) = "RawModTx"
 
+-- | Specifies how to select the collateral input
 data Collateral
-  = CollateralAuto
-  | CollateralNone
-  | CollateralUtxos [Pl.TxOutRef]
+  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
+    CollateralAuto
+  | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
+    --  no collateral will be used whatsoever.
+    CollateralUtxos [Pl.TxOutRef]
   deriving (Eq, Show)
 
 instance Default TxOpts where

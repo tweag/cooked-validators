@@ -14,21 +14,25 @@
 module Cooked.Currencies where
 
 import qualified Ledger
+import qualified Ledger as Pl
 import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
+import qualified Ledger.Value as Pl
 import qualified Ledger.Value as Value
 import qualified PlutusTx
+import qualified PlutusTx.Builtins.Class as Pl
 import PlutusTx.Prelude hiding (Applicative (..))
+import qualified Prelude as Haskell
 
 -- * Quick Values
 
 -- $quickvalues
--- /Quick/ values are a convenience to manipulate assets that are supposed to
--- be in existence when running a mock chain. For example, a market
+-- /Quick/ values are convenient to manipulate assets that are supposed to
+-- exist when running a mock chain. For example, a market
 -- maker would exchange Ada against other assets. Yet, when writing traces
 -- for such contract we'd need to define a minting policy for those tokens,
--- which is very repetivie, moreover, most of the times we'd want wallets to
--- start with some positive valance of tokens.
+-- which is very repetitive. Moreover, most of the times we'd want wallets to
+-- start with some positive balance of tokens.
 --
 -- There are two classes of functions for using custom tokens on traces:
 --
@@ -44,27 +48,27 @@ import PlutusTx.Prelude hiding (Applicative (..))
 
 -- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to
 -- make it easy to distinguish between quick and permanent tokens.
-quickTokenName :: String -> Pl.TokenName
+quickTokenName :: Haskell.String -> Pl.TokenName
 quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("q" ++)
 
 -- | /Quick/ asset class from a token name
-quickAssetClass :: String -> Pl.AssetClass
+quickAssetClass :: Haskell.String -> Pl.AssetClass
 quickAssetClass = curry Pl.AssetClass quickCurrencySymbol . quickTokenName
 
 -- | Constructor for /quick/ values from token name and amount
-quickValue :: String -> Integer -> Pl.Value
+quickValue :: Haskell.String -> Integer -> Pl.Value
 quickValue = Pl.assetClassValue . quickAssetClass
 
 -- | Token name of a /permanent/ asset class
-permanentTokenName :: String -> Pl.TokenName
+permanentTokenName :: Haskell.String -> Pl.TokenName
 permanentTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("p" ++)
 
 -- | /Permanent/ asset class from a token name
-permanentAssetClass :: String -> Pl.AssetClass
+permanentAssetClass :: Haskell.String -> Pl.AssetClass
 permanentAssetClass = curry Pl.AssetClass permanentCurrencySymbol . permanentTokenName
 
 -- | Constructor for /Permanent/ values from token name and amount
-permanentValue :: String -> Integer -> Pl.Value
+permanentValue :: Haskell.String -> Integer -> Pl.Value
 permanentValue = Pl.assetClassValue . permanentAssetClass
 
 -- ** QuickValue Minting Policies

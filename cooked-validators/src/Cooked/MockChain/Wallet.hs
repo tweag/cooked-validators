@@ -7,7 +7,6 @@ module Cooked.MockChain.Wallet where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Crypto.Wallet as Crypto
-import Cooked.Currencies
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -18,7 +17,6 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Validation as Validation
 import qualified Ledger.Value as Pl
-import qualified PlutusTx.Builtins.Class as Pl
 import Unsafe.Coerce
 
 -- * MockChain Wallets

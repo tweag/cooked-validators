@@ -476,7 +476,6 @@ calcCollateral w col = do
   orefs <- case col of
     -- We're given a specific utxo to use as collateral
     CollateralUtxos r -> return r
-    CollateralNone -> return []
     -- We must pick them; we'll first select
     CollateralAuto -> do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
