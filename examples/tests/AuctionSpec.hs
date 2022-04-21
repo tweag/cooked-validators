@@ -45,15 +45,12 @@ testInit = InitialDistribution $ M.alter addBananas (wallet 1) standard
 -- | Parameters of an auction that sells two bananas at a minimum bid
 -- of 2 Lovelace and a bidding deadline in 60 seconds from the given
 -- time.
-bananaParams :: L.POSIXTime -> A.Parameters' () () ()
+bananaParams :: L.POSIXTime -> A.Parameters'
 bananaParams t =
   A.Parameters'
-    { A.seller = (),
-      A.lot = banana 2,
-      A.minBid = 3,
-      A.bidDeadline = t + 60_000,
-      A.lotOutRef = (),
-      A.threadTokenAssetClass = ()
+    { A.lot' = banana 2,
+      A.minBid' = 3,
+      A.bidDeadline' = t + 60_000
     }
 
 -- * Successful single-trace runs

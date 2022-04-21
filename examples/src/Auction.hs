@@ -32,23 +32,38 @@ import qualified Prelude as Haskell
 
 -- * Data types
 
--- | All the data associated with an auction
-data Parameters' x y z = Parameters'
+-- | All the statically known data associated with an auction
+data Parameters' = Parameters'
   { -- | no bids are accepted later than this
-    bidDeadline :: L.POSIXTime,
-    minBid :: Integer,
-    -- | address of the seller
-    seller :: x,
+    bidDeadline' :: L.POSIXTime,
+    -- | minimum bid in Lovelace
+    minBid' :: Integer,
     -- | value that is being auctioned
-    lot :: L.Value,
-    -- | outref of the utxo the seller spent the lot from (needed as a parameter for the minting policy of the thread token)
-    lotOutRef :: y,
-    -- | asset class of the thread token
-    threadTokenAssetClass :: z
+    lot' :: L.Value
   }
   deriving (Haskell.Show)
 
-type Parameters = Parameters' L.PubKeyHash L.TxOutRef Value.AssetClass
+-- | All data associated with an auction, including the data only
+-- known after the opening transaction
+data Parameters = Parameters
+  { staticParameters :: Parameters',
+    -- | address of the seller
+    seller :: L.PubKeyHash,
+    -- | autref of the utxo the seller spent the lot from (needed as a parameter for the minting policy of the thread token)
+    lotOutRef :: L.TxOutRef,
+    -- | assert class of the threadToken
+    threadTokenAssetClass :: Value.AssetClass
+  }
+  deriving (Haskell.Show)
+
+bidDeadline :: Parameters -> L.POSIXTime
+bidDeadline = bidDeadline' . staticParameters
+
+minBid :: Parameters -> Integer
+minBid = minBid' . staticParameters
+
+lot :: Parameters -> L.Value
+lot = lot' . staticParameters
 
 data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
@@ -85,9 +100,17 @@ data Action
 
 -- * The minting policy of the thread token
 
--- The initial transaction creates the thread token and is validated by
--- the minting policy of that token.
-
+-- | This minting policy controls the thread token of an auction. This
+-- token belongs to the validator of the auction, and must be minted
+-- in the first transaction, for which this policy ensures that
+-- * exactly one thread token is minted, by forcing an UTxO to be consumed
+-- * after the transaction:
+--     * the validator locks the thread token and the lot of the auction
+--     * the validator is in 'NoBids' state
+-- The final "hammer" transaction of the auction is the one that burns
+-- the thread token. This transaction has its own validator
+-- 'validHammer', so that this minting policy only checks that at
+-- exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.Address -> L.ScriptContext -> Bool
 mkPolicy tName lotOref lot validator ctx
@@ -161,7 +184,7 @@ outputAuctionState txi o = do
   L.Datum d <- L.findDatum h txi
   PlutusTx.fromBuiltinData d
 
--- | Test that the value paid to the given public key address is at
+-- | Test that the value paid to the giv,en public key address is at
 -- least the given value
 
 {- INLINEABLE receivesFrom -}
@@ -248,7 +271,7 @@ validate auction datum redeemer ctx = case redeemer of
   Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
 
--- * Plutus boilerplate to compile the validator
+-- Plutus boilerplate
 
 data Auction
 
@@ -263,6 +286,9 @@ PlutusTx.unstableMakeIsData ''Action
 
 PlutusTx.makeLift ''Parameters'
 PlutusTx.unstableMakeIsData ''Parameters'
+
+PlutusTx.makeLift ''Parameters
+PlutusTx.unstableMakeIsData ''Parameters
 
 instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action

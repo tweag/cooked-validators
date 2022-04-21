@@ -12,20 +12,18 @@ import qualified Ledger.Value as Value
 
 txOpen ::
   (MonadBlockChain m) =>
-  A.Parameters' () () () ->
+  A.Parameters' ->
   m A.Parameters
 txOpen p = do
   seller <- ownPaymentPubKeyHash
-  utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot p)
+  utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot' p)
   let p' :: A.Parameters
       p' =
-        A.Parameters'
-          { A.lot = A.lot p,
-            A.minBid = A.minBid p,
-            A.bidDeadline = A.bidDeadline p,
+        A.Parameters
+          { A.staticParameters = p,
             A.seller = seller,
             A.lotOutRef = fst utxo,
-            A.threadTokenAssetClass = A.threadTokenAssetClassFromOrefAndLot (fst utxo) (A.lot p)
+            A.threadTokenAssetClass = A.threadTokenAssetClassFromOrefAndLot (fst utxo) (A.lot' p)
           }
 
       token :: L.Value
@@ -40,8 +38,7 @@ txOpen p = do
             token,
           SpendsPK utxo
         ]
-          :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p <> token)
-          -- paysPK seller (sOutValue utxo <> Pl.negate (A.lot p))
+          :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
                ]
   return p'
 
