@@ -16,7 +16,8 @@ jobs:
         if: github.ref != 'refs/heads/main'
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.head_ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Check out repository code (from main).
         if: github.ref == 'refs/heads/main'
         uses: actions/checkout@v2
