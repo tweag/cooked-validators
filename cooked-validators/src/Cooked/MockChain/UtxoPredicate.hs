@@ -1,6 +1,6 @@
 module Cooked.MockChain.UtxoPredicate where
 
-import Cooked.MockChain.Wallet
+import Cooked.Currencies
 import Ledger.Ada (adaSymbol, adaToken)
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.AssocMap as Map
