@@ -205,8 +205,8 @@ prettyCurrencyAndAmount symbol =
       where
         psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
         psnTerm acc _ 0 = acc
-        psnTerm acc 3 nb = psnTerm (Prettyprinter.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-        psnTerm acc n nb = psnTerm (Prettyprinter.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
+        psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+        psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
