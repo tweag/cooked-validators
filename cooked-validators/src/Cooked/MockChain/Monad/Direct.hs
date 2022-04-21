@@ -35,9 +35,9 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Value as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
+import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
 

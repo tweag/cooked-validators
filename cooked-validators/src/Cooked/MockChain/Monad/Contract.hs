@@ -49,10 +49,8 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   awaitSlot = C.awaitSlot
   awaitTime = C.awaitTime
 
-
-datumFromTxOut :: ( C.AsContractError e ) => Pl.ChainIndexTxOut -> C.Contract w s e (Maybe Pl.Datum)
-datumFromTxOut (Pl.PublicKeyChainIndexTxOut { }) = pure Nothing
+datumFromTxOut :: (C.AsContractError e) => Pl.ChainIndexTxOut -> C.Contract w s e (Maybe Pl.Datum)
+datumFromTxOut (Pl.PublicKeyChainIndexTxOut {}) = pure Nothing
 datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
 -- datum is always present in the nominal case, guaranteed by chain-index
 datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh
-
