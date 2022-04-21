@@ -418,8 +418,8 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
-setFeeAndValidRange :: (Monad m) => Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
+setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
+setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
   let requiredSigners = M.keys reqSigs0
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
@@ -451,7 +451,7 @@ setFeeAndValidRange w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       MockChainT m Pl.Value
     calcFee n fee reqSigs cUtxoIndex tx = do
       let tx1 = tx {Pl.txFee = fee}
-      attemptedTx <- balanceTxFromAux BalCalcFee w tx1
+      attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
       case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee
@@ -467,16 +467,16 @@ balanceTxFrom ::
   Wallet ->
   Pl.UnbalancedTx ->
   MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-balanceTxFrom skipBalancing col w ubtx = do
+balanceTxFrom bPol skipBalancing col w ubtx = do
   let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
   colTxIns <- calcCollateral w col
   tx <-
-    setFeeAndValidRange w $
+    setFeeAndValidRange bPol w $
       ubtx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx ubtx) {Pl.txCollateral = colTxIns}}
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
-      else balanceTxFromAux BalFinalizing w tx
+      else balanceTxFromAux bPol BalFinalizing w tx
 
 -- | Calculates the collateral for a some transaction
 calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (S.Set Pl.TxIn)
@@ -493,10 +493,10 @@ calcCollateral w col = do
   let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
   return $ S.fromList txIns
 
-balanceTxFromAux :: (Monad m) => BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
-balanceTxFromAux stage w tx = do
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
+balanceTxFromAux utxoPolicy stage w tx = do
   bres <- calcBalanceTx w tx
-  case applyBalanceTx w bres tx of
+  case applyBalanceTx utxoPolicy w bres tx of
     Just tx' -> return tx'
     Nothing -> throwError $ MCEUnbalanceable stage tx bres
 
