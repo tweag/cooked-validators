@@ -14,6 +14,7 @@ import Cooked.MockChain.Wallet
 import Data.Default
 import Debug.Trace
 import Ledger.Index (ValidationError (ScriptFailure))
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Test.HUnit.Lang as HU
 import qualified Test.QuickCheck as QC
 
@@ -229,7 +230,9 @@ instance IsProp HU.Assertion where
 
       adjustMsg :: HU.HUnitFailure -> HU.HUnitFailure
       adjustMsg (HU.HUnitFailure loc (HU.Reason txt)) =
-        HU.HUnitFailure loc (HU.Reason $ joinMsg txt)
+        unsafePerformIO $ do
+          putStrLn ('\n' : joinMsg txt)
+          return $ HU.HUnitFailure loc (HU.Reason "")
       adjustMsg (HU.HUnitFailure loc (HU.ExpectedButGot pref x y)) =
         HU.HUnitFailure loc (HU.ExpectedButGot (maybe (Just msg) (Just . joinMsg) pref) x y)
 

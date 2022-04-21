@@ -71,7 +71,6 @@ library
     , scientific
     , streaming
     , tasty
-    , tasty-hunit
     , text
     , transformers
   default-language: Haskell2010
@@ -125,7 +124,6 @@ test-suite spec
     , scientific
     , streaming
     , tasty
-    , tasty-hunit
     , text
     , transformers
   default-language: Haskell2010

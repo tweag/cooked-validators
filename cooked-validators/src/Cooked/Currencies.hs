@@ -49,7 +49,7 @@ import qualified Prelude as Haskell
 -- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to
 -- make it easy to distinguish between quick and permanent tokens.
 quickTokenName :: Haskell.String -> Pl.TokenName
-quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("q" ++)
+quickTokenName = Pl.TokenName . Pl.stringToBuiltinByteString
 
 -- | /Quick/ asset class from a token name
 quickAssetClass :: Haskell.String -> Pl.AssetClass
@@ -61,7 +61,7 @@ quickValue = Pl.assetClassValue . quickAssetClass
 
 -- | Token name of a /permanent/ asset class
 permanentTokenName :: Haskell.String -> Pl.TokenName
-permanentTokenName = Pl.TokenName . Pl.stringToBuiltinByteString . ("p" ++)
+permanentTokenName = Pl.TokenName . Pl.stringToBuiltinByteString
 
 -- | /Permanent/ asset class from a token name
 permanentAssetClass :: Haskell.String -> Pl.AssetClass
