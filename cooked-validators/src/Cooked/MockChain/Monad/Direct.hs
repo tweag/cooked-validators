@@ -35,6 +35,7 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Value as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl
@@ -451,7 +452,7 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
     wOutsIxSorted =
       map fst $
         sortByMoreAda $
-          filter ((== Just wPKH) . addressIsPK . Pl.txOutAddress . snd) $
+          filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
             zip [0 ..] (Pl.txOutputs tx)
 
     sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
@@ -477,6 +478,14 @@ applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) tx = do
        in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
 
 -- * Utilities
+
+-- | returns public key hash when txout contains only ada tokens and that no datum hash is specified.
+onlyAdaPkTxOut :: Pl.TxOut -> Maybe Pl.PubKeyHash
+onlyAdaPkTxOut (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _) v Nothing) =
+  case Pl.flattenValue v of
+    [(cs, tn, _)] | cs == Pl.adaSymbol && tn == Pl.adaToken -> Just pkh
+    _ -> Nothing
+onlyAdaPkTxOut _ = Nothing
 
 addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
 addressIsPK addr = case Pl.addressCredential addr of
