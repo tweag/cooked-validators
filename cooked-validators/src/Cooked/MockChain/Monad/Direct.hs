@@ -280,13 +280,18 @@ runTransactionValidation ::
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
 runTransactionValidation s slotCfg ix reqSigners signers tx =
   let ((e1, idx'), evs) = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
-      cIx = either (error . show) id $ Pl.fromPlutusIndex ix
-      cTx = either (error . show) id $ Pl.fromPlutusTx cIx reqSigners tx
+      -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
+      -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
+      -- to keep this function pure.
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
+      cardanoTx = either (error . show) id $ Pl.fromPlutusTx cardanoIndex reqSigners tx
+
+      -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
       e2 =
         Pl.hasValidationErrors
           (fromIntegral s)
-          cIx
-          (L.foldl' (flip txAddSignatureAPI) cTx signers)
+          cardanoIndex
+          (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
    in (idx', e1 <|> e2, evs)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
