@@ -214,9 +214,30 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
-    balance :: Bool
+    balance :: Bool,
+
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @AdjustExistingOutput@.
+    balanceOutputPolicy :: BalanceOutputPolicy
+
   }
   deriving (Eq, Show)
+
+
+{-| Whether to adjust existing public key outputs during
+transaction balancing.
+-}
+data BalanceOutputPolicy
+  = AdjustExistingOutput
+  -- ^ Try to adjust an existing public key output with the change. If no
+  --   suitable output can be found, create a new change output.
+  | DontAdjustExistingOutput
+  -- ^ Do not change the existing outputs, always create a new change
+  --   output.
+  deriving (Eq, Ord, Show)
+
 
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
@@ -246,5 +267,6 @@ instance Default TxOpts where
         autoSlotIncrease = True,
         forceOutputOrdering = True,
         unsafeModTx = Id,
-        balance = True
+        balance = True,
+        balanceOutputPolicy = AdjustExistingOutput
       }
