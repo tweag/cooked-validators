@@ -32,8 +32,8 @@ import qualified Prelude as Haskell
 
 -- * Data types
 
--- | All the data associated with an auction.
-data Parameters' x y = Parameters'
+-- | All the data associated with an auction
+data Parameters' x y z = Parameters'
   { -- | no bids are accepted later than this
     bidDeadline :: L.POSIXTime,
     minBid :: Integer,
@@ -41,12 +41,14 @@ data Parameters' x y = Parameters'
     seller :: x,
     -- | value that is being auctioned
     lot :: L.Value,
-    -- | asset class of the thread token NFT of this auction
-    threadToken :: y
+    -- | outref of the utxo the seller spent the lot from (needed as a parameter for the minting policy of the thread token)
+    lotOutRef :: y,
+    -- | asset class of the thread token
+    threadTokenAssetClass :: z
   }
   deriving (Haskell.Show)
 
-type Parameters = Parameters' L.PubKeyHash Value.AssetClass
+type Parameters = Parameters' L.PubKeyHash L.TxOutRef Value.AssetClass
 
 data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
@@ -80,6 +82,65 @@ data Action
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
   deriving (Haskell.Show)
+
+-- * The minting policy of the thread token
+
+-- The initial transaction creates the thread token and is validated by
+-- the minting policy of that token.
+
+{-# INLINEABLE mkPolicy #-}
+mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.Address -> L.ScriptContext -> Bool
+mkPolicy tName lotOref lot validator ctx
+  | amnt == Just 1 =
+    traceIfFalse
+      "Lot UTxO not consumed"
+      (any (\i -> L.txInInfoOutRef i == lotOref) $ L.txInfoInputs txi)
+      && case filter
+        (\o -> L.txOutAddress o == validator)
+        (L.txInfoOutputs txi) of
+        [o] ->
+          traceIfFalse
+            "Validator does not receive the lot and the thread token of freshly opened auction"
+            (L.txOutValue o `Value.geq` (lot <> token))
+            && traceIfFalse
+              "Validator not in 'NoBids'-state on freshly opened auction"
+              (outputAuctionState txi o == Just NoBids)
+        _ -> trace "There must be exactly one output to the validator on a fresh auction" False
+  | amnt == Just (-1) =
+    True -- no further checks here; 'validHammer' checks everything
+  | otherwise = trace "not minting or burning the right amount" False
+  where
+    txi = L.scriptContextTxInfo ctx
+    L.Minting me = L.scriptContextPurpose ctx
+
+    token :: L.Value
+    token = Value.singleton me tName 1
+
+    amnt :: Maybe Integer
+    amnt = case Value.flattenValue (L.txInfoMint txi) of
+      [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
+      _ -> Nothing
+
+{-# INLINEABLE threadTokenName #-}
+threadTokenName :: Value.TokenName
+threadTokenName = Value.tokenName "AuctionToken"
+
+threadTokenPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> Scripts.MintingPolicy
+threadTokenPolicy tName oref lot =
+  L.mkMintingPolicyScript $
+    $$(PlutusTx.compile [||\n o l -> Scripts.wrapMintingPolicy $ mkPolicy n o l||])
+      `PlutusTx.applyCode` PlutusTx.liftCode tName
+      `PlutusTx.applyCode` PlutusTx.liftCode oref
+      `PlutusTx.applyCode` PlutusTx.liftCode lot
+
+threadTokenSymbol :: L.TxOutRef -> L.Value -> L.CurrencySymbol
+threadTokenSymbol oref lot = L.scriptCurrencySymbol $ threadTokenPolicy threadTokenName oref lot
+
+threadTokenAssetClassFromOrefAndLot :: L.TxOutRef -> L.Value -> Value.AssetClass
+threadTokenAssetClassFromOrefAndLot lotOutRef lot =
+  Value.assetClass
+    (threadTokenSymbol lotOutRef lot)
+    threadTokenName
 
 -- * The validator and its helpers
 
@@ -129,9 +190,9 @@ validBid auction datum bid bidder ctx =
         && traceIfFalse
           "Validator does not lock lot, bid, and thread token"
           ( L.valueLockedBy txi selfh
-              == ( lot auction <> Ada.lovelaceValueOf bid
-                     <> Value.assetClassValue (threadToken auction) 1
-                 )
+              `Value.geq` ( lot auction <> Ada.lovelaceValueOf bid
+                              <> Value.assetClassValue (threadTokenAssetClass auction) 1
+                          )
           )
         && case L.getContinuingOutputs ctx of
           [o] ->
@@ -167,7 +228,7 @@ validHammer auction datum ctx =
         (hammerTimeRange auction `Interval.contains` L.txInfoValidRange txi)
         && traceIfFalse
           "Hammer does not burn exactly one thread token"
-          (L.txInfoMint txi == Value.assetClassValue (threadToken auction) (-1))
+          (L.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass auction) (-1))
         && case datum of
           NoBids ->
             traceIfFalse
@@ -214,62 +275,3 @@ auctionValidator =
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.wrapValidator @AuctionState @Action
-
--- * The minting policy of the thread token
-
--- The initial transaction creates the thread token and is validated by
--- the minting policy of that token.
-
-{-# INLINEABLE mkPolicy #-}
-mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.Address -> L.ScriptContext -> Bool
-mkPolicy tName lotOref lot validator ctx
-  | amnt == Just 1 =
-    traceIfFalse
-      "Lot UTxO not consumed"
-      (any (\i -> L.txInInfoOutRef i == lotOref) $ L.txInfoInputs txi)
-      && case filter
-        (\o -> L.txOutAddress o == validator)
-        (L.txInfoOutputs txi) of
-        [o] ->
-          traceIfFalse
-            "Validator does not receive the lot and the thread token"
-            (L.txOutValue o == lot <> token)
-            -- && traceIfFalse
-            --   "Validator not in 'NoBids'-state on freshly opened auction"
-            --   (outputAuctionState txi o == Just NoBids)
-        _ -> trace "There must be exactly one output to the validator on a fresh auction" False
-  | amnt == Just (-1) =
-    True -- no further checks here; 'validHammer' checks everything
-  | otherwise = trace "not minting or burning the right amount" False
-  where
-    txi = L.scriptContextTxInfo ctx
-    L.Minting me = L.scriptContextPurpose ctx
-
-    token :: L.Value
-    token = Value.singleton me tName 1
-
-    amnt :: Maybe Integer
-    amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
-      _ -> Nothing
-
-{-# INLINEABLE threadTokenName #-}
-threadTokenName :: Value.TokenName
-threadTokenName = Value.tokenName "AuctionToken"
-
-threadTokenPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> Scripts.MintingPolicy
-threadTokenPolicy tName oref lot =
-  L.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||\n o l -> Scripts.wrapMintingPolicy $ mkPolicy n o l||])
-      `PlutusTx.applyCode` PlutusTx.liftCode tName
-      `PlutusTx.applyCode` PlutusTx.liftCode oref
-      `PlutusTx.applyCode` PlutusTx.liftCode lot
-
-threadTokenSymbol :: L.TxOutRef -> L.Value -> L.CurrencySymbol
-threadTokenSymbol oref lot = L.scriptCurrencySymbol $ threadTokenPolicy threadTokenName oref lot
-
-threadTokenAssetClass :: L.TxOutRef -> L.Value -> Value.AssetClass
-threadTokenAssetClass oref lot =
-  Value.assetClass
-    (threadTokenSymbol oref lot)
-    threadTokenName

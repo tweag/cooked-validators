@@ -4,45 +4,44 @@ import qualified Auction as A
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import qualified Ledger.Typed.Scripts as Scripts
 import Data.Default
 import qualified Ledger as L
 import Ledger.Ada as Ada
+import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
--- import PlutusTx.Numeric as Pl
 
 txOpen ::
   (MonadBlockChain m) =>
-  A.Parameters' () () ->
+  A.Parameters' () () () ->
   m A.Parameters
 txOpen p = do
   seller <- ownPaymentPubKeyHash
   utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot p)
-  let threadToken = A.threadTokenAssetClass (fst utxo) (A.lot p)
-      p' :: A.Parameters
+  let p' :: A.Parameters
       p' =
         A.Parameters'
           { A.lot = A.lot p,
             A.minBid = A.minBid p,
             A.bidDeadline = A.bidDeadline p,
             A.seller = seller,
-            A.threadToken = threadToken
+            A.lotOutRef = fst utxo,
+            A.threadTokenAssetClass = A.threadTokenAssetClassFromOrefAndLot (fst utxo) (A.lot p)
           }
 
       token :: L.Value
-      token = Value.assetClassValue threadToken 1
+      token = Value.assetClassValue (A.threadTokenAssetClass p') 1
 
   _ <-
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
         [ Mints
             (Just (Scripts.validatorAddress (A.auctionValidator p')))
-            [A.threadTokenPolicy A.threadTokenName (fst utxo) (A.lot p')]
+            [A.threadTokenPolicy A.threadTokenName (A.lotOutRef p') (A.lot p')]
             token,
           SpendsPK utxo
         ]
           :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p <> token)
-                 -- paysPK seller (sOutValue utxo <> Pl.negate (A.lot p))
+          -- paysPK seller (sOutValue utxo <> Pl.negate (A.lot p))
                ]
   return p'
 
@@ -69,7 +68,7 @@ txBid p bid = do
             utxo
         ]
           :=>: ( [ PaysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
-                     A.lot p <> Ada.lovelaceValueOf bid
+                     A.lot p <> Ada.lovelaceValueOf bid <> Value.assetClassValue (A.threadTokenAssetClass p) 1
                  ]
                    <> case previousBidder (snd utxo) of
                      Nothing -> []
@@ -90,7 +89,11 @@ txHammer p = do
           SpendsScript
             (A.auctionValidator p)
             A.Hammer
-            utxo
+            utxo,
+          Mints
+            (Just (Scripts.validatorAddress (A.auctionValidator p)))
+            [A.threadTokenPolicy A.threadTokenName (A.lotOutRef p) (A.lot p)]
+            (Value.assetClassValue (A.threadTokenAssetClass p) (-1))
         ]
           :=>: case previousBidder (snd utxo) of
             Nothing ->
