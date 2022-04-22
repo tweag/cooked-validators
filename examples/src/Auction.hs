@@ -15,8 +15,7 @@
 {-# OPTIONS_GHC -fno-omit-interface-pragmas #-}
 {-# OPTIONS_GHC -fno-specialise #-}
 
--- These language extensions are just what Split.hs uses, I honestly
--- have no idea what most of them do or if I actually need them.
+-- These language extensions are just what Split.hs uses
 
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
@@ -32,8 +31,9 @@ import qualified Prelude as Haskell
 
 -- * Data types
 
--- | All the statically known data associated with an auction
-data Parameters' = Parameters'
+-- | All the statically known data associated with an auction that the
+-- validator needs to know
+data StaticValParams = StaticValParams
   { -- | no bids are accepted later than this
     bidDeadline' :: L.POSIXTime,
     -- | minimum bid in Lovelace
@@ -43,27 +43,57 @@ data Parameters' = Parameters'
   }
   deriving (Haskell.Show)
 
--- | All data associated with an auction, including the data only
--- known after the opening transaction
-data Parameters = Parameters
-  { staticParameters :: Parameters',
+-- some Plutus magic to compile the data type
+PlutusTx.makeLift ''StaticValParams
+PlutusTx.unstableMakeIsData ''StaticValParams
+
+-- | All data for the validator associated with an auction, including
+-- the data only known after the opening transaction
+data ValParams = ValParams
+  { staticValParams :: StaticValParams,
     -- | address of the seller
     seller :: L.PubKeyHash,
-    -- | autref of the utxo the seller spent the lot from (needed as a parameter for the minting policy of the thread token)
-    lotOutRef :: L.TxOutRef,
-    -- | assert class of the threadToken
+    -- | The asset class of the thread token. It's is needed here to
+    -- break a circular dependency between the vaildator and the
+    -- minting policy: The minting policy needs to know the (hash of
+    -- the) validator, in order to ensure that the thread token is
+    -- locked by the validator after the initial transaction. The
+    -- validator needs to know the AssetClass of the thread token, so
+    -- that it can ensure the token is correctly passed on. In
+    -- principle, the validator could compute this AssetClass, if it
+    -- knows the minting policy and the TokenName (using
+    -- 'L.scriptCurrencySymbol' and 'Value.assetClass'). This would
+    -- make the minting policy a parameter of the validator, so that
+    -- each would depend on the other. This is a way out.
     threadTokenAssetClass :: Value.AssetClass
   }
   deriving (Haskell.Show)
 
-bidDeadline :: Parameters -> L.POSIXTime
-bidDeadline = bidDeadline' . staticParameters
+PlutusTx.makeLift ''ValParams
+PlutusTx.unstableMakeIsData ''ValParams
 
-minBid :: Parameters -> Integer
-minBid = minBid' . staticParameters
+bidDeadline :: ValParams -> L.POSIXTime
+bidDeadline = bidDeadline' . staticValParams
 
-lot :: Parameters -> L.Value
-lot = lot' . staticParameters
+minBid :: ValParams -> Integer
+minBid = minBid' . staticValParams
+
+lot :: ValParams -> L.Value
+lot = lot' . staticValParams
+
+-- | All data the minting policy of the thread token needs to
+-- know. These are known after the opening transaction
+data PolicyParams = PolicyParams
+  { -- | TokenName of the thread token
+    pThreadTokenName :: Value.TokenName,
+    -- | outref of the utxo the seller spent the lot from
+    pLotOutRef :: L.TxOutRef,
+    -- | lot of the auction
+    pLot :: L.Value
+  }
+
+PlutusTx.makeLift ''PolicyParams
+PlutusTx.unstableMakeIsData ''PolicyParams
 
 data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
@@ -72,6 +102,9 @@ data BidderInfo = BidderInfo
     bidder :: L.PubKeyHash
   }
   deriving (Haskell.Show)
+
+PlutusTx.makeLift ''BidderInfo
+PlutusTx.unstableMakeIsData ''BidderInfo
 
 instance Eq BidderInfo where
   BidderInfo a b == BidderInfo x y = a == x && b == y
@@ -83,6 +116,9 @@ data AuctionState
   | -- | state of an auction that has had at least one bid
     Bidding BidderInfo
   deriving (Haskell.Show)
+
+PlutusTx.makeLift ''AuctionState
+PlutusTx.unstableMakeIsData ''AuctionState
 
 instance Eq AuctionState where
   {- INLINEABLE (==) -}
@@ -98,6 +134,9 @@ data Action
     Hammer
   deriving (Haskell.Show)
 
+PlutusTx.makeLift ''Action
+PlutusTx.unstableMakeIsData ''Action
+
 -- * The minting policy of the thread token
 
 -- | This minting policy controls the thread token of an auction. This
@@ -112,8 +151,8 @@ data Action
 -- 'validHammer', so that this minting policy only checks that at
 -- exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> L.Address -> L.ScriptContext -> Bool
-mkPolicy tName lotOref lot validator ctx
+mkPolicy :: PolicyParams -> L.Address -> L.ScriptContext -> Bool
+mkPolicy (PolicyParams tName lotOref lot) validator ctx
   | amnt == Just 1 =
     traceIfFalse
       "Lot UTxO not consumed"
@@ -148,31 +187,26 @@ mkPolicy tName lotOref lot validator ctx
 threadTokenName :: Value.TokenName
 threadTokenName = Value.tokenName "AuctionToken"
 
-threadTokenPolicy :: Value.TokenName -> L.TxOutRef -> L.Value -> Scripts.MintingPolicy
-threadTokenPolicy tName oref lot =
+threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
+threadTokenPolicy pars =
   L.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||\n o l -> Scripts.wrapMintingPolicy $ mkPolicy n o l||])
-      `PlutusTx.applyCode` PlutusTx.liftCode tName
-      `PlutusTx.applyCode` PlutusTx.liftCode oref
-      `PlutusTx.applyCode` PlutusTx.liftCode lot
-
-threadTokenSymbol :: L.TxOutRef -> L.Value -> L.CurrencySymbol
-threadTokenSymbol oref lot = L.scriptCurrencySymbol $ threadTokenPolicy threadTokenName oref lot
+    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
+      `PlutusTx.applyCode` PlutusTx.liftCode pars
 
 threadTokenAssetClassFromOrefAndLot :: L.TxOutRef -> L.Value -> Value.AssetClass
 threadTokenAssetClassFromOrefAndLot lotOutRef lot =
   Value.assetClass
-    (threadTokenSymbol lotOutRef lot)
+    (L.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef lot)
     threadTokenName
 
 -- * The validator and its helpers
 
 {- INLINEABLE bidTimeRange -}
-bidTimeRange :: Parameters -> L.POSIXTimeRange
+bidTimeRange :: ValParams -> L.POSIXTimeRange
 bidTimeRange a = Interval.to (bidDeadline a)
 
 {- INLINEABLE hammerTimeRange -}
-hammerTimeRange :: Parameters -> L.POSIXTimeRange
+hammerTimeRange :: ValParams -> L.POSIXTimeRange
 hammerTimeRange a = Interval.from (bidDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
@@ -201,7 +235,7 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 --    * the last bidder has gotten their money back from the validator
 
 {- INLINEABLE validBid -}
-validBid :: Parameters -> AuctionState -> Integer -> L.PubKeyHash -> L.ScriptContext -> Bool
+validBid :: ValParams -> AuctionState -> Integer -> L.PubKeyHash -> L.ScriptContext -> Bool
 validBid auction datum bid bidder ctx =
   let txi = L.scriptContextTxInfo ctx
       selfh = L.ownHash ctx
@@ -242,7 +276,7 @@ validBid auction datum bid bidder ctx =
 --    * the seller gets the lot
 
 {- INLINEABLE validHammer -}
-validHammer :: Parameters -> AuctionState -> L.ScriptContext -> Bool
+validHammer :: ValParams -> AuctionState -> L.ScriptContext -> Bool
 validHammer auction datum ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
@@ -266,35 +300,20 @@ validHammer auction datum ctx =
                 (seller auction `receives` Ada.lovelaceValueOf lastBid)
 
 {- INLINEABLE validate -}
-validate :: Parameters -> AuctionState -> Action -> L.ScriptContext -> Bool
+validate :: ValParams -> AuctionState -> Action -> L.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
   Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
 
--- Plutus boilerplate
+-- Plutus boilerplate to compile the validator
 
 data Auction
-
-PlutusTx.makeLift ''BidderInfo
-PlutusTx.unstableMakeIsData ''BidderInfo
-
-PlutusTx.makeLift ''AuctionState
-PlutusTx.unstableMakeIsData ''AuctionState
-
-PlutusTx.makeLift ''Action
-PlutusTx.unstableMakeIsData ''Action
-
-PlutusTx.makeLift ''Parameters'
-PlutusTx.unstableMakeIsData ''Parameters'
-
-PlutusTx.makeLift ''Parameters
-PlutusTx.unstableMakeIsData ''Parameters
 
 instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
   type DatumType Auction = AuctionState
 
-auctionValidator :: Parameters -> Scripts.TypedValidator Auction
+auctionValidator :: ValParams -> Scripts.TypedValidator Auction
 auctionValidator =
   Scripts.mkTypedValidatorParam @Auction
     $$(PlutusTx.compile [||validate||])

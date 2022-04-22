@@ -10,6 +10,7 @@ import Control.Applicative
 import Control.Arrow
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Cooked.Currencies
 import Data.Default
 import qualified Data.Map.Strict as M
 import qualified Ledger as L
@@ -24,7 +25,7 @@ import Test.Tasty.HUnit
 -- Have a banana.
 
 bananaAssetClass :: Value.AssetClass
-bananaAssetClass = Value.assetClass (Value.currencySymbol "f00d") (Value.tokenName "Banana")
+bananaAssetClass = permanentAssetClas "Banana"
 
 -- | Value representing a number of bananas
 banana :: Integer -> Value.Value
@@ -45,9 +46,9 @@ testInit = InitialDistribution $ M.alter addBananas (wallet 1) standard
 -- | Parameters of an auction that sells two bananas at a minimum bid
 -- of 2 Lovelace and a bidding deadline in 60 seconds from the given
 -- time.
-bananaParams :: L.POSIXTime -> A.Parameters'
+bananaParams :: L.POSIXTime -> A.StaticValParams
 bananaParams t =
-  A.Parameters'
+  A.StaticValParams
     { A.lot' = banana 2,
       A.minBid' = 3,
       A.bidDeadline' = t + 60_000
@@ -61,26 +62,26 @@ bananaParams t =
 noBids :: MonadMockChain m => m ()
 noBids = do
   t0 <- currentTime
-  p <- A.txOpen (bananaParams t0) `as` wallet 1
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   awaitTime (A.bidDeadline p + 1)
-  A.txHammer p
+  A.txHammer p q
 
 oneBid :: MonadMockChain m => m ()
 oneBid = do
   t0 <- currentTime
-  p <- A.txOpen (bananaParams t0) `as` wallet 1
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   A.txBid p 3 `as` wallet 2
   awaitTime (A.bidDeadline p + 1)
-  A.txHammer p
+  A.txHammer p q
 
 twoBids :: MonadMockChain m => m ()
 twoBids = do
   t0 <- currentTime
-  p <- A.txOpen (bananaParams t0) `as` wallet 1
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   A.txBid p 3 `as` wallet 2
   A.txBid p 4 `as` wallet 3
   awaitTime (A.bidDeadline p + 1)
-  A.txHammer p
+  A.txHammer p q
 
 -- | helper function to compute what the given wallet owns in the
 -- given state
@@ -113,11 +114,11 @@ failingOpen = do
 failingTwoBids :: MonadMockChain m => m ()
 failingTwoBids = do
   t0 <- currentTime
-  p <- A.txOpen (bananaParams t0) `as` wallet 1
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   A.txBid p (A.minBid p) `as` wallet 2
   A.txBid p (A.minBid p) `as` wallet 3
   awaitTime (A.bidDeadline p + 1)
-  A.txHammer p
+  A.txHammer p q
 
 failingSingle :: TestTree
 failingSingle =
@@ -183,10 +184,10 @@ attacks =
 bidderAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
 bidderAlternativeTrace = do
   t0 <- currentTime
-  p <- A.txOpen (bananaParams t0) `as` wallet 1
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   A.txBid p 9 `as` wallet 2 <|> A.txBid p 9 `as` wallet 3
   awaitTime (A.bidDeadline p)
-  A.txHammer p
+  A.txHammer p q
 
 bidderAlternative :: TestTree
 bidderAlternative =

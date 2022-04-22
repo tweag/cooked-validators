@@ -12,18 +12,25 @@ import qualified Ledger.Value as Value
 
 txOpen ::
   (MonadBlockChain m) =>
-  A.Parameters' ->
-  m A.Parameters
+  A.StaticValParams ->
+  m (A.ValParams, A.PolicyParams)
 txOpen p = do
   seller <- ownPaymentPubKeyHash
   utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot' p)
-  let p' :: A.Parameters
+  let p' :: A.ValParams
       p' =
-        A.Parameters
-          { A.staticParameters = p,
+        A.ValParams
+          { A.staticValParams = p,
             A.seller = seller,
-            A.lotOutRef = fst utxo,
             A.threadTokenAssetClass = A.threadTokenAssetClassFromOrefAndLot (fst utxo) (A.lot' p)
+          }
+
+      q :: A.PolicyParams
+      q =
+        A.PolicyParams
+          { A.pThreadTokenName = A.threadTokenName,
+            A.pLotOutRef = fst utxo,
+            A.pLot = A.lot' p
           }
 
       token :: L.Value
@@ -34,13 +41,13 @@ txOpen p = do
       txSkelOpts (def {adjustUnbalTx = True}) $
         [ Mints
             (Just (Scripts.validatorAddress (A.auctionValidator p')))
-            [A.threadTokenPolicy A.threadTokenName (A.lotOutRef p') (A.lot p')]
+            [A.threadTokenPolicy q]
             token,
           SpendsPK utxo
         ]
           :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
                ]
-  return p'
+  return (p', q)
 
 previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
 previousBidder (A.Bidding (A.BidderInfo bid bidder)) = Just (bid, bidder)
@@ -48,7 +55,7 @@ previousBidder _ = Nothing
 
 txBid ::
   (MonadBlockChain m) =>
-  A.Parameters ->
+  A.ValParams ->
   Integer ->
   m ()
 txBid p bid = do
@@ -75,9 +82,10 @@ txBid p bid = do
 
 txHammer ::
   (MonadBlockChain m) =>
-  A.Parameters ->
+  A.ValParams ->
+  A.PolicyParams ->
   m ()
-txHammer p = do
+txHammer p q = do
   [utxo] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
   void $
     validateTxSkel $
@@ -89,7 +97,7 @@ txHammer p = do
             utxo,
           Mints
             (Just (Scripts.validatorAddress (A.auctionValidator p)))
-            [A.threadTokenPolicy A.threadTokenName (A.lotOutRef p) (A.lot p)]
+            [A.threadTokenPolicy q]
             (Value.assetClassValue (A.threadTokenAssetClass p) (-1))
         ]
           :=>: case previousBidder (snd utxo) of
