@@ -77,6 +77,10 @@ check-result:
           done
         done
 
+        ## Because there will be a lot of tests, we print a summary of the results
+        echo "Summary of results (1 is failure)"
+        cat *.res
+
         if $is_ok; then
           exit 0
         else
