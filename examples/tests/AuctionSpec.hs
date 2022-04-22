@@ -8,9 +8,9 @@ import qualified Auction as A
 import qualified Auction.Offchain as A
 import Control.Applicative
 import Control.Arrow
+import Cooked.Currencies
 import Cooked.MockChain
 import Cooked.Tx.Constraints
-import Cooked.Currencies
 import Data.Default
 import qualified Data.Map.Strict as M
 import qualified Ledger as L
@@ -25,7 +25,7 @@ import Test.Tasty.HUnit
 -- Have a banana.
 
 bananaAssetClass :: Value.AssetClass
-bananaAssetClass = permanentAssetClas "Banana"
+bananaAssetClass = permanentAssetClass "Banana"
 
 -- | Value representing a number of bananas
 banana :: Integer -> Value.Value
@@ -37,11 +37,14 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. the first wallet owns five bananas
 testInit :: InitialDistribution
-testInit = InitialDistribution $ M.alter addBananas (wallet 1) standard
+testInit =
+  InitialDistribution $
+    M.insert
+      (wallet 1)
+      (Ada.lovelaceValueOf 100_000_000 <> banana 5 : (standard M.! wallet 1))
+      standard
   where
     InitialDistribution standard = def
-    addBananas (Just v) = Just (v <> banana 5)
-    addBananas Nothing = Nothing
 
 -- | Parameters of an auction that sells two bananas at a minimum bid
 -- of 2 Lovelace and a bidding deadline in 60 seconds from the given
