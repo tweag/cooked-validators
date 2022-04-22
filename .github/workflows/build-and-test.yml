@@ -66,8 +66,8 @@ check-result:
     - name: Check result
       run: |
         is_ok=true
-        for proj in ("examples" "cooked-validators"); do
-          for step in ("ormolu" "cabal-test" "hlint"); do
+        for proj in "examples" "cooked-validators"; do
+          for step in "hpack" "ormolu" "cabal-build" "cabal-test" "hlint"; do
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)
@@ -82,3 +82,4 @@ check-result:
         else
           exit 1
         fi
+
