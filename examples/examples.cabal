@@ -10,16 +10,14 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Forge
-      Forge.ExampleTokens
+      Auction
+      Auction.Offchain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
       Split
       Split.OffChain
       Split.ToUPLC
-      Auction
-      Auction.Offchain
   other-modules:
       Paths_examples
   hs-source-dirs:
@@ -68,12 +66,11 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ForgeSpec
+      AuctionSpec
       PMultiSigStatefulSpec
       SplitSpec
       SplitUPLCSpec
       UseCaseCrowdfundingSpec
-      AuctionSpec
       Paths_examples
   hs-source-dirs:
       tests
