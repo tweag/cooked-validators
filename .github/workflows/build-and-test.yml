@@ -79,7 +79,10 @@ jobs:
 
         ## Because there will be a lot of tests, we print a summary of the results
         echo "Summary of results (1 is failure)"
-        cat *.res
+        for proj in "examples" "cooked-validators"; do
+          echo "Summary for: $proj"
+          cat ${proj}-*.res
+        done
 
         if $is_ok; then
           exit 0
