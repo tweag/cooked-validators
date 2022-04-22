@@ -31,7 +31,6 @@ library
       Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
-      Example
   other-modules:
       Paths_cooked_validators
   hs-source-dirs:
