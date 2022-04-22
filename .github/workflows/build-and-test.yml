@@ -45,7 +45,7 @@ jobs:
       run: |
         chmod u+x ci/run-tests.sh
 
-    - name: Build and test pirouette
+    - name: Build and test
       uses: ./.github/actions/nix-run
       with:
         command: ./ci/run-tests.sh --ci
