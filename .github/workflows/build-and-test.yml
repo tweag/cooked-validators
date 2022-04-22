@@ -50,7 +50,7 @@ jobs:
       with:
         command: ./ci/run-tests.sh --ci
 
-check-result:
+  check-result:
     needs: build-and-test
     name: check-result
     runs-on: ubuntu-latest
