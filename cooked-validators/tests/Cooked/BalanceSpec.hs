@@ -60,7 +60,7 @@ spec = do
       let txOut1 = outsOf 1 utxoIndex0
        in shouldBe
             (spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1)
-            (map fst txOut1, Pl.lovelaceValueOf 99_990_000, mempty)
+            ([head $ map fst txOut1], Pl.lovelaceValueOf 99_990_000, mempty)
     -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
     -- This test doesn't consider the minAdaTxOut constraint.
     it "spends money from the outputs" $

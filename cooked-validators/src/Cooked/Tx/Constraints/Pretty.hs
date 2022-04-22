@@ -113,7 +113,9 @@ prettyOpts opts = case mapMaybe cmpAgainstDefAndPrint fields of
         Field "awaitTxConfirmed" awaitTxConfirmed,
         Field "autoSlotIncrease" autoSlotIncrease,
         Field "unsafeModTx" unsafeModTx,
-        Field "balance" balance
+        Field "balance" balance,
+        Field "collateral" collateral,
+        Field "balanceOutputPolicy" balanceOutputPolicy
       ]
 
 data Field record where

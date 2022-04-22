@@ -22,9 +22,6 @@ import qualified PlutusTx.AssocMap as AssocMap
 import Test.Tasty
 import Test.Tasty.HUnit
 
-minAda :: Ledger.Value
-minAda = Ada.lovelaceValueOf 2000000
-
 -- TODO: Fix this hidden assumption that wallet 1 is the de-facto ownPaymentPubKeyHash
 -- in this module
 

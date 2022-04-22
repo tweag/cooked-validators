@@ -1,9 +1,9 @@
 module Cooked.QuickValueSpec (spec) where
 
-import Cooked.MockChain
-import Cooked.Tx.Constraints
+import Cooked
 import Data.Default
 import qualified Data.Map as Map
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Value as Pl
 import Test.Hspec
 
@@ -20,7 +20,7 @@ spec = do
 
 customInitialDistribution :: InitialDistribution
 customInitialDistribution =
-  initialDistribution' [(wallet 1, quickValue "goldenCoins" 20)]
+  initialDistribution' [(wallet 1, [minAda <> quickValue "goldenCoins" 20])]
 
 paymentAfterCustomInitialization :: Either MockChainError ((), UtxoState)
 paymentAfterCustomInitialization =
