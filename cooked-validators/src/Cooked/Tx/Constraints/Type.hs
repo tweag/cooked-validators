@@ -29,7 +29,7 @@ sOutAddress = Pl.txOutAddress . Pl.toTxOut . snd
 
 -- | Accesses a potential 'Pl.DatumHash' within a 'SpendableOut'; note that
 --  the existence (or not) of a datum hash /DOES NOT/ indicate the 'SpendableOut'
---  belongs to a script or a public key, you must pattern match on the result of
+--  belongs to a script or a public key; you must pattern match on the result of
 --  'sOutAddress' or use one of 'sBelongsToPubKey' or 'sBelongsToScript' to distinguish that.
 sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
 sOutDatumHash = Pl.txOutDatum . Pl.toTxOut . snd
@@ -71,26 +71,47 @@ instance Monoid Constraints where
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
+  -- | Ensure that the given 'Pl.TypedValidator' spends a specific UTxO (which
+  -- must belong to the validator). That is: Unlock the UTxO described by the
+  -- given pair of 'SpendableOut' and 'Pl.DatumType', passing the given redeemer
+  -- to the validator script.
   SpendsScript ::
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
     MiscConstraint
+  -- | Ensure that a 'Pl.PubKeyHash' spends a specific UTxO. The hash is not an
+  -- argument since it can be read off the given 'SpendableOut'.
   SpendsPK :: SpendableOut -> MiscConstraint
+  -- | Ensure that the transaction mints the given 'Pl.Value'. For each
+  -- 'Pl.CurrencySymbol' in the value that is to be minted, the given list of
+  -- 'Pl.MintingPolicy's has to include the policy governing that currency
+  -- symbol. The @Maybe a@-argument is the optional redeemer passed to the
+  -- policies: If you pass @Nothing@, the constraint is translated using
+  -- 'Pl.mustMintValue', which uses no redeemer; if you pass @Just r@,
+  -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
+  -- policies.
   Mints ::
     (Pl.ToData a, Show a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
     MiscConstraint
+  -- | Ensure that the transaction happens before the given time.
   Before :: Pl.POSIXTime -> MiscConstraint
+  -- | Ensure that the transaction happens after the given time.
   After :: Pl.POSIXTime -> MiscConstraint
+  -- | Ensure that the transaction happens in the given time range.
   ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint
+  -- | Ensure that the transaction is signed by the given 'Pl.PubKeyHash'es.
   SignedBy :: [Pl.PubKeyHash] -> MiscConstraint
 
 -- | Constraints which specify new transaction outputs
 data OutConstraint where
+  -- | Creates an UTxO to the given validator, with the given datum
+  -- and the given value. That is, lets the scirpt lock the given
+  -- value.
   PaysScript ::
     (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
     Pl.TypedValidator a ->
