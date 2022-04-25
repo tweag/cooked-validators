@@ -64,6 +64,11 @@ prettyMiscConstraint (Mints mr policies val) =
         Just $ "Policies:" <+> PP.list (map prettyMintingPolicy policies)
       ]
 prettyMiscConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
+prettyMiscConstraint (SpendsScript val red outdat) =
+  prettyEnum
+    ("SpendsScript" <+> prettyTypedValidator val)
+    "-"
+    ["Redeemer:" <+> PP.viaShow red, prettyOutputDatum val outdat]
 prettyMiscConstraint _ = "<constraint without pretty def>"
 
 prettyHash :: (Show a) => a -> Doc ann
@@ -113,7 +118,9 @@ prettyOpts opts = case mapMaybe cmpAgainstDefAndPrint fields of
         Field "awaitTxConfirmed" awaitTxConfirmed,
         Field "autoSlotIncrease" autoSlotIncrease,
         Field "unsafeModTx" unsafeModTx,
-        Field "balance" balance
+        Field "balance" balance,
+        Field "collateral" collateral,
+        Field "balanceOutputPolicy" balanceOutputPolicy
       ]
 
 data Field record where

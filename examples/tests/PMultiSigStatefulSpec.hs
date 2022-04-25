@@ -121,9 +121,6 @@ mkSign params pmt sk = do
     mkSignLockedCost :: Pl.Value
     mkSignLockedCost = Pl.lovelaceValueOf 1
 
-minAda :: Pl.Value
-minAda = Pl.lovelaceValueOf 2000000
-
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = signs (wallet 1) $ do
   [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal

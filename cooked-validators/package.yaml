@@ -34,11 +34,11 @@ dependencies:
   - scientific
   - streaming
   - tasty
-  - tasty-hunit
   - text
   - transformers
   - HUnit
   - QuickCheck
+  - cardano-api
   - cardano-crypto
   - cardano-wallet-core
   - memory

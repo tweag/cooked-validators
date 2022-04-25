@@ -1,6 +1,6 @@
 module Cooked.MockChain.UtxoPredicate where
 
-import Cooked.MockChain.Wallet
+import Cooked.Currencies
 import Ledger.Ada (adaSymbol, adaToken)
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.AssocMap as Map
@@ -35,6 +35,11 @@ valueSat predi _ = predi
 datumSat :: (a -> Bool) -> UtxoPredicate a
 datumSat _ Nothing _ = False
 datumSat predi (Just a) _ = predi a
+
+-- | Returns true when no datum is present
+noDatum :: UtxoPredicate a
+noDatum Nothing _ = True
+noDatum _ _ = False
 
 -- * Predicatesover Values
 
