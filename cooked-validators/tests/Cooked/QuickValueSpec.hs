@@ -1,22 +1,24 @@
-module Cooked.QuickValueSpec (spec) where
+module Cooked.QuickValueSpec (tests) where
 
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Value as Pl
-import Test.Hspec
+import Test.Tasty
+import Test.Tasty.HUnit
 
-spec :: SpecWith ()
-spec = do
-  it "make it possible to provide additional assets in the initial state" $
-    quickValuesInitialisation
-      `shouldSatisfy` isRightAndSatifies
-        (hasQuickValueAmount (wallet 1) "goldenCoins" 20)
-  it "are exchangeable like any other asset between wallets" $
-    paymentAfterCustomInitialization
-      `shouldSatisfy` isRightAndSatifies
-        (hasQuickValueAmount (wallet 2) "goldenCoins" 12)
+tests :: [TestTree]
+tests =
+  [ testCase "make it possible to provide additional assets in the initial state" $
+      assertBool "doesn't satisfy" $
+        isRightAndSatifies (hasQuickValueAmount (wallet 1) "goldenCoins" 20) $
+          quickValuesInitialisation,
+    testCase "are exchangeable like any other asset between wallets" $
+      assertBool "doesn't satisfy" $
+        isRightAndSatifies (hasQuickValueAmount (wallet 2) "goldenCoins" 12) $
+          paymentAfterCustomInitialization
+  ]
 
 customInitialDistribution :: InitialDistribution
 customInitialDistribution =

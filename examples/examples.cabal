@@ -24,8 +24,7 @@ library
       src
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
   build-depends:
-      HUnit
-    , QuickCheck
+      QuickCheck
     , aeson
     , base >=4.9 && <5
     , bytestring
@@ -55,7 +54,6 @@ library
     , streaming
     , tasty
     , tasty-expected-failure
-    , tasty-hspec
     , tasty-hunit
     , tasty-quickcheck
     , text
@@ -75,8 +73,7 @@ test-suite spec
   hs-source-dirs:
       tests
   build-depends:
-      HUnit
-    , QuickCheck
+      QuickCheck
     , aeson
     , base >=4.9 && <5
     , bytestring
@@ -107,7 +104,6 @@ test-suite spec
     , streaming
     , tasty
     , tasty-expected-failure
-    , tasty-hspec
     , tasty-hunit
     , tasty-quickcheck
     , text

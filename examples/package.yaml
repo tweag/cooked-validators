@@ -16,8 +16,6 @@ dependencies:
   - tasty-quickcheck
   - tasty-expected-failure
   - heredoc
-  - HUnit
-  - tasty-hspec # should be removed after rewriting test suite with tasty-hunit and tasty-quickcheck
   # Dependencies of the example contracts, these come from the client
   - aeson
   - bytestring

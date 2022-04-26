@@ -4,16 +4,19 @@ import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 import qualified Cooked.MockChain.WalletSpec as WalletSpec
 import qualified Cooked.OutputReorderingSpec as OutputReorderingSpec
 import qualified Cooked.QuickValueSpec as QuickValueSpec
-import Test.Hspec
+import Test.Tasty
 
 main :: IO ()
-main = hspec spec
+main = defaultMain tests
 
-spec :: Spec
-spec = do
-  describe "Reordering outputs" OutputReorderingSpec.spec
-  describe "Balancing transactions" Ba.spec
-  describe "Quick values" QuickValueSpec.spec
-  describe "Staged monad" StagedSpec.spec
-  describe "UtxoState" UtxoStateSpec.spec
-  describe "Wallet" WalletSpec.spec
+tests :: TestTree
+tests =
+  testGroup
+    "cooked-validators"
+    [ testGroup "Reordering outputs" OutputReorderingSpec.tests,
+      testGroup "Balancing transactions" Ba.tests,
+      testGroup "Quick values" QuickValueSpec.tests,
+      testGroup "Staged monad" StagedSpec.tests,
+      testGroup "UtxoState" UtxoStateSpec.tests,
+      testGroup "Wallet" WalletSpec.tests
+    ]
