@@ -38,8 +38,7 @@ library
       src
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
-      HUnit
-    , QuickCheck
+      QuickCheck
     , aeson
     , base >=4.9 && <5
     , bytestring
@@ -71,6 +70,8 @@ library
     , scientific
     , streaming
     , tasty
+    , tasty-hunit
+    , tasty-quickcheck
     , text
     , transformers
   default-language: Haskell2010
@@ -89,8 +90,7 @@ test-suite spec
   hs-source-dirs:
       tests/
   build-depends:
-      HUnit
-    , QuickCheck
+      QuickCheck
     , aeson
     , base >=4.9 && <5
     , bytestring
@@ -106,7 +106,6 @@ test-suite spec
     , foldl
     , freer-extras
     , freer-simple
-    , hspec
     , lens
     , memory
     , monad-control
@@ -124,6 +123,8 @@ test-suite spec
     , scientific
     , streaming
     , tasty
+    , tasty-hunit
+    , tasty-quickcheck
     , text
     , transformers
   default-language: Haskell2010

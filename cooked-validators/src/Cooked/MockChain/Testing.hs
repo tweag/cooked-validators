@@ -14,9 +14,8 @@ import Cooked.MockChain.Wallet
 import Data.Default
 import Debug.Trace
 import Ledger.Index (ValidationError (ScriptFailure))
-import System.IO.Unsafe (unsafePerformIO)
-import qualified Test.HUnit.Lang as HU
 import qualified Test.QuickCheck as QC
+import qualified Test.Tasty.HUnit as HU
 
 -- | This module provides a common interface for HUnit and QuickCheck tests.
 -- We do so by abstracting uses of 'HU.Assertion' and 'QC.Property' for @(IsProp prop) => prop@,
@@ -226,16 +225,11 @@ instance IsProp HU.Assertion where
   testCounterexample msg = maybe testSuccess (E.throw . adjustMsg) <=< assertionToMaybe
     where
       joinMsg :: String -> String
-      joinMsg rest = msg ++ "; " ++ rest
+      joinMsg rest = msg ++ ";\n" ++ rest
 
       adjustMsg :: HU.HUnitFailure -> HU.HUnitFailure
-      adjustMsg (HU.HUnitFailure loc (HU.Reason txt)) =
-        unsafePerformIO $ do
-          putStrLn ('\n' : msg)
-          putStrLn txt
-          return $ HU.HUnitFailure loc (HU.Reason "")
-      adjustMsg (HU.HUnitFailure loc (HU.ExpectedButGot pref x y)) =
-        HU.HUnitFailure loc (HU.ExpectedButGot (maybe (Just msg) (Just . joinMsg) pref) x y)
+      adjustMsg (HU.HUnitFailure loc txt) =
+        HU.HUnitFailure loc (joinMsg txt)
 
   testFailure = HU.assertFailure ""
   testFailureMsg = HU.assertFailure

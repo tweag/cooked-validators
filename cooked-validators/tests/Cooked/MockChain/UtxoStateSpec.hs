@@ -9,8 +9,8 @@ import Cooked.MockChain.UtxoState.Testing
 import Cooked.MockChain.Wallet
 import qualified Ledger.Ada as Ada
 import qualified PlutusTx.Numeric as Pl
-import Test.HUnit (Assertion)
-import Test.Hspec
+import Test.Tasty
+import Test.Tasty.HUnit
 
 utxoStateFromID :: InitialDistribution -> UtxoState
 utxoStateFromID = mcstToUtxoState . mockChainSt0From
@@ -39,31 +39,31 @@ stB =
         (wallet 2, [minAda <> quickValue "TOK_B" 1])
       ]
 
-spec :: SpecWith ()
-spec = do
-  describe "utxoStateDiff Unit Tests" $ do
-    it "utxoStateDiffSrc (utxoStateDiff a b) == a" $
-      utxoStateDiffSrc (utxoStateDiff stA stB) `shouldBe` stA
-
-    it "utxoStateDiffTgt (utxoStateDiff a b) == b" $
-      utxoStateDiffTgt (utxoStateDiff stA stB) `shouldBe` stB
-
-  describe "utxoStateDiffTotal" $ do
-    it "utxoStateDiffTotal (utxoStateDiff a b) =~= b - a" $
-      utxoStateDiffTotal (utxoStateDiff stA stB) `shouldBe` (minAda <> minAda <> quickValue "TOK_B" 1)
-
-    it "utxoStateDiffTotal (utxoStateDiff b a) =~= a - b" $
-      utxoStateDiffTotal (utxoStateDiff stB stA) `shouldBe` Pl.negate (minAda <> minAda <> quickValue "TOK_B" 1)
-
-  describe "Relations" $ do
-    it "stA `equalModuloAda` stA0" $
-      equalModuloAda stA stA0 `shouldBe` True
-
-    it "equalModuloAtMost (quickValue \"TOK_B\" 1) stA stB" $
-      equivModuloAtMost (minAda <> minAda <> quickValue "TOK_B" 1) stA stB `shouldBe` True
-
-    it "not $ equalModuloAtMost (Ada.lovelaceValueOf 100) stA0 stA" $
-      equivModuloAtMost (Ada.lovelaceValueOf 100) stA0 stA `shouldBe` False
-
-    it "equalModuloAtMost (Ada.lovelaceValueOf -246000) stA stA0" $
-      equivModuloAtMost (Ada.lovelaceValueOf (-246000)) stA stA0 `shouldBe` True
+tests :: [TestTree]
+tests =
+  [ testGroup
+      "utxoStateDiff"
+      [ testCase "utxoStateDiffSrc (utxoStateDiff a b) == a" $
+          utxoStateDiffSrc (utxoStateDiff stA stB) @?= stA,
+        testCase "utxoStateDiffTgt (utxoStateDiff a b) == b" $
+          utxoStateDiffTgt (utxoStateDiff stA stB) @?= stB
+      ],
+    testGroup
+      "utxoStateDiffTotal"
+      [ testCase "utxoStateDiffTotal (utxoStateDiff a b) =~= b - a" $
+          utxoStateDiffTotal (utxoStateDiff stA stB) @?= (minAda <> minAda <> quickValue "TOK_B" 1),
+        testCase "utxoStateDiffTotal (utxoStateDiff b a) =~= a - b" $
+          utxoStateDiffTotal (utxoStateDiff stB stA) @?= Pl.negate (minAda <> minAda <> quickValue "TOK_B" 1)
+      ],
+    testGroup
+      "Relations"
+      [ testCase "stA `equalModuloAda` stA0" $
+          equalModuloAda stA stA0 @?= True,
+        testCase "equalModuloAtMost (quickValue \"TOK_B\" 1) stA stB" $
+          equivModuloAtMost (minAda <> minAda <> quickValue "TOK_B" 1) stA stB @?= True,
+        testCase "not $ equalModuloAtMost (Ada.lovelaceValueOf 100) stA0 stA" $
+          equivModuloAtMost (Ada.lovelaceValueOf 100) stA0 stA @?= False,
+        testCase "equalModuloAtMost (Ada.lovelaceValueOf -246000) stA stA0" $
+          equivModuloAtMost (Ada.lovelaceValueOf (-246000)) stA stA0 @?= True
+      ]
+  ]

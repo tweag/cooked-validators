@@ -33,10 +33,11 @@ dependencies:
   - prettyprinter
   - scientific
   - streaming
-  - tasty
   - text
   - transformers
-  - HUnit
+  - tasty
+  - tasty-hunit
+  - tasty-quickcheck
   - QuickCheck
   - cardano-api
   - cardano-crypto
@@ -59,4 +60,3 @@ tests:
       - tests/
     dependencies:
       - cooked-validators
-      - hspec

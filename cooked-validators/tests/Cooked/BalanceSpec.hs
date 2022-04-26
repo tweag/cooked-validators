@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Cooked.BalanceSpec (spec) where
+module Cooked.BalanceSpec (tests) where
 
 import Control.Monad.Identity
 import Control.Monad.State
@@ -31,8 +31,9 @@ import qualified Plutus.V1.Ledger.Crypto as Pl
 import qualified Plutus.V1.Ledger.Tx as Pl
 import qualified PlutusTx.AssocMap as Map
 import qualified PlutusTx.Builtins.Internal as PlI
-import Test.Hspec
-import Test.QuickCheck
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 import qualified Wallet.Emulator.Wallet as Pl
 
 -- Instead of relying on Plutus TxOut and TxOutRef, we mock our own
@@ -51,84 +52,88 @@ instance BalancableOut (MockReference, MockBalancable) where
   outValue = mbValue . snd
   outRef = fst
 
-spec :: SpecWith ()
-spec = do
-  -- Here we're testing the pure 'spendValueFrom' function
-  describe "spendValueFrom" $ do
-    -- In a simple case, where one has only one output, it is simply to balance it.
-    it "spends money from the output" $
-      let txOut1 = outsOf 1 utxoIndex0
-       in shouldBe
-            (spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1)
-            ([head $ map fst txOut1], Pl.lovelaceValueOf 99_990_000, mempty)
-    -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
-    -- This test doesn't consider the minAdaTxOut constraint.
-    it "spends money from the outputs" $
-      let Right (st, _) = tracePayWallet11
-       in let txOut11 = outsOf 11 $ mcstIndex st
-           in shouldBe
-                (spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11)
-                (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty)
-    it "spends nothing if nothing to balance" $
-      property $ \(IndependentUtxos utxos) -> do
-        let (usedUtxos, leftovers, excess) = spendValueFrom @MockOutOutRef mempty utxos
-        usedUtxos `shouldBe` []
-        leftovers `shouldBe` mempty
-        excess `shouldBe` mempty
-    it "excess negates all negative values" $
-      property $ \diff (IndependentUtxos utxos) -> do
-        let (_, _, excess) = spendValueFrom @MockOutOutRef diff utxos
-            negativeValues = unflattenValue $ filter (\(_, _, i) -> i < 0) $ Pl.flattenValue diff
-         in (excess <> negativeValues) `shouldBe` mempty
-    it "if a (curr, tok) pair is unbalanced, it's used" $
-      property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
-        let utxosCurrsToks = allUtxosCurrsToks (map snd utxos)
-            (usedUtxosRefs, _, _) = spendValueFrom @MockOutOutRef diff utxos
-            usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
-            usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
-        forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
-          when ((curr, tok) `elem` utxosCurrsToks) $
-            (curr, tok) `shouldSatisfy` (`elem` usedUtxosCurrsToks)
-    it "pointwise sum of spent and leftover" $
-      -- If @(usedUtxos, leftovers) = spendValueFrom diff utxos@, then,
-      -- for each (curr, token) in @usedUtxos@,
-      -- if there's enough of that pair in utxos, then
-      -- @usedUtxos ! (curr, token) = diff ! (curr, token) + leftovers ! (curr, token)@.
-      -- otherwise @usedUtxos ! (curr, token) = utxos ! (curr, token)@.
-      --
-      -- TODO this latter case is not necessarily a must-have for our implementation.
-      property $ \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
-        let (usedUtxosRefs, leftovers, _) = spendValueFrom @MockOutOutRef diff utxos
-            usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
-            usedUtxosTotal = Pl.flattenValue $ foldMap mbValue usedUtxos
-            allUtxosValue = foldMap outValue utxos
-        forM_ usedUtxosTotal $ \(curr, token, utxoVal) -> do
-          let rhsVal = Pl.valueOf (diff <> leftovers) curr token
-              availableVal = Pl.valueOf allUtxosValue curr token
-          if availableVal >= Pl.valueOf diff curr token
-            then (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == rhsVal)
-            else (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == availableVal)
+shouldSatisfy :: (HasCallStack, Show a) => a -> (a -> Bool) -> Assertion
+v `shouldSatisfy` p = unless (p v) (assertFailure $ "predicate failed on: " ++ show v)
 
-  -- Here we're testing the whole enchillada
-  describe "balanceTxFrom" $ do
-    -- Here wallet 11 will have 8.4 Ada, and it will want to pay 8 to wallet 1, but its not possible.
-    -- It would leave it with a 0.4 ada UTxO which is less than min ada.
-    it "Fails for unbalanceable transactions" $
-      let tr =
-            validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-              >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-              >> signs (wallet 11) (validateTxConstr [paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
-       in runMockChain tr `shouldSatisfy` isLeft
-
-    -- Unlike the test above, we now want to see this being possible, but the transaction will need
-    -- to consume the additional utxo of wallet 11.
-    it "Uses additional utxos on demand" $
-      let tr =
-            validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-              >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
-              >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 3_700_000)]
-              >> signs (wallet 11) (validateTxConstr [paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
-       in runMockChain tr `shouldSatisfy` isRight
+tests :: [TestTree]
+tests =
+  [ -- Here we're testing the pure 'spendValueFrom' function
+    testGroup
+      "spendValueFrom"
+      [ -- In a simple case, where one has only one output, it is simply to balance it.
+        testCase "spends money from the output" $
+          let txOut1 = outsOf 1 utxoIndex0
+           in spendValueFrom (Pl.lovelaceValueOf 10_000) txOut1
+                @?= ([head $ map fst txOut1], Pl.lovelaceValueOf 99_990_000, mempty),
+        -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
+        -- This test doesn't consider the minAdaTxOut constraint.
+        testCase "spends money from the outputs" $
+          let Right (st, _) = tracePayWallet11
+           in let txOut11 = outsOf 11 $ mcstIndex st
+               in spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11
+                    @?= (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty),
+        testProperty "spends nothing if nothing to balance" $
+          \(IndependentUtxos utxos) -> do
+            let (usedUtxos, leftovers, excess) = spendValueFrom @MockOutOutRef mempty utxos
+            usedUtxos @?= []
+            leftovers @?= mempty
+            excess @?= mempty,
+        testProperty "excess negates all negative values" $
+          \diff (IndependentUtxos utxos) -> do
+            let (_, _, excess) = spendValueFrom @MockOutOutRef diff utxos
+                negativeValues = unflattenValue $ filter (\(_, _, i) -> i < 0) $ Pl.flattenValue diff
+             in (excess <> negativeValues) @?= mempty,
+        testProperty "if a (curr, tok) pair is unbalanced, it's used" $
+          \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
+            let utxosCurrsToks = allUtxosCurrsToks (map snd utxos)
+                (usedUtxosRefs, _, _) = spendValueFrom @MockOutOutRef diff utxos
+                usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
+                usedUtxosCurrsToks = allUtxosCurrsToks usedUtxos
+            forM_ (Pl.flattenValue diff) $ \(curr, tok, _) -> do
+              when ((curr, tok) `elem` utxosCurrsToks) $
+                (curr, tok) `shouldSatisfy` (`elem` usedUtxosCurrsToks),
+        testProperty "pointwise sum of spent and leftover" $
+          -- If @(usedUtxos, leftovers) = spendValueFrom diff utxos@, then,
+          -- for each (curr, token) in @usedUtxos@,
+          -- if there's enough of that pair in utxos, then
+          -- @usedUtxos ! (curr, token) = diff ! (curr, token) + leftovers ! (curr, token)@.
+          -- otherwise @usedUtxos ! (curr, token) = utxos ! (curr, token)@.
+          --
+          -- TODO this latter case is not necessarily a must-have for our implementation.
+          \(ValueWithMods diff :: ValueWithMods Positive) (IndependentUtxos utxos) -> do
+            let (usedUtxosRefs, leftovers, _) = spendValueFrom @MockOutOutRef diff utxos
+                usedUtxos = mapMaybe (`L.lookup` utxos) usedUtxosRefs
+                usedUtxosTotal = Pl.flattenValue $ foldMap mbValue usedUtxos
+                allUtxosValue = foldMap outValue utxos
+            forM_ usedUtxosTotal $ \(curr, token, utxoVal) -> do
+              let rhsVal = Pl.valueOf (diff <> leftovers) curr token
+                  availableVal = Pl.valueOf allUtxosValue curr token
+              if availableVal >= Pl.valueOf diff curr token
+                then (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == rhsVal)
+                else (leftovers, usedUtxosTotal) `shouldSatisfy` const (utxoVal == availableVal)
+      ],
+    -- Here we're testing the whole enchillada
+    testGroup
+      "balanceTxFrom"
+      [ -- Here wallet 11 will have 8.4 Ada, and it will want to pay 8 to wallet 1, but its not possible.
+        -- It would leave it with a 0.4 ada UTxO which is less than min ada.
+        testCase "Fails for unbalanceable transactions" $
+          let tr =
+                validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+                  >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+                  >> signs (wallet 11) (validateTxConstr [paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
+           in runMockChain tr `shouldSatisfy` isLeft,
+        -- Unlike the test above, we now want to see this being possible, but the transaction will need
+        -- to consume the additional utxo of wallet 11.
+        testCase "Uses additional utxos on demand" $
+          let tr =
+                validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+                  >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 4_200_000)]
+                  >> validateTxConstr [paysPK (walletPKHash $ wallet 11) (Pl.lovelaceValueOf 3_700_000)]
+                  >> signs (wallet 11) (validateTxConstr [paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 8_000_000)])
+           in runMockChain tr `shouldSatisfy` isRight
+      ]
+  ]
 
 outsOf :: Int -> Pl.UtxoIndex -> [(Pl.TxOutRef, Pl.TxOut)]
 outsOf i utxoIndex =
