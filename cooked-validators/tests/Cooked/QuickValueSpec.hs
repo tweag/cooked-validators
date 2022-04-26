@@ -12,11 +12,13 @@ tests :: [TestTree]
 tests =
   [ testCase "make it possible to provide additional assets in the initial state" $
       assertBool "doesn't satisfy" $
-        isRightAndSatifies (hasQuickValueAmount (wallet 1) "goldenCoins" 20) $
+        isRightAndSatifies
+          (hasQuickValueAmount (wallet 1) "goldenCoins" 20)
           quickValuesInitialisation,
     testCase "are exchangeable like any other asset between wallets" $
       assertBool "doesn't satisfy" $
-        isRightAndSatifies (hasQuickValueAmount (wallet 2) "goldenCoins" 12) $
+        isRightAndSatifies
+          (hasQuickValueAmount (wallet 2) "goldenCoins" 12)
           paymentAfterCustomInitialization
   ]
 
