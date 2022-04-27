@@ -101,7 +101,7 @@ data BidderInfo = BidderInfo
     -- | the last bidder's address
     bidder :: L.PubKeyHash
   }
-  deriving (Haskell.Show)
+  deriving (Haskell.Show, Haskell.Eq)
 
 PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
@@ -115,7 +115,7 @@ data AuctionState
     NoBids
   | -- | state of an auction that has had at least one bid
     Bidding BidderInfo
-  deriving (Haskell.Show)
+  deriving (Haskell.Show, Haskell.Eq)
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
@@ -132,7 +132,7 @@ data Action
     Bid BidderInfo
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
-  deriving (Haskell.Show)
+  deriving (Haskell.Show, Haskell.Eq)
 
 PlutusTx.makeLift ''Action
 PlutusTx.unstableMakeIsData ''Action

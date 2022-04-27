@@ -54,6 +54,8 @@ instance TScripts.ValidatorTypes Crowdfunding where
 
 deriving instance Show CampaignAction
 
+deriving instance Eq CampaignAction
+
 -- | Generates an aribtrary campaign with a the collection deadline set as
 -- a delta on top of the payment deadline.
 genCampaign :: (MonadBlockChain m) => Integer -> Ledger.POSIXTime -> Wallet -> m (Ledger.POSIXTime, Campaign)
