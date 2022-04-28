@@ -15,6 +15,7 @@ import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Eq as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
@@ -53,15 +54,15 @@ type SpendsConstrs a =
     Pl.ToData (Pl.RedeemerType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
-    Eq (Pl.DatumType a),
-    Eq (Pl.RedeemerType a),
+    Pl.Eq (Pl.DatumType a),
+    Pl.Eq (Pl.RedeemerType a),
     Typeable a
   )
 
 type PaysScriptConstrs a =
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
-    Eq (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
     Typeable a
   )
 
@@ -105,7 +106,7 @@ data MiscConstraint where
   -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
   -- policies.
   Mints ::
-    (Pl.ToData a, Eq a, Show a, Typeable a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
@@ -127,12 +128,12 @@ _ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
 instance Eq MiscConstraint where
   SpendsScript s1 r1 (so1, d1) == SpendsScript s2 r2 (so2, d2) =
     case s1 ~*~? s2 of
-      Just HRefl -> (s1, r1, so1, d1) == (s2, r2, so2, d2)
+      Just HRefl -> (s1, so1) == (s2, so2) && (r1, d1) Pl.== (r2, d2)
       Nothing -> False
   SpendsPK so1 == SpendsPK so2 = so1 == so2
   Mints d1 p1 v1 == Mints d2 p2 v2 =
     case d1 ~*~? d2 of
-      Just HRefl -> (d1, p1, v1) == (d2, p2, v2)
+      Just HRefl -> (p1, v1) == (p2, v2) && d1 Pl.== d2
       Nothing -> False
   Before t1 == Before t2 = t1 == t2
   After t1 == After t2 = t1 == t2
@@ -157,7 +158,7 @@ data OutConstraint where
   -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
   -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
   PaysPKWithDatum ::
-    (Pl.ToData a, Eq a, Show a, Typeable a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Pl.PubKeyHash ->
     Maybe Pl.StakePubKeyHash ->
     Maybe a ->
@@ -169,11 +170,11 @@ data OutConstraint where
 instance Eq OutConstraint where
   PaysScript s1 d1 v1 == PaysScript s2 d2 v2 =
     case s1 ~*~? s2 of
-      Just HRefl -> (s1, d1, v1) == (s2, d2, v2)
+      Just HRefl -> (s1, v1) == (s2, v2) && d1 Pl.== d2
       Nothing -> False
   PaysPKWithDatum pk1 stake1 d1 v1 == PaysPKWithDatum pk2 stake2 d2 v2 =
     case d1 ~*~? d2 of
-      Just HRefl -> (pk1, stake1, d1, v1) == (pk2, stake2, d2, v2)
+      Just HRefl -> (pk1, stake1, v1) == (pk2, stake2, v2) && d1 Pl.== d2
       Nothing -> False
   _ == _ = False
 

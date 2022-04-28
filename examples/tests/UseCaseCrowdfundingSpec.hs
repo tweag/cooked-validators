@@ -30,6 +30,7 @@ import Plutus.Contracts.Crowdfunding
 import qualified Plutus.Contracts.Currency as Currency
 import qualified Plutus.V1.Ledger.Scripts as Scripts
 import qualified PlutusTx (compile)
+import qualified PlutusTx.Eq as Pl
 import Test.Hspec
 import qualified Test.QuickCheck as QC
 import Test.Tasty
@@ -54,7 +55,10 @@ instance TScripts.ValidatorTypes Crowdfunding where
 
 deriving instance Show CampaignAction
 
-deriving instance Eq CampaignAction
+instance Pl.Eq CampaignAction where
+  Collect == Collect = True
+  Refund == Refund = True
+  _ == _ = False
 
 -- | Generates an aribtrary campaign with a the collection deadline set as
 -- a delta on top of the payment deadline.
