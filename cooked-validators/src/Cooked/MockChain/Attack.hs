@@ -1,7 +1,12 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Cooked.MockChain.Attack where
@@ -17,6 +22,7 @@ import Optics.Core
 import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.IsData as Pl
 import qualified PlutusTx.Numeric as Pl (negate)
+import qualified PlutusTx.TH as Pl
 import Type.Reflection
 
 -- * The type of attacks, and functions to turn optics into attacks
@@ -147,6 +153,8 @@ paysScriptConstraintP =
         _ -> Nothing
     )
 
+-- scriptRecipientL :: Lens' PaysScriptConstraint
+
 -- data PaysPKWithDatumConstraint where
 --   PaysPKWithDatumConstraint ::
 --     (Pl.ToData a, Show a) =>
@@ -204,10 +212,10 @@ instance HasValue MintsConstraint where
 instance HasValue SpendsScriptConstraint where
   valueL = spendableOutL % valueL
 
--- | Given two 'AffineTraversal's of the same source and targe types, which are
--- disjoint in the sense that at most one has a focus at any given instant,
--- combine them in to one affine traversal. If the disjointness requirement is
--- violated, this is not a lawful 'AffineTraversal'.
+-- | Given two 'AffineTraversal's of the same source and target types, which are
+-- disjoint in the sense that at most one of them has a focus at any given
+-- input, combine them in to one affine traversal. If the disjointness
+-- requirement is violated, this will not be a lawful 'AffineTraversal'.
 unsafeOr ::
   (Is k An_AffineTraversal, Is l An_AffineTraversal) =>
   Optic' k is s a ->
@@ -224,7 +232,7 @@ unsafeOr o1 o2 = withAffineTraversal o1 $ \m1 u1 ->
       )
       (\s a -> u2 (u1 s a) a)
 
-infixr 6 `unsafeOr` -- same as <>
+infixr 6 `unsafeOr` -- same fixity as <>
 
 valueAT :: AffineTraversal' MiscConstraint Pl.Value
 valueAT =
@@ -240,27 +248,25 @@ txOutValue = foldOf (outConstraintsL % traversed % valueL)
 
 -- * Token duplication attack
 
--- | A token duplication attack which tries to modify every 'Mints'-constraint
--- of a 'TxSkel'
+-- | A token duplication attack which modifies every 'Mints'-constraint of a
+-- 'TxSkel' that satisfies some conditions.
 dupTokenAttack ::
   Show x =>
-  -- | An optional label to attach to the modified 'TxSkel'. If there is already
-  -- a pre-existing label, the given label will be added, forming a pair
-  -- @(newlabel, oldlabel)@.
+  -- | An optional label to attach to the modified 'TxSkel'. It is added using 'addLabel'.
   Maybe x ->
-  -- | This function associates to 'Pl.AssetClass'es functions to describe how
-  -- the amount of minted tokens of that asset class should be changed by the
+  -- | A function to associate 'Pl.AssetClass'es to functions describing how the
+  -- amount of minted tokens of that asset class should be changed by the
   -- attack. The given function @f@ is expected to satisfy
   -- > f ac i == Just j -> i <= j
-  -- for all @ac@ and @i@ (i.e. it should never decrease the minted
-  -- amount). If @f ac i == Nothing@, the value will be left unchanged.
+  -- for all @ac@ and @i@ (i.e. it should never decrease the minted amount). If
+  -- @f ac i == Nothing@, the value will be left unchanged.
   (Pl.AssetClass -> Integer -> Maybe Integer) ->
   -- | The wallet of the attacker. Any extra tokens that were minted by the
   -- transaction are paid to this wallet.
   Wallet ->
   Attack
-dupTokenAttack lab opts attacker skel =
-  addLabel
+dupTokenAttack lab change attacker skel =
+  addLabel lab
     . paySurplusTo attacker
     <$> mkAttack (mintsConstraintsT % valueL) increaseValue skel
   where
@@ -270,7 +276,7 @@ dupTokenAttack lab opts attacker skel =
         Pl.mapWithKey
           ( \cs tokenNameMap ->
               Pl.mapWithKey
-                ( \tn i -> fromMaybe i $ opts (Pl.assetClass cs tn) i
+                ( \tn i -> fromMaybe i $ change (Pl.assetClass cs tn) i
                 )
                 tokenNameMap
           )
@@ -281,29 +287,70 @@ dupTokenAttack lab opts attacker skel =
       where
         surplus = txInValue s <> Pl.negate (txOutValue s)
 
-    addLabel :: TxSkel -> TxSkel
-    addLabel
-      | Just l <- lab =
-        over
-          txLabelL
-          ( \case
-              TxLabel Nothing -> TxLabel $ Just l
-              TxLabel (Just x) -> TxLabel $ Just (l, x)
-          )
-      | otherwise = id
+-- | Maybe add a label to a 'TxSkel'. If there is already a label, the given
+-- label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabel :: Show x => Maybe x -> TxSkel -> TxSkel
+addLabel lab
+  | Just newlabel <- lab =
+    over
+      txLabelL
+      ( \case
+          TxLabel Nothing -> TxLabel $ Just newlabel
+          TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+      )
+  | otherwise = id
 
--- * A datum hijacking attack
+-- * Datum hijacking attack
 
+(~*~?) :: forall ty a1 a2. (Typeable a1, Typeable a2) => ty a1 -> ty a2 -> Maybe (a1 :~~: a2)
+_ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
+
+-- | A datum hijacking attack, simplified: This attack tries to substitute a
+-- different recipient on 'PaysScript' constraints, but leaves the datum as it
+-- is. In that regard, if one wants to be pedantic, this attack is not a "true"
+-- datum hijacking attack, but an attack that tests for careless uses of
+-- something like 'txInfoOutputs' in places where something like
+-- 'getContinuingOutputs' should be used. If it goes through, however, a proper
+-- datum hijacking attack will also work, since the translation 'toBuiltinData'
+-- does not care whether we use isomorphic or identical datum types (which is
+-- the point of datum hijacking).
 datumHijackingAttack ::
+  forall x a.
+  ( Show x,
+    Typeable a,
+    Pl.UnsafeFromData (Pl.DatumType a),
+    Pl.UnsafeFromData (Pl.RedeemerType a)
+  ) =>
+  -- | An optional label to attach to the modified 'TxSkel'. It is added using 'addLabel'.
+  Maybe x ->
+  -- | The validator script to steal from.
   Pl.TypedValidator a ->
+  -- | A function indicating whether to try the attack on a given datum.
+  (Pl.DatumType a -> Bool) ->
   Attack
-datumHijackingAttack honest = mkAttack paysScriptConstraintsT changeRecipient
+datumHijackingAttack lab honest change skel =
+  addLabel lab
+    <$> mkAttack paysScriptConstraintsT changeRecipient skel
   where
     changeRecipient :: PaysScriptConstraint -> PaysScriptConstraint
-    changeRecipient = undefined
+    changeRecipient c@(PaysScriptConstraint val dat money) =
+      case val ~*~? honest of
+        Just HRefl ->
+          if change dat
+            then PaysScriptConstraint thief dat money
+            else c
+        Nothing -> c
       where
+        -- The thief is the validator that alsways returns @True@; we don't need
+        -- it to do anything meaningful since we only want to test the
+        -- possibility of the attack.
         thief :: Pl.TypedValidator a
-        thief = undefined -- always return True
+        thief =
+          Pl.mkTypedValidator @a
+            $$(Pl.compile [||\_ _ _ -> True||])
+            $$(Pl.compile [||wrap||])
+          where
+            wrap = Pl.wrapValidator @(Pl.DatumType a) @(Pl.RedeemerType a)
 
 -- Just so we have something to sell in our auction that's not Ada:
 -- Have a banana.
