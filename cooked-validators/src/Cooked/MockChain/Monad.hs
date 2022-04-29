@@ -95,7 +95,7 @@ validateTxConstr :: (MonadBlockChain m, ConstraintsSpec constraints) => constrai
 validateTxConstr = validateTxSkel . txSkel
 
 -- | Calls 'validateTxSkel' with the default set of options but passes an arbitrary showable label to it.
-validateTxConstrLbl :: (Show lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.TxId
+validateTxConstrLbl :: (LabelConstrs lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut

@@ -52,7 +52,7 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
       (constraints <> toConstraints [remainderConstraint | remainder > 0])
       `as` issuer
 
-data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) deriving (Show)
+data TxUnlock' = TxUnlock' (Maybe Wallet) (Maybe Wallet) (Maybe Integer) deriving (Show, Eq)
 
 -- | Template for an unlock attack.
 -- Conditions for the attack: 2 split utxos in the ledger, with the same locked
@@ -78,7 +78,7 @@ txUnlockAttack issuer = do
                ]
   void $ validateTxConstrLbl TxUnlockAttack constraints `as` issuer
 
-data TxUnlockAttack = TxUnlockAttack deriving (Show)
+data TxUnlockAttack = TxUnlockAttack deriving (Show, Eq)
 
 -- | Transaction that does not pay enough to the recipients
 txUnlockNotEnough :: MonadMockChain m => Wallet -> m ()

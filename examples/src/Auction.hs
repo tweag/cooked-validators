@@ -107,6 +107,7 @@ PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
 
 instance Eq BidderInfo where
+  {-# INLINEABLE (==) #-}
   BidderInfo a b == BidderInfo x y = a == x && b == y
 
 -- | The state of the auction. This will be the 'DatumType'.
@@ -121,7 +122,7 @@ PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
 
 instance Eq AuctionState where
-  {- INLINEABLE (==) -}
+  {-# INLINEABLE (==) #-}
   NoBids == NoBids = True
   Bidding a == Bidding x = a == x
   _ == _ = False
@@ -133,6 +134,12 @@ data Action
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
   deriving (Haskell.Show)
+
+instance Eq Action where
+  {-# INLINEABLE (==) #-}
+  Bid bi1 == Bid bi2 = bi1 == bi2
+  Hammer == Hammer = True
+  _ == _ = False
 
 PlutusTx.makeLift ''Action
 PlutusTx.unstableMakeIsData ''Action

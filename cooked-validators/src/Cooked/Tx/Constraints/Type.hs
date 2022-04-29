@@ -5,14 +5,17 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import Data.Default
+import Data.Functor.Identity
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Eq as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
@@ -51,6 +54,15 @@ type SpendsConstrs a =
     Pl.ToData (Pl.RedeemerType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
+    Pl.Eq (Pl.DatumType a),
+    Pl.Eq (Pl.RedeemerType a),
+    Typeable a
+  )
+
+type PaysScriptConstrs a =
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
     Typeable a
   )
 
@@ -62,6 +74,7 @@ type SpendsConstrs a =
 -- transaction, and miscellaneous constraints 'MiscConstraint' including input
 -- constraints, time constraints, or signature requirements.
 data Constraints = [MiscConstraint] :=>: [OutConstraint]
+  deriving (Eq)
 
 instance Semigroup Constraints where
   (c1 :=>: oc1) <> (c2 :=>: oc2) = (c1 <> c2) :=>: (oc1 <> oc2)
@@ -93,7 +106,7 @@ data MiscConstraint where
   -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
   -- policies.
   Mints ::
-    (Pl.ToData a, Show a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
@@ -107,13 +120,34 @@ data MiscConstraint where
   -- | Ensure that the transaction is signed by the given 'Pl.PubKeyHash'es.
   SignedBy :: [Pl.PubKeyHash] -> MiscConstraint
 
+-- NB don't forget to update the Eq instance when adding new constructors
+
+(~*~?) :: forall ty a1 a2. (Typeable a1, Typeable a2) => ty a1 -> ty a2 -> Maybe (a1 :~~: a2)
+_ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
+
+instance Eq MiscConstraint where
+  SpendsScript s1 r1 (so1, d1) == SpendsScript s2 r2 (so2, d2) =
+    case s1 ~*~? s2 of
+      Just HRefl -> (s1, so1) == (s2, so2) && (r1, d1) Pl.== (r2, d2)
+      Nothing -> False
+  SpendsPK so1 == SpendsPK so2 = so1 == so2
+  Mints d1 p1 v1 == Mints d2 p2 v2 =
+    case d1 ~*~? d2 of
+      Just HRefl -> (p1, v1) == (p2, v2) && d1 Pl.== d2
+      Nothing -> False
+  Before t1 == Before t2 = t1 == t2
+  After t1 == After t2 = t1 == t2
+  ValidateIn r1 == ValidateIn r2 = r1 == r2
+  SignedBy hs1 == SignedBy hs2 = hs1 == hs2
+  _ == _ = False
+
 -- | Constraints which specify new transaction outputs
 data OutConstraint where
   -- | Creates an UTxO to the given validator, with the given datum
   -- and the given value. That is, lets the scirpt lock the given
   -- value.
   PaysScript ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
+    (PaysScriptConstrs a) =>
     Pl.TypedValidator a ->
     Pl.DatumType a ->
     Pl.Value ->
@@ -124,18 +158,31 @@ data OutConstraint where
   -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
   -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
   PaysPKWithDatum ::
-    (Pl.ToData a, Show a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Pl.PubKeyHash ->
     Maybe Pl.StakePubKeyHash ->
     Maybe a ->
     Pl.Value ->
     OutConstraint
 
+-- NB don't forget to update the Eq instance when adding new constructors
+
+instance Eq OutConstraint where
+  PaysScript s1 d1 v1 == PaysScript s2 d2 v2 =
+    case s1 ~*~? s2 of
+      Just HRefl -> (s1, v1) == (s2, v2) && d1 Pl.== d2
+      Nothing -> False
+  PaysPKWithDatum pk1 stake1 d1 v1 == PaysPKWithDatum pk2 stake2 d2 v2 =
+    case d1 ~*~? d2 of
+      Just HRefl -> (pk1, stake1, v1) == (pk2, stake2, v2) && d1 Pl.== d2
+      Nothing -> False
+  _ == _ = False
+
 -- | This typeclass provides user-friendly convenience to overload the
 -- 'txConstraints' field of 'TxSkel'. For instance, this enables us to ommit the '(:=>:)'
 -- constructor whenever we're using only one kind of constraints.
 -- It also opens up future alternative of constraint specification.
-class ConstraintsSpec a where
+class (Eq a, Typeable a) => ConstraintsSpec a where
   toConstraints :: a -> Constraints
 
 instance ConstraintsSpec Constraints where
@@ -159,6 +206,8 @@ paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 mints = Mints @() Nothing
 
+type LabelConstrs x = (Show x, Typeable x, Eq x)
+
 -- | A Transaction skeleton is a set of our constraints,
 -- and an optional showable label, which is useful when displaying
 -- traces. The label was encoded as an existential to enable us to
@@ -173,13 +222,19 @@ mints = Mints @() Nothing
 -- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
-    (Show x, ConstraintsSpec constraints) =>
+    (LabelConstrs x, ConstraintsSpec constraints) =>
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
       txConstraints :: constraints
     } ->
     TxSkel
+
+instance Eq TxSkel where
+  TxSkel l1 o1 c1 == TxSkel l2 o2 c2 =
+    case (l1 ~*~? l2, Identity c1 ~*~? Identity c2) of
+      (Just HRefl, Just HRefl) -> (l1, o1, c1) == (l2, o2, c2)
+      _ -> False
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'
 txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
@@ -190,7 +245,7 @@ txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
 txSkelOpts = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
+txSkelLbl :: (Show x, Typeable x, Eq x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
 txSkelLbl x = TxSkel (Just x) def
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
