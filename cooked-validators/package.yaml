@@ -43,6 +43,7 @@ dependencies:
   - cardano-crypto
   - cardano-wallet-core
   - memory
+  - optics-core
 
 library:
   source-dirs: src

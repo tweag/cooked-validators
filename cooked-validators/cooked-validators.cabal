@@ -15,6 +15,7 @@ library
       Cooked
       Cooked.Currencies
       Cooked.MockChain
+      Cooked.MockChain.Attack
       Cooked.MockChain.Constraints
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
@@ -57,6 +58,7 @@ library
     , memory
     , monad-control
     , mtl
+    , optics-core
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -110,6 +112,7 @@ test-suite spec
     , memory
     , monad-control
     , mtl
+    , optics-core
     , plutus-contract
     , plutus-core
     , plutus-ledger
