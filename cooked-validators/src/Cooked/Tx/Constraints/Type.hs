@@ -173,11 +173,11 @@ mints = Mints @() Nothing
 -- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
-    (Show x, ConstraintsSpec constraints) =>
+    (Show x) =>
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
-      txConstraints :: constraints
+      txConstraints :: Constraints
     } ->
     TxSkel
 
@@ -187,11 +187,15 @@ txSkel = txSkelOpts def
 
 -- | Constructs a skeleton without a default label, but with custom options
 txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
-txSkelOpts = TxSkel @() Nothing
+txSkelOpts opts cs = TxSkel @() Nothing opts (toConstraints cs)
 
 -- | Constructs a skeleton with a label
 txSkelLbl :: (Show x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
-txSkelLbl x = TxSkel (Just x) def
+txSkelLbl x = TxSkel (Just x) def . toConstraints
+
+-- | Constructs a skeleton with the given labtl, options, and constraints
+txSkelLblOpts :: (Show x, ConstraintsSpec constraints) => x -> TxOpts -> constraints -> TxSkel
+txSkelLblOpts x os cs = TxSkel (Just x) os (toConstraints cs)
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
