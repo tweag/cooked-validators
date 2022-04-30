@@ -322,7 +322,7 @@ datumHijackingAttack lab honest change skel =
     changeRecipient c@(PaysScriptConstraint val dat money) =
       case val ~*~? honest of
         Just HRefl ->
-          if change dat
+          if val == honest && change dat
             then PaysScriptConstraint thief dat money
             else c
         Nothing -> c
