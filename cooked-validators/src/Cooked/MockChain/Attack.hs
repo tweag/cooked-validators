@@ -44,7 +44,7 @@ mkAttack = failover
 -- ** Picking apart 'TxSkel's
 
 data TxLabel where
-  TxLabel :: Show x => Maybe x -> TxLabel
+  TxLabel :: LabelConstrs x => Maybe x -> TxLabel
 
 txLabelL :: Lens' TxSkel TxLabel
 txLabelL =
@@ -74,7 +74,7 @@ miscConstraintsL = txConstraintsL % constraintPair % _1
 
 data MintsConstraint where
   MintsConstraint ::
-    (Pl.ToData a, Show a) =>
+    MintsConstrs a =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
@@ -136,7 +136,7 @@ spendsPKConstraintP =
 
 data PaysScriptConstraint where
   PaysScriptConstraint ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
+    PaysScriptConstrs a =>
     Pl.TypedValidator a ->
     Pl.DatumType a ->
     Pl.Value ->
@@ -152,17 +152,6 @@ paysScriptConstraintP =
         PaysScript v d x -> Just $ PaysScriptConstraint v d x
         _ -> Nothing
     )
-
--- scriptRecipientL :: Lens' PaysScriptConstraint
-
--- data PaysPKWithDatumConstraint where
---   PaysPKWithDatumConstraint ::
---     (Pl.ToData a, Show a) =>
---     Pl.PubKeyHash ->
---     Maybe Pl.StakePubKeyHash ->
---     Maybe a ->
---     Pl.Value ->
---     PaysPKWithDatumConstraint
 
 paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
 paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
@@ -251,7 +240,7 @@ txOutValue = foldOf (outConstraintsL % traversed % valueL)
 -- | A token duplication attack which modifies every 'Mints'-constraint of a
 -- 'TxSkel' that satisfies some conditions.
 dupTokenAttack ::
-  Show x =>
+  LabelConstrs x =>
   -- | An optional label to attach to the modified 'TxSkel'. It is added using 'addLabel'.
   Maybe x ->
   -- | A function to associate 'Pl.AssetClass'es to functions describing how the
@@ -289,7 +278,7 @@ dupTokenAttack lab change attacker skel =
 
 -- | Maybe add a label to a 'TxSkel'. If there is already a label, the given
 -- label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabel :: Show x => Maybe x -> TxSkel -> TxSkel
+addLabel :: LabelConstrs x => Maybe x -> TxSkel -> TxSkel
 addLabel lab
   | Just newlabel <- lab =
     over
@@ -302,9 +291,6 @@ addLabel lab
 
 -- * Datum hijacking attack
 
-(~*~?) :: forall ty a1 a2. (Typeable a1, Typeable a2) => ty a1 -> ty a2 -> Maybe (a1 :~~: a2)
-_ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
-
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
 -- different recipient on 'PaysScript' constraints, but leaves the datum as it
 -- is. In that regard, if one wants to be pedantic, this attack is not a "true"
@@ -316,7 +302,7 @@ _ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
 -- the point of datum hijacking).
 datumHijackingAttack ::
   forall x a.
-  ( Show x,
+  ( LabelConstrs x,
     Typeable a,
     Pl.UnsafeFromData (Pl.DatumType a),
     Pl.UnsafeFromData (Pl.RedeemerType a)

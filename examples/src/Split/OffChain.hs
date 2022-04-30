@@ -39,7 +39,7 @@ txLock script datum =
 
 -- | Label for 'txLock' skeleton, making it immediately recognizable
 -- when printing traces.
-newtype TxLock = TxLock SplitDatum deriving (Show)
+newtype TxLock = TxLock SplitDatum deriving (Show, Eq)
 
 -- | Whether a script output concerns a public key hash
 isARecipient :: Pl.PubKeyHash -> SplitDatum -> a -> Bool
@@ -64,7 +64,7 @@ txUnlock script = do
       )
 
 -- | Label for 'txUnlock' skeleton
-data TxUnlock = TxUnlock deriving (Show)
+data TxUnlock = TxUnlock deriving (Show, Eq)
 
 -- * Contract monad endpoints and schema
 
