@@ -13,9 +13,9 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
+      Cooked.Attack
       Cooked.Currencies
       Cooked.MockChain
-      Cooked.MockChain.Attack
       Cooked.MockChain.Constraints
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
@@ -82,6 +82,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Cooked.AttackSpec
       Cooked.BalanceSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec

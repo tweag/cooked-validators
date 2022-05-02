@@ -4,6 +4,7 @@ import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 import qualified Cooked.MockChain.WalletSpec as WalletSpec
 import qualified Cooked.OutputReorderingSpec as OutputReorderingSpec
 import qualified Cooked.QuickValueSpec as QuickValueSpec
+import qualified Cooked.AttackSpec as AttackSpec
 import Test.Tasty
 
 main :: IO ()
@@ -13,10 +14,11 @@ tests :: TestTree
 tests =
   testGroup
     "cooked-validators"
-    [ testGroup "Reordering outputs" OutputReorderingSpec.tests,
-      testGroup "Balancing transactions" Ba.tests,
-      testGroup "Quick values" QuickValueSpec.tests,
-      testGroup "Staged monad" StagedSpec.tests,
-      testGroup "UtxoState" UtxoStateSpec.tests,
-      testGroup "Wallet" WalletSpec.tests
+    [ -- testGroup "Reordering outputs" OutputReorderingSpec.tests,
+      -- testGroup "Balancing transactions" Ba.tests,
+      -- testGroup "Quick values" QuickValueSpec.tests,
+      -- testGroup "Staged monad" StagedSpec.tests,
+      -- testGroup "UtxoState" UtxoStateSpec.tests,
+      -- testGroup "Wallet" WalletSpec.tests,
+      testGroup "Attack" AttackSpec.tests
     ]

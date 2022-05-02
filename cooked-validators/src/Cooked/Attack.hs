@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Cooked.MockChain.Attack where
+module Cooked.Attack where
 
 import Cooked.Currencies
 import Cooked.MockChain
@@ -311,8 +311,9 @@ datumHijackingAttack ::
   Maybe x ->
   -- | The validator script to steal from.
   Pl.TypedValidator a ->
-  -- | A function indicating whether to try the attack on a given datum.
-  (Pl.DatumType a -> Bool) ->
+  -- | A function indicating whether to try the attack on a 'PaysScript'
+  -- constraint with the given datum and value.
+  (Pl.DatumType a -> Pl.Value -> Bool) ->
   Attack
 datumHijackingAttack lab honest change skel =
   addLabel lab
@@ -322,21 +323,28 @@ datumHijackingAttack lab honest change skel =
     changeRecipient c@(PaysScriptConstraint val dat money) =
       case val ~*~? honest of
         Just HRefl ->
-          if val == honest && change dat
-            then PaysScriptConstraint thief dat money
+          if val == honest && change dat money
+            then -- The thief is the trivial validator; we don't need it to to
+            -- anything meaningful since we only want to test the feasibility
+            -- of the attack.
+              PaysScriptConstraint (trivialValidator @a) dat money
             else c
         Nothing -> c
-      where
-        -- The thief is the validator that alsways returns @True@; we don't need
-        -- it to do anything meaningful since we only want to test the
-        -- possibility of the attack.
-        thief :: Pl.TypedValidator a
-        thief =
-          Pl.mkTypedValidator @a
-            $$(Pl.compile [||\_ _ _ -> True||])
-            $$(Pl.compile [||wrap||])
-          where
-            wrap = Pl.wrapValidator @(Pl.DatumType a) @(Pl.RedeemerType a)
+
+-- The trivial validator that always returns @True@
+trivialValidator ::
+  forall a.
+  ( Typeable a,
+    Pl.UnsafeFromData (Pl.DatumType a),
+    Pl.UnsafeFromData (Pl.RedeemerType a)
+  ) =>
+  Pl.TypedValidator a
+trivialValidator =
+  Pl.mkTypedValidator @a
+    $$(Pl.compile [||\_ _ _ -> True||])
+    $$(Pl.compile [||wrap||])
+  where
+    wrap = Pl.wrapValidator @(Pl.DatumType a) @(Pl.RedeemerType a)
 
 -- Just so we have something to sell in our auction that's not Ada:
 -- Have a banana.
