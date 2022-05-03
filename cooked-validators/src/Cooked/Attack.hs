@@ -11,11 +11,10 @@
 
 module Cooked.Attack where
 
-import Cooked.Currencies
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Maybe
-import qualified Ledger as Pl hiding (lookup)
+import qualified Ledger as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
@@ -24,6 +23,8 @@ import qualified PlutusTx.IsData as Pl
 import qualified PlutusTx.Numeric as Pl (negate)
 import qualified PlutusTx.TH as Pl
 import Type.Reflection
+import Debug.Trace
+import qualified PlutusTx as Pl
 
 -- * The type of attacks, and functions to turn optics into attacks
 
@@ -33,6 +34,11 @@ type Attack = TxSkel -> Maybe TxSkel
 -- all of its foci, of fail returning @Nothing@ if nothing is in focus.
 mkAttack :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> a) -> Attack
 mkAttack = failover
+
+-- Optic' k is s a == Optic k is s s a a
+
+mkAttack' :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> Maybe a) -> Attack
+mkAttack' = traverseOf
 
 -- * Some optics on 'TxSkel's, 'Constraint's, etc.
 
@@ -229,23 +235,21 @@ valueAT =
     `unsafeOr` (mintsConstraintP % valueL)
     `unsafeOr` (spendsPKConstraintP % valueL)
 
-txInValue :: TxSkel -> Pl.Value
-txInValue = foldOf (miscConstraintsL % traversed % valueAT)
+txSkelInValue :: TxSkel -> Pl.Value
+txSkelInValue = foldOf (miscConstraintsL % traversed % valueAT)
 
-txOutValue :: TxSkel -> Pl.Value
-txOutValue = foldOf (outConstraintsL % traversed % valueL)
+txSkelOutValue :: TxSkel -> Pl.Value
+txSkelOutValue = foldOf (outConstraintsL % traversed % valueL)
 
 -- * Token duplication attack
 
 -- | A token duplication attack which modifies every 'Mints'-constraint of a
--- 'TxSkel' that satisfies some conditions.
+-- 'TxSkel' that satisfies some conditions. This adds a 'DupTokenLbl' to the
+-- labels of the transaction using 'addLabel'.
 dupTokenAttack ::
-  LabelConstrs x =>
-  -- | An optional label to attach to the modified 'TxSkel'. It is added using 'addLabel'.
-  Maybe x ->
-  -- | A function to associate 'Pl.AssetClass'es to functions describing how the
-  -- amount of minted tokens of that asset class should be changed by the
-  -- attack. The given function @f@ is expected to satisfy
+  -- | A function describing how the amount of minted tokens of an asset class
+  -- should be changed by the attack. The given function @f@ is expected to
+  -- satisfy
   -- > f ac i == Just j -> i <= j
   -- for all @ac@ and @i@ (i.e. it should never decrease the minted amount). If
   -- @f ac i == Nothing@, the value will be left unchanged.
@@ -254,8 +258,8 @@ dupTokenAttack ::
   -- transaction are paid to this wallet.
   Wallet ->
   Attack
-dupTokenAttack lab change attacker skel =
-  addLabel lab
+dupTokenAttack change attacker skel =
+  addLabel DupTokenLbl
     . paySurplusTo attacker
     <$> mkAttack (mintsConstraintsT % valueL) increaseValue skel
   where
@@ -274,91 +278,88 @@ dupTokenAttack lab change attacker skel =
     paySurplusTo :: Wallet -> TxSkel -> TxSkel
     paySurplusTo w s = over outConstraintsL (paysPK (walletPKHash w) surplus :) s
       where
-        surplus = txInValue s <> Pl.negate (txOutValue s)
+        surplus = txSkelInValue s <> Pl.negate (txSkelOutValue s)
 
--- | Maybe add a label to a 'TxSkel'. If there is already a label, the given
--- label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabel :: LabelConstrs x => Maybe x -> TxSkel -> TxSkel
-addLabel lab
-  | Just newlabel <- lab =
-    over
-      txLabelL
-      ( \case
-          TxLabel Nothing -> TxLabel $ Just newlabel
-          TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
-      )
-  | otherwise = id
+data DupTokenLbl = DupTokenLbl
+  deriving (Eq, Show)
+
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
+addLabel newlabel =
+  over
+    txLabelL
+    ( \case
+        TxLabel Nothing -> TxLabel $ Just newlabel
+        TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+    )
 
 -- * Datum hijacking attack
 
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
 -- different recipient on 'PaysScript' constraints, but leaves the datum as it
--- is. In that regard, if one wants to be pedantic, this attack is not a "true"
--- datum hijacking attack, but an attack that tests for careless uses of
--- something like 'txInfoOutputs' in places where something like
--- 'getContinuingOutputs' should be used. If it goes through, however, a proper
--- datum hijacking attack will also work, since the translation 'toBuiltinData'
--- does not care whether we use isomorphic or identical datum types (which is
--- the point of datum hijacking).
+-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in
+-- places where something like 'getContinuingOutputs' should be used. If this
+-- attack goes through, however, a "proper" datum hijacking attack that modifies
+-- the datum in a way that the (relevant part of) the
+-- 'toBuiltinData'-translation stays the same will also work. A
+-- 'DatumHijackingLbl' is added to the labels of the 'TxSkel' using 'addLabel'.
 datumHijackingAttack ::
-  forall x a.
-  ( LabelConstrs x,
-    Typeable a,
-    Pl.UnsafeFromData (Pl.DatumType a),
-    Pl.UnsafeFromData (Pl.RedeemerType a)
-  ) =>
-  -- | An optional label to attach to the modified 'TxSkel'. It is added using 'addLabel'.
-  Maybe x ->
-  -- | The validator script to steal from.
+  forall a.
+  (Typeable a,
+   Pl.UnsafeFromData (Pl.DatumType a),
+   Pl.UnsafeFromData (Pl.RedeemerType a)) =>
+  -- | Validator script to steal from.
   Pl.TypedValidator a ->
   -- | A function indicating whether to try the attack on a 'PaysScript'
   -- constraint with the given datum and value.
   (Pl.DatumType a -> Pl.Value -> Bool) ->
   Attack
-datumHijackingAttack lab honest change skel =
-  addLabel lab
+datumHijackingAttack val change skel =
+  addLabel DatumHijackingLbl
     <$> mkAttack paysScriptConstraintsT changeRecipient skel
   where
     changeRecipient :: PaysScriptConstraint -> PaysScriptConstraint
-    changeRecipient c@(PaysScriptConstraint val dat money) =
-      case val ~*~? honest of
-        Just HRefl ->
-          if val == honest && change dat money
-            then -- The thief is the trivial validator; we don't need it to to
-            -- anything meaningful since we only want to test the feasibility
-            -- of the attack.
-              PaysScriptConstraint (trivialValidator @a) dat money
-            else c
+    changeRecipient c@(PaysScriptConstraint val' dat money) =
+      trace "a" $
+       case val' ~*~? val of
+        Just HRefl -> trace "found" $
+          if Pl.validatorHash val' == Pl.validatorHash val -- && change dat money
+          then PaysScriptConstraint @a x dat money
+          else c
         Nothing -> c
 
+data DatumHijackingLbl = DatumHijackingLbl
+  deriving (Show, Eq)
+
 -- The trivial validator that always returns @True@
-trivialValidator ::
+datumHijackingTarget ::
   forall a.
   ( Typeable a,
     Pl.UnsafeFromData (Pl.DatumType a),
     Pl.UnsafeFromData (Pl.RedeemerType a)
   ) =>
   Pl.TypedValidator a
-trivialValidator =
+datumHijackingTarget =
   Pl.mkTypedValidator @a
     $$(Pl.compile [||\_ _ _ -> True||])
     $$(Pl.compile [||wrap||])
   where
     wrap = Pl.wrapValidator @(Pl.DatumType a) @(Pl.RedeemerType a)
 
--- Just so we have something to sell in our auction that's not Ada:
--- Have a banana.
 
-bananaAssetClass :: Pl.AssetClass
-bananaAssetClass = permanentAssetClass "Banana"
+datumHijackingTarget' :: Pl.Validator
+datumHijackingTarget' = Pl.mkValidatorScript
+  $$(Pl.compile [||\_ _ _ -> ()||])
 
--- | Value representing a number of bananas
-banana :: Integer -> Pl.Value
-banana = Pl.assetClassValue bananaAssetClass
+x :: Pl.TypedValidator a
+x = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||datumHijackingTgt ||]))
+ where
+  datumHijackingTgt ::
+   Pl.BuiltinData ->
+   Pl.BuiltinData ->
+   Pl.BuiltinData ->
+   ()
+  datumHijackingTgt _ _ _ = ()
 
--- | How many bananas are in the given value? This is a left inverse of 'banana'.
-bananasIn :: Pl.Value -> Integer
-bananasIn v = Pl.assetClassValueOf v bananaAssetClass
-
-testSkel :: TxSkel
-testSkel = txSkel [Mints (Just ()) [] (banana 5)]
+-- scriptRecipientP :: Pl.TypedValidator a -> Prism' PaysScriptConstraint (Pl.DatumType a, Pl.Value)

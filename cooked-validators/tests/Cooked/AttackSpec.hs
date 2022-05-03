@@ -17,12 +17,101 @@ import Data.Default
 import qualified Ledger as L
 import qualified Ledger.Ada as L
 import qualified Ledger.Typed.Scripts as L
+import qualified Ledger.Value as L
 import Optics.Core
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 import Type.Reflection
+
+-- * Tests for the token duplication attack
+
+-- ** Minting policies to test the token duplication attack
+
+{-# INLINEABLE mkCarefulPolicy #-}
+mkCarefulPolicy :: L.TokenName -> Integer -> () -> L.ScriptContext -> Bool
+mkCarefulPolicy tName allowedAmount _ ctx
+  | amnt Pl.== Just allowedAmount = True
+  | otherwise = False
+  where
+    txi = L.scriptContextTxInfo ctx
+    L.Minting me = L.scriptContextPurpose ctx
+
+    amnt :: Maybe Integer
+    amnt = case L.flattenValue (L.txInfoMint txi) of
+      [(cs, tn, a)] | cs Pl.== L.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
+      _ -> Nothing
+
+carefulPolicy :: L.TokenName -> Integer -> L.MintingPolicy
+carefulPolicy tName allowedAmount =
+  L.mkMintingPolicyScript $
+    $$(Pl.compile [||\n x -> L.wrapMintingPolicy (mkCarefulPolicy n x)||])
+      `Pl.applyCode` Pl.liftCode tName
+      `Pl.applyCode` Pl.liftCode allowedAmount
+
+{-# INLINEABLE mkCarelessPolicy #-}
+mkCarelessPolicy :: () -> L.ScriptContext -> Bool
+mkCarelessPolicy _ _ = True
+
+carelessPolicy :: L.MintingPolicy
+carelessPolicy =
+  L.mkMintingPolicyScript
+    $$(Pl.compile [||L.wrapMintingPolicy mkCarelessPolicy||])
+
+-- ** Transactions (and Skeletons) for the token duplication attack
+
+mintNTxSkel :: Integer -> L.MintingPolicy -> L.TokenName -> Wallet -> TxSkel
+mintNTxSkel amount pol tName recipient =
+  let minted = L.assetClassValue (L.assetClass (L.scriptCurrencySymbol pol) tName) amount
+   in txSkelOpts
+        (def {adjustUnbalTx = True})
+        ( [Mints (Nothing @()) [pol] minted]
+            :=>: [paysPK (walletPKHash recipient) minted]
+        )
+
+-- mintOneTxSkel :: L.MintingPolicy -> L.TokenName -> Wallet -> TxSkel
+-- mintOneTxSkel = mintNTxSkel 1
+
+-- ** Testing the token duplication attack on 'TxSkel's
+-- TODO simpler name(s)
+tdTxSkelTests :: TestTree
+tdTxSkelTests =
+  testGroup
+    "tests for the token duplication attack on 'TxSkel's"
+    [ testCase "increase one minted token to two" $
+        let attacker = wallet 6
+            tName = L.tokenName "MockToken"
+            pol = carefulPolicy tName 1
+            skelIn = mintNTxSkel 1 pol tName (wallet 1)
+            ac = L.assetClass (L.scriptCurrencySymbol pol) tName
+            skelOut = dupTokenAttack (\_ n -> Just $ n + 1) attacker skelIn
+            skelExpected =
+              over outConstraintsL (paysPK (walletPKHash attacker) (L.assetClassValue ac 1) :) $
+                set (mintsConstraintsT % valueL) (L.assetClassValue ac 2) skelIn
+         in testBool $ skelOut == Just skelExpected
+    ]
+
+-- ** Testing the token duplication attack on traces
+
+-- only one TestTree for tken duplicatio
+-- tdTraceTests :: TestTree
+-- tdTraceTests =
+--   testGroup
+--     "tests for the token duplication attack on traces"
+--     [ testCase "careful policy can not be fooled" $
+--         let attacker = wallet 6
+--             tName = L.tokenName "MockToken"
+--             pol = carefulPolicy tName 1
+--             skelIn = mintOneTxSkel pol tName (wallet 1)
+--             ac = L.assetClass (L.scriptCurrencySymbol pol) tName
+--             skelOut = dupTokenAttack (Nothing @()) (\_ n -> Just $ n + 1) attacker skelIn
+--             skelExpected =
+--               over outConstraintsL (paysPK (walletPKHash attacker) (L.assetClassValue ac 1) :) $
+--                 set (mintsConstraintsT % valueL) (L.assetClassValue ac 2) skelIn
+--          in testFails (somewhere (dupTokenAttack (Nothing @()) (\_ n -> Just $ n + 1) attacker))
+
+--     ]
 
 -- * Tests for the datum hijacking attack
 
@@ -54,16 +143,19 @@ instance L.ValidatorTypes MockContract where
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
 lockValue :: L.Value
-lockValue = L.lovelaceValueOf 123456789
+lockValue = L.lovelaceValueOf 12345678
 
-lockTxSkel :: L.TypedValidator MockContract -> TxSkel
-lockTxSkel v =
+lockTxSkel :: SpendableOut -> L.TypedValidator MockContract -> TxSkel
+lockTxSkel o v =
   txSkelOpts
     (def {adjustUnbalTx = True})
-    (PaysScript v FirstLock lockValue)
+    ([SpendsPK o] :=>: [PaysScript v FirstLock lockValue])
 
 txLock :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
-txLock = void . validateTxSkel . lockTxSkel
+txLock v = do
+  me <- ownPaymentPubKeyHash
+  utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
+  void $ validateTxSkel $ lockTxSkel utxo v
 
 relockTxSkel :: L.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
@@ -78,7 +170,7 @@ txRelock ::
   L.TypedValidator MockContract ->
   m ()
 txRelock v = do
-  [utxo] <- scriptUtxosSuchThat v (\_ _ -> True) -- (\d _ -> FirstLock Pl.== d)
+  utxo : _ <- scriptUtxosSuchThat v (\d _ -> FirstLock Pl.== d)
   void $ validateTxSkel $ relockTxSkel v (fst utxo)
 
 -- ** Validators for the datum hijacking attack
@@ -97,15 +189,21 @@ mkCarefulValidator datum _ ctx =
   let txi = L.scriptContextTxInfo ctx
    in case datum of
         FirstLock ->
-          L.valueLockedBy txi (L.ownHash ctx) == lockValue
-            && case L.getContinuingOutputs ctx of
-              [o] -> outputDatum txi o Pl.== Just SecondLock
-        SecondLock -> Pl.trace "there must be exactly one output" False
+          case L.getContinuingOutputs ctx of
+            [o] ->
+              Pl.traceIfFalse
+                "not in 'SecondLock'-state after re-locking"
+                (outputDatum txi o Pl.== Just SecondLock)
+                && Pl.traceIfFalse
+                  "not re-locking the right amout"
+                  (L.txOutValue o == lockValue)
+            _ -> Pl.trace "there must be exactly one output re-locked" False
+        SecondLock -> False
 
 carefulValidator :: L.TypedValidator MockContract
 carefulValidator =
   L.mkTypedValidator @MockContract
-    $$(Pl.compile [||mkCarelessValidator||])
+    $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
     wrap = L.wrapValidator @MockDatum @()
@@ -116,10 +214,16 @@ mkCarelessValidator datum _ ctx =
   let txi = L.scriptContextTxInfo ctx
    in case datum of
         FirstLock ->
-          L.valueLockedBy txi (L.ownHash ctx) == lockValue
-            && case L.txInfoOutputs txi of
-              [o] -> outputDatum (L.scriptContextTxInfo ctx) o Pl.== Just SecondLock
-        SecondLock -> Pl.trace "there must be exactly one output" False
+          case L.txInfoOutputs txi of
+            [o] ->
+              Pl.traceIfFalse
+                "not in 'SecondLock'-state after re-locking"
+                (outputDatum txi o Pl.== Just SecondLock)
+                && Pl.traceIfFalse
+                  "not re-locking the right amout"
+                  (L.txOutValue o == lockValue)
+            _ -> Pl.trace "there must be exactly one output re-locked" False
+        SecondLock -> False
 
 carelessValidator :: L.TypedValidator MockContract
 carelessValidator =
@@ -129,7 +233,7 @@ carelessValidator =
   where
     wrap = L.wrapValidator @MockDatum @()
 
--- ** Testing the datum hijacking attack on 'TxSkels'
+-- ** testing the datum hijacking attack on 'TxSkels'
 
 -- relockTxSkel' :: Monad m => L.TypedValidator MockContract -> MockChainT m TxSkel
 -- relockTxSkel' v = do
@@ -174,18 +278,17 @@ dhTraceTests :: TestTree
 dhTraceTests =
   testGroup
     "datum hijacking traces"
-    [ -- testCase "careful validator can not be fooled" $
-      --   testFailsFrom'
-      --     isCekEvaluationFailure
-      --     def
-      --     ( somewhere
-      --         ( datumHijackingAttack
-      --             (Nothing @())
-      --             carefulValidator
-      --             (\d _ -> SecondLock Pl.== d)
-      --         )
-      --         (dhTrace carefulValidator)
-      --     ),
+    [ testCase "careful validator can not be fooled" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          def
+          ( somewhere
+              ( datumHijackingAttack
+                  carefulValidator
+                  (\d _ -> FirstLock Pl.== d)
+              )
+              (dhTrace carefulValidator)
+          ),
       -- testCase "careless validator can be fooled" $
       --   testSucceeds
       --     ( somewhere
@@ -195,16 +298,17 @@ dhTraceTests =
       --             (\d _ -> SecondLock Pl.== d)
       --         )
       --         (dhTrace carelessValidator)
-      --     )
+      --     ),
       testCase "at least something works" $
-        testSucceeds (dhTrace carelessValidator)
+        testSucceeds (dhTrace carefulValidator)
     ]
 
 tests :: [TestTree]
 tests =
   [ testGroup
       "Attack DSL"
-      [ -- dhTxSkelTests,
+      [ tdTxSkelTests,
+        -- dhTxSkelTests,
         dhTraceTests
       ]
   ]
