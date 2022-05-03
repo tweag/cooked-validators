@@ -74,22 +74,55 @@ mintNTxSkel amount pol tName recipient =
 -- mintOneTxSkel = mintNTxSkel 1
 
 -- ** Testing the token duplication attack on 'TxSkel's
--- TODO simpler name(s)
-tdTxSkelTests :: TestTree
-tdTxSkelTests =
+
+assertTxSkelEqual :: TxSkel -> Maybe TxSkel -> Assertion
+assertTxSkelEqual expected actual =
+  assertBool
+    ( "non-equal 'TxSkel's: expected:\n\n"
+        ++ show (Just $ prettyTxSkel [] expected)
+        ++ "\n\nactual:\n\n"
+        ++ show (prettyTxSkel [] <$> actual)
+    )
+    $ actual == Just expected
+
+dupTokenAttackTests :: TestTree
+dupTokenAttackTests =
   testGroup
-    "tests for the token duplication attack on 'TxSkel's"
-    [ testCase "increase one minted token to two" $
+    "token duplication attack"
+    [ testCase "unit test on a 'TxSkel'" $
         let attacker = wallet 6
-            tName = L.tokenName "MockToken"
-            pol = carefulPolicy tName 1
-            skelIn = mintNTxSkel 1 pol tName (wallet 1)
-            ac = L.assetClass (L.scriptCurrencySymbol pol) tName
-            skelOut = dupTokenAttack (\_ n -> Just $ n + 1) attacker skelIn
+            tName1 = L.tokenName "MockToken1"
+            tName2 = L.tokenName "MockToken2"
+            pol1 = carefulPolicy tName1 1
+            pol2 = carelessPolicy
+            ac1 = L.assetClass (L.scriptCurrencySymbol pol1) tName1
+            ac2 = L.assetClass (L.scriptCurrencySymbol pol2) tName2
+            skelIn =
+              txSkel
+                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 1 <> L.assetClassValue ac2 1),
+                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
+                  ]
+                    :=>: [paysPK (walletPKHash (wallet 1)) (L.lovelaceValueOf 1234)]
+                )
+            skelOut =
+              dupTokenAttack
+                ( \c n ->
+                    if c == ac1
+                      then Just $ n + 1
+                      else if n == 1 then Just 5 else Just 4
+                )
+                attacker
+                skelIn
             skelExpected =
-              over outConstraintsL (paysPK (walletPKHash attacker) (L.assetClassValue ac 1) :) $
-                set (mintsConstraintsT % valueL) (L.assetClassValue ac 2) skelIn
-         in testBool $ skelOut == Just skelExpected
+              txSkelLbl
+                DupTokenLbl
+                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 2 <> L.assetClassValue ac2 5),
+                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
+                  ]
+                    :=>: [paysPK (walletPKHash attacker) (L.assetClassValue ac1 2 <> L.assetClassValue ac2 8),
+                          paysPK (walletPKHash (wallet 1)) (L.lovelaceValueOf 1234)]
+                )
+         in assertTxSkelEqual skelExpected skelOut
     ]
 
 -- ** Testing the token duplication attack on traces
@@ -274,10 +307,10 @@ dhTrace v = do
   txLock v
   txRelock v
 
-dhTraceTests :: TestTree
-dhTraceTests =
+datumHijackingAttackTests :: TestTree
+datumHijackingAttackTests =
   testGroup
-    "datum hijacking traces"
+    "datum hijacking attack"
     [ testCase "careful validator can not be fooled" $
         testFailsFrom'
           isCekEvaluationFailure
@@ -285,30 +318,28 @@ dhTraceTests =
           ( somewhere
               ( datumHijackingAttack
                   carefulValidator
-                  (\d _ -> FirstLock Pl.== d)
+                  (\d _ -> SecondLock Pl.== d)
               )
               (dhTrace carefulValidator)
-          ),
-      -- testCase "careless validator can be fooled" $
-      --   testSucceeds
-      --     ( somewhere
-      --         ( datumHijackingAttack
-      --             (Nothing @())
-      --             carelessValidator
-      --             (\d _ -> SecondLock Pl.== d)
-      --         )
-      --         (dhTrace carelessValidator)
-      --     ),
-      testCase "at least something works" $
-        testSucceeds (dhTrace carefulValidator)
+          )
+          -- testCase "careless validator can be fooled" $
+          --   testSucceeds
+          --     ( somewhere
+          --         ( datumHijackingAttack
+          --             carelessValidator
+          --             (\d _ -> SecondLock Pl.== d)
+          --         )
+          --         (dhTrace carelessValidator)
+          --     ),
+          -- testCase "at least without modifications, the trace goes through" $
+          --   testSucceeds (dhTrace carelessValidator)
     ]
 
 tests :: [TestTree]
 tests =
   [ testGroup
       "Attack DSL"
-      [ tdTxSkelTests,
-        -- dhTxSkelTests,
-        dhTraceTests
+      [ dupTokenAttackTests,
+        datumHijackingAttackTests
       ]
   ]
