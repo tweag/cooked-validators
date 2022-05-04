@@ -14,12 +14,13 @@ module Cooked.Attack where
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Maybe
+import Debug.Trace
 import qualified Ledger as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
+import qualified Ledger.Ada as Pl
 import Optics.Core
 import qualified PlutusTx as Pl
-import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.Numeric as Pl (negate)
 import Type.Reflection
 
@@ -32,10 +33,20 @@ import Type.Reflection
 type Attack = TxSkel -> Maybe TxSkel
 
 -- | The simplest way to make an attack from an optic: Try to apply the given
--- function to all of its foci. Fail returning @Nothing@ if nothing is in focus
--- or if all foci are evaluated to @Nothing@.
+-- function to all of the optic's foci. Fail, returning @Nothing@, if nothing is
+-- in focus or if all foci are evaluated to @Nothing@.
 mkAttack :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> Maybe a) -> Attack
-mkAttack = traverseOf
+mkAttack optic f skel =
+  let (skel', modified) =
+        mapAccumROf
+          optic
+          ( \flag x -> case f x of
+              Just y -> (y, True)
+              Nothing -> (x, flag)
+          )
+          False
+          skel
+   in if modified then Just skel' else Nothing
 
 -- * Some optics on 'TxSkel's, 'Constraint's, etc.
 
@@ -159,7 +170,14 @@ paysScriptConstraintP =
 paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
 paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
 
--- scriptRecipientL ::  PaysScirptConstraint
+-- data TypedValidatorWrap where
+--   TypedValidatorWrap :: Pl.TypedValidator a -> TypedValidatorWrap
+
+-- scriptRecipientL :: Lens' PaysScriptConstraint TypedValidatorWrap
+-- scriptRecipientL = lens (\case PaysScriptConstraint v _ _ -> v)
+--   (\c v -> case c of
+--       PaysScriptConstraint _ d x ->
+
 
 -- ** Extracting 'Pl.Value's from different types
 
@@ -240,6 +258,16 @@ txSkelInValue = foldOf (miscConstraintsL % traversed % valueAT)
 txSkelOutValue :: TxSkel -> Pl.Value
 txSkelOutValue = foldOf (outConstraintsL % traversed % valueL)
 
+flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
+flattenValueI =
+  iso
+    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
+    (foldl (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
+
+nonAdaValue :: Pl.Value -> Pl.Value
+nonAdaValue = over flattenValueI (map $ \(ac, i) -> if ac == adaAssetClass then (ac, 0) else (ac, i))
+  where adaAssetClass = Pl.assetClass Pl.adaSymbol Pl.adaToken
+
 -- * Token duplication attack
 
 -- | A token duplication attack which modifies every 'Mints'-constraint of a
@@ -258,31 +286,36 @@ dupTokenAttack ::
   Wallet ->
   Attack
 dupTokenAttack change attacker skel =
-  addLabel DupTokenLbl
-    . paySurplusTo attacker
+  addLabel DupTokenLbl . paySurplusTo attacker
     <$> mkAttack (mintsConstraintsT % valueL) increaseValue skel
   where
     increaseValue :: Pl.Value -> Maybe Pl.Value
-    increaseValue oldValue@(Pl.Value symbolMap) =
-      let newValue =
-            Pl.Value $
-              Pl.mapWithKey
-                ( \cs tokenNameMap ->
-                    Pl.mapWithKey
-                      ( \tn i -> fromMaybe i $ change (Pl.assetClass cs tn) i
-                      )
-                      tokenNameMap
-                )
-                symbolMap
-       in if oldValue `Pl.lt` newValue then Just newValue else Nothing
+    increaseValue v =
+      case someJust
+        ( \(ac, i) -> case change ac i of
+            Nothing -> Nothing
+            Just j -> if i < j then Just (ac, j) else Nothing
+        )
+        (view flattenValueI v) of
+        Just l -> Just $ review flattenValueI l
+        Nothing -> Nothing
 
     paySurplusTo :: Wallet -> TxSkel -> TxSkel
     paySurplusTo w s = over outConstraintsL (paysPK (walletPKHash w) surplus :) s
       where
-        surplus = txSkelInValue s <> Pl.negate (txSkelOutValue s)
+        surplus = txSkelInValue s <> Pl.negate (nonAdaValue $ txSkelOutValue s)
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show)
+
+-- | try to use the given function to modify the elements of the given list. If
+-- at least one modification is successful, return 'Just' the modified list,
+-- otherwise fail returning 'Nothing'.
+someJust :: (a -> Maybe a) -> [a] -> Maybe [a]
+someJust _ [] = Nothing
+someJust f (x : xs) = case f x of
+  Just y -> Just $ y : map (\x -> fromMaybe x (f x)) xs
+  Nothing -> (x :) <$> someJust f xs
 
 -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
 -- given label will be added, forming a pair @(newlabel, oldlabel)@.
@@ -319,14 +352,13 @@ datumHijackingAttack ::
   Attack
 datumHijackingAttack val change skel =
   addLabel DatumHijackingLbl
-    <$> mkAttack (partsOf paysScriptConstraintsT) changeRecipient' skel
+    <$> mkAttack paysScriptConstraintsT changeRecipient skel
   where
-    -- TODO: this solution with @changeRecipient'@ is not nice. It would be
-    -- cleaner to have an traversal that focuses all 'PaysScriptConstraint's
-    -- that pay to the validator that we want to steal from an then apply
-    -- @changeRecipient@
-    changeRecipient' :: [PaysScriptConstraint] -> Maybe [PaysScriptConstraint]
-    changeRecipient' = oneJust changeRecipient
+    -- -- This solution with @changeRecipient'@ is not nice. It would be cleaner to
+    -- -- have a traversal that focuses all 'PaysScriptConstraint's that pay to the
+    -- -- validator that we want to steal from an then apply @changeRecipient@.
+    -- changeRecipient' :: [PaysScriptConstraint] -> Maybe [PaysScriptConstraint]
+    -- changeRecipient' = oneJust changeRecipient
 
     changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
     changeRecipient (PaysScriptConstraint val' dat money) =
@@ -340,30 +372,33 @@ datumHijackingAttack val change skel =
 data DatumHijackingLbl = DatumHijackingLbl
   deriving (Show, Eq)
 
+-- | The trivial validator that always succeds; this is a sufficient target for
+-- the datum hijacking attack since we only want to show feasibility of the
+-- attack.
 datumHijackingTarget :: Pl.TypedValidator a
-datumHijackingTarget = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||datumHijackingTgt||]))
+datumHijackingTarget = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||tgt||]))
   where
-    datumHijackingTgt ::
+    tgt ::
       Pl.BuiltinData ->
       Pl.BuiltinData ->
       Pl.BuiltinData ->
       ()
-    datumHijackingTgt _ _ _ = ()
+    tgt _ _ _ = ()
 
--- | If the given function evaluates exactly one element @x@ to @Just y@, return
--- the list with @x@ changed for @y@, else return @Nothing@.
-oneJust :: (b -> Maybe b) -> [b] -> Maybe [b]
-oneJust _ [] = Nothing
-oneJust f (x : xs)
-  | Just y <- f x = (y :) <$> allNothing f xs
-  | otherwise = (x :) <$> oneJust f xs
+-- -- | If the given function evaluates exactly one element @x@ to @Just y@, return
+-- -- the list with @x@ changed for @y@, else return @Nothing@.
+-- oneJust :: (b -> Maybe b) -> [b] -> Maybe [b]
+-- oneJust _ [] = Nothing
+-- oneJust f (x : xs)
+--   | Just y <- f x = (y :) <$> allNothing f xs
+--   | otherwise = (x :) <$> oneJust f xs
 
--- | return the list, only if all elements are eveluated to @Nothing@ by the
--- given function
-allNothing :: (b -> Maybe b) -> [b] -> Maybe [b]
-allNothing _ [] = Just []
-allNothing f (x : xs)
-  | Just _ <- f x = Nothing
-  | otherwise = (x :) <$> allNothing f xs
+-- -- | return the list, only if all elements are eveluated to @Nothing@ by the
+-- -- given function
+-- allNothing :: (b -> Maybe b) -> [b] -> Maybe [b]
+-- allNothing _ [] = Just []
+-- allNothing f (x : xs)
+--   | Just _ <- f x = Nothing
+--   | otherwise = (x :) <$> allNothing f xs
 
--- scriptRecipientP :: Pl.TypedValidator a -> Prism' PaysScriptConstraint (Pl.DatumType a, Pl.Value)
+-- -- scriptRecipientP :: Pl.TypedValidator a -> Prism' PaysScriptConstraint (Pl.DatumType a, Pl.Value)

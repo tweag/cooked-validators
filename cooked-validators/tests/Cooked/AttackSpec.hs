@@ -14,7 +14,7 @@ import Cooked.Attack
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger as L
+import qualified Ledger as L hiding (singleton)
 import qualified Ledger.Ada as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
@@ -25,15 +25,25 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Type.Reflection
 
--- * Tests for the token duplication attack
+-- * General helpers
 
--- ** Minting policies to test the token duplication attack
+assertTxSkelEqual :: TxSkel -> Maybe TxSkel -> Assertion
+assertTxSkelEqual expected actual =
+  assertBool
+    ( "non-equal 'TxSkel's: expected:\n\n"
+        ++ show (Just $ prettyTxSkel [] expected)
+        ++ "\n\nactual:\n\n"
+        ++ show (prettyTxSkel [] <$> actual)
+    )
+    $ actual == Just expected
+
+-- * Tests for the token duplication attack
 
 {-# INLINEABLE mkCarefulPolicy #-}
 mkCarefulPolicy :: L.TokenName -> Integer -> () -> L.ScriptContext -> Bool
 mkCarefulPolicy tName allowedAmount _ ctx
   | amnt Pl.== Just allowedAmount = True
-  | otherwise = False
+  | otherwise = Pl.trace "tried to mint wrong amount" False
   where
     txi = L.scriptContextTxInfo ctx
     L.Minting me = L.scriptContextPurpose ctx
@@ -59,31 +69,14 @@ carelessPolicy =
   L.mkMintingPolicyScript
     $$(Pl.compile [||L.wrapMintingPolicy mkCarelessPolicy||])
 
--- ** Transactions (and Skeletons) for the token duplication attack
-
-mintNTxSkel :: Integer -> L.MintingPolicy -> L.TokenName -> Wallet -> TxSkel
-mintNTxSkel amount pol tName recipient =
-  let minted = L.assetClassValue (L.assetClass (L.scriptCurrencySymbol pol) tName) amount
-   in txSkelOpts
-        (def {adjustUnbalTx = True})
-        ( [Mints (Nothing @()) [pol] minted]
-            :=>: [paysPK (walletPKHash recipient) minted]
-        )
-
--- mintOneTxSkel :: L.MintingPolicy -> L.TokenName -> Wallet -> TxSkel
--- mintOneTxSkel = mintNTxSkel 1
-
--- ** Testing the token duplication attack on 'TxSkel's
-
-assertTxSkelEqual :: TxSkel -> Maybe TxSkel -> Assertion
-assertTxSkelEqual expected actual =
-  assertBool
-    ( "non-equal 'TxSkel's: expected:\n\n"
-        ++ show (Just $ prettyTxSkel [] expected)
-        ++ "\n\nactual:\n\n"
-        ++ show (prettyTxSkel [] <$> actual)
-    )
-    $ actual == Just expected
+dupTokenTrace :: MonadBlockChain m => L.MintingPolicy -> L.TokenName -> Integer -> Wallet -> m ()
+dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
+  where
+    skel =
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        let minted = L.singleton (L.scriptCurrencySymbol pol) tName amount
+         in [Mints (Nothing @()) [pol] minted]
+              :=>: [paysPK (walletPKHash recipient) minted]
 
 dupTokenAttackTests :: TestTree
 dupTokenAttackTests =
@@ -102,49 +95,52 @@ dupTokenAttackTests =
                 ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 1 <> L.assetClassValue ac2 1),
                     Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
                   ]
-                    :=>: [paysPK (walletPKHash (wallet 1)) (L.lovelaceValueOf 1234)]
+                    :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
+                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
+                         ]
                 )
             skelOut =
               dupTokenAttack
                 ( \c n ->
                     if c == ac1
-                      then Just $ n + 1
-                      else if n == 1 then Just 5 else Just 4
+                      then Just $ n + 11
+                      else
+                        if n == 1
+                          then Just 5
+                          else Just 1 -- in this setting, this means do nothing, since we try to mint 3 tokens above and 1<3
                 )
                 attacker
                 skelIn
             skelExpected =
               txSkelLbl
                 DupTokenLbl
-                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 2 <> L.assetClassValue ac2 5),
+                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 12 <> L.assetClassValue ac2 5),
                     Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
                   ]
-                    :=>: [paysPK (walletPKHash attacker) (L.assetClassValue ac1 2 <> L.assetClassValue ac2 8),
-                          paysPK (walletPKHash (wallet 1)) (L.lovelaceValueOf 1234)]
+                    :=>: [ paysPK (walletPKHash attacker) (L.assetClassValue ac1 11 <> L.assetClassValue ac2 6),
+                           paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
+                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
+                         ]
                 )
-         in assertTxSkelEqual skelExpected skelOut
+         in assertTxSkelEqual skelExpected skelOut,
+      testCase "careful minting policy" $
+        let tName = L.tokenName "MockToken"
+            pol = carefulPolicy tName 1
+         in testFailsFrom'
+              isCekEvaluationFailure
+              def
+              ( somewhere
+                  (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                  (dupTokenTrace pol tName 1 (wallet 1))
+              ),
+      testCase "careless minting policy" $
+        let tName = L.tokenName "MockToken"
+            pol = carelessPolicy
+         in testSucceeds $
+              somewhere
+                (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                (dupTokenTrace pol tName 1 (wallet 1))
     ]
-
--- ** Testing the token duplication attack on traces
-
--- only one TestTree for tken duplicatio
--- tdTraceTests :: TestTree
--- tdTraceTests =
---   testGroup
---     "tests for the token duplication attack on traces"
---     [ testCase "careful policy can not be fooled" $
---         let attacker = wallet 6
---             tName = L.tokenName "MockToken"
---             pol = carefulPolicy tName 1
---             skelIn = mintOneTxSkel pol tName (wallet 1)
---             ac = L.assetClass (L.scriptCurrencySymbol pol) tName
---             skelOut = dupTokenAttack (Nothing @()) (\_ n -> Just $ n + 1) attacker skelIn
---             skelExpected =
---               over outConstraintsL (paysPK (walletPKHash attacker) (L.assetClassValue ac 1) :) $
---                 set (mintsConstraintsT % valueL) (L.assetClassValue ac 2) skelIn
---          in testFails (somewhere (dupTokenAttack (Nothing @()) (\_ n -> Just $ n + 1) attacker))
-
---     ]
 
 -- * Tests for the datum hijacking attack
 
@@ -223,14 +219,14 @@ mkCarefulValidator datum _ ctx =
    in case datum of
         FirstLock ->
           case L.getContinuingOutputs ctx of
-            [o] ->
+            o : _ ->
               Pl.traceIfFalse
                 "not in 'SecondLock'-state after re-locking"
                 (outputDatum txi o Pl.== Just SecondLock)
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
                   (L.txOutValue o == lockValue)
-            _ -> Pl.trace "there must be exactly one output re-locked" False
+            _ -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
 
 carefulValidator :: L.TypedValidator MockContract
@@ -248,14 +244,14 @@ mkCarelessValidator datum _ ctx =
    in case datum of
         FirstLock ->
           case L.txInfoOutputs txi of
-            [o] ->
+            o : _ ->
               Pl.traceIfFalse
                 "not in 'SecondLock'-state after re-locking"
                 (outputDatum txi o Pl.== Just SecondLock)
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
                   (L.txOutValue o == lockValue)
-            _ -> Pl.trace "there must be exactly one output re-locked" False
+            _ -> Pl.trace "there must be an output re-locked" False
         SecondLock -> False
 
 carelessValidator :: L.TypedValidator MockContract
@@ -266,44 +262,8 @@ carelessValidator =
   where
     wrap = L.wrapValidator @MockDatum @()
 
--- ** testing the datum hijacking attack on 'TxSkels'
-
--- relockTxSkel' :: Monad m => L.TypedValidator MockContract -> MockChainT m TxSkel
--- relockTxSkel' v = do
---   txLock v
---   [utxo] <- scriptUtxosSuchThat v (\_ _ -> True)
---   return $ relockTxSkel v (fst utxo)
-
--- dhTxSkelTests :: TestTree
--- dhTxSkelTests =
---   testGroup
---     "datum hijacking tests on 'TxSkel's"
---     [ testCase "" $
---         let skelOrErr :: Either MockChainError (TxSkel, UtxoState)
---             skelOrErr = runMockChain (relockTxSkel' carefulValidator)
---          in testBool $
---               case skelOrErr of
---                 Left _ -> False
---                 Right (skel, _) ->
---                   let skelExpected =
---                         over
---                           paysScriptConstraintsT
---                           ( \case
---                               PaysScriptConstraint v d x ->
---                                 case v ~*~? carefulValidator of
---                                   Just HRefl ->
---                                     PaysScriptConstraint (trivialValidator @MockContract) d x
---                                   Nothing -> error "could not set up test"
---                           )
---                           skel
---                    in datumHijackingAttack (Nothing @()) carefulValidator (\_ _ -> True) skel
---                         == Just skelExpected
---     ]
-
--- ** Testing the datum hijacking attack on traces
-
-dhTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
-dhTrace v = do
+datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
+datumHijackingTrace v = do
   txLock v
   txRelock v
 
@@ -311,7 +271,28 @@ datumHijackingAttackTests :: TestTree
 datumHijackingAttackTests =
   testGroup
     "datum hijacking attack"
-    [ testCase "careful validator can not be fooled" $
+    [ testCase "unit test on a 'TxSkel'" $
+        let val1 = carelessValidator
+            val2 = carefulValidator
+            thief = datumHijackingTarget @MockContract
+            x1 = L.lovelaceValueOf 10001
+            x2 = L.lovelaceValueOf 10000
+            x3 = L.lovelaceValueOf 9999
+            skelIn = txSkel
+              [PaysScript val1 SecondLock x1,
+               PaysScript val1 SecondLock x3,
+               PaysScript val2 SecondLock x1,
+               PaysScript val1 FirstLock x2,
+               PaysScript val1 SecondLock x2]
+            skelOut = datumHijackingAttack val1 (\d x -> SecondLock Pl.== d && x2 `L.geq` x) skelIn
+            skelExpected = txSkelLbl DatumHijackingLbl
+              [PaysScript val1 SecondLock x1,
+               PaysScript thief SecondLock x3,
+               PaysScript val2 SecondLock x1,
+               PaysScript val1 FirstLock x2,
+               PaysScript thief SecondLock x2]
+        in assertTxSkelEqual skelExpected skelOut,
+      testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
           def
@@ -320,20 +301,22 @@ datumHijackingAttackTests =
                   carefulValidator
                   (\d _ -> SecondLock Pl.== d)
               )
-              (dhTrace carefulValidator)
+              (datumHijackingTrace carefulValidator)
+          ),
+      testCase "careless validator" $
+        testSucceeds
+          ( somewhere
+              ( datumHijackingAttack
+                  carelessValidator
+                  (\d _ -> SecondLock Pl.== d)
+              )
+              (datumHijackingTrace carelessValidator)
           )
-          -- testCase "careless validator can be fooled" $
-          --   testSucceeds
-          --     ( somewhere
-          --         ( datumHijackingAttack
-          --             carelessValidator
-          --             (\d _ -> SecondLock Pl.== d)
-          --         )
-          --         (dhTrace carelessValidator)
-          --     ),
           -- testCase "at least without modifications, the trace goes through" $
           --   testSucceeds (dhTrace carelessValidator)
     ]
+
+-- * Collecting all tests in this module
 
 tests :: [TestTree]
 tests =
