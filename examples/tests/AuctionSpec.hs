@@ -1,7 +1,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module AuctionSpec where
 
@@ -156,11 +156,11 @@ tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
   somewhere
     ( datumHijackingAttack @A.Auction
-        (const True) -- try to steal from every validator
-        ( \d _ -> case d of -- but only steal outputs that have the 'Bidding' datum
+        ( \_ d _ -> case d of -- try to steal all outputs that have the 'Bidding' datum, no matter their validator or value
             A.Bidding _ -> True
             _ -> False
         )
+        Nothing -- if there is more than one 'Bidding' output, try stealing all of them
     )
     (noBids <|> oneBid <|> twoBids)
 

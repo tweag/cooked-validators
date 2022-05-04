@@ -32,17 +32,40 @@ type Attack = TxSkel -> Maybe TxSkel
 -- function to all of the optic's foci. Fail, returning @Nothing@, if nothing is
 -- in focus or if all foci are evaluated to @Nothing@.
 mkAttack :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> Maybe a) -> Attack
-mkAttack optic f skel =
-  let (skel', modified) =
-        mapAccumROf
-          optic
-          ( \flag x -> case f x of
-              Just y -> (y, True)
-              Nothing -> (x, flag)
-          )
-          False
-          skel
-   in if modified then Just skel' else Nothing
+mkAttack optic f =
+  mkAccumLAttack
+    optic
+    ( \flag x -> case f x of
+        Just y -> (y, True)
+        Nothing -> (x, flag)
+    )
+    False
+    (\skel flag -> if flag then Just skel else Nothing)
+
+-- | A more fine-grained attack: Traverse all foci of the optic from the left to
+-- the right, collecting an accumulator while also (optionally) modifying the
+-- 'TxSkel'. At the end, look at the modified 'TxSkel' and the accumulator to
+-- decide whether the traversal was a success, or whether we should return
+-- @Nothing@.
+mkAccumLAttack ::
+  Is k A_Traversal =>
+  -- | Optic focussing potentially interesting points to modify
+  Optic' k is TxSkel a ->
+  -- | function that describes the modification of the accumulator and the
+  -- current focus.
+  (acc -> a -> (a, acc)) ->
+  -- | initial accumulator
+  acc ->
+  -- | function to decide whether the traversal modified the 'TxSkel' in the
+  -- desired way. This will typically look like this:
+  -- > \skel acc -> if someTest skel acc
+  -- >               then Just (someFinalModification skel)
+  -- >               else Nothing
+  (TxSkel -> acc -> Maybe TxSkel) ->
+  Attack
+mkAccumLAttack optic f initAcc test skel =
+  let (skel', acc) = mapAccumLOf optic f initAcc skel
+   in test skel' acc
 
 -- * General helpers
 
@@ -56,15 +79,6 @@ addLabel newlabel =
         TxLabel Nothing -> TxLabel $ Just newlabel
         TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
     )
-
--- | try to use the given function to modify the elements of the given list. If
--- at least one modification is successful, return 'Just' the modified list,
--- otherwise fail returning 'Nothing'.
-someJust :: (a -> Maybe a) -> [a] -> Maybe [a]
-someJust _ [] = Nothing
-someJust f (x : xs) = case f x of
-  Just y -> Just $ y : map (\a -> fromMaybe a (f a)) xs
-  Nothing -> (x :) <$> someJust f xs
 
 -- * Token duplication attack
 
@@ -103,6 +117,15 @@ dupTokenAttack change attacker skel =
       where
         surplus = txSkelInValue s <> Pl.negate (nonAdaValue $ txSkelOutValue s)
 
+    -- Try to use the given function to modify the elements of the given list. If
+    -- at least one modification is successful, return 'Just' the modified list,
+    -- otherwise fail returning 'Nothing'.
+    someJust :: (a -> Maybe a) -> [a] -> Maybe [a]
+    someJust _ [] = Nothing
+    someJust f (x : xs) = case f x of
+      Just y -> Just $ y : map (\a -> fromMaybe a (f a)) xs
+      Nothing -> (x :) <$> someJust f xs
+
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show)
 
@@ -122,25 +145,31 @@ datumHijackingAttack ::
     Pl.UnsafeFromData (L.DatumType a),
     Pl.UnsafeFromData (L.RedeemerType a)
   ) =>
-  -- | Function to indicate whether to steal from a validator script.
-  (L.TypedValidator a -> Bool) ->
-  -- | A function indicating whether to try the attack on a 'PaysScript'
-  -- constraint with the given datum and value.
-  (L.DatumType a -> L.Value -> Bool) ->
+  -- | Function to select outputs to steal, depending on the intended recipient,
+  -- the datum, and the value.
+  (L.TypedValidator a -> L.DatumType a -> L.Value -> Bool) ->
+  -- | If the selection predicate matches more than one output, select the n-th
+  -- output by passing @Just n@, or all by passing @Nothing@.
+  Maybe Integer ->
   Attack
-datumHijackingAttack valPred change skel =
+datumHijackingAttack change nth skel =
   addLabel DatumHijackingLbl
-    <$> mkAttack paysScriptConstraintsT changeRecipient skel
+    <$> mkAccumLAttack paysScriptConstraintsT changeRecipient (0, False) checkReturn skel
   where
-    changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
-    changeRecipient (PaysScriptConstraint val dat money) =
-      -- checks whether val _is of the same type as_ the hijacking target, they're obviously different scripts.
+    checkReturn :: TxSkel -> (Integer, Bool) -> Maybe TxSkel
+    checkReturn _ (_, False) = Nothing
+    checkReturn s (_, True) = Just s
+
+    changeRecipient :: (Integer, Bool) -> PaysScriptConstraint -> (PaysScriptConstraint, (Integer, Bool))
+    changeRecipient (i, flag) c@(PaysScriptConstraint val dat money) =
+      -- checks whether val _is of the same type as_ the hijacking target,
+      -- they're obviously different scripts.
       case val ~*~? datumHijackingTarget @a of
         Just HRefl ->
-          if valPred val && change dat money
-            then Just $ PaysScriptConstraint @a datumHijackingTarget dat money
-            else Nothing
-        Nothing -> Nothing
+          if change val dat money && i == fromMaybe i nth
+            then (PaysScriptConstraint @a datumHijackingTarget dat money, (i + 1, True))
+            else (c, (i, flag))
+        Nothing -> (c, (i, flag))
 
 data DatumHijackingLbl = DatumHijackingLbl
   deriving (Show, Eq)

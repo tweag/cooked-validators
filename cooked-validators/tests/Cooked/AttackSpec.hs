@@ -212,13 +212,13 @@ outputDatum txi o = do
   L.Datum d <- L.findDatum h txi
   Pl.fromBuiltinData d
 
-{-# INLINEABLE mkCarefulValidator #-}
-mkCarefulValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarefulValidator datum _ ctx =
+{-# INLINEABLE mkMockValidator #-}
+mkMockValidator :: (L.ScriptContext -> [L.TxOut]) -> MockDatum -> () -> L.ScriptContext -> Bool
+mkMockValidator getOutputs datum _ ctx =
   let txi = L.scriptContextTxInfo ctx
    in case datum of
         FirstLock ->
-          case L.getContinuingOutputs ctx of
+          case getOutputs ctx of
             o : _ ->
               Pl.traceIfFalse
                 "not in 'SecondLock'-state after re-locking"
@@ -228,6 +228,10 @@ mkCarefulValidator datum _ ctx =
                   (L.txOutValue o == lockValue)
             _ -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
+
+{-# INLINEABLE mkCarefulValidator #-}
+mkCarefulValidator :: MockDatum -> () -> L.ScriptContext -> Bool
+mkCarefulValidator = mkMockValidator L.getContinuingOutputs
 
 carefulValidator :: L.TypedValidator MockContract
 carefulValidator =
@@ -239,20 +243,7 @@ carefulValidator =
 
 {-# INLINEABLE mkCarelessValidator #-}
 mkCarelessValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarelessValidator datum _ ctx =
-  let txi = L.scriptContextTxInfo ctx
-   in case datum of
-        FirstLock ->
-          case L.txInfoOutputs txi of
-            o : _ ->
-              Pl.traceIfFalse
-                "not in 'SecondLock'-state after re-locking"
-                (outputDatum txi o Pl.== Just SecondLock)
-                && Pl.traceIfFalse
-                  "not re-locking the right amout"
-                  (L.txOutValue o == lockValue)
-            _ -> Pl.trace "there must be an output re-locked" False
-        SecondLock -> False
+mkCarelessValidator = mkMockValidator (L.txInfoOutputs . L.scriptContextTxInfo)
 
 carelessValidator :: L.TypedValidator MockContract
 carelessValidator =
@@ -278,30 +269,44 @@ datumHijackingAttackTests =
             x1 = L.lovelaceValueOf 10001
             x2 = L.lovelaceValueOf 10000
             x3 = L.lovelaceValueOf 9999
-            skelIn = txSkel
-              [PaysScript val1 SecondLock x1,
-               PaysScript val1 SecondLock x3,
-               PaysScript val2 SecondLock x1,
-               PaysScript val1 FirstLock x2,
-               PaysScript val1 SecondLock x2]
-            skelOut = datumHijackingAttack @MockContract
-              (\v -> L.validatorHash val1 == L.validatorHash v)
-              (\d x -> SecondLock Pl.== d && x2 `L.geq` x) skelIn
-            skelExpected = txSkelLbl DatumHijackingLbl
-              [PaysScript val1 SecondLock x1,
-               PaysScript thief SecondLock x3,
-               PaysScript val2 SecondLock x1,
-               PaysScript val1 FirstLock x2,
-               PaysScript thief SecondLock x2]
-        in assertTxSkelEqual skelExpected skelOut,
+            skelIn =
+              txSkel
+                [ PaysScript val1 SecondLock x1,
+                  PaysScript val1 SecondLock x3,
+                  PaysScript val2 SecondLock x1,
+                  PaysScript val1 FirstLock x2,
+                  PaysScript val1 SecondLock x2
+                ]
+            skelOut =
+              datumHijackingAttack @MockContract
+                ( \v d x ->
+                    L.validatorHash val1 == L.validatorHash v
+                      && SecondLock Pl.== d
+                      && x2 `L.geq` x
+                )
+                (Just 0)
+                skelIn
+            skelExpected =
+              txSkelLbl
+                DatumHijackingLbl
+                [ PaysScript val1 SecondLock x1,
+                  PaysScript thief SecondLock x3,
+                  PaysScript val2 SecondLock x1,
+                  PaysScript val1 FirstLock x2,
+                  PaysScript val1 SecondLock x2
+                ]
+         in assertTxSkelEqual skelExpected skelOut,
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
           def
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  (\v -> L.validatorHash v == L.validatorHash carefulValidator)
-                  (\d _ -> SecondLock Pl.== d)
+                  ( \v d _ ->
+                      L.validatorHash v == L.validatorHash carefulValidator
+                        && SecondLock Pl.== d
+                  )
+                  Nothing
               )
               (datumHijackingTrace carefulValidator)
           ),
@@ -309,13 +314,14 @@ datumHijackingAttackTests =
         testSucceeds
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  (\v -> L.validatorHash v == L.validatorHash carelessValidator)
-                  (\d _ -> SecondLock Pl.== d)
+                  ( \v d _ ->
+                      L.validatorHash v == L.validatorHash carelessValidator
+                        && SecondLock Pl.== d
+                  )
+                  Nothing
               )
               (datumHijackingTrace carelessValidator)
           )
-          -- testCase "at least without modifications, the trace goes through" $
-          --   testSucceeds (dhTrace carelessValidator)
     ]
 
 -- * Collecting all tests in this module
