@@ -151,9 +151,5 @@ data DatumHijackingLbl = DatumHijackingLbl
 datumHijackingTarget :: L.TypedValidator a
 datumHijackingTarget = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||tgt||]))
   where
-    tgt ::
-      Pl.BuiltinData ->
-      Pl.BuiltinData ->
-      Pl.BuiltinData ->
-      ()
+    tgt :: Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()
     tgt _ _ _ = ()
