@@ -1,10 +1,10 @@
+import qualified Cooked.AttackSpec as AttackSpec
 import qualified Cooked.BalanceSpec as Ba
 import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 import qualified Cooked.MockChain.WalletSpec as WalletSpec
 import qualified Cooked.OutputReorderingSpec as OutputReorderingSpec
 import qualified Cooked.QuickValueSpec as QuickValueSpec
-import qualified Cooked.AttackSpec as AttackSpec
 import Test.Tasty
 
 main :: IO ()
