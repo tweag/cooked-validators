@@ -14,7 +14,7 @@ import Cooked.Attack
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger as L hiding (singleton)
+import qualified Ledger as L hiding (singleton, validatorHash)
 import qualified Ledger.Ada as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
@@ -284,7 +284,9 @@ datumHijackingAttackTests =
                PaysScript val2 SecondLock x1,
                PaysScript val1 FirstLock x2,
                PaysScript val1 SecondLock x2]
-            skelOut = datumHijackingAttack val1 (\d x -> SecondLock Pl.== d && x2 `L.geq` x) skelIn
+            skelOut = datumHijackingAttack @MockContract
+              (\v -> L.validatorHash val1 == L.validatorHash v)
+              (\d x -> SecondLock Pl.== d && x2 `L.geq` x) skelIn
             skelExpected = txSkelLbl DatumHijackingLbl
               [PaysScript val1 SecondLock x1,
                PaysScript thief SecondLock x3,
@@ -297,8 +299,8 @@ datumHijackingAttackTests =
           isCekEvaluationFailure
           def
           ( somewhere
-              ( datumHijackingAttack
-                  carefulValidator
+              ( datumHijackingAttack @MockContract
+                  (\v -> L.validatorHash v == L.validatorHash carefulValidator)
                   (\d _ -> SecondLock Pl.== d)
               )
               (datumHijackingTrace carefulValidator)
@@ -306,8 +308,8 @@ datumHijackingAttackTests =
       testCase "careless validator" $
         testSucceeds
           ( somewhere
-              ( datumHijackingAttack
-                  carelessValidator
+              ( datumHijackingAttack @MockContract
+                  (\v -> L.validatorHash v == L.validatorHash carelessValidator)
                   (\d _ -> SecondLock Pl.== d)
               )
               (datumHijackingTrace carelessValidator)

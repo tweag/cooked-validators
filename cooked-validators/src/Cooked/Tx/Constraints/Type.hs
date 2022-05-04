@@ -10,7 +10,6 @@
 module Cooked.Tx.Constraints.Type where
 
 import Data.Default
-import Data.Functor.Identity
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -239,8 +238,8 @@ data TxSkel where
 
 instance Eq TxSkel where
   TxSkel l1 o1 c1 == TxSkel l2 o2 c2 =
-    case (l1 ~*~? l2, Identity c1 ~*~? Identity c2) of
-      (Just HRefl, Just HRefl) -> (l1, o1, c1) == (l2, o2, c2)
+    case l1 ~*~? l2 of
+      Just HRefl -> (l1, o1, c1) == (l2, o2, c2)
       _ -> False
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'

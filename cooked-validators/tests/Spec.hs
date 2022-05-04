@@ -14,11 +14,11 @@ tests :: TestTree
 tests =
   testGroup
     "cooked-validators"
-    [ -- testGroup "Reordering outputs" OutputReorderingSpec.tests,
-      -- testGroup "Balancing transactions" Ba.tests,
-      -- testGroup "Quick values" QuickValueSpec.tests,
-      -- testGroup "Staged monad" StagedSpec.tests,
-      -- testGroup "UtxoState" UtxoStateSpec.tests,
-      -- testGroup "Wallet" WalletSpec.tests,
+    [ testGroup "Reordering outputs" OutputReorderingSpec.tests,
+      testGroup "Balancing transactions" Ba.tests,
+      testGroup "Quick values" QuickValueSpec.tests,
+      testGroup "Staged monad" StagedSpec.tests,
+      testGroup "UtxoState" UtxoStateSpec.tests,
+      testGroup "Wallet" WalletSpec.tests,
       testGroup "Attack" AttackSpec.tests
     ]

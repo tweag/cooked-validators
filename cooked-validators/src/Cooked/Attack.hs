@@ -122,21 +122,21 @@ datumHijackingAttack ::
     Pl.UnsafeFromData (L.DatumType a),
     Pl.UnsafeFromData (L.RedeemerType a)
   ) =>
-  -- | Validator script to steal from.
-  L.TypedValidator a ->
+  -- | Function to indicate whether to stal from a validator script.
+  (L.TypedValidator a -> Bool) ->
   -- | A function indicating whether to try the attack on a 'PaysScript'
   -- constraint with the given datum and value.
   (L.DatumType a -> L.Value -> Bool) ->
   Attack
-datumHijackingAttack val change skel =
+datumHijackingAttack valPred change skel =
   addLabel DatumHijackingLbl
     <$> mkAttack paysScriptConstraintsT changeRecipient skel
   where
     changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
-    changeRecipient (PaysScriptConstraint val' dat money) =
-      case val' ~*~? val of
+    changeRecipient (PaysScriptConstraint val dat money) =
+      case val ~*~? datumHijackingTarget @a of
         Just HRefl ->
-          if L.validatorHash val' == L.validatorHash val && change dat money
+          if valPred val && change dat money
             then Just $ PaysScriptConstraint @a datumHijackingTarget dat money
             else Nothing
         Nothing -> Nothing

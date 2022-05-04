@@ -1,6 +1,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 
 module AuctionSpec where
 
@@ -8,6 +9,7 @@ import qualified Auction as A
 import qualified Auction.Offchain as A
 import Control.Applicative
 import Control.Arrow
+import Cooked.Attack
 import Cooked.Currencies
 import Cooked.MockChain
 import Cooked.Tx.Constraints
@@ -136,42 +138,42 @@ failingSingle =
           failingTwoBids
     ]
 
--- * A (hopefully) failing double-minting attack
+-- * (hopefully) failing attacks
 
--- Whenever we see a transaction that mints something, try to mint ont
--- more token and pay it to the attacker. This should be ruled out by
--- the minting policy of the thread token.
-
--- We use the 'somehwhere' modality to try this attack on all of the
--- successful runs from above.
-
-attack :: TxSkel -> Maybe TxSkel
-attack (TxSkel label opts cs) = case toConstraints cs of
-  is :=>: os -> (\(xi, xo) -> TxSkel label opts (xi :=>: (xo : os))) <$> modConstrs is
-    where
-      modConstrs :: [MiscConstraint] -> Maybe ([MiscConstraint], OutConstraint)
-      modConstrs [] = Nothing
-      modConstrs (Mints red pols v : is) =
-        case Value.flattenValue v of
-          [(cs, tok, n)] ->
-            Just
-              ( Mints red pols (Value.singleton cs tok (n + 1)) : is,
-                paysPK attackerPKHash (Value.singleton cs tok 1)
-              )
-          _ -> Nothing
-      modConstrs (i : is) = first (i :) <$> modConstrs is
-
-      attackerPKHash :: L.PubKeyHash
-      attackerPKHash = walletPKHash (wallet 6)
-
+-- | Token duplication attack: Whenever we see a transaction that mints
+-- something, try to mint one more token and pay it to the attacker. This should
+-- be ruled out by the minting policy of the thread token.
 tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
-tryDupTokens = somewhere attack (noBids <|> oneBid <|> twoBids)
+tryDupTokens =
+  somewhere
+    ( dupTokenAttack
+        (\_ n -> Just $ n + 1) -- the modification of the minted value
+        (wallet 6) -- the attacker's wallet
+    )
+    (noBids <|> oneBid <|> twoBids)
+
+tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
+tryDatumHijack =
+  somewhere
+    ( datumHijackingAttack @A.Auction
+        (const True) -- try to steal from every validator
+        ( \d _ -> case d of -- but only steal outputs that have the 'Bidding' datum
+            A.Bidding _ -> True
+            _ -> False
+        )
+    )
+    (noBids <|> oneBid <|> twoBids)
 
 attacks :: TestTree
 attacks =
   testGroup
     "Attacks"
-    [ testCase "Double-minting" $
+    [ testCase "token duplication" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDupTokens,
+      testCase "datum hijacking" $
         testFailsFrom'
           isCekEvaluationFailure
           testInit

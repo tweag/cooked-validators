@@ -11,6 +11,7 @@ module PMultiSigStatefulSpec where
 
 import Control.Arrow (second)
 import Control.Monad
+import qualified Cooked.Attack as Cooked
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
@@ -172,23 +173,24 @@ tests =
     "PMultiSigStateful"
     [ sampleTrace1,
       sampleGroup1,
-      datumHijackingTrace
+      datumHijackingTrace,
+      datumHijackingTrace'
     ]
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  testCase "Example Trivial Trace" $ testSucceeds mtrace
+  testCase "Example Trivial Trace" $ testSucceeds exampleMtrace
+
+exampleMtrace :: MonadMockChain m => m ()
+exampleMtrace = do
+  (params, tokenOutRef) <- mkProposal 2 thePayment `as` wallet 1
+  mkSign params thePayment (walletSK $ wallet 1) `as` wallet 1
+  mkSign params thePayment (walletSK $ wallet 2) `as` wallet 2
+  mkSign params thePayment (walletSK $ wallet 3) `as` wallet 3
+  mkCollect thePayment params
+  mkPay thePayment params tokenOutRef
   where
-    mtrace :: MonadMockChain m => m ()
-    mtrace = do
-      (params, tokenOutRef) <- mkProposal 2 thePayment `as` wallet 1
-      mkSign params thePayment (walletSK $ wallet 1) `as` wallet 1
-      mkSign params thePayment (walletSK $ wallet 2) `as` wallet 2
-      mkSign params thePayment (walletSK $ wallet 3) `as` wallet 3
-      mkCollect thePayment params
-      mkPay thePayment params tokenOutRef
-      where
-        thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
+    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
 
 qcIsRight :: (Show a) => Either a b -> QC.Property
 qcIsRight (Left a) = QC.counterexample (show a) False
@@ -350,3 +352,32 @@ mkFakeCollect thePayment params = do
                  (HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures))
                  (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
              ]
+
+-- * Datum Hijacking Attack from 'Cooked.Attack'
+
+-- It seems that this contract in fact *is* vulnerable; let's leave this here?
+datumHijackingTrace' :: TestTree
+datumHijackingTrace' =
+  testCase "*is* vulnerable to the automatic datum hijacking attack" $
+    testSucceeds datumHijacking'
+
+shortMtrace :: MonadMockChain m => m ()
+shortMtrace = do
+  (params, tokenOutRef) <- mkProposal 2 thePayment `as` wallet 1
+  -- mkSign params thePayment (walletSK $ wallet 1) `as` wallet 1
+  -- mkSign params thePayment (walletSK $ wallet 2) `as` wallet 2
+  -- mkSign params thePayment (walletSK $ wallet 3) `as` wallet 3
+  -- mkCollect thePayment params
+  -- mkPay thePayment params tokenOutRef
+  return ()
+  where
+    thePayment = Payment 4200000 (walletPKHash $ last knownWallets)
+
+datumHijacking' :: MonadModalMockChain m => m ()
+datumHijacking' =
+  somewhere
+    ( Cooked.datumHijackingAttack @PMultiSig
+        (const True) -- try to steal from every validator
+        (\_ _ -> True) -- try to steal everything
+    )
+    shortMtrace
