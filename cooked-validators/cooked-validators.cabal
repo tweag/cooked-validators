@@ -30,6 +30,7 @@ library
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
+      Cooked.Tx.Constraints.Optics
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
       Example
