@@ -134,6 +134,7 @@ datumHijackingAttack valPred change skel =
   where
     changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
     changeRecipient (PaysScriptConstraint val dat money) =
+      -- checks whether val _is of the same type as_ the hijacking target, they're obviously different scripts.
       case val ~*~? datumHijackingTarget @a of
         Just HRefl ->
           if valPred val && change dat money
