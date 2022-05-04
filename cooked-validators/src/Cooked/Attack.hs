@@ -25,7 +25,7 @@ import Type.Reflection
 -- | The type of attacks that operate on a single transaction. The idea is to
 -- try to modify a transaction, or return @Nothing@ if the modification does not
 -- apply; use this with the 'somewhere' and 'everywhere' modalities from
--- 'Cooked.MockChain.Monad'.
+-- "Cooked.MockChain.Monad".
 type Attack = TxSkel -> Maybe TxSkel
 
 -- | The simplest way to make an attack from an optic: Try to apply the given
