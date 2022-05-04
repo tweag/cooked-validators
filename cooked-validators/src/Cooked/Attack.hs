@@ -122,7 +122,7 @@ datumHijackingAttack ::
     Pl.UnsafeFromData (L.DatumType a),
     Pl.UnsafeFromData (L.RedeemerType a)
   ) =>
-  -- | Function to indicate whether to stal from a validator script.
+  -- | Function to indicate whether to steal from a validator script.
   (L.TypedValidator a -> Bool) ->
   -- | A function indicating whether to try the attack on a 'PaysScript'
   -- constraint with the given datum and value.
