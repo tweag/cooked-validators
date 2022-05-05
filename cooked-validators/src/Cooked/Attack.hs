@@ -177,7 +177,8 @@ data DupTokenLbl = DupTokenLbl
 -- attack goes through, however, a "proper" datum hijacking attack that modifies
 -- the datum in a way that the (relevant part of) the
 -- 'toBuiltinData'-translation stays the same will also work. A
--- 'DatumHijackingLbl' is added to the labels of the 'TxSkel' using 'addLabel'.
+-- 'DatumHijackingLbl' with the hash of the "thief" validator is added to the
+-- labels of the 'TxSkel' using 'addLabel'.
 datumHijackingAttack ::
   forall a.
   ( Typeable a,
@@ -206,7 +207,7 @@ datumHijackingAttack change select skel =
    in addLabel (DatumHijackingLbl $ L.validatorHash thief)
         <$> mkSelectAttack paysScriptConstraintsT changeRecipient select skel
 
-data DatumHijackingLbl = DatumHijackingLbl L.ValidatorHash
+newtype DatumHijackingLbl = DatumHijackingLbl L.ValidatorHash
   deriving (Show, Eq)
 
 -- | The trivial validator that always succeds; this is a sufficient target for
