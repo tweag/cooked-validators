@@ -26,30 +26,6 @@ import Optics.Core
 -- traversals in 'AT', isos in 'I'. There are not yet and optics of other types
 -- here.
 
--- * General helpers
-
--- | Given two 'AffineTraversal's of the same source and target types, which are
--- disjoint in the sense that at most one of them has a focus at any given
--- input, combine them in to one affine traversal. If the disjointness
--- requirement is violated, this will not be a lawful 'AffineTraversal'.
-unsafeOr ::
-  (Is k An_AffineTraversal, Is l An_AffineTraversal) =>
-  Optic' k is s a ->
-  Optic' l js s a ->
-  AffineTraversal' s a
-unsafeOr o1 o2 = withAffineTraversal o1 $ \m1 u1 ->
-  withAffineTraversal o2 $ \m2 u2 ->
-    atraversal
-      ( \s -> case m1 s of
-          Left _ -> case m2 s of
-            Left _ -> Left s
-            Right a -> Right a
-          Right a -> Right a
-      )
-      (\s a -> u2 (u1 s a) a)
-
-infixr 6 `unsafeOr` -- same fixity as <>
-
 -- * Picking apart 'TxSkel's
 
 data TxLabel where
@@ -215,6 +191,27 @@ valueAT =
   (spendsScriptConstraintP % valueL)
     `unsafeOr` (mintsConstraintP % valueL)
     `unsafeOr` (spendsPKConstraintP % valueL)
+  where
+    -- In the best of all possible worlds, I'd write this:
+    -- > unsafeOr = singular . adjoin
+    -- Alas, @adjoin@ only is available in optics-core >= 0.4, which we can not
+    -- use at the moment, because of the compiler and cabal versions from IOHK
+    -- that we use (at least that is what I think is going on).
+    unsafeOr ::
+      (Is k An_AffineTraversal, Is l An_AffineTraversal) =>
+      Optic' k is s a ->
+      Optic' l js s a ->
+      AffineTraversal' s a
+    unsafeOr o1 o2 = withAffineTraversal o1 $ \m1 u1 ->
+      withAffineTraversal o2 $ \m2 u2 ->
+        atraversal
+          ( \s -> case m1 s of
+              Left _ -> case m2 s of
+                Left _ -> Left s
+                Right a -> Right a
+              Right a -> Right a
+          )
+          (\s a -> u2 (u1 s a) a)
 
 -- | The combined value contained in all 'MiscConstraints' of a 'TxSkel'.
 txSkelInValue :: TxSkel -> L.Value
