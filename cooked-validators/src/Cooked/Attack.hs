@@ -28,10 +28,19 @@ import Type.Reflection
 -- "Cooked.MockChain.Monad".
 type Attack = TxSkel -> Maybe TxSkel
 
--- | The simplest way to make an attack from an optic: Try to apply the given
--- function to all of the optic's foci. Fail, returning @Nothing@, if nothing is
--- in focus or if all foci are evaluated to @Nothing@.
-mkAttack :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> Maybe a) -> Attack
+-- | The simplest way to make an attack from an optic: Try to apply a given
+-- function of type @a -> Maybe a@ to all foci of an optic, modifying all foci
+-- that return @Just@. This attack returns @Just@ if at least one modification
+-- was successful, i.e. if at least one of the foci evaluates to @Just@;
+-- otherwise it returns @Nothing@.
+mkAttack ::
+  Is k A_Traversal =>
+  -- | Optic focussing potentially interesting points to modify.
+  Optic' k is TxSkel a ->
+  -- | The modification to apply; return @Nothing@ if you want to leave the
+  -- given focus as it is.
+  (a -> Maybe a) ->
+  Attack
 mkAttack optic f =
   mkAccumLAttack
     optic
@@ -43,7 +52,37 @@ mkAttack optic f =
     (\skel flag -> if flag then Just skel else Nothing)
 
 -- | A more fine-grained attack: Traverse all foci of the optic from the left to
--- the right, collecting an accumulator while also (optionally) modifying the
+-- the right, while counting them, and modify only those foci that return @Just@
+-- _and_ whose index satisfies a given predicate. This is useful if you have
+-- many indentical outputs but you only want to modify a few of them.
+mkSelectAttack ::
+  Is k A_Traversal =>
+  -- | Optic focussing potentially interesting points to modify.
+  Optic' k is TxSkel a ->
+  -- | The modification to apply; return @Nothing@ if you want to leave the
+  -- given focus as it is.
+  (a -> Maybe a) ->
+  -- | Maybe the modification applies to (i.e. returns @Just@ on) more than one
+  -- focus. Use this function to select the foci to modify by the order in which
+  -- they are traversed. If you set this function to @const True@, you should
+  -- probably use 'mkAttack', because that the semantic of that function.
+  (Integer -> Bool) ->
+  Attack
+mkSelectAttack optic f select =
+  mkAccumLAttack
+    optic
+    ( \(flag, index) x -> case f x of
+        Just y ->
+          if select index
+            then (y, (True, index + 1))
+            else (x, (flag, index + 1))
+        Nothing -> (x, (flag, index))
+    )
+    (False, 0)
+    (\skel (flag, _) -> if flag then Just skel else Nothing)
+
+-- | A very general attack: Traverse all foci of the optic from the left to the
+-- right, collecting an accumulator while also (optionally) modifying the
 -- 'TxSkel'. At the end, look at the modified 'TxSkel' and the accumulator to
 -- decide whether the traversal was a success, or whether we should return
 -- @Nothing@.
@@ -145,33 +184,29 @@ datumHijackingAttack ::
     Pl.UnsafeFromData (L.DatumType a),
     Pl.UnsafeFromData (L.RedeemerType a)
   ) =>
-  -- | Function to select outputs to steal, depending on the intended recipient,
-  -- the datum, and the value.
+  -- | Predicate to select outputs to steal, depending on the intended
+  -- recipient, the datum, and the value.
   (L.TypedValidator a -> L.DatumType a -> L.Value -> Bool) ->
   -- | If the selection predicate matches more than one output, select the n-th
-  -- output by passing @Just n@, or all by passing @Nothing@.
-  Maybe Integer ->
+  -- output(s) with this predicate.
+  (Integer -> Bool) ->
   Attack
-datumHijackingAttack change nth skel =
-  addLabel DatumHijackingLbl
-    <$> mkAccumLAttack paysScriptConstraintsT changeRecipient (0, False) checkReturn skel
-  where
-    checkReturn :: TxSkel -> (Integer, Bool) -> Maybe TxSkel
-    checkReturn _ (_, False) = Nothing
-    checkReturn s (_, True) = Just s
+datumHijackingAttack change select skel =
+  let thief = datumHijackingTarget @a
 
-    changeRecipient :: (Integer, Bool) -> PaysScriptConstraint -> (PaysScriptConstraint, (Integer, Bool))
-    changeRecipient (i, flag) c@(PaysScriptConstraint val dat money) =
-      -- checks whether val _is of the same type as_ the hijacking target,
-      -- they're obviously different scripts.
-      case val ~*~? datumHijackingTarget @a of
-        Just HRefl ->
-          if change val dat money && i == fromMaybe i nth
-            then (PaysScriptConstraint @a datumHijackingTarget dat money, (i + 1, True))
-            else (c, (i, flag))
-        Nothing -> (c, (i, flag))
+      changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
+      changeRecipient (PaysScriptConstraint val dat money) =
+        -- checks whether val _is of the same type as_ the thief, they're obviously different scripts.
+        case val ~*~? thief of
+          Just HRefl ->
+            if change val dat money
+              then Just $ PaysScriptConstraint thief dat money
+              else Nothing
+          Nothing -> Nothing
+   in addLabel (DatumHijackingLbl $ L.validatorHash thief)
+        <$> mkSelectAttack paysScriptConstraintsT changeRecipient select skel
 
-data DatumHijackingLbl = DatumHijackingLbl
+data DatumHijackingLbl = DatumHijackingLbl L.ValidatorHash
   deriving (Show, Eq)
 
 -- | The trivial validator that always succeds; this is a sufficient target for

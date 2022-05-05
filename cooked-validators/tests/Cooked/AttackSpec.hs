@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -277,25 +278,27 @@ datumHijackingAttackTests =
                   PaysScript val1 FirstLock x2,
                   PaysScript val1 SecondLock x2
                 ]
-            skelOut =
+            skelOut select =
               datumHijackingAttack @MockContract
                 ( \v d x ->
                     L.validatorHash val1 == L.validatorHash v
                       && SecondLock Pl.== d
                       && x2 `L.geq` x
                 )
-                (Just 0)
+                select
                 skelIn
-            skelExpected =
+            skelExpected a b =
               txSkelLbl
-                DatumHijackingLbl
+                (DatumHijackingLbl $ L.validatorHash thief)
                 [ PaysScript val1 SecondLock x1,
-                  PaysScript thief SecondLock x3,
+                  PaysScript a SecondLock x3,
                   PaysScript val2 SecondLock x1,
                   PaysScript val1 FirstLock x2,
-                  PaysScript val1 SecondLock x2
+                  PaysScript b SecondLock x2
                 ]
-         in assertTxSkelEqual skelExpected skelOut,
+         in assertTxSkelEqual (skelExpected thief val1) (skelOut (0 ==))
+              .&&. assertTxSkelEqual (skelExpected val1 thief) (skelOut (1 ==))
+              .&&. assertTxSkelEqual (skelExpected thief thief) (skelOut (const True)),
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
@@ -306,7 +309,7 @@ datumHijackingAttackTests =
                       L.validatorHash v == L.validatorHash carefulValidator
                         && SecondLock Pl.== d
                   )
-                  Nothing
+                  (const True)
               )
               (datumHijackingTrace carefulValidator)
           ),
@@ -318,7 +321,7 @@ datumHijackingAttackTests =
                       L.validatorHash v == L.validatorHash carelessValidator
                         && SecondLock Pl.== d
                   )
-                  Nothing
+                  (const True)
               )
               (datumHijackingTrace carelessValidator)
           )

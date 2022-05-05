@@ -160,7 +160,7 @@ tryDatumHijack =
             A.Bidding _ -> True
             _ -> False
         )
-        Nothing -- if there is more than one 'Bidding' output, try stealing all of them
+        (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
     )
     (noBids <|> oneBid <|> twoBids)
 

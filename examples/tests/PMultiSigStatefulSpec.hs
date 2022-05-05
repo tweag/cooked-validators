@@ -373,6 +373,6 @@ datumHijacking' =
             Accumulator _ _ -> True
             _ -> False
         )
-        (Just 0) -- if there is more than one output with 'Accumulator' datum, steal the first
+        (0 ==) -- if there is more than one output with 'Accumulator' datum, steal the first
     )
     exampleMtrace
