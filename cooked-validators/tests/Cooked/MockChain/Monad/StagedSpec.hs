@@ -10,6 +10,7 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
+import Data.Maybe
 import qualified Ledger.Ada as Pl
 import Test.HUnit
 import Test.Hspec
@@ -42,6 +43,34 @@ spec = do
     it "everywhere (const Nothing) == id" $
       assertAll possibleTraces $ \tr ->
         interpret (everywhere (const Nothing) tr) `imcEq` interpret tr
+
+  describe "somewhere (Just . f) (a >> b >> c) == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $ do
+    it "works" $
+      let f (TxSkel lbl opts cs) =
+            case toConstraints cs of
+              is :=>: os -> TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10000000) : os))
+          tr f g h = void $ do
+            validateTxSkel $ f $ txSkel [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
+            validateTxSkel $ g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
+            validateTxSkel $ h $ txSkel [paysPK (walletPKHash $ wallet 4) (Pl.lovelaceValueOf 4200000)]
+       in interpret (somewhere (Just . f) (tr id id id)) `imcEq` interpret (tr f id id <|> tr id f id <|> tr id id f)
+
+  describe "somewhere (\\case b -> b'; _ -> Nothing) (a >> b >> c) == [a >> b' >> c]" $ do
+    it "works" $
+      let paysWallet3 [] = False
+          paysWallet3 (PaysPKWithDatum tgt _ _ _ : xs) = tgt == walletPKHash (wallet 3) || paysWallet3 xs
+
+          f (TxSkel lbl opts cs) =
+            case toConstraints cs of
+              is :=>: os ->
+                if paysWallet3 os
+                  then Just $ TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10000000) : os))
+                  else Nothing
+          tr f g h = void $ do
+            validateTxSkel $ f $ txSkel [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
+            validateTxSkel $ g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
+            validateTxSkel $ h $ txSkel [paysPK (walletPKHash $ wallet 4) (Pl.lovelaceValueOf 4200000)]
+       in interpret (somewhere f (tr id id id)) `imcEq` interpret (tr id (fromJust . f) id)
 
   it "Somewhere is exponential in branch number" $
     -- If we make a trace @tr = a >> b@ with two transactions, Then execute:
