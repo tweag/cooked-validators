@@ -57,7 +57,19 @@ type InterpMockChain = MockChainT (WriterT TraceDescr [])
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . interpretNonDet
+interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . pruneSomewheres . interpretNonDet
+  where
+    -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
+    -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
+    pruneSomewheres :: (MonadPlus m) => InterpMockChainMod m a -> InterpMockChainMod m a
+    pruneSomewheres ma = do
+      result <- ma
+      ms <- lift get
+      if any isSomewhere ms then empty else return result
+
+    isSomewhere :: Modality a -> Bool
+    isSomewhere (Somewhere _) = True
+    isSomewhere _ = False
 
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
@@ -132,7 +144,10 @@ interpretOp OwnPubKey = ownPaymentPubKeyHash
 interpretOp AskSigners = askSigners
 interpretOp GetSlotConfig = slotConfig
 interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
-interpretOp (Modify m' block) = lift (modify (++ [m'])) >> interpretNonDet block
+interpretOp (Modify m' block) = do
+  ms <- lift get
+  lift $ put (ms ++ [m'])
+  interpretNonDet block
 interpretOp MZero = lift $ lift $ lift mzero
 interpretOp (MPlus a b) = combineInterpMockChainMod (interpretNonDet a) (interpretNonDet b)
   where
@@ -154,11 +169,7 @@ type InterpMockChainMod m = MockChainT (WriterT TraceDescr (StateT [Modality TxS
 
 -- | Interprets a 'StagedMockChain' that must be modified with a certain list of modalities.
 interpretNonDet :: forall m a. MonadPlus m => StagedMockChain a -> InterpMockChainMod m a
-interpretNonDet (Return a) = do
-  ms <- lift get
-  -- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,
-  -- return empty. If we return a, it would correspond to a trace where the modality was never applied.
-  if any isSomewhere ms then empty else return a
+interpretNonDet (Return a) = return a
 -- When interpreting a 'ValidateTxSkel', we evaluate the modalities and return a union
 -- of all possible outcomes.
 interpretNonDet (Instr (ValidateTxSkel skel) f) = do
@@ -203,10 +214,6 @@ instance MonadModal StagedMockChain where
 
 -- | Modalities apply a function to a trace;
 data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> Maybe a)
-
-isSomewhere :: Modality a -> Bool
-isSomewhere (Somewhere _) = True
-isSomewhere _ = False
 
 -- | Performs one step of interpreting a composition of modalities to an input. For example,
 --

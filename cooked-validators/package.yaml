@@ -29,7 +29,6 @@ dependencies:
   - plutus-pab
   - plutus-tx
   - plutus-tx-plugin
-  - plutus-use-cases
   - prettyprinter
   - scientific
   - streaming

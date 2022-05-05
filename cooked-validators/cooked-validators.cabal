@@ -68,7 +68,6 @@ library
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
-    , plutus-use-cases
     , prettyprinter
     , scientific
     , streaming
@@ -123,7 +122,6 @@ test-suite spec
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
-    , plutus-use-cases
     , prettyprinter
     , scientific
     , streaming
