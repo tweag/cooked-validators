@@ -28,15 +28,15 @@ import Type.Reflection
 
 -- * General helpers
 
-assertTxSkelEqual :: TxSkel -> Maybe TxSkel -> Assertion
+assertTxSkelEqual :: Maybe TxSkel -> Maybe TxSkel -> Assertion
 assertTxSkelEqual expected actual =
   assertBool
-    ( "non-equal 'TxSkel's: expected:\n\n"
-        ++ show (Just $ prettyTxSkel [] expected)
+    ( "non-equal 'TxSkel's:\nexpected:\n\n"
+        ++ show (prettyTxSkel [] <$> expected)
         ++ "\n\nactual:\n\n"
         ++ show (prettyTxSkel [] <$> actual)
     )
-    $ actual == Just expected
+    $ actual == expected
 
 -- * Tests for the token duplication attack
 
@@ -94,36 +94,37 @@ dupTokenAttackTests =
             skelIn =
               txSkel
                 ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 1 <> L.assetClassValue ac2 1),
-                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
+                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3),
+                    Mints (Nothing @()) [pol1] (L.assetClassValue ac1 7)
                   ]
                     :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-            skelOut =
+            skelOut select =
               dupTokenAttack
-                ( \c n ->
-                    if c == ac1
-                      then Just $ n + 11
-                      else
-                        if n == 1
-                          then Just 5
-                          else Just 1 -- in this setting, this means do nothing, since we try to mint 3 tokens above and 1<3
-                )
+                select
                 attacker
                 skelIn
-            skelExpected =
+            skelExpected v1 v2 v3 v4 =
               txSkelLbl
                 DupTokenLbl
-                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 12 <> L.assetClassValue ac2 5),
-                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3)
+                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 v1 <> L.assetClassValue ac2 v2),
+                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
+                    Mints (Nothing @()) [pol1] (L.assetClassValue ac1 v4)
                   ]
-                    :=>: [ paysPK (walletPKHash attacker) (L.assetClassValue ac1 11 <> L.assetClassValue ac2 6),
+                    :=>: [ paysPK
+                             (walletPKHash attacker)
+                             (L.assetClassValue ac1 (v1 + v4 - 1) <> L.assetClassValue ac2 (v2 + v3 - 2)),
                            paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-         in assertTxSkelEqual skelExpected skelOut,
+         in assertTxSkelEqual (Just $ skelExpected 2 2 4 8) (skelOut (\_ n -> Just $ n + 1))
+              .&&. assertTxSkelEqual Nothing (skelOut (\_ n -> Just n))
+              .&&. assertTxSkelEqual
+                (Just $ skelExpected 6 1 3 12)
+                (skelOut (\ac n -> if ac == ac1 then Just (n + 5) else Nothing)),
       testCase "careful minting policy" $
         let tName = L.tokenName "MockToken"
             pol = carefulPolicy tName 1
@@ -296,9 +297,9 @@ datumHijackingAttackTests =
                   PaysScript val1 FirstLock x2,
                   PaysScript b SecondLock x2
                 ]
-         in assertTxSkelEqual (skelExpected thief val1) (skelOut (0 ==))
-              .&&. assertTxSkelEqual (skelExpected val1 thief) (skelOut (1 ==))
-              .&&. assertTxSkelEqual (skelExpected thief thief) (skelOut (const True)),
+         in assertTxSkelEqual (Just $ skelExpected thief val1) (skelOut (0 ==))
+              .&&. assertTxSkelEqual (Just $ skelExpected val1 thief) (skelOut (1 ==))
+              .&&. assertTxSkelEqual (Just $ skelExpected thief thief) (skelOut (const True)),
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
