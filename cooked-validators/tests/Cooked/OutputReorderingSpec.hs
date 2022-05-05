@@ -1,5 +1,4 @@
 {-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Cooked.OutputReorderingSpec (tests) where
 
@@ -37,14 +36,11 @@ genTx = fmap fst . rightToMaybe . runMockChain . fmap snd . generateTx'
 -- the ordering of the outputs
 skel :: Wallet -> Wallet -> TxSkel
 skel w1 w2 =
-  TxSkel
-    { txLabel = Nothing @(),
-      txOpts = def {forceOutputOrdering = True},
-      txConstraints =
-        [ paysPK (walletPKHash w1) (Pl.lovelaceValueOf 1_000),
-          paysPK (walletPKHash w2) (Pl.lovelaceValueOf 1_000)
-        ]
-    }
+  txSkelOpts
+    (def {forceOutputOrdering = True})
+    [ paysPK (walletPKHash w1) (Pl.lovelaceValueOf 1_000),
+      paysPK (walletPKHash w2) (Pl.lovelaceValueOf 1_000)
+    ]
 
 -- | Checks that the first two outputs in a transaction are payments to the two
 -- given wallets

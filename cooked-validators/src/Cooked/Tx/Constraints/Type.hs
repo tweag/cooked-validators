@@ -10,7 +10,6 @@
 module Cooked.Tx.Constraints.Type where
 
 import Data.Default
-import Data.Functor.Identity
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
@@ -66,6 +65,13 @@ type PaysScriptConstrs a =
     Typeable a
   )
 
+type MintsConstrs a =
+  ( Pl.ToData a,
+    Pl.Eq a,
+    Show a,
+    Typeable a
+  )
+
 -- Our own first-class constraint types. The advantage over the regular plutus constraint
 -- type is that we get to add whatever we need and we hide away the type variables in existentials.
 
@@ -106,7 +112,7 @@ data MiscConstraint where
   -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
   -- policies.
   Mints ::
-    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
+    MintsConstrs a =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
@@ -222,18 +228,18 @@ type LabelConstrs x = (Show x, Typeable x, Eq x)
 -- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
-    (LabelConstrs x, ConstraintsSpec constraints) =>
+    (LabelConstrs x) =>
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
-      txConstraints :: constraints
+      txConstraints :: Constraints
     } ->
     TxSkel
 
 instance Eq TxSkel where
   TxSkel l1 o1 c1 == TxSkel l2 o2 c2 =
-    case (l1 ~*~? l2, Identity c1 ~*~? Identity c2) of
-      (Just HRefl, Just HRefl) -> (l1, o1, c1) == (l2, o2, c2)
+    case l1 ~*~? l2 of
+      Just HRefl -> (l1, o1, c1) == (l2, o2, c2)
       _ -> False
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'
@@ -242,11 +248,15 @@ txSkel = txSkelOpts def
 
 -- | Constructs a skeleton without a default label, but with custom options
 txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
-txSkelOpts = TxSkel @() Nothing
+txSkelOpts opts cs = TxSkel @() Nothing opts (toConstraints cs)
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x, Typeable x, Eq x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
-txSkelLbl x = TxSkel (Just x) def
+txSkelLbl :: (LabelConstrs x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
+txSkelLbl x = TxSkel (Just x) def . toConstraints
+
+-- | Constructs a skeleton with the given labtl, options, and constraints
+txSkelLblOpts :: (LabelConstrs x, ConstraintsSpec constraints) => x -> TxOpts -> constraints -> TxSkel
+txSkelLblOpts x os cs = TxSkel (Just x) os (toConstraints cs)
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when

@@ -13,6 +13,7 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
+      Cooked.Attack
       Cooked.Currencies
       Cooked.MockChain
       Cooked.MockChain.Constraints
@@ -29,6 +30,7 @@ library
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
+      Cooked.Tx.Constraints.Optics
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
       Example
@@ -57,6 +59,7 @@ library
     , memory
     , monad-control
     , mtl
+    , optics-core
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -80,6 +83,7 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Cooked.AttackSpec
       Cooked.BalanceSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
@@ -110,6 +114,7 @@ test-suite spec
     , memory
     , monad-control
     , mtl
+    , optics-core
     , plutus-contract
     , plutus-core
     , plutus-ledger

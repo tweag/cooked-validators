@@ -75,7 +75,7 @@ tests =
           app f (TxSkel l opts constraintsSpec) =
             case toConstraints constraintsSpec of
               [] :=>: [PaysPKWithDatum pk stak dat val] ->
-                Just $ TxSkel l opts [PaysPKWithDatum pk stak dat (f val)]
+                Just $ txSkelLblOpts l opts [PaysPKWithDatum pk stak dat (f val)]
               _ -> Nothing
           -- Two transformations
           f x = Pl.lovelaceValueOf 3_000_000
