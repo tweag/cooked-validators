@@ -225,7 +225,7 @@ instance IsProp HU.Assertion where
   testCounterexample msg = maybe testSuccess (E.throw . adjustMsg) <=< assertionToMaybe
     where
       joinMsg :: String -> String
-      joinMsg rest = msg ++ "; " ++ rest
+      joinMsg rest = msg ++ ";\n" ++ rest
 
       adjustMsg :: HU.HUnitFailure -> HU.HUnitFailure
       adjustMsg (HU.HUnitFailure loc txt) =

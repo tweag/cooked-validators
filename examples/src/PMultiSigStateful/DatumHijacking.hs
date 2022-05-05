@@ -26,6 +26,7 @@ import qualified Ledger
 import qualified Ledger.Contexts as Contexts
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified PlutusTx
+import qualified PlutusTx.Eq as Pl
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
@@ -45,12 +46,22 @@ data StealerDatum
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
+instance Pl.Eq StealerDatum where
+  {-# INLINEABLE (==) #-}
+  Accumulator p1 s1 == Accumulator p2 s2 = p1 Pl.== p2 && s1 Pl.== s2
+  Sign s1 == Sign s2 = s1 == s2
+  _ == _ = False
+
 data Payment = Payment
   { paymentAmount :: Integer,
     paymentRecipient :: Ledger.PubKeyHash
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
+
+instance Pl.Eq Payment where
+  {-# INLINEABLE (==) #-}
+  Payment a1 r1 == Payment a2 r2 = a1 Pl.== a2 && r1 Pl.== r2
 
 PlutusTx.makeLift ''Payment
 PlutusTx.unstableMakeIsData ''Payment

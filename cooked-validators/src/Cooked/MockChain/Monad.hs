@@ -27,7 +27,7 @@ import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import qualified PlutusTx as Pl (FromData)
 
--- * BlokChain Monad
+-- * BlockChain Monad
 
 -- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
 --  The operations within 'MonadBlockChain' have an implementation over the 'Plutus.Contract.Contract'
@@ -41,7 +41,7 @@ import qualified PlutusTx as Pl (FromData)
 -- This enables you to choose different interpretations at run time. The two immediately interesting
 -- interpretations are running your code within the
 -- 'Plutus.Contract.Contract' monad to generate and submit transactions and to
--- test the code by running it in the 'Cooked.MockChain.Monad.Direct.MockChain' monad, provided in this library,
+-- test the code by running it in the 'Cooked.MockChain.Monad.Direct.MockChain' monad, provided in this library.
 class (MonadFail m) => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
@@ -74,7 +74,7 @@ class (MonadFail m) => MonadBlockChain m where
   -- | Returns the current time
   currentTime :: m Pl.POSIXTime
 
-  -- | Either waits until the given slot then returns the current slot.
+  -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
   --  is larger than the argument.
   awaitSlot :: Pl.Slot -> m Pl.Slot
@@ -95,7 +95,7 @@ validateTxConstr :: (MonadBlockChain m, ConstraintsSpec constraints) => constrai
 validateTxConstr = validateTxSkel . txSkel
 
 -- | Calls 'validateTxSkel' with the default set of options but passes an arbitrary showable label to it.
-validateTxConstrLbl :: (Show lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.TxId
+validateTxConstrLbl :: (LabelConstrs lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.TxId
 validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
@@ -103,7 +103,7 @@ spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- | Select public-key UTxO's that might contain some datum but no staking address.
+-- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
 -- you must use 'utxosSuchThat' directly.
 pkUtxosSuchThat ::
@@ -114,7 +114,7 @@ pkUtxosSuchThat ::
   m [(SpendableOut, Maybe a)]
 pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
 
--- | Select public-key UTxO's that do not contain some datum nor staking address.
+-- | Select public-key UTxOs that do not contain some datum nor staking address.
 -- This is just a simpler variant of 'pkUtxosSuchThat'.
 pkUtxosSuchThatValue ::
   (MonadBlockChain m) =>
@@ -124,7 +124,7 @@ pkUtxosSuchThatValue ::
 pkUtxosSuchThatValue pkh predi =
   map fst <$> pkUtxosSuchThat @() pkh (valueSat predi)
 
--- | Script UTxO's always have a datum, hence, can be selected easily with
+-- | Script UTxOs always have a datum, hence, can be selected easily with
 --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
 --  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
 scriptUtxosSuchThat ::
@@ -147,11 +147,11 @@ outFromOutRef outref = do
     Just o -> return o
     Nothing -> fail ("No output associated with: " ++ show outref)
 
--- | Return all utxos belonging to a pubkey
+-- | Return all UTxOs belonging to a pubkey
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
 pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 
--- | Return all utxos belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
+-- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
 pkUtxos' pkh = map (second go) <$> pkUtxos pkh
@@ -167,8 +167,8 @@ pkUtxos' pkh = map (second go) <$> pkUtxos pkh
 -- Slots are integers that monotonically increase and model the passage of time. By looking
 -- at the current slot, a validator gets to know that it is being executed within a certain
 -- window of wall-clock time. Things can get annoying pretty fast when trying to mock traces
--- and trying to exercise certain branches of certain validators, make sure you also see
--- read the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
+-- and trying to exercise certain branches of certain validators; make sure you also read
+-- the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
 waitNSlots :: (MonadBlockChain m) => Integer -> m Pl.Slot
 waitNSlots n = do
@@ -215,7 +215,7 @@ signs = flip as
 -- ** Modalities
 
 -- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
--- Hence, modal actions are TxSkel's.
+-- Hence, modal actions are 'TxSkel's.
 type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
 
 -- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'

@@ -3,6 +3,7 @@
 module Cooked.MockChain.UtxoState where
 
 import Control.Arrow (second)
+import Cooked.Currencies
 import Cooked.MockChain.Wallet
 import Data.Function (on)
 import qualified Data.List as L
@@ -10,12 +11,13 @@ import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
+import qualified Ledger.Ada as Ada
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
-import qualified Prettyprinter
+import qualified Prettyprinter as PP
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
@@ -137,36 +139,43 @@ utxoStateDiffTgt = UtxoState . M.foldlWithKey keepIfModOrIns M.empty
 -- on. Hence, we must be able to display our 'UtxoState's in a human readable fashion.
 prettyUtxoState :: UtxoState -> Doc ann
 prettyUtxoState =
-  Prettyprinter.vsep
-    . List.intersperse Prettyprinter.emptyDoc
+  PP.vsep
+    . List.intersperse PP.emptyDoc
     . map (uncurry prettyAddress . second utxoValueSet)
     . M.toList
     . utxoState
 
 prettyAddress :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
 prettyAddress address payloads =
-  Prettyprinter.vsep
+  PP.vsep
     [ prettyAddressTypeAndHash address,
-      Prettyprinter.indent 2
-        . Prettyprinter.vsep
-        . map (("-" <>) . Prettyprinter.indent 1)
-        . mapMaybe (uncurry prettyPayload)
+      PP.indent 2
+        . PP.vsep
+        . map (("-" <>) . PP.indent 1)
+        . mapMaybe prettyPayloadGroup
+        . L.group
+        . L.sortBy (compare `on` (Ada.fromValue . fst))
         $ payloads
     ]
+
+prettyPayloadGroup :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
+prettyPayloadGroup [] = Nothing
+prettyPayloadGroup ((vl, mutxo) : rest) =
+  let lenRest = length rest
+      lenInfo x
+        | lenRest == 0 = x
+        | otherwise = x <+> PP.parens ("x" <+> PP.pretty (lenRest + 1))
+   in lenInfo <$> prettyPayload vl mutxo
 
 -- Returns `Nothing` if the value is empty to avoid having an empty document
 -- whose height is 1 in the `prettyprinter` library and would generate empty
 -- lines.
 prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
 prettyPayload value mDatum =
-  (\vs -> if null vs then Nothing else Just $ Prettyprinter.vsep vs)
+  (\vs -> if null vs then Nothing else Just $ PP.vsep vs)
     . catMaybes
     $ [ mPrettyValue value,
-        (":" <>)
-          . Prettyprinter.indent 1
-          . Prettyprinter.pretty
-          . utxoShow
-          <$> mDatum
+        (":" <>) . PP.indent 1 . PP.pretty . utxoShow <$> mDatum
       ]
 
 -- Returns `Nothing` if the value is empty to avoid having an empty document
@@ -178,12 +187,7 @@ mPrettyValue =
       case vs of
         [] -> Nothing
         [v] -> Just v
-        _ ->
-          Just $
-            Prettyprinter.lbrace
-              <> Prettyprinter.indent 1 (Prettyprinter.vsep vs)
-              <> Prettyprinter.space
-              <> Prettyprinter.rbrace
+        _ -> Just $ PP.lbrace <> PP.indent 1 (PP.vsep vs) <> PP.space <> PP.rbrace
   )
     . map (uncurry prettyCurrencyAndAmount)
     . Pl.toList
@@ -191,25 +195,31 @@ mPrettyValue =
 
 prettyCurrencyAndAmount :: Pl.CurrencySymbol -> Pl.Map Pl.TokenName Integer -> Doc ann
 prettyCurrencyAndAmount symbol =
-  Prettyprinter.vsep . map (uncurry prettyToken) . Pl.toList
+  PP.vsep . map (uncurry prettyToken) . Pl.toList
   where
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
-    prettySymbol = Prettyprinter.pretty . take 7 . show
+    prettySymbol = PP.pretty . take 7 . show
+
+    prettySpacedNumber :: Integer -> Doc ann
+    prettySpacedNumber = psnTerm "" 0
+      where
+        psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
+        psnTerm acc _ 0 = acc
+        psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+        psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
     prettyToken :: Pl.TokenName -> Integer -> Doc ann
     prettyToken name n =
-      ( if symbol == Pl.CurrencySymbol ""
-          then (if name == Pl.TokenName "" then "Ada" else Prettyprinter.pretty name)
-          else
-            Prettyprinter.parens
-              ( prettySymbol symbol
-                  <+> "$"
-                  <+> Prettyprinter.pretty name
-              )
-      )
-        <> ":"
-        <> Prettyprinter.space
-        <> Prettyprinter.pretty n
+      let prettyAmount = ":" <+> prettySpacedNumber n
+          prettyCurrency
+            | symbol == Pl.CurrencySymbol "" = "Lovelace"
+            | symbol == quickCurrencySymbol = withTok "Quick"
+            | symbol == permanentCurrencySymbol = withTok "Perm"
+            | otherwise = withTok (prettySymbol symbol)
+
+          withTok :: Doc ann -> Doc ann
+          withTok s = PP.parens (s <+> "$" <+> PP.pretty name)
+       in prettyCurrency <+> prettyAmount
 
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash (Pl.Address addrCr _) =
@@ -218,19 +228,15 @@ prettyAddressTypeAndHash (Pl.Address addrCr _) =
     (Pl.PubKeyCredential pkh) ->
       prettyAux "pubkey" pkh
         <> maybe
-          Prettyprinter.emptyDoc
-          ( (Prettyprinter.space <>)
-              . Prettyprinter.parens
-              . ("wallet #" <>)
-              . Prettyprinter.pretty
-          )
+          PP.emptyDoc
+          ((PP.space <>) . PP.parens . ("wallet #" <>) . PP.pretty)
           (walletPKHashToId pkh)
   where
     prettyAux :: Show hash => String -> hash -> Doc ann
     prettyAux addressType hash =
       mconcat
-        [ Prettyprinter.pretty addressType,
-          Prettyprinter.space,
-          Prettyprinter.pretty . take 7 . show $ hash
+        [ PP.pretty addressType,
+          PP.space,
+          PP.pretty . take 7 . show $ hash
         ]
-        <> Prettyprinter.colon
+        <> PP.colon

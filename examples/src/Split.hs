@@ -35,8 +35,14 @@ data SplitDatum = SplitDatum
     recipient2 :: Ledger.PubKeyHash,
     amount :: Integer
   }
-  deriving stock (Haskell.Eq, Haskell.Show, Generic)
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
+
+instance Eq SplitDatum where
+  SplitDatum r1'1 r2'1 a1 == SplitDatum r1'2 r2'2 a2 =
+    r1'1 == r1'2
+      && r2'1 == r2'2
+      && a1 == a2
 
 type SplitRedeemer = ()
 

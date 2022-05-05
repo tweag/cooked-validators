@@ -1,9 +1,10 @@
-module Cooked.MockChain.WalletSpec where
+module Cooked.MockChain.WalletSpec (tests) where
 
 import qualified Cardano.Crypto.Wallet as Crypto
 import Cooked.MockChain.Wallet
 import qualified Ledger.CardanoWallet as CW
-import Test.Hspec
+import Test.Tasty
+import Test.Tasty.HUnit
 
 -- these instances are needed by `shouldBe` below.
 
@@ -13,9 +14,8 @@ instance Eq Crypto.XPrv where
 instance Show Crypto.XPrv where
   show = show . Crypto.toXPub
 
-spec :: SpecWith ()
-spec = do
-  describe "Hack: unwrapping a MockPrivateKey into a XPrv" $ do
-    it "Works" $
-      hackUnMockPrivateKey (CW.mwPaymentKey $ wallet 1)
-        `shouldBe` walletSK (wallet 1)
+tests :: [TestTree]
+tests =
+  [ testCase "Hack: unwrapping a MockPrivateKey into a XPrv" $
+      hackUnMockPrivateKey (CW.mwPaymentKey $ wallet 1) @?= walletSK (wallet 1)
+  ]

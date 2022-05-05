@@ -1,7 +1,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.OutputReorderingSpec (spec) where
+module Cooked.OutputReorderingSpec (tests) where
 
 import Cooked.MockChain
 import Cooked.Tx.Constraints
@@ -10,22 +10,28 @@ import Data.Either.Combinators (rightToMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Credential as Pl
-import Test.Hspec
+import Test.Tasty
+import Test.Tasty.HUnit
 
-spec :: SpecWith ()
-spec = do
-  describe "outputs follow the order of the 'paysPK' constraints" $ do
-    it "ordering two outputs" $
-      genTx (skel (wallet 2) (wallet 3))
-        `shouldSatisfy` maybe False (firstRecipientsAre (wallet 2) (wallet 3))
-    it "reversing the ordering of two outputs" $
-      genTx (skel (wallet 3) (wallet 2))
-        `shouldNotSatisfy` maybe False (firstRecipientsAre (wallet 2) (wallet 3))
+tests :: [TestTree]
+tests =
+  [ testCase "ordering two outputs" $
+      assertBool "doesn't satisfy" $
+        maybe False (firstRecipientsAre (wallet 2) (wallet 3)) $
+          genTx
+            (skel (wallet 2) (wallet 3)),
+    testCase
+      "reversing the ordering of two outputs"
+      $ assertBool "satisfies" $
+        not $
+          maybe False (firstRecipientsAre (wallet 2) (wallet 3)) $
+            genTx (skel (wallet 3) (wallet 2))
+  ]
 
 -- | Generates the transaction corresponding to a 'TxSkel' under the default
 -- distribution
 genTx :: TxSkel -> Maybe Pl.Tx
-genTx = fmap fst . rightToMaybe . runMockChain . generateTx'
+genTx = fmap fst . rightToMaybe . runMockChain . fmap snd . generateTx'
 
 -- | Pays 1_000 lovelace to 2 given wallets in a transaction that forces
 -- the ordering of the outputs

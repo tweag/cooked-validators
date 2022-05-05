@@ -5,14 +5,17 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import Data.Default
+import Data.Functor.Identity
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Eq as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
@@ -29,7 +32,7 @@ sOutAddress = Pl.txOutAddress . Pl.toTxOut . snd
 
 -- | Accesses a potential 'Pl.DatumHash' within a 'SpendableOut'; note that
 --  the existence (or not) of a datum hash /DOES NOT/ indicate the 'SpendableOut'
---  belongs to a script or a public key, you must pattern match on the result of
+--  belongs to a script or a public key; you must pattern match on the result of
 --  'sOutAddress' or use one of 'sBelongsToPubKey' or 'sBelongsToScript' to distinguish that.
 sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
 sOutDatumHash = Pl.txOutDatum . Pl.toTxOut . snd
@@ -51,6 +54,15 @@ type SpendsConstrs a =
     Pl.ToData (Pl.RedeemerType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
+    Pl.Eq (Pl.DatumType a),
+    Pl.Eq (Pl.RedeemerType a),
+    Typeable a
+  )
+
+type PaysScriptConstrs a =
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
     Typeable a
   )
 
@@ -62,6 +74,7 @@ type SpendsConstrs a =
 -- transaction, and miscellaneous constraints 'MiscConstraint' including input
 -- constraints, time constraints, or signature requirements.
 data Constraints = [MiscConstraint] :=>: [OutConstraint]
+  deriving (Eq)
 
 instance Semigroup Constraints where
   (c1 :=>: oc1) <> (c2 :=>: oc2) = (c1 <> c2) :=>: (oc1 <> oc2)
@@ -71,28 +84,70 @@ instance Monoid Constraints where
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
+  -- | Ensure that the given 'Pl.TypedValidator' spends a specific UTxO (which
+  -- must belong to the validator). That is: Unlock the UTxO described by the
+  -- given pair of 'SpendableOut' and 'Pl.DatumType', passing the given redeemer
+  -- to the validator script.
   SpendsScript ::
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
     (SpendableOut, Pl.DatumType a) ->
     MiscConstraint
+  -- | Ensure that a 'Pl.PubKeyHash' spends a specific UTxO. The hash is not an
+  -- argument since it can be read off the given 'SpendableOut'.
   SpendsPK :: SpendableOut -> MiscConstraint
+  -- | Ensure that the transaction mints the given 'Pl.Value'. For each
+  -- 'Pl.CurrencySymbol' in the value that is to be minted, the given list of
+  -- 'Pl.MintingPolicy's has to include the policy governing that currency
+  -- symbol. The @Maybe a@-argument is the optional redeemer passed to the
+  -- policies: If you pass @Nothing@, the constraint is translated using
+  -- 'Pl.mustMintValue', which uses no redeemer; if you pass @Just r@,
+  -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
+  -- policies.
   Mints ::
-    (Pl.ToData a, Show a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Maybe a ->
     [Pl.MintingPolicy] ->
     Pl.Value ->
     MiscConstraint
+  -- | Ensure that the transaction happens before the given time.
   Before :: Pl.POSIXTime -> MiscConstraint
+  -- | Ensure that the transaction happens after the given time.
   After :: Pl.POSIXTime -> MiscConstraint
+  -- | Ensure that the transaction happens in the given time range.
   ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint
+  -- | Ensure that the transaction is signed by the given 'Pl.PubKeyHash'es.
   SignedBy :: [Pl.PubKeyHash] -> MiscConstraint
+
+-- NB don't forget to update the Eq instance when adding new constructors
+
+(~*~?) :: forall ty a1 a2. (Typeable a1, Typeable a2) => ty a1 -> ty a2 -> Maybe (a1 :~~: a2)
+_ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
+
+instance Eq MiscConstraint where
+  SpendsScript s1 r1 (so1, d1) == SpendsScript s2 r2 (so2, d2) =
+    case s1 ~*~? s2 of
+      Just HRefl -> (s1, so1) == (s2, so2) && (r1, d1) Pl.== (r2, d2)
+      Nothing -> False
+  SpendsPK so1 == SpendsPK so2 = so1 == so2
+  Mints d1 p1 v1 == Mints d2 p2 v2 =
+    case d1 ~*~? d2 of
+      Just HRefl -> (p1, v1) == (p2, v2) && d1 Pl.== d2
+      Nothing -> False
+  Before t1 == Before t2 = t1 == t2
+  After t1 == After t2 = t1 == t2
+  ValidateIn r1 == ValidateIn r2 = r1 == r2
+  SignedBy hs1 == SignedBy hs2 = hs1 == hs2
+  _ == _ = False
 
 -- | Constraints which specify new transaction outputs
 data OutConstraint where
+  -- | Creates an UTxO to the given validator, with the given datum
+  -- and the given value. That is, lets the scirpt lock the given
+  -- value.
   PaysScript ::
-    (Pl.ToData (Pl.DatumType a), Show (Pl.DatumType a), Typeable a) =>
+    (PaysScriptConstrs a) =>
     Pl.TypedValidator a ->
     Pl.DatumType a ->
     Pl.Value ->
@@ -103,18 +158,31 @@ data OutConstraint where
   -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
   -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
   PaysPKWithDatum ::
-    (Pl.ToData a, Show a) =>
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
     Pl.PubKeyHash ->
     Maybe Pl.StakePubKeyHash ->
     Maybe a ->
     Pl.Value ->
     OutConstraint
 
+-- NB don't forget to update the Eq instance when adding new constructors
+
+instance Eq OutConstraint where
+  PaysScript s1 d1 v1 == PaysScript s2 d2 v2 =
+    case s1 ~*~? s2 of
+      Just HRefl -> (s1, v1) == (s2, v2) && d1 Pl.== d2
+      Nothing -> False
+  PaysPKWithDatum pk1 stake1 d1 v1 == PaysPKWithDatum pk2 stake2 d2 v2 =
+    case d1 ~*~? d2 of
+      Just HRefl -> (pk1, stake1, v1) == (pk2, stake2, v2) && d1 Pl.== d2
+      Nothing -> False
+  _ == _ = False
+
 -- | This typeclass provides user-friendly convenience to overload the
 -- 'txConstraints' field of 'TxSkel'. For instance, this enables us to ommit the '(:=>:)'
 -- constructor whenever we're using only one kind of constraints.
 -- It also opens up future alternative of constraint specification.
-class ConstraintsSpec a where
+class (Eq a, Typeable a) => ConstraintsSpec a where
   toConstraints :: a -> Constraints
 
 instance ConstraintsSpec Constraints where
@@ -138,6 +206,8 @@ paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 mints = Mints @() Nothing
 
+type LabelConstrs x = (Show x, Typeable x, Eq x)
+
 -- | A Transaction skeleton is a set of our constraints,
 -- and an optional showable label, which is useful when displaying
 -- traces. The label was encoded as an existential to enable us to
@@ -152,13 +222,19 @@ mints = Mints @() Nothing
 -- A TxSkel does /NOT/ include a Wallet since wallets only exist in mock mode.
 data TxSkel where
   TxSkel ::
-    (Show x, ConstraintsSpec constraints) =>
+    (LabelConstrs x, ConstraintsSpec constraints) =>
     { txLabel :: Maybe x,
       -- | Set of options to use when generating this transaction.
       txOpts :: TxOpts,
       txConstraints :: constraints
     } ->
     TxSkel
+
+instance Eq TxSkel where
+  TxSkel l1 o1 c1 == TxSkel l2 o2 c2 =
+    case (l1 ~*~? l2, Identity c1 ~*~? Identity c2) of
+      (Just HRefl, Just HRefl) -> (l1, o1, c1) == (l2, o2, c2)
+      _ -> False
 
 -- | Constructs a skeleton without a default label and with default 'TxOpts'
 txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
@@ -169,7 +245,7 @@ txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
 txSkelOpts = TxSkel @() Nothing
 
 -- | Constructs a skeleton with a label
-txSkelLbl :: (Show x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
+txSkelLbl :: (Show x, Typeable x, Eq x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
 txSkelLbl x = TxSkel (Just x) def
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
@@ -207,16 +283,45 @@ data TxOpts = TxOpts
     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
     --
+    -- One interesting use of this function is to observe a transaction just before it is being
+    -- sent for validation, with @unsafeModTx = RawModTx Debug.Trace.traceShowId@.
+    --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to 'Id'.
     unsafeModTx :: RawModTx,
-    -- | Whether to balance the transaction or not.
+    -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
+    --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
+    -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
+    -- and should adjust the fees accordingly. For now, there is no option to skip the fee computation because
+    -- without it, validation through "Ledger.Validation" would fail with @InsufficientFees@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
-    balance :: Bool
+    balance :: Bool,
+    -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
+    -- and can be specified manually, or it can be chosen automatically, if any is available.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @CollateralAuto@.
+    collateral :: Collateral,
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @AdjustExistingOutput@.
+    balanceOutputPolicy :: BalanceOutputPolicy
   }
   deriving (Eq, Show)
+
+-- | Whether to adjust existing public key outputs during
+-- transaction balancing.
+data BalanceOutputPolicy
+  = -- | Try to adjust an existing public key output with the change. If no
+    --   suitable output can be found, create a new change output.
+    AdjustExistingOutput
+  | -- | Do not change the existing outputs, always create a new change
+    --   output.
+    DontAdjustExistingOutput
+  deriving (Eq, Ord, Show)
 
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
@@ -238,6 +343,15 @@ instance Show RawModTx where
   show Id = "Id"
   show (RawModTx _) = "RawModTx"
 
+-- | Specifies how to select the collateral input
+data Collateral
+  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
+    CollateralAuto
+  | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
+    --  no collateral will be used whatsoever.
+    CollateralUtxos [Pl.TxOutRef]
+  deriving (Eq, Show)
+
 instance Default TxOpts where
   def =
     TxOpts
@@ -246,5 +360,7 @@ instance Default TxOpts where
         autoSlotIncrease = True,
         forceOutputOrdering = True,
         unsafeModTx = Id,
-        balance = True
+        balance = True,
+        collateral = CollateralAuto,
+        balanceOutputPolicy = AdjustExistingOutput
       }

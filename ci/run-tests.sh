@@ -4,13 +4,15 @@ set -uo pipefail
 show_help() {
   cat <<EOF
 usage: ./ci/run-tests.sh [--ci]
-
   Note the script is ran from the repo root; Running without --ci
   will run "ormolu --mode inplace" and fix offending files.
-
   Options:
-    --ci      Instructs the script to save artifacts and
-              only checks syntax, instead of fixing it.
+    --ci      Informs the script it is running in CI; this means
+              we will save the test results as a file (named <project>-cabal-test.{res,out})
+              The script WILL SUCCEED IFF THE BUILD SUCCEEDED; 
+              This behavior ensures that the build gets cached. 
+              Another job should check the artifact/cache to decide whether
+              the workflow passes or fails as a whole
 EOF
 }
 
@@ -28,6 +30,39 @@ if $ci; then
   popd
 fi
 
+## Each step below runs a certain program and, when running in CI, creates
+## two files: ${proj}-${step}.res and ${proj}-${step}.out
+## The former contains a string encoding the return code of the tool whereas
+## the later contains a human-readable description of what happened
+##
+## The point of this is that when running in CI, we will execute all these steps
+## but we "succeed" iff the build is ok. Another job will then check the resulting
+## files for their exit codes. This is ugly but it ensures that the cabal build
+## gets cached even if tests or ormolu fails, which means we save a lot of time 
+## (and CI runner money) in the long run.
+
+run_hpack() {
+  local proj=$1
+  echo "Running hpack on $proj"
+  local hpack_res=0
+
+  pushd "$proj"
+  hpack | grep -v "generated"
+  hpack_res=$?
+  popd
+  
+  if $ci; then
+    if [[ "$hpack_res" -ne "0" ]]; then
+      echo "hpack regenerated the cabal file; please push it!" >> "./${proj}-hpack.out"
+    else
+      echo "hpack didn't need to regenarate; all good" >> "./${proj}-hpack.out"
+    fi
+    echo "run_hpack:$hpack_res" >> "./${proj}-hpack.res"
+  fi 
+
+  return $hpack_res
+}
+
 ## Runs ormolu on all .hs files in a given project; sets the ormolu_ok
 ## variable to `false` in case ormolu fails. It also creates an artifact
 ## explaining the failure inside the tests folder.
@@ -36,18 +71,35 @@ run_ormolu() {
   echo "Running ormolu on $proj"
   local ormolu_res=0
   if $ci; then
-    ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "ci/${proj}-ormolu.artifact")
+    ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "./${proj}-ormolu.out")
     ormolu_res=$?
+    echo "run_ormolu:$ormolu_res" >> "./${proj}-ormolu.res"
   else 
     ormolu --mode inplace $(find ./$proj -name '*.hs') 
     ormolu_res=$?
   fi 
 
-  if $ci && [[ "$ormolu_res" -eq "0" ]]; then
-    rm "ci/${proj}-ormolu.artifact"
-  fi
-
   return $ormolu_res
+}
+
+## Runs the cabal build for a project
+run_cabal_build() {
+  local proj=$1
+  echo "Running 'cabal build' on $proj"
+
+  pushd "$proj"
+  local cabal_res=0
+  if $ci; then
+    cabal build | tee "../${proj}-cabal-build.out"
+    cabal_res=$?
+    echo "cabal_build:$cabal_res" >> "../${proj}-cabal-build.res"
+  else
+    cabal build
+    cabal_res=$?
+  fi
+  popd
+
+  return $cabal_res
 }
 
 ## Runs the cabal tests of a project; creates artifacts with potential failures.
@@ -55,23 +107,17 @@ run_cabal_test() {
   local proj=$1
   echo "Running 'cabal run tests' on $proj"
 
-  ## cd into the project, then generates the cabal file and run the necessary tests.
   pushd "$proj"
-
   local cabal_res=0
   if $ci; then
-    cabal run tests | tee "../ci/${proj}-cabal-test.artifact"
+    cabal run tests | tee "../${proj}-cabal-test.out"
     cabal_res=$?
+    echo "run_cabal_test:$cabal_res" >> "../${proj}-cabal-test.res"
   else
     cabal run tests
     cabal_res=$?
   fi
-  
   popd
-
-  if $ci && [[ "$cabal_res" -eq "0" ]]; then
-    rm "ci/$proj-cabal-test.artifact"
-  fi
 
   return $cabal_res
 }
@@ -81,42 +127,56 @@ run_hlint() {
   local proj=$1
   echo "Running 'hlint' on $proj"
 
+  ## Since SimpleSMT is an external library, we want to minimize the difference.
+  ## Hence, we do not run `hlint` on it.
   local hlint_res=0
   if $ci; then
-    hlint --hint="ci/hlint.yaml" ${proj} | tee "ci/${proj}-hlint.artifact"
+    hlint --hint="ci/hlint.yaml" "$proj" | tee "./${proj}-hlint.out"
     hlint_res=$?
+    echo "run_hlint:$hlint_res" >> "./${proj}-hlint.res"
   else
-    hlint --hint="ci/hlint.yaml" ${proj}
+    hlint --hint="ci/hlint.yaml" "$proj"
     hlint_res=$?
-  fi
-
-  if $ci && [[ "$hlint_res" -eq "0" ]]; then
-    rm "ci/$proj-hlint.artifact"
   fi
 
   return $hlint_res
 }
 
+
 projects=("cooked-validators" "examples")
-ormolu_ok=true
-cabal_ok=true
-hlint_ok=true
+overall_ok=true
 
 for p in ${projects[*]}; do
-  hpack "$p"
-done
+  hpack_ok=true
+  ormolu_ok=true
+  cabal_build_ok=true
+  cabal_test_ok=true
+  hlint_ok=true
 
-for p in ${projects[*]}; do
-  run_ormolu "$p"
+  run_hpack "$p"
   if [[ "$?" -ne "0" ]]; then
-    echo "[FAILURE] 'ormolu --check' failed for $p; check the respective artifact."
-    ormolu_ok=false
+    echo "[FAILURE] 'hpack' failed for $p; check the respective artifact."
+    hack_ok=false
   fi
 
-  run_cabal_test "$p"
+  run_cabal_build "$p"
   if [[ "$?" -ne "0" ]]; then
-    echo "[FAILURE] 'cabal run tests' failed for $p; check the respective artifact."
-    cabal_ok=false
+    echo "[FAILURE] 'cabal build' failed for $p; check the respective artifact."
+    cabal_build_ok=false
+  fi
+
+  if $cabal_build_ok; then
+    run_cabal_test "$p"
+    if [[ "$?" -ne "0" ]]; then
+      echo "[FAILURE] 'cabal run tests' failed for $p; check the respective artifact."
+      cabal_test_ok=false
+    fi
+  fi
+
+  run_ormolu "$p"
+  if [[ "$?" -ne "0" ]]; then
+    echo "[FAILURE] 'ormolu' failed for $p; check the respective artifact."
+    ormolu_ok=false
   fi
 
   run_hlint "$p"
@@ -124,9 +184,19 @@ for p in ${projects[*]}; do
     echo "[FAILURE] 'hlint' failed for $p; check the respective artifact."
     hlint_ok=false
   fi
+
+  if $ci; then
+    if ! $cabal_build_ok; then
+      overall_ok=false
+    fi
+  else
+    if ! ($hpack_ok && $cabal_build_ok && $cabal_test_ok && $ormolu_ok && $hpack_ok); then
+      overall_ok=false
+    fi
+  fi    
 done
 
-if $cabal_ok && $ormolu_ok && $hlint_ok; then
+if $overall_ok; then
   exit 0
 else
   exit 1

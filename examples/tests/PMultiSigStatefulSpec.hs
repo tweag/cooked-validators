@@ -17,6 +17,7 @@ import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
+import Data.Typeable
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -68,7 +69,7 @@ pkTable = AssocMap.fromList $ map (\w -> (walletPKHash w, walletPK w)) knownWall
 --  us identify what that transaction is doing without carefully inspecting its
 --  constraints.
 data ProposalSkel = ProposalSkel Integer Payment
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Next, we can create proposals, which are simply an accumulator with no signees
 mkProposal :: MonadBlockChain m => Integer -> Payment -> m (Params, Pl.TxOutRef)
@@ -120,9 +121,6 @@ mkSign params pmt sk = do
     -- set to @True@, which will increase this value to however many lovelace are currently needed.
     mkSignLockedCost :: Pl.Value
     mkSignLockedCost = Pl.lovelaceValueOf 1
-
-minAda :: Pl.Value
-minAda = Pl.lovelaceValueOf 2000000
 
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = signs (wallet 1) $ do
@@ -297,9 +295,15 @@ dupTokenAttack sOut (parms, tokenRef) (TxSkel l opts cs) =
              ]
 
 data DupTokenAttacked where
-  DupTokenAttacked :: (Show x) => Maybe x -> DupTokenAttacked
+  DupTokenAttacked :: (Typeable x, Show x, Eq x) => Maybe x -> DupTokenAttacked
 
 deriving instance Show DupTokenAttacked
+
+instance Eq DupTokenAttacked where
+  DupTokenAttacked m1 == DupTokenAttacked m2 =
+    case m1 ~*~? m2 of
+      Just HRefl -> m1 == m2
+      Nothing -> False
 
 -- ** Datum Hijacking Attack
 
