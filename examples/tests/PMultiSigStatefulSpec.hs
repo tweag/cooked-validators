@@ -358,21 +358,23 @@ mkFakeCollect thePayment params = do
 -- It seems that this contract in fact *is* vulnerable; let's leave this here?
 datumHijackingTrace' :: TestTree
 datumHijackingTrace' =
-  expectFail $
-    testCase "not vulnerable to the automatic datum hijacking attack" $
-      testFailsFrom'
-        isCekEvaluationFailure
-        def
-        datumHijacking'
+  testCase "not vulnerable to the automatic datum hijacking attack" $
+    testFailsFrom'
+      isCekEvaluationFailure
+      def
+      datumHijacking'
 
 datumHijacking' :: MonadModalMockChain m => m ()
 datumHijacking' =
   somewhere
     ( Cooked.datumHijackingAttack @PMultiSig
-        ( \_ d _ -> case d of -- try to steal outputs with the 'Accumulator' datum
-            Accumulator _ _ -> True
+        -- We'll try to attack the collecting transaction. This means that the
+        -- output in question uses the 'Accumulator' datum, but with a nonempty
+        -- list of signers.
+        ( \_ d _ -> case d of
+            Accumulator _ (_ : _) -> True
             _ -> False
         )
-        (0 ==) -- if there is more than one output with 'Accumulator' datum, steal the first
+        (0 ==) -- if there is more than one matching output (which should not happen here), steal the first
     )
     exampleMtrace
