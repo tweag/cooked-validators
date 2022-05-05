@@ -67,6 +67,10 @@ interpret = mapMockChainT (mapWriterT $ flip evalStateT []) . pruneSomewheres . 
       ms <- lift get
       if any isSomewhere ms then empty else return result
 
+    isSomewhere :: Modality a -> Bool
+    isSomewhere (Somewhere _) = True
+    isSomewhere _ = False
+
 -- | This is an initial encoding of the MockChain operations, it provides
 --  a simple way of altering the AST of a trace before actually executing it.
 --  On top of the operations from 'MonadBlockChain' we also have 'Fail' to make
@@ -175,8 +179,7 @@ interpretNonDet (Instr (ValidateTxSkel skel) f) = do
     interpAux :: TxSkel -> [Modality TxSkel] -> InterpMockChainMod m a
     interpAux skel' ms' = lift (put ms') >> interpAndTellOp (ValidateTxSkel skel') >>= interpretNonDet . f
 -- Interpreting any other instruction is just a matter of interpreting a bind
-interpretNonDet (Instr op f) = do
-  interpAndTellOp op >>= interpretNonDet . f
+interpretNonDet (Instr op f) = interpAndTellOp op >>= interpretNonDet . f
 
 -- | Auxiliar function to interpret a bind.
 interpAndTellOp :: forall m a. MonadPlus m => MockChainOp a -> InterpMockChainMod m a
@@ -211,10 +214,6 @@ instance MonadModal StagedMockChain where
 
 -- | Modalities apply a function to a trace;
 data Modality a = Somewhere (a -> Maybe a) | Everywhere (a -> Maybe a)
-
-isSomewhere :: Modality a -> Bool
-isSomewhere (Somewhere _) = True
-isSomewhere _ = False
 
 -- | Performs one step of interpreting a composition of modalities to an input. For example,
 --
