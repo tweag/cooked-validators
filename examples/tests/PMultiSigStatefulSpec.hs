@@ -355,7 +355,6 @@ mkFakeCollect thePayment params = do
 
 -- * Datum Hijacking Attack from 'Cooked.Attack'
 
--- It seems that this contract in fact *is* vulnerable; let's leave this here?
 datumHijackingTrace' :: TestTree
 datumHijackingTrace' =
   testCase "not vulnerable to the automatic datum hijacking attack" $
