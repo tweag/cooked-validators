@@ -18,7 +18,11 @@ data Ltl a
   = LtlTruth
   | LtlFalsity
   | LtlAtom a
-  | LtlOr (Ltl a) (Ltl a)
+  | -- | Disjunction will be interpreted in an "intuitionistic" way, i.e. as
+    -- branching into the "timeline" where the left disjunct holds and the one
+    -- where the right disjunct holds. In that sense, it is an exclusive or,
+    -- as it does not introduce the branche where both disjuncts hold.
+    LtlOr (Ltl a) (Ltl a)
   | LtlAnd (Ltl a) (Ltl a)
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
@@ -57,7 +61,7 @@ everywhere x = LtlFalsity `LtlRelease` x
 --   only have a finite number of steps. It indicates whether the given formula
 --   allows the current time step to be the last one. More explicitly,
 --     * @finished == True@ if the whole formula is satisfied, even if there is
---      no next step, and
+--       no next step, and
 --     * @finished == False@ if there must be a next step satisfying the "do
 --       later" formula for the whole formula to be satisfied.
 -- The return value is a list because a formula might be satisfied in different
@@ -120,9 +124,9 @@ deriv t comp (a `LtlRelease` b) =
   ]
 
 -- | Straightforward simplification procedure for LTL formulae. This function
--- knows how 'LtlTruth' and 'LtlFalsity' play with conjunction an disjunction
--- and recursively applies this knowledge; it does not do anything "fancy" like
--- normal forms etc. It is only used to keep the formulae 'deriv' generates from
+-- knows how 'LtlTruth' and 'LtlFalsity' play with the other connectives and
+-- recursively applies this knowledge; it does not do anything fancy like normal
+-- forms etc. It is only used to keep the formulae 'deriv' generates from
 -- growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
 ltlSimpl expr =
@@ -219,7 +223,7 @@ interpInstr ::
   Ltl (Action -> Maybe Action) ->
   Op a ->
   (a -> Staged Op b) ->
-  WriterT [Integer] m b
+  WriterT [Integer] m (b, Ltl (Action -> Maybe Action))
 interpInstr p x GetInteger f = (interpLtl p x . f) 42
 interpInstr _ x (EmitInteger i) f =
   msum $
@@ -228,10 +232,29 @@ interpInstr _ x (EmitInteger i) f =
       (deriv Just (\g h -> maybe Nothing g . h) x)
 interpInstr _ _ Empty _ = mzero
 interpInstr p x (Alt a b) f = interpLtl p x (a >>= f) `mplus` interpLtl p x (b >>= f)
-interpInstr p x (Modify y c) f = interpLtl p (x `LtlAnd` y) c >>= interpLtl p x . f
+-- There are decisions on semantics to be made here. I think the sensible thing
+-- to do is to add (with 'LtlAnd') any pre-existing modification formula to the
+-- one that is to be applied using 'Modify'.
+--
+-- This is all still very fishy to me. Look at the 'testEmptyModify'-test, which
+-- is currently failing. The problem there is that the 'LtlFalsity' used to
+-- modify the actions there (which are none at all) is passed on to the first
+-- action after the 'Modify'ed computation. That's clearly not what we
+-- want. I'll be wiser after the weekend...
+interpInstr p x (Modify y c) f = interpLtl True (x `LtlAnd` y) c >>= \(a, z) -> interpLtl p z (f a)
 
-interpLtl :: (MonadPlus m) => Bool -> Ltl (Action -> Maybe Action) -> Staged Op a -> WriterT [Integer] m a
-interpLtl p _ (Return a) = if p then return a else mzero
+interpLtl ::
+  (MonadPlus m) =>
+  -- | Are we finished? (in the sense explained in the comments for 'deriv')
+  Bool ->
+  -- | The formula to apply.
+  Ltl (Action -> Maybe Action) ->
+  -- | The computation to apply the formula to.
+  Staged Op a ->
+  -- | Return the result of the computation, together with the formula to apply
+  -- to the next computation.
+  WriterT [Integer] m (a, Ltl (Action -> Maybe Action))
+interpLtl p x (Return a) = if p then return (a, x) else mzero
 interpLtl p x (Instr o f) = interpInstr p x o f
 
 -- tests/examples
@@ -247,7 +270,7 @@ trace2 :: Staged Op ()
 trace2 = Instr (EmitInteger 2) $ \_ -> Instr (EmitInteger 5) Return
 
 testSomewhere :: [[Integer]]
-testSomewhere = execWriterT $ interpLtl True (somewhere (LtlAtom $ Just . (* 2))) trace1
+testSomewhere = execWriterT $ interpLtl False (somewhere (LtlAtom $ Just . (* 2))) trace1
 
 testEverywhere :: [[Integer]]
 testEverywhere = execWriterT $ interpLtl True (everywhere (LtlAtom $ Just . (* 2))) trace1
@@ -266,6 +289,9 @@ testAndNext =
     f 42 = Just 0
     f _ = Nothing
 
+-- ltlInclOr :: Ltl a -> Ltl a -> Ltl a
+-- a `ltlInclOr` b =
+
 traceWithModify :: Staged Op ()
 traceWithModify =
   Instr (EmitInteger 1) $
@@ -279,21 +305,53 @@ traceWithModify =
   where
     x = LtlAtom (Just . (+ 1)) `LtlOr` LtlNext (LtlAtom (Just . (* 3)))
 
-testModify :: [[Integer]]
-testModify = execWriterT $ interpLtl True LtlTruth traceWithModify
+testModifyNoContext :: [[Integer]]
+testModifyNoContext = execWriterT $ interpLtl True LtlTruth traceWithModify
+
+testModifyContext :: [[Integer]]
+testModifyContext = execWriterT $ interpLtl True x traceWithModify
+  where
+    x = LtlNext $ LtlAtom $ Just . (+ 5)
+
+traceEmptyModify :: Staged Op ()
+traceEmptyModify =
+  Instr (EmitInteger 1) $
+    \_ ->
+      Instr
+        (Modify x $ Instr GetInteger $ \_ -> Instr GetInteger Return)
+        $ \i -> Instr (EmitInteger i) Return
+  where
+    x = LtlFalsity -- this *should* never be applied, so it *should* be allowed to be falsity.
+
+testEmptyModify :: [[Integer]]
+testEmptyModify = execWriterT $ interpLtl True x traceEmptyModify
+  where
+    x = LtlNext $ LtlAtom $ Just . (+ 1)
+
+-- testFalsityNotApplied :: [[Integer]]
+-- testFalsityNotApplied = execWriterT $ interpLtl True x traceEmptyModify
+--   where
+--     x = LtlTruth
 
 tests :: TestTree
 tests =
   testGroup
     "LTL tests"
-    [ testCase "somewhere behaves" $
+    [ testCase "somewhere" $
         testSomewhere @?= [[6, 42], [3, 84]],
-      testCase "everywhere behaves" $
+      testCase "everywhere" $
         testEverywhere @?= [[6, 84]],
-      testCase "next behaves" $
+      testCase "next (together with Alt)" $
         testNext @?= [[3, 84]],
-      testCase "and-next behaves" $
+      testCase "and-next" $
         testAndNext @?= [[4, 0]],
-      testCase "Modify in a context with no modification behaves" $
-        testModify @?= [[1, 3, 3, 5], [1, 2, 9, 5]]
+      testCase "Modify in empty context" $
+        testModifyNoContext @?= [[1, 3, 3, 5], [1, 2, 9, 5]],
+      testCase "Modify with context" $
+        testModifyContext @?= [[1, 8, 3, 5], [1, 7, 9, 5]],
+      testCase "Modify with context but no modified operations" $
+        testEmptyModify @?= [[1, 43]]
+        -- ,
+        -- testCase "LtlFalsity not applied to non-action" $
+        --   testFalsityNotApplied @?= [[1, 42]]
     ]
