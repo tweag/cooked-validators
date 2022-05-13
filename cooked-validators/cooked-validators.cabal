@@ -21,6 +21,7 @@ library
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.Staged
+      Cooked.MockChain.Play
       Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing
       Cooked.MockChain.Time
