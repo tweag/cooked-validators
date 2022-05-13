@@ -99,8 +99,8 @@ deriv t comp (a `LtlUntil` b) =
   deriv t comp $
     b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
 deriv t comp (a `LtlRelease` b) =
-  -- We have to do something subtle here: Normally, we'd like to write
-  -- something readable like
+  -- We have to be subtle here: Normally, we'd like to write something readable
+  -- like
   -- > deriv t comp $
   -- >   b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
   -- as we did in the equation for `LtlUntil`. This won't work, however, because
@@ -112,7 +112,8 @@ deriv t comp (a `LtlRelease` b) =
   -- > ]
   -- (modulo the order of elements in the lists). If @a@ is simply @LtlFalsity@,
   -- that would mean that we can never finish, even if @b@ is always
-  -- applicable. This means we have to write this (@True@ instead of @False@):
+  -- applicable. This means we have to write this (note the @True@ instead of
+  -- @False@):
   [ (g `comp` f, ltlSimpl $ c `LtlAnd` d, i && j)
     | (f, c, i) <- deriv t comp b,
       (g, d, j) <- (t, a `LtlRelease` b, True) : deriv t comp a
@@ -174,6 +175,22 @@ ltlSimpl expr =
             then (f a' b', True)
             else (f a b, False)
 
+data Op a where
+  -- | the failing operation ("discard this branch"):
+  Empty :: Op a
+  -- | the "time-branching" operation
+  Alt :: Staged Op a -> Staged Op a -> Op a
+  -- | the operation that applies a modification on a certain sub-computation:
+  Modify :: Ltl (Action -> Maybe Action) -> Staged Op a -> Op a
+  -- -- Another nice-to-have: signalling an error. This should also behave
+  -- -- sensibly with the time-branching structure.
+  -- Fail :: String -> Op a
+
+  -- this is where the MonadBlockChain Operations would normally go, these are
+  -- here to have something simpler to play around with:
+  GetInteger :: Op Integer
+  EmitInteger :: Integer -> Op ()
+
 data Staged (op :: * -> *) :: * -> * where
   Return :: a -> Staged op a
   Instr :: op a -> (a -> Staged op b) -> Staged op b
@@ -190,43 +207,34 @@ instance Monad (Staged Op) where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
 
--- instance Applicative (Staged Op) => Alternative (Staged Op) where
---   empty = Instr Empty Return
---   a <|> b = Instr (Alt a b) Return
-
-data Op a where
-  GetInteger :: Op Integer
-  EmitInteger :: Integer -> Op ()
-
--- Empty :: Op a
--- Alt :: Staged Op a -> Staged Op a -> Op a
--- Fail :: String -> Op a
--- Modify :: Ltl (Action -> Maybe Action) -> Staged Op a -> Op a
+instance Applicative (Staged Op) => Alternative (Staged Op) where
+  empty = Instr Empty Return
+  a <|> b = Instr (Alt a b) Return
 
 type Action = Integer
 
-interpOp :: MonadPlus m => (Action -> Maybe Action) -> Op a -> WriterT [Integer] m a
-interpOp _ GetInteger = return 42
-interpOp g (EmitInteger i) = maybe mzero (tell . (: [])) (g i)
-
--- interpOp _ Empty = mzero
--- interpOp g (Alt a b) = interpLtl  g a `mplus`
+interpInstr ::
+  (MonadPlus m) =>
+  Bool ->
+  Ltl (Action -> Maybe Action) ->
+  Op a ->
+  (a -> Staged Op b) ->
+  WriterT [Integer] m b
+interpInstr p x GetInteger f = (interpLtl p x . f) 42
+interpInstr _ x (EmitInteger i) f =
+  msum $
+    map
+      (\(m, y, q) -> maybe mzero (tell . (: [])) (m i) >>= interpLtl q y . f)
+      (deriv Just (\g h -> maybe Nothing g . h) x)
+interpInstr _ _ Empty _ = mzero
+interpInstr p x (Alt a b) f = interpLtl p x (a >>= f) `mplus` interpLtl p x (b >>= f)
+interpInstr p x (Modify y c) f = interpLtl p (x `LtlAnd` y) c >>= interpLtl p x . f
 
 interpLtl :: (MonadPlus m) => Bool -> Ltl (Action -> Maybe Action) -> Staged Op a -> WriterT [Integer] m a
-interpLtl b _ (Return a) = if b then return a else mzero
-interpLtl _ x (Instr o f) =
-  if isAction o
-    then
-      msum $
-        map
-          (\(m, y, b) -> interpOp m o >>= interpLtl b y . f)
-          (deriv Just (\g h -> maybe Nothing g . h) x)
-    else interpOp Just o >>= interpLtl True x . f
-  where
-    isAction (EmitInteger _) = True
-    isAction _ = False
+interpLtl p _ (Return a) = if p then return a else mzero
+interpLtl p x (Instr o f) = interpInstr p x o f
 
--- tests and examples
+-- tests/examples
 
 trace1 :: Staged Op ()
 trace1 =
@@ -236,13 +244,7 @@ trace1 =
         \i -> Instr (EmitInteger i) Return
 
 trace2 :: Staged Op ()
-trace2 =
-  Instr (EmitInteger 2) $ \_ -> Instr (EmitInteger 5) Return
-
--- trace2 :: Staged Op ()
--- trace2 =
---   Instr (EmitInteger 1) $
---     \_ ->
+trace2 = Instr (EmitInteger 2) $ \_ -> Instr (EmitInteger 5) Return
 
 testSomewhere :: [[Integer]]
 testSomewhere = execWriterT $ interpLtl True (somewhere (LtlAtom $ Just . (* 2))) trace1
@@ -258,11 +260,27 @@ testAndNext =
   execWriterT $
     interpLtl
       True
-      ((LtlAtom $ Just . (+ 1)) `LtlAnd` LtlNext (LtlAtom $ f))
-      trace1 -- (trace1 <|> trace2)
+      (LtlAtom (Just . (+ 1)) `LtlAnd` LtlNext (LtlAtom f))
+      (trace1 <|> trace2)
   where
     f 42 = Just 0
     f _ = Nothing
+
+traceWithModify :: Staged Op ()
+traceWithModify =
+  Instr (EmitInteger 1) $
+    \_ ->
+      Instr
+        ( Modify x $
+            Instr (EmitInteger 2) $
+              \_ -> Instr (EmitInteger 3) Return
+        )
+        $ \_ -> Instr (EmitInteger 5) Return
+  where
+    x = LtlAtom (Just . (+ 1)) `LtlOr` LtlNext (LtlAtom (Just . (* 3)))
+
+testModify :: [[Integer]]
+testModify = execWriterT $ interpLtl True LtlTruth traceWithModify
 
 tests :: TestTree
 tests =
@@ -275,5 +293,7 @@ tests =
       testCase "next behaves" $
         testNext @?= [[3, 84]],
       testCase "and-next behaves" $
-        testAndNext @?= [[4, 0]]
+        testAndNext @?= [[4, 0]],
+      testCase "Modify in a context with no modification behaves" $
+        testModify @?= [[1, 3, 3, 5], [1, 2, 9, 5]]
     ]
