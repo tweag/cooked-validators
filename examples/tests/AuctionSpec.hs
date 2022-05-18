@@ -177,7 +177,7 @@ attacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryDupTokens
+          tryDatumHijack
     ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
