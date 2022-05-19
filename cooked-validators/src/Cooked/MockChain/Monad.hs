@@ -1,10 +1,8 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -14,11 +12,9 @@ module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
-import Control.Monad.Trans.Control
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
@@ -212,69 +208,46 @@ as ma w = signingWith (w NE.:| []) ma
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
--- ** Modalities
+-- -- ** Deriving further 'MonadBlockChain' instances
 
--- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
--- Hence, modal actions are 'TxSkel's.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
+-- -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
+-- -- for any 'MonadTrans'.
+-- --
+-- -- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
+-- --
+-- -- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+-- --
+-- -- and avoid the boilerplate of defining all the methods of the class yourself.
+-- newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
+--   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
--- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'
--- and 'everywhere' functions receive an argument of type @Action m -> Maybe (Action m)@ because
--- we want (a) all branches of @somewhere f tree@ to have a guarantee that they had exactly one action
--- modified by @f@ and (b) we want 'everywhere' to be the dual of 'somewhere', so its type must be the same.
-class (Monad m) => MonadModal m where
-  type Action m :: Type
+-- instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
+--   validateTxSkel = lift . validateTxSkel
+--   utxosSuchThat addr f = lift $ utxosSuchThat addr f
+--   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+--   txOutByRef = lift . txOutByRef
+--   currentSlot = lift currentSlot
+--   currentTime = lift currentTime
+--   awaitSlot = lift . awaitSlot
+--   awaitTime = lift . awaitTime
 
-  -- | Applies a modification to all possible actions in a tree. If a modification
-  -- cannot be applied anywhere, this is the identity: @everywhere (const Nothing) x == x@.
-  everywhere :: (Action m -> Maybe (Action m)) -> m a -> m a
+-- -- This might be assigned a more general type,
+-- -- but this type is more inference-friendly, and it also seems to communicate the idea better.
+-- unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
+-- f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 
-  -- | Applies a modification to some transactions in a tree, note that
-  -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
-  -- progress, hence if it is not possible to apply the transformation anywhere
-  -- in @x@, there would be no progress.
-  somewhere :: (Action m -> Maybe (Action m)) -> m a -> m a
+-- instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+--   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
+--   askSigners = lift askSigners
+--   slotConfig = lift slotConfig
 
--- ** Deriving further 'MonadBlockChain' instances
+-- instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
+--   type Action (AsTrans t m) = Action m
+--   everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
+--   somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
 
--- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
--- for any 'MonadTrans'.
---
--- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
---
--- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
---
--- and avoid the boilerplate of defining all the methods of the class yourself.
-newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
-  deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
+-- deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
-instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
-  utxosSuchThat addr f = lift $ utxosSuchThat addr f
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
-  txOutByRef = lift . txOutByRef
-  currentSlot = lift currentSlot
-  currentTime = lift currentTime
-  awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
+-- deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 
--- This might be assigned a more general type,
--- but this type is more inference-friendly, and it also seems to communicate the idea better.
-unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
-f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
-
-instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
-  askSigners = lift askSigners
-  slotConfig = lift slotConfig
-
-instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
-  type Action (AsTrans t m) = Action m
-  everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
-  somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
-
-deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
-
-deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
-
-deriving via (AsTrans (ReaderT r) m) instance MonadModal m => MonadModal (ReaderT r m)
+-- deriving via (AsTrans (ReaderT r) m) instance MonadModal m => MonadModal (ReaderT r m)
