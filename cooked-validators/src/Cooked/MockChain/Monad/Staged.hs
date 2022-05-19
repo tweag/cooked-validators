@@ -8,8 +8,10 @@
 
 module Cooked.MockChain.Monad.Staged where
 
+import Control.Applicative
 import Control.Monad.Except
-import Control.Monad.Writer.Strict
+import Control.Monad.State
+import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Attack
 import Cooked.MockChain.Ltl
 import Cooked.MockChain.Monad
@@ -34,7 +36,7 @@ interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, TraceDescr)]
-interpretAndRunWith f smc = runWriterT $ f (interpret smc)
+interpretAndRunWith f smc = evalStateT (runWriterT $ f (interpLtl smc)) (True, LtlTruth)
 
 -- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
@@ -44,20 +46,20 @@ interpretAndRun = interpretAndRunWith runMockChainT
 
 -- * Interpreting 'StagedMockChain'
 
--- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
---  'interpret' function for more.
-type InterpMockChain = MockChainT (WriterT TraceDescr [])
+-- -- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
+-- --  'interpret' function for more.
+-- type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
--- | The 'interpret' function gives semantics to our traces. One
---  'StagedMockChain' computation yields a potential list of 'MockChainT'
---  computations, which emit a description of their operation. Recall a
---  'MockChainT' is a state and except monad composed:
---
---  >     MockChainT (WriterT TraceDescr []) a
---  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
---  > =~= st -> [(Either err (a, st) , TraceDescr)]
-interpret :: StagedMockChain a -> InterpMockChain a
-interpret = undefined
+-- -- | The 'interpret' function gives semantics to our traces. One
+-- --  'StagedMockChain' computation yields a potential list of 'MockChainT'
+-- --  computations, which emit a description of their operation. Recall a
+-- --  'MockChainT' is a state and except monad composed:
+-- --
+-- --  >     MockChainT (WriterT TraceDescr []) a
+-- --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
+-- --  > =~= st -> [(Either err (a, st) , TraceDescr)]
+-- interpret :: StagedMockChain a -> InterpMockChain a
+-- interpret tr = evalStateT (interpLtl tr) (True, LtlTruth)
 
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.TxId
@@ -77,65 +79,59 @@ data MockChainBuiltin a where
   AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
   GetSlotConfig :: MockChainBuiltin Pl.SlotConfig
 
-type MockChainOp = Op (TxSkel -> Maybe TxSkel) MockChainBuiltin
+type MockChainOp = LtlOp Attack MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
--- interpretOp (ValidateTxSkel skel) = validateTxSkel skel
--- interpretOp (TxOutByRef ref) = txOutByRef ref
--- interpretOp GetCurrentSlot = currentSlot
--- interpretOp GetCurrentTime = currentTime
--- interpretOp (AwaitSlot s) = awaitSlot s
--- interpretOp (AwaitTime t) = awaitTime t
--- interpretOp (UtxosSuchThat addr predi) = utxosSuchThat addr predi
--- interpretOp (Fail str) = fail str
--- interpretOp OwnPubKey = ownPaymentPubKeyHash
--- interpretOp AskSigners = askSigners
--- interpretOp GetSlotConfig = slotConfig
--- interpretOp (SigningWith ws act) = signingWith ws (interpretNonDet act)
--- interpretOp (Modify m' block) = do
---   ms <- lift get
---   lift $ put (ms ++ [m'])
---   interpretNonDet block
--- interpretOp MZero = lift $ lift $ lift mzero
--- interpretOp (MPlus a b) = combineInterpMockChainMod (interpretNonDet a) (interpretNonDet b)
---   where
---     combineInterpMockChainMod ::
---       MonadPlus m =>
---       InterpMockChainMod m a ->
---       InterpMockChainMod m a ->
---       InterpMockChainMod m a
---     combineInterpMockChainMod = combineMockChainT $ \ma mb ->
---       WriterT $
---         StateT $ \s ->
---           runStateT (runWriterT ma) s `mplus` runStateT (runWriterT mb) s
-
--- | This is an internal type that keeps track of the list of modalities that
--- are present in each branch, it's isomorphic to:
---
---  > St -> ListMods -> m ((Either Err (a, St) , TraceDescr), ListMods)
 singleton :: op a -> Staged op a
 singleton x = Instr x Return
 
 -- * Instances of HasBuiltins
 
-instance Semigroup Attack where
-  f <> g = maybe Nothing f . G
+-- type Attack = TxSkel -> Maybe TxSkel
 
-instance (MonadPlus m, MonadMockChain m) => HasBuiltins Attack MockChainBuiltin m where
-  -- modifyBuiltin m (ValidateTxSkel skel) = maybe mzero validateTxSkel (m skel)
-  -- modifyBuiltin _ (TxOutByRef oref) = txOutByRef oref
-  -- modifyBuiltin _ GetCurrentSlot = currentSlot
-  -- modifyBuiltin _ (AwaitSlot s) = awaitSlot s
-  -- modifyBuiltin _ GetCurrentTime = currentTime
-  -- modifyBuiltin _ (AwaitTime t) = awaitTime t
-  -- modifyBuiltin _ (UtxosSuchThat addr pr) = utxosSuchThat addr pr
-  -- modifyBuiltin _ OwnPubKey = ownPaymentPubKeyHash
-  modifyBuiltin x (SigningWith wals trace) cont = signingWith wals $ interpLtl True x trace
-  modifyBuiltin _ _ _ = undefined
+instance {-# OVERLAPS #-} Semigroup Attack where
+  f <> g = maybe Nothing f . g
 
--- modifyBuiltin _ AskSigners = askSigners
--- modifyBuiltin _ GetSlotConfig = slotConfig
+instance {-# OVERLAPS #-} Monoid Attack where
+  mempty = Just
+
+type InterpMockChainLtl = MockChainT (WriterT TraceDescr (StateT (Bool, Ltl Attack) []))
+
+interpLtl :: StagedMockChain a -> InterpMockChainLtl a
+-- The following five equations should always be the same, no matter what the
+-- builtins are. Do we have a nice way to abstract them away?
+interpLtl (Return a) = lift get >>= \(finished, _) -> if finished then return a else empty
+interpLtl (Instr Empty _) = empty
+interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) <|> interpLtl (r >>= f)
+interpLtl (Instr (Modify new) f) = lift get >>= \(p, old) -> lift (put (p, LtlAnd new old)) >>= interpLtl . f
+interpLtl (Instr (Fail msg) _) = fail msg
+-- now the MockChain-specific cases: first the two difficult/interesting ones:
+interpLtl (Instr (Builtin (ValidateTxSkel skel)) f) = do
+  (p, x) <- lift get
+  nonFailing $
+    map
+      ( \(m, y, q) -> do
+          txid <- maybe empty validateTxSkel (m skel)
+          lift $ put (q, y)
+          interpLtl $ f txid
+          -- >>= \txid -> lift put (q, y) >> interpLtl $ f txid
+      )
+      (nowLater x)
+  where
+    nonFailing [] = empty
+    nonFailing (w : ws) = w <|> nonFailing ws
+interpLtl (Instr (Builtin (SigningWith ws tr)) f) = signingWith ws (interpLtl tr) >>= interpLtl . f
+-- now the easy ones:
+interpLtl (Instr (Builtin (TxOutByRef oref)) f) = txOutByRef oref >>= interpLtl . f
+interpLtl (Instr (Builtin GetCurrentSlot) f) = currentSlot >>= interpLtl . f
+interpLtl (Instr (Builtin (AwaitSlot s)) f) = awaitSlot s >>= interpLtl . f
+interpLtl (Instr (Builtin GetCurrentTime) f) = currentTime >>= interpLtl . f
+interpLtl (Instr (Builtin (AwaitTime t)) f) = awaitTime t >>= interpLtl . f
+interpLtl (Instr (Builtin (UtxosSuchThat a p)) f) = utxosSuchThat a p >>= interpLtl . f
+interpLtl (Instr (Builtin OwnPubKey) f) = ownPaymentPubKeyHash >>= interpLtl . f
+interpLtl (Instr (Builtin AskSigners) f) = askSigners >>= interpLtl . f
+interpLtl (Instr (Builtin GetSlotConfig) f) = slotConfig >>= interpLtl . f
 
 -- * Human Readable Traces
 

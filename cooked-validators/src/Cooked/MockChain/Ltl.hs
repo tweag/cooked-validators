@@ -50,79 +50,75 @@ everywhere x = LtlFalsity `LtlRelease` x
 
 -- | This function splits an LTL formula that describes a modification of a
 -- computation into a list of @(doNow, doLater, finished)@ triples, where
--- * @doNow@ is the concrete modification to be applied to the current time
---   step,
+--
+-- * @doNow@ is the modification to be applied to the current time step,
+--
 -- * @doLater@ is an LTL formula describing the modification that should be
---   applied at the next time step, and
+--   applied from the next time step onwards, and
+--
 -- * @finished@ is a @Bool@ we use to get around the fact that time is
 --   conceptually infinite in LTL, but the computations we consider (hopefully)
 --   only have a finite number of steps. It indicates whether the given formula
 --   allows the current time step to be the last one. More explicitly,
+--
 --     * @finished == True@ if the whole formula is satisfied, even if there is
 --       no next step, and
+--
 --     * @finished == False@ if there must be a next step satisfying the "do
 --       later" formula for the whole formula to be satisfied.
+--
 -- The return value is a list because a formula might be satisfied in different
 -- ways. For example, the modification described by @a `LtlUntil` b@ might be
--- accomplished by applying the modification @b@ right now, or by applying @b@
--- right now and @a `LtlUntil` b@ at the next step; the returned list will
--- therefore contain these two options.  Modifications should form a monoid,
--- where 'mempty' is the do-nothing modification, and '<>' is the composition of
--- modifications. If '<>' is not commutative, conjunction will also fail to be
--- commutative!
-nowThen ::
-  (Monoid a) =>
-  -- | The input formula
-  Ltl a ->
-  -- | List of possible modifications to the current time step, together with
-  -- the formula that should be used to modify the next time step, and an
-  -- indication whether the formula allows the current time step to be the last
-  -- one.
-  [(a, Ltl a, Bool)]
-nowThen LtlTruth = [(mempty, LtlTruth, True)]
-nowThen LtlFalsity = []
-nowThen (LtlAtom g) = [(g, LtlTruth, True)]
-nowThen (a `LtlOr` b) = nowThen a ++ nowThen b
-nowThen (a `LtlAnd` b) =
+-- accomplished by applying the modification @b@ right now, or by applying @a@
+-- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
+-- will contain these two options.
+--
+-- Modifications should form a monoid, where 'mempty' is the do-nothing
+-- modification, and '<>' is the composition of modifications. Attention: If
+-- '<>' is not commutative, conjunction will also fail to be commutative!
+nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a, Bool)]
+nowLater LtlTruth = [(mempty, LtlTruth, True)]
+nowLater LtlFalsity = []
+nowLater (LtlAtom g) = [(g, LtlTruth, True)]
+nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
+nowLater (a `LtlAnd` b) =
   [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
-    | (f, c, i) <- nowThen a,
-      (g, d, j) <- nowThen b
+    | (f, c, i) <- nowLater a,
+      (g, d, j) <- nowLater b
   ]
-nowThen (LtlNext a) = [(mempty, a, False)]
-nowThen (a `LtlUntil` b) =
+nowLater (LtlNext a) = [(mempty, a, False)]
+nowLater (a `LtlUntil` b) =
   -- The following definition is equivalent to
-  -- > nowThen t comp b
+  -- > nowLater b
   -- >   ++ [ (f, ltlSimpl $ c `LtlAnd` (a `LtlUntil` b), False)
-  -- >        | (f, c, _) <- nowThen t comp a
+  -- >        | (f, c, _) <- nowLater a
   -- >      ]
   -- but more readable:
-  nowThen $
-    b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
-nowThen (a `LtlRelease` b) =
+  nowLater $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
+nowLater (a `LtlRelease` b) =
   -- We have to be subtle here: Normally, we'd like to write something readable
   -- like
-  -- > nowThen t comp $
-  -- >   b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+  -- > nowLater $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
   -- as we did in the equation for `LtlUntil`. This won't work, however, because
   -- of the finite number of time steps. The above definition would be evaluated
   -- to something like
-  -- > [ (g `comp` f, ltlSimpl $ c `LtlAnd` d, i && j)
-  -- >   | (f, c, i) <- nowThen t comp b,
-  -- >     (g, d, j) <- (t, a `LtlRelease` b, False) : nowThen t comp a
+  -- > [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
+  -- >   | (f, c, i) <- nowLater b,
+  -- >     (g, d, j) <- (mempty, a `LtlRelease` b, False) : nowLater a
   -- > ]
   -- (modulo the order of elements in the lists). If @a@ is simply @LtlFalsity@,
   -- that would mean that we can never finish, even if @b@ is always
   -- applicable. This means we have to write this (note the @True@ instead of
   -- @False@):
   [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
-    | (f, c, i) <- nowThen b,
-      (g, d, j) <- (mempty, a `LtlRelease` b, True) : nowThen a
+    | (f, c, i) <- nowLater b,
+      (g, d, j) <- (mempty, a `LtlRelease` b, True) : nowLater a
   ]
 
 -- | Straightforward simplification procedure for LTL formulae. This function
 -- knows how 'LtlTruth' and 'LtlFalsity' play with the other connectives and
 -- recursively applies this knowledge; it does not do anything fancy like normal
--- forms etc. It is only used to keep the formulae 'nowThen' generates from
+-- forms etc. It is only used to keep the formulae 'nowLater' generates from
 -- growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
 ltlSimpl expr =
@@ -175,29 +171,12 @@ ltlSimpl expr =
             then (f a' b', True)
             else (f a b, False)
 
--- data Op a where
---   -- | the failing operation ("discard this branch"):
---   Empty :: Op a
---   -- | the "time-branching" operation
---   Alt :: Staged Op a -> Staged Op a -> Op a
---   -- | the operation that applies a modification on the folliwing computation:
---   ChangeFormula :: Ltl (Action -> Maybe Action) -> Op ()
---   -- Another nice-to-have: signalling an error. This should also behave
---   -- sensibly with the time-branching structure.
---   Fail :: String -> Op a
-
-data Builtin a where
-  -- this is where the MonadBlockChain Operations would normally go, these are
-  -- here to have something simpler to play around with:
-  GetInteger :: Builtin Integer
-  EmitInteger :: Integer -> Builtin ()
-
-data Op (action :: *) (builtin :: * -> *) :: * -> * where
-  Empty :: Op modification builtin a
-  Alt :: Staged (Op modification builtin) a -> Staged (Op modification builtin) a -> Op modification builtin a
-  Fail :: String -> Op modification builtin a
-  Modify :: Ltl modification -> Op modification builtin ()
-  Builtin :: builtin a -> Op modification builtin a
+data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
+  Empty :: LtlOp modification builtin a
+  Alt :: Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
+  Fail :: String -> LtlOp modification builtin a
+  Modify :: Ltl modification -> LtlOp modification builtin ()
+  Builtin :: builtin a -> LtlOp modification builtin a
 
 data Staged (op :: * -> *) :: * -> * where
   Return :: a -> Staged op a
@@ -215,54 +194,59 @@ instance Monad (Staged op) where
   (Return x) >>= f = f x
   (Instr i m) >>= f = Instr i (m >=> f)
 
-instance Applicative (Staged (Op modification builtin)) => Alternative (Staged (Op modification builtin)) where
+instance Applicative (Staged (LtlOp modification builtin)) => Alternative (Staged (LtlOp modification builtin)) where
   empty = Instr Empty Return
   a <|> b = Instr (Alt a b) Return
 
-instance MonadFail (Staged (Op modification builtin)) where
+instance MonadFail (Staged (LtlOp modification builtin)) where
   fail msg = Instr (Fail msg) Return
 
 class Monad m => HasBuiltins (modification :: *) (builtin :: * -> *) m where
   modifyBuiltin ::
     Ltl modification ->
     builtin a ->
-    (a -> Staged (Op modification builtin) b) ->
-    m b
+    [(m a, Ltl modification, Bool)]
+
+-- class Monad m => InternalMonadLtl modification m where
+--   unsafeAddModification :: Ltl modification -> (() -> m a) -> m a
+
+-- instance HasBuiltins modification builtin m => InternalMonadLtl modification m where
+--   unsafeAddModification x cont = Instr (Modify x) cont
 
 -- canModify :: builtin a -> Bool
 
-type Action = Integer
+-- type Action = Integer
 
-interpLtl ::
-  (Monoid modification, HasBuiltins modification builtin m, MonadPlus m, MonadFail m) =>
-  Bool ->
-  Ltl modification ->
-  Staged (Op modification builtin) a ->
-  m a
-interpLtl p _ (Return a) = if p then return a else mzero
-interpLtl _ _ (Instr Empty _) = mzero
-interpLtl p x (Instr (Alt a b) f) = interpLtl p x (a >>= f) `mplus` interpLtl p x (b >>= f)
-interpLtl _ _ (Instr (Fail msg) _) = fail msg
--- see here for the reasoning why 'LtlAnd' is the right thing to do:
--- https://github.com/tweag/scverif-exploration/blob/main/LTL-Attacks/after.tex
-interpLtl p x (Instr (Modify y) f) = interpLtl p (ltlSimpl $ x `LtlAnd` y) (f ())
--- Should we really ignore @p@ here, or should nowThen have another parameter?
-interpLtl p x (Instr (Builtin g) f) = modifyBuiltin x g f
+-- interpLtl ::
+--   (Monoid modification, HasBuiltins modification builtin m, MonadPlus m, MonadFail m) =>
+--   Bool ->
+--   Ltl modification ->
+--   Staged (LtlOp modification builtin) a ->
+--   m a
+-- interpLtl p _ (Return a) = if p then return a else mzero
+-- interpLtl _ _ (Instr Empty _) = mzero
+-- interpLtl p x (Instr (Alt a b) f) = interpLtl p x (a >>= f) `mplus` interpLtl p x (b >>= f)
+-- interpLtl _ _ (Instr (Fail msg) _) = fail msg
+-- -- see here for the reasoning why 'LtlAnd' is the right thing to do:
+-- -- https://github.com/tweag/scverif-exploration/blob/main/LTL-Attacks/after.tex
+-- interpLtl p x (Instr (Modify y) f) = interpLtl p (ltlSimpl $ x `LtlAnd` y) (f ())
+-- -- Should we really ignore @p@ here, or should nowLater have another parameter?
+-- interpLtl p x (Instr (Builtin g) f) = modifyBuiltin x g f
 
 -- msum $
 --   map
 --     (\(m, y, q) -> modifyBuiltin m g >>= interpLtl q y . f)
---     (nowThen x)
+--     (nowLater x)
 
 -- -- tests/examples
 
--- trace1 :: Staged Op ()
+-- trace1 :: Staged LtlOp ()
 -- trace1 =
 --   Instr (EmitInteger 3) $ \_ ->
 --     Instr GetInteger $ \i ->
 --       Instr (EmitInteger i) Return
 
--- trace2 :: Staged Op ()
+-- trace2 :: Staged LtlOp ()
 -- trace2 = Instr (EmitInteger 2) $ \_ -> Instr (EmitInteger 5) Return
 
 -- testSomewhere :: [[Integer]]
@@ -285,7 +269,7 @@ interpLtl p x (Instr (Builtin g) f) = modifyBuiltin x g f
 --     f 42 = Just 0
 --     f _ = Nothing
 
--- traceWithModify :: Staged Op ()
+-- traceWithModify :: Staged LtlOp ()
 -- traceWithModify =
 --   Instr (EmitInteger 1) $ \_ ->
 --     Instr (ChangeFormula x) $ \_ ->

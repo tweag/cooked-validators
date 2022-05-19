@@ -181,7 +181,7 @@ runMockChainTFrom ::
 runMockChainTFrom i0 =
   fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw def (mockChainSt0From i0)
 
--- | Executes a 'MockChainT' from the cannonical initial state and environment. The cannonical
+-- | Executes a 'MockChainT' from the canonical initial state and environment. The canonical
 --  environment uses the default 'SlotConfig' and @[Cooked.MockChain.Wallet.wallet 1]@ as the sole
 --  wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
