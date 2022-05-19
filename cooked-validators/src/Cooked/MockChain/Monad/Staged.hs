@@ -36,7 +36,7 @@ interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, TraceDescr)]
-interpretAndRunWith f smc = evalStateT (runWriterT $ f (interpLtl smc)) (True, LtlTruth)
+interpretAndRunWith f smc = flip evalStateT (True, LtlTruth) $ runWriterT $ f (interpLtl smc)
 
 -- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
@@ -45,21 +45,6 @@ interpretAndRun ::
 interpretAndRun = interpretAndRunWith runMockChainT
 
 -- * Interpreting 'StagedMockChain'
-
--- -- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
--- --  'interpret' function for more.
--- type InterpMockChain = MockChainT (WriterT TraceDescr [])
-
--- -- | The 'interpret' function gives semantics to our traces. One
--- --  'StagedMockChain' computation yields a potential list of 'MockChainT'
--- --  computations, which emit a description of their operation. Recall a
--- --  'MockChainT' is a state and except monad composed:
--- --
--- --  >     MockChainT (WriterT TraceDescr []) a
--- --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
--- --  > =~= st -> [(Either err (a, st) , TraceDescr)]
--- interpret :: StagedMockChain a -> InterpMockChain a
--- interpret tr = evalStateT (interpLtl tr) (True, LtlTruth)
 
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.TxId
@@ -115,7 +100,6 @@ interpLtl (Instr (Builtin (ValidateTxSkel skel)) f) = do
           txid <- maybe empty validateTxSkel (m skel)
           lift $ put (q, y)
           interpLtl $ f txid
-          -- >>= \txid -> lift put (q, y) >> interpLtl $ f txid
       )
       (nowLater x)
   where
@@ -132,6 +116,19 @@ interpLtl (Instr (Builtin (UtxosSuchThat a p)) f) = utxosSuchThat a p >>= interp
 interpLtl (Instr (Builtin OwnPubKey) f) = ownPaymentPubKeyHash >>= interpLtl . f
 interpLtl (Instr (Builtin AskSigners) f) = askSigners >>= interpLtl . f
 interpLtl (Instr (Builtin GetSlotConfig) f) = slotConfig >>= interpLtl . f
+
+singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
+singletonBuiltin b = Instr (Builtin b) Return
+
+instance MonadBlockChain StagedMockChain where
+  validateTxSkel = singletonBuiltin . ValidateTxSkel
+  utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
+  txOutByRef = singletonBuiltin . TxOutByRef
+  ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
+  currentSlot = singletonBuiltin GetCurrentSlot
+  currentTime = singletonBuiltin GetCurrentTime
+  awaitSlot = singletonBuiltin . AwaitSlot
+  awaitTime = singletonBuiltin . AwaitTime
 
 -- * Human Readable Traces
 
