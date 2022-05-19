@@ -224,9 +224,10 @@ instance MonadFail (Staged (Op modification builtin)) where
 
 class Monad m => HasBuiltins (modification :: *) (builtin :: * -> *) m where
   modifyBuiltin ::
-    modification ->
-    builtin a -> -- Ltl modification -> (a -> Staged (Op modification builtin) b) ->
-    m a
+    Ltl modification ->
+    builtin a ->
+    (a -> Staged (Op modification builtin) b) ->
+    m b
 
 -- canModify :: builtin a -> Bool
 
@@ -246,11 +247,12 @@ interpLtl _ _ (Instr (Fail msg) _) = fail msg
 -- https://github.com/tweag/scverif-exploration/blob/main/LTL-Attacks/after.tex
 interpLtl p x (Instr (Modify y) f) = interpLtl p (ltlSimpl $ x `LtlAnd` y) (f ())
 -- Should we really ignore @p@ here, or should nowThen have another parameter?
-interpLtl p x (Instr (Builtin g) f) =
-  msum $
-    map
-      (\(m, y, q) -> modifyBuiltin m g >>= interpLtl q y . f)
-      (nowThen x)
+interpLtl p x (Instr (Builtin g) f) = modifyBuiltin x g f
+
+-- msum $
+--   map
+--     (\(m, y, q) -> modifyBuiltin m g >>= interpLtl q y . f)
+--     (nowThen x)
 
 -- -- tests/examples
 

@@ -10,6 +10,7 @@ module Cooked.MockChain.Monad.Staged where
 
 import Control.Monad.Except
 import Control.Monad.Writer.Strict
+import Cooked.Attack
 import Cooked.MockChain.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
@@ -118,18 +119,23 @@ singleton x = Instr x Return
 
 -- * Instances of HasBuiltins
 
-instance (MonadPlus m, MonadMockChain m) => HasBuiltins (TxSkel -> Maybe TxSkel) MockChainBuiltin m where
-  modifyBuiltin m (ValidateTxSkel skel) = maybe mzero validateTxSkel (m skel)
-  modifyBuiltin _ (TxOutByRef oref) = txOutByRef oref
-  modifyBuiltin _ GetCurrentSlot = currentSlot
-  modifyBuiltin _ (AwaitSlot s) = awaitSlot s
-  modifyBuiltin _ GetCurrentTime = currentTime
-  modifyBuiltin _ (AwaitTime t) = awaitTime t
-  modifyBuiltin _ (UtxosSuchThat addr pr) = utxosSuchThat addr pr
-  modifyBuiltin _ OwnPubKey = ownPaymentPubKeyHash
-  modifyBuiltin _ (SigningWith wal trace) = signingWith wal trace
-  modifyBuiltin _ AskSigners = askSigners
-  modifyBuiltin _ GetSlotConfig = slotConfig
+instance Semigroup Attack where
+  f <> g = maybe Nothing f . G
+
+instance (MonadPlus m, MonadMockChain m) => HasBuiltins Attack MockChainBuiltin m where
+  -- modifyBuiltin m (ValidateTxSkel skel) = maybe mzero validateTxSkel (m skel)
+  -- modifyBuiltin _ (TxOutByRef oref) = txOutByRef oref
+  -- modifyBuiltin _ GetCurrentSlot = currentSlot
+  -- modifyBuiltin _ (AwaitSlot s) = awaitSlot s
+  -- modifyBuiltin _ GetCurrentTime = currentTime
+  -- modifyBuiltin _ (AwaitTime t) = awaitTime t
+  -- modifyBuiltin _ (UtxosSuchThat addr pr) = utxosSuchThat addr pr
+  -- modifyBuiltin _ OwnPubKey = ownPaymentPubKeyHash
+  modifyBuiltin x (SigningWith wals trace) cont = signingWith wals $ interpLtl True x trace
+  modifyBuiltin _ _ _ = undefined
+
+-- modifyBuiltin _ AskSigners = askSigners
+-- modifyBuiltin _ GetSlotConfig = slotConfig
 
 -- * Human Readable Traces
 
