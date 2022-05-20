@@ -16,7 +16,7 @@ import Control.Monad.State
 -- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
 -- apply modifications. Since it does not make (obvious) sense to talk of a
--- negated modification or of one modification (possibly in t he future) to
+-- negated modification or of one modification (possibly in the future) to
 -- imply another modification, implication and negation are absent.
 data Ltl a
   = LtlTruth
@@ -25,13 +25,13 @@ data Ltl a
   | -- | Disjunction will be interpreted in an "intuitionistic" way, i.e. as
     -- branching into the "timeline" where the left disjunct holds and the one
     -- where the right disjunct holds. In that sense, it is an exclusive or,
-    -- as it does not introduce the branche where both disjuncts hold.
+    -- as it does not introduce the branch where both disjuncts hold.
     LtlOr (Ltl a) (Ltl a)
   | LtlAnd (Ltl a) (Ltl a)
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
   | -- | Assert that the first formula holds at least until the second one begins
-    -- to hold, which must happen eventually. The formulae
+    -- to hold, which must happen eventually. The formulas
     -- > a `LtlUntil` b
     -- and
     -- > b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
@@ -40,7 +40,7 @@ data Ltl a
   | -- | Assert that the second formula has to be true up to and including the
     -- point when the first one becomes true; if that never happens, the second
     -- formula has to remain true forever. View this as dual to 'LtlUntil'. The
-    -- formulae
+    -- formulas
     -- > a `LtlRelease` b
     -- and
     -- > b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
@@ -164,7 +164,10 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
   -- | The operation that discards the current time line
   Empty :: LtlOp modification builtin a
   -- | The operation the opens two alternative time lines
-  Alt :: Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
+  Alt ::
+    Staged (LtlOp modification builtin) a ->
+    Staged (LtlOp modification builtin) a ->
+    LtlOp modification builtin a
   -- | The failing operation
   Fail :: String -> LtlOp modification builtin a
   -- | The operation that introduces an LTL formula that should be used to
@@ -226,16 +229,19 @@ instance MonadFail (Staged (LtlOp modification builtin)) where
 -- > interpBuiltin op =
 -- >  get
 -- >    >>= msum
--- >      . map (\(now, later) -> put later >> now op)
+-- >      . map (\(now, later) -> put later >> applyModification now op)
 -- >      . nowLater
 --
--- Look at the tests for this module and at "Cooked.MockChain.Monad.Staged" for
--- examples of how to use this type class.
+-- (But to write this, @modification@ has to be a 'Monoid' to make 'nowLater'
+-- work!) Look at the tests for this module and at
+-- "Cooked.MockChain.Monad.Staged" for examples of how to use this type class.
 class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
   interpBuiltin :: builtin a -> StateT (Ltl modification) m a
 
+-- | Interpret a 'Staged' computation into a suitable domain, using the function
+-- 'interpBuiltin' to interpret the builtins.
 interpLtl ::
-  (MonadPlus m, MonadFail m, InterpLtl modification builtin m) =>
+  (InterpLtl modification builtin m) =>
   Staged (LtlOp modification builtin) a ->
   StateT (Ltl modification) m a
 interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
@@ -253,7 +259,7 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
 startLtl x = Instr (StartLtl x) Return
 
--- | Stop all LTL formulas currently modifying the computation. If any ofg them
+-- | Stop all LTL formulas currently modifying the computation. If any of them
 -- is not yet 'finished', the current time line will fail.
 stopLtl :: Staged (LtlOp modification builtin) ()
 stopLtl = Instr StopLtl Return

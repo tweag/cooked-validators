@@ -27,7 +27,7 @@ import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
 
--- * Interpreting and Running 'StagedMockChain'
+-- * Interpreting and running 'StagedMockChain'
 
 -- | Interprets the staged mockchain then runs the resulting computation
 -- with a custom function. This can be used, for example, to supply
