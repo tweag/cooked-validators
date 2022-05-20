@@ -11,6 +11,13 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 
+-- * LTL formulas and operations on them
+
+-- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
+-- type of "modifications", then a value of type @Ltl a@ describes where to
+-- apply modifications. Since it does not make (obvious) sense to talk of a
+-- negated modification or of one modification (possibly in t he future) to
+-- imply another modification, implication and negation are absent.
 data Ltl a
   = LtlTruth
   | LtlFalsity
@@ -41,8 +48,8 @@ data Ltl a
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show)
 
--- | This function splits an LTL formula that describes a modification of a
--- computation into a list of @(doNow, doLater)@ pairs, where
+-- | Split an LTL formula that describes a modification of a computation into a
+-- list of @(doNow, doLater)@ pairs, where
 --
 -- * @doNow@ is the modification to be applied to the current time step,
 --
@@ -88,9 +95,9 @@ finished (LtlRelease _ _) = True
 
 -- | Straightforward simplification procedure for LTL formulae. This function
 -- knows how 'LtlTruth' and 'LtlFalsity' play with conjunction and disjunction
--- and recursively applies this knowledge; it does not do anything fancy like
--- normal forms etc. It is only used to keep the formulae 'nowLater' generates
--- from growing too wildly.
+-- and recursively applies this knowledge; it does not do anything "fancy" like
+-- computing a normal form It is only used to keep the formulae 'nowLater'
+-- generates from growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
 ltlSimpl expr =
   let (expr', progress) = simpl expr
@@ -142,14 +149,39 @@ ltlSimpl expr =
             then (f a' b', True)
             else (f a b, False)
 
+-- * An AST for "reified computations"
+
+-- | The idea is that a value of type @Staged (LtlOp modification builtin) a@
+-- describes a set of (monadic) computations that return an @a@ such that
+--
+-- * every step of the computations that returns a @b@ is reified as a @builtin
+--   b@, and
+--
+-- * every step can be modified by a @modification@.
+
+-- | Operations for computations that can be modified using LTL formulas.
 data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
+  -- | The operation that discards the current time line
   Empty :: LtlOp modification builtin a
+  -- | The operation the opens two alternative time lines
   Alt :: Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
+  -- | The failing operation
   Fail :: String -> LtlOp modification builtin a
+  -- | The operation that introduces an LTL formula that should be used to
+  -- modify the following computations. Think of this operation of coming
+  -- between time steps and adding (with `LtlAnd`, paper upcoming to explain why
+  -- this is the right choice) a new formula to the formula that should be
+  -- applied to the next time step.
   StartLtl :: Ltl modification -> LtlOp modification builtin ()
+  -- | The operation that stops all modifying LTL formulas currently in
+  -- effect. If the formula that is to be applied to the next time step is not
+  -- 'finished', this will discard the current time line.
   StopLtl :: LtlOp modification builtin ()
+  -- | A builtin operation.
   Builtin :: builtin a -> LtlOp modification builtin a
 
+-- | The freer monad on @op@. We think of this as the AST of a computation with
+-- operations of types @op a@.
 data Staged (op :: * -> *) :: * -> * where
   Return :: a -> Staged op a
   Instr :: op a -> (a -> Staged op b) -> Staged op b
@@ -173,28 +205,32 @@ instance Applicative (Staged (LtlOp modification builtin)) => Alternative (Stage
 instance MonadFail (Staged (LtlOp modification builtin)) where
   fail msg = Instr (Fail msg) Return
 
-startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
-startLtl x = Instr (StartLtl x) Return
+-- * Interpreting the AST
 
-stopLtl :: Staged (LtlOp modification builtin) ()
-stopLtl = Instr StopLtl Return
-
-somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
-somewhere x tr =
-  startLtl (LtlTruth `LtlUntil` LtlAtom x)
-    >> tr
-    >>= \res ->
-      stopLtl
-        >> return res
-
-everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
-everywhere x tr =
-  startLtl (LtlFalsity `LtlRelease` LtlAtom x)
-    >> tr
-    >>= \res ->
-      stopLtl
-        >> return res
-
+-- | To be a suitable semantic domain for computations modified by LTL formulas,
+-- a monad @m@ has to
+--
+-- * have the right 'builtin' functions, which can be modified by the right
+--   'modification's,
+--
+-- * be a 'MonadPlus', because one LTL formula might yield different modified
+--   versions of the computation, and
+--
+-- * be a 'MonadFail' to interpret the 'Fail' operation.
+--
+-- This type class only wants us to specify how to interpret the (modified)
+-- builtins. In order to do so, it passes around the formula that is to be
+-- applied to the next time step in a @StateT@. A common idiom to modify an
+-- operation should be this:
+--
+-- > interpBuiltin op =
+-- >  get
+-- >    >>= msum
+-- >      . map (\(now, later) -> put later >> now op)
+-- >      . nowLater
+--
+-- Look at the tests for this module and at "Cooked.MockChain.Monad.Staged" for
+-- examples of how to use this type class.
 class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
   interpBuiltin :: builtin a -> StateT (Ltl modification) m a
 
@@ -210,71 +246,34 @@ interpLtl (Instr StopLtl f) = get >>= \x -> if finished x then interpLtl $ f () 
 interpLtl (Instr (Fail msg) _) = fail msg
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
--- -- tests/examples
+-- * Convenience functions
 
--- trace1 :: Staged LtlOp ()
--- trace1 =
---   Instr (EmitInteger 3) $ \_ ->
---     Instr GetInteger $ \i ->
---       Instr (EmitInteger i) Return
+-- | Introduce an LTL formula to be in effect from now on, modifying the
+-- remainder of the computation.
+startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
+startLtl x = Instr (StartLtl x) Return
 
--- trace2 :: Staged LtlOp ()
--- trace2 = Instr (EmitInteger 2) $ \_ -> Instr (EmitInteger 5) Return
+-- | Stop all LTL formulas currently modifying the computation. If any ofg them
+-- is not yet 'finished', the current time line will fail.
+stopLtl :: Staged (LtlOp modification builtin) ()
+stopLtl = Instr StopLtl Return
 
--- testSomewhere :: [[Integer]]
--- testSomewhere = execWriterT $ interpLtl False (somewhere (LtlAtom $ Just . (* 2))) trace1
+-- | Apply a modification somewhere in the given computation. The modification
+-- must apply at least once.
+somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+somewhere x tr =
+  startLtl (LtlTruth `LtlUntil` LtlAtom x)
+    >> tr
+    >>= \res ->
+      stopLtl
+        >> return res
 
--- testEverywhere :: [[Integer]]
--- testEverywhere = execWriterT $ interpLtl True (everywhere (LtlAtom $ Just . (* 2))) trace1
-
--- testNext :: [[Integer]]
--- testNext = execWriterT $ interpLtl True (LtlNext (LtlAtom $ Just . (* 2))) trace1
-
--- testAndNext :: [[Integer]]
--- testAndNext =
---   execWriterT $
---     interpLtl
---       True
---       (LtlAtom (Just . (+ 1)) `LtlAnd` LtlNext (LtlAtom f))
---       (trace1 <|> trace2)
---   where
---     f 42 = Just 0
---     f _ = Nothing
-
--- traceWithModify :: Staged LtlOp ()
--- traceWithModify =
---   Instr (EmitInteger 1) $ \_ ->
---     Instr (ChangeFormula x) $ \_ ->
---       Instr (EmitInteger 2) $ \_ ->
---         Instr (EmitInteger 3) $ \_ ->
---           Instr
---             (EmitInteger 5)
---             Return
---   where
---     x = LtlAtom (Just . (+ 1)) `LtlOr` LtlNext (LtlAtom (Just . (* 3)))
-
--- testModifyNoContext :: [[Integer]]
--- testModifyNoContext = execWriterT $ interpLtl True LtlTruth traceWithModify
-
--- testModifyContext :: [[Integer]]
--- testModifyContext = execWriterT $ interpLtl True x traceWithModify
---   where
---     x = LtlNext $ LtlAtom $ Just . (+ 5)
-
--- tests :: TestTree
--- tests =
---   testGroup
---     "LTL tests"
---     [ testCase "somewhere" $
---         testSomewhere @?= [[6, 42], [3, 84]],
---       testCase "everywhere" $
---         testEverywhere @?= [[6, 84]],
---       testCase "next (together with Alt)" $
---         testNext @?= [[3, 84]],
---       testCase "and-next" $
---         testAndNext @?= [[4, 0]],
---       testCase "Modify in empty context" $
---         testModifyNoContext @?= [[1, 3, 3, 5], [1, 2, 9, 5]],
---       testCase "Modify with context" $
---         testModifyContext @?= [[1, 8, 3, 5], [1, 7, 9, 5]]
---     ]
+-- | Apply a modification everywhere in the given computation. This is also
+-- successful if there are no modifiable time steps.
+everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+everywhere x tr =
+  startLtl (LtlFalsity `LtlRelease` LtlAtom x)
+    >> tr
+    >>= \res ->
+      stopLtl
+        >> return res

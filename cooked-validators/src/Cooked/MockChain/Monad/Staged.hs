@@ -38,16 +38,27 @@ interpretAndRunWith ::
   [(res, TraceDescr)]
 interpretAndRunWith f smc = runWriterT $ f $ interpret smc
 
--- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
   StagedMockChain a ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
 interpretAndRun = interpretAndRunWith runMockChainT
 
+-- | The semantic domain in which 'StagedMockChain' gets interpreted; see
+--  the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
+-- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
+--  computation yields a potential list of 'MockChainT' computations, which emmit
+--  a description of their operation. Recall a 'MockChainT' is a state and except
+--  monad composed:
+--
+--  >     MockChainT (WriterT TraceDescr []) a
+--  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
+--  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
 interpret = flip evalStateT LtlTruth . interpLtl
+
+-- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.TxId
@@ -71,7 +82,7 @@ type MockChainOp = LtlOp Attack MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
--- * The two instances to make it all work
+-- * 'InterpLtl' instance
 
 instance {-# OVERLAPS #-} Semigroup Attack where
   f <> g = maybe Nothing f . g
@@ -99,6 +110,8 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetSlotConfig = slotConfig
+
+-- * 'MonadBlockChain' and 'MonadMockChain' instances
 
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
