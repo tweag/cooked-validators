@@ -1,14 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Staged where
 
-import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
@@ -36,7 +37,7 @@ interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, TraceDescr)]
-interpretAndRunWith f smc = flip evalStateT LtlTruth $ runWriterT $ f (interpLtl smc)
+interpretAndRunWith f smc = runWriterT $ f $ interpret smc
 
 -- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
@@ -44,7 +45,10 @@ interpretAndRun ::
   [(Either MockChainError (a, UtxoState), TraceDescr)]
 interpretAndRun = interpretAndRunWith runMockChainT
 
--- * Interpreting 'StagedMockChain'
+type InterpMockChain = MockChainT (WriterT TraceDescr [])
+
+interpret :: StagedMockChain a -> InterpMockChain a
+interpret = flip evalStateT LtlTruth . interpLtl
 
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.TxId
@@ -71,9 +75,7 @@ type StagedMockChain = Staged MockChainOp
 singleton :: op a -> Staged op a
 singleton x = Instr x Return
 
--- * Instances of HasBuiltins
-
--- type Attack = TxSkel -> Maybe TxSkel
+-- * The two instances to make it all work
 
 instance {-# OVERLAPS #-} Semigroup Attack where
   f <> g = maybe Nothing f . g
@@ -81,42 +83,31 @@ instance {-# OVERLAPS #-} Semigroup Attack where
 instance {-# OVERLAPS #-} Monoid Attack where
   mempty = Just
 
-type InterpMockChainLtl = MockChainT (WriterT TraceDescr (StateT (Ltl Attack) []))
+instance MonadPlus m => MonadPlus (MockChainT m) where
+  mzero = lift mzero
+  mplus = combineMockChainT mplus
 
-interpLtl :: StagedMockChain a -> InterpMockChainLtl a
--- The following five equations should always be the same, no matter what the
--- builtins are. Do we have a nice way to abstract them away?
-interpLtl (Return a) = lift get >>= \x -> if finished x then return a else empty
-interpLtl (Instr Empty _) = empty
-interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) <|> interpLtl (r >>= f)
-interpLtl (Instr (StartLtl new) f) = lift get >>= \old -> lift (put (LtlAnd new old)) >>= interpLtl . f
-interpLtl (Instr StopLtl f) = lift get >>= \x -> if finished x then interpLtl $ f () else empty
-interpLtl (Instr (Fail msg) _) = fail msg
--- now the MockChain-specific cases: first the two difficult/interesting ones:
-interpLtl (Instr (Builtin (ValidateTxSkel skel)) f) = do
-  x <- lift get
-  nonFailing $
-    map
-      ( \(m, y) -> do
-          txid <- maybe empty validateTxSkel (m skel)
-          lift $ put y
-          interpLtl $ f txid
-      )
-      (nowLater x)
-  where
-    nonFailing [] = empty
-    nonFailing (w : ws) = w <|> nonFailing ws
-interpLtl (Instr (Builtin (SigningWith ws tr)) f) = signingWith ws (interpLtl tr) >>= interpLtl . f
--- now the easy ones:
-interpLtl (Instr (Builtin (TxOutByRef oref)) f) = txOutByRef oref >>= interpLtl . f
-interpLtl (Instr (Builtin GetCurrentSlot) f) = currentSlot >>= interpLtl . f
-interpLtl (Instr (Builtin (AwaitSlot s)) f) = awaitSlot s >>= interpLtl . f
-interpLtl (Instr (Builtin GetCurrentTime) f) = currentTime >>= interpLtl . f
-interpLtl (Instr (Builtin (AwaitTime t)) f) = awaitTime t >>= interpLtl . f
-interpLtl (Instr (Builtin (UtxosSuchThat a p)) f) = utxosSuchThat a p >>= interpLtl . f
-interpLtl (Instr (Builtin OwnPubKey) f) = ownPaymentPubKeyHash >>= interpLtl . f
-interpLtl (Instr (Builtin AskSigners) f) = askSigners >>= interpLtl . f
-interpLtl (Instr (Builtin GetSlotConfig) f) = slotConfig >>= interpLtl . f
+instance InterpLtl Attack MockChainBuiltin InterpMockChain where
+  interpBuiltin :: MockChainBuiltin a -> StateT (Ltl Attack) InterpMockChain a
+  interpBuiltin (ValidateTxSkel skel) = do
+    x <- get
+    msum $
+      map
+        ( \(now, later) ->
+            put later
+              >> maybe mzero validateTxSkel (now skel)
+        )
+        (nowLater x)
+  interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
+  interpBuiltin (TxOutByRef o) = txOutByRef o
+  interpBuiltin GetCurrentSlot = currentSlot
+  interpBuiltin (AwaitSlot s) = awaitSlot s
+  interpBuiltin GetCurrentTime = currentTime
+  interpBuiltin (AwaitTime t) = awaitTime t
+  interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
+  interpBuiltin OwnPubKey = ownPaymentPubKeyHash
+  interpBuiltin AskSigners = askSigners
+  interpBuiltin GetSlotConfig = slotConfig
 
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return

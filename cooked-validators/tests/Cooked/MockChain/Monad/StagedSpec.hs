@@ -27,10 +27,10 @@ assertAll space f = mapM_ f space
 possibleTraces :: [StagedMockChain ()]
 possibleTraces =
   [ return (),
-    void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)],
+    void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)],
     void $ do
-      validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
-      validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
+      validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
+      validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4_200_000)]
   ]
 
 tests :: [TestTree]

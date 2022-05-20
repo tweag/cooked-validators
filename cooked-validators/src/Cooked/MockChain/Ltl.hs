@@ -8,7 +8,9 @@
 module Cooked.MockChain.Ltl where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
+import Control.Monad.State
 import Control.Monad.Writer hiding (Alt)
 import Prelude hiding (until)
 
@@ -196,36 +198,17 @@ everywhere x tr =
       stopLtl
         >> return res
 
--- class Monad m => InternalMonadLtl modification m where
---   unsafeAddModification :: Ltl modification -> (() -> m a) -> m a
+class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
+  interpLtl :: Staged (LtlOp modification builtin) a -> StateT (Ltl modification) m a
+  interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
+  interpLtl (Instr Empty _) = mzero
+  interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
+  interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
+  interpLtl (Instr StopLtl f) = get >>= \x -> if finished x then interpLtl $ f () else mzero
+  interpLtl (Instr (Fail msg) _) = fail msg
+  interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
--- instance HasBuiltins modification builtin m => InternalMonadLtl modification m where
---   unsafeAddModification x cont = Instr (Modify x) cont
-
--- canModify :: builtin a -> Bool
-
--- type Action = Integer
-
--- interpLtl ::
---   (Monoid modification, HasBuiltins modification builtin m, MonadPlus m, MonadFail m) =>
---   Bool ->
---   Ltl modification ->
---   Staged (LtlOp modification builtin) a ->
---   m a
--- interpLtl p _ (Return a) = if p then return a else mzero
--- interpLtl _ _ (Instr Empty _) = mzero
--- interpLtl p x (Instr (Alt a b) f) = interpLtl p x (a >>= f) `mplus` interpLtl p x (b >>= f)
--- interpLtl _ _ (Instr (Fail msg) _) = fail msg
--- -- see here for the reasoning why 'LtlAnd' is the right thing to do:
--- -- https://github.com/tweag/scverif-exploration/blob/main/LTL-Attacks/after.tex
--- interpLtl p x (Instr (Modify y) f) = interpLtl p (ltlSimpl $ x `LtlAnd` y) (f ())
--- -- Should we really ignore @p@ here, or should nowLater have another parameter?
--- interpLtl p x (Instr (Builtin g) f) = modifyBuiltin x g f
-
--- msum $
---   map
---     (\(m, y, q) -> modifyBuiltin m g >>= interpLtl q y . f)
---     (nowLater x)
+  interpBuiltin :: builtin a -> StateT (Ltl modification) m a
 
 -- -- tests/examples
 
