@@ -1,18 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Cooked.MockChain.Ltl where
 
 import Control.Applicative
-import Control.Arrow
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Writer hiding (Alt)
-import Prelude hiding (until)
 
 data Ltl a
   = LtlTruth
@@ -78,7 +75,7 @@ nowLater (a `LtlRelease` b) =
   nowLater $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
 
 -- | If there are no more steps and the next step should satisfy the given
--- formula, are we finished, i.e. was the initial formula satisfied by now?
+-- formula: Are we finished, i.e. was the initial formula satisfied by now?
 finished :: Ltl a -> Bool
 finished LtlTruth = True
 finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
@@ -90,10 +87,10 @@ finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
 
 -- | Straightforward simplification procedure for LTL formulae. This function
--- knows how 'LtlTruth' and 'LtlFalsity' play with the other connectives and
--- recursively applies this knowledge; it does not do anything fancy like normal
--- forms etc. It is only used to keep the formulae 'nowLater' generates from
--- growing too wildly.
+-- knows how 'LtlTruth' and 'LtlFalsity' play with conjunction and disjunction
+-- and recursively applies this knowledge; it does not do anything fancy like
+-- normal forms etc. It is only used to keep the formulae 'nowLater' generates
+-- from growing too wildly.
 ltlSimpl :: Ltl a -> Ltl a
 ltlSimpl expr =
   let (expr', progress) = simpl expr
@@ -199,16 +196,19 @@ everywhere x tr =
         >> return res
 
 class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
-  interpLtl :: Staged (LtlOp modification builtin) a -> StateT (Ltl modification) m a
-  interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
-  interpLtl (Instr Empty _) = mzero
-  interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
-  interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
-  interpLtl (Instr StopLtl f) = get >>= \x -> if finished x then interpLtl $ f () else mzero
-  interpLtl (Instr (Fail msg) _) = fail msg
-  interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
-
   interpBuiltin :: builtin a -> StateT (Ltl modification) m a
+
+interpLtl ::
+  (MonadPlus m, MonadFail m, InterpLtl modification builtin m) =>
+  Staged (LtlOp modification builtin) a ->
+  StateT (Ltl modification) m a
+interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
+interpLtl (Instr Empty _) = mzero
+interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
+interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
+interpLtl (Instr StopLtl f) = get >>= \x -> if finished x then interpLtl $ f () else mzero
+interpLtl (Instr (Fail msg) _) = fail msg
+interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
 -- -- tests/examples
 

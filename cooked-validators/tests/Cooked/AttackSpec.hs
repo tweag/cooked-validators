@@ -261,73 +261,73 @@ datumHijackingTrace v = do
   txLock v
   txRelock v
 
--- datumHijackingAttackTests :: TestTree
--- datumHijackingAttackTests =
---   testGroup
---     "datum hijacking attack"
---     [ testCase "unit test on a 'TxSkel'" $
---         let val1 = carelessValidator
---             val2 = carefulValidator
---             thief = datumHijackingTarget @MockContract
---             x1 = L.lovelaceValueOf 10001
---             x2 = L.lovelaceValueOf 10000
---             x3 = L.lovelaceValueOf 9999
---             skelIn =
---               txSkel
---                 [ PaysScript val1 SecondLock x1,
---                   PaysScript val1 SecondLock x3,
---                   PaysScript val2 SecondLock x1,
---                   PaysScript val1 FirstLock x2,
---                   PaysScript val1 SecondLock x2
---                 ]
---             skelOut select =
---               datumHijackingAttack @MockContract
---                 ( \v d x ->
---                     L.validatorHash val1 == L.validatorHash v
---                       && SecondLock Pl.== d
---                       && x2 `L.geq` x
---                 )
---                 select
---                 skelIn
---             skelExpected a b =
---               txSkelLbl
---                 (DatumHijackingLbl $ L.validatorHash thief)
---                 [ PaysScript val1 SecondLock x1,
---                   PaysScript a SecondLock x3,
---                   PaysScript val2 SecondLock x1,
---                   PaysScript val1 FirstLock x2,
---                   PaysScript b SecondLock x2
---                 ]
---          in assertTxSkelEqual (Just $ skelExpected thief val1) (skelOut (0 ==))
---               .&&. assertTxSkelEqual (Just $ skelExpected val1 thief) (skelOut (1 ==))
---               .&&. assertTxSkelEqual (Just $ skelExpected thief thief) (skelOut (const True)),
---       testCase "careful validator" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           def
---           ( somewhere
---               ( datumHijackingAttack @MockContract
---                   ( \v d _ ->
---                       L.validatorHash v == L.validatorHash carefulValidator
---                         && SecondLock Pl.== d
---                   )
---                   (const True)
---               )
---               (datumHijackingTrace carefulValidator)
---           ),
---       testCase "careless validator" $
---         testSucceeds
---           ( somewhere
---               ( datumHijackingAttack @MockContract
---                   ( \v d _ ->
---                       L.validatorHash v == L.validatorHash carelessValidator
---                         && SecondLock Pl.== d
---                   )
---                   (const True)
---               )
---               (datumHijackingTrace carelessValidator)
---           )
---     ]
+datumHijackingAttackTests :: TestTree
+datumHijackingAttackTests =
+  testGroup
+    "datum hijacking attack"
+    [ testCase "unit test on a 'TxSkel'" $
+        let val1 = carelessValidator
+            val2 = carefulValidator
+            thief = datumHijackingTarget @MockContract
+            x1 = L.lovelaceValueOf 10001
+            x2 = L.lovelaceValueOf 10000
+            x3 = L.lovelaceValueOf 9999
+            skelIn =
+              txSkel
+                [ PaysScript val1 SecondLock x1,
+                  PaysScript val1 SecondLock x3,
+                  PaysScript val2 SecondLock x1,
+                  PaysScript val1 FirstLock x2,
+                  PaysScript val1 SecondLock x2
+                ]
+            skelOut select =
+              datumHijackingAttack @MockContract
+                ( \v d x ->
+                    L.validatorHash val1 == L.validatorHash v
+                      && SecondLock Pl.== d
+                      && x2 `L.geq` x
+                )
+                select
+                skelIn
+            skelExpected a b =
+              txSkelLbl
+                (DatumHijackingLbl $ L.validatorHash thief)
+                [ PaysScript val1 SecondLock x1,
+                  PaysScript a SecondLock x3,
+                  PaysScript val2 SecondLock x1,
+                  PaysScript val1 FirstLock x2,
+                  PaysScript b SecondLock x2
+                ]
+         in assertTxSkelEqual (Just $ skelExpected thief val1) (skelOut (0 ==))
+              .&&. assertTxSkelEqual (Just $ skelExpected val1 thief) (skelOut (1 ==))
+              .&&. assertTxSkelEqual (Just $ skelExpected thief thief) (skelOut (const True)),
+      testCase "careful validator" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          def
+          ( somewhere
+              ( datumHijackingAttack @MockContract
+                  ( \v d _ ->
+                      L.validatorHash v == L.validatorHash carefulValidator
+                        && SecondLock Pl.== d
+                  )
+                  (const True)
+              )
+              (datumHijackingTrace carefulValidator)
+          ),
+      testCase "careless validator" $
+        testSucceeds
+          ( somewhere
+              ( datumHijackingAttack @MockContract
+                  ( \v d _ ->
+                      L.validatorHash v == L.validatorHash carelessValidator
+                        && SecondLock Pl.== d
+                  )
+                  (const True)
+              )
+              (datumHijackingTrace carelessValidator)
+          )
+    ]
 
 -- * Collecting all tests in this module
 
@@ -335,7 +335,7 @@ tests :: [TestTree]
 tests =
   [ testGroup
       "Attack DSL"
-      [ dupTokenAttackTests --,
-      -- datumHijackingAttackTests
+      [ dupTokenAttackTests,
+        datumHijackingAttackTests
       ]
   ]

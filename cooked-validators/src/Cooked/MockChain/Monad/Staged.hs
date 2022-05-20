@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -72,9 +71,6 @@ type MockChainOp = LtlOp Attack MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
-singleton :: op a -> Staged op a
-singleton x = Instr x Return
-
 -- * The two instances to make it all work
 
 instance {-# OVERLAPS #-} Semigroup Attack where
@@ -88,16 +84,11 @@ instance MonadPlus m => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl Attack MockChainBuiltin InterpMockChain where
-  interpBuiltin :: MockChainBuiltin a -> StateT (Ltl Attack) InterpMockChain a
-  interpBuiltin (ValidateTxSkel skel) = do
-    x <- get
-    msum $
-      map
-        ( \(now, later) ->
-            put later
-              >> maybe mzero validateTxSkel (now skel)
-        )
-        (nowLater x)
+  interpBuiltin (ValidateTxSkel skel) =
+    get
+      >>= msum
+        . map (\(now, later) -> put later >> maybe mzero validateTxSkel (now skel))
+        . nowLater
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
