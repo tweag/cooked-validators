@@ -113,6 +113,11 @@ instance MonadBlockChain StagedMockChain where
   awaitSlot = singletonBuiltin . AwaitSlot
   awaitTime = singletonBuiltin . AwaitTime
 
+instance MonadMockChain StagedMockChain where
+  signingWith ws act = singletonBuiltin (SigningWith ws act)
+  askSigners = singletonBuiltin AskSigners
+  slotConfig = singletonBuiltin GetSlotConfig
+
 -- * Human Readable Traces
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing

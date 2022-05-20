@@ -5,6 +5,7 @@
 --  want to import just "Cooked" which re-exports this module and a few others too
 module Cooked.MockChain
   ( module Cooked.MockChain.Constraints,
+    module Cooked.MockChain.Ltl,
     module Cooked.MockChain.Time,
     module Cooked.MockChain.UtxoPredicate,
     module Cooked.MockChain.UtxoState,
@@ -21,6 +22,7 @@ module Cooked.MockChain
 where
 
 import Cooked.MockChain.Constraints
+import Cooked.MockChain.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Contract ()
 import Cooked.MockChain.Monad.Direct
