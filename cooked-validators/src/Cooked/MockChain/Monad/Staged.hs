@@ -36,7 +36,7 @@ interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, TraceDescr)]
-interpretAndRunWith f smc = flip evalStateT (True, LtlTruth) $ runWriterT $ f (interpLtl smc)
+interpretAndRunWith f smc = flip evalStateT LtlTruth $ runWriterT $ f (interpLtl smc)
 
 -- | Interprets and runs the mockchain computation from the default 'InitialDistribution'
 interpretAndRun ::
@@ -81,24 +81,25 @@ instance {-# OVERLAPS #-} Semigroup Attack where
 instance {-# OVERLAPS #-} Monoid Attack where
   mempty = Just
 
-type InterpMockChainLtl = MockChainT (WriterT TraceDescr (StateT (Bool, Ltl Attack) []))
+type InterpMockChainLtl = MockChainT (WriterT TraceDescr (StateT (Ltl Attack) []))
 
 interpLtl :: StagedMockChain a -> InterpMockChainLtl a
 -- The following five equations should always be the same, no matter what the
 -- builtins are. Do we have a nice way to abstract them away?
-interpLtl (Return a) = lift get >>= \(finished, _) -> if finished then return a else empty
+interpLtl (Return a) = lift get >>= \x -> if finished x then return a else empty
 interpLtl (Instr Empty _) = empty
 interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) <|> interpLtl (r >>= f)
-interpLtl (Instr (Modify new) f) = lift get >>= \(p, old) -> lift (put (p, LtlAnd new old)) >>= interpLtl . f
+interpLtl (Instr (StartLtl new) f) = lift get >>= \old -> lift (put (LtlAnd new old)) >>= interpLtl . f
+interpLtl (Instr StopLtl f) = lift get >>= \x -> if finished x then interpLtl $ f () else empty
 interpLtl (Instr (Fail msg) _) = fail msg
 -- now the MockChain-specific cases: first the two difficult/interesting ones:
 interpLtl (Instr (Builtin (ValidateTxSkel skel)) f) = do
-  (p, x) <- lift get
+  x <- lift get
   nonFailing $
     map
-      ( \(m, y, q) -> do
+      ( \(m, y) -> do
           txid <- maybe empty validateTxSkel (m skel)
-          lift $ put (q, y)
+          lift $ put y
           interpLtl $ f txid
       )
       (nowLater x)

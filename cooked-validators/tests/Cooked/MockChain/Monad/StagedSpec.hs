@@ -7,6 +7,7 @@ import Control.Arrow
 import Control.Monad
 import Control.Monad.Writer.Strict
 import Cooked.MockChain
+import Cooked.MockChain.Ltl
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
@@ -15,35 +16,36 @@ import qualified Ledger.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- imcEq :: (Show a, Eq a) => InterpMockChain a -> InterpMockChain a -> Assertion
--- imcEq a b = go a @?= go b
---   where
---     go = map fst . runWriterT . runMockChainTRaw def def
+smcEq :: (Show a, Eq a) => StagedMockChain a -> StagedMockChain a -> Assertion
+smcEq a b = go a @?= go b
+  where
+    go = map fst . interpretAndRun
 
 assertAll :: [a] -> (a -> Assertion) -> Assertion
 assertAll space f = mapM_ f space
 
--- possibleTraces :: [StagedMockChain ()]
--- possibleTraces =
---   [ return (),
---     void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)],
---     void $ do
---       validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
---       validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
---   ]
+possibleTraces :: [StagedMockChain ()]
+possibleTraces =
+  [ return (),
+    void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)],
+    void $ do
+      validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
+      validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
+  ]
 
 tests :: [TestTree]
-tests = []
+tests =
+  [ testGroup
+      "lawfulness"
+      [ testCase "'LtlFalsity' can not be satisfied" $
+          assertAll possibleTraces $ \tr ->
+            (startLtl LtlFalsity >> tr) `smcEq` empty,
+        testCase "'LtlTruth' does not change anything" $
+          assertAll possibleTraces $ \tr ->
+            (startLtl LtlTruth >> tr) `smcEq` tr
+      ]
+  ]
 
--- [ testGroup
---     "lawfulness"
---     [ testCase "somewhere (const Nothing) == const empty" $
---         assertAll possibleTraces $ \tr ->
---           interpret (somewhere (const Nothing) tr) `imcEq` empty,
---       testCase "everywhere (const Nothing) == id" $
---         assertAll possibleTraces $ \tr ->
---           interpret (everywhere (const Nothing) tr) `imcEq` interpret tr
---     ],
 --   testGroup
 --     "unit"
 --     [ testCase "somewhere (Just . f) (a >> b >> c) == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $

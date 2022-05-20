@@ -42,30 +42,13 @@ data Ltl a
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show)
 
-somewhere :: Ltl a -> Ltl a
-somewhere x = LtlTruth `LtlUntil` x
-
-everywhere :: Ltl a -> Ltl a
-everywhere x = LtlFalsity `LtlRelease` x
-
 -- | This function splits an LTL formula that describes a modification of a
--- computation into a list of @(doNow, doLater, finished)@ triples, where
+-- computation into a list of @(doNow, doLater)@ pairs, where
 --
 -- * @doNow@ is the modification to be applied to the current time step,
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
 --   applied from the next time step onwards, and
---
--- * @finished@ is a @Bool@ we use to get around the fact that time is
---   conceptually infinite in LTL, but the computations we consider (hopefully)
---   only have a finite number of steps. It indicates whether the given formula
---   allows the current time step to be the last one. More explicitly,
---
---     * @finished == True@ if the whole formula is satisfied, even if there is
---       no next step, and
---
---     * @finished == False@ if there must be a next step satisfying the "do
---       later" formula for the whole formula to be satisfied.
 --
 -- The return value is a list because a formula might be satisfied in different
 -- ways. For example, the modification described by @a `LtlUntil` b@ might be
@@ -76,44 +59,33 @@ everywhere x = LtlFalsity `LtlRelease` x
 -- Modifications should form a monoid, where 'mempty' is the do-nothing
 -- modification, and '<>' is the composition of modifications. Attention: If
 -- '<>' is not commutative, conjunction will also fail to be commutative!
-nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a, Bool)]
-nowLater LtlTruth = [(mempty, LtlTruth, True)]
+nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a)]
+nowLater LtlTruth = [(mempty, LtlTruth)]
 nowLater LtlFalsity = []
-nowLater (LtlAtom g) = [(g, LtlTruth, True)]
+nowLater (LtlAtom g) = [(g, LtlTruth)]
 nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
 nowLater (a `LtlAnd` b) =
-  [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
-    | (f, c, i) <- nowLater a,
-      (g, d, j) <- nowLater b
+  [ (g <> f, ltlSimpl $ c `LtlAnd` d)
+    | (f, c) <- nowLater a,
+      (g, d) <- nowLater b
   ]
-nowLater (LtlNext a) = [(mempty, a, False)]
+nowLater (LtlNext a) = [(mempty, a)]
 nowLater (a `LtlUntil` b) =
-  -- The following definition is equivalent to
-  -- > nowLater b
-  -- >   ++ [ (f, ltlSimpl $ c `LtlAnd` (a `LtlUntil` b), False)
-  -- >        | (f, c, _) <- nowLater a
-  -- >      ]
-  -- but more readable:
   nowLater $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
 nowLater (a `LtlRelease` b) =
-  -- We have to be subtle here: Normally, we'd like to write something readable
-  -- like
-  -- > nowLater $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
-  -- as we did in the equation for `LtlUntil`. This won't work, however, because
-  -- of the finite number of time steps. The above definition would be evaluated
-  -- to something like
-  -- > [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
-  -- >   | (f, c, i) <- nowLater b,
-  -- >     (g, d, j) <- (mempty, a `LtlRelease` b, False) : nowLater a
-  -- > ]
-  -- (modulo the order of elements in the lists). If @a@ is simply @LtlFalsity@,
-  -- that would mean that we can never finish, even if @b@ is always
-  -- applicable. This means we have to write this (note the @True@ instead of
-  -- @False@):
-  [ (g <> f, ltlSimpl $ c `LtlAnd` d, i && j)
-    | (f, c, i) <- nowLater b,
-      (g, d, j) <- (mempty, a `LtlRelease` b, True) : nowLater a
-  ]
+  nowLater $ b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+
+-- | If there are no more steps and the next step should satisfy the given
+-- formula, are we finished, i.e. was the initial formula satisfied by now?
+finished :: Ltl a -> Bool
+finished LtlTruth = True
+finished LtlFalsity = False --  we want falsity to fail always, even on the empty computation
+finished (LtlAtom _) = False
+finished (a `LtlAnd` b) = finished a && finished b
+finished (a `LtlOr` b) = finished a || finished b
+finished (LtlNext _) = False
+finished (LtlUntil _ _) = False
+finished (LtlRelease _ _) = True
 
 -- | Straightforward simplification procedure for LTL formulae. This function
 -- knows how 'LtlTruth' and 'LtlFalsity' play with the other connectives and
@@ -175,7 +147,8 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
   Empty :: LtlOp modification builtin a
   Alt :: Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a -> LtlOp modification builtin a
   Fail :: String -> LtlOp modification builtin a
-  Modify :: Ltl modification -> LtlOp modification builtin ()
+  StartLtl :: Ltl modification -> LtlOp modification builtin ()
+  StopLtl :: LtlOp modification builtin ()
   Builtin :: builtin a -> LtlOp modification builtin a
 
 data Staged (op :: * -> *) :: * -> * where
@@ -201,11 +174,27 @@ instance Applicative (Staged (LtlOp modification builtin)) => Alternative (Stage
 instance MonadFail (Staged (LtlOp modification builtin)) where
   fail msg = Instr (Fail msg) Return
 
-class Monad m => HasBuiltins (modification :: *) (builtin :: * -> *) m where
-  modifyBuiltin ::
-    Ltl modification ->
-    builtin a ->
-    [(m a, Ltl modification, Bool)]
+startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
+startLtl x = Instr (StartLtl x) Return
+
+stopLtl :: Staged (LtlOp modification builtin) ()
+stopLtl = Instr StopLtl Return
+
+somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+somewhere x tr =
+  startLtl (LtlTruth `LtlUntil` LtlAtom x)
+    >> tr
+    >>= \res ->
+      stopLtl
+        >> return res
+
+everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+everywhere x tr =
+  startLtl (LtlFalsity `LtlRelease` LtlAtom x)
+    >> tr
+    >>= \res ->
+      stopLtl
+        >> return res
 
 -- class Monad m => InternalMonadLtl modification m where
 --   unsafeAddModification :: Ltl modification -> (() -> m a) -> m a

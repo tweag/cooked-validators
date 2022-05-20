@@ -132,16 +132,17 @@ dupTokenAttackTests =
          in testFailsFrom'
               isCekEvaluationFailure
               def
-              ( Instr (Modify (somewhere $ LtlAtom $ dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))) Return
-                  >> dupTokenTrace pol tName 1 (wallet 1)
-              )
-              -- testCase "careless minting policy" $
-              --   let tName = L.tokenName "MockToken"
-              --       pol = carelessPolicy
-              --    in testSucceeds $
-              --         somewhere
-              --           (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
-              --           (dupTokenTrace pol tName 1 (wallet 1))
+              ( somewhere
+                  (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                  (dupTokenTrace pol tName 1 (wallet 1))
+              ),
+      testCase "careless minting policy" $
+        let tName = L.tokenName "MockToken"
+            pol = carelessPolicy
+         in testSucceeds $
+              somewhere
+                (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                (dupTokenTrace pol tName 1 (wallet 1))
     ]
 
 -- * Tests for the datum hijacking attack
