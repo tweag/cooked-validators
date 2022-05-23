@@ -98,7 +98,7 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
-        . map (\(now, later) -> put later >> maybe mzero validateTxSkel (now skel))
+        . map (\(now, later) -> maybe mzero validateTxSkel (now skel) <* put later)
         . nowLater
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
