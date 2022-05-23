@@ -176,11 +176,6 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
   -- this is the right choice) a new formula to the formula that should be
   -- applied to the next time step.
   StartLtl :: Ltl modification -> LtlOp modification builtin ()
-  -- | The operation that stops all modifying LTL formulas currently in
-  -- effect. If the formula that is to be applied to the next time step is not
-  -- 'finished', this will discard the current time line.
-  StopLtl :: LtlOp modification builtin ()
-  -- | A builtin operation.
   Builtin :: builtin a -> LtlOp modification builtin a
 
 -- | The freer monad on @op@. We think of this as the AST of a computation with
@@ -249,17 +244,6 @@ interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
 interpLtl (Instr Empty _) = mzero
 interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
 interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
-interpLtl (Instr StopLtl f) = do
-  x <- get
-  if finished x
-    then do
-      put LtlTruth
-      interpLtl $ f ()
-    else mzero
--- get >>= \x ->
---   if finished x
---     then put (LtlTruth @modification) >> interpLtl $ f ()
---     else mzero
 interpLtl (Instr (Fail msg) _) = fail msg
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
@@ -270,27 +254,12 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
 startLtl x = Instr (StartLtl x) Return
 
--- | Stop all LTL formulas currently modifying the computation. If any of them
--- is not yet 'finished', the current time line will fail.
-stopLtl :: Staged (LtlOp modification builtin) ()
-stopLtl = Instr StopLtl Return
-
 -- | Apply a modification somewhere in the given computation. The modification
 -- must apply at least once.
-somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
-somewhere x tr =
-  startLtl (LtlTruth `LtlUntil` LtlAtom x)
-    >> tr
-    >>= \res ->
-      stopLtl
-        >> return res
+somewhere :: modification -> Staged (LtlOp modification builtin) ()
+somewhere x = startLtl (LtlTruth `LtlUntil` LtlAtom x)
 
 -- | Apply a modification everywhere in the given computation. This is also
 -- successful if there are no modifiable time steps.
-everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
-everywhere x tr =
-  startLtl (LtlFalsity `LtlRelease` LtlAtom x)
-    >> tr
-    >>= \res ->
-      stopLtl
-        >> return res
+everywhere :: modification -> Staged (LtlOp modification builtin) ()
+everywhere x = startLtl (LtlFalsity `LtlRelease` LtlAtom x)

@@ -119,7 +119,7 @@ tests =
               incAll = map (map (+ n))
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ everywhere n tr) (incAll $ go tr)),
+                (\tr -> assertEqualSets (go $ everywhere n >> tr) (incAll $ go tr)),
         testCase "somewhere case-splits" $
           let n = 3
 
@@ -130,7 +130,7 @@ tests =
                   alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ somewhere n tr) (caseSplit $ go tr)),
+                (\tr -> assertEqualSets (go $ somewhere n >> tr) (caseSplit $ go tr)),
         testCase "somewhere is exponential in branch number" $
           -- If we make a trace @tr = a >> b@, we expect
           --
@@ -144,10 +144,10 @@ tests =
           -- > 4. a >> f (g b)
           --
           let tr = emitInteger 42 >> emitInteger 3
-           in assertEqualSets (go $ somewhere 1 $ somewhere 2 tr) [[45, 3], [42, 6], [43, 5], [44, 4]],
-        testCase "everywhere only modifies it's block" $
+           in assertEqualSets (go $ somewhere 1 >> somewhere 2 >> tr) [[45, 3], [42, 6], [43, 5], [44, 4]],
+        testCase "nested everywhere combines modifications" $
           assertEqualSets
-            (go $ everywhere 1 $ emitInteger 5 >> everywhere 2 (emitInteger 7) >> emitInteger 8)
-            [[6, 10, 9]]
+            (go $ everywhere 1 >> emitInteger 5 >> everywhere 2 >> emitInteger 7 >> emitInteger 8)
+            [[6, 10, 11]]
       ]
   ]

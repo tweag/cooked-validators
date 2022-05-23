@@ -150,7 +150,7 @@ tryDupTokens =
         (\_ n -> Just $ n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
     )
-    (noBids <|> oneBid <|> twoBids)
+    >> (noBids <|> oneBid <|> twoBids)
 
 tryDatumHijack :: StagedMockChain ()
 tryDatumHijack =
@@ -162,7 +162,7 @@ tryDatumHijack =
         )
         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
     )
-    (noBids <|> oneBid <|> twoBids)
+    >> (noBids <|> oneBid <|> twoBids)
 
 attacks :: TestTree
 attacks =
