@@ -6,3 +6,4 @@ dist-newstyle
 *#
 *.artifact
 *.swp
+docs/
