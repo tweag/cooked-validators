@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-10"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-11"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-12"></span><span class="hs-pragma">{-# LANGUAGE NoImplicitPrelude #-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Currencies</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Contexts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Validation</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Scripts</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Value</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Value</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Value</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Builtins.Class</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Applicative</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Haskell</span></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- * Quick Values</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- $quickvalues</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- /Quick/ values are convenient to manipulate assets that are supposed to</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- exist when running a mock chain. For example, a market</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- maker would exchange Ada against other assets. Yet, when writing traces</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- for such contract we'd need to define a minting policy for those tokens,</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- which is very repetitive. Moreover, most of the times we'd want wallets to</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- start with some positive balance of tokens.</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- There are two classes of functions for using custom tokens on traces:</span><span>
+</span><span id="line-38"></span><span class="hs-comment">--</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- 1. The @quick@ prefixed functions provide access to tokens from the</span><span>
+</span><span id="line-40"></span><span class="hs-comment">--    @const (const True)@ minting policy. That is, these can be minted and</span><span>
+</span><span id="line-41"></span><span class="hs-comment">--    burnt at will, at any point in time.</span><span>
+</span><span id="line-42"></span><span class="hs-comment">--</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- 2. The @perpetual@ prefixed functions provide access to tokens from</span><span>
+</span><span id="line-44"></span><span class="hs-comment">--    the @const (const False)@ minting policy. That is, these /cannot/ ever</span><span>
+</span><span id="line-45"></span><span class="hs-comment">--    be minted or burnt and must be present in an initial distribution to be useful.</span><span>
+</span><span id="line-46"></span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- See the docs for 'InitialDistribution' for an example usage.</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- make it easy to distinguish between quick and permanent tokens.</span><span>
+</span><span id="line-51"></span><span class="annot"><a href="Cooked.Currencies.html#quickTokenName"><span class="hs-identifier hs-type">quickTokenName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span>
+</span><span id="line-52"></span><span id="quickTokenName"><span class="annot"><span class="annottext">quickTokenName :: String -&gt; TokenName
+</span><a href="Cooked.Currencies.html#quickTokenName"><span class="hs-identifier hs-var hs-var">quickTokenName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString -&gt; TokenName
+</span><span class="hs-identifier hs-var">Pl.TokenName</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; TokenName)
+-&gt; (String -&gt; BuiltinByteString) -&gt; String -&gt; TokenName
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; BuiltinByteString
+</span><span class="hs-identifier hs-var">Pl.stringToBuiltinByteString</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- | /Quick/ asset class from a token name</span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Cooked.Currencies.html#quickAssetClass"><span class="hs-identifier hs-type">quickAssetClass</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.AssetClass</span></span><span>
+</span><span id="line-56"></span><span id="quickAssetClass"><span class="annot"><span class="annottext">quickAssetClass :: String -&gt; AssetClass
+</span><a href="Cooked.Currencies.html#quickAssetClass"><span class="hs-identifier hs-var hs-var">quickAssetClass</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName) -&gt; AssetClass)
+-&gt; CurrencySymbol -&gt; TokenName -&gt; AssetClass
+forall a b c. ((a, b) -&gt; c) -&gt; a -&gt; b -&gt; c
+</span><span class="hs-identifier hs-var">curry</span></span><span> </span><span class="annot"><span class="annottext">(CurrencySymbol, TokenName) -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Pl.AssetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="Cooked.Currencies.html#quickCurrencySymbol"><span class="hs-identifier hs-var">quickCurrencySymbol</span></a></span><span> </span><span class="annot"><span class="annottext">(TokenName -&gt; AssetClass)
+-&gt; (String -&gt; TokenName) -&gt; String -&gt; AssetClass
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; TokenName
+</span><a href="Cooked.Currencies.html#quickTokenName"><span class="hs-identifier hs-var">quickTokenName</span></a></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | Constructor for /quick/ values from token name and amount</span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Cooked.Currencies.html#quickValue"><span class="hs-identifier hs-type">quickValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
+</span><span id="line-60"></span><span id="quickValue"><span class="annot"><span class="annottext">quickValue :: String -&gt; Integer -&gt; Value
+</span><a href="Cooked.Currencies.html#quickValue"><span class="hs-identifier hs-var hs-var">quickValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span class="hs-identifier hs-var">Pl.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">(AssetClass -&gt; Integer -&gt; Value)
+-&gt; (String -&gt; AssetClass) -&gt; String -&gt; Integer -&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; AssetClass
+</span><a href="Cooked.Currencies.html#quickAssetClass"><span class="hs-identifier hs-var">quickAssetClass</span></a></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- | Token name of a /permanent/ asset class</span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Cooked.Currencies.html#permanentTokenName"><span class="hs-identifier hs-type">permanentTokenName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span>
+</span><span id="line-64"></span><span id="permanentTokenName"><span class="annot"><span class="annottext">permanentTokenName :: String -&gt; TokenName
+</span><a href="Cooked.Currencies.html#permanentTokenName"><span class="hs-identifier hs-var hs-var">permanentTokenName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BuiltinByteString -&gt; TokenName
+</span><span class="hs-identifier hs-var">Pl.TokenName</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinByteString -&gt; TokenName)
+-&gt; (String -&gt; BuiltinByteString) -&gt; String -&gt; TokenName
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; BuiltinByteString
+</span><span class="hs-identifier hs-var">Pl.stringToBuiltinByteString</span></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | /Permanent/ asset class from a token name</span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Cooked.Currencies.html#permanentAssetClass"><span class="hs-identifier hs-type">permanentAssetClass</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.AssetClass</span></span><span>
+</span><span id="line-68"></span><span id="permanentAssetClass"><span class="annot"><span class="annottext">permanentAssetClass :: String -&gt; AssetClass
+</span><a href="Cooked.Currencies.html#permanentAssetClass"><span class="hs-identifier hs-var hs-var">permanentAssetClass</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName) -&gt; AssetClass)
+-&gt; CurrencySymbol -&gt; TokenName -&gt; AssetClass
+forall a b c. ((a, b) -&gt; c) -&gt; a -&gt; b -&gt; c
+</span><span class="hs-identifier hs-var">curry</span></span><span> </span><span class="annot"><span class="annottext">(CurrencySymbol, TokenName) -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Pl.AssetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="Cooked.Currencies.html#permanentCurrencySymbol"><span class="hs-identifier hs-var">permanentCurrencySymbol</span></a></span><span> </span><span class="annot"><span class="annottext">(TokenName -&gt; AssetClass)
+-&gt; (String -&gt; TokenName) -&gt; String -&gt; AssetClass
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; TokenName
+</span><a href="Cooked.Currencies.html#permanentTokenName"><span class="hs-identifier hs-var">permanentTokenName</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Constructor for /Permanent/ values from token name and amount</span><span>
+</span><span id="line-71"></span><span class="annot"><a href="Cooked.Currencies.html#permanentValue"><span class="hs-identifier hs-type">permanentValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Haskell.String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
+</span><span id="line-72"></span><span id="permanentValue"><span class="annot"><span class="annottext">permanentValue :: String -&gt; Integer -&gt; Value
+</span><a href="Cooked.Currencies.html#permanentValue"><span class="hs-identifier hs-var hs-var">permanentValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span class="hs-identifier hs-var">Pl.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">(AssetClass -&gt; Integer -&gt; Value)
+-&gt; (String -&gt; AssetClass) -&gt; String -&gt; Integer -&gt; Value
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; AssetClass
+</span><a href="Cooked.Currencies.html#permanentAssetClass"><span class="hs-identifier hs-var">permanentAssetClass</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- ** QuickValue Minting Policies</span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="Cooked.Currencies.html#mkQuickCurrencyPolicy"><span class="hs-pragma hs-type">mkQuickCurrencyPolicy</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-77"></span><span class="annot"><a href="Cooked.Currencies.html#mkQuickCurrencyPolicy"><span class="hs-identifier hs-type">mkQuickCurrencyPolicy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptContext</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-78"></span><span id="mkQuickCurrencyPolicy"><span class="annot"><span class="annottext">mkQuickCurrencyPolicy :: () -&gt; ScriptContext -&gt; Bool
+</span><a href="Cooked.Currencies.html#mkQuickCurrencyPolicy"><span class="hs-identifier hs-var hs-var">mkQuickCurrencyPolicy</span></a></span></span><span> </span><span class="annot"><span class="annottext">()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ScriptContext
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cooked.Currencies.html#quickCurrencyPolicy"><span class="hs-identifier hs-type">quickCurrencyPolicy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Scripts.MintingPolicy</span></span><span>
+</span><span id="line-81"></span><span id="quickCurrencyPolicy"><span class="annot"><span class="annottext">quickCurrencyPolicy :: MintingPolicy
+</span><a href="Cooked.Currencies.html#quickCurrencyPolicy"><span class="hs-identifier hs-var hs-var">quickCurrencyPolicy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-82"></span><span>  </span><span class="annot"><span class="annottext">CompiledCode (BuiltinData -&gt; BuiltinData -&gt; ()) -&gt; MintingPolicy
+</span><span class="hs-identifier hs-var">Ledger.mkMintingPolicyScript</span></span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">Scripts.wrapMintingPolicy</span><span> </span><span class="hs-identifier">mkQuickCurrencyPolicy</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="annot"><a href="Cooked.Currencies.html#quickCurrencySymbol"><span class="hs-identifier hs-type">quickCurrencySymbol</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value.CurrencySymbol</span></span><span>
+</span><span id="line-86"></span><span id="quickCurrencySymbol"><span class="annot"><span class="annottext">quickCurrencySymbol :: CurrencySymbol
+</span><a href="Cooked.Currencies.html#quickCurrencySymbol"><span class="hs-identifier hs-var hs-var">quickCurrencySymbol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; CurrencySymbol
+</span><span class="hs-identifier hs-var">Validation.scriptCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="Cooked.Currencies.html#quickCurrencyPolicy"><span class="hs-identifier hs-var">quickCurrencyPolicy</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="Cooked.Currencies.html#mkPermanentCurrencyPolicy"><span class="hs-pragma hs-type">mkPermanentCurrencyPolicy</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-89"></span><span class="annot"><a href="Cooked.Currencies.html#mkPermanentCurrencyPolicy"><span class="hs-identifier hs-type">mkPermanentCurrencyPolicy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.ScriptContext</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-90"></span><span id="mkPermanentCurrencyPolicy"><span class="annot"><span class="annottext">mkPermanentCurrencyPolicy :: () -&gt; ScriptContext -&gt; Bool
+</span><a href="Cooked.Currencies.html#mkPermanentCurrencyPolicy"><span class="hs-identifier hs-var hs-var">mkPermanentCurrencyPolicy</span></a></span></span><span> </span><span class="annot"><span class="annottext">()
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">ScriptContext
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="annot"><a href="Cooked.Currencies.html#permanentCurrencyPolicy"><span class="hs-identifier hs-type">permanentCurrencyPolicy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Scripts.MintingPolicy</span></span><span>
+</span><span id="line-93"></span><span id="permanentCurrencyPolicy"><span class="annot"><span class="annottext">permanentCurrencyPolicy :: MintingPolicy
+</span><a href="Cooked.Currencies.html#permanentCurrencyPolicy"><span class="hs-identifier hs-var hs-var">permanentCurrencyPolicy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-94"></span><span>  </span><span class="annot"><span class="annottext">CompiledCode (BuiltinData -&gt; BuiltinData -&gt; ()) -&gt; MintingPolicy
+</span><span class="hs-identifier hs-var">Ledger.mkMintingPolicyScript</span></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">Scripts.wrapMintingPolicy</span><span> </span><span class="hs-identifier">mkPermanentCurrencyPolicy</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Cooked.Currencies.html#permanentCurrencySymbol"><span class="hs-identifier hs-type">permanentCurrencySymbol</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value.CurrencySymbol</span></span><span>
+</span><span id="line-98"></span><span id="permanentCurrencySymbol"><span class="annot"><span class="annottext">permanentCurrencySymbol :: CurrencySymbol
+</span><a href="Cooked.Currencies.html#permanentCurrencySymbol"><span class="hs-identifier hs-var hs-var">permanentCurrencySymbol</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; CurrencySymbol
+</span><span class="hs-identifier hs-var">Validation.scriptCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="Cooked.Currencies.html#permanentCurrencyPolicy"><span class="hs-identifier hs-var">permanentCurrencyPolicy</span></a></span><span>
+</span><span id="line-99"></span></pre></body></html>

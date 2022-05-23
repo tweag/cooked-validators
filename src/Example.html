@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Example</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.html"><span class="hs-identifier">Cooked.MockChain</span></a></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html"><span class="hs-identifier">Cooked.Tx.Constraints</span></a></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Ada</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- * MockChain Example</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- | Start from the initial 'UtxoIndex', where each known 'wallet's have the</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- same amount of Ada, then transfers 4200 lovelace from wallet 1 to wallet 2.</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- This transfers from wallet 1 because that's the default signer of transactions</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- if nothing else is specified.</span><span>
+</span><span id="line-14"></span><span class="annot"><a href="Example.html#example"><span class="hs-identifier hs-type">example</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span id="example"><span class="annot"><span class="annottext">example :: Either MockChainError ((), UtxoState)
+</span><a href="Example.html#example"><span class="hs-identifier hs-var hs-var">example</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChain () -&gt; Either MockChainError ((), UtxoState)
+forall a. MockChain a -&gt; Either MockChainError (a, UtxoState)
+</span><a href="Cooked.MockChain.Monad.Direct.html#runMockChain"><span class="hs-identifier hs-var">runMockChain</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChain () -&gt; Either MockChainError ((), UtxoState))
+-&gt; MockChain () -&gt; Either MockChainError ((), UtxoState)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-16"></span><span>  </span><span class="annot"><span class="annottext">MockChainT Identity TxId -&gt; MockChain ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(MockChainT Identity TxId -&gt; MockChain ())
+-&gt; MockChainT Identity TxId -&gt; MockChain ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainT Identity TxId
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m TxId
+</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; MockChainT Identity TxId)
+-&gt; TxSkel -&gt; MockChainT Identity TxId
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-18"></span><span>      </span><span class="annot"><span class="annottext">[OutConstraint] -&gt; TxSkel
+forall constraints.
+ConstraintsSpec constraints =&gt;
+constraints -&gt; TxSkel
+</span><a href="Cooked.Tx.Constraints.Type.html#txSkel"><span class="hs-identifier hs-var">txSkel</span></a></span><span>
+</span><span id="line-19"></span><span>        </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
+</span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Wallet -&gt; PubKeyHash) -&gt; Wallet -&gt; PubKeyHash
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Wallet
+</span><a href="Cooked.MockChain.Wallet.html#wallet"><span class="hs-identifier hs-var">wallet</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">4200</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-20"></span></pre></body></html>

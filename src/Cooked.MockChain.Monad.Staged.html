@@ -1,0 +1,1127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.MockChain.Monad.Staged</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Except</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State.Strict</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Writer.Strict</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html"><span class="hs-identifier">Cooked.MockChain.Monad</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html"><span class="hs-identifier">Cooked.MockChain.Monad.Direct</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html"><span class="hs-identifier">Cooked.MockChain.UtxoState</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html"><span class="hs-identifier">Cooked.MockChain.Wallet</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html"><span class="hs-identifier">Cooked.Tx.Constraints</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.List.NonEmpty</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NE</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.TimeSlot</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Doc</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;+&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PP</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prettyprinter.Render.String</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PP</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- * Interpreting and Running 'StagedMockChain'</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Interprets the staged mockchain then runs the resulting computation</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- with a custom function. This can be used, for example, to supply</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- a custom 'InitialDistribution' by providing 'runMockChainTFrom'.</span><span>
+</span><span id="line-33"></span><span id="local-6989586621679509263"><span id="local-6989586621679509264"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretAndRunWith"><span class="hs-identifier hs-type">interpretAndRunWith</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679509282"><span class="annot"><a href="#local-6989586621679509282"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679509282"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainT"><span class="hs-identifier hs-type">MockChainT</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509282"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509264"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679509282"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509263"><span class="hs-identifier hs-type">res</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509264"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679509263"><span class="hs-identifier hs-type">res</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-37"></span><span id="interpretAndRunWith"><span class="annot"><span class="annottext">interpretAndRunWith :: (forall (m :: * -&gt; *). Monad m =&gt; MockChainT m a -&gt; m res)
+-&gt; StagedMockChain a -&gt; [(res, TraceDescr)]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretAndRunWith"><span class="hs-identifier hs-var hs-var">interpretAndRunWith</span></a></span></span><span> </span><span id="local-6989586621679509029"><span class="annot"><span class="annottext">forall (m :: * -&gt; *). Monad m =&gt; MockChainT m a -&gt; m res
+</span><a href="#local-6989586621679509029"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679509028"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679509028"><span class="hs-identifier hs-var">smc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr [] res -&gt; [(res, TraceDescr)]
+forall w (m :: * -&gt; *) a. WriterT w m a -&gt; m (a, w)
+</span><span class="hs-identifier hs-var hs-var">runWriterT</span></span><span> </span><span class="annot"><span class="annottext">(WriterT TraceDescr [] res -&gt; [(res, TraceDescr)])
+-&gt; WriterT TraceDescr [] res -&gt; [(res, TraceDescr)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainT (WriterT TraceDescr []) a -&gt; WriterT TraceDescr [] res
+forall (m :: * -&gt; *). Monad m =&gt; MockChainT m a -&gt; m res
+</span><a href="#local-6989586621679509029"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StagedMockChain a -&gt; MockChainT (WriterT TraceDescr []) a
+forall a. StagedMockChain a -&gt; InterpMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpret"><span class="hs-identifier hs-var">interpret</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679509028"><span class="hs-identifier hs-var">smc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | Interprets and runs the mockchain computation from the default 'InitialDistribution'</span><span>
+</span><span id="line-40"></span><span id="local-6989586621679509025"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretAndRun"><span class="hs-identifier hs-type">interpretAndRun</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509025"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainError"><span class="hs-identifier hs-type">MockChainError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679509025"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-43"></span><span id="interpretAndRun"><span class="annot"><span class="annottext">interpretAndRun :: StagedMockChain a
+-&gt; [(Either MockChainError (a, UtxoState), TraceDescr)]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretAndRun"><span class="hs-identifier hs-var hs-var">interpretAndRun</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall (m :: * -&gt; *).
+ Monad m =&gt;
+ MockChainT m a -&gt; m (Either MockChainError (a, UtxoState)))
+-&gt; StagedMockChain a
+-&gt; [(Either MockChainError (a, UtxoState), TraceDescr)]
+forall a res.
+(forall (m :: * -&gt; *). Monad m =&gt; MockChainT m a -&gt; m res)
+-&gt; StagedMockChain a -&gt; [(res, TraceDescr)]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretAndRunWith"><span class="hs-identifier hs-var">interpretAndRunWith</span></a></span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *).
+Monad m =&gt;
+MockChainT m a -&gt; m (Either MockChainError (a, UtxoState))
+forall (m :: * -&gt; *) a.
+Monad m =&gt;
+MockChainT m a -&gt; m (Either MockChainError (a, UtxoState))
+</span><a href="Cooked.MockChain.Monad.Direct.html#runMockChainT"><span class="hs-identifier hs-var">runMockChainT</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- * Interpreting 'StagedMockChain'</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- | The semantic domain in which 'StagedMockChain' gets interpreted; see</span><span>
+</span><span id="line-48"></span><span class="hs-comment">--  the 'interpret' function for more.</span><span>
+</span><span id="line-49"></span><span class="hs-keyword">type</span><span> </span><span id="InterpMockChain"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChain"><span class="hs-identifier hs-var">InterpMockChain</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainT"><span class="hs-identifier hs-type">MockChainT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WriterT</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'</span><span>
+</span><span id="line-52"></span><span class="hs-comment">--  computation yields a potential list of 'MockChainT' computations, which emmit</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--  a description of their operation. Recall a 'MockChainT' is a state and except</span><span>
+</span><span id="line-54"></span><span class="hs-comment">--  monad composed:</span><span>
+</span><span id="line-55"></span><span class="hs-comment">--</span><span>
+</span><span id="line-56"></span><span class="hs-comment">--  &gt;     MockChainT (WriterT TraceDescr []) a</span><span>
+</span><span id="line-57"></span><span class="hs-comment">--  &gt; =~= st -&gt; (WriterT TraceDescr []) (Either err (a, st))</span><span>
+</span><span id="line-58"></span><span class="hs-comment">--  &gt; =~= st -&gt; [(Either err (a, st) , TraceDescr)]</span><span>
+</span><span id="line-59"></span><span id="local-6989586621679509269"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpret"><span class="hs-identifier hs-type">interpret</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509269"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChain"><span class="hs-identifier hs-type">InterpMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509269"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-60"></span><span id="interpret"><span class="annot"><span class="annottext">interpret :: StagedMockChain a -&gt; InterpMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpret"><span class="hs-identifier hs-var hs-var">interpret</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(WriterT
+   TraceDescr
+   (StateT [Modality TxSkel] [])
+   (Either MockChainError (a, MockChainSt))
+ -&gt; WriterT TraceDescr [] (Either MockChainError (a, MockChainSt)))
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+-&gt; InterpMockChain a
+forall (m :: * -&gt; *) a (n :: * -&gt; *) b.
+(m (Either MockChainError (a, MockChainSt))
+ -&gt; n (Either MockChainError (b, MockChainSt)))
+-&gt; MockChainT m a -&gt; MockChainT n b
+</span><a href="Cooked.MockChain.Monad.Direct.html#mapMockChainT"><span class="hs-identifier hs-var">mapMockChainT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(StateT
+   [Modality TxSkel]
+   []
+   (Either MockChainError (a, MockChainSt), TraceDescr)
+ -&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)])
+-&gt; WriterT
+     TraceDescr
+     (StateT [Modality TxSkel] [])
+     (Either MockChainError (a, MockChainSt))
+-&gt; WriterT TraceDescr [] (Either MockChainError (a, MockChainSt))
+forall (m :: * -&gt; *) a w (n :: * -&gt; *) b w'.
+(m (a, w) -&gt; n (b, w')) -&gt; WriterT w m a -&gt; WriterT w' n b
+</span><span class="hs-identifier hs-var">mapWriterT</span></span><span> </span><span class="annot"><span class="annottext">((StateT
+    [Modality TxSkel]
+    []
+    (Either MockChainError (a, MockChainSt), TraceDescr)
+  -&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)])
+ -&gt; WriterT
+      TraceDescr
+      (StateT [Modality TxSkel] [])
+      (Either MockChainError (a, MockChainSt))
+ -&gt; WriterT TraceDescr [] (Either MockChainError (a, MockChainSt)))
+-&gt; (StateT
+      [Modality TxSkel]
+      []
+      (Either MockChainError (a, MockChainSt), TraceDescr)
+    -&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)])
+-&gt; WriterT
+     TraceDescr
+     (StateT [Modality TxSkel] [])
+     (Either MockChainError (a, MockChainSt))
+-&gt; WriterT TraceDescr [] (Either MockChainError (a, MockChainSt))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(StateT
+   [Modality TxSkel]
+   []
+   (Either MockChainError (a, MockChainSt), TraceDescr)
+ -&gt; [Modality TxSkel]
+ -&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)])
+-&gt; [Modality TxSkel]
+-&gt; StateT
+     [Modality TxSkel]
+     []
+     (Either MockChainError (a, MockChainSt), TraceDescr)
+-&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)]
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">StateT
+  [Modality TxSkel]
+  []
+  (Either MockChainError (a, MockChainSt), TraceDescr)
+-&gt; [Modality TxSkel]
+-&gt; [(Either MockChainError (a, MockChainSt), TraceDescr)]
+forall (m :: * -&gt; *) s a. Monad m =&gt; StateT s m a -&gt; s -&gt; m a
+</span><span class="hs-identifier hs-var">evalStateT</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+ -&gt; InterpMockChain a)
+-&gt; (StagedMockChain a
+    -&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a)
+-&gt; StagedMockChain a
+-&gt; InterpMockChain a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+InterpMockChainMod m a -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679509017"><span class="hs-identifier hs-var">pruneSomewheres</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+ -&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a)
+-&gt; (StagedMockChain a
+    -&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a)
+-&gt; StagedMockChain a
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] [])) a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-comment">-- When returning, if we are returning from a point where a /Somewhere/ modality is yet to be consumed,</span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-comment">-- return empty. If we return a, it would correspond to a trace where the modality was never applied.</span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621679509233"><span id="local-6989586621679509235"><span class="annot"><a href="#local-6989586621679509017"><span class="hs-identifier hs-type">pruneSomewheres</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="#local-6989586621679509235"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509235"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509233"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509235"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509233"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621679509017"><span class="annot"><span class="annottext">pruneSomewheres :: InterpMockChainMod m a -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679509017"><span class="hs-identifier hs-var hs-var">pruneSomewheres</span></a></span></span><span> </span><span id="local-6989586621679509015"><span class="annot"><span class="annottext">InterpMockChainMod m a
+</span><a href="#local-6989586621679509015"><span class="hs-identifier hs-var">ma</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-66"></span><span>      </span><span id="local-6989586621679509014"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679509014"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+</span><a href="#local-6989586621679509015"><span class="hs-identifier hs-var">ma</span></a></span><span>
+</span><span id="line-67"></span><span>      </span><span id="local-6989586621679509013"><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679509013"><span class="hs-identifier hs-var">ms</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) [Modality TxSkel]
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-68"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">(Modality TxSkel -&gt; Bool) -&gt; [Modality TxSkel] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">any</span></span><span> </span><span class="annot"><span class="annottext">Modality TxSkel -&gt; Bool
+forall a. Modality a -&gt; Bool
+</span><a href="#local-6989586621679509009"><span class="hs-identifier hs-var">isSomewhere</span></a></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679509013"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a
+</span><span class="hs-identifier hs-var">empty</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679509014"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span>    </span><span id="local-6989586621679509218"><span class="annot"><a href="#local-6989586621679509009"><span class="hs-identifier hs-type">isSomewhere</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509218"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-71"></span><span>    </span><span id="local-6989586621679509009"><span class="annot"><span class="annottext">isSomewhere :: Modality a -&gt; Bool
+</span><a href="#local-6989586621679509009"><span class="hs-identifier hs-var hs-var">isSomewhere</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-type">Somewhere</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-72"></span><span>    </span><span class="annot"><a href="#local-6989586621679509009"><span class="hs-identifier hs-var">isSomewhere</span></a></span><span> </span><span class="annot"><span class="annottext">Modality a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | This is an initial encoding of the MockChain operations, it provides</span><span>
+</span><span id="line-75"></span><span class="hs-comment">--  a simple way of altering the AST of a trace before actually executing it.</span><span>
+</span><span id="line-76"></span><span class="hs-comment">--  On top of the operations from 'MonadBlockChain' we also have 'Fail' to make</span><span>
+</span><span id="line-77"></span><span class="hs-comment">--  sure the resulting monad will be an instance of 'MonadFail'.</span><span>
+</span><span id="line-78"></span><span class="hs-keyword">data</span><span> </span><span id="MockChainOp"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-var">MockChainOp</span></a></span></span><span> </span><span id="local-6989586621679509006"><span class="annot"><a href="#local-6989586621679509006"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-79"></span><span>  </span><span id="ValidateTxSkel"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-var">ValidateTxSkel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxId</span></span><span>
+</span><span id="line-80"></span><span>  </span><span id="TxOutByRef"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TxOutByRef"><span class="hs-identifier hs-var">TxOutByRef</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>  </span><span id="GetCurrentSlot"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentSlot"><span class="hs-identifier hs-var">GetCurrentSlot</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Slot</span></span><span>
+</span><span id="line-82"></span><span>  </span><span id="AwaitSlot"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#AwaitSlot"><span class="hs-identifier hs-var">AwaitSlot</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Slot</span></span><span>
+</span><span id="line-83"></span><span>  </span><span id="GetCurrentTime"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentTime"><span class="hs-identifier hs-var">GetCurrentTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.POSIXTime</span></span><span>
+</span><span id="line-84"></span><span>  </span><span id="AwaitTime"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#AwaitTime"><span class="hs-identifier hs-var">AwaitTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.POSIXTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.POSIXTime</span></span><span>
+</span><span id="line-85"></span><span>  </span><span id="local-6989586621679508999"><span id="UtxosSuchThat"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#UtxosSuchThat"><span class="hs-identifier hs-var">UtxosSuchThat</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="annot"><a href="#local-6989586621679508999"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-87"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679508999"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-89"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679508999"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-90"></span><span>  </span><span id="OwnPubKey"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#OwnPubKey"><span class="hs-identifier hs-var">OwnPubKey</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PubKeyHash</span></span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-92"></span><span>  </span><span id="local-6989586621679509073"><span id="SigningWith"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#SigningWith"><span class="hs-identifier hs-var">SigningWith</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NE.NonEmpty</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509073"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509073"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-93"></span><span>  </span><span id="AskSigners"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#AskSigners"><span class="hs-identifier hs-var">AskSigners</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NE.NonEmpty</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>  </span><span id="GetSlotConfig"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#GetSlotConfig"><span class="hs-identifier hs-var">GetSlotConfig</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.SlotConfig</span></span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-96"></span><span>  </span><span id="local-6989586621679509067"><span id="Modify"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modify"><span class="hs-identifier hs-var">Modify</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509067"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509067"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679509150"><span id="Fail"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Fail"><span class="hs-identifier hs-var">Fail</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509150"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-100"></span><span>  </span><span id="local-6989586621679509142"><span id="MPlus"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MPlus"><span class="hs-identifier hs-var">MPlus</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509142"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509142"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509142"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-101"></span><span>  </span><span id="local-6989586621679509144"><span id="MZero"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MZero"><span class="hs-identifier hs-var">MZero</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509144"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-keyword">data</span><span> </span><span id="Staged"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Staged"><span class="hs-identifier hs-var">Staged</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679508989"><span class="annot"><a href="#local-6989586621679508989"><span class="hs-identifier hs-type">op</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-operator">*</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-104"></span><span>  </span><span id="local-6989586621679509204"><span id="local-6989586621679509205"><span id="Return"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-var">Return</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679509205"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Staged"><span class="hs-identifier hs-type">Staged</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509204"><span class="hs-identifier hs-type">op</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509205"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-105"></span><span>  </span><span id="local-6989586621679508987"><span id="local-6989586621679509207"><span id="local-6989586621679509209"><span id="Instr"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-var">Instr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679509209"><span class="hs-identifier hs-type">op</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679508987"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679508987"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Staged"><span class="hs-identifier hs-type">Staged</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509209"><span class="hs-identifier hs-type">op</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509207"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Staged"><span class="hs-identifier hs-type">Staged</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509209"><span class="hs-identifier hs-type">op</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509207"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="hs-keyword">type</span><span> </span><span id="StagedMockChain"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-var">StagedMockChain</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Staged"><span class="hs-identifier hs-type">Staged</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span id="local-6989586621679509151"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-type">singleton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509151"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-110"></span><span id="singleton"><span class="annot"><span class="annottext">singleton :: MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var hs-var">singleton</span></a></span></span><span> </span><span id="local-6989586621679508984"><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508984"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; (a -&gt; StagedMockChain a) -&gt; StagedMockChain a
+forall (op :: * -&gt; *) a b.
+op a -&gt; (a -&gt; Staged op b) -&gt; Staged op b
+</span><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-var">Instr</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508984"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+forall a (op :: * -&gt; *). a -&gt; Staged op a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-var">Return</span></a></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508981"><span class="annot"><span class="hs-identifier hs-type">Functor</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-113"></span><span>  </span><span id="local-6989586621679508979"><span class="annot"><span class="annottext">fmap :: (a -&gt; b) -&gt; StagedMockChain a -&gt; StagedMockChain b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fmap</span></span></span><span> </span><span id="local-6989586621679508978"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679508978"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-type">Return</span></a></span><span> </span><span id="local-6989586621679508977"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508977"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">b -&gt; StagedMockChain b
+forall a (op :: * -&gt; *). a -&gt; Staged op a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-var">Return</span></a></span><span> </span><span class="annot"><span class="annottext">(b -&gt; StagedMockChain b) -&gt; b -&gt; StagedMockChain b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679508978"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508977"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-114"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">fmap</span></span><span> </span><span id="local-6989586621679508976"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679508976"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-type">Instr</span></a></span><span> </span><span id="local-6989586621679508975"><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508975"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679508974"><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508974"><span class="hs-identifier hs-var">cont</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; (a -&gt; StagedMockChain b) -&gt; StagedMockChain b
+forall (op :: * -&gt; *) a b.
+op a -&gt; (a -&gt; Staged op b) -&gt; Staged op b
+</span><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-var">Instr</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508975"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; b) -&gt; StagedMockChain a -&gt; StagedMockChain b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679508976"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">(StagedMockChain a -&gt; StagedMockChain b)
+-&gt; (a -&gt; StagedMockChain a) -&gt; a -&gt; StagedMockChain b
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508974"><span class="hs-identifier hs-var">cont</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508965"><span id="local-6989586621679508967"><span id="local-6989586621679508969"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-117"></span><span>  </span><span id="local-6989586621679508963"><span class="annot"><span class="annottext">pure :: a -&gt; StagedMockChain a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+forall a (op :: * -&gt; *). a -&gt; Staged op a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-var">Return</span></a></span><span>
+</span><span id="line-118"></span><span>  </span><span id="local-6989586621679508962"><span class="annot"><span class="annottext">&lt;*&gt; :: StagedMockChain (a -&gt; b) -&gt; StagedMockChain a -&gt; StagedMockChain b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;*&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">StagedMockChain (a -&gt; b) -&gt; StagedMockChain a -&gt; StagedMockChain b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m (a -&gt; b) -&gt; m a -&gt; m b
+</span><span class="hs-identifier hs-var">ap</span></span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508955"><span id="local-6989586621679508957"><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-type">Return</span></a></span><span> </span><span id="local-6989586621679508953"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508953"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679508952"><span class="annot"><span class="annottext">&gt;&gt;= :: StagedMockChain a -&gt; (a -&gt; StagedMockChain b) -&gt; StagedMockChain b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;&gt;=</span></span></span><span> </span><span id="local-6989586621679508951"><span class="annot"><span class="annottext">a -&gt; StagedMockChain b
+</span><a href="#local-6989586621679508951"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain b
+</span><a href="#local-6989586621679508951"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508953"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-type">Instr</span></a></span><span> </span><span id="local-6989586621679508950"><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508950"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679508949"><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508949"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span id="local-6989586621679508948"><span class="annot"><span class="annottext">a -&gt; StagedMockChain b
+</span><a href="#local-6989586621679508948"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; (a -&gt; StagedMockChain b) -&gt; StagedMockChain b
+forall (op :: * -&gt; *) a b.
+op a -&gt; (a -&gt; Staged op b) -&gt; Staged op b
+</span><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-var">Instr</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508950"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508949"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; StagedMockChain a)
+-&gt; (a -&gt; StagedMockChain b) -&gt; a -&gt; StagedMockChain b
+forall (m :: * -&gt; *) a b c.
+Monad m =&gt;
+(a -&gt; m b) -&gt; (b -&gt; m c) -&gt; a -&gt; m c
+</span><span class="hs-operator hs-var">&gt;=&gt;</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain b
+</span><a href="#local-6989586621679508948"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadFail</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679508943"><span class="annot"><span class="annottext">fail :: String -&gt; StagedMockChain a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fail</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp a -&gt; StagedMockChain a)
+-&gt; (String -&gt; MockChainOp a) -&gt; String -&gt; StagedMockChain a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; MockChainOp a
+forall a. String -&gt; MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Fail"><span class="hs-identifier hs-var">Fail</span></a></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508936"><span id="local-6989586621679508938"><span class="annot"><span class="hs-identifier hs-type">Alternative</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679508934"><span class="annot"><span class="annottext">empty :: StagedMockChain a
+</span><a href="#local-6989586621679508934"><span class="hs-identifier hs-var hs-var hs-var hs-var">empty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+forall a. MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#MZero"><span class="hs-identifier hs-var">MZero</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span id="local-6989586621679508933"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508933"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679508932"><span class="annot"><span class="annottext">&lt;|&gt; :: StagedMockChain a -&gt; StagedMockChain a -&gt; StagedMockChain a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;|&gt;</span></span></span><span> </span><span id="local-6989586621679508930"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508930"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp a -&gt; StagedMockChain a)
+-&gt; MockChainOp a -&gt; StagedMockChain a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a -&gt; StagedMockChain a -&gt; MockChainOp a
+forall a. StagedMockChain a -&gt; StagedMockChain a -&gt; MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#MPlus"><span class="hs-identifier hs-var">MPlus</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508933"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508930"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- | Interprets a single operation in the direct 'MockChainT' monad. We need to</span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- pass around the modalities since some operations refer back to 'StagedMockChain',</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- and that needs to be interpreted taking into account the existing modalities.</span><span>
+</span><span id="line-134"></span><span id="local-6989586621679508928"><span id="local-6989586621679508929"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-type">interpretOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="#local-6989586621679508929"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679508928"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679508929"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679508928"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-135"></span><span id="interpretOp"><span class="annot"><span class="annottext">interpretOp :: MockChainOp a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var hs-var">interpretOp</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-type">ValidateTxSkel</span></a></span><span> </span><span id="local-6989586621679508926"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508926"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) TxId
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m TxId
+</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508926"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TxOutByRef"><span class="hs-identifier hs-type">TxOutByRef</span></a></span><span> </span><span id="local-6989586621679508924"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679508924"><span class="hs-identifier hs-var">ref</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOutRef
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) (Maybe TxOut)
+forall (m :: * -&gt; *).
+MonadBlockChain m =&gt;
+TxOutRef -&gt; m (Maybe TxOut)
+</span><a href="Cooked.MockChain.Monad.html#txOutByRef"><span class="hs-identifier hs-var">txOutByRef</span></a></span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679508924"><span class="hs-identifier hs-var">ref</span></a></span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentSlot"><span class="hs-identifier hs-var">GetCurrentSlot</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; m Slot
+</span><a href="Cooked.MockChain.Monad.html#currentSlot"><span class="hs-identifier hs-var">currentSlot</span></a></span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentTime"><span class="hs-identifier hs-var">GetCurrentTime</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; m POSIXTime
+</span><a href="Cooked.MockChain.Monad.html#currentTime"><span class="hs-identifier hs-var">currentTime</span></a></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#AwaitSlot"><span class="hs-identifier hs-type">AwaitSlot</span></a></span><span> </span><span id="local-6989586621679508920"><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679508920"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Slot
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) Slot
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; Slot -&gt; m Slot
+</span><a href="Cooked.MockChain.Monad.html#awaitSlot"><span class="hs-identifier hs-var">awaitSlot</span></a></span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679508920"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-140"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#AwaitTime"><span class="hs-identifier hs-type">AwaitTime</span></a></span><span> </span><span id="local-6989586621679508918"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679508918"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) POSIXTime
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; POSIXTime -&gt; m POSIXTime
+</span><a href="Cooked.MockChain.Monad.html#awaitTime"><span class="hs-identifier hs-var">awaitTime</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679508918"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-141"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#UtxosSuchThat"><span class="hs-identifier hs-type">UtxosSuchThat</span></a></span><span> </span><span id="local-6989586621679508916"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679508916"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679508915"><span class="annot"><span class="annottext">Maybe a -&gt; Value -&gt; Bool
+</span><a href="#local-6989586621679508915"><span class="hs-identifier hs-var">predi</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address
+-&gt; (Maybe a -&gt; Value -&gt; Bool)
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m))
+     [(SpendableOut, Maybe a)]
+forall (m :: * -&gt; *) a.
+(MonadBlockChain m, FromData a) =&gt;
+Address -&gt; UtxoPredicate a -&gt; m [(SpendableOut, Maybe a)]
+</span><a href="Cooked.MockChain.Monad.html#utxosSuchThat"><span class="hs-identifier hs-var">utxosSuchThat</span></a></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679508916"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; Value -&gt; Bool
+</span><a href="#local-6989586621679508915"><span class="hs-identifier hs-var">predi</span></a></span><span>
+</span><span id="line-142"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Fail"><span class="hs-identifier hs-type">Fail</span></a></span><span> </span><span id="local-6989586621679508913"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679508913"><span class="hs-identifier hs-var">str</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679508913"><span class="hs-identifier hs-var">str</span></a></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#OwnPubKey"><span class="hs-identifier hs-var">OwnPubKey</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; m PubKeyHash
+</span><a href="Cooked.MockChain.Monad.html#ownPaymentPubKeyHash"><span class="hs-identifier hs-var">ownPaymentPubKeyHash</span></a></span><span>
+</span><span id="line-144"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#AskSigners"><span class="hs-identifier hs-var">AskSigners</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (m :: * -&gt; *). MonadMockChain m =&gt; m (NonEmpty Wallet)
+</span><a href="Cooked.MockChain.Monad.html#askSigners"><span class="hs-identifier hs-var">askSigners</span></a></span><span>
+</span><span id="line-145"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetSlotConfig"><span class="hs-identifier hs-var">GetSlotConfig</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+forall (m :: * -&gt; *). MonadMockChain m =&gt; m SlotConfig
+</span><a href="Cooked.MockChain.Monad.html#slotConfig"><span class="hs-identifier hs-var">slotConfig</span></a></span><span>
+</span><span id="line-146"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#SigningWith"><span class="hs-identifier hs-type">SigningWith</span></a></span><span> </span><span id="local-6989586621679508909"><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508909"><span class="hs-identifier hs-var">ws</span></a></span></span><span> </span><span id="local-6989586621679508908"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508908"><span class="hs-identifier hs-var">act</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet -&gt; InterpMockChainMod m a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadMockChain m =&gt;
+NonEmpty Wallet -&gt; m a -&gt; m a
+</span><a href="Cooked.MockChain.Monad.html#signingWith"><span class="hs-identifier hs-var">signingWith</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508909"><span class="hs-identifier hs-var">ws</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508908"><span class="hs-identifier hs-var">act</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-147"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modify"><span class="hs-identifier hs-type">Modify</span></a></span><span> </span><span id="local-6989586621679508906"><span class="annot"><span class="annottext">Modality TxSkel
+</span><a href="#local-6989586621679508906"><span class="hs-identifier hs-var">m'</span></a></span></span><span> </span><span id="local-6989586621679508905"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508905"><span class="hs-identifier hs-var">block</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-148"></span><span>  </span><span id="local-6989586621679508904"><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508904"><span class="hs-identifier hs-var">ms</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) [Modality TxSkel]
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ()
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+ -&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ())
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+forall s (m :: * -&gt; *). MonadState s m =&gt; s -&gt; m ()
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508904"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel] -&gt; [Modality TxSkel] -&gt; [Modality TxSkel]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modality TxSkel
+</span><a href="#local-6989586621679508906"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>  </span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508905"><span class="hs-identifier hs-var">block</span></a></span><span>
+</span><span id="line-151"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#MZero"><span class="hs-identifier hs-var">MZero</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+-&gt; InterpMockChainMod m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(WriterT TraceDescr (StateT [Modality TxSkel] m) a
+ -&gt; InterpMockChainMod m a)
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+-&gt; InterpMockChainMod m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">StateT [Modality TxSkel] m a
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(StateT [Modality TxSkel] m a
+ -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a)
+-&gt; StateT [Modality TxSkel] m a
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">m a -&gt; StateT [Modality TxSkel] m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">m a
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a
+</span><span class="hs-identifier hs-var">mzero</span></span><span>
+</span><span id="line-152"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MPlus"><span class="hs-identifier hs-type">MPlus</span></a></span><span> </span><span id="local-6989586621679508901"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508901"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679508900"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508900"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+-&gt; InterpMockChainMod m a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+InterpMockChainMod m a
+-&gt; InterpMockChainMod m a -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679508899"><span class="hs-identifier hs-var">combineInterpMockChainMod</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508901"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508900"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-154"></span><span>    </span><span id="local-6989586621679509114"><span id="local-6989586621679509115"><span class="annot"><a href="#local-6989586621679508899"><span class="hs-identifier hs-type">combineInterpMockChainMod</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-155"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="#local-6989586621679509115"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-156"></span><span>      </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509115"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509114"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-157"></span><span>      </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509115"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509114"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-158"></span><span>      </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509115"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509114"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-159"></span><span>    </span><span id="local-6989586621679508899"><span class="annot"><span class="annottext">combineInterpMockChainMod :: InterpMockChainMod m a
+-&gt; InterpMockChainMod m a -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679508899"><span class="hs-identifier hs-var hs-var">combineInterpMockChainMod</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(forall a.
+ WriterT TraceDescr (StateT [Modality TxSkel] m) a
+ -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+ -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a)
+-&gt; InterpMockChainMod m a
+-&gt; InterpMockChainMod m a
+-&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) x.
+Monad m =&gt;
+(forall a. m a -&gt; m a -&gt; m a)
+-&gt; MockChainT m x -&gt; MockChainT m x -&gt; MockChainT m x
+</span><a href="Cooked.MockChain.Monad.Direct.html#combineMockChainT"><span class="hs-identifier hs-var">combineMockChainT</span></a></span><span> </span><span class="annot"><span class="annottext">((forall a.
+  WriterT TraceDescr (StateT [Modality TxSkel] m) a
+  -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+  -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a)
+ -&gt; InterpMockChainMod m a
+ -&gt; InterpMockChainMod m a
+ -&gt; InterpMockChainMod m a)
+-&gt; (forall a.
+    WriterT TraceDescr (StateT [Modality TxSkel] m) a
+    -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+    -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a)
+-&gt; InterpMockChainMod m a
+-&gt; InterpMockChainMod m a
+-&gt; InterpMockChainMod m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679508897"><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+</span><a href="#local-6989586621679508897"><span class="hs-identifier hs-var">ma</span></a></span></span><span> </span><span id="local-6989586621679508896"><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+</span><a href="#local-6989586621679508896"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-160"></span><span>      </span><span class="annot"><span class="annottext">StateT [Modality TxSkel] m (a, TraceDescr)
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+forall w (m :: * -&gt; *) a. m (a, w) -&gt; WriterT w m a
+</span><span class="hs-identifier hs-var">WriterT</span></span><span> </span><span class="annot"><span class="annottext">(StateT [Modality TxSkel] m (a, TraceDescr)
+ -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a)
+-&gt; StateT [Modality TxSkel] m (a, TraceDescr)
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-161"></span><span>        </span><span class="annot"><span class="annottext">([Modality TxSkel] -&gt; m ((a, TraceDescr), [Modality TxSkel]))
+-&gt; StateT [Modality TxSkel] m (a, TraceDescr)
+forall s (m :: * -&gt; *) a. (s -&gt; m (a, s)) -&gt; StateT s m a
+</span><span class="hs-identifier hs-var">StateT</span></span><span> </span><span class="annot"><span class="annottext">(([Modality TxSkel] -&gt; m ((a, TraceDescr), [Modality TxSkel]))
+ -&gt; StateT [Modality TxSkel] m (a, TraceDescr))
+-&gt; ([Modality TxSkel] -&gt; m ((a, TraceDescr), [Modality TxSkel]))
+-&gt; StateT [Modality TxSkel] m (a, TraceDescr)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679508893"><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508893"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-162"></span><span>          </span><span class="annot"><span class="annottext">StateT [Modality TxSkel] m (a, TraceDescr)
+-&gt; [Modality TxSkel] -&gt; m ((a, TraceDescr), [Modality TxSkel])
+forall s (m :: * -&gt; *) a. StateT s m a -&gt; s -&gt; m (a, s)
+</span><span class="hs-identifier hs-var hs-var">runStateT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+-&gt; StateT [Modality TxSkel] m (a, TraceDescr)
+forall w (m :: * -&gt; *) a. WriterT w m a -&gt; m (a, w)
+</span><span class="hs-identifier hs-var hs-var">runWriterT</span></span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+</span><a href="#local-6989586621679508897"><span class="hs-identifier hs-var">ma</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508893"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">m ((a, TraceDescr), [Modality TxSkel])
+-&gt; m ((a, TraceDescr), [Modality TxSkel])
+-&gt; m ((a, TraceDescr), [Modality TxSkel])
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m a -&gt; m a
+</span><span class="hs-operator hs-var">`mplus`</span></span><span> </span><span class="annot"><span class="annottext">StateT [Modality TxSkel] m (a, TraceDescr)
+-&gt; [Modality TxSkel] -&gt; m ((a, TraceDescr), [Modality TxSkel])
+forall s (m :: * -&gt; *) a. StateT s m a -&gt; s -&gt; m (a, s)
+</span><span class="hs-identifier hs-var hs-var">runStateT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+-&gt; StateT [Modality TxSkel] m (a, TraceDescr)
+forall w (m :: * -&gt; *) a. WriterT w m a -&gt; m (a, w)
+</span><span class="hs-identifier hs-var hs-var">runWriterT</span></span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) a
+</span><a href="#local-6989586621679508896"><span class="hs-identifier hs-var">mb</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508893"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-163"></span><span>
+</span><span id="line-164"></span><span class="hs-comment">-- | This is an internal type that keeps track of the list of modalities that</span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- are present in each branch, it's isomorphic to:</span><span>
+</span><span id="line-166"></span><span class="hs-comment">--</span><span>
+</span><span id="line-167"></span><span class="hs-comment">--  &gt; St -&gt; ListMods -&gt; m ((Either Err (a, St) , TraceDescr), ListMods)</span><span>
+</span><span id="line-168"></span><span class="hs-keyword">type</span><span> </span><span id="InterpMockChainMod"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-var">InterpMockChainMod</span></a></span></span><span> </span><span id="local-6989586621679508890"><span class="annot"><a href="#local-6989586621679508890"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainT"><span class="hs-identifier hs-type">MockChainT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WriterT</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">StateT</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><a href="#local-6989586621679508890"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- | Interprets a 'StagedMockChain' that must be modified with a certain list of modalities.</span><span>
+</span><span id="line-171"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-type">interpretNonDet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679509231"><span class="annot"><a href="#local-6989586621679509231"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679509230"><span class="annot"><a href="#local-6989586621679509230"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="#local-6989586621679509231"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509230"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509231"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509230"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-172"></span><span id="interpretNonDet"><span class="annot"><span class="annottext">interpretNonDet :: StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var hs-var">interpretNonDet</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Return"><span class="hs-identifier hs-type">Return</span></a></span><span> </span><span id="local-6989586621679508889"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508889"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508889"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-173"></span><span class="hs-comment">-- When interpreting a 'ValidateTxSkel', we evaluate the modalities and return a union</span><span>
+</span><span id="line-174"></span><span class="hs-comment">-- of all possible outcomes.</span><span>
+</span><span id="line-175"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-type">Instr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-type">ValidateTxSkel</span></a></span><span> </span><span id="local-6989586621679508888"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508888"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679508887"><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508887"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-176"></span><span>  </span><span id="local-6989586621679508886"><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508886"><span class="hs-identifier hs-var">ms</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) [Modality TxSkel]
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) [Modality TxSkel]
+forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-177"></span><span>  </span><span class="annot"><span class="annottext">[InterpMockChainMod m a] -&gt; InterpMockChainMod m a
+forall (t :: * -&gt; *) (f :: * -&gt; *) a.
+(Foldable t, Alternative f) =&gt;
+t (f a) -&gt; f a
+</span><span class="hs-identifier hs-var">asum</span></span><span> </span><span class="annot"><span class="annottext">([InterpMockChainMod m a] -&gt; InterpMockChainMod m a)
+-&gt; [InterpMockChainMod m a] -&gt; InterpMockChainMod m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((TxSkel, [Modality TxSkel]) -&gt; InterpMockChainMod m a)
+-&gt; [(TxSkel, [Modality TxSkel])] -&gt; [InterpMockChainMod m a]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkel -&gt; [Modality TxSkel] -&gt; InterpMockChainMod m a)
+-&gt; (TxSkel, [Modality TxSkel]) -&gt; InterpMockChainMod m a
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [Modality TxSkel] -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679508883"><span class="hs-identifier hs-var">interpAux</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(TxSkel, [Modality TxSkel])] -&gt; [InterpMockChainMod m a])
+-&gt; [(TxSkel, [Modality TxSkel])] -&gt; [InterpMockChainMod m a]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel] -&gt; TxSkel -&gt; [(TxSkel, [Modality TxSkel])]
+forall a. [Modality a] -&gt; a -&gt; [(a, [Modality a])]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var">interpModalities</span></a></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508886"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508888"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-179"></span><span>    </span><span class="annot"><a href="#local-6989586621679508883"><span class="hs-identifier hs-type">interpAux</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509231"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509230"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-180"></span><span>    </span><span id="local-6989586621679508883"><span class="annot"><span class="annottext">interpAux :: TxSkel -&gt; [Modality TxSkel] -&gt; InterpMockChainMod m a
+</span><a href="#local-6989586621679508883"><span class="hs-identifier hs-var hs-var">interpAux</span></a></span></span><span> </span><span id="local-6989586621679508881"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508881"><span class="hs-identifier hs-var">skel'</span></a></span></span><span> </span><span id="local-6989586621679508880"><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508880"><span class="hs-identifier hs-var">ms'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ()
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Modality TxSkel]
+-&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+forall s (m :: * -&gt; *). MonadState s m =&gt; s -&gt; m ()
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="annot"><span class="annottext">[Modality TxSkel]
+</span><a href="#local-6989586621679508880"><span class="hs-identifier hs-var">ms'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ()
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) TxId
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) TxId
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MockChainOp TxId
+-&gt; MockChainT
+     (WriterT TraceDescr (StateT [Modality TxSkel] m)) TxId
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+MockChainOp a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpAndTellOp"><span class="hs-identifier hs-var">interpAndTellOp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainOp TxId
+</span><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-var">ValidateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508881"><span class="hs-identifier hs-var">skel'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) TxId
+-&gt; (TxId -&gt; InterpMockChainMod m a) -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">(StagedMockChain a -&gt; InterpMockChainMod m a)
+-&gt; (a -&gt; StagedMockChain a) -&gt; a -&gt; InterpMockChainMod m a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508887"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- Interpreting any other instruction is just a matter of interpreting a bind</span><span>
+</span><span id="line-182"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Instr"><span class="hs-identifier hs-type">Instr</span></a></span><span> </span><span id="local-6989586621679508878"><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508878"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span id="local-6989586621679508877"><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508877"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+MockChainOp a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpAndTellOp"><span class="hs-identifier hs-var">interpAndTellOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508878"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">InterpMockChainMod m a
+-&gt; (a -&gt; InterpMockChainMod m a) -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">StagedMockChain a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+StagedMockChain a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretNonDet"><span class="hs-identifier hs-var">interpretNonDet</span></a></span><span> </span><span class="annot"><span class="annottext">(StagedMockChain a -&gt; InterpMockChainMod m a)
+-&gt; (a -&gt; StagedMockChain a) -&gt; a -&gt; InterpMockChainMod m a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508877"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-183"></span><span>
+</span><span id="line-184"></span><span class="hs-comment">-- | Auxiliar function to interpret a bind.</span><span>
+</span><span id="line-185"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpAndTellOp"><span class="hs-identifier hs-type">interpAndTellOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679509085"><span class="annot"><a href="#local-6989586621679509085"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679509084"><span class="annot"><a href="#local-6989586621679509084"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="#local-6989586621679509085"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509084"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#InterpMockChainMod"><span class="hs-identifier hs-type">InterpMockChainMod</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509085"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509084"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-186"></span><span id="interpAndTellOp"><span class="annot"><span class="annottext">interpAndTellOp :: MockChainOp a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpAndTellOp"><span class="hs-identifier hs-var hs-var">interpAndTellOp</span></a></span></span><span> </span><span id="local-6989586621679508876"><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508876"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-187"></span><span>  </span><span id="local-6989586621679508875"><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508875"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MockChainT
+  (WriterT TraceDescr (StateT [Modality TxSkel] m)) (NonEmpty Wallet)
+forall (m :: * -&gt; *). MonadMockChain m =&gt; m (NonEmpty Wallet)
+</span><a href="Cooked.MockChain.Monad.html#askSigners"><span class="hs-identifier hs-var">askSigners</span></a></span><span>
+</span><span id="line-188"></span><span>  </span><span class="annot"><span class="annottext">WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+-&gt; MockChainT (WriterT TraceDescr (StateT [Modality TxSkel] m)) ()
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TraceDescr -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+forall w (m :: * -&gt; *). MonadWriter w m =&gt; w -&gt; m ()
+</span><span class="hs-identifier hs-var">tell</span></span><span> </span><span class="annot"><span class="annottext">(TraceDescr -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ())
+-&gt; TraceDescr -&gt; WriterT TraceDescr (StateT [Modality TxSkel] m) ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet -&gt; MockChainOp a -&gt; TraceDescr
+forall a. NonEmpty Wallet -&gt; MockChainOp a -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#prettyMockChainOp"><span class="hs-identifier hs-var">prettyMockChainOp</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508875"><span class="hs-identifier hs-var">signers</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508876"><span class="hs-identifier hs-var">op</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-189"></span><span>  </span><span class="annot"><span class="annottext">MockChainOp a -&gt; InterpMockChainMod m a
+forall (m :: * -&gt; *) a.
+MonadPlus m =&gt;
+MockChainOp a -&gt; InterpMockChainMod m a
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpretOp"><span class="hs-identifier hs-var">interpretOp</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><a href="#local-6989586621679508876"><span class="hs-identifier hs-var">op</span></a></span><span>
+</span><span id="line-190"></span><span>
+</span><span id="line-191"></span><span class="hs-comment">-- * MonadBlockChain Instance</span><span>
+</span><span id="line-192"></span><span>
+</span><span id="line-193"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-194"></span><span>  </span><span id="local-6989586621679508862"><span class="annot"><span class="annottext">validateTxSkel :: TxSkel -&gt; StagedMockChain TxId
+</span><a href="#local-6989586621679508862"><span class="hs-identifier hs-var hs-var hs-var hs-var">validateTxSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp TxId -&gt; StagedMockChain TxId
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp TxId -&gt; StagedMockChain TxId)
+-&gt; (TxSkel -&gt; MockChainOp TxId) -&gt; TxSkel -&gt; StagedMockChain TxId
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainOp TxId
+</span><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-var">ValidateTxSkel</span></a></span><span>
+</span><span id="line-195"></span><span>  </span><span id="local-6989586621679508861"><span class="annot"><span class="annottext">utxosSuchThat :: Address
+-&gt; UtxoPredicate a -&gt; StagedMockChain [(SpendableOut, Maybe a)]
+</span><a href="#local-6989586621679508861"><span class="hs-identifier hs-var hs-var hs-var hs-var">utxosSuchThat</span></a></span></span><span> </span><span id="local-6989586621679508860"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679508860"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp [(SpendableOut, Maybe a)]
+-&gt; StagedMockChain [(SpendableOut, Maybe a)]
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp [(SpendableOut, Maybe a)]
+ -&gt; StagedMockChain [(SpendableOut, Maybe a)])
+-&gt; (UtxoPredicate a -&gt; MockChainOp [(SpendableOut, Maybe a)])
+-&gt; UtxoPredicate a
+-&gt; StagedMockChain [(SpendableOut, Maybe a)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Address -&gt; UtxoPredicate a -&gt; MockChainOp [(SpendableOut, Maybe a)]
+forall a.
+FromData a =&gt;
+Address
+-&gt; (Maybe a -&gt; Value -&gt; Bool)
+-&gt; MockChainOp [(SpendableOut, Maybe a)]
+</span><a href="Cooked.MockChain.Monad.Staged.html#UtxosSuchThat"><span class="hs-identifier hs-var">UtxosSuchThat</span></a></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679508860"><span class="hs-identifier hs-var">addr</span></a></span><span>
+</span><span id="line-196"></span><span>  </span><span id="local-6989586621679508859"><span class="annot"><span class="annottext">txOutByRef :: TxOutRef -&gt; StagedMockChain (Maybe TxOut)
+</span><a href="#local-6989586621679508859"><span class="hs-identifier hs-var hs-var hs-var hs-var">txOutByRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp (Maybe TxOut) -&gt; StagedMockChain (Maybe TxOut)
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp (Maybe TxOut) -&gt; StagedMockChain (Maybe TxOut))
+-&gt; (TxOutRef -&gt; MockChainOp (Maybe TxOut))
+-&gt; TxOutRef
+-&gt; StagedMockChain (Maybe TxOut)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; MockChainOp (Maybe TxOut)
+</span><a href="Cooked.MockChain.Monad.Staged.html#TxOutByRef"><span class="hs-identifier hs-var">TxOutByRef</span></a></span><span>
+</span><span id="line-197"></span><span>  </span><span id="local-6989586621679508858"><span class="annot"><span class="annottext">ownPaymentPubKeyHash :: StagedMockChain PubKeyHash
+</span><a href="#local-6989586621679508858"><span class="hs-identifier hs-var hs-var hs-var hs-var">ownPaymentPubKeyHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp PubKeyHash -&gt; StagedMockChain PubKeyHash
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp PubKeyHash
+</span><a href="Cooked.MockChain.Monad.Staged.html#OwnPubKey"><span class="hs-identifier hs-var">OwnPubKey</span></a></span><span>
+</span><span id="line-198"></span><span>  </span><span id="local-6989586621679508857"><span class="annot"><span class="annottext">currentSlot :: StagedMockChain Slot
+</span><a href="#local-6989586621679508857"><span class="hs-identifier hs-var hs-var hs-var hs-var">currentSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp Slot -&gt; StagedMockChain Slot
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp Slot
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentSlot"><span class="hs-identifier hs-var">GetCurrentSlot</span></a></span><span>
+</span><span id="line-199"></span><span>  </span><span id="local-6989586621679508856"><span class="annot"><span class="annottext">currentTime :: StagedMockChain POSIXTime
+</span><a href="#local-6989586621679508856"><span class="hs-identifier hs-var hs-var hs-var hs-var">currentTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp POSIXTime -&gt; StagedMockChain POSIXTime
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp POSIXTime
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetCurrentTime"><span class="hs-identifier hs-var">GetCurrentTime</span></a></span><span>
+</span><span id="line-200"></span><span>  </span><span id="local-6989586621679508855"><span class="annot"><span class="annottext">awaitSlot :: Slot -&gt; StagedMockChain Slot
+</span><a href="#local-6989586621679508855"><span class="hs-identifier hs-var hs-var hs-var hs-var">awaitSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp Slot -&gt; StagedMockChain Slot
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp Slot -&gt; StagedMockChain Slot)
+-&gt; (Slot -&gt; MockChainOp Slot) -&gt; Slot -&gt; StagedMockChain Slot
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Slot -&gt; MockChainOp Slot
+</span><a href="Cooked.MockChain.Monad.Staged.html#AwaitSlot"><span class="hs-identifier hs-var">AwaitSlot</span></a></span><span>
+</span><span id="line-201"></span><span>  </span><span id="local-6989586621679508854"><span class="annot"><span class="annottext">awaitTime :: POSIXTime -&gt; StagedMockChain POSIXTime
+</span><a href="#local-6989586621679508854"><span class="hs-identifier hs-var hs-var hs-var hs-var">awaitTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp POSIXTime -&gt; StagedMockChain POSIXTime
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp POSIXTime -&gt; StagedMockChain POSIXTime)
+-&gt; (POSIXTime -&gt; MockChainOp POSIXTime)
+-&gt; POSIXTime
+-&gt; StagedMockChain POSIXTime
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; MockChainOp POSIXTime
+</span><a href="Cooked.MockChain.Monad.Staged.html#AwaitTime"><span class="hs-identifier hs-var">AwaitTime</span></a></span><span>
+</span><span id="line-202"></span><span>
+</span><span id="line-203"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-204"></span><span>  </span><span id="local-6989586621679508848"><span class="annot"><span class="annottext">signingWith :: NonEmpty Wallet -&gt; StagedMockChain a -&gt; StagedMockChain a
+</span><a href="#local-6989586621679508848"><span class="hs-identifier hs-var hs-var hs-var hs-var">signingWith</span></a></span></span><span> </span><span id="local-6989586621679508847"><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508847"><span class="hs-identifier hs-var">ws</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">(MockChainOp a -&gt; StagedMockChain a)
+-&gt; (StagedMockChain a -&gt; MockChainOp a)
+-&gt; StagedMockChain a
+-&gt; StagedMockChain a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet -&gt; StagedMockChain a -&gt; MockChainOp a
+forall a. NonEmpty Wallet -&gt; StagedMockChain a -&gt; MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#SigningWith"><span class="hs-identifier hs-var">SigningWith</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508847"><span class="hs-identifier hs-var">ws</span></a></span><span>
+</span><span id="line-205"></span><span>  </span><span id="local-6989586621679508846"><span class="annot"><span class="annottext">askSigners :: StagedMockChain (NonEmpty Wallet)
+</span><a href="#local-6989586621679508846"><span class="hs-identifier hs-var hs-var hs-var hs-var">askSigners</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp (NonEmpty Wallet) -&gt; StagedMockChain (NonEmpty Wallet)
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp (NonEmpty Wallet)
+</span><a href="Cooked.MockChain.Monad.Staged.html#AskSigners"><span class="hs-identifier hs-var">AskSigners</span></a></span><span>
+</span><span id="line-206"></span><span>  </span><span id="local-6989586621679508845"><span class="annot"><span class="annottext">slotConfig :: StagedMockChain SlotConfig
+</span><a href="#local-6989586621679508845"><span class="hs-identifier hs-var hs-var hs-var hs-var">slotConfig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp SlotConfig -&gt; StagedMockChain SlotConfig
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainOp SlotConfig
+</span><a href="Cooked.MockChain.Monad.Staged.html#GetSlotConfig"><span class="hs-identifier hs-var">GetSlotConfig</span></a></span><span>
+</span><span id="line-207"></span><span>
+</span><span id="line-208"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadModal"><span class="hs-identifier hs-type">MonadModal</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-209"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Action"><span class="annot"><a href="Cooked.MockChain.Monad.html#Action"><span class="hs-identifier hs-var">Action</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#StagedMockChain"><span class="hs-identifier hs-type">StagedMockChain</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-210"></span><span>  </span><span id="local-6989586621679508840"><span class="annot"><span class="annottext">somewhere :: (Action StagedMockChain -&gt; Maybe (Action StagedMockChain))
+-&gt; StagedMockChain a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.html#somewhere"><span class="hs-identifier hs-var hs-var hs-var hs-var">somewhere</span></a></span></span><span> </span><span id="local-6989586621679508838"><span class="annot"><span class="annottext">Action StagedMockChain -&gt; Maybe (Action StagedMockChain)
+</span><a href="#local-6989586621679508838"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679508837"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508837"><span class="hs-identifier hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Modality TxSkel -&gt; StagedMockChain a -&gt; MockChainOp a
+forall a. Modality TxSkel -&gt; StagedMockChain a -&gt; MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Modify"><span class="hs-identifier hs-var">Modify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkel -&gt; Maybe TxSkel) -&gt; Modality TxSkel
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-var">Somewhere</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Maybe TxSkel
+Action StagedMockChain -&gt; Maybe (Action StagedMockChain)
+</span><a href="#local-6989586621679508838"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508837"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-211"></span><span>  </span><span id="local-6989586621679508836"><span class="annot"><span class="annottext">everywhere :: (Action StagedMockChain -&gt; Maybe (Action StagedMockChain))
+-&gt; StagedMockChain a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.html#everywhere"><span class="hs-identifier hs-var hs-var hs-var hs-var">everywhere</span></a></span></span><span> </span><span id="local-6989586621679508834"><span class="annot"><span class="annottext">Action StagedMockChain -&gt; Maybe (Action StagedMockChain)
+</span><a href="#local-6989586621679508834"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679508833"><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508833"><span class="hs-identifier hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainOp a -&gt; StagedMockChain a
+forall a. MockChainOp a -&gt; StagedMockChain a
+</span><a href="Cooked.MockChain.Monad.Staged.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Modality TxSkel -&gt; StagedMockChain a -&gt; MockChainOp a
+forall a. Modality TxSkel -&gt; StagedMockChain a -&gt; MockChainOp a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Modify"><span class="hs-identifier hs-var">Modify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(TxSkel -&gt; Maybe TxSkel) -&gt; Modality TxSkel
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Everywhere"><span class="hs-identifier hs-var">Everywhere</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Maybe TxSkel
+Action StagedMockChain -&gt; Maybe (Action StagedMockChain)
+</span><a href="#local-6989586621679508834"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">StagedMockChain a
+</span><a href="#local-6989586621679508833"><span class="hs-identifier hs-var">tree</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-212"></span><span>
+</span><span id="line-213"></span><span class="hs-comment">-- * Modalities</span><span>
+</span><span id="line-214"></span><span>
+</span><span id="line-215"></span><span class="hs-comment">-- | Modalities apply a function to a trace;</span><span>
+</span><span id="line-216"></span><span class="hs-keyword">data</span><span> </span><span id="Modality"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-var">Modality</span></a></span></span><span> </span><span id="local-6989586621679509066"><span class="annot"><a href="#local-6989586621679509066"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Somewhere"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-var">Somewhere</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679509066"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679509066"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="Everywhere"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Everywhere"><span class="hs-identifier hs-var">Everywhere</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679509066"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679509066"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-217"></span><span>
+</span><span id="line-218"></span><span class="hs-comment">-- | Performs one step of interpreting a composition of modalities to an input. For example,</span><span>
+</span><span id="line-219"></span><span class="hs-comment">--</span><span>
+</span><span id="line-220"></span><span class="hs-comment">--  &gt; interpModalities [Somewhere h, Everywhere g, Somewhere f] x</span><span>
+</span><span id="line-221"></span><span class="hs-comment">--</span><span>
+</span><span id="line-222"></span><span class="hs-comment">--  Returns:</span><span>
+</span><span id="line-223"></span><span class="hs-comment">--</span><span>
+</span><span id="line-224"></span><span class="hs-comment">--  &gt; [ ( h (g (f x)) , [Everywhere g] )</span><span>
+</span><span id="line-225"></span><span class="hs-comment">--  &gt; , ( h (g    x)) , [Everywhere g, Somewhere f] )</span><span>
+</span><span id="line-226"></span><span class="hs-comment">--  &gt; , (   (g (f x)) , [Somewhere h, Everywhere g] )</span><span>
+</span><span id="line-227"></span><span class="hs-comment">--  &gt; , (   (g    x)) , [Somewhere h, Everywhere g, Somewhere f])</span><span>
+</span><span id="line-228"></span><span class="hs-comment">--</span><span>
+</span><span id="line-229"></span><span class="hs-comment">--  Where each element of the list corresponds to a universe where x suffered the effect</span><span>
+</span><span id="line-230"></span><span class="hs-comment">--  of a modality, and which modalities to consider when continuing to evaluate such universe.</span><span>
+</span><span id="line-231"></span><span id="local-6989586621679509086"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-type">interpModalities</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509086"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679509086"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679509086"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Modality"><span class="hs-identifier hs-type">Modality</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509086"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-232"></span><span id="interpModalities"><span class="annot"><span class="annottext">interpModalities :: [Modality a] -&gt; a -&gt; [(a, [Modality a])]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var hs-var">interpModalities</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679508831"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508831"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508831"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-233"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var">interpModalities</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Everywhere"><span class="hs-identifier hs-type">Everywhere</span></a></span><span> </span><span id="local-6989586621679508830"><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508830"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679508829"><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508829"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679508828"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508828"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((a, [Modality a]) -&gt; [(a, [Modality a])])
+-&gt; [(a, [Modality a])] -&gt; [(a, [Modality a])]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="annot"><span class="annottext">(a, [Modality a]) -&gt; [(a, [Modality a])]
+</span><a href="#local-6989586621679508826"><span class="hs-identifier hs-var">here</span></a></span><span> </span><span class="annot"><span class="annottext">([(a, [Modality a])] -&gt; [(a, [Modality a])])
+-&gt; [(a, [Modality a])] -&gt; [(a, [Modality a])]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Modality a] -&gt; a -&gt; [(a, [Modality a])]
+forall a. [Modality a] -&gt; a -&gt; [(a, [Modality a])]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var">interpModalities</span></a></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508829"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508828"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-234"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-235"></span><span>    </span><span id="local-6989586621679508826"><span class="annot"><span class="annottext">here :: (a, [Modality a]) -&gt; [(a, [Modality a])]
+</span><a href="#local-6989586621679508826"><span class="hs-identifier hs-var hs-var">here</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679508825"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508825"><span class="hs-identifier hs-var">hs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508824"><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508824"><span class="hs-identifier hs-var">mods</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-236"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679508823"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508823"><span class="hs-identifier hs-var">fhs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508830"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508825"><span class="hs-identifier hs-var">hs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508823"><span class="hs-identifier hs-var">fhs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; Modality a
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Everywhere"><span class="hs-identifier hs-var">Everywhere</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508830"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Modality a -&gt; [Modality a] -&gt; [Modality a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508824"><span class="hs-identifier hs-var">mods</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-237"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508828"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; Modality a
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Everywhere"><span class="hs-identifier hs-var">Everywhere</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508830"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Modality a -&gt; [Modality a] -&gt; [Modality a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508824"><span class="hs-identifier hs-var">mods</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-238"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var">interpModalities</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-type">Somewhere</span></a></span><span> </span><span id="local-6989586621679508822"><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508822"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679508821"><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508821"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679508820"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508820"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((a, [Modality a]) -&gt; [(a, [Modality a])])
+-&gt; [(a, [Modality a])] -&gt; [(a, [Modality a])]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="annot"><span class="annottext">(a, [Modality a]) -&gt; [(a, [Modality a])]
+</span><a href="#local-6989586621679508819"><span class="hs-identifier hs-var">hereOrThere</span></a></span><span> </span><span class="annot"><span class="annottext">([(a, [Modality a])] -&gt; [(a, [Modality a])])
+-&gt; [(a, [Modality a])] -&gt; [(a, [Modality a])]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Modality a] -&gt; a -&gt; [(a, [Modality a])]
+forall a. [Modality a] -&gt; a -&gt; [(a, [Modality a])]
+</span><a href="Cooked.MockChain.Monad.Staged.html#interpModalities"><span class="hs-identifier hs-var">interpModalities</span></a></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508821"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508820"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-239"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-240"></span><span>    </span><span id="local-6989586621679508819"><span class="annot"><span class="annottext">hereOrThere :: (a, [Modality a]) -&gt; [(a, [Modality a])]
+</span><a href="#local-6989586621679508819"><span class="hs-identifier hs-var hs-var">hereOrThere</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679508818"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508818"><span class="hs-identifier hs-var">hs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679508817"><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508817"><span class="hs-identifier hs-var">mods</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-241"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679508816"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508816"><span class="hs-identifier hs-var">fhs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508822"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508818"><span class="hs-identifier hs-var">hs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508816"><span class="hs-identifier hs-var">fhs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508817"><span class="hs-identifier hs-var">mods</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508818"><span class="hs-identifier hs-var">hs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; Modality a
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-var">Somewhere</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508822"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Modality a -&gt; [Modality a] -&gt; [Modality a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508817"><span class="hs-identifier hs-var">mods</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-242"></span><span>      </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679508818"><span class="hs-identifier hs-var">hs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; Modality a
+forall a. (a -&gt; Maybe a) -&gt; Modality a
+</span><a href="Cooked.MockChain.Monad.Staged.html#Somewhere"><span class="hs-identifier hs-var">Somewhere</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><a href="#local-6989586621679508822"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Modality a -&gt; [Modality a] -&gt; [Modality a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Modality a]
+</span><a href="#local-6989586621679508817"><span class="hs-identifier hs-var">mods</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-243"></span><span>
+</span><span id="line-244"></span><span class="hs-comment">-- * Human Readable Traces</span><span>
+</span><span id="line-245"></span><span>
+</span><span id="line-246"></span><span class="hs-comment">-- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing</span><span>
+</span><span id="line-247"></span><span class="hs-comment">--  the transactions that were validated, so many operations have no description.</span><span>
+</span><span id="line-248"></span><span id="local-6989586621679509077"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#prettyMockChainOp"><span class="hs-identifier hs-type">prettyMockChainOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NE.NonEmpty</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#MockChainOp"><span class="hs-identifier hs-type">MockChainOp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679509077"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span></span><span>
+</span><span id="line-249"></span><span id="prettyMockChainOp"><span class="annot"><span class="annottext">prettyMockChainOp :: NonEmpty Wallet -&gt; MockChainOp a -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#prettyMockChainOp"><span class="hs-identifier hs-var hs-var">prettyMockChainOp</span></a></span></span><span> </span><span id="local-6989586621679508815"><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508815"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#ValidateTxSkel"><span class="hs-identifier hs-type">ValidateTxSkel</span></a></span><span> </span><span id="local-6989586621679508814"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508814"><span class="hs-identifier hs-var">skel</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-250"></span><span>  </span><span class="annot"><span class="annottext">Doc Any -&gt; TraceDescr
+forall ann. Doc ann -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#trSingleton"><span class="hs-identifier hs-var">trSingleton</span></a></span><span> </span><span class="annot"><span class="annottext">(Doc Any -&gt; TraceDescr) -&gt; Doc Any -&gt; TraceDescr
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-251"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; Doc Any -&gt; Doc Any
+forall ann. Int -&gt; Doc ann -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.hang</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">(Doc Any -&gt; Doc Any) -&gt; Doc Any -&gt; Doc Any
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-252"></span><span>      </span><span class="annot"><span class="annottext">[Doc Any] -&gt; Doc Any
+forall ann. [Doc ann] -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.vsep</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;ValidateTxSkel&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; TxSkel -&gt; Doc Any
+forall ann. [Wallet] -&gt; TxSkel -&gt; Doc ann
+</span><a href="Cooked.Tx.Constraints.Pretty.html#prettyTxSkel"><span class="hs-identifier hs-var">prettyTxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NonEmpty Wallet -&gt; [Wallet]
+forall a. NonEmpty a -&gt; [a]
+</span><span class="hs-identifier hs-var">NE.toList</span></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><a href="#local-6989586621679508815"><span class="hs-identifier hs-var">signers</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679508814"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-253"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#prettyMockChainOp"><span class="hs-identifier hs-var">prettyMockChainOp</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#Fail"><span class="hs-identifier hs-type">Fail</span></a></span><span> </span><span id="local-6989586621679508808"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679508808"><span class="hs-identifier hs-var">reason</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-254"></span><span>  </span><span class="annot"><span class="annottext">Doc Any -&gt; TraceDescr
+forall ann. Doc ann -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#trSingleton"><span class="hs-identifier hs-var">trSingleton</span></a></span><span> </span><span class="annot"><span class="annottext">(Doc Any -&gt; TraceDescr) -&gt; Doc Any -&gt; TraceDescr
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Doc Any -&gt; Doc Any
+forall ann. Int -&gt; Doc ann -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.hang</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">(Doc Any -&gt; Doc Any) -&gt; Doc Any -&gt; Doc Any
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Doc Any] -&gt; Doc Any
+forall ann. [Doc ann] -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.vsep</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Doc Any
+</span><span class="hs-string">&quot;Fail&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String -&gt; Doc Any
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679508808"><span class="hs-identifier hs-var">reason</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-255"></span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#prettyMockChainOp"><span class="hs-identifier hs-var">prettyMockChainOp</span></a></span><span> </span><span class="annot"><span class="annottext">NonEmpty Wallet
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">MockChainOp a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TraceDescr
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-256"></span><span>
+</span><span id="line-257"></span><span class="hs-comment">-- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for</span><span>
+</span><span id="line-258"></span><span class="hs-comment">--  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).</span><span>
+</span><span id="line-259"></span><span class="hs-comment">--    1) Naturally, these make for efficient concatenation</span><span>
+</span><span id="line-260"></span><span class="hs-comment">--    2) More importantly, this makes it easy to define the empty 'TraceDescr'</span><span>
+</span><span id="line-261"></span><span class="hs-comment">--       as @TraceDescr id@ instead of relying on 'PP.emptyDoc', which generates</span><span>
+</span><span id="line-262"></span><span class="hs-comment">--       empty lines when used with 'PP.vsep'. This avoids generating these empty lines</span><span>
+</span><span id="line-263"></span><span class="hs-keyword">newtype</span><span> </span><span id="TraceDescr"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-var">TraceDescr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TraceDescr"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-var">TraceDescr</span></a></span></span><span> </span><span class="hs-special">{</span><span id="trApp"><span class="annot"><span class="annottext">TraceDescr -&gt; [Doc ()] -&gt; [Doc ()]
+</span><a href="Cooked.MockChain.Monad.Staged.html#trApp"><span class="hs-identifier hs-var hs-var">trApp</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Doc</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Doc</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">}</span><span>
+</span><span id="line-264"></span><span>
+</span><span id="line-265"></span><span id="local-6989586621679509058"><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#trSingleton"><span class="hs-identifier hs-type">trSingleton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Doc</span></span><span> </span><span class="annot"><a href="#local-6989586621679509058"><span class="hs-identifier hs-type">ann</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span></span><span>
+</span><span id="line-266"></span><span id="trSingleton"><span class="annot"><span class="annottext">trSingleton :: Doc ann -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#trSingleton"><span class="hs-identifier hs-var hs-var">trSingleton</span></a></span></span><span> </span><span id="local-6989586621679508804"><span class="annot"><span class="annottext">Doc ann
+</span><a href="#local-6989586621679508804"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Doc ()] -&gt; [Doc ()]) -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-var">TraceDescr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Doc ann -&gt; Doc ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">Doc ann
+</span><a href="#local-6989586621679508804"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Doc () -&gt; [Doc ()] -&gt; [Doc ()]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
+</span><span id="line-267"></span><span>
+</span><span id="line-268"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508798"><span id="local-6989586621679508801"><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-269"></span><span>  </span><span id="local-6989586621679508796"><span class="annot"><span class="annottext">show :: TraceDescr -&gt; String
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">show</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span><span> </span><span id="local-6989586621679508794"><span class="annot"><span class="annottext">[Doc ()] -&gt; [Doc ()]
+</span><a href="#local-6989586621679508794"><span class="hs-identifier hs-var">gen</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-270"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679508793"><span class="annot"><span class="annottext">tr :: [Doc ()]
+</span><a href="#local-6989586621679508793"><span class="hs-identifier hs-var hs-var">tr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Doc ()] -&gt; [Doc ()]
+</span><a href="#local-6989586621679508794"><span class="hs-identifier hs-var">gen</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-271"></span><span>        </span><span id="local-6989586621679508792"><span class="annot"><span class="annottext">numbered :: [Doc ()]
+</span><a href="#local-6989586621679508792"><span class="hs-identifier hs-var hs-var">numbered</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Doc () -&gt; Doc ()) -&gt; [Integer] -&gt; [Doc ()] -&gt; [Doc ()]
+forall a b c. (a -&gt; b -&gt; c) -&gt; [a] -&gt; [b] -&gt; [c]
+</span><span class="hs-identifier hs-var">zipWith</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679508790"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679508790"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679508789"><span class="annot"><span class="annottext">Doc ()
+</span><a href="#local-6989586621679508789"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Doc ()
+forall a ann. Pretty a =&gt; a -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.pretty</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679508790"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Doc () -&gt; Doc () -&gt; Doc ()
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Doc ()
+</span><span class="hs-string">&quot;)&quot;</span></span><span> </span><span class="annot"><span class="annottext">Doc () -&gt; Doc () -&gt; Doc ()
+forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
+</span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">Doc () -&gt; Doc ()
+forall ann. Doc ann -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.align</span></span><span> </span><span class="annot"><span class="annottext">Doc ()
+</span><a href="#local-6989586621679508789"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[Doc ()]
+</span><a href="#local-6989586621679508793"><span class="hs-identifier hs-var">tr</span></a></span><span>
+</span><span id="line-272"></span><span>     </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">SimpleDocStream () -&gt; String
+forall ann. SimpleDocStream ann -&gt; String
+</span><span class="hs-identifier hs-var">PP.renderString</span></span><span> </span><span class="annot"><span class="annottext">(SimpleDocStream () -&gt; String)
+-&gt; (Doc () -&gt; SimpleDocStream ()) -&gt; Doc () -&gt; String
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions -&gt; Doc () -&gt; SimpleDocStream ()
+forall ann. LayoutOptions -&gt; Doc ann -&gt; SimpleDocStream ann
+</span><span class="hs-identifier hs-var">PP.layoutPretty</span></span><span> </span><span class="annot"><span class="annottext">LayoutOptions
+</span><span class="hs-identifier hs-var">PP.defaultLayoutOptions</span></span><span> </span><span class="annot"><span class="annottext">(Doc () -&gt; String) -&gt; Doc () -&gt; String
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Doc ()] -&gt; Doc ()
+forall ann. [Doc ann] -&gt; Doc ann
+</span><span class="hs-identifier hs-var">PP.vsep</span></span><span> </span><span class="annot"><span class="annottext">[Doc ()]
+</span><a href="#local-6989586621679508792"><span class="hs-identifier hs-var">numbered</span></a></span><span>
+</span><span id="line-273"></span><span>
+</span><span id="line-274"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508780"><span id="local-6989586621679508782"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-275"></span><span>  </span><span id="local-6989586621679508778"><span class="annot"><span class="annottext">TraceDescr
+</span><a href="#local-6989586621679508778"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679508777"><span class="annot"><span class="annottext">&lt;&gt; :: TraceDescr -&gt; TraceDescr -&gt; TraceDescr
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679508776"><span class="annot"><span class="annottext">TraceDescr
+</span><a href="#local-6989586621679508776"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Doc ()] -&gt; [Doc ()]) -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-var">TraceDescr</span></a></span><span> </span><span class="annot"><span class="annottext">(([Doc ()] -&gt; [Doc ()]) -&gt; TraceDescr)
+-&gt; ([Doc ()] -&gt; [Doc ()]) -&gt; TraceDescr
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TraceDescr -&gt; [Doc ()] -&gt; [Doc ()]
+</span><a href="Cooked.MockChain.Monad.Staged.html#trApp"><span class="hs-identifier hs-var hs-var">trApp</span></a></span><span> </span><span class="annot"><span class="annottext">TraceDescr
+</span><a href="#local-6989586621679508778"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">([Doc ()] -&gt; [Doc ()])
+-&gt; ([Doc ()] -&gt; [Doc ()]) -&gt; [Doc ()] -&gt; [Doc ()]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">TraceDescr -&gt; [Doc ()] -&gt; [Doc ()]
+</span><a href="Cooked.MockChain.Monad.Staged.html#trApp"><span class="hs-identifier hs-var hs-var">trApp</span></a></span><span> </span><span class="annot"><span class="annottext">TraceDescr
+</span><a href="#local-6989586621679508776"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-276"></span><span>
+</span><span id="line-277"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679508770"><span id="local-6989586621679508772"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-type">TraceDescr</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-278"></span><span>  </span><span id="local-6989586621679508768"><span class="annot"><span class="annottext">mempty :: TraceDescr
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Doc ()] -&gt; [Doc ()]) -&gt; TraceDescr
+</span><a href="Cooked.MockChain.Monad.Staged.html#TraceDescr"><span class="hs-identifier hs-var">TraceDescr</span></a></span><span> </span><span class="annot"><span class="annottext">[Doc ()] -&gt; [Doc ()]
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-279"></span></pre></body></html>
