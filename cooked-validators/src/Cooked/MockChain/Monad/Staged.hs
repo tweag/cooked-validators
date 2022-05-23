@@ -56,7 +56,7 @@ type InterpMockChain = MockChainT (WriterT TraceDescr [])
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = flip evalStateT LtlTruth . interpLtl
+interpret = flip evalStateT [] . interpLtl
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
@@ -99,7 +99,7 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
     get
       >>= msum
         . map (\(now, later) -> maybe mzero validateTxSkel (now skel) <* put later)
-        . nowLater
+        . nowLaterList
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot

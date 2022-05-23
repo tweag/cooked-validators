@@ -237,8 +237,7 @@ sampleGroup1 =
             ( \p -> testFails @QC.Property $ do
                 i <- propose p
                 w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                somewhere (dupTokenAttack (head w3utxos) i)
-                execute p i
+                somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
             )
       ]
 
@@ -377,4 +376,4 @@ datumHijacking' =
         )
         (0 ==) -- if there is more than one matching output (which should not happen here), steal the first
     )
-    >> exampleMtrace
+    exampleMtrace

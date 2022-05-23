@@ -132,15 +132,17 @@ dupTokenAttackTests =
          in testFailsFrom'
               isCekEvaluationFailure
               def
-              ( somewhere (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
-                  >> dupTokenTrace pol tName 1 (wallet 1)
+              ( somewhere
+                  (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                  (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
         let tName = L.tokenName "MockToken"
             pol = carelessPolicy
          in testSucceeds $
-              somewhere (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
-                >> dupTokenTrace pol tName 1 (wallet 1)
+              somewhere
+                (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                (dupTokenTrace pol tName 1 (wallet 1))
     ]
 
 -- * Tests for the datum hijacking attack
@@ -311,7 +313,7 @@ datumHijackingAttackTests =
                   )
                   (const True)
               )
-              >> datumHijackingTrace carefulValidator
+              (datumHijackingTrace carefulValidator)
           ),
       testCase "careless validator" $
         testSucceeds
@@ -323,7 +325,7 @@ datumHijackingAttackTests =
                   )
                   (const True)
               )
-              >> datumHijackingTrace carelessValidator
+              (datumHijackingTrace carelessValidator)
           )
     ]
 

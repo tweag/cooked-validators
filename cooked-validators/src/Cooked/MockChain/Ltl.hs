@@ -63,15 +63,17 @@ data Ltl a
 -- will contain these two options.
 --
 -- Modifications should form a monoid, where 'mempty' is the do-nothing
--- modification, and '<>' is the composition of modifications. Attention: If
--- '<>' is not commutative, conjunction will also fail to be commutative!
-nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a)]
+-- modification, and '<>' is the composition of modifications. We interpret @a
+-- <> b@ as the modification that first applies @b@ and then @a@. Attention:
+-- Since we use '<>' to define conjunction, if '<>' is not commutative,
+-- conjunction will also fail to be commutative!
+nowLater :: Monoid a => Ltl a -> [(a, Ltl a)]
 nowLater LtlTruth = [(mempty, LtlTruth)]
 nowLater LtlFalsity = []
 nowLater (LtlAtom g) = [(g, LtlTruth)]
 nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
 nowLater (a `LtlAnd` b) =
-  [ (g <> f, ltlSimpl $ c `LtlAnd` d)
+  [ (f <> g, ltlSimpl $ c `LtlAnd` d)
     | (f, c) <- nowLater a,
       (g, d) <- nowLater b
   ]
@@ -92,6 +94,22 @@ finished (a `LtlOr` b) = finished a || finished b
 finished (LtlNext _) = False
 finished (LtlUntil _ _) = False
 finished (LtlRelease _ _) = True
+
+-- | Say we're passing around more than one formula from each time step to the
+-- next, where the intended meaning of a list of formulas is the modification
+-- that applies the first formula in the list first, then the second formula,
+-- then the third and so on. We'd still like to compute a list of @(doNow,
+-- doLater)@ pairs as in 'nowLater', only that the @doLater@ should again be a
+-- list of formulas.
+nowLaterList :: Monoid a => [Ltl a] -> [(a, [Ltl a])]
+nowLaterList = joinNowLaters . map nowLater
+  where
+    joinNowLaters [] = [(mempty, [])]
+    joinNowLaters (l : ls) =
+      [ (g <> f, c : cs)
+        | (f, c) <- l,
+          (g, cs) <- joinNowLaters ls
+      ]
 
 -- | Straightforward simplification procedure for LTL formulae. This function
 -- knows how 'LtlTruth' and 'LtlFalsity' play with conjunction and disjunction
@@ -170,12 +188,15 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
     LtlOp modification builtin a
   -- | The failing operation
   Fail :: String -> LtlOp modification builtin a
-  -- | The operation that introduces an LTL formula that should be used to
+  -- | The operation that introduces a new LTL formula that should be used to
   -- modify the following computations. Think of this operation as coming
   -- between time steps and adding (with `LtlAnd`, paper upcoming to explain why
-  -- this is the right choice) a new formula to the formula that should be
-  -- applied to the next time step.
+  -- this is the right choice) a new formula to the formulas that should already
+  -- be applied to the next time step.
   StartLtl :: Ltl modification -> LtlOp modification builtin ()
+  -- | The operation that removes the last LTL formula that was introduced. If
+  -- the formula is not yet 'finished', the current time line will fail.
+  StopLtl :: LtlOp modification builtin ()
   Builtin :: builtin a -> LtlOp modification builtin a
 
 -- | The freer monad on @op@. We think of this as the AST of a computation with
@@ -216,22 +237,22 @@ instance MonadFail (Staged (LtlOp modification builtin)) where
 --
 -- * be a 'MonadFail' to interpret the 'Fail' operation.
 --
--- This type class only wants us to specify how to interpret the (modified)
--- builtins. In order to do so, it passes around the formula that is to be
--- applied to the next time step in a @StateT@. A common idiom to modify an
--- operation should be this:
+-- This type class only requires from the user to specify how to interpret the
+-- (modified) builtins. In order to do so, it passes around the formulas that
+-- are to be applied to the next time step in a @StateT@. A common idiom to
+-- modify an operation should be this:
 --
 -- > interpBuiltin op =
 -- >  get
 -- >    >>= msum
 -- >      . map (\(now, later) -> applyModification now op <* put later)
--- >      . nowLater
+-- >      . nowLaterList
 --
 -- (But to write this, @modification@ has to be a 'Monoid' to make 'nowLater'
 -- work!) Look at the tests for this module and at
 -- "Cooked.MockChain.Monad.Staged" for examples of how to use this type class.
 class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
-  interpBuiltin :: builtin a -> StateT (Ltl modification) m a
+  interpBuiltin :: builtin a -> StateT [Ltl modification] m a
 
 -- | Interpret a 'Staged' computation into a suitable domain, using the function
 -- 'interpBuiltin' to interpret the builtins.
@@ -239,11 +260,21 @@ interpLtl ::
   -- forall modification builtin m a.
   (InterpLtl modification builtin m) =>
   Staged (LtlOp modification builtin) a ->
-  StateT (Ltl modification) m a
-interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
+  StateT [Ltl modification] m a
+interpLtl (Return a) = get >>= \xs -> if all finished xs then return a else mzero
 interpLtl (Instr Empty _) = mzero
 interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
-interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
+interpLtl (Instr (StartLtl x) f) = get >>= put . (x :) >>= interpLtl . f
+interpLtl (Instr StopLtl f) = do
+  xs <- get
+  case xs of
+    [] -> interpLtl $ f () -- should we fail here?
+    x : rest ->
+      if finished x
+        then do
+          put rest
+          interpLtl $ f ()
+        else mzero
 interpLtl (Instr (Fail msg) _) = fail msg
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
@@ -254,12 +285,17 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
 startLtl x = Instr (StartLtl x) Return
 
+-- | Remove the last LTL formula that was introduced. If it is not yet
+-- 'finished', the current time line will be discarded.
+stopLtl :: Staged (LtlOp modification builtin) ()
+stopLtl = Instr StopLtl Return
+
 -- | Apply a modification somewhere in the given computation. The modification
 -- must apply at least once.
-somewhere :: modification -> Staged (LtlOp modification builtin) ()
-somewhere x = startLtl (LtlTruth `LtlUntil` LtlAtom x)
+somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+somewhere x tr = startLtl (LtlTruth `LtlUntil` LtlAtom x) >> tr >>= \res -> stopLtl >> return res
 
 -- | Apply a modification everywhere in the given computation. This is also
 -- successful if there are no modifiable time steps.
-everywhere :: modification -> Staged (LtlOp modification builtin) ()
-everywhere x = startLtl (LtlFalsity `LtlRelease` LtlAtom x)
+everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+everywhere x tr = startLtl (LtlFalsity `LtlRelease` LtlAtom x) >> tr >>= \res -> stopLtl >> return res

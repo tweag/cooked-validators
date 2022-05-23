@@ -16,21 +16,21 @@ data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   GetInteger :: TestBuiltin Integer
 
-type TestModification = Integer
+type TestModification = Integer -> Integer
 
-instance Semigroup TestModification where
-  a <> b = a + b
+instance {-# OVERLAPS #-} Semigroup TestModification where
+  a <> b = a . b
 
-instance Monoid TestModification where
-  mempty = 0
+instance {-# OVERLAPS #-} Monoid TestModification where
+  mempty = id
 
 instance (MonadPlus m, MonadFail m) => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
   interpBuiltin GetInteger = return 42
   interpBuiltin (EmitInteger i) =
     get
       >>= msum
-        . map (\(now, later) -> tell [i + now] <* put later)
-        . nowLater
+        . map (\(now, later) -> tell [now i] <* put later)
+        . nowLaterList
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
 emitInteger i = Instr (Builtin (EmitInteger i)) Return
@@ -39,7 +39,7 @@ getInteger :: Staged (LtlOp TestModification TestBuiltin) Integer
 getInteger = Instr (Builtin GetInteger) Return
 
 go :: Staged (LtlOp TestModification TestBuiltin) a -> [[Integer]]
-go = execWriterT . flip execStateT LtlTruth . interpLtl
+go = execWriterT . flip execStateT [] . interpLtl
 
 nonemptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
 nonemptyTraces =
@@ -79,16 +79,16 @@ tests =
         testCase "LtlTruth leaves every computation unchanged" $
           assertAll testTraces (\tr -> go (startLtl LtlTruth >> tr) @?= go tr),
         testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
-          let x = LtlAtom 1
-              y = LtlAtom 2
+          let x = LtlAtom (1 +)
+              y = LtlAtom (2 +)
               a = x `LtlUntil` y
               b = y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))
            in assertAll
                 testTraces
                 (\tr -> assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr)),
         testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
-          let x = LtlAtom 1
-              y = LtlAtom 2
+          let x = LtlAtom (1 +)
+              y = LtlAtom (2 +)
               a = x `LtlRelease` y
               b = y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y))
            in assertAll
@@ -109,7 +109,7 @@ tests =
                 testTraces
                 ( \tr ->
                     assertEqualSets
-                      (go $ startLtl (LtlNext $ LtlAtom n) >> tr)
+                      (go $ startLtl (LtlNext $ LtlAtom (n +)) >> tr)
                       (incSeconds $ go tr)
                 ),
         testCase "everywhere changes everything" $
@@ -119,7 +119,7 @@ tests =
               incAll = map (map (+ n))
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ everywhere n >> tr) (incAll $ go tr)),
+                (\tr -> assertEqualSets (go $ everywhere (n +) tr) (incAll $ go tr)),
         testCase "somewhere case-splits" $
           let n = 3
 
@@ -130,7 +130,7 @@ tests =
                   alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ somewhere n >> tr) (caseSplit $ go tr)),
+                (\tr -> assertEqualSets (go $ somewhere (n +) tr) (caseSplit $ go tr)),
         testCase "somewhere is exponential in branch number" $
           -- If we make a trace @tr = a >> b@, we expect
           --
@@ -144,10 +144,23 @@ tests =
           -- > 4. a >> f (g b)
           --
           let tr = emitInteger 42 >> emitInteger 3
-           in assertEqualSets (go $ somewhere 1 >> somewhere 2 >> tr) [[45, 3], [42, 6], [43, 5], [44, 4]],
+           in assertEqualSets
+                (go $ somewhere (1 +) $ somewhere (2 +) tr)
+                [[42 + 1 + 2, 3], [42, 3 + 1 + 2], [42 + 1, 3 + 2], [42 + 2, 3 + 1]],
+        testCase "inner modification has precedence" $
+          assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[3]],
         testCase "nested everywhere combines modifications" $
           assertEqualSets
-            (go $ everywhere 1 >> emitInteger 5 >> everywhere 2 >> emitInteger 7 >> emitInteger 8)
-            [[6, 10, 11]]
+            ( go $
+                everywhere (1 +) $
+                  emitInteger 42
+                    >> everywhere
+                      (2 +)
+                      ( emitInteger 43
+                          >> everywhere (3 +) (emitInteger 44)
+                      )
+                    >> emitInteger 45
+            )
+            [[42 + 1, 43 + 1 + 2, 44 + 1 + 2 + 3, 45 + 1]]
       ]
   ]
