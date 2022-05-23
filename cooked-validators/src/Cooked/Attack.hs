@@ -9,7 +9,8 @@
 
 module Cooked.Attack where
 
-import Cooked.MockChain
+import Cooked.MockChain.RawUPLC (unsafeTypedValidatorFromUPLC)
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Maybe

@@ -15,6 +15,7 @@ library
       Cooked
       Cooked.Attack
       Cooked.Currencies
+      Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Constraints
       Cooked.MockChain.Monad
@@ -84,6 +85,7 @@ test-suite spec
   other-modules:
       Cooked.AttackSpec
       Cooked.BalanceSpec
+      Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
       Cooked.MockChain.WalletSpec

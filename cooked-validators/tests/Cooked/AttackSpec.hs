@@ -12,6 +12,7 @@ module Cooked.AttackSpec (tests) where
 
 import Control.Monad
 import Cooked.Attack
+import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default

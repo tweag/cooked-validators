@@ -14,11 +14,13 @@ module Cooked.MockChain.Monad where
 
 import Control.Arrow (second)
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Trans.Control
+import Control.Monad.Trans.Writer
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import Data.Kind (Type)
+import Data.Kind
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
@@ -212,29 +214,6 @@ as ma w = signingWith (w NE.:| []) ma
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
--- ** Modalities
-
--- | A modal mock chain is a mock chain that also supports modal modifications of transactions.
--- Hence, modal actions are 'TxSkel's.
-type MonadModalMockChain m = (MonadBlockChain m, MonadMockChain m, MonadModal m, Action m ~ TxSkel)
-
--- | Monads supporting modifying a certain type of actions with modalities. The 'somewhere'
--- and 'everywhere' functions receive an argument of type @Action m -> Maybe (Action m)@ because
--- we want (a) all branches of @somewhere f tree@ to have a guarantee that they had exactly one action
--- modified by @f@ and (b) we want 'everywhere' to be the dual of 'somewhere', so its type must be the same.
-class (Monad m) => MonadModal m where
-  type Action m :: Type
-
-  -- | Applies a modification to all possible actions in a tree. If a modification
-  -- cannot be applied anywhere, this is the identity: @everywhere (const Nothing) x == x@.
-  everywhere :: (Action m -> Maybe (Action m)) -> m a -> m a
-
-  -- | Applies a modification to some transactions in a tree, note that
-  -- @somewhere (const Nothing) x == empty@, because 'somewhere' implies
-  -- progress, hence if it is not possible to apply the transformation anywhere
-  -- in @x@, there would be no progress.
-  somewhere :: (Action m -> Maybe (Action m)) -> m a -> m a
-
 -- ** Deriving further 'MonadBlockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
@@ -268,13 +247,14 @@ instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockCh
   askSigners = lift askSigners
   slotConfig = lift slotConfig
 
-instance (MonadTransControl t, MonadModal m, Monad (t m), StT t () ~ ()) => MonadModal (AsTrans t m) where
-  type Action (AsTrans t m) = Action m
-  everywhere f (AsTrans act) = AsTrans $ everywhere f `unliftOn` act
-  somewhere f (AsTrans act) = AsTrans $ somewhere f `unliftOn` act
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
+
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadMockChain m) => MonadMockChain (WriterT w m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 
-deriving via (AsTrans (ReaderT r) m) instance MonadModal m => MonadModal (ReaderT r m)
+deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
+
+deriving via (AsTrans (StateT s) m) instance MonadMockChain m => MonadMockChain (StateT s m)
