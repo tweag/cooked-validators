@@ -157,10 +157,10 @@ tests =
                     >> everywhere
                       (2 +)
                       ( emitInteger 43
-                          >> everywhere (3 +) (emitInteger 44)
+                          >> everywhere (3 *) (emitInteger 44)
                       )
                     >> emitInteger 45
             )
-            [[42 + 1, 43 + 1 + 2, 44 + 1 + 2 + 3, 45 + 1]]
+            [[42 + 1, 43 + 1 + 2, 44 * 3 + 1 + 2, 45 + 1]]
       ]
   ]
