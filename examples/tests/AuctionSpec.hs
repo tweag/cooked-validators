@@ -11,6 +11,7 @@ import Control.Applicative
 import Control.Arrow
 import Cooked.Attack
 import Cooked.Currencies
+import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default

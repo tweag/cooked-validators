@@ -13,7 +13,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Attack
-import Cooked.MockChain.Ltl
+import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState

@@ -12,6 +12,7 @@ module PMultiSigStatefulSpec where
 import Control.Arrow (second)
 import Control.Monad
 import qualified Cooked.Attack as Cooked
+import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default

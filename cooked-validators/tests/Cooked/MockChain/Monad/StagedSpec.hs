@@ -6,8 +6,8 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Control.Monad.Writer.Strict
+import Cooked.Ltl
 import Cooked.MockChain
-import Cooked.MockChain.Ltl
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable

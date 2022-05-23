@@ -7,7 +7,7 @@ module Cooked.MockChain.LtlSpec (tests) where
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Writer
-import Cooked.MockChain.Ltl
+import Cooked.Ltl
 import Data.Set (fromList)
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -132,7 +132,7 @@ tests =
                 testTraces
                 (\tr -> assertEqualSets (go $ somewhere (n +) tr) (caseSplit $ go tr)),
         testCase "somewhere is exponential in branch number" $
-          -- If we make a trace @tr = a >> b@, we expect
+          -- If we have @tr = a >> b@, we expect
           --
           -- > somewhere f $ somewhere g tr
           --
@@ -147,7 +147,7 @@ tests =
            in assertEqualSets
                 (go $ somewhere (1 +) $ somewhere (2 +) tr)
                 [[42 + 1 + 2, 3], [42, 3 + 1 + 2], [42 + 1, 3 + 2], [42 + 2, 3 + 1]],
-        testCase "inner modification has precedence" $
+        testCase "modality order is respected" $
           assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[3]],
         testCase "nested everywhere combines modifications" $
           assertEqualSets
