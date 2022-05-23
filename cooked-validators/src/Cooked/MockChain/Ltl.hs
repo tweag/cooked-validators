@@ -171,7 +171,7 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
   -- | The failing operation
   Fail :: String -> LtlOp modification builtin a
   -- | The operation that introduces an LTL formula that should be used to
-  -- modify the following computations. Think of this operation of coming
+  -- modify the following computations. Think of this operation as coming
   -- between time steps and adding (with `LtlAnd`, paper upcoming to explain why
   -- this is the right choice) a new formula to the formula that should be
   -- applied to the next time step.
