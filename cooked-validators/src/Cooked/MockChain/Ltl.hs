@@ -229,7 +229,7 @@ instance MonadFail (Staged (LtlOp modification builtin)) where
 -- > interpBuiltin op =
 -- >  get
 -- >    >>= msum
--- >      . map (\(now, later) -> put later >> applyModification now op)
+-- >      . map (\(now, later) -> applyModification now op <* put later)
 -- >      . nowLater
 --
 -- (But to write this, @modification@ has to be a 'Monoid' to make 'nowLater'
@@ -241,6 +241,7 @@ class (MonadPlus m, MonadFail m) => InterpLtl modification builtin m where
 -- | Interpret a 'Staged' computation into a suitable domain, using the function
 -- 'interpBuiltin' to interpret the builtins.
 interpLtl ::
+  -- forall modification builtin m a.
   (InterpLtl modification builtin m) =>
   Staged (LtlOp modification builtin) a ->
   StateT (Ltl modification) m a
@@ -248,7 +249,17 @@ interpLtl (Return a) = get >>= \x -> if finished x then return a else mzero
 interpLtl (Instr Empty _) = mzero
 interpLtl (Instr (Alt l r) f) = interpLtl (l >>= f) `mplus` interpLtl (r >>= f)
 interpLtl (Instr (StartLtl x) f) = get >>= put . LtlAnd x >>= interpLtl . f
-interpLtl (Instr StopLtl f) = get >>= \x -> if finished x then interpLtl $ f () else mzero
+interpLtl (Instr StopLtl f) = do
+  x <- get
+  if finished x
+    then do
+      put LtlTruth
+      interpLtl $ f ()
+    else mzero
+-- get >>= \x ->
+--   if finished x
+--     then put (LtlTruth @modification) >> interpLtl $ f ()
+--     else mzero
 interpLtl (Instr (Fail msg) _) = fail msg
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 

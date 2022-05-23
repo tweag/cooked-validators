@@ -29,7 +29,7 @@ instance (MonadPlus m, MonadFail m) => InterpLtl TestModification TestBuiltin (W
   interpBuiltin (EmitInteger i) =
     get
       >>= msum
-        . map (\(now, later) -> put later >> tell [i + now])
+        . map (\(now, later) -> tell [i + now] <* put later)
         . nowLater
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
@@ -130,6 +130,24 @@ tests =
                   alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ somewhere n tr) (caseSplit $ go tr))
+                (\tr -> assertEqualSets (go $ somewhere n tr) (caseSplit $ go tr)),
+        testCase "somewhere is exponential in branch number" $
+          -- If we make a trace @tr = a >> b@, we expect
+          --
+          -- > somewhere f $ somewhere g tr
+          --
+          -- to describe the following four traces:
+          --
+          -- > 1. f (g a) >> b
+          -- > 2. f a >> g b
+          -- > 3. g a >> f b
+          -- > 4. a >> f (g b)
+          --
+          let tr = emitInteger 42 >> emitInteger 3
+           in assertEqualSets (go $ somewhere 1 $ somewhere 2 tr) [[45, 3], [42, 6], [43, 5], [44, 4]],
+        testCase "everywhere only modifies it's block" $
+          assertEqualSets
+            (go $ everywhere 1 $ emitInteger 5 >> everywhere 2 (emitInteger 7) >> emitInteger 8)
+            [[6, 10, 9]]
       ]
   ]
