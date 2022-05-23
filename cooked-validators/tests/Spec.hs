@@ -1,6 +1,6 @@
 import qualified Cooked.AttackSpec as AttackSpec
 import qualified Cooked.BalanceSpec as Ba
-import qualified Cooked.MockChain.LtlSpec as LtlSpec
+import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 import qualified Cooked.MockChain.WalletSpec as WalletSpec
