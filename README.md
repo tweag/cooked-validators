@@ -1,5 +1,6 @@
 # Tweag Plutus Libraries
 
+* [Documentation](#documentation)
 * [Projects](#projects)
 * [Developer Tools and Env](#developer-tools-and-environment)
   - [__IMPORTANT:__ Setting up the nix cache](#important-configure-your-nix-cache)
@@ -7,6 +8,10 @@
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
 These libraries are a research prototype under active development, they comes _as is_ with no guarantees whatosever. Check the [license](LICENSE) for details.
+
+## Documentation
+
+The rendered Haddock for the current `main` branch can be found at [https://tweag.github.io/plutus-libs/](https://tweag.github.io/plutus-libs/)
 
 ## Projects
 
