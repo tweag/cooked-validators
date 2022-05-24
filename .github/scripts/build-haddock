@@ -1,5 +1,5 @@
 #!/bin/bash -e
 cabal update
-cabal haddock --haddock-hyperlink-source --haddock-html-location='https://marlowe-playground-staging.plutus.aws.iohkdev.io/doc/haddock/' cooked-validators
+cabal haddock --haddock-hyperlink-source --haddock-html-location='https://marlowe-playground-staging.plutus.aws.iohkdev.io/doc/haddock/$pkg/html' cooked-validators
 mkdir -p docs
 cp -R dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
