@@ -35,15 +35,7 @@ jobs:
         restore-keys: |
           cabal-cache
 
-    - name: Accessing the result cache
-      uses: actions/cache@v2
-      with:
-        path: |
-          ./*.out
-          ./*.res
-        key: result-cache-${{ github.sha }}
-
-    - name: Chmod test script
+    - name: Chmod haddock script
       run: |
         chmod u+x .github/scripts/build-haddock
 
