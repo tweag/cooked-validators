@@ -37,12 +37,12 @@ jobs:
 
     - name: Chmod haddock script
       run: |
-        chmod u+x .github/scripts/build-haddock
+        chmod u+x ci/build-haddock
 
     - name: Build documentation
       uses: ./.github/actions/nix-run
       with:
-        command: ./.github/scripts/build-haddock
+        command: ./ci/build-haddock
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
