@@ -225,9 +225,9 @@ utxoIndex0 = utxoIndex0From def
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skel = do
     (reqSigs, tx) <- generateTx' skel
-    txId <- validateTx' reqSigs tx
+    _ <- validateTx' reqSigs tx
     when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-    return txId
+    return (Pl.EmulatorTx tx)
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
 
