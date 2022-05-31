@@ -455,6 +455,8 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       let tx1 = tx {Pl.txFee = fee}
       attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
       case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
+        -- necessary to capture script failure for failed cases
+        Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee
           | newFee == fee -> pure newFee -- reached fixpoint
