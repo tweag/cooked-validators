@@ -9,6 +9,7 @@
 
 module Cooked.MockChain.Monad.Staged where
 
+import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
@@ -77,10 +78,29 @@ data MockChainBuiltin a where
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
   AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
   GetSlotConfig :: MockChainBuiltin Pl.SlotConfig
+  -- the following are not strictly blockchain specific, but they allow us to
+  -- combine several traces into one and to signal failure.
+
+  -- | The empty set of traces
+  Empty :: MockChainBuiltin a
+  -- | The union of two sets of traces
+  Alt ::
+    StagedMockChain a ->
+    StagedMockChain a ->
+    MockChainBuiltin a
+  -- | The failing operation
+  Fail :: String -> MockChainBuiltin a
 
 type MockChainOp = LtlOp Attack MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
+
+instance Alternative StagedMockChain where
+  empty = Instr (Builtin Empty) Return
+  a <|> b = Instr (Builtin (Alt a b)) Return
+
+instance MonadFail StagedMockChain where
+  fail msg = Instr (Builtin (Fail msg)) Return
 
 -- * 'InterpLtl' instance
 
@@ -110,6 +130,9 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetSlotConfig = slotConfig
+  interpBuiltin Empty = mzero
+  interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
+  interpBuiltin (Fail msg) = fail msg
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
@@ -140,7 +163,7 @@ prettyMockChainOp signers (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $
       PP.vsep ["ValidateTxSkel", prettyTxSkel (NE.toList signers) skel]
-prettyMockChainOp _ (Fail reason) =
+prettyMockChainOp _ (Builtin (Fail reason)) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
 prettyMockChainOp _ _ = mempty
 
