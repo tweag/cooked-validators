@@ -391,12 +391,14 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
+      -- optionally apply a transformation before balancing
+      let modifiedUbtx = applyRawModOnUnbalancedTx (unsafeModTx opts) reorderedUbtx
+      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust modifiedUbtx)
       return . (reqSigs,) $
         foldl
           (flip txAddSignature)
           -- optionally apply a transformation to a balanced tx before sending it in.
-          (applyRawModTx (unsafeModTx opts) balancedTx)
+          (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
           (NE.toList signers)
   where
     opts = txOpts skel
