@@ -343,14 +343,13 @@ data BalanceOutputPolicy
 --  We have a distinguished datatype to be able to provide a little more info on
 --  the show instance.
 data RawModTx
-  =  -- | no effect modifier
+  = -- | no effect modifier
     Id
   | -- | Apply modification on transaction after balancing is performed
     RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
   | -- | Apply modification on transaction before balancing and transaction fee computation
-    -- are performed
+    --   are performed.
     RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
-
 
 -- | only applies modification for RawModTxAfterBalancing
 applyRawModOnBalancedTx :: RawModTx -> Pl.Tx -> Pl.Tx
@@ -363,7 +362,6 @@ applyRawModOnUnbalancedTx :: RawModTx -> Pl.UnbalancedTx -> Pl.UnbalancedTx
 applyRawModOnUnbalancedTx Id tx = tx
 applyRawModOnUnbalancedTx (RawModTxAfterBalancing _) tx = tx
 applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f) tx = (Pl.tx %~ f) tx
-
 
 instance Eq RawModTx where
   Id == Id = True
