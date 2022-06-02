@@ -11,6 +11,7 @@ build-type:     Simple
 library
   exposed-modules:
       Auction
+      Crowdfunding
       Auction.Offchain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
