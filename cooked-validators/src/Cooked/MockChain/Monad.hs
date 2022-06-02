@@ -17,6 +17,8 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
+import Cooked.Attack
+import Cooked.Ltl
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
@@ -213,6 +215,11 @@ as ma w = signingWith (w NE.:| []) ma
 -- | Flipped version of 'as'
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
+
+-- ** Modalities
+
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ Attack)
 
 -- ** Deriving further 'MonadBlockChain' instances
 

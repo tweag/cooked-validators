@@ -9,6 +9,7 @@ module Cooked.Ltl where
 
 import Control.Monad
 import Control.Monad.State
+import Data.Kind
 
 -- * LTL formulas and operations on them
 
@@ -18,15 +19,23 @@ import Control.Monad.State
 -- negated modification or of one modification (possibly in the future) to
 -- imply another modification, implication and negation are absent.
 data Ltl a
-  = LtlTruth
-  | LtlFalsity
-  | LtlAtom a
+  = -- | The "do nothing" modification that never fails
+    LtlTruth
+  | -- | The modification that never applies (i.e. always fails)
+    LtlFalsity
+  | -- | The modification that applies a given atomic modification at the current time step
+    LtlAtom a
   | -- | Disjunction will be interpreted in an "intuitionistic" way, i.e. as
     -- branching into the "timeline" where the left disjunct holds and the one
     -- where the right disjunct holds. In that sense, it is an exclusive or,
     -- as it does not introduce the branch where both disjuncts hold.
     LtlOr (Ltl a) (Ltl a)
-  | LtlAnd (Ltl a) (Ltl a)
+  | -- | Conjunction will be interpreted as "apply both
+    -- modifications". Attention: The "apply both" operation will be
+    -- user-defined for atomic modifications, so that conjunction may for
+    -- example fail to be commutative if the operation on atomic modification is
+    -- not commutative.
+    LtlAnd (Ltl a) (Ltl a)
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
   | -- | Assert that the first formula holds at least until the second one begins
@@ -256,21 +265,32 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
 -- * Convenience functions
 
+-- Users of this library should never use 'StartLtl' and 'StopLtl'
+-- explicitly. Here are some safe-to-use functions that should be used
+-- instead. Most functions like the ones below should be defined for the class
+-- 'MonadModal' because there might be other possibilities to equip a monad with
+-- LTL modifications beside the method above.
+
 -- | Introduce an LTL formula to be in effect from now on, modifying the
 -- remainder of the computation.
 startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
 startLtl x = Instr (StartLtl x) Return
 
--- | Modify a computation with an LTL formula
-modifyLtl :: Ltl modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
-modifyLtl x tr = startLtl x >> tr >>= \res -> Instr StopLtl Return >> return res
+-- | Monads that allow modificaitons with LTL formulas.
+class Monad m => MonadModal m where
+  type Modification m :: Type
+  modifyLtl :: Ltl (Modification m) -> m a -> m a
+
+instance MonadModal (Staged (LtlOp modification builtin)) where
+  type Modification (Staged (LtlOp modification builtin)) = modification
+  modifyLtl x tr = startLtl x >> tr >>= \res -> Instr StopLtl Return >> return res
 
 -- | Apply a modification somewhere in the given computation. The modification
 -- must apply at least once.
-somewhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+somewhere :: MonadModal m => Modification m -> m a -> m a
 somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom x)
 
 -- | Apply a modification everywhere in the given computation. This is also
 -- successful if there are no modifiable time steps.
-everywhere :: modification -> Staged (LtlOp modification builtin) a -> Staged (LtlOp modification builtin) a
+everywhere :: MonadModal m => Modification m -> m a -> m a
 everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom x)
