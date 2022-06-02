@@ -364,7 +364,7 @@ datumHijackingTrace' =
       def
       datumHijacking'
 
-datumHijacking' :: StagedMockChain ()
+datumHijacking' :: MonadModalMockChain m => m ()
 datumHijacking' =
   somewhere
     ( Cooked.datumHijackingAttack @PMultiSig

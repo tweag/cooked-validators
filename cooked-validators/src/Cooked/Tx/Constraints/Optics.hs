@@ -17,12 +17,14 @@ import Optics.Core
 -- A few remarks:
 
 -- There's a recurring pattern here to work around the existential type
--- variables in the constructors in 'Cooked.Tx.Constraints.Type': Define a type
+-- variables in the constructors in "Cooked.Tx.Constraints.Type": Define a type
 -- that corresponds to the image of the constructor an then use that type as the
--- target of the optics.
+-- target of the optics. So, if you find a single-constructor type in this
+-- module that you would like some explanation for, look at the comments for the
+-- types 'MiscConstraint' and 'OutConstraint' in "Cooked.Tx.Constraints.Type".
 
 -- The naming convention for optics in this module is as follows: Lenses have
--- names that end in 'I', Prisms end in 'P', traversals in 'T', affine
+-- names that end in 'L', Prisms end in 'P', traversals in 'T', affine
 -- traversals in 'AT', isos in 'I'. There are not yet and optics of other types
 -- here.
 
@@ -229,6 +231,7 @@ flattenValueI =
     (map (\(cSymbol, tName, amount) -> (L.assetClass cSymbol tName, amount)) . L.flattenValue)
     (foldl (\v (ac, amount) -> v <> L.assetClassValue ac amount) mempty)
 
+-- | The portion of a 'L.Value' that is not Ada.
 nonAdaValue :: L.Value -> L.Value
 nonAdaValue = over flattenValueI (map $ \(ac, i) -> if ac == adaAssetClass then (ac, 0) else (ac, i))
   where
