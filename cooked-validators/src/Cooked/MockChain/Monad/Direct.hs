@@ -225,9 +225,9 @@ utxoIndex0 = utxoIndex0From def
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skel = do
     (reqSigs, tx) <- generateTx' skel
-    txId <- validateTx' reqSigs tx
+    _ <- validateTx' reqSigs tx
     when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-    return txId
+    return (Pl.EmulatorTx tx)
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
 
@@ -391,12 +391,14 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
               else ubtx
-      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust reorderedUbtx)
+      -- optionally apply a transformation before balancing
+      let modifiedUbtx = applyRawModOnUnbalancedTx (unsafeModTx opts) reorderedUbtx
+      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust modifiedUbtx)
       return . (reqSigs,) $
         foldl
           (flip txAddSignature)
           -- optionally apply a transformation to a balanced tx before sending it in.
-          (applyRawModTx (unsafeModTx opts) balancedTx)
+          (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
           (NE.toList signers)
   where
     opts = txOpts skel
@@ -453,6 +455,8 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       let tx1 = tx {Pl.txFee = fee}
       attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
       case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
+        -- necessary to capture script failure for failed cases
+        Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee
           | newFee == fee -> pure newFee -- reached fixpoint

@@ -9,8 +9,11 @@
 
 module Cooked.Tx.Constraints.Type where
 
+import Control.Lens
 import Data.Default
 import qualified Ledger as Pl hiding (unspentOutputs)
+import qualified Ledger.Constraints as Pl
+import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
@@ -339,11 +342,26 @@ data BalanceOutputPolicy
 -- | Wraps a function that can be applied to a transaction right before submitting it.
 --  We have a distinguished datatype to be able to provide a little more info on
 --  the show instance.
-data RawModTx = Id | RawModTx (Pl.Tx -> Pl.Tx)
+data RawModTx
+  = -- | no effect modifier
+    Id
+  | -- | Apply modification on transaction after balancing is performed
+    RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
+  | -- | Apply modification on transaction before balancing and transaction fee computation
+    --   are performed.
+    RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
 
-applyRawModTx :: RawModTx -> Pl.Tx -> Pl.Tx
-applyRawModTx Id tx = tx
-applyRawModTx (RawModTx f) tx = f tx
+-- | only applies modification for RawModTxAfterBalancing
+applyRawModOnBalancedTx :: RawModTx -> Pl.Tx -> Pl.Tx
+applyRawModOnBalancedTx Id tx = tx
+applyRawModOnBalancedTx (RawModTxAfterBalancing f) tx = f tx
+applyRawModOnBalancedTx (RawModTxBeforeBalancing _) tx = tx
+
+-- | only applies modification for RawModTxBeforeBalancing
+applyRawModOnUnbalancedTx :: RawModTx -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+applyRawModOnUnbalancedTx Id tx = tx
+applyRawModOnUnbalancedTx (RawModTxAfterBalancing _) tx = tx
+applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f) tx = (Pl.tx %~ f) tx
 
 instance Eq RawModTx where
   Id == Id = True
@@ -351,7 +369,8 @@ instance Eq RawModTx where
 
 instance Show RawModTx where
   show Id = "Id"
-  show (RawModTx _) = "RawModTx"
+  show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
+  show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
 
 -- | Specifies how to select the collateral input
 data Collateral

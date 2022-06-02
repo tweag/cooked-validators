@@ -24,9 +24,9 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   validateTxSkel TxSkel {txConstraints, txOpts} = do
     let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
-    txId <- Pl.getCardanoTxId <$> C.submitTxConstraintsWith lkups constrs
-    when (awaitTxConfirmed txOpts) $ C.awaitTxConfirmed txId
-    return txId
+    tx <- C.submitTxConstraintsWith lkups constrs
+    when (awaitTxConfirmed txOpts) $ C.awaitTxConfirmed $ Pl.getCardanoTxId tx
+    return tx
 
   utxosSuchThat addr datumPred = do
     allUtxos <- M.toList <$> C.utxosAt addr
@@ -50,7 +50,7 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   awaitTime = C.awaitTime
 
 datumFromTxOut :: (C.AsContractError e) => Pl.ChainIndexTxOut -> C.Contract w s e (Maybe Pl.Datum)
-datumFromTxOut (Pl.PublicKeyChainIndexTxOut {}) = pure Nothing
+datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
 datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
 -- datum is always present in the nominal case, guaranteed by chain-index
 datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh

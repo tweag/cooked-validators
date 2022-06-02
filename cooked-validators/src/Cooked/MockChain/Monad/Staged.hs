@@ -61,7 +61,7 @@ interpret = flip evalStateT [] . interpLtl
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
-  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.TxId
+  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
