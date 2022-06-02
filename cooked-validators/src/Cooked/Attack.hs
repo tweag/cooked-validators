@@ -21,12 +21,79 @@ import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl (negate)
 import Type.Reflection
 
+-- The idea of this module: Turning optics into attacks
+-------------------------------------------------------
+--
+-- In cooked-validators, a _single transaction attack_ on a smart contract is a
+-- function that modifies one transaction: An attacker applies this function to
+-- a transaction in an otherwise normal chain of transactions, somehow fools the
+-- validator script(s), and profits. So, attacks in should modify 'TxSkel's.
+--
+-- It would be nice to have a collection of parametric attacks, together with an
+-- easy way to add new attacks to that collection. This module contains the
+-- beginnings of such a collection, and also a hopefully useful mechanism to
+-- extend it.
+--
+-- Since most attacks are of the form "look deep into the nested data types
+-- within a 'TxSkel' and change something", The idea is to use the optics
+-- defined in "Cooked.Tx.Constraints.Optics" and turn them into suitable
+-- modifications.
+--
+-- Optic attack example: Token duplication
+------------------------------------------
+--
+-- There's a 'dupTokenAttack' below, and it's implementation is quite readable;
+-- the purpose of the following is not to explain that function in detail, but
+-- to illustrate how one should write new attacks using this module.
+--
+-- A _token duplication_ attack consists in trying to increase the amount of
+-- tokens a transaction mints and paying the surplus to an attacker.  An idea to
+-- implement the token duplication attack would then be
+--
+-- > naiveDupTokenAttack :: Wallet -> (Value -> Value) -> TxSkel -> TxSkel
+-- > naiveDupTokenAttack attacker increaseValue =
+-- >   paySurplusTo attacker . over (mintsConstraintT % valueL) increaseValue
+--
+-- where @paySurplusTo :: Wallet -> TxSkel -> TxSkel@ is a suitable function
+-- that modifies a 'TxSkel' to play any extra minted tokens to a given
+-- wallet.
+--
+-- This is idea is almost right, save for the type of @naiveDupTokenAttack@: If
+-- @increaseValue@ did not in fact _change_ any of the minted values values, or
+-- if there were no 'MintsConstraint's in the transaction under consideration,
+-- we have no way to detect this failure. That's why this module provides
+-- functions like
+--
+-- > mkAttack :: Is k A_Traversal => Optic' k is TxSkel a -> (a -> Maybe a) -> TxSkel -> Maybe TxSkel
+--
+-- which is a kind of "'over' with failure": Given any @optic@ and @f@, we have
+-- @mkAttack optic f skel == Just skel'@ if and only if
+--
+-- - @optic@ has at least one focus on @skel@, and
+--
+-- - @f@ returns @Just@ on at least one of the foci of @optic@ on @skel@.
+--
+-- In that case, @skel'@ is the transaction skeleton we get by replacing all
+-- foci @x@ with @f x == Just x'@ with @x'@. This allows us to write
+-- 'dupTokenAttack' as below.
+--
+-- Note that this 'dupTokenAttack' is contract-agnostic. Also note that, despite
+-- (because?) of its generality, it is very easy to implement. Our growing
+-- collection of optics will hopefully mean that it will become easier and
+-- easier to write attacks.
+--
+-- Using attacks
+----------------
+--
+-- The attacks from this module can be used with the modailties in any
+-- 'MonadModalMockChain'. These allow combintations of single-transaction
+-- attacks into coordinated attacks of many transactions.
+
 -- * The type of attacks, and functions to turn optics into attacks
 
 -- | The type of attacks that operate on a single transaction. The idea is to
 -- try to modify a transaction, or return @Nothing@ if the modification does not
--- apply; use this with the 'somewhere' and 'everywhere' modalities from
--- "Cooked.MockChain.Monad".
+-- apply; use in a 'MonadModalMockChain'.
 type Attack = TxSkel -> Maybe TxSkel
 
 -- | The simplest way to make an attack from an optic: Try to apply a given
