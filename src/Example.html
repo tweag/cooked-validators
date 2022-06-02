@@ -19,16 +19,16 @@ forall a. MockChain a -&gt; Either MockChainError (a, UtxoState)
 -&gt; MockChain () -&gt; Either MockChainError ((), UtxoState)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-16"></span><span>  </span><span class="annot"><span class="annottext">MockChainT Identity TxId -&gt; MockChain ()
+</span><span id="line-16"></span><span>  </span><span class="annot"><span class="annottext">MockChainT Identity CardanoTx -&gt; MockChain ()
 forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
-</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(MockChainT Identity TxId -&gt; MockChain ())
--&gt; MockChainT Identity TxId -&gt; MockChain ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(MockChainT Identity CardanoTx -&gt; MockChain ())
+-&gt; MockChainT Identity CardanoTx -&gt; MockChain ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-17"></span><span>    </span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainT Identity TxId
-forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m TxId
-</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; MockChainT Identity TxId)
--&gt; TxSkel -&gt; MockChainT Identity TxId
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="annottext">TxSkel -&gt; MockChainT Identity CardanoTx
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m CardanoTx
+</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; MockChainT Identity CardanoTx)
+-&gt; TxSkel -&gt; MockChainT Identity CardanoTx
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
 </span><span id="line-18"></span><span>      </span><span class="annot"><span class="annottext">[OutConstraint] -&gt; TxSkel
