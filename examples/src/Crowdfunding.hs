@@ -77,7 +77,7 @@ data PolicyParams = PolicyParams
 PlutusTx.makeLift ''PolicyParams
 PlutusTx.unstableMakeIsData ''PolicyParams
 
--- | Information about funder. This will be the 'DatumType'
+-- | Information about funder.
 data FunderInfo = FunderInfo
   { -- | the last funder's contribution
     fund :: L.Value,
@@ -93,6 +93,23 @@ instance Eq FunderInfo where
   {-# INLINEABLE (==) #-}
   FunderInfo a b == FunderInfo x y = a == x && b == y
 
+-- | The state of the crowdfund. This will be the 'DatumType'.
+data CrowdfundingState
+  = -- | state of a crowdfund that has not yet had any contributions
+    NoFunds
+  | -- | state of a crowdfund that has had at least one contribution
+    Funding FunderInfo
+  deriving (Haskell.Show)
+
+PlutusTx.makeLift ''CrowdfundingState
+PlutusTx.unstableMakeIsData ''CrowdfundingState
+
+instance Eq CrowdfundingState where
+  {-# INLINEABLE (==) #-}
+  NoFunds == NoFunds = True
+  Funding a == Funding x = a == x
+  _ == _ = False
+
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
   = -- | Burn master token, pay funds to owner
@@ -103,6 +120,12 @@ data Action
 
 PlutusTx.makeLift ''Action
 PlutusTx.unstableMakeIsData ''Action
+
+instance Eq Action where
+  {-# INLINEABLE (==) #-}
+  Burn == Burn = True
+  IndividualRefund == IndividualRefund = True
+  _ == _ = False
 
 -- * The minting policy of the thread token
 
@@ -126,8 +149,11 @@ mkPolicy (PolicyParams tName) validator ctx
     (L.txInfoOutputs txi) of
       [o] ->
         traceIfFalse
-        "Validator does not recieve the thread token of freshly opened crowdfund"
-        (L.txOutValue o `Value.geq` token)
+          "Validator does not recieve the thread token of freshly opened crowdfund"
+          (L.txOutValue o `Value.geq` token)
+          && traceIfFalse
+            "Validator not in 'NoFunds'-state on freshly opened crowdfund"
+            (outputCrowdfundingState txi o == Just NoFunds)
       _ -> trace "There must be exactly one output to the validator on a fresh crowdfund" False
   | amnt == Just (-1) =
     True -- no further checks here; 'validFund' checks everything
@@ -154,6 +180,13 @@ threadTokenPolicy pars =
     $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
+getThreadTokenAssetClass :: Value.AssetClass 
+getThreadTokenAssetClass =
+  Value.assetClass
+    (L.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName)
+    threadTokenName
+
+
 {- INLINEABLE crowdfundTimeRange -}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
 crowdfundTimeRange a = Interval.to (projectDeadline a)
@@ -161,6 +194,15 @@ crowdfundTimeRange a = Interval.to (projectDeadline a)
 {- INLINEABLE refundTimeRange -}
 refundTimeRange :: ValParams -> L.POSIXTimeRange
 refundTimeRange a = Interval.from (projectDeadline a)
+
+-- | Extract a crowdfunding state from an output (if it has one)
+
+{- INLINEABLE outputCrowdfundingState -}
+outputCrowdfundingState :: L.TxInfo -> L.TxOut -> Maybe CrowdfundingState
+outputCrowdfundingState txi o = do
+  h <- L.txOutDatum o
+  L.Datum d <- L.findDatum h txi
+  PlutusTx.fromBuiltinData d
 
 -- | Test that the value paid to the given public key address is at
 -- least the given value
@@ -174,15 +216,20 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 -- * the refunding occurs after the deadline
 -- * the address is refunded at least the amount ehy contributed
 
-{- INLINEABLE validRefunding -}
-validRefunding :: ValParams -> L.Value -> L.PubKeyHash -> L.ScriptContext -> Bool
-validRefunding cf amt addr ctx =
+{- INLINEABLE validRefund -}
+validRefund :: ValParams -> CrowdfundingState -> L.ScriptContext -> Bool
+validRefund cf (Funding (FunderInfo amt addr)) ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
-  in addr `receives` amt
+  in traceIfFalse
+     "Contributor does not receive refund"
+     (addr `receives` amt)
      && traceIfFalse
-        "Refunding before the deadline is not permitted"
+        "Refund before the deadline is not permitted"
         (refundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
+validRefund _ NoFunds _ =
+  -- no refunds need to be validated with zero contributions
+  True
 
 -- | Check if total funds is greater than the threshold
 
@@ -196,8 +243,8 @@ getTotalContributions ctx = sum $ map L.txOutValue $ L.getContinuingOutputs ctx
 -- * the contributor signs the transaction
 
 {- INLINEABLE validFund -}
-validFund :: ValParams -> L.PubKeyHash -> L.ScriptContext -> Bool
-validFund cf addr ctx =
+validFund :: ValParams -> CrowdfundingState -> L.ScriptContext -> Bool
+validFund cf (Funding (FunderInfo _ addr)) ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
       total = getTotalContributions ctx
@@ -216,19 +263,20 @@ validFund cf addr ctx =
        && traceIfFalse
             "Not burning exactly one thread token"
             (L.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass cf) (-1))
+validFund _ NoFunds _ = trace "Threshold must be nonzero" False
 
 {- INLINEABLE validate -}
-validate :: ValParams -> FunderInfo -> Action -> L.ScriptContext -> Bool
-validate cf (FunderInfo _ addr) Burn ctx =
-  validFund cf addr ctx
-validate cf (FunderInfo amt addr) IndividualRefund ctx =
-  validRefunding cf amt addr ctx
+validate :: ValParams -> CrowdfundingState -> Action -> L.ScriptContext -> Bool
+validate cf datum Burn ctx =
+  validFund cf datum ctx
+validate cf datum IndividualRefund ctx =
+  validRefund cf datum ctx
 
 data Crowdfunding
 
 instance Scripts.ValidatorTypes Crowdfunding where
   type RedeemerType Crowdfunding = Action
-  type DatumType Crowdfunding = FunderInfo
+  type DatumType Crowdfunding = CrowdfundingState
 
 crowdfundingValidator :: ValParams -> Scripts.TypedValidator Crowdfunding
 crowdfundingValidator =
@@ -236,4 +284,4 @@ crowdfundingValidator =
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @FunderInfo @Action
+    wrap = Scripts.wrapValidator @CrowdfundingState @Action
