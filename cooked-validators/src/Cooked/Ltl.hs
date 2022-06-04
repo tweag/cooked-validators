@@ -265,7 +265,7 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
 -- * Convenience functions
 
--- Users of this library should never use 'StartLtl' and 'StopLtl'
+-- Users of this module should never use 'StartLtl' and 'StopLtl'
 -- explicitly. Here are some safe-to-use functions that should be used
 -- instead. Most functions like the ones below should be defined for the class
 -- 'MonadModal' because there might be other possibilities to equip a monad with
