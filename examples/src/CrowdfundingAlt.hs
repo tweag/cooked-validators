@@ -138,9 +138,9 @@ validFund cf (FunderInfo _ addr) ctx =
        && traceIfFalse
             "Funding transaction not signed by contributor"
             (txi `L.txSignedBy` addr)
-       && traceIfFalse
-            "Total contributions do not exceed threshold"
-            (total `Value.geq` threshold cf)
+       -- && traceIfFalse
+       --      "Total contributions do not exceed threshold"
+       --      (total `Value.geq` threshold cf)
        && traceIfFalse
             "Funding target not paid"
             (fundingTarget cf `receives` total)
