@@ -145,7 +145,7 @@ failingSingle =
 -- | Token duplication attack: Whenever we see a transaction that mints
 -- something, try to mint one more token and pay it to the attacker. This should
 -- be ruled out by the minting policy of the thread token.
-tryDupTokens :: StagedMockChain ()
+tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
   somewhere
     ( dupTokenAttack
@@ -154,7 +154,7 @@ tryDupTokens =
     )
     (noBids <|> oneBid <|> twoBids)
 
-tryDatumHijack :: StagedMockChain ()
+tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
   somewhere
     ( datumHijackingAttack @A.Auction

@@ -24,7 +24,7 @@ instance {-# OVERLAPS #-} Semigroup TestModification where
 instance {-# OVERLAPS #-} Monoid TestModification where
   mempty = id
 
-instance (MonadPlus m, MonadFail m) => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
+instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
   interpBuiltin GetInteger = return 42
   interpBuiltin (EmitInteger i) =
     get
@@ -45,8 +45,7 @@ nonemptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
 nonemptyTraces =
   [ getInteger >>= emitInteger,
     emitInteger 1 >> emitInteger 2,
-    emitInteger 1 >> getInteger >>= emitInteger >> emitInteger 2,
-    emitInteger 1 >> emitInteger 2 <|> emitInteger 3 >> emitInteger 4
+    emitInteger 1 >> getInteger >>= emitInteger >> emitInteger 2
   ]
 
 emptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
