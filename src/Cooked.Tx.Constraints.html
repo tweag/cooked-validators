@@ -26,8 +26,8 @@
 </span><span id="line-26"></span><span>
 </span><span id="line-27"></span><span class="hs-comment">-- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'</span><span>
 </span><span id="line-28"></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">type</span><span> </span><span id="LedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#LedgerConstraint"><span class="hs-identifier hs-var">LedgerConstraint</span></a></span></span><span> </span><span id="local-6989586621679519733"><span class="annot"><a href="#local-6989586621679519733"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-30"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptLookups</span></span><span> </span><span class="annot"><a href="#local-6989586621679519733"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxConstraints</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679519733"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679519733"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">type</span><span> </span><span id="LedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#LedgerConstraint"><span class="hs-identifier hs-var">LedgerConstraint</span></a></span></span><span> </span><span id="local-6989586621679519783"><span class="annot"><a href="#local-6989586621679519783"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptLookups</span></span><span> </span><span class="annot"><a href="#local-6989586621679519783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxConstraints</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679519783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679519783"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-31"></span><span>
 </span><span id="line-32"></span><span class="hs-comment">-- | Convenience class for common operations on what can be converted to</span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- 'LedgerConstraint' (in other words native Plutus `Pl.TxConstraints`). This</span><span>
@@ -37,26 +37,26 @@
 </span><span id="line-37"></span><span class="hs-comment">-- As a user, you should not have to deal with or worry about this class and</span><span>
 </span><span id="line-38"></span><span class="hs-comment">-- stick with the 'ConstraintsSpec' instances to specify constraints in</span><span>
 </span><span id="line-39"></span><span class="hs-comment">-- transaction skeletons 'TxSkel'.</span><span>
-</span><span id="line-40"></span><span class="hs-keyword">class</span><span> </span><span id="ToLedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#ToLedgerConstraint"><span class="hs-identifier hs-var">ToLedgerConstraint</span></a></span></span><span> </span><span id="local-6989586621679519844"><span class="annot"><a href="#local-6989586621679519844"><span class="hs-identifier hs-type">constraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">class</span><span> </span><span id="ToLedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#ToLedgerConstraint"><span class="hs-identifier hs-var">ToLedgerConstraint</span></a></span></span><span> </span><span id="local-6989586621679519894"><span class="annot"><a href="#local-6989586621679519894"><span class="hs-identifier hs-type">constraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-41"></span><span>  </span><span class="hs-comment">-- | Map from datum hashes to string representation of all the datums carried.</span><span>
 </span><span id="line-42"></span><span>  </span><span class="hs-comment">-- We use this in order to display data to the use when testing. Its often</span><span>
 </span><span id="line-43"></span><span>  </span><span class="hs-comment">-- easier to read the original datatype that was placed into a UTxO</span><span>
 </span><span id="line-44"></span><span>  </span><span class="hs-comment">-- instead of its respective @toBuilinData@ image.</span><span>
-</span><span id="line-45"></span><span>  </span><span id="extractDatumStr"><span class="annot"><a href="Cooked.Tx.Constraints.html#extractDatumStr"><span class="hs-identifier hs-type">extractDatumStr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679519844"><span class="hs-identifier hs-type">constraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">M.Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumHash</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-45"></span><span>  </span><span id="extractDatumStr"><span class="annot"><a href="Cooked.Tx.Constraints.html#extractDatumStr"><span class="hs-identifier hs-type">extractDatumStr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679519894"><span class="hs-identifier hs-type">constraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">M.Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumHash</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
 </span><span id="line-46"></span><span>
 </span><span id="line-47"></span><span>  </span><span class="hs-comment">-- | Converts our constraint into a 'LedgerConstraint',</span><span>
 </span><span id="line-48"></span><span>  </span><span class="hs-comment">--  which later can be used to generate a transaction. The universally</span><span>
 </span><span id="line-49"></span><span>  </span><span class="hs-comment">--  quantified type-variable is there on purpose, to enable us to</span><span>
 </span><span id="line-50"></span><span>  </span><span class="hs-comment">--  easily spend from multiple scripts at the same time.</span><span>
-</span><span id="line-51"></span><span>  </span><span id="local-6989586621679519847"><span id="toLedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-type">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679519844"><span class="hs-identifier hs-type">constraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html#LedgerConstraint"><span class="hs-identifier hs-type">LedgerConstraint</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679519847"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679519897"><span id="toLedgerConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-type">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679519894"><span class="hs-identifier hs-type">constraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html#LedgerConstraint"><span class="hs-identifier hs-type">LedgerConstraint</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679519897"><span class="hs-identifier hs-type">a</span></a></span></span><span>
 </span><span id="line-52"></span><span>
 </span><span id="line-53"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html#ToLedgerConstraint"><span class="hs-identifier hs-type">ToLedgerConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679519729"><span class="annot"><span class="annottext">extractDatumStr :: MiscConstraint -&gt; Map DatumHash String
-</span><a href="#local-6989586621679519729"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679519727"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519727"><span class="hs-identifier hs-var">_validator</span></a></span></span><span> </span><span id="local-6989586621679519726"><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679519726"><span class="hs-identifier hs-var">_redeemer</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519725"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679519725"><span class="hs-identifier hs-var">_out</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519724"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519724"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679519779"><span class="annot"><span class="annottext">extractDatumStr :: MiscConstraint -&gt; Map DatumHash String
+</span><a href="#local-6989586621679519779"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679519777"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679519777"><span class="hs-identifier hs-var">_validator</span></a></span></span><span> </span><span id="local-6989586621679519776"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679519776"><span class="hs-identifier hs-var">_redeemer</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519775"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679519775"><span class="hs-identifier hs-var">_out</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519774"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679519774"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-55"></span><span>    </span><span class="annot"><span class="annottext">DatumHash -&gt; String -&gt; Map DatumHash String
 forall k a. k -&gt; a -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Datum -&gt; DatumHash
@@ -69,33 +69,33 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DatumType a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519724"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumType a -&gt; String
+</span><a href="#local-6989586621679519774"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumType a -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519724"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519774"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-56"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#extractDatumStr"><span class="hs-identifier hs-var">extractDatumStr</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map DatumHash String
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">M.empty</span></span><span>
 </span><span id="line-57"></span><span>
-</span><span id="line-58"></span><span>  </span><span id="local-6989586621679519716"><span class="annot"><span class="annottext">toLedgerConstraint :: MiscConstraint -&gt; LedgerConstraint a
-</span><a href="#local-6989586621679519716"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679519715"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519715"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679519714"><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679519714"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679519713"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519713"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519712"><span class="annot"><span class="annottext">ChainIndexTxOut
-</span><a href="#local-6989586621679519712"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519711"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519711"><span class="hs-identifier hs-var">_a</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519710"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519709"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679519766"><span class="annot"><span class="annottext">toLedgerConstraint :: MiscConstraint -&gt; LedgerConstraint a
+</span><a href="#local-6989586621679519766"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679519765"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679519765"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679519764"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679519764"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679519763"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679519763"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519762"><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679519762"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519761"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679519761"><span class="hs-identifier hs-var">_a</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519760"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519759"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-59"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-60"></span><span>      </span><span id="local-6989586621679519710"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519710"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-60"></span><span>      </span><span id="local-6989586621679519760"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519760"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-61"></span><span>        </span><span class="annot"><span class="annottext">Validator -&gt; ScriptLookups a
 forall a. Validator -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.otherScript</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Validator
 forall a. TypedValidator a -&gt; Validator
 </span><span class="hs-identifier hs-var">Pl.validatorScript</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519715"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519765"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-62"></span><span>          </span><span class="annot"><span class="annottext">ScriptLookups a -&gt; ScriptLookups a -&gt; ScriptLookups a
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef ChainIndexTxOut -&gt; ScriptLookups a
@@ -103,48 +103,48 @@ forall a. Map TxOutRef ChainIndexTxOut -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.unspentOutputs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; ChainIndexTxOut -&gt; Map TxOutRef ChainIndexTxOut
 forall k a. k -&gt; a -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.singleton</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519713"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut
-</span><a href="#local-6989586621679519712"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-63"></span><span>      </span><span id="local-6989586621679519709"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519709"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679519763"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679519762"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>      </span><span id="local-6989586621679519759"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519759"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOutRef
 -&gt; Redeemer -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. TxOutRef -&gt; Redeemer -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustSpendScriptOutput</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519713"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; Redeemer
+</span><a href="#local-6989586621679519763"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; Redeemer
 </span><span class="hs-identifier hs-var">Pl.Redeemer</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; Redeemer) -&gt; BuiltinData -&gt; Redeemer
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679519714"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-64"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519703"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519702"><span class="annot"><span class="annottext">ChainIndexTxOut
-</span><a href="#local-6989586621679519702"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519701"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519700"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519764"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519753"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679519753"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519752"><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679519752"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519751"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519750"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-65"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-66"></span><span>      </span><span id="local-6989586621679519701"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519701"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef ChainIndexTxOut -&gt; ScriptLookups a
+</span><span id="line-66"></span><span>      </span><span id="local-6989586621679519751"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519751"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef ChainIndexTxOut -&gt; ScriptLookups a
 forall a. Map TxOutRef ChainIndexTxOut -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.unspentOutputs</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; ChainIndexTxOut -&gt; Map TxOutRef ChainIndexTxOut
 forall k a. k -&gt; a -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.singleton</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut
-</span><a href="#local-6989586621679519702"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-67"></span><span>      </span><span id="local-6989586621679519700"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519700"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519753"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679519752"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>      </span><span id="local-6989586621679519750"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519750"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. TxOutRef -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustSpendPubKeyOutput</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">oref</span></a></span><span>
+</span><a href="#local-6989586621679519753"><span class="hs-identifier hs-var">oref</span></a></span><span>
 </span><span id="line-68"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span id="local-6989586621679519697"><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679519697"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679519696"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519696"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519695"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519694"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span id="local-6989586621679519747"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679519747"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679519746"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519746"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519745"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519744"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-69"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-70"></span><span>      </span><span id="local-6989586621679519695"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519695"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MintingPolicy -&gt; ScriptLookups a)
+</span><span id="line-70"></span><span>      </span><span id="local-6989586621679519745"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519745"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MintingPolicy -&gt; ScriptLookups a)
 -&gt; [MintingPolicy] -&gt; ScriptLookups a
 forall (t :: * -&gt; *) m a.
 (Foldable t, Monoid m) =&gt;
@@ -152,21 +152,21 @@ forall (t :: * -&gt; *) m a.
 </span><span class="hs-identifier hs-var">foldMap</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; ScriptLookups a
 forall a. MintingPolicy -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.mintingPolicy</span></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679519697"><span class="hs-identifier hs-var">pols</span></a></span><span>
-</span><span id="line-71"></span><span>      </span><span id="local-6989586621679519694"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519694"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519747"><span class="hs-identifier hs-var">pols</span></a></span><span>
+</span><span id="line-71"></span><span>      </span><span id="local-6989586621679519744"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519744"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. Value -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustMintValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519696"><span class="hs-identifier hs-var">v</span></a></span><span>
-</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679519690"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679519690"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679519689"><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679519689"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679519688"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519688"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519687"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519686"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519746"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679519740"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679519740"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679519739"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679519739"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679519738"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519738"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519737"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519736"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-73"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-74"></span><span>      </span><span id="local-6989586621679519687"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519687"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MintingPolicy -&gt; ScriptLookups a)
+</span><span id="line-74"></span><span>      </span><span id="local-6989586621679519737"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519737"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MintingPolicy -&gt; ScriptLookups a)
 -&gt; [MintingPolicy] -&gt; ScriptLookups a
 forall (t :: * -&gt; *) m a.
 (Foldable t, Monoid m) =&gt;
@@ -174,51 +174,51 @@ forall (t :: * -&gt; *) m a.
 </span><span class="hs-identifier hs-var">foldMap</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; ScriptLookups a
 forall a. MintingPolicy -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.mintingPolicy</span></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679519689"><span class="hs-identifier hs-var">pols</span></a></span><span>
-</span><span id="line-75"></span><span>      </span><span id="local-6989586621679519686"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519686"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Redeemer -&gt; Value -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519739"><span class="hs-identifier hs-var">pols</span></a></span><span>
+</span><span id="line-75"></span><span>      </span><span id="local-6989586621679519736"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519736"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Redeemer -&gt; Value -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. Redeemer -&gt; Value -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustMintValueWithRedeemer</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; Redeemer
 </span><span class="hs-identifier hs-var">Pl.Redeemer</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679519690"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519688"><span class="hs-identifier hs-var">v</span></a></span><span>
-</span><span id="line-76"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679519683"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679519683"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519740"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519738"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679519733"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679519733"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519682"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519732"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-77"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-78"></span><span>      </span><span id="local-6989586621679519682"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519682"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><span id="line-78"></span><span>      </span><span id="local-6989586621679519732"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519732"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. POSIXTimeRange -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustValidateIn</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.to</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679519683"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-79"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679519678"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679519678"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519733"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679519728"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679519728"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519677"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519727"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-80"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-81"></span><span>      </span><span id="local-6989586621679519677"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519677"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><span id="line-81"></span><span>      </span><span id="local-6989586621679519727"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519727"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. POSIXTimeRange -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustValidateIn</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.from</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679519678"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-82"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679519674"><span class="annot"><span class="annottext">POSIXTimeRange
-</span><a href="#local-6989586621679519674"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519728"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679519724"><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679519724"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. POSIXTimeRange -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.mustValidateIn</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
-</span><a href="#local-6989586621679519674"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-83"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679519672"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679519672"><span class="hs-identifier hs-var">hashes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519724"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679519722"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679519722"><span class="hs-identifier hs-var">hashes</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(PubKeyHash -&gt; TxConstraints (RedeemerType a) (DatumType a))
 -&gt; [PubKeyHash] -&gt; TxConstraints (RedeemerType a) (DatumType a)
@@ -234,14 +234,14 @@ forall i o. PaymentPubKeyHash -&gt; TxConstraints i o
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; PaymentPubKeyHash
 </span><span class="hs-identifier hs-var">Pl.PaymentPubKeyHash</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679519672"><span class="hs-identifier hs-var">hashes</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519722"><span class="hs-identifier hs-var">hashes</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-84"></span><span>
 </span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html#ToLedgerConstraint"><span class="hs-identifier hs-type">ToLedgerConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-86"></span><span>  </span><span id="local-6989586621679519667"><span class="annot"><span class="annottext">extractDatumStr :: OutConstraint -&gt; Map DatumHash String
-</span><a href="#local-6989586621679519667"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519665"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519665"><span class="hs-identifier hs-var">_validator</span></a></span></span><span> </span><span id="local-6989586621679519664"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519664"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519663"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519663"><span class="hs-identifier hs-var">_value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679519717"><span class="annot"><span class="annottext">extractDatumStr :: OutConstraint -&gt; Map DatumHash String
+</span><a href="#local-6989586621679519717"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519715"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679519715"><span class="hs-identifier hs-var">_validator</span></a></span></span><span> </span><span id="local-6989586621679519714"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679519714"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519713"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519713"><span class="hs-identifier hs-var">_value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-87"></span><span>    </span><span class="annot"><span class="annottext">DatumHash -&gt; String -&gt; Map DatumHash String
 forall k a. k -&gt; a -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Datum -&gt; DatumHash
@@ -257,22 +257,22 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">(DatumType a -&gt; DatumHash) -&gt; DatumType a -&gt; DatumHash
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519664"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumType a -&gt; String
+</span><a href="#local-6989586621679519714"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DatumType a -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519664"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-88"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#extractDatumStr"><span class="hs-identifier hs-var">extractDatumStr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519661"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679519661"><span class="hs-identifier hs-var">_pk</span></a></span></span><span> </span><span id="local-6989586621679519660"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519660"><span class="hs-identifier hs-var">_stak</span></a></span></span><span> </span><span id="local-6989586621679519659"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519659"><span class="hs-identifier hs-var">mdat</span></a></span></span><span> </span><span id="local-6989586621679519658"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519658"><span class="hs-identifier hs-var">_v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679519714"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#extractDatumStr"><span class="hs-identifier hs-var">extractDatumStr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519711"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679519711"><span class="hs-identifier hs-var">_pk</span></a></span></span><span> </span><span id="local-6989586621679519710"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679519710"><span class="hs-identifier hs-var">_stak</span></a></span></span><span> </span><span id="local-6989586621679519709"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679519709"><span class="hs-identifier hs-var">mdat</span></a></span></span><span> </span><span id="local-6989586621679519708"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519708"><span class="hs-identifier hs-var">_v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">Map DatumHash String
 -&gt; (a -&gt; Map DatumHash String) -&gt; Maybe a -&gt; Map DatumHash String
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Map DatumHash String
 forall k a. Map k a
-</span><span class="hs-identifier hs-var">M.empty</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679519656"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679519656"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; String -&gt; Map DatumHash String
+</span><span class="hs-identifier hs-var">M.empty</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679519706"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679519706"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; String -&gt; Map DatumHash String
 forall k a. k -&gt; a -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Datum -&gt; DatumHash
 </span><span class="hs-identifier hs-var">Pl.datumHash</span></span><span> </span><span class="annot"><span class="annottext">(Datum -&gt; DatumHash)
@@ -284,23 +284,23 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679519656"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; String
+</span><a href="#local-6989586621679519706"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679519656"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519659"><span class="hs-identifier hs-var">mdat</span></a></span><span>
+</span><a href="#local-6989586621679519706"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679519709"><span class="hs-identifier hs-var">mdat</span></a></span><span>
 </span><span id="line-90"></span><span>
-</span><span id="line-91"></span><span>  </span><span id="local-6989586621679519655"><span class="annot"><span class="annottext">toLedgerConstraint :: OutConstraint -&gt; LedgerConstraint a
-</span><a href="#local-6989586621679519655"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519654"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679519654"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679519653"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519653"><span class="hs-identifier hs-var">stak</span></a></span></span><span> </span><span id="local-6989586621679519652"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519652"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679519651"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519651"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519650"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519649"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679519705"><span class="annot"><span class="annottext">toLedgerConstraint :: OutConstraint -&gt; LedgerConstraint a
+</span><a href="#local-6989586621679519705"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519704"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679519704"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679519703"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">stak</span></a></span></span><span> </span><span id="local-6989586621679519702"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679519702"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679519701"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519701"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519700"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519699"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-92"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-93"></span><span>      </span><span id="local-6989586621679519648"><span class="annot"><span class="annottext">mData :: Maybe Datum
-</span><a href="#local-6989586621679519648"><span class="hs-identifier hs-var hs-var">mData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Datum) -&gt; Maybe a -&gt; Maybe Datum
+</span><span id="line-93"></span><span>      </span><span id="local-6989586621679519698"><span class="annot"><span class="annottext">mData :: Maybe Datum
+</span><a href="#local-6989586621679519698"><span class="hs-identifier hs-var hs-var">mData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Datum) -&gt; Maybe a -&gt; Maybe Datum
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; Datum
 </span><span class="hs-identifier hs-var">Pl.Datum</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; Datum) -&gt; (a -&gt; BuiltinData) -&gt; a -&gt; Datum
@@ -308,10 +308,10 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519652"><span class="hs-identifier hs-var">dat</span></a></span><span>
+</span><a href="#local-6989586621679519702"><span class="hs-identifier hs-var">dat</span></a></span><span>
 </span><span id="line-94"></span><span>
-</span><span id="line-95"></span><span>      </span><span id="local-6989586621679519650"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519650"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-95"></span><span>      </span><span id="local-6989586621679519700"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519700"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-96"></span><span>        </span><span class="annot"><span class="annottext">ScriptLookups a
 -&gt; (Datum -&gt; ScriptLookups a) -&gt; Maybe Datum -&gt; ScriptLookups a
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
@@ -320,7 +320,7 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Datum -&gt; ScriptLookups a
 forall a. Datum -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.otherData</span></span><span> </span><span class="annot"><span class="annottext">Maybe Datum
-</span><a href="#local-6989586621679519648"><span class="hs-identifier hs-var">mData</span></a></span><span>
+</span><a href="#local-6989586621679519698"><span class="hs-identifier hs-var">mData</span></a></span><span>
 </span><span id="line-97"></span><span>          </span><span class="hs-comment">-- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have</span><span>
 </span><span id="line-98"></span><span>          </span><span class="hs-comment">-- a different 'WithOwnStakePubKeyHash' constraint?</span><span>
 </span><span id="line-99"></span><span>          </span><span class="annot"><span class="annottext">ScriptLookups a -&gt; ScriptLookups a -&gt; ScriptLookups a
@@ -335,9 +335,9 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">StakePubKeyHash -&gt; ScriptLookups a
 forall a. StakePubKeyHash -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.ownStakePubKeyHash</span></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519653"><span class="hs-identifier hs-var">stak</span></a></span><span>
-</span><span id="line-100"></span><span>      </span><span id="local-6989586621679519649"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519649"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxConstraint -&gt; TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">stak</span></a></span><span>
+</span><span id="line-100"></span><span>      </span><span id="local-6989586621679519699"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519699"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxConstraint -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. TxConstraint -&gt; TxConstraints i o
 </span><span class="hs-identifier hs-var">Pl.singleton</span></span><span> </span><span class="annot"><span class="annottext">(TxConstraint -&gt; TxConstraints (RedeemerType a) (DatumType a))
 -&gt; TxConstraint -&gt; TxConstraints (RedeemerType a) (DatumType a)
@@ -346,26 +346,26 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Maybe StakePubKeyHash -&gt; Maybe Datum -&gt; Value -&gt; TxConstraint
 </span><span class="hs-identifier hs-var">Pl.MustPayToPubKeyAddress</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; PaymentPubKeyHash
 </span><span class="hs-identifier hs-var">Pl.PaymentPubKeyHash</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679519654"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519653"><span class="hs-identifier hs-var">stak</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Datum
-</span><a href="#local-6989586621679519648"><span class="hs-identifier hs-var">mData</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519651"><span class="hs-identifier hs-var">v</span></a></span><span>
-</span><span id="line-101"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519643"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519643"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679519642"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519642"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519641"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519641"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
-</span><a href="#local-6989586621679519640"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519639"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519704"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679519703"><span class="hs-identifier hs-var">stak</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Datum
+</span><a href="#local-6989586621679519698"><span class="hs-identifier hs-var">mData</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519701"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-101"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519693"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679519693"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679519692"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679519692"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519691"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519691"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptLookups a
+</span><a href="#local-6989586621679519690"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519689"><span class="hs-identifier hs-var">constr</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-102"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-103"></span><span>      </span><span id="local-6989586621679519640"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
-</span><a href="#local-6989586621679519640"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Validator -&gt; ScriptLookups a
+</span><span id="line-103"></span><span>      </span><span id="local-6989586621679519690"><span class="annot"><span class="annottext">lkups :: ScriptLookups a
+</span><a href="#local-6989586621679519690"><span class="hs-identifier hs-var hs-var">lkups</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Validator -&gt; ScriptLookups a
 forall a. Validator -&gt; ScriptLookups a
 </span><span class="hs-identifier hs-var">Pl.otherScript</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Validator
 forall a. TypedValidator a -&gt; Validator
 </span><span class="hs-identifier hs-var">Pl.validatorScript</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519643"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-104"></span><span>      </span><span id="local-6989586621679519639"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
-</span><a href="#local-6989586621679519639"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679519693"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>      </span><span id="local-6989586621679519689"><span class="annot"><span class="annottext">constr :: TxConstraints (RedeemerType a) (DatumType a)
+</span><a href="#local-6989586621679519689"><span class="hs-identifier hs-var hs-var">constr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-105"></span><span>        </span><span class="annot"><span class="annottext">ValidatorHash
 -&gt; Datum -&gt; Value -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall i o. ValidatorHash -&gt; Datum -&gt; Value -&gt; TxConstraints i o
@@ -376,22 +376,22 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Validator
 forall a. TypedValidator a -&gt; Validator
 </span><span class="hs-identifier hs-var">Pl.validatorScript</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519643"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519693"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-107"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; Datum
 </span><span class="hs-identifier hs-var">Pl.Datum</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; Datum) -&gt; BuiltinData -&gt; Datum
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DatumType a -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519642"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519692"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-108"></span><span>          </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519641"><span class="hs-identifier hs-var">value</span></a></span><span>
+</span><a href="#local-6989586621679519691"><span class="hs-identifier hs-var">value</span></a></span><span>
 </span><span id="line-109"></span><span>
 </span><span id="line-110"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html#ToLedgerConstraint"><span class="hs-identifier hs-type">ToLedgerConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-111"></span><span>  </span><span id="local-6989586621679519634"><span class="annot"><span class="annottext">extractDatumStr :: Constraints -&gt; Map DatumHash String
-</span><a href="#local-6989586621679519634"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519633"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679519633"><span class="hs-identifier hs-var">miscConstraints</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679519631"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519631"><span class="hs-identifier hs-var">outConstraints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679519684"><span class="annot"><span class="annottext">extractDatumStr :: Constraints -&gt; Map DatumHash String
+</span><a href="#local-6989586621679519684"><span class="hs-identifier hs-var hs-var hs-var hs-var">extractDatumStr</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519683"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679519683"><span class="hs-identifier hs-var">miscConstraints</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679519681"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679519681"><span class="hs-identifier hs-var">outConstraints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-112"></span><span>    </span><span class="annot"><span class="annottext">Map DatumHash String
 -&gt; Map DatumHash String -&gt; Map DatumHash String
 forall k a. Ord k =&gt; Map k a -&gt; Map k a -&gt; Map k a
@@ -408,7 +408,7 @@ constraint -&gt; Map DatumHash String
 -&gt; [MiscConstraint] -&gt; [Map DatumHash String]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679519633"><span class="hs-identifier hs-var">miscConstraints</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519683"><span class="hs-identifier hs-var">miscConstraints</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-114"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Map DatumHash String] -&gt; Map DatumHash String
 forall (f :: * -&gt; *) k a.
 (Foldable f, Ord k) =&gt;
@@ -421,24 +421,24 @@ constraint -&gt; Map DatumHash String
 -&gt; [OutConstraint] -&gt; [Map DatumHash String]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519631"><span class="hs-identifier hs-var">outConstraints</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519681"><span class="hs-identifier hs-var">outConstraints</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-115"></span><span>
-</span><span id="line-116"></span><span>  </span><span id="local-6989586621679519627"><span class="annot"><span class="annottext">toLedgerConstraint :: Constraints -&gt; LedgerConstraint a
-</span><a href="#local-6989586621679519627"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519626"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679519626"><span class="hs-identifier hs-var">miscConstraints</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679519625"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519625"><span class="hs-identifier hs-var">outConstraints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-116"></span><span>  </span><span id="local-6989586621679519677"><span class="annot"><span class="annottext">toLedgerConstraint :: Constraints -&gt; LedgerConstraint a
+</span><a href="#local-6989586621679519677"><span class="hs-identifier hs-var hs-var hs-var hs-var">toLedgerConstraint</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519676"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679519676"><span class="hs-identifier hs-var">miscConstraints</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679519675"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679519675"><span class="hs-identifier hs-var">outConstraints</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-117"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[ScriptLookups a] -&gt; ScriptLookups a
 forall a. Monoid a =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="annot"><span class="annottext">[ScriptLookups a]
-</span><a href="#local-6989586621679519624"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[TxConstraints (RedeemerType a) (DatumType a)]
+</span><a href="#local-6989586621679519674"><span class="hs-identifier hs-var">lkups</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[TxConstraints (RedeemerType a) (DatumType a)]
 -&gt; TxConstraints (RedeemerType a) (DatumType a)
 forall a. Monoid a =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="annot"><span class="annottext">[TxConstraints (RedeemerType a) (DatumType a)]
-</span><a href="#local-6989586621679519623"><span class="hs-identifier hs-var">constrs</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519673"><span class="hs-identifier hs-var">constrs</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-118"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-119"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679519624"><span class="annot"><span class="annottext">[ScriptLookups a]
-</span><a href="#local-6989586621679519624"><span class="hs-identifier hs-var">lkups</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519623"><span class="annot"><span class="annottext">[TxConstraints (RedeemerType a) (DatumType a)]
-</span><a href="#local-6989586621679519623"><span class="hs-identifier hs-var">constrs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-119"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679519674"><span class="annot"><span class="annottext">[ScriptLookups a]
+</span><a href="#local-6989586621679519674"><span class="hs-identifier hs-var">lkups</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519673"><span class="annot"><span class="annottext">[TxConstraints (RedeemerType a) (DatumType a)]
+</span><a href="#local-6989586621679519673"><span class="hs-identifier hs-var">constrs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-120"></span><span>        </span><span class="annot"><span class="annottext">[LedgerConstraint a]
 -&gt; ([ScriptLookups a],
     [TxConstraints (RedeemerType a) (DatumType a)])
@@ -459,7 +459,7 @@ constraint -&gt; LedgerConstraint a
 -&gt; [MiscConstraint] -&gt; [LedgerConstraint a]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679519626"><span class="hs-identifier hs-var">miscConstraints</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519676"><span class="hs-identifier hs-var">miscConstraints</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-122"></span><span>            </span><span class="annot"><span class="annottext">[LedgerConstraint a]
 -&gt; [LedgerConstraint a] -&gt; [LedgerConstraint a]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
@@ -471,17 +471,17 @@ constraint -&gt; LedgerConstraint a
 -&gt; [OutConstraint] -&gt; [LedgerConstraint a]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519625"><span class="hs-identifier hs-var">outConstraints</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519675"><span class="hs-identifier hs-var">outConstraints</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-123"></span><span>
 </span><span id="line-124"></span><span class="hs-comment">-- | Generate the 'Pl.TxOut' transaction output associated to a given output</span><span>
 </span><span id="line-125"></span><span class="hs-comment">-- constraint 'OutConstraint'.</span><span>
 </span><span id="line-126"></span><span class="annot"><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-type">outConstraintToTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span>
 </span><span id="line-127"></span><span id="outConstraintToTxOut"><span class="annot"><span class="annottext">outConstraintToTxOut :: OutConstraint -&gt; TxOut
-</span><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-var hs-var">outConstraintToTxOut</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519620"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679519620"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679519619"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519619"><span class="hs-identifier hs-var">mStakePkh</span></a></span></span><span> </span><span id="local-6989586621679519618"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519618"><span class="hs-identifier hs-var">mDatum</span></a></span></span><span> </span><span id="local-6989586621679519617"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519617"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-var hs-var">outConstraintToTxOut</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679519670"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679519670"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679519669"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679519669"><span class="hs-identifier hs-var">mStakePkh</span></a></span></span><span> </span><span id="local-6989586621679519668"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679519668"><span class="hs-identifier hs-var">mDatum</span></a></span></span><span> </span><span id="local-6989586621679519667"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519667"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-128"></span><span>  </span><span class="annot"><span class="annottext">TxOut :: Address -&gt; Value -&gt; Maybe DatumHash -&gt; TxOut
 </span><span class="hs-identifier hs-type">Pl.TxOut</span></span><span>
 </span><span id="line-129"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txOutAddress :: Address
@@ -490,7 +490,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">Pl.Address</span></span><span>
 </span><span id="line-131"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
 </span><span class="hs-identifier hs-var">Pl.PubKeyCredential</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679519620"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519670"><span class="hs-identifier hs-var">pkh</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-132"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Pl.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (StakePubKeyHash -&gt; Credential)
@@ -506,10 +506,10 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; Maybe StakePubKeyHash -&gt; Maybe StakingCredential
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
-</span><a href="#local-6989586621679519619"><span class="hs-identifier hs-var">mStakePkh</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679519669"><span class="hs-identifier hs-var">mStakePkh</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-133"></span><span>      </span><span class="annot"><span class="annottext">txOutValue :: Value
 </span><span class="hs-identifier hs-var">Pl.txOutValue</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519617"><span class="hs-identifier hs-var">value</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679519667"><span class="hs-identifier hs-var">value</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-134"></span><span>      </span><span class="annot"><span class="annottext">txOutDatumHash :: Maybe DatumHash
 </span><span class="hs-identifier hs-var">Pl.txOutDatumHash</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Datum -&gt; DatumHash
 </span><span class="hs-identifier hs-var">Pl.datumHash</span></span><span> </span><span class="annot"><span class="annottext">(Datum -&gt; DatumHash) -&gt; (a -&gt; Datum) -&gt; a -&gt; DatumHash
@@ -522,12 +522,12 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; DatumHash) -&gt; Maybe a -&gt; Maybe DatumHash
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679519618"><span class="hs-identifier hs-var">mDatum</span></a></span><span>
+</span><a href="#local-6989586621679519668"><span class="hs-identifier hs-var">mDatum</span></a></span><span>
 </span><span id="line-135"></span><span>    </span><span class="hs-special">}</span><span>
-</span><span id="line-136"></span><span class="annot"><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-var">outConstraintToTxOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519608"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519608"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span id="local-6989586621679519607"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519607"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519606"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519606"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-var">outConstraintToTxOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679519658"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679519658"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span id="local-6989586621679519657"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679519657"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span id="local-6989586621679519656"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679519656"><span class="hs-identifier hs-var">value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-137"></span><span>  </span><span class="annot"><span class="annottext">TxOut :: Address -&gt; Value -&gt; Maybe DatumHash -&gt; TxOut
 </span><span class="hs-identifier hs-type">Pl.TxOut</span></span><span>
 </span><span id="line-138"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txOutAddress :: Address
@@ -535,10 +535,10 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">Pl.scriptAddress</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Validator
 forall a. TypedValidator a -&gt; Validator
 </span><span class="hs-identifier hs-var">Pl.validatorScript</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679519608"><span class="hs-identifier hs-var">validator</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679519658"><span class="hs-identifier hs-var">validator</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-139"></span><span>      </span><span class="annot"><span class="annottext">txOutValue :: Value
 </span><span class="hs-identifier hs-var">Pl.txOutValue</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519606"><span class="hs-identifier hs-var">value</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679519656"><span class="hs-identifier hs-var">value</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-140"></span><span>      </span><span class="annot"><span class="annottext">txOutDatumHash :: Maybe DatumHash
 </span><span class="hs-identifier hs-var">Pl.txOutDatumHash</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; Maybe DatumHash
 forall a. a -&gt; Maybe a
@@ -558,7 +558,7 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">(DatumType a -&gt; Maybe DatumHash) -&gt; DatumType a -&gt; Maybe DatumHash
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679519607"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679519657"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-141"></span><span>    </span><span class="hs-special">}</span><span>
 </span><span id="line-142"></span><span>
 </span><span id="line-143"></span><span class="hs-comment">-- | Reorders the outputs of a transaction according to the ordered list of</span><span>
@@ -576,23 +576,23 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-155"></span><span class="hs-comment">--     Just txOut -&gt; (txOut :) &lt;$&gt; orderTxOutputs ocs (List.delete txOut txOuts)</span><span>
 </span><span id="line-156"></span><span class="annot"><a href="Cooked.Tx.Constraints.html#orderTxOutputs"><span class="hs-identifier hs-type">orderTxOutputs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span class="hs-special">]</span><span>
 </span><span id="line-157"></span><span id="orderTxOutputs"><span class="annot"><span class="annottext">orderTxOutputs :: [OutConstraint] -&gt; [TxOut] -&gt; [TxOut]
-</span><a href="Cooked.Tx.Constraints.html#orderTxOutputs"><span class="hs-identifier hs-var hs-var">orderTxOutputs</span></a></span></span><span> </span><span id="local-6989586621679519604"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519604"><span class="hs-identifier hs-var">expected</span></a></span></span><span> </span><span id="local-6989586621679519603"><span class="annot"><span class="annottext">[TxOut]
-</span><a href="#local-6989586621679519603"><span class="hs-identifier hs-var">given</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-158"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679519602"><span class="annot"><span class="annottext">res :: [TxOut]
-</span><a href="#local-6989586621679519602"><span class="hs-identifier hs-var hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; TxOut) -&gt; [OutConstraint] -&gt; [TxOut]
+</span><a href="Cooked.Tx.Constraints.html#orderTxOutputs"><span class="hs-identifier hs-var hs-var">orderTxOutputs</span></a></span></span><span> </span><span id="local-6989586621679519654"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679519654"><span class="hs-identifier hs-var">expected</span></a></span></span><span> </span><span id="local-6989586621679519653"><span class="annot"><span class="annottext">[TxOut]
+</span><a href="#local-6989586621679519653"><span class="hs-identifier hs-var">given</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-158"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679519652"><span class="annot"><span class="annottext">res :: [TxOut]
+</span><a href="#local-6989586621679519652"><span class="hs-identifier hs-var hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; TxOut) -&gt; [OutConstraint] -&gt; [TxOut]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">OutConstraint -&gt; TxOut
 </span><a href="Cooked.Tx.Constraints.html#outConstraintToTxOut"><span class="hs-identifier hs-var">outConstraintToTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679519604"><span class="hs-identifier hs-var">expected</span></a></span><span>
+</span><a href="#local-6989586621679519654"><span class="hs-identifier hs-var">expected</span></a></span><span>
 </span><span id="line-159"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">[TxOut]
-</span><a href="#local-6989586621679519602"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOut] -&gt; [TxOut] -&gt; [TxOut]
+</span><a href="#local-6989586621679519652"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOut] -&gt; [TxOut] -&gt; [TxOut]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOut]
-</span><a href="#local-6989586621679519603"><span class="hs-identifier hs-var">given</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOut] -&gt; [TxOut] -&gt; [TxOut]
+</span><a href="#local-6989586621679519653"><span class="hs-identifier hs-var">given</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOut] -&gt; [TxOut] -&gt; [TxOut]
 forall a. Eq a =&gt; [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">List.\\</span></span><span> </span><span class="annot"><span class="annottext">[TxOut]
-</span><a href="#local-6989586621679519602"><span class="hs-identifier hs-var">res</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679519652"><span class="hs-identifier hs-var">res</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-160"></span><span>
 </span><span id="line-161"></span><span class="hs-comment">-- | @signedByWallets ws == SignedBy $ map walletPKHash ws@</span><span>
 </span><span id="line-162"></span><span class="annot"><a href="Cooked.Tx.Constraints.html#signedByWallets"><span class="hs-identifier hs-type">signedByWallets</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span>
