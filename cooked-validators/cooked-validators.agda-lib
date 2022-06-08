@@ -1,0 +1,3 @@
+name: cooked-validators
+include: agda-src
+depend: standard-library
