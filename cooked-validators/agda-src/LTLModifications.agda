@@ -8,6 +8,8 @@ open import Data.Vec
 open import Data.Fin using (#_)
 open import Relation.Nullary.Decidable.Core
 open import Relation.Binary.PropositionalEquality
+open import Function
+open import Data.Product
 
 -- This builds an environment made of predicates stating if
 -- the state has been modified by the corresponding modification
@@ -15,8 +17,8 @@ open import Relation.Binary.PropositionalEquality
 -- elements and proof requirements, but basically if Γ is the resulting
 -- environment then Γ (i) checks if the state S has be marked as
 -- modified by i.
-ModEnv : ∀ {a} {A : Set a} → (n : ℕ) → Env (State A n) n
-ModEnv {A = A} n = aux {n} {0} {n} refl [] where
+ModEnv : ∀ {a} (A : Set a) → (n : ℕ) → Env (State A n) n
+ModEnv A n = aux {n} {0} {n} refl [] where
   -- This auxiliary function is required for two reasons:
   -- 1) we want the list to be reversed so we use a buffer
   -- 2) n is used twice, it is fixed once and it decreases once so it has to be split into two integers
@@ -26,7 +28,7 @@ ModEnv {A = A} n = aux {n} {0} {n} refl [] where
     -- this is the buffer
     → Env (State A fixed) done
     → Env (State A fixed) fixed
-  aux {done = done} {zero} p v rewrite (sym p) | +-identityʳ done =
+  aux {done = done} {zero} refl v rewrite +-identityʳ done =
     -- returning the buffer when todo is 0
     v
   aux {done = done} {suc n} refl v =
@@ -36,3 +38,12 @@ ModEnv {A = A} n = aux {n} {0} {n} refl [] where
       (sym (+-suc done n))
       -- appending the new predicate to the buffer
       ((λ x → applied x (#_ n {m<n = fromWitness (m≤n+m _ _)})) ∷ v)
+
+-- This is the version of the logics built from n possible modifications
+LTLMod : ∀ {a} (A : Set a) n → Set _
+LTLMod = LTL ∘₂ ModEnv
+
+-- A LTL context is composed of the logic built from n possible modifications
+-- as well as these n modifications
+LTLCtx : ∀ {a} (A : Set a) n → Set _
+LTLCtx = LTLMod -⟪ _×_ ⟫- Modifiers
