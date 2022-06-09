@@ -70,6 +70,21 @@ instance Eq Datum where
   Funding to from == Funding to' from' = to == to' && from == from'
   _ == _ = False
 
+{- INLINEABLE getOwner -}
+getOwner :: Datum -> L.PubKeyHash
+getOwner (Proposal pp) = fundingTarget pp
+getOwner (Funding _ to) = to
+
+{- INLINEABLE getFunder -}
+getFunder :: Datum -> Maybe L.PubKeyHash
+getFunder (Proposal _) = Nothing
+getFunder (Funding from _) = Just from
+
+{- INLINEABLE getFunder' -}
+getFunder' :: Datum -> L.PubKeyHash
+getFunder' (Proposal p) = fundingTarget p
+getFunder' (Funding from _) = from
+
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
   = -- | Launch project, pay funds to owner or (if after deadline) refund everyone
@@ -117,6 +132,7 @@ validIndividualRefund addr ctx =
      && traceIfFalse
         "List of input addresses is not only the person being refunded"
         (inputAddrs == [addr])
+        -- TODO: this is not needed since in/out values must be preserved in UTxO
         -- && traceIfFalse
         --    "Contributor is not refunded correct amount"
         --    (addr `receives` L.valueSpent txi)
@@ -124,15 +140,16 @@ validIndividualRefund addr ctx =
 -- | Check if total funds is greater than the threshold
 
 {- INLINEABLE getTotalContributions -}
-getTotalContributions :: L.ScriptContext -> L.Value
-getTotalContributions ctx = sum $ map L.txOutValue $ L.getContinuingOutputs ctx
+getTotalContributions :: L.TxInfo -> L.Value
+getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
+-- getTotalContributions ctx = sum $ map L.txOutValue $ L.getContinuingOutputs ctx
 
 -- | Launch after the deadline is valid if
 -- * everyone is refunded
 
 {- INLINEABLE validAllRefund -}
 validAllRefund :: PolicyParams -> L.ScriptContext -> Bool
-validAllRefund _ _ = traceIfFalse "" False
+validAllRefund _ _ = True
 
 -- | Launch before the deadline is valid if
 -- * it occurs before the deadline
@@ -144,16 +161,17 @@ validLaunch :: PolicyParams -> L.ScriptContext -> Bool
 validLaunch cf ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
-      total = getTotalContributions ctx
+      total = getTotalContributions txi
   in traceIfFalse
      "Contributions after the deadline are not permitted"
      (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
      && traceIfFalse
         "Total contributions do not exceed threshold"
         (total `Value.geq` threshold cf)
-        && traceIfFalse
-           "Funding target not paid"
-           (fundingTarget cf `receives` total)
+        -- TODO: this is not needed since in/out values must be preserved in UTxO
+        -- && traceIfFalse
+        --    "Funding target not paid"
+        --    (fundingTarget cf `receives` total)
 
 -- | An individual contributing is valid if the contributor signs the transaction
 
@@ -177,7 +195,7 @@ validate (Proposal cf) Launch ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
 validate (Funding from _) IndividualRefund ctx =
   validIndividualRefund from ctx
-validate (Proposal _) IndividualRefund ctx = False
+validate (Proposal _) IndividualRefund ctx = traceIfFalse "propir" False
 
 data CrowdfundingAlt
 
