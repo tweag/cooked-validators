@@ -14,8 +14,8 @@ library
       Auction.Offchain
       Crowdfunding
       Crowdfunding.Offchain
-      CrowdfundingAlt
-      CrowdfundingAlt.Offchain
+      CrowdfundingExt
+      CrowdfundingExt.Offchain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
