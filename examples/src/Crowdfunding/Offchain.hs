@@ -121,7 +121,6 @@ oneContribution = do
   txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
 
 -- | one contribution, refunded
--- TODO: why are there still funds in the script
 oneContributionRefund :: MonadMockChain m => m ()
 oneContributionRefund = do
   t0 <- currentTime
@@ -183,6 +182,7 @@ oneContributionFundErrorDeadline = do
   txProjectFund (bananaParams t0) `as` wallet 2
 
 -- | owner refunds all contributors
+-- TODO: need to consume project proposal utxo
 ownerRefunds :: MonadMockChain m => m ()
 ownerRefunds = do
   t0 <- currentTime
@@ -193,7 +193,19 @@ ownerRefunds = do
   awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   txRefundAll (bananaParams t0) `as` wallet 2
 
+-- | owner refunds all contributors
+ownerRefundsSameContributor :: MonadMockChain m => m ()
+ownerRefundsSameContributor = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txRefundAll (bananaParams t0) `as` wallet 2
+
 -- | wallet 1 attempts to refund all contributors with wallet 2 as owner
+-- funds are locked in the script
 ownerRefundsErrorOwner :: MonadMockChain m => m ()
 ownerRefundsErrorOwner = do
   t0 <- currentTime
@@ -204,7 +216,7 @@ ownerRefundsErrorOwner = do
   awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   txRefundAll (bananaParams t0) `as` wallet 1
 
--- | attemptint to refund all contributors before the deadline
+-- | attempting to refund all contributors before the deadline
 ownerRefundsErrorDeadline :: MonadMockChain m => m ()
 ownerRefundsErrorDeadline = do
   t0 <- currentTime

@@ -125,6 +125,7 @@ validIndividualRefund addr ctx =
   let txi = L.scriptContextTxInfo ctx
       inputs = map L.txInInfoResolved $ L.txInfoInputs txi
       inputAddrs = mapMaybe L.txOutPubKey inputs
+      outputAddrs = mapMaybe L.txOutPubKey $ L.txInfoOutputs txi
       receives = receivesFrom txi
   in traceIfFalse
      "Transaction not signed by contributor"
@@ -132,10 +133,12 @@ validIndividualRefund addr ctx =
      && traceIfFalse
         "List of input addresses is not only the person being refunded"
         (inputAddrs == [addr])
-        -- TODO: this is not needed since in/out values must be preserved in UTxO
-        -- && traceIfFalse
-        --    "Contributor is not refunded correct amount"
-        --    (addr `receives` L.valueSpent txi)
+     && traceIfFalse
+        "List of output addresses is not only the person being refunded"
+        (nub outputAddrs == [addr])
+     && traceIfFalse
+        "Contributor is not refunded correct amount"
+        (addr `receives` (L.valueSpent txi - L.txInfoFee txi))
 
 -- | Check if total funds is greater than the threshold
 
@@ -171,10 +174,9 @@ validLaunch cf ctx =
      && traceIfFalse
         "Total contributions do not exceed threshold"
         (total `Value.geq` threshold cf)
-        -- TODO: this is not needed since in/out values must be preserved in UTxO
-        -- && traceIfFalse
-        --    "Funding target not paid"
-        --    (fundingTarget cf `receives` total)
+     && traceIfFalse
+        "Funding target not paid"
+        (fundingTarget cf `receives` (total - L.txInfoFee txi))
 
 -- | An individual contributing is valid if the contributor signs the transaction
 
@@ -198,7 +200,9 @@ validate (Proposal cf) Launch ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
 validate (Funding from _) IndividualRefund ctx =
   validIndividualRefund from ctx
-validate (Proposal _) IndividualRefund ctx = traceIfFalse "propir" False
+validate (Proposal _) IndividualRefund ctx =
+  -- TODO: this should be when the owner tries to cancel project before deadline
+  traceIfFalse "proposal datum with individual refund action" False
 
 data Crowdfunding
 
