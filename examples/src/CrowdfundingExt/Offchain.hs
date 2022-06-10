@@ -6,6 +6,7 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
+import Data.Maybe
 import qualified Ledger as L
 import Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Scripts
@@ -14,97 +15,74 @@ import qualified Data.Map as M
 import Cooked.Currencies
 import Ledger.Value (toString)
 import qualified Cooked.MockChain as L
+import qualified Cooked as L
+import PlutusTx.Prelude (sum)
 
-txOpen ::
-  (MonadBlockChain m) =>
-  Cf.StaticValParams ->
-  m (Cf.ValParams, Cf.PolicyParams)
+-- | Open the crowdfund
+txOpen :: MonadBlockChain m => Cf.PolicyParams -> m ()
 txOpen p = do
-  utxo : _ <- pkUtxos (Cf.fundingTarget' p)
-  let threadTokenAC =
-        Value.assetClass
-          (L.scriptCurrencySymbol $ Cf.threadTokenPolicy $ Cf.PolicyParams Cf.threadTokenName)
-          Cf.threadTokenName
-      p' :: Cf.ValParams
-      p' =
-        Cf.ValParams
-          { Cf.staticValParams = p,
-            Cf.threadTokenAssetClass = threadTokenAC
-          }
-
-      q :: Cf.PolicyParams
-      q =
-        Cf.PolicyParams { Cf.pThreadTokenName = Cf.threadTokenName }
-
-      token :: L.Value
-      token = Value.assetClassValue (Cf.threadTokenAssetClass p') 1
-
-  _ <-
+  let datum = Cf.Proposal p
+  void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) $
-        [ Mints
-            (Just (Scripts.validatorAddress (Cf.crowdfundingValidator p')))
-            [Cf.threadTokenPolicy q]
-            token,
-          SpendsPK utxo
-        ]
-          :=>: [ PaysScript (Cf.crowdfundingValidator p') Cf.NoFunds token
-               ]
-  return (p', q)
+      txSkelOpts (def {adjustUnbalTx = True})
+      [ PaysScript Cf.crowdfundingValidator datum minAda ]
 
-txFund ::
-  (MonadBlockChain m) =>
-  Cf.ValParams ->
-  L.Value ->
-  m ()
-txFund p fund = do
+-- | Individual can contribute a fund
+txIndividualFund :: MonadBlockChain m => Cf.PolicyParams -> L.Value -> m ()
+txIndividualFund p fund = do
+  funder <- ownPaymentPubKeyHash 
+  let datum = Cf.Funding funder (Cf.fundingTarget p)
+  void $
+    validateTxSkel $
+      txSkelOpts (def {adjustUnbalTx = True})
+      [ PaysScript Cf.crowdfundingValidator datum fund ]
+
+-- | Individual can request a refund
+txRefund :: MonadBlockChain m => m ()
+txRefund = do
   funder <- ownPaymentPubKeyHash
-  [utxo] <- scriptUtxosSuchThat (Cf.crowdfundingValidator p) (\_ _ -> True)
+  utxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getFunder d == Just funder)
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
-        [ -- no need to ask for the bidder to sign the transaction, that's automatic
-          Before (Cf.projectDeadline p),
-          SpendsScript
-            (Cf.crowdfundingValidator p)
-            Cf.Burn
-            utxo
-        ]
-          :=>: [ PaysScript (Cf.crowdfundingValidator p) (Cf.Funding (Cf.FunderInfo fund funder)) $
-                     fund <> Value.assetClassValue (Cf.threadTokenAssetClass p) 1,
-                 paysPK (Cf.fundingTarget p) fund
-               ]
-
-toRefund :: Cf.CrowdfundingState -> Maybe (L.Value, L.PubKeyHash)
-toRefund (Cf.Funding (Cf.FunderInfo fund funder)) = Just (fund, funder)
-toRefund _ = Nothing
-
-txRefund ::
-  (MonadBlockChain m) =>
-  Cf.ValParams ->
-  Cf.PolicyParams ->
-  m ()
-txRefund p q = do
-  [utxo] <- scriptUtxosSuchThat (Cf.crowdfundingValidator p) (\_ _ -> True)
-  void $
-    validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) $
-        [ After (Cf.projectDeadline p),
-          SpendsScript
-            (Cf.crowdfundingValidator p)
-            Cf.IndividualRefund
-            utxo,
-          Mints
-            (Just (Scripts.validatorAddress (Cf.crowdfundingValidator p)))
-            [Cf.threadTokenPolicy q]
-            (Value.assetClassValue (Cf.threadTokenAssetClass p) (-1))
-        ]
+        map (SpendsScript Cf.crowdfundingValidator Cf.IndividualRefund) utxos
           :=>:
-        case toRefund (snd utxo) of
-          Nothing -> []
-          Just (fund, funder) -> [ paysPK funder fund ]
+        map (paysPK funder . sOutValue . fst) utxos
 
--- Just so we have something to sell in our auction that's not Ada:
+-- | Owner can fund the project before the deadline
+txProjectFund :: (MonadBlockChain m) => Cf.PolicyParams -> m ()
+txProjectFund p = do
+  fundingTarget <- ownPaymentPubKeyHash
+  utxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
+  let total = PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos
+  void $
+    validateTxSkel $
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        (Before (Cf.projectDeadline p) :
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+        )
+          :=>:
+        [ paysPK fundingTarget total ]
+
+-- | Owner can refund all contributors after the deadline
+txRefundAll :: (MonadBlockChain m) => Cf.PolicyParams -> m ()
+txRefundAll p = do
+  fundingTarget <- ownPaymentPubKeyHash
+  utxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
+  void $
+    mapM (\x -> validateTxSkel $
+           txSkelOpts (def {adjustUnbalTx = True}) $
+             [ After (Cf.projectDeadline p),
+               SpendsScript Cf.crowdfundingValidator Cf.Launch x ]
+             :=>:
+             -- TODO: what is owner being paid here?
+             [ paysPK (Cf.getFunderOwner $ snd x) (sOutValue $ fst x) ]
+         ) utxos
+
+-- Just so we have something to fund that's not Ada:
 -- Have a banana.
 
 bananaAssetClass :: Value.AssetClass
@@ -118,44 +96,150 @@ banana = Value.assetClassValue bananaAssetClass
 bananasIn :: Value.Value -> Integer
 bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
--- | initial distribution s.t. the first wallet owns five bananas
+-- | initial distribution s.t. all wallets own 5 bananas
 testInit :: InitialDistribution
-testInit =
-  InitialDistribution $
-    M.insert
-      (wallet 1)
-      (Ada.lovelaceValueOf 100_000_000 <> banana 5 : (standard M.! wallet 1))
-      standard
-  where
-    InitialDistribution standard = def
+testInit = initialDistribution' [(wallet i, [minAda <> banana 5]) | i <- [1..10]]
 
--- | Parameters of an auction that sells two bananas at a minimum bid
--- of 2 Lovelace and a bidding deadline in 60 seconds from the given
--- time.
-bananaParams :: L.POSIXTime -> Cf.StaticValParams
+-- | Parameters of a crowdfund that is attempting to fund 5 bananas to wallet 2,
+-- with a deadline in 60 seconds from the given time.
+bananaParams :: L.POSIXTime -> Cf.PolicyParams
 bananaParams t =
-  Cf.StaticValParams
-    { Cf.projectDeadline' = t + 60_000,
-      Cf.threshold' = banana 3,
-      Cf.fundingTarget' = walletPKHash (wallet 1)
+  Cf.PolicyParams
+    { Cf.projectDeadline = t + 60_000,
+      Cf.threshold = banana 5,
+      Cf.fundingTarget = walletPKHash (wallet 2)
     }
-
 
 nothing :: MonadMockChain m => m ()
 nothing = return ()
 
-noContributions :: MonadMockChain m => m ()
-noContributions = do
+-- | one contribution
+oneContribution :: MonadMockChain m => m ()
+oneContribution = do
   t0 <- currentTime
-  (p, q) <- txOpen (bananaParams t0) `as` wallet 1
-  awaitTime (Cf.projectDeadline p - 1_000 + 1)
-  txRefund p q
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
 
-oneContributionEnough :: MonadMockChain m => m ()
-oneContributionEnough = do
+-- | one contribution, refunded
+oneContributionRefund :: MonadMockChain m => m ()
+oneContributionRefund = do
   t0 <- currentTime
-  (p, q) <- txOpen (bananaParams t0) `as` wallet 1
-  txFund p (banana 2) `as` wallet 2
-  awaitTime (Cf.projectDeadline p - 1_000 + 1)
-  txRefund p q
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
+  txRefund `as` wallet 3
 
+-- | one contribution, refund error: wallet 1 attempts to refund without contributing
+oneContributionRefundError :: MonadMockChain m => m ()
+oneContributionRefundError = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
+  txRefund `as` wallet 1
+
+-- | one contributer, multiple contributions, refunded
+oneContributorRefund :: MonadMockChain m => m ()
+oneContributorRefund = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 3
+  txRefund `as` wallet 3
+
+-- | one contribution, project funded
+oneContributionFund :: MonadMockChain m => m ()
+oneContributionFund = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  txProjectFund (bananaParams t0) `as` wallet 2
+
+-- | one contribution, project funding error: attempting to fund the project
+-- when the threshold is not reached
+oneContributionFundErrorAmount :: MonadMockChain m => m ()
+oneContributionFundErrorAmount = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 1
+  txProjectFund (bananaParams t0) `as` wallet 2
+
+-- | one contribution, project funding error: wallet 1 attempts to fund project
+-- when wallet 2 is the funding target. Funds stay locked in the script
+oneContributionFundErrorOwner :: MonadMockChain m => m ()
+oneContributionFundErrorOwner = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  txProjectFund (bananaParams t0) `as` wallet 1
+
+-- | one contribution, project funding error: attempting to fund the project
+-- after the deadline
+oneContributionFundErrorDeadline :: MonadMockChain m => m ()
+oneContributionFundErrorDeadline = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txProjectFund (bananaParams t0) `as` wallet 2
+
+-- | owner refunds all contributors
+ownerRefunds :: MonadMockChain m => m ()
+ownerRefunds = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
+  awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txRefundAll (bananaParams t0) `as` wallet 2
+
+-- | owner refunds all contributors
+ownerRefundsSameContributor :: MonadMockChain m => m ()
+ownerRefundsSameContributor = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txRefundAll (bananaParams t0) `as` wallet 2
+
+-- | wallet 1 attempts to refund all contributors with wallet 2 as owner
+-- funds are locked in the script
+ownerRefundsErrorOwner :: MonadMockChain m => m ()
+ownerRefundsErrorOwner = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
+  awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txRefundAll (bananaParams t0) `as` wallet 1
+
+-- | attempting to refund all contributors before the deadline
+ownerRefundsErrorDeadline :: MonadMockChain m => m ()
+ownerRefundsErrorDeadline = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
+  txRefundAll (bananaParams t0) `as` wallet 2
+
+-- | two contributions, funded
+twoContributionsFund :: MonadMockChain m => m ()
+twoContributionsFund = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txProjectFund (bananaParams t0) `as` wallet 2
+
+-- | two contributions, funded
+twoContributionsRefund :: MonadMockChain m => m ()
+twoContributionsRefund = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txRefund `as` wallet 1
+  txRefund `as` wallet 3

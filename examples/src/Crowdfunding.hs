@@ -80,7 +80,6 @@ getFunder :: Datum -> Maybe L.PubKeyHash
 getFunder (Proposal _) = Nothing
 getFunder (Funding from _) = Just from
 
-
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
 
 {- INLINEABLE getFunder' -}
@@ -116,11 +115,17 @@ crowdfundTimeRange a = Interval.to (projectDeadline a)
 receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
+-- | Check if total funds is greater than the threshold
+
+{- INLINEABLE getTotalContributions -}
+getTotalContributions :: L.TxInfo -> L.Value
+getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
+
 -- | Check if the refunding of a particular address at least some amount is valid.
 -- It is valid if
 -- * the transaction is signed by the address being refunded
 -- * all inputs of the transaction point to the original funder
--- * contributor is refunded at least the amount contributed
+-- * contributor is refunded the amount contributed
 
 {- INLINEABLE validIndividualRefund -}
 validIndividualRefund :: L.PubKeyHash -> L.ScriptContext -> Bool
@@ -143,14 +148,8 @@ validIndividualRefund addr ctx =
         "Contributor is not refunded correct amount"
         (addr `receives` (L.valueSpent txi - L.txInfoFee txi))
 
--- | Check if total funds is greater than the threshold
-
-{- INLINEABLE getTotalContributions -}
-getTotalContributions :: L.TxInfo -> L.Value
-getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
-
 -- | Launch after the deadline is valid if
--- * everyone is refunded
+-- * the owner signs the transaction
 
 {- INLINEABLE validAllRefund -}
 validAllRefund :: PolicyParams -> L.ScriptContext -> Bool
