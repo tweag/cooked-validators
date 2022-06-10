@@ -1,5 +1,5 @@
 {-# Language NumericUnderscores #-}
-module Crowdfunding.Offchain where
+module CrowdfundingExt.Offchain where
 
 import qualified CrowdfundingExt as Cf
 import Control.Monad

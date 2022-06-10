@@ -35,86 +35,60 @@ import qualified PlutusTx.Numeric as L
 -- * Data types
 
 -- | All the data associated with crowdfunding that the validator needs to know
-data StaticValParams = StaticValParams
-  { -- | project must be funded by this time
-    projectDeadline' :: L.POSIXTime,
-    -- | amount that must be reached for project to be funded
-    threshold' :: L.Value,
-    -- | address to be paid to if threshold is reached by deadline
-    fundingTarget' :: L.PubKeyHash
-  }
-  deriving (Haskell.Show)
-
--- some Plutus magic to compile the data type
-PlutusTx.makeLift ''StaticValParams
-PlutusTx.unstableMakeIsData ''StaticValParams
-
-data ValParams = ValParams
-  { staticValParams :: StaticValParams,
-    -- | Asset class
-    threadTokenAssetClass :: Value.AssetClass
-  }
-  deriving (Haskell.Show)
-
-
-PlutusTx.makeLift ''ValParams
-PlutusTx.unstableMakeIsData ''ValParams
-
-projectDeadline :: ValParams -> L.POSIXTime
-projectDeadline = projectDeadline' . staticValParams
-
-threshold :: ValParams -> L.Value
-threshold = threshold' . staticValParams
-
-fundingTarget :: ValParams -> L.PubKeyHash
-fundingTarget = fundingTarget' . staticValParams
-
 data PolicyParams = PolicyParams
-  { -- | TokenName of the thread token
-    pThreadTokenName :: Value.TokenName
+  { -- | project must be funded by this time
+    projectDeadline :: L.POSIXTime,
+    -- | amount that must be reached for project to be funded
+    threshold :: L.Value,
+    -- | address to be paid to if threshold is reached by deadline
+    fundingTarget :: L.PubKeyHash,
+    -- | reward for contributors
+    reward :: L.Value,
+    -- | TokenName of the reward tokens
+    rewardTokenName :: Value.TokenName
   }
+  deriving (Haskell.Show)
 
 PlutusTx.makeLift ''PolicyParams
 PlutusTx.unstableMakeIsData ''PolicyParams
 
--- | Information about funder.
-data FunderInfo = FunderInfo
-  { -- | the last funder's contribution
-    fund :: L.Value,
-    -- | the last funder's address
-    funder :: L.PubKeyHash
-  }
+-- | Datum type. Either project proposal with policy params
+-- or funding from address to address
+data Datum =
+    Proposal ValParams
+  | Funding L.PubKeyHash L.PubKeyHash
   deriving (Haskell.Show)
 
-PlutusTx.makeLift ''FunderInfo
-PlutusTx.unstableMakeIsData ''FunderInfo
+PlutusTx.makeLift ''Datum
+PlutusTx.unstableMakeIsData ''Datum
 
-instance Eq FunderInfo where
-  {-# INLINEABLE (==) #-}
-  FunderInfo a b == FunderInfo x y = a == x && b == y
-
--- | The state of the crowdfund. This will be the 'DatumType'.
-data CrowdfundingState
-  = -- | state of a crowdfund that has not yet had any contributions
-    NoFunds
-  | -- | state of a crowdfund that has had at least one contribution
-    Funding FunderInfo
-  deriving (Haskell.Show)
-
-PlutusTx.makeLift ''CrowdfundingState
-PlutusTx.unstableMakeIsData ''CrowdfundingState
-
-instance Eq CrowdfundingState where
-  {-# INLINEABLE (==) #-}
-  NoFunds == NoFunds = True
-  Funding a == Funding x = a == x
+instance Eq Datum where
+  {-# INLINABLE (==) #-}
+  Proposal vp == Proposal vp' = vp == vp'
+  Funding to from == Funding to' from' = to == to' && from == from'
   _ == _ = False
+
+{- INLINEABLE getOwner -}
+getOwner :: Datum -> L.PubKeyHash
+getOwner (Proposal pp) = fundingTarget pp
+getOwner (Funding _ to) = to
+
+{- INLINEABLE getFunder -}
+getFunder :: Datum -> Maybe L.PubKeyHash
+getFunder (Proposal _) = Nothing
+getFunder (Funding from _) = Just from
+
+{- INLINEABLE getFunder' -}
+getFunder' :: Datum -> L.PubKeyHash
+getFunder' (Proposal p) = fundingTarget p
+getFunder' (Funding from _) = from
 
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
-  = -- | Burn master token, pay funds to owner
+  = -- | Burn master token, pay funds to owner and reward contributors,
+    -- or (if after deadline) refund everyone
     Burn
-  | -- | Refund all contributors
+  | -- | Refund contributors
     IndividualRefund
   deriving (Haskell.Show)
 
@@ -129,50 +103,38 @@ instance Eq Action where
 
 -- * The minting policy of the thread token
 
--- | This minting policy controls the thread token of a crowdfund. This
--- token belongs to the validator of the crowdfund, and must be minted (exactly once)
--- in the first transaction, for which this policy ensures that
--- * exactly one thread token is minted, by forcing an UTxO to be consumed
--- * after the transaction:
---     * the validator locks the thread token and the lot of the crowdfund
--- The final "fund" transaction of the crowdfund is the one that burns
--- the thread token. This transaction has its own validator
--- 'validFund', so that this minting policy only checks that at
--- exactly one token is burned.
+-- | This minting policy controls the reward tokens of a crowdfund. These
+-- tokens are minted n times during the project's launch, where n is the number
+-- of contributors. It's valid if
+-- * exactly n tokens are minted
 
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> L.Address -> L.ScriptContext -> Bool
-mkPolicy (PolicyParams tName) validator ctx
-  | amnt == Just 1 =
-    case filter
-    (\o -> L.txOutAddress o == validator)
-    (L.txInfoOutputs txi) of
-      [o] ->
-        traceIfFalse
-          "Validator does not recieve the thread token of freshly opened crowdfund"
-          (L.txOutValue o `Value.geq` token)
-          && traceIfFalse
-            "Validator not in 'NoFunds'-state on freshly opened crowdfund"
-            (outputCrowdfundingState txi o == Just NoFunds)
-      _ -> trace "There must be exactly one output to the validator on a fresh crowdfund" False
-  | amnt == Just (-1) =
-    True -- no further checks here; 'validFund' checks everything
-  | otherwise = trace "not minting or burning the right amount" False
+mkPolicy :: PolicyParams -> L.ScriptContext -> Bool
+mkPolicy (PolicyParams _ _ _ _ tName) ctx
+  | amnt == Just numContributors = True
+  | otherwise = trace "not minting the right amount" False 
+  masterPolicy mAmnt mToken txi && fundPolicy fAmnt fToken mc txi
   where
     txi = L.scriptContextTxInfo ctx
     L.Minting me = L.scriptContextPurpose ctx
+    numContributors = getTotalContributors txi
 
     token :: L.Value
-    token = Value.singleton me tName 1
+    token = Value.singleton me tName numContributors
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
+      [(cs, otn, a)] | cs == L.ownCurrencySymbol ctx && tn == mtName -> Just a
+      _ -> Nothing
+
+    fAmnt :: Maybe Integer
+    fAmnt = case Value.flattenValue (L.txInfoMint txi) of
+      [(cs, otn, )] | cs == L.ownCurrencySymbol ctx && tn == ftName -> Just a
       _ -> Nothing
 
 {-# INLINEABLE threadTokenName #-}
-threadTokenName :: Value.TokenName
-threadTokenName = Value.tokenName "CrowdfundingToken"
+rewardTokenName :: Value.TokenName
+rewardTokenName = Value.tokenName "RewardToken"
 
 threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 threadTokenPolicy pars =
@@ -183,7 +145,7 @@ threadTokenPolicy pars =
 getThreadTokenAssetClass :: Value.AssetClass 
 getThreadTokenAssetClass =
   Value.assetClass
-    (L.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName)
+    (L.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams rewardTokenName)
     threadTokenName
 
 
@@ -191,15 +153,11 @@ getThreadTokenAssetClass =
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
 crowdfundTimeRange a = Interval.to (projectDeadline a)
 
-{- INLINEABLE refundTimeRange -}
-refundTimeRange :: ValParams -> L.POSIXTimeRange
-refundTimeRange a = Interval.from (projectDeadline a)
-
--- | Extract a crowdfunding state from an output (if it has one)
+-- | Extract a datum state from an output (if it has one)
 
 {- INLINEABLE outputCrowdfundingState -}
-outputCrowdfundingState :: L.TxInfo -> L.TxOut -> Maybe CrowdfundingState
-outputCrowdfundingState txi o = do
+outputDatumState :: L.TxInfo -> L.TxOut -> Maybe Datum
+outputDatumState txi o = do
   h <- L.txOutDatum o
   L.Datum d <- L.findDatum h txi
   PlutusTx.fromBuiltinData d
@@ -216,31 +174,37 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 -- * the refunding occurs after the deadline
 -- * the address is refunded at least the amount ehy contributed
 
-{- INLINEABLE validRefund -}
-validRefund :: ValParams -> CrowdfundingState -> L.ScriptContext -> Bool
-validRefund cf (Funding (FunderInfo amt addr)) ctx =
+{- INLINEABLE validIndividualRefund -}
+validIndividualRefund :: L.PubKeyHash -> L.ScriptContext -> Bool
+validIndividualRefund addr ctx =
   let txi = L.scriptContextTxInfo ctx
+      inputs = map L.txInInfoResolved $ L.txInfoInputs txi
+      inputAddrs = mapMaybe L.txOutPubKey inputs
       receives = receivesFrom txi
   in traceIfFalse
-     "Contributor does not receive refund"
-     (addr `receives` amt)
+     "Transaction not signed by contributor"
+     (txi `L.txSignedBy` addr)
      && traceIfFalse
-        "Refund before the deadline is not permitted"
-        (refundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
-validRefund _ NoFunds _ =
-  -- no refunds need to be validated with zero contributions
-  True
+        "List of input addresses is not only the person being refunded"
+        (inputAddrs == [addr])
+        -- TODO: this is not needed since in/out values must be preserved in UTxO
+        -- && traceIfFalse
+        --    "Contributor is not refunded correct amount"
+        --    (addr `receives` L.valueSpent txi)
 
--- | Check if total funds is greater than the threshold
+{- INLINEABLE getTotalContributors -}
+getTotalContributors :: L.TxInfo -> Integer
+getTotalContributors txi = length $ L.txInfoInputs txi
 
 {- INLINEABLE getTotalContributions -}
-getTotalContributions :: L.ScriptContext -> L.Value
-getTotalContributions ctx = sum $ map L.txOutValue $ L.getContinuingOutputs ctx
+getTotalContributions :: L.TxInfo -> L.Value
+getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
 
 -- | An individual contributing is valid if
 -- * the contribution came before the deadline
 -- * the total sum of all contributions is greater than the threshold
 -- * the contributor signs the transaction
+-- * the contributor receives a fund token
 
 {- INLINEABLE validFund -}
 validFund :: ValParams -> CrowdfundingState -> L.ScriptContext -> Bool
