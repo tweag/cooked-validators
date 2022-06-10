@@ -80,10 +80,13 @@ getFunder :: Datum -> Maybe L.PubKeyHash
 getFunder (Proposal _) = Nothing
 getFunder (Funding from _) = Just from
 
+
+-- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
+
 {- INLINEABLE getFunder' -}
-getFunder' :: Datum -> L.PubKeyHash
-getFunder' (Proposal pp) = fundingTarget pp
-getFunder' (Funding from _) = from
+getFunderOwner :: Datum -> L.PubKeyHash
+getFunderOwner (Proposal pp) = fundingTarget pp
+getFunderOwner (Funding from _) = from
 
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action

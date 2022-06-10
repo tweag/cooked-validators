@@ -90,6 +90,7 @@ data Action
     Burn
   | -- | Refund contributors
     IndividualRefund
+    -- TODO: probably add another action for get reward
   deriving (Haskell.Show)
 
 PlutusTx.makeLift ''Action
@@ -108,12 +109,13 @@ instance Eq Action where
 -- of contributors. It's valid if
 -- * exactly n tokens are minted
 
+-- TODO: also need to make sure one contributor doesn't get multiple reward tokens
+
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: PolicyParams -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams _ _ _ _ tName) ctx
   | amnt == Just numContributors = True
   | otherwise = trace "not minting the right amount" False 
-  masterPolicy mAmnt mToken txi && fundPolicy fAmnt fToken mc txi
   where
     txi = L.scriptContextTxInfo ctx
     L.Minting me = L.scriptContextPurpose ctx
@@ -124,12 +126,7 @@ mkPolicy (PolicyParams _ _ _ _ tName) ctx
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, otn, a)] | cs == L.ownCurrencySymbol ctx && tn == mtName -> Just a
-      _ -> Nothing
-
-    fAmnt :: Maybe Integer
-    fAmnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, otn, )] | cs == L.ownCurrencySymbol ctx && tn == ftName -> Just a
+      [(cs, otn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
       _ -> Nothing
 
 {-# INLINEABLE threadTokenName #-}
@@ -193,6 +190,7 @@ validIndividualRefund addr ctx =
         --    (addr `receives` L.valueSpent txi)
 
 {- INLINEABLE getTotalContributors -}
+-- TODO: make sure to remove duplicates
 getTotalContributors :: L.TxInfo -> Integer
 getTotalContributors txi = length $ L.txInfoInputs txi
 

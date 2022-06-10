@@ -25,7 +25,7 @@ txOpen p = do
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True})
-      [ PaysScript Cf.crowdfundingValidator datum minAda ] 
+      [ PaysScript Cf.crowdfundingValidator datum minAda ]
 
 -- | Individual can contribute a fund
 txIndividualFund :: MonadBlockChain m => Cf.PolicyParams -> L.Value -> m ()
@@ -71,15 +71,15 @@ txRefundAll :: (MonadBlockChain m) => Cf.PolicyParams -> m ()
 txRefundAll p = do
   fundingTarget <- ownPaymentPubKeyHash
   utxos <-
-    scriptUtxosSuchThat Cf.crowdfundingValidator
-    (\d _ -> isJust (Cf.getFunder d) && Cf.getOwner d == fundingTarget)
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
   void $
     mapM (\x -> validateTxSkel $
            txSkelOpts (def {adjustUnbalTx = True}) $
              [ After (Cf.projectDeadline p),
                SpendsScript Cf.crowdfundingValidator Cf.Launch x ]
              :=>:
-             [ paysPK (fromJust $ Cf.getFunder $ snd x) (sOutValue $ fst x) ]
+             -- TODO: what is owner being paid here?
+             [ paysPK (Cf.getFunderOwner $ snd x) (sOutValue $ fst x) ]
          ) utxos
 
 -- Just so we have something to fund that's not Ada:
@@ -96,7 +96,7 @@ banana = Value.assetClassValue bananaAssetClass
 bananasIn :: Value.Value -> Integer
 bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
--- -- | initial distribution s.t. all wallets own 5 bananas
+-- | initial distribution s.t. all wallets own 5 bananas
 testInit :: InitialDistribution
 testInit = initialDistribution' [(wallet i, [minAda <> banana 5]) | i <- [1..10]]
 
@@ -182,7 +182,6 @@ oneContributionFundErrorDeadline = do
   txProjectFund (bananaParams t0) `as` wallet 2
 
 -- | owner refunds all contributors
--- TODO: need to consume project proposal utxo
 ownerRefunds :: MonadMockChain m => m ()
 ownerRefunds = do
   t0 <- currentTime
