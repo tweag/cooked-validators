@@ -82,14 +82,14 @@ getFunder (Funding from _) = Just from
 
 {- INLINEABLE getFunder' -}
 getFunder' :: Datum -> L.PubKeyHash
-getFunder' (Proposal p) = fundingTarget p
+getFunder' (Proposal pp) = fundingTarget pp
 getFunder' (Funding from _) = from
 
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
   = -- | Launch project, pay funds to owner or (if after deadline) refund everyone
     Launch
-  | -- | Refund all contributors
+  | -- | Refund contributors
     IndividualRefund
   deriving (Haskell.Show)
 
@@ -142,7 +142,6 @@ validIndividualRefund addr ctx =
 {- INLINEABLE getTotalContributions -}
 getTotalContributions :: L.TxInfo -> L.Value
 getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
--- getTotalContributions ctx = sum $ map L.txOutValue $ L.getContinuingOutputs ctx
 
 -- | Launch after the deadline is valid if
 -- * everyone is refunded
