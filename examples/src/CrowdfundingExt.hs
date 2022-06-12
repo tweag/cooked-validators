@@ -133,8 +133,8 @@ mkPolicy (PolicyParams _ _ _ _ tName) _ ctx
       [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
       _ -> Nothing
 
-threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
-threadTokenPolicy pars =
+rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
+rewardTokenPolicy pars =
   L.mkMintingPolicyScript $
     $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars

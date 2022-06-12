@@ -17,6 +17,7 @@ import Ledger.Value (toString)
 import qualified Cooked.MockChain as L
 import qualified Cooked as L
 import PlutusTx.Prelude (sum)
+import PlutusTx.Builtins.Class (stringToBuiltinByteString)
 
 -- | Open the crowdfund
 txOpen :: MonadBlockChain m => Cf.PolicyParams -> m ()
@@ -51,17 +52,25 @@ txRefund = do
         map (paysPK funder . sOutValue . fst) utxos
 
 -- | Owner can fund the project before the deadline
+-- Mint n tokens, one for each funder. Each token should go to the address
+-- of the utxo of the funders
 txProjectFund :: (MonadBlockChain m) => Cf.PolicyParams -> m ()
 txProjectFund p = do
   fundingTarget <- ownPaymentPubKeyHash
   utxos <-
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
   let total = PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos
+      token = Cf.reward p
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
-        (Before (Cf.projectDeadline p) :
-          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+        ( Before (Cf.projectDeadline p) :
+          (map (\x -> Mints
+                         (Cf.getFunder (snd x))
+                         [Cf.rewardTokenPolicy p]
+                         token
+               ) utxos ++
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos)
         )
           :=>:
         [ paysPK fundingTarget total ]
@@ -83,14 +92,21 @@ txRefundAll p = do
          ) utxos
 
 -- Just so we have something to fund that's not Ada:
--- Have a banana.
+-- Apples and bananas
 
 bananaAssetClass :: Value.AssetClass
 bananaAssetClass = permanentAssetClass "Banana"
 
+appleAssetClass :: Value.AssetClass
+appleAssetClass = permanentAssetClass "Apple"
+
 -- | Value representing a number of bananas
 banana :: Integer -> Value.Value
 banana = Value.assetClassValue bananaAssetClass
+
+-- | Value representing a number of apples. This will be the reward
+apple :: Integer -> Value.Value
+apple = Value.assetClassValue appleAssetClass
 
 -- | How many bananas are in the given value? This is a left inverse of 'banana'.
 bananasIn :: Value.Value -> Integer
@@ -107,7 +123,9 @@ bananaParams t =
   Cf.PolicyParams
     { Cf.projectDeadline = t + 60_000,
       Cf.threshold = banana 5,
-      Cf.fundingTarget = walletPKHash (wallet 2)
+      Cf.fundingTarget = walletPKHash (wallet 2),
+      Cf.reward = apple 1,
+      Cf.rewardTokenName = Value.TokenName $ stringToBuiltinByteString "RewardToken"
     }
 
 nothing :: MonadMockChain m => m ()
