@@ -40,6 +40,8 @@ data ValParams = ValParams
     projectDeadline :: L.POSIXTime,
     -- | amount that must be reached for project to be funded
     threshold :: L.Value,
+    -- | minimum contribution that can be made
+    minContribution :: L.Value,
     -- | address to be paid to if threshold is reached by deadline
     fundingTarget :: L.PubKeyHash,
     -- | TokenName of the reward tokens
@@ -52,8 +54,10 @@ PlutusTx.unstableMakeIsData ''ValParams
 
 instance Eq ValParams where
   {-# INLINEABLE (==) #-}
-  ValParams pd t ft ac == ValParams pd' t' ft' ac' =
-    pd == pd' && t == t' && ft == ft' && ac == ac'
+  ValParams pd t mc ft ac == ValParams pd' t' mc' ft' ac' =
+    pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
+
+-- TODO: no master token, only reward tokens
 
 -- | All data the minting policy of the thread token needs to
 -- know. These are known after the opening transaction
@@ -66,10 +70,11 @@ PlutusTx.makeLift ''PolicyParams
 PlutusTx.unstableMakeIsData ''PolicyParams
 
 -- | Datum type. Either project proposal with policy params
--- or funding from address to address
+-- or funding from address to address with value contributed
+-- TODO: is value needed here? Only used to check min contribution
 data Datum =
     Proposal ValParams
-  | Funding L.PubKeyHash L.PubKeyHash
+  | Funding L.PubKeyHash L.PubKeyHash L.Value
   deriving (Haskell.Show)
 
 PlutusTx.makeLift ''Datum
@@ -78,25 +83,30 @@ PlutusTx.unstableMakeIsData ''Datum
 instance Eq Datum where
   {-# INLINABLE (==) #-}
   Proposal vp == Proposal vp' = vp == vp'
-  Funding to from == Funding to' from' = to == to' && from == from'
+  Funding to from val == Funding to' from' val' = to == to' && from == from' && val == val'
   _ == _ = False
 
 {- INLINEABLE getOwner -}
 getOwner :: Datum -> L.PubKeyHash
 getOwner (Proposal vp) = fundingTarget vp
-getOwner (Funding _ to) = to
+getOwner (Funding _ to _) = to
 
 {- INLINEABLE getFunder -}
 getFunder :: Datum -> Maybe L.PubKeyHash
-getFunder (Proposal _) = Nothing
-getFunder (Funding from _) = Just from
+getFunder (Funding from _ _) = Just from
+getFunder _ = Nothing
+
+{- INLINEABLE getValParams -}
+getValParams :: Datum -> Maybe ValParams
+getValParams (Proposal vp) = Just vp
+getValParams _ = Nothing
 
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
 
 {- INLINEABLE getFunder' -}
 getFunderOwner :: Datum -> L.PubKeyHash
 getFunderOwner (Proposal vp) = fundingTarget vp
-getFunderOwner (Funding from _) = from
+getFunderOwner (Funding from _ _) = from
 
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
@@ -179,8 +189,8 @@ getTotalContributors :: L.TxInfo -> Integer
 getTotalContributors txi =
   let outputs = map L.txInInfoResolved $ L.txInfoInputs txi
       datums = mapMaybe (outputDatumState txi) outputs
-      addrs = mapMaybe getFunder datums in
-    length $ nub addrs
+      addrs = mapMaybe getFunder datums
+  in length $ nub addrs
 
 {- INLINEABLE getTotalContributions -}
 getTotalContributions :: L.TxInfo -> L.Value
@@ -249,24 +259,31 @@ validLaunch cf ctx =
 -- | An individual contributing is valid if the contributor signs the transaction
 
 {- INLINEABLE validFund -}
-validFund :: L.PubKeyHash -> L.PubKeyHash -> L.ScriptContext -> Bool
-validFund from to ctx =
+validFund :: L.PubKeyHash -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
+validFund from to val ctx =
   let txi = L.scriptContextTxInfo ctx
+      outputs = map L.txInInfoResolved $ L.txInfoInputs txi
+      datums = mapMaybe (outputDatumState txi) outputs
+      allParams = mapMaybe getValParams datums
+      [currParams] = filter (\vp -> fundingTarget vp == to) allParams
   in traceIfFalse
      "Funding transaction not signed by contributor"
      (txi `L.txSignedBy` to)
+     && traceIfFalse
+        "Contribution is not at least the minimum value"
+        (val `Value.geq` minContribution currParams)
 
 {- INLINEABLE validate -}
 validate :: Datum -> Action -> L.ScriptContext -> Bool
-validate (Funding from to) Launch ctx =
-  validFund from to ctx
+validate (Funding from to val) Launch ctx =
+  validFund from to val ctx
 validate (Proposal cf) Launch ctx
   | validRange = validLaunch cf ctx
   | otherwise  = validAllRefund cf ctx
   where
     txi = L.scriptContextTxInfo ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
-validate (Funding from _) IndividualRefund ctx =
+validate (Funding from _ _) IndividualRefund ctx =
   validIndividualRefund from ctx
 validate (Proposal _) IndividualRefund ctx =
   -- TODO: this should be when the owner tries to cancel project before deadline

@@ -34,7 +34,7 @@ txOpen p = do
 txIndividualFund :: MonadBlockChain m => Cf.ValParams -> L.Value -> m ()
 txIndividualFund p fund = do
   funder <- ownPaymentPubKeyHash 
-  let datum = Cf.Funding funder (Cf.fundingTarget p)
+  let datum = Cf.Funding funder (Cf.fundingTarget p) fund
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True})
@@ -125,6 +125,7 @@ bananaParams t =
   Cf.ValParams
     { Cf.projectDeadline = t + 60_000,
       Cf.threshold = banana 5,
+      Cf.minContribution = banana 2,
       Cf.fundingTarget = walletPKHash (wallet 2),
       Cf.rewardTokenAssetClass = Cf.getRewardTokenAssetClass 
     }
@@ -261,6 +262,15 @@ twoContributionsFund = do
   txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   txProjectFund (bananaParams t0) `as` wallet 2
 
+-- | two contributions, error: one contribution does not exceed minimum
+twoContributionsFundErrorMinimum :: MonadMockChain m => m ()
+twoContributionsFundErrorMinimum = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  txProjectFund (bananaParams t0) `as` wallet 2
+
 -- | two contributions, refunded
 twoContributionsRefund :: MonadMockChain m => m ()
 twoContributionsRefund = do
@@ -283,7 +293,6 @@ multipleContributionsOneRefunded = do
   txProjectFund (bananaParams t0) `as` wallet 2
 
 -- | one contributor, multiple contributions, project is funded but contributor
--- TODO: should only receive one reward token, currently receives 3
 oneContributorFund :: MonadMockChain m => m ()
 oneContributorFund = do
   t0 <- currentTime
@@ -309,4 +318,45 @@ manyContributorsFund = do
   txIndividualFund (bananaParams t0) (banana 2) `as` wallet 7
   txIndividualFund (bananaParams t0) (banana 2) `as` wallet 8
   txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txProjectFund (bananaParams t0) `as` wallet 2
+
+-- | many contributors, including some with multiple contributions. owner refunds all
+manyContributorsOwnerRefunds :: MonadMockChain m => m ()
+manyContributorsOwnerRefunds = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 5
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 5
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 6
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 7
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 8
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  txRefundAll (bananaParams t0) `as` wallet 2
+
+-- | many contributors, including some with multiple contributions. some individual
+-- refunds. project is ultimately funded
+manyContributorsSomeRefundsFund :: MonadMockChain m => m ()
+manyContributorsSomeRefundsFund = do
+  t0 <- currentTime
+  txOpen (bananaParams t0)
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 5
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 5
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 6
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 7
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 8
+  txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
+  txRefund `as` wallet 3
+  txRefund `as` wallet 4
+  txRefund `as` wallet 8
   txProjectFund (bananaParams t0) `as` wallet 2
