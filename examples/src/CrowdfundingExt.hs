@@ -131,15 +131,25 @@ instance Eq Action where
 -- tokens are minted n times during the project's launch, where n is the number
 -- of contributors. It's valid if
 -- * exactly n tokens are minted
+-- * all contributors receive a token
+
+-- TODO: is Address a necessary parameter?
 
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: PolicyParams -> L.Address -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams tName) _ ctx
-  | amnt == Just numContributors = True
+  | amnt == Just (length contributors) =
+      let outs = L.txInfoOutputs txi
+          outKeys = nub $ mapMaybe L.txOutPubKey outs
+      in traceIfFalse
+         "Not all contributors receive token"
+         -- TODO: is this a sufficient check?
+         -- Why is outKeys a (strict) superset of contributors?
+         (all (`elem` outKeys) contributors)
   | otherwise = trace "not minting the right amount" False 
   where
     txi = L.scriptContextTxInfo ctx
-    numContributors = getTotalContributors txi
+    contributors = getUniqueContributors txi
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (L.txInfoMint txi) of
@@ -182,15 +192,15 @@ outputDatumState txi o = do
 receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
--- | Get total number of *unique* contributors
+-- | Get *unique* contributors from a transaction
 
-{- INLINEABLE getTotalContributors -}
-getTotalContributors :: L.TxInfo -> Integer
-getTotalContributors txi =
+{- INLINEABLE getUniqueContributors -}
+getUniqueContributors :: L.TxInfo -> [L.PubKeyHash]
+getUniqueContributors txi =
   let outputs = map L.txInInfoResolved $ L.txInfoInputs txi
       datums = mapMaybe (outputDatumState txi) outputs
       addrs = mapMaybe getFunder datums
-  in length $ nub addrs
+  in nub addrs
 
 {- INLINEABLE getTotalContributions -}
 getTotalContributions :: L.TxInfo -> L.Value

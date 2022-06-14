@@ -55,7 +55,6 @@ txRefund = do
 
 -- | Owner can fund the project before the deadline. When funding, mint n reward tokens,
 -- one for each funder. Each token should go to the address of the utxo of the funders.
--- TODO - vulnerability: can pay funding target all tokens
 txProjectFund :: (MonadBlockChain m) => Cf.ValParams -> m ()
 txProjectFund p = do
   fundingTarget <- ownPaymentPubKeyHash
@@ -80,7 +79,7 @@ txProjectFund p = do
           :=>:
         ( paysPK fundingTarget total :
           map (`paysPK` token) uniqueAddrs
-          -- uncomment below to pay owner all tokens
+          -- uncomment below to attempt to pay owner all tokens
           -- map (\_ -> paysPK fundingTarget token) uniqueAddrs
         )
 
