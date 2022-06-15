@@ -32,6 +32,8 @@ import Test.QuickCheck (functionBoundedEnum)
 import Plutus.Contracts.SimpleEscrow (EscrowParams(deadline))
 import qualified PlutusTx.Numeric as L
 
+import Data.Maybe (fromJust)
+
 -- * Data types
 
 -- | All the data associated with crowdfunding that the validator needs to know
@@ -44,7 +46,7 @@ data ValParams = ValParams
     minContribution :: L.Value,
     -- | address to be paid to if threshold is reached by deadline
     fundingTarget :: L.PubKeyHash,
-    -- | TokenName of the reward tokens
+    -- | asset class of the reward tokens
     rewardTokenAssetClass :: Value.AssetClass
   }
   deriving (Haskell.Show)
@@ -56,8 +58,6 @@ instance Eq ValParams where
   {-# INLINEABLE (==) #-}
   ValParams pd t mc ft ac == ValParams pd' t' mc' ft' ac' =
     pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
-
--- TODO: no master token, only reward tokens
 
 -- | All data the minting policy of the thread token needs to
 -- know. These are known after the opening transaction
@@ -108,6 +108,11 @@ getFunderOwner :: Datum -> L.PubKeyHash
 getFunderOwner (Proposal vp) = fundingTarget vp
 getFunderOwner (Funding from _ _) = from
 
+{- INLINEABLE getValue -}
+getValue :: Datum -> Maybe L.Value
+getValue (Funding _ _ val) = Just val
+getValue _ = Nothing
+
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
 data Action
   = -- | Pay funds to owner and reward contributors or (if after deadline) refund everyone
@@ -127,29 +132,32 @@ instance Eq Action where
 
 -- * The minting policy of the thread token
 
--- | This minting policy controls the reward tokens of a crowdfund. These
--- tokens are minted n times during the project's launch, where n is the number
--- of contributors. It's valid if
+-- | This minting policy controls the reward tokens of a crowdfund. There are n tokens
+-- minted during the project's launch, where n is the number of contributors. It's valid if
 -- * exactly n tokens are minted
 -- * all contributors receive a token
 
--- TODO: is Address a necessary parameter?
-
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> L.Address -> L.ScriptContext -> Bool
+mkPolicy :: PolicyParams -> () -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams tName) _ ctx
   | amnt == Just (length contributors) =
       let outs = L.txInfoOutputs txi
-          outKeys = nub $ mapMaybe L.txOutPubKey outs
+          outKeys = mapMaybe L.txOutPubKey outs
       in traceIfFalse
          "Not all contributors receive token"
          -- TODO: is this a sufficient check?
-         -- Why is outKeys a (strict) superset of contributors?
-         (all (`elem` outKeys) contributors)
+         -- Each contributor should receive one token + 2 ada
+         (all (validContribution outs) contributors)
+         -- (all (`elem` outKeys) contributors)
   | otherwise = trace "not minting the right amount" False 
   where
     txi = L.scriptContextTxInfo ctx
     contributors = getUniqueContributors txi
+
+    validContribution :: [L.TxOut] -> L.PubKeyHash -> Bool
+    validContribution outs addr =
+      let receives = receivesFrom txi
+      in any (\out -> addr `receives` L.txOutValue out) outs
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (L.txInfoMint txi) of
@@ -157,8 +165,8 @@ mkPolicy (PolicyParams tName) _ ctx
       _ -> Nothing
 
 {-# INLINEABLE rewardTokenName #-}
-rewardTokenName :: Value.TokenName
-rewardTokenName = Value.tokenName "RewardToken"
+rewardTokenName :: L.PubKeyHash -> Value.TokenName
+rewardTokenName (L.PubKeyHash bs) = Value.TokenName bs
 
 rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 rewardTokenPolicy pars =
@@ -166,11 +174,11 @@ rewardTokenPolicy pars =
     $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
-getRewardTokenAssetClass :: Value.AssetClass
-getRewardTokenAssetClass =
+getRewardTokenAssetClass :: L.PubKeyHash -> Value.AssetClass
+getRewardTokenAssetClass ft =
   Value.assetClass
-    (L.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams rewardTokenName)
-    rewardTokenName
+    (L.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName ft)
+    (rewardTokenName ft)
 
 {- INLINEABLE crowdfundTimeRange -}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
@@ -194,17 +202,19 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
 -- | Get *unique* contributors from a transaction
 
+{- INLINEABLE getAllDatums -}
+getAllDatums :: L.TxInfo -> [Datum]
+getAllDatums txi =
+  mapMaybe (outputDatumState txi) (map L.txInInfoResolved $ L.txInfoInputs txi)
+
 {- INLINEABLE getUniqueContributors -}
 getUniqueContributors :: L.TxInfo -> [L.PubKeyHash]
-getUniqueContributors txi =
-  let outputs = map L.txInInfoResolved $ L.txInfoInputs txi
-      datums = mapMaybe (outputDatumState txi) outputs
-      addrs = mapMaybe getFunder datums
-  in nub addrs
+getUniqueContributors txi = nub $ mapMaybe getFunder $ getAllDatums txi 
 
 {- INLINEABLE getTotalContributions -}
+-- TODO: have to sum all the values on all the funding datums
 getTotalContributions :: L.TxInfo -> L.Value
-getTotalContributions txi = sum $ map (L.txOutValue . L.txInInfoResolved) $ L.txInfoInputs txi
+getTotalContributions txi = sum $ mapMaybe getValue $ getAllDatums txi
 
 -- | Check if the refunding of a particular address at least some amount is valid.
 -- It is valid if
@@ -241,7 +251,7 @@ validAllRefund :: ValParams -> L.ScriptContext -> Bool
 validAllRefund cf ctx =
   let txi = L.scriptContextTxInfo ctx
   in traceIfFalse
-     "Transaction not signed by contributor"
+     "Transaction not signed by owner"
      (txi `L.txSignedBy` fundingTarget cf)
 
 -- | Launch before the deadline is valid if
@@ -261,26 +271,40 @@ validLaunch cf ctx =
      && traceIfFalse
         "Total contributions do not exceed threshold"
         (total `Value.geq` threshold cf)
-     -- TODO: need to subtract token value
-     -- && traceIfFalse
-     --    "Funding target not paid"
-     --    (fundingTarget cf `receives` (total - L.txInfoFee txi))
+     && traceIfFalse
+        "Funding target not paid total contributions"
+        (fundingTarget cf `receives` (total - L.txInfoFee txi))
 
--- | An individual contributing is valid if the contributor signs the transaction
+-- TODO: how to get value from txOutRef
+
+{- INLINEABLE getValueCtxPurpose -}
+getValueCtxPurpose :: L.ScriptPurpose -> Maybe L.Value
+getValueCtxPurpose (L.Spending txOutRef) = Nothing
+getValueCtxPurpose _ = Nothing
+
+-- | An individual contributing during launch is valid if
+-- * the owner signs the transaction
+-- * the contribution is at least the minimum bid
 
 {- INLINEABLE validFund -}
 validFund :: L.PubKeyHash -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
 validFund from to val ctx =
   let txi = L.scriptContextTxInfo ctx
+      ctxp = L.scriptContextPurpose ctx
       outputs = map L.txInInfoResolved $ L.txInfoInputs txi
       datums = mapMaybe (outputDatumState txi) outputs
       allParams = mapMaybe getValParams datums
       [currParams] = filter (\vp -> fundingTarget vp == to) allParams
+
+      input = L.findOwnInput ctx
+      txout = L.txInInfoResolved $ fromJust input
+      value = getValueCtxPurpose ctxp
   in traceIfFalse
-     "Funding transaction not signed by contributor"
+     "Transaction not signed by owner"
      (txi `L.txSignedBy` to)
      && traceIfFalse
         "Contribution is not at least the minimum value"
+        -- TODO: can get value from scriptContextPurpose
         (val `Value.geq` minContribution currParams)
 
 {- INLINEABLE validate -}
@@ -296,7 +320,7 @@ validate (Proposal cf) Launch ctx
 validate (Funding from _ _) IndividualRefund ctx =
   validIndividualRefund from ctx
 validate (Proposal _) IndividualRefund ctx =
-  -- TODO: this should be when the owner tries to cancel project before deadline
+  -- TODO: this could be allowing the owner to cancel the project before the deadline
   traceIfFalse "proposal datum with individual refund action" False
 
 data Crowdfunding

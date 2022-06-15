@@ -27,7 +27,7 @@ txOpen p = do
   let datum = Cf.Proposal p
   void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True})
+      txSkelOpts def
       [ PaysScript Cf.crowdfundingValidator datum minAda ]
 
 -- | Individual can contribute a fund
@@ -37,8 +37,8 @@ txIndividualFund p fund = do
   let datum = Cf.Funding funder (Cf.fundingTarget p) fund
   void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True})
-      [ PaysScript Cf.crowdfundingValidator datum fund ]
+      txSkelOpts def
+      [ PaysScript Cf.crowdfundingValidator datum (fund <> minAda) ]
 
 -- | Individual can request a refund
 txRefund :: MonadBlockChain m => m ()
@@ -48,10 +48,10 @@ txRefund = do
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getFunder d == Just funder)
   void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) $
+      txSkelOpts def $
         map (SpendsScript Cf.crowdfundingValidator Cf.IndividualRefund) utxos
           :=>:
-        map (paysPK funder . sOutValue . fst) utxos
+        [ paysPK funder (PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos) ]
 
 -- | Owner can fund the project before the deadline. When funding, mint n reward tokens,
 -- one for each funder. Each token should go to the address of the utxo of the funders.
@@ -61,29 +61,31 @@ txProjectFund p = do
   utxos <-
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
   let total = PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos
-      q = Cf.PolicyParams { Cf.pRewardTokenName = Cf.rewardTokenName }
+      q = Cf.PolicyParams { Cf.pRewardTokenName = Cf.rewardTokenName fundingTarget }
       uniqueAddrs = nub $ mapMaybe (Cf.getFunder . snd) utxos
-      token = Value.assetClassValue (Cf.rewardTokenAssetClass p) 1
+      token num = Value.assetClassValue (Cf.rewardTokenAssetClass p) num
   void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True, unsafeModTx = RawModTx traceShowId}) $
+      txSkelOpts def $
         ( Before (Cf.projectDeadline p) :
-          replicate (length uniqueAddrs)
-          (Mints
-              (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
-              [Cf.rewardTokenPolicy q]
-              token
-          ) ++
+          Mints
+            (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
+            [Cf.rewardTokenPolicy q]
+            (token $ fromIntegral $ length uniqueAddrs) :
           map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
         )
           :=>:
         ( paysPK fundingTarget total :
-          map (`paysPK` token) uniqueAddrs
+          map (`paysPK` (token 1 <> minAda)) uniqueAddrs
+          -- TODO: for each address, need to pay how much sum of utxos contained
+          -- subtracted by how much is paid to owner
+          
           -- uncomment below to attempt to pay owner all tokens
           -- map (\_ -> paysPK fundingTarget token) uniqueAddrs
         )
 
 -- | Owner can refund all contributors after the deadline
+-- TODO: triggers "funding transaction not signed by owner"
 txRefundAll :: (MonadBlockChain m) => Cf.ValParams -> m ()
 txRefundAll p = do
   fundingTarget <- ownPaymentPubKeyHash
@@ -91,11 +93,10 @@ txRefundAll p = do
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
   void $
     mapM (\x -> validateTxSkel $
-           txSkelOpts (def {adjustUnbalTx = True}) $
+           txSkelOpts def $
              [ After (Cf.projectDeadline p),
                SpendsScript Cf.crowdfundingValidator Cf.Launch x ]
              :=>:
-             -- TODO: what is owner being paid here?
              [ paysPK (Cf.getFunderOwner $ snd x) (sOutValue $ fst x) ]
          ) utxos
 
@@ -126,7 +127,7 @@ bananaParams t =
       Cf.threshold = banana 5,
       Cf.minContribution = banana 2,
       Cf.fundingTarget = walletPKHash (wallet 2),
-      Cf.rewardTokenAssetClass = Cf.getRewardTokenAssetClass 
+      Cf.rewardTokenAssetClass = Cf.getRewardTokenAssetClass $ walletPKHash (wallet 2)
     }
 
 nothing :: MonadMockChain m => m ()
