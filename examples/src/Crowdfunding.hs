@@ -25,9 +25,9 @@ import qualified Ledger.Interval as Interval
 import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import qualified PlutusTx
+import qualified PlutusTx.Numeric as L
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
-import qualified PlutusTx.Numeric as L
 
 -- * Data types
 
@@ -50,7 +50,7 @@ PlutusTx.makeLift ''ValParams
 PlutusTx.unstableMakeIsData ''ValParams
 
 instance Eq ValParams where
-  {-# INLINABLE (==) #-}
+  {-# INLINEABLE (==) #-}
   ValParams pd t mc ft ac == ValParams pd' t' mc' ft' ac' =
     pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
 
@@ -66,8 +66,8 @@ PlutusTx.unstableMakeIsData ''PolicyParams
 
 -- | Datum type. Either project proposal with policy params
 -- or funding from address to address with value contributed
-data Datum =
-    Proposal ValParams
+data Datum
+  = Proposal ValParams
   | Funding L.PubKeyHash L.PubKeyHash L.Value
   deriving (Haskell.Show)
 
@@ -75,39 +75,38 @@ PlutusTx.makeLift ''Datum
 PlutusTx.unstableMakeIsData ''Datum
 
 instance Eq Datum where
-  {-# INLINABLE (==) #-}
+  {-# INLINEABLE (==) #-}
   Proposal vp == Proposal vp' = vp == vp'
   Funding to from val == Funding to' from' val' = to == to' && from == from' && val == val'
   _ == _ = False
 
-{-# INLINABLE getOwner #-}
+{-# INLINEABLE getOwner #-}
 getOwner :: Datum -> L.PubKeyHash
 getOwner (Proposal vp) = fundingTarget vp
 getOwner (Funding _ to _) = to
 
-{-# INLINABLE getFunder #-}
+{-# INLINEABLE getFunder #-}
 getFunder :: Datum -> Maybe L.PubKeyHash
 getFunder (Funding from _ _) = Just from
 getFunder _ = Nothing
 
-{-# INLINABLE getValParams #-}
+{-# INLINEABLE getValParams #-}
 getValParams :: Datum -> Maybe ValParams
 getValParams (Proposal vp) = Just vp
 getValParams _ = Nothing
 
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
-
-{-# INLINABLE getFunderOwner #-}
+{-# INLINEABLE getFunderOwner #-}
 getFunderOwner :: Datum -> L.PubKeyHash
 getFunderOwner (Proposal vp) = fundingTarget vp
 getFunderOwner (Funding from _ _) = from
 
-{-# INLINABLE getValue #-}
+{-# INLINEABLE getValue #-}
 getValue :: Datum -> Maybe L.Value
 getValue (Funding _ _ val) = Just val
 getValue _ = Nothing
 
--- | Actions to be taken in the crowdfund. This will be the 'RedeemerType' 
+-- | Actions to be taken in the crowdfund. This will be the 'RedeemerType'
 data Action
   = -- | Pay funds to owner and reward contributors or (if after deadline) refund everyone
     Launch
@@ -119,27 +118,26 @@ PlutusTx.makeLift ''Action
 PlutusTx.unstableMakeIsData ''Action
 
 instance Eq Action where
-  {-# INLINABLE (==) #-}
+  {-# INLINEABLE (==) #-}
   Launch == Launch = True
   IndividualRefund == IndividualRefund = True
   _ == _ = False
 
--- * The minting policy of the thread token
+-- * The minting policy of the reward token
 
 -- | This minting policy controls the reward tokens of a crowdfund. There are n tokens
 -- minted during the project's launch, where n is the number of contributors. It's valid if
 -- * exactly n tokens are minted
 -- * all contributors receive one token + amount contributed - amount in funding datum
 --   + note: this result must be at least 2 ada. if not, transaction will fail earlier
-
-{-# INLINABLE mkPolicy #-}
+{-# INLINEABLE mkPolicy #-}
 mkPolicy :: PolicyParams -> () -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams tName) _ ctx
   | amnt == Just (length contributors) =
-      traceIfFalse
+    traceIfFalse
       "Not all contributors receive token + leftover value"
       (all validContribution contributors)
-  | otherwise = trace "not minting the right amount" False 
+  | otherwise = trace "not minting the right amount" False
   where
     txi = L.scriptContextTxInfo ctx
     contributors = getUniqueContributors txi
@@ -156,21 +154,21 @@ mkPolicy (PolicyParams tName) _ ctx
     validContribution addr =
       let receives = receivesFrom txi
           inputs = L.txInfoInputs txi
-          inputsAddr = filter
-            (\i -> L.toPubKeyHash (L.txOutAddress $ L.txInInfoResolved i) == Just addr) inputs
+          inputsAddr =
+            filter
+              (\i -> L.toPubKeyHash (L.txOutAddress $ L.txInInfoResolved i) == Just addr)
+              inputs
           inputsTotal = sum $ map (L.txOutValue . L.txInInfoResolved) inputsAddr
           datums = getAllDatums txi
           funderDatums = filter (\x -> getFunder x == Just addr) datums
           datumTotal = getTotalValue funderDatums
-      in addr `receives` (token <> inputsTotal <> L.negate datumTotal)
+       in addr `receives` (token <> inputsTotal <> L.negate datumTotal)
 
-
-{-# INLINABLE rewardTokenName #-}
+{-# INLINEABLE rewardTokenName #-}
 rewardTokenName :: L.PubKeyHash -> Value.TokenName
 rewardTokenName (L.PubKeyHash bs) = Value.TokenName bs
 
 -- | Parameterized minting policy
-
 rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 rewardTokenPolicy pars =
   L.mkMintingPolicyScript $
@@ -183,13 +181,12 @@ getRewardTokenAssetClass ft =
     (L.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName ft)
     (rewardTokenName ft)
 
-{-# INLINABLE crowdfundTimeRange #-}
+{-# INLINEABLE crowdfundTimeRange #-}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
 crowdfundTimeRange a = Interval.to (projectDeadline a)
 
 -- | Extract a datum state from an output (if it has one)
-
-{-# INLINABLE outputDatumState #-}
+{-# INLINEABLE outputDatumState #-}
 outputDatumState :: L.TxInfo -> L.TxOut -> Maybe Datum
 outputDatumState txi o = do
   h <- L.txOutDatum o
@@ -198,27 +195,23 @@ outputDatumState txi o = do
 
 -- | Test that the value paid to the given public key address is at
 -- least the given value
-
-{-# INLINABLE receivesFrom #-}
+{-# INLINEABLE receivesFrom #-}
 receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
 receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
 -- | Get list of all datums consumed by a transaction
-
-{-# INLINABLE getAllDatums #-}
+{-# INLINEABLE getAllDatums #-}
 getAllDatums :: L.TxInfo -> [Datum]
 getAllDatums txi =
   mapMaybe (outputDatumState txi) (map L.txInInfoResolved $ L.txInfoInputs txi)
 
 -- | Get *unique* contributors from a transaction
-
-{-# INLINABLE getUniqueContributors #-}
+{-# INLINEABLE getUniqueContributors #-}
 getUniqueContributors :: L.TxInfo -> [L.PubKeyHash]
-getUniqueContributors txi = nub $ mapMaybe getFunder $ getAllDatums txi 
+getUniqueContributors txi = nub $ mapMaybe getFunder $ getAllDatums txi
 
 -- | Get total value contributed from a list of datums
-
-{-# INLINABLE getTotalValue #-}
+{-# INLINEABLE getTotalValue #-}
 getTotalValue :: [Datum] -> L.Value
 getTotalValue = sum . mapMaybe getValue
 
@@ -227,8 +220,7 @@ getTotalValue = sum . mapMaybe getValue
 -- * the transaction is signed by the address being refunded
 -- * all inputs of the transaction point to the original funder
 -- * contributor is refunded the amount contributed
-
-{-# INLINABLE validIndividualRefund #-}
+{-# INLINEABLE validIndividualRefund #-}
 validIndividualRefund :: L.PubKeyHash -> L.ScriptContext -> Bool
 validIndividualRefund addr ctx =
   let txi = L.scriptContextTxInfo ctx
@@ -236,56 +228,53 @@ validIndividualRefund addr ctx =
       inputAddrs = mapMaybe L.txOutPubKey inputs
       outputAddrs = mapMaybe L.txOutPubKey $ L.txInfoOutputs txi
       receives = receivesFrom txi
-  in traceIfFalse
-     "Transaction not signed by contributor"
-     (txi `L.txSignedBy` addr)
-     && traceIfFalse
-        "List of input addresses is not only the person being refunded"
-        (inputAddrs == [addr])
-     && traceIfFalse
-        "List of output addresses is not only the person being refunded"
-        (nub outputAddrs == [addr])
-     && traceIfFalse
-        "Contributor is not refunded correct amount"
-        (addr `receives` (L.valueSpent txi - L.txInfoFee txi))
+   in traceIfFalse
+        "Transaction not signed by contributor"
+        (txi `L.txSignedBy` addr)
+        && traceIfFalse
+          "List of input addresses is not only the person being refunded"
+          (inputAddrs == [addr])
+        && traceIfFalse
+          "List of output addresses is not only the person being refunded"
+          (nub outputAddrs == [addr])
+        && traceIfFalse
+          "Contributor is not refunded correct amount"
+          (addr `receives` (L.valueSpent txi - L.txInfoFee txi))
 
 -- | Launch after the deadline is valid if
 -- * the owner signs the transaction
-
-{-# INLINABLE validAllRefund #-}
+{-# INLINEABLE validAllRefund #-}
 validAllRefund :: ValParams -> L.ScriptContext -> Bool
 validAllRefund cf ctx =
   let txi = L.scriptContextTxInfo ctx
-  in traceIfFalse
-     "Transaction not signed by owner"
-     (txi `L.txSignedBy` fundingTarget cf)
+   in traceIfFalse
+        "Transaction not signed by owner"
+        (txi `L.txSignedBy` fundingTarget cf)
 
 -- | Launch before the deadline is valid if
 -- * it occurs before the deadline
 -- * the total sum of all contributions is greater than the threshold
 -- * the funding target is paid the funds
-
-{-# INLINABLE validLaunch #-}
+{-# INLINEABLE validLaunch #-}
 validLaunch :: ValParams -> L.ScriptContext -> Bool
 validLaunch cf ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
       total = getTotalValue $ getAllDatums txi
-  in traceIfFalse
-     "Contributions after the deadline are not permitted"
-     (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
-     && traceIfFalse
-        "Total contributions do not exceed threshold"
-        (total `Value.geq` threshold cf)
-     && traceIfFalse
-        "Funding target not paid total contributions"
-        (fundingTarget cf `receives` (total - L.txInfoFee txi))
+   in traceIfFalse
+        "Contributions after the deadline are not permitted"
+        (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
+        && traceIfFalse
+          "Total contributions do not exceed threshold"
+          (total `Value.geq` threshold cf)
+        && traceIfFalse
+          "Funding target not paid total contributions"
+          (fundingTarget cf `receives` (total - L.txInfoFee txi))
 
 -- | An individual contributing during launch is valid if
 -- * the owner signs the transaction
 -- * the contribution is at least the minimum bid
-
-{-# INLINABLE validFund #-}
+{-# INLINEABLE validFund #-}
 validFund :: L.PubKeyHash -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
 validFund _ to _ ctx =
   let txi = L.scriptContextTxInfo ctx
@@ -294,20 +283,20 @@ validFund _ to _ ctx =
       [currParams] = filter (\vp -> fundingTarget vp == to) allParams
       Just input = L.findOwnInput ctx
       value = L.txOutValue $ L.txInInfoResolved input
-  in traceIfFalse
-     "Transaction not signed by owner"
-     (txi `L.txSignedBy` to)
-     && traceIfFalse
-        "Contribution is not at least the minimum value"
-        (value `Value.geq` minContribution currParams)
+   in traceIfFalse
+        "Transaction not signed by owner"
+        (txi `L.txSignedBy` to)
+        && traceIfFalse
+          "Contribution is not at least the minimum value"
+          (value `Value.geq` minContribution currParams)
 
-{-# INLINABLE validate #-}
+{-# INLINEABLE validate #-}
 validate :: Datum -> Action -> L.ScriptContext -> Bool
 validate (Funding from to val) Launch ctx =
   validFund from to val ctx
 validate (Proposal cf) Launch ctx
   | validRange = validLaunch cf ctx
-  | otherwise  = validAllRefund cf ctx
+  | otherwise = validAllRefund cf ctx
   where
     txi = L.scriptContextTxInfo ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
