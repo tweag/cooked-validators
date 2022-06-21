@@ -5,19 +5,19 @@
 
 module CrowdfundingSpec where
 
+import qualified Crowdfunding as Cf
+import qualified Crowdfunding.Offchain as Cf
+import Control.Arrow
 import Control.Applicative
 import Control.Monad
 import Cooked.Attack
 import Cooked.Currencies
 import Cooked.MockChain
-import qualified Cooked.MockChain as CM
 import Cooked.Tx.Constraints
-import qualified Crowdfunding as Cf
-import qualified Crowdfunding.Offchain as Cf
+import Data.Default
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Ledger as L
-import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -336,7 +336,7 @@ ownerRefundsErrorOwner = do
 -- be ruled out by the minting policy of the thread token.
 tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
-  CM.somewhere
+  somewhere
     ( dupTokenAttack
         (\_ n -> Just $ n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
@@ -345,7 +345,7 @@ tryDupTokens =
 
 tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
-  CM.somewhere
+  somewhere
     ( datumHijackingAttack @Cf.Crowdfunding
         ( \_ d _ -> case d of -- try to steal all outputs that have the 'Funding' datum, no matter their validator or value
             Cf.Funding {} -> True
