@@ -5,15 +5,16 @@
 
 module CrowdfundingSpec where
 
-import qualified Crowdfunding as Cf
-import qualified Crowdfunding.Offchain as Cf
-import Control.Arrow
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Cooked.Attack
 import Cooked.Currencies
+import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import qualified Crowdfunding as Cf
+import qualified Crowdfunding.Offchain as Cf
 import Data.Default
 import qualified Data.Map.Strict as M
 import Data.Maybe
