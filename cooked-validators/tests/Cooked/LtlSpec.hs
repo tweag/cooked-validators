@@ -12,18 +12,22 @@ import Data.Set (fromList)
 import Test.Tasty
 import Test.Tasty.HUnit
 
+-- Why are the builtins indexed by a?
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
+  -- What is the point of GetInteger?
   GetInteger :: TestBuiltin Integer
 
 type TestModification = Integer -> Integer
 
+-- What does it overlap with?
 instance {-# OVERLAPS #-} Semigroup TestModification where
   a <> b = a . b
 
 instance {-# OVERLAPS #-} Monoid TestModification where
   mempty = id
 
+-- Maybe we could go a bit further in providing interpltl
 instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
   interpBuiltin GetInteger = return 42
   interpBuiltin (EmitInteger i) =
@@ -54,9 +58,6 @@ emptyTraces = [return (), void getInteger]
 testTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
 testTraces = emptyTraces ++ nonemptyTraces
 
-assertAll :: [a] -> (a -> Assertion) -> Assertion
-assertAll space f = mapM_ f space
-
 assertEqualSets :: (Show a, Ord a) => [a] -> [a] -> Assertion
 assertEqualSets l r =
   assertBool
@@ -74,15 +75,15 @@ tests =
   [ testGroup
       "simple laws"
       [ testCase "LtlFalsity fails on every computation" $
-          assertAll testTraces (\tr -> go (startLtl LtlFalsity >> tr) @?= []),
+          forM_ testTraces (\tr -> go (startLtl LtlFalsity >> tr) @?= []),
         testCase "LtlTruth leaves every computation unchanged" $
-          assertAll testTraces (\tr -> go (startLtl LtlTruth >> tr) @?= go tr),
+          forM_ testTraces (\tr -> go (startLtl LtlTruth >> tr) @?= go tr),
         testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
           let x = LtlAtom (1 +)
               y = LtlAtom (2 +)
               a = x `LtlUntil` y
               b = y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))
-           in assertAll
+           in forM_
                 testTraces
                 (\tr -> assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr)),
         testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
@@ -90,7 +91,7 @@ tests =
               y = LtlAtom (2 +)
               a = x `LtlRelease` y
               b = y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y))
-           in assertAll
+           in forM_
                 nonemptyTraces
                 (\tr -> assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr))
       ],
@@ -104,7 +105,7 @@ tests =
                 where
                   incSecond (a : b : cs) = a : b + n : cs
                   incSecond _ = []
-           in assertAll
+           in forM_
                 testTraces
                 ( \tr ->
                     assertEqualSets
@@ -116,7 +117,7 @@ tests =
 
               incAll :: [[Integer]] -> [[Integer]]
               incAll = map (map (+ n))
-           in assertAll
+           in forM_
                 testTraces
                 (\tr -> assertEqualSets (go $ everywhere (n +) tr) (incAll $ go tr)),
         testCase "somewhere case-splits" $
@@ -127,7 +128,7 @@ tests =
                 where
                   alternatives [] = []
                   alternatives (x : xs) = (x + n : xs) : map (x :) (alternatives xs)
-           in assertAll
+           in forM_
                 testTraces
                 (\tr -> assertEqualSets (go $ somewhere (n +) tr) (caseSplit $ go tr)),
         testCase "somewhere is exponential in branch number" $
