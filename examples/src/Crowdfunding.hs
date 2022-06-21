@@ -54,10 +54,10 @@ instance Eq ValParams where
   ValParams pd t mc ft ac == ValParams pd' t' mc' ft' ac' =
     pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
 
--- | All data the minting policy of the thread token needs to
+-- | All data the minting policy of the reward token needs to
 -- know. These are known after the opening transaction
 newtype PolicyParams = PolicyParams
-  { -- | TokenName of the thread token
+  { -- | TokenName of the reward token
     pRewardTokenName :: Value.TokenName
   }
 
@@ -147,7 +147,7 @@ mkPolicy (PolicyParams tName) _ ctx
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
+      [(cs, tn, a)] | cs == me && tn == tName -> Just a
       _ -> Nothing
 
     validContribution :: L.PubKeyHash -> Bool
