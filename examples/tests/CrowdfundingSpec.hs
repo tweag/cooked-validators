@@ -10,6 +10,7 @@ import Control.Monad
 import Cooked.Attack
 import Cooked.Currencies
 import Cooked.MockChain
+import qualified Cooked.MockChain as CM
 import Cooked.Tx.Constraints
 import qualified Crowdfunding as Cf
 import qualified Crowdfunding.Offchain as Cf
@@ -335,7 +336,7 @@ ownerRefundsErrorOwner = do
 -- be ruled out by the minting policy of the thread token.
 tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
-  somewhere
+  CM.somewhere
     ( dupTokenAttack
         (\_ n -> Just $ n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
@@ -344,7 +345,7 @@ tryDupTokens =
 
 tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
-  somewhere
+  CM.somewhere
     ( datumHijackingAttack @Cf.Crowdfunding
         ( \_ d _ -> case d of -- try to steal all outputs that have the 'Funding' datum, no matter their validator or value
             Cf.Funding {} -> True
