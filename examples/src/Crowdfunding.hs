@@ -56,7 +56,7 @@ instance Eq ValParams where
 
 -- | All data the minting policy of the thread token needs to
 -- know. These are known after the opening transaction
-data PolicyParams = PolicyParams
+newtype PolicyParams = PolicyParams
   { -- | TokenName of the thread token
     pRewardTokenName :: Value.TokenName
   }

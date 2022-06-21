@@ -1,5 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-
 module Crowdfunding.Offchain where
 
 import Control.Monad
@@ -31,7 +29,7 @@ txIndividualFund p fund = do
       txSkel
         [PaysScript Cf.crowdfundingValidator datum (fund <> minAda)]
 
--- | Individual can request a refundd
+-- | Individual can request a refund
 txRefund :: MonadBlockChain m => m ()
 txRefund = do
   funder <- ownPaymentPubKeyHash

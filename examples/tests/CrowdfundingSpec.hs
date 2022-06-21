@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -346,7 +347,7 @@ tryDatumHijack =
   somewhere
     ( datumHijackingAttack @Cf.Crowdfunding
         ( \_ d _ -> case d of -- try to steal all outputs that have the 'Funding' datum, no matter their validator or value
-            Cf.Funding _ _ _ -> True
+            Cf.Funding {} -> True
             _ -> False
         )
         (0 ==) -- if there is more than one 'Funding' output, try stealing only the first
