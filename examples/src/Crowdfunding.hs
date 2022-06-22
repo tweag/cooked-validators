@@ -147,15 +147,21 @@ instance Eq Action where
 -- | This minting policy controls the reward tokens of a crowdfund. There are n tokens
 -- minted during the project's launch, where n is the number of contributors. It's valid if
 -- * exactly n tokens are minted
+-- * the transaction has at least one input
 -- * all contributors receive one token + amount contributed - amount in funding datum
 --   + note: this result must be at least 2 ada. if not, transaction will fail earlier
+-- TODO: add check that owner signs the transaction
+-- * this should throw an error in traces where funds were locked in the script
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: PolicyParams -> () -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams tName) _ ctx
   | amnt == Just (length contributors) =
     traceIfFalse
-      "Not all contributors receive token + leftover value"
-      (all validContribution contributors)
+        "Transaction does not have at least one input"
+        (length (L.txInfoInputs txi) > 0)
+        && traceIfFalse
+          "Not all contributors receive token + leftover value"
+          (all validContribution contributors)
   | otherwise = trace "not minting the right amount" False
   where
     txi = L.scriptContextTxInfo ctx

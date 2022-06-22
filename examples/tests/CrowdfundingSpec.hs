@@ -311,6 +311,7 @@ failingSingle =
 
 -- | one contribution, project funding error: wallet 1 attempts to fund project
 -- when wallet 2 is the funding target. Funds stay locked in the script
+-- TODO: make this throw an error
 oneContributionFundErrorOwner :: MonadMockChain m => m ()
 oneContributionFundErrorOwner = do
   t0 <- currentTime
@@ -320,6 +321,7 @@ oneContributionFundErrorOwner = do
 
 -- | wallet 1 attempts to refund all contributors with wallet 2 as owner
 -- funds are locked in the script
+-- TODO: make this throw an error
 ownerRefundsErrorOwner :: MonadMockChain m => m ()
 ownerRefundsErrorOwner = do
   t0 <- currentTime
