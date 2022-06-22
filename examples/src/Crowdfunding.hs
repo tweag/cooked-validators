@@ -64,11 +64,30 @@ newtype PolicyParams = PolicyParams
 PlutusTx.makeLift ''PolicyParams
 PlutusTx.unstableMakeIsData ''PolicyParams
 
+-- | All data associated with an individual fund
+data FundingParams = FundingParams
+  { -- | public key that is contributing
+    from :: L.PubKeyHash,
+    -- | public key representing project funder is contributing to
+    to :: L.PubKeyHash,
+    -- | value funder is contributing
+    val :: L.Value
+  }
+  deriving (Haskell.Show)
+
+PlutusTx.makeLift ''FundingParams
+PlutusTx.unstableMakeIsData ''FundingParams
+
+instance Eq FundingParams where
+  {-# INLINEABLE (==) #-}
+  FundingParams from to val == FundingParams from' to' val' =
+    from == from' && to == to' && val == val'
+
 -- | Datum type. Either project proposal with policy params
--- or funding from address to address with value contributed
+-- or funding with funding params
 data Datum
   = Proposal ValParams
-  | Funding L.PubKeyHash L.PubKeyHash L.Value
+  | Funding FundingParams
   deriving (Haskell.Show)
 
 PlutusTx.makeLift ''Datum
@@ -77,17 +96,17 @@ PlutusTx.unstableMakeIsData ''Datum
 instance Eq Datum where
   {-# INLINEABLE (==) #-}
   Proposal vp == Proposal vp' = vp == vp'
-  Funding to from val == Funding to' from' val' = to == to' && from == from' && val == val'
+  Funding fp == Funding fp' = fp == fp'
   _ == _ = False
 
 {-# INLINEABLE getOwner #-}
 getOwner :: Datum -> L.PubKeyHash
 getOwner (Proposal vp) = fundingTarget vp
-getOwner (Funding _ to _) = to
+getOwner (Funding fp) = to fp
 
 {-# INLINEABLE getFunder #-}
 getFunder :: Datum -> Maybe L.PubKeyHash
-getFunder (Funding from _ _) = Just from
+getFunder (Funding fp) = Just (from fp)
 getFunder _ = Nothing
 
 {-# INLINEABLE getValParams #-}
@@ -99,11 +118,11 @@ getValParams _ = Nothing
 {-# INLINEABLE getFunderOwner #-}
 getFunderOwner :: Datum -> L.PubKeyHash
 getFunderOwner (Proposal vp) = fundingTarget vp
-getFunderOwner (Funding from _ _) = from
+getFunderOwner (Funding fp) = from fp
 
 {-# INLINEABLE getValue #-}
 getValue :: Datum -> Maybe L.Value
-getValue (Funding _ _ val) = Just val
+getValue (Funding fp) = Just (val fp)
 getValue _ = Nothing
 
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType'
@@ -293,16 +312,16 @@ validFund _ to _ ctx =
 
 {-# INLINEABLE validate #-}
 validate :: Datum -> Action -> L.ScriptContext -> Bool
-validate (Funding from to val) Launch ctx =
-  validFund from to val ctx
+validate (Funding fp) Launch ctx =
+  validFund (from fp) (to fp) (val fp) ctx
 validate (Proposal cf) Launch ctx
   | validRange = validLaunch cf ctx
   | otherwise = validAllRefund cf ctx
   where
     txi = L.scriptContextTxInfo ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
-validate (Funding from _ _) IndividualRefund ctx =
-  validIndividualRefund from ctx
+validate (Funding fp) IndividualRefund ctx =
+  validIndividualRefund (from fp) ctx
 validate (Proposal _) IndividualRefund _ =
   -- disallowed, though this could be allowing the owner to cancel the project
   -- before the deadline, which is currently impossible

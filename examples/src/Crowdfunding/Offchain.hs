@@ -23,7 +23,8 @@ txOpen p = do
 txIndividualFund :: MonadBlockChain m => Cf.ValParams -> L.Value -> m ()
 txIndividualFund p fund = do
   funder <- ownPaymentPubKeyHash
-  let datum = Cf.Funding funder (Cf.fundingTarget p) fund
+  let fp = Cf.FundingParams funder (Cf.fundingTarget p) fund
+  let datum = Cf.Funding fp
   void $
     validateTxSkel $
       txSkel
