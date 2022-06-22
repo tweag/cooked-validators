@@ -200,12 +200,13 @@ dupTokenAttack ::
   -- If it does *not* increase the minted amount, or if @f ac i == Nothing@, the
   -- minted amount will be left unchanged.
   (L.AssetClass -> Integer -> Maybe Integer) ->
-  -- | The wallet of the attacker. Any extra tokens that were minted by the
-  -- transaction are paid to this wallet.
+  -- | The wallet of the attacker. Any additional tokens that are minted by the
+  -- modified transaction but were not minted by the original transaction are
+  -- paid to this wallet.
   Wallet ->
   Attack
 dupTokenAttack change attacker skel =
-  addLabel DupTokenLbl . paySurplusTo attacker
+  addLabel DupTokenLbl . paySurplusTo attacker skel
     <$> mkAttack (mintsConstraintsT % valueL) increaseValue skel
   where
     increaseValue :: L.Value -> Maybe L.Value
@@ -219,10 +220,11 @@ dupTokenAttack change attacker skel =
         Just l -> Just $ review flattenValueI l
         Nothing -> Nothing
 
-    paySurplusTo :: Wallet -> TxSkel -> TxSkel
-    paySurplusTo w s = over outConstraintsL (paysPK (walletPKHash w) surplus :) s
+    paySurplusTo :: Wallet -> TxSkel -> TxSkel -> TxSkel
+    paySurplusTo w skelOld skelNew = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) skelNew
       where
-        surplus = txSkelInValue s <> Pl.negate (nonAdaValue $ txSkelOutValue s)
+        txSkelMintValue s = foldOf (mintsConstraintsT % valueL) s
+        surplus = txSkelMintValue skelNew <> Pl.negate (txSkelMintValue skelOld)
 
     -- Try to use the given function to modify the elements of the given list. If
     -- at least one modification is successful, return 'Just' the modified list,

@@ -201,7 +201,10 @@ prettyCurrencyAndAmount symbol =
     prettySymbol = PP.pretty . take 7 . show
 
     prettySpacedNumber :: Integer -> Doc ann
-    prettySpacedNumber = psnTerm "" 0
+    prettySpacedNumber i =
+      if i >= 0
+        then psnTerm "" 0 i
+        else "-" <> psnTerm "" 0 (- i)
       where
         psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
         psnTerm acc _ 0 = acc
