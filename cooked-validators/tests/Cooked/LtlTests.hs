@@ -78,11 +78,15 @@ type DoubleHalveTrace = Staged DoubleHalveOp ()
 generateTrace :: [Integer] -> DoubleHalveTrace
 generateTrace = foldl (\acc -> (acc >>) . emitInteger) (Return ())
 
+subTraceEven = [2, 4, 6]
+
+subTraceOdd = [5, 9, 3]
+
+subTraceAll = [8, 7, 1, 0]
+
 -- Some test traces
 traceEven, traceOdd, traceAll :: DoubleHalveTrace
-traceEven = generateTrace [2, 4, 6]
-traceOdd = generateTrace [5, 9, 3]
-traceAll = generateTrace [8, 7, 1, 0]
+[traceEven, traceOdd, traceAll] = map generateTrace [subTraceEven, subTraceOdd, subTraceAll]
 
 -- Retrieved the indexes of the values that were modified by a given function
 getIndexesModifiedBy ::
@@ -99,10 +103,52 @@ getAllIndexes = zipWith const [0 ..]
 tests :: [TestTree]
 tests =
   [ testGroup
-      "DoubleHalve tests"
-      [ testCase "all elements of traceEven can be halved" $
-          assertBool "only 1 possible trace is expected" $
-            let computations = go $ everywhere halveInteger traceEven
-             in length computations == 1
-      ]
+      "Even tests"
+      ( let computations = go $ everywhere halveInteger traceEven
+            hcomputations = head computations
+         in [ testCase "Applying everywhere leads to a single computation" $
+                assertBool "only 1 possible trace is expected" $
+                  length computations == 1,
+              testCase "All elements were marked as halved" $
+                assertBool "all elements should be halved" $
+                  getAllIndexes subTraceEven == getIndexesModifiedBy "halve" hcomputations,
+              testCase "All elements were indeed halved" $
+                assertBool "some elements were not halved" $
+                  map (`div` 2) subTraceEven == map fst hcomputations
+            ]
+      ),
+    testGroup
+      "Odd tests"
+      ( let sComputations = go $ somewhere halveInteger traceOdd
+            dComputations = go $ somewhere doubleInteger traceOdd
+         in [ testCase "Odd numbers are never be halved" $
+                assertBool "No trace should be computed" $
+                  null sComputations,
+              testCase "Any odd number can possibly be halved" $
+                assertBool "There are missing traces" $
+                  length dComputations == 3,
+              testCase "Only 1 odd number was marked doubled in each computation" $
+                assertBool "Not a single odd number was marked doubled in some computation" $
+                  all (\comp -> length (getIndexesModifiedBy "double" comp) == 1) dComputations,
+              testCase "A number was indeed doubled in each computation" $
+                assertBool "No number were actually doubled" $
+                  all (\comp -> any (\(a, b) -> a == 2 * b) (zip (map fst comp) subTraceOdd)) dComputations
+            ]
+      ),
+    testGroup
+      "Even and Odd tests"
+      ( let sComputations = go $ somewhere halveInteger traceAll
+            aComputations = go $ everywhere halveInteger traceAll
+            numberOfEven = length $ filter even subTraceAll
+         in [ testCase "The right number of halved are done in singletons" $
+                assertBool "There are a wrong number of cases" $
+                  length sComputations == numberOfEven,
+              testCase "There is a single line when halving all possible elements" $
+                assertBool "There is actually not a single line" $
+                  length aComputations == 1,
+              testCase "The right number of halved are done in line" $
+                assertBool "There are a wrong number of marked halves" $
+                  length (getIndexesModifiedBy "halve" (head aComputations)) == numberOfEven
+            ]
+      )
   ]
