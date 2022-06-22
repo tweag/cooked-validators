@@ -293,6 +293,18 @@ twoContributionsFundErrorMinimum = do
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
 
+-- | owner attempts to pay self all funds after the deadline, with no tokens
+-- minted for the contributors
+ownerRefundsVulnerability :: MonadMockChain m => m ()
+ownerRefundsVulnerability = do
+  t0 <- currentTime
+  Cf.txOpen (bananaParams t0)
+  Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
+  Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  Cf.txRefundAllVulnerability (bananaParams t0) `as` wallet 2
+
 failingSingle :: TestTree
 failingSingle =
   testGroup
@@ -306,7 +318,9 @@ failingSingle =
       testCase "owner refunds before the deadline" $
         testFailsFrom testInit ownerRefundsErrorDeadline,
       testCase "contribution does not exceed minimum" $
-        testFailsFrom testInit twoContributionsFundErrorMinimum
+        testFailsFrom testInit twoContributionsFundErrorMinimum,
+      testCase "owner pays self all funds after the deadline" $
+        testFailsFrom testInit ownerRefundsVulnerability
     ]
 
 -- | one contribution, project funding error: wallet 1 attempts to fund project

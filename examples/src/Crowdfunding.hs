@@ -157,11 +157,11 @@ mkPolicy :: PolicyParams -> () -> L.ScriptContext -> Bool
 mkPolicy (PolicyParams tName) _ ctx
   | amnt == Just (length contributors) =
     traceIfFalse
-        "Transaction does not have at least one input"
-        (length (L.txInfoInputs txi) > 0)
-        && traceIfFalse
-          "Not all contributors receive token + leftover value"
-          (all validContribution contributors)
+      "Transaction does not have at least one input"
+      (length (L.txInfoInputs txi) > 0)
+      && traceIfFalse
+        "Not all contributors receive token + leftover value"
+        (all validContribution contributors)
   | otherwise = trace "not minting the right amount" False
   where
     txi = L.scriptContextTxInfo ctx
@@ -269,6 +269,13 @@ validIndividualRefund addr ctx =
 
 -- | Launch after the deadline is valid if
 -- * the owner signs the transaction
+-- NOTE: this is a vulnerability. The owner can create a transaction that pays
+-- themself all the contributed funds without rewarding the contributors with
+-- reward tokens. See trace "ownerRefundsVulnerability" that exhibits this
+-- vulnerabilty. With this as the validator instead of the fixed version below,
+-- that trace will succeed when it is expected to fail.
+
+{-
 {-# INLINEABLE validAllRefund #-}
 validAllRefund :: ValParams -> L.ScriptContext -> Bool
 validAllRefund cf ctx =
@@ -276,6 +283,30 @@ validAllRefund cf ctx =
    in traceIfFalse
         "Transaction not signed by owner"
         (txi `L.txSignedBy` fundingTarget cf)
+-}
+
+-- | Fixed version of above. Launch after the deadline is valid if
+-- * the owner signs the transaction
+-- * all contributors are refunded what they contributed
+{-# INLINEABLE validAllRefund #-}
+validAllRefund :: ValParams -> L.ScriptContext -> Bool
+validAllRefund cf ctx =
+  traceIfFalse
+    "Transaction not signed by owner"
+    (txi `L.txSignedBy` fundingTarget cf)
+    && traceIfFalse
+      "Contributor is not refunded correct amount"
+      (all validAllRefundAddress contributors)
+  where
+    txi = L.scriptContextTxInfo ctx
+    contributors = getUniqueContributors txi
+
+    validAllRefundAddress :: L.PubKeyHash -> Bool
+    validAllRefundAddress addr =
+      let receives = receivesFrom txi
+          funderDatums = filter (\x -> getFunder x == Just addr) (getAllDatums txi)
+          datumTotal = getTotalValue funderDatums
+       in addr `receives` datumTotal
 
 -- | Launch before the deadline is valid if
 -- * it occurs before the deadline

@@ -94,3 +94,23 @@ txRefundAll p = do
           map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
         )
           :=>: zipWith paysPK uniqueAddrs contributions
+
+-- | Vulnerability: owner pays all funds to themself instead of refunding
+-- all the contributors
+txRefundAllVulnerability :: (MonadBlockChain m) => Cf.ValParams -> m ()
+txRefundAllVulnerability p = do
+  fundingTarget <- ownPaymentPubKeyHash
+  utxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
+  -- First, gather all contributions from the same address. This confirms that we only use
+  -- one output to pay back a contributor, even if they contributed multiple times.
+  let addrUtxos = filter (isJust . Cf.getFunder . snd) utxos
+      uniqueAddrs = nub $ mapMaybe (Cf.getFunder . snd) utxos
+      totalContributions = PlutusTx.Prelude.sum $ map (getContributionsAddr addrUtxos) uniqueAddrs
+  void $
+    validateTxSkel $
+      txSkel $
+        ( After (Cf.projectDeadline p) :
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+        )
+          :=>: [paysPK fundingTarget totalContributions]
