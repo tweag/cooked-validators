@@ -12,6 +12,7 @@ module Cooked.AttackSpec (tests) where
 
 import Control.Monad
 import Cooked.Attack
+import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
@@ -113,11 +114,11 @@ dupTokenAttackTests =
                     Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
                     Mints (Nothing @()) [pol1] (L.assetClassValue ac1 v4)
                   ]
-                    :=>: [ paysPK
+                    :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
+                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2),
+                           paysPK
                              (walletPKHash attacker)
-                             (L.assetClassValue ac1 (v1 + v4 - 1) <> L.assetClassValue ac2 (v2 + v3 - 2)),
-                           paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
+                             (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
                          ]
                 )
          in assertTxSkelEqual (Just $ skelExpected 2 2 4 8) (skelOut (\_ n -> Just $ n + 1))
@@ -141,7 +142,34 @@ dupTokenAttackTests =
          in testSucceeds $
               somewhere
                 (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
-                (dupTokenTrace pol tName 1 (wallet 1))
+                (dupTokenTrace pol tName 1 (wallet 1)),
+      testCase "pre-existing tokens are left alone" $
+        let attacker = wallet 6
+            pol = carelessPolicy
+            ac1 = L.assetClass (L.scriptCurrencySymbol pol) (L.tokenName "mintedToken")
+            ac2 = quickAssetClass "preExistingToken"
+            skelIn =
+              txSkel
+                ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 1)]
+                    :=>: [ paysPK
+                             (walletPKHash (wallet 1))
+                             (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2)
+                         ]
+                )
+            skelExpected =
+              txSkelLbl
+                DupTokenLbl
+                ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 2)]
+                    :=>: [ paysPK
+                             (walletPKHash (wallet 1))
+                             (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2),
+                           paysPK
+                             (walletPKHash attacker)
+                             (L.assetClassValue ac1 1)
+                         ]
+                )
+            skelOut = dupTokenAttack (\_ i -> Just $ i + 1) attacker skelIn
+         in assertTxSkelEqual (Just skelExpected) skelOut
     ]
 
 -- * Tests for the datum hijacking attack
