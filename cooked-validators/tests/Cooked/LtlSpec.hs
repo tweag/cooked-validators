@@ -16,6 +16,8 @@ import Test.Tasty.HUnit
 data TestBuiltin a where
   EmitInteger :: Integer -> TestBuiltin ()
   -- What is the point of GetInteger?
+  -- some events might be ignored by the modification process
+  -- let's call them "invisible"
   GetInteger :: TestBuiltin Integer
 
 type TestModification = Integer -> Integer
@@ -29,6 +31,7 @@ instance {-# OVERLAPS #-} Monoid TestModification where
 
 -- Maybe we could go a bit further in providing interpltl
 instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
+  -- GetInteger is made "invisible" here since modifications ignore it
   interpBuiltin GetInteger = return 42
   interpBuiltin (EmitInteger i) =
     get
@@ -42,6 +45,7 @@ emitInteger i = Instr (Builtin (EmitInteger i)) Return
 getInteger :: Staged (LtlOp TestModification TestBuiltin) Integer
 getInteger = Instr (Builtin GetInteger) Return
 
+-- Can't we provide this function?
 go :: Staged (LtlOp TestModification TestBuiltin) a -> [[Integer]]
 go = execWriterT . flip execStateT [] . interpLtl
 

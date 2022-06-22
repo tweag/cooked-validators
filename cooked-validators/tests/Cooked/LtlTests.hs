@@ -34,7 +34,7 @@ halveInteger (n, l) = if even n then Just (div n 2, "halve" : l) else Nothing
 
 -- Couple an integer with an empty list of modifications
 initInteger :: Integer -> (Integer, [String])
-initInteger n = (n, [])
+initInteger = (, [])
 
 instance {-# OVERLAPS #-} Semigroup DoubleHalveMods where
   a <> b = a >=> b
@@ -78,21 +78,12 @@ type DoubleHalveTrace = Staged DoubleHalveOp ()
 generateTrace :: [Integer] -> DoubleHalveTrace
 generateTrace = foldl (\acc -> (acc >>) . emitInteger) (Return ())
 
-subTraceEven = [2, 4, 6]
-
-subTraceOdd = [5, 9, 3]
-
-subTraceAll = [8, 7, 1, 0]
-
 -- Some test traces
-traceEven, traceOdd, traceAll :: DoubleHalveTrace
+[subTraceEven, subTraceOdd, subTraceAll] = [[2, 4, 6], [5, 9, 3], [8, 7, 1, 0, 2, 6]]
 [traceEven, traceOdd, traceAll] = map generateTrace [subTraceEven, subTraceOdd, subTraceAll]
 
 -- Retrieved the indexes of the values that were modified by a given function
-getIndexesModifiedBy ::
-  String ->
-  [(a, [String])] ->
-  [Integer]
+getIndexesModifiedBy :: String -> [(a, [String])] -> [Integer]
 getIndexesModifiedBy s =
   map fst . filter (elem s . snd) . zip [0 ..] . map snd
 
@@ -140,15 +131,20 @@ tests =
       ( let sComputations = go $ somewhere halveInteger traceAll
             aComputations = go $ everywhere halveInteger traceAll
             numberOfEven = length $ filter even subTraceAll
+            eComputations = go $ somewhere doubleInteger traceAll
+            fComputations = go $ modifyLtl (LtlTruth `LtlUntil` (LtlFalsity `LtlRelease` LtlAtom halveInteger)) traceAll
          in [ testCase "The right number of halved are done in singletons" $
-                assertBool "There are a wrong number of cases" $
+                assertBool "There is a wrong number of cases" $
                   length sComputations == numberOfEven,
-              testCase "There is a single line when halving all possible elements" $
-                assertBool "There is actually not a single line" $
-                  length aComputations == 1,
-              testCase "The right number of halved are done in line" $
-                assertBool "There are a wrong number of marked halves" $
-                  length (getIndexesModifiedBy "halve" (head aComputations)) == numberOfEven
+              testCase "There is no computations where all elements are halved" $
+                assertBool "There are unsound computations" $
+                  null aComputations,
+              testCase "The right number of doubled are done in singletons" $
+                assertBool "There is a wrong number of cases" $
+                  length eComputations == length subTraceAll,
+              testCase "There eventually is a serie of even numbers in 3 cases" $
+                assertBool "Wrong number of sequences" $
+                  trace (show fComputations) (length fComputations == 3)
             ]
       )
   ]
