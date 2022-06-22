@@ -11,22 +11,22 @@
 </span><span id="line-11"></span><span>
 </span><span id="line-12"></span><span class="hs-comment">-- | Spends some value from a pubkey by selecting the needed utxos belonging</span><span>
 </span><span id="line-13"></span><span class="hs-comment">--  to that pubkey and returning the leftover to the same pubkey.</span><span>
-</span><span id="line-14"></span><span id="local-6989586621679522624"><span class="annot"><a href="Cooked.MockChain.Constraints.html#spentByPK"><span class="hs-identifier hs-type">spentByPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522624"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522624"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span></span><span>
+</span><span id="line-14"></span><span id="local-6989586621679522921"><span class="annot"><a href="Cooked.MockChain.Constraints.html#spentByPK"><span class="hs-identifier hs-type">spentByPK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522921"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522921"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span></span><span>
 </span><span id="line-15"></span><span id="spentByPK"><span class="annot"><span class="annottext">spentByPK :: PubKeyHash -&gt; Value -&gt; m Constraints
-</span><a href="Cooked.MockChain.Constraints.html#spentByPK"><span class="hs-identifier hs-var hs-var">spentByPK</span></a></span></span><span> </span><span id="local-6989586621679522622"><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679522622"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679522621"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522621"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><a href="Cooked.MockChain.Constraints.html#spentByPK"><span class="hs-identifier hs-var hs-var">spentByPK</span></a></span></span><span> </span><span id="local-6989586621679522919"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679522919"><span class="hs-identifier hs-var">pkh</span></a></span></span><span> </span><span id="local-6989586621679522918"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522918"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-16"></span><span>  </span><span class="hs-comment">-- TODO: maybe turn spentByPK into a pure function: spentByPK val &lt;$&gt; pkUtxos</span><span>
-</span><span id="line-17"></span><span>  </span><span id="local-6989586621679522620"><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679522620"><span class="hs-identifier hs-var">allOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; m [SpendableOut]
+</span><span id="line-17"></span><span>  </span><span id="local-6989586621679522917"><span class="annot"><span class="annottext">[SpendableOut]
+</span><a href="#local-6989586621679522917"><span class="hs-identifier hs-var">allOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; m [SpendableOut]
 forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 PubKeyHash -&gt; m [SpendableOut]
 </span><a href="Cooked.MockChain.Monad.html#pkUtxos"><span class="hs-identifier hs-var">pkUtxos</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679522622"><span class="hs-identifier hs-var">pkh</span></a></span><span>
-</span><span id="line-18"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679522618"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679522618"><span class="hs-identifier hs-var">toSpend</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679522617"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522617"><span class="hs-identifier hs-var">leftOver</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522919"><span class="hs-identifier hs-var">pkh</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679522915"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679522915"><span class="hs-identifier hs-var">toSpend</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679522914"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522914"><span class="hs-identifier hs-var">leftOver</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
 -&gt; [(TxOutRef, TxOut)]
 -&gt; ([BOutRef (TxOutRef, TxOut)], Value, Value)
@@ -34,7 +34,7 @@ forall out.
 BalancableOut out =&gt;
 Value -&gt; [out] -&gt; ([BOutRef out], Value, Value)
 </span><a href="Cooked.Tx.Balance.html#spendValueFrom"><span class="hs-identifier hs-var">spendValueFrom</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522621"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, TxOut)]
+</span><a href="#local-6989586621679522918"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, TxOut)]
  -&gt; ([BOutRef (TxOutRef, TxOut)], Value, Value))
 -&gt; [(TxOutRef, TxOut)]
 -&gt; ([BOutRef (TxOutRef, TxOut)], Value, Value)
@@ -48,12 +48,12 @@ Arrow a =&gt;
 a b c -&gt; a (d, b) (d, c)
 </span><span class="hs-identifier hs-var">second</span></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl.toTxOut</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679522620"><span class="hs-identifier hs-var">allOuts</span></a></span><span>
+</span><a href="#local-6989586621679522917"><span class="hs-identifier hs-var">allOuts</span></a></span><span>
 </span><span id="line-19"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
 </span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">:=&gt;:</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
-</span><a href="#local-6989586621679522622"><span class="hs-identifier hs-var">pkh</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522617"><span class="hs-identifier hs-var">leftOver</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([MiscConstraint] -&gt; Constraints)
+</span><a href="#local-6989586621679522919"><span class="hs-identifier hs-var">pkh</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522914"><span class="hs-identifier hs-var">leftOver</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([MiscConstraint] -&gt; Constraints)
 -&gt; ([SpendableOut] -&gt; [MiscConstraint])
 -&gt; [SpendableOut]
 -&gt; Constraints
@@ -74,17 +74,17 @@ forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 TxOutRef -&gt; m SpendableOut
 </span><a href="Cooked.MockChain.Monad.html#spendableRef"><span class="hs-identifier hs-var">spendableRef</span></a></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679522618"><span class="hs-identifier hs-var">toSpend</span></a></span><span>
+</span><a href="#local-6989586621679522915"><span class="hs-identifier hs-var">toSpend</span></a></span><span>
 </span><span id="line-20"></span><span>
 </span><span id="line-21"></span><span class="hs-comment">-- | Enforces the transaction to be vadiated at a precise slot.</span><span>
 </span><span id="line-22"></span><span class="hs-comment">-- It requires to be in the mock chain monad, since slots can be translated to an explicit time range</span><span>
 </span><span id="line-23"></span><span class="hs-comment">-- only after inspecting the slot configuration.</span><span>
-</span><span id="line-24"></span><span id="local-6989586621679522633"><span class="annot"><a href="Cooked.MockChain.Constraints.html#validateAtSlot"><span class="hs-identifier hs-type">validateAtSlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522633"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522633"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span></span><span>
+</span><span id="line-24"></span><span id="local-6989586621679522930"><span class="annot"><a href="Cooked.MockChain.Constraints.html#validateAtSlot"><span class="hs-identifier hs-type">validateAtSlot</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522930"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Slot</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522930"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span></span><span>
 </span><span id="line-25"></span><span id="validateAtSlot"><span class="annot"><span class="annottext">validateAtSlot :: Slot -&gt; m MiscConstraint
-</span><a href="Cooked.MockChain.Constraints.html#validateAtSlot"><span class="hs-identifier hs-var hs-var">validateAtSlot</span></a></span></span><span> </span><span id="local-6989586621679522607"><span class="annot"><span class="annottext">Slot
-</span><a href="#local-6989586621679522607"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-26"></span><span>  </span><span id="local-6989586621679522606"><span class="annot"><span class="annottext">SlotConfig
-</span><a href="#local-6989586621679522606"><span class="hs-identifier hs-var">slotConf</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m SlotConfig
+</span><a href="Cooked.MockChain.Constraints.html#validateAtSlot"><span class="hs-identifier hs-var hs-var">validateAtSlot</span></a></span></span><span> </span><span id="local-6989586621679522904"><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679522904"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679522903"><span class="annot"><span class="annottext">SlotConfig
+</span><a href="#local-6989586621679522903"><span class="hs-identifier hs-var">slotConf</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m SlotConfig
 forall (m :: * -&gt; *). MonadMockChain m =&gt; m SlotConfig
 </span><a href="Cooked.MockChain.Monad.html#slotConfig"><span class="hs-identifier hs-var">slotConfig</span></a></span><span>
 </span><span id="line-27"></span><span>  </span><span class="annot"><span class="annottext">MiscConstraint -&gt; m MiscConstraint
@@ -98,11 +98,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SlotConfig -&gt; Slot -&gt; POSIXTimeRange
 </span><span class="hs-identifier hs-var">Pl.slotToPOSIXTimeRange</span></span><span> </span><span class="annot"><span class="annottext">SlotConfig
-</span><a href="#local-6989586621679522606"><span class="hs-identifier hs-var">slotConf</span></a></span><span> </span><span class="annot"><span class="annottext">Slot
-</span><a href="#local-6989586621679522607"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><a href="#local-6989586621679522903"><span class="hs-identifier hs-var">slotConf</span></a></span><span> </span><span class="annot"><span class="annottext">Slot
+</span><a href="#local-6989586621679522904"><span class="hs-identifier hs-var">s</span></a></span><span>
 </span><span id="line-28"></span><span>
 </span><span id="line-29"></span><span class="hs-comment">-- | Validates the transaction in the current time slot of the mock chain.</span><span>
-</span><span id="line-30"></span><span id="local-6989586621679522602"><span class="annot"><a href="Cooked.MockChain.Constraints.html#validateNow"><span class="hs-identifier hs-type">validateNow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522602"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522602"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span></span><span>
+</span><span id="line-30"></span><span id="local-6989586621679522899"><span class="annot"><a href="Cooked.MockChain.Constraints.html#validateNow"><span class="hs-identifier hs-type">validateNow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522899"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522899"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span></span><span>
 </span><span id="line-31"></span><span id="validateNow"><span class="annot"><span class="annottext">validateNow :: m MiscConstraint
 </span><a href="Cooked.MockChain.Constraints.html#validateNow"><span class="hs-identifier hs-var hs-var">validateNow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-32"></span><span>  </span><span class="annot"><span class="annottext">Slot -&gt; m MiscConstraint

@@ -15,16 +15,16 @@
 </span><span id="line-15"></span><span class="hs-comment">-- | Returns whether two states are equal except for arbitrary differences in Ada.</span><span>
 </span><span id="line-16"></span><span class="hs-comment">--  This implies that the set of addresses in each state is the same, hence, the &quot;equal&quot; prefix.</span><span>
 </span><span id="line-17"></span><span class="hs-comment">--  If you don't care about that, check 'equivModuloAtMost'.</span><span>
-</span><span id="line-18"></span><span id="local-6989586621679522344"><span class="annot"><a href="Cooked.MockChain.UtxoState.Testing.html#equalModuloAda"><span class="hs-identifier hs-type">equalModuloAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522344"><span class="hs-identifier hs-type">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522344"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679522641"><span class="annot"><a href="Cooked.MockChain.UtxoState.Testing.html#equalModuloAda"><span class="hs-identifier hs-type">equalModuloAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522641"><span class="hs-identifier hs-type">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522641"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
 </span><span id="line-19"></span><span id="equalModuloAda"><span class="annot"><span class="annottext">equalModuloAda :: UtxoState -&gt; UtxoState -&gt; prop
-</span><a href="Cooked.MockChain.UtxoState.Testing.html#equalModuloAda"><span class="hs-identifier hs-var hs-var">equalModuloAda</span></a></span></span><span> </span><span id="local-6989586621679522342"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522342"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679522341"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522341"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Address, UtxoValueSetDiff) -&gt; prop)
+</span><a href="Cooked.MockChain.UtxoState.Testing.html#equalModuloAda"><span class="hs-identifier hs-var hs-var">equalModuloAda</span></a></span></span><span> </span><span id="local-6989586621679522639"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522639"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679522638"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522638"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Address, UtxoValueSetDiff) -&gt; prop)
 -&gt; [(Address, UtxoValueSetDiff)] -&gt; prop
 forall prop a. IsProp prop =&gt; (a -&gt; prop) -&gt; [a] -&gt; prop
 </span><a href="Cooked.MockChain.Testing.html#testAll"><span class="hs-identifier hs-var">testAll</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UtxoValueSetDiff -&gt; prop
 forall p. IsProp p =&gt; UtxoValueSetDiff -&gt; p
-</span><a href="#local-6989586621679522339"><span class="hs-identifier hs-var">eqModAda</span></a></span><span> </span><span class="annot"><span class="annottext">(UtxoValueSetDiff -&gt; prop)
+</span><a href="#local-6989586621679522636"><span class="hs-identifier hs-var">eqModAda</span></a></span><span> </span><span class="annot"><span class="annottext">(UtxoValueSetDiff -&gt; prop)
 -&gt; ((Address, UtxoValueSetDiff) -&gt; UtxoValueSetDiff)
 -&gt; (Address, UtxoValueSetDiff)
 -&gt; prop
@@ -41,40 +41,40 @@ forall k a. Map k a -&gt; [(k, a)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UtxoState -&gt; UtxoState -&gt; Map Address UtxoValueSetDiff
 </span><a href="Cooked.MockChain.UtxoState.html#utxoStateDiff"><span class="hs-identifier hs-var">utxoStateDiff</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522342"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522341"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><a href="#local-6989586621679522639"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522638"><span class="hs-identifier hs-var">b</span></a></span><span>
 </span><span id="line-20"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-21"></span><span>    </span><span class="hs-comment">-- If the address was modified, the states are equal modulo Ada if the modifications</span><span>
 </span><span id="line-22"></span><span>    </span><span class="hs-comment">-- contain only ada</span><span>
-</span><span id="line-23"></span><span>    </span><span id="local-6989586621679522339"><span class="annot"><span class="annottext">eqModAda :: UtxoValueSetDiff -&gt; p
-</span><a href="#local-6989586621679522339"><span class="hs-identifier hs-var hs-var">eqModAda</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#Modified"><span class="hs-identifier hs-type">Modified</span></a></span><span> </span><span id="local-6989586621679522334"><span class="annot"><span class="annottext">UtxoValueSet
-</span><a href="#local-6989586621679522334"><span class="hs-identifier hs-var">del</span></a></span></span><span> </span><span id="local-6989586621679522333"><span class="annot"><span class="annottext">UtxoValueSet
-</span><a href="#local-6989586621679522333"><span class="hs-identifier hs-var">ins</span></a></span></span><span> </span><span class="annot"><span class="annottext">UtxoValueSet
+</span><span id="line-23"></span><span>    </span><span id="local-6989586621679522636"><span class="annot"><span class="annottext">eqModAda :: UtxoValueSetDiff -&gt; p
+</span><a href="#local-6989586621679522636"><span class="hs-identifier hs-var hs-var">eqModAda</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#Modified"><span class="hs-identifier hs-type">Modified</span></a></span><span> </span><span id="local-6989586621679522631"><span class="annot"><span class="annottext">UtxoValueSet
+</span><a href="#local-6989586621679522631"><span class="hs-identifier hs-var">del</span></a></span></span><span> </span><span id="local-6989586621679522630"><span class="annot"><span class="annottext">UtxoValueSet
+</span><a href="#local-6989586621679522630"><span class="hs-identifier hs-var">ins</span></a></span></span><span> </span><span class="annot"><span class="annottext">UtxoValueSet
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-24"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679522332"><span class="annot"><span class="annottext">valDiff :: Value
-</span><a href="#local-6989586621679522332"><span class="hs-identifier hs-var hs-var">valDiff</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoValueSet -&gt; Value
+</span><span id="line-24"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679522629"><span class="annot"><span class="annottext">valDiff :: Value
+</span><a href="#local-6989586621679522629"><span class="hs-identifier hs-var hs-var">valDiff</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoValueSet -&gt; Value
 </span><a href="Cooked.MockChain.UtxoState.html#utxoValueSetTotal"><span class="hs-identifier hs-var">utxoValueSetTotal</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoValueSet
-</span><a href="#local-6989586621679522333"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679522630"><span class="hs-identifier hs-var">ins</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">Pl.negate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UtxoValueSet -&gt; Value
 </span><a href="Cooked.MockChain.UtxoState.html#utxoValueSetTotal"><span class="hs-identifier hs-var">utxoValueSetTotal</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoValueSet
-</span><a href="#local-6989586621679522334"><span class="hs-identifier hs-var">del</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679522631"><span class="hs-identifier hs-var">del</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-25"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Value -&gt; p
 forall prop. IsProp prop =&gt; Value -&gt; prop
-</span><a href="#local-6989586621679522329"><span class="hs-identifier hs-var">hasOnlyAdaWithMsg</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522332"><span class="hs-identifier hs-var">valDiff</span></a></span><span>
+</span><a href="#local-6989586621679522626"><span class="hs-identifier hs-var">hasOnlyAdaWithMsg</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522629"><span class="hs-identifier hs-var">valDiff</span></a></span><span>
 </span><span id="line-26"></span><span>    </span><span class="hs-comment">-- If the address was deleted or inserted, the states are different in other ways</span><span>
 </span><span id="line-27"></span><span>    </span><span class="hs-comment">-- other than just ada.</span><span>
-</span><span id="line-28"></span><span>    </span><span class="annot"><a href="#local-6989586621679522339"><span class="hs-identifier hs-var">eqModAda</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoValueSetDiff
+</span><span id="line-28"></span><span>    </span><span class="annot"><a href="#local-6989586621679522636"><span class="hs-identifier hs-var">eqModAda</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoValueSetDiff
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">p
 forall prop. IsProp prop =&gt; prop
 </span><a href="Cooked.MockChain.Testing.html#testSuccess"><span class="hs-identifier hs-var">testSuccess</span></a></span><span>
 </span><span id="line-29"></span><span>
-</span><span id="line-30"></span><span>    </span><span id="local-6989586621679522329"><span class="annot"><span class="annottext">hasOnlyAdaWithMsg :: Value -&gt; prop
-</span><a href="#local-6989586621679522329"><span class="hs-identifier hs-var hs-var">hasOnlyAdaWithMsg</span></a></span></span><span> </span><span id="local-6989586621679522327"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522327"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679522626"><span class="annot"><span class="annottext">hasOnlyAdaWithMsg :: Value -&gt; prop
+</span><a href="#local-6989586621679522626"><span class="hs-identifier hs-var hs-var">hasOnlyAdaWithMsg</span></a></span></span><span> </span><span id="local-6989586621679522624"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522624"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-31"></span><span>      </span><span class="annot"><span class="annottext">String -&gt; prop -&gt; prop
 forall prop. IsProp prop =&gt; String -&gt; prop -&gt; prop
 </span><a href="Cooked.MockChain.Testing.html#testCounterexample"><span class="hs-identifier hs-var">testCounterexample</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
@@ -83,7 +83,7 @@ forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522327"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(prop -&gt; prop) -&gt; prop -&gt; prop
+</span><a href="#local-6989586621679522624"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(prop -&gt; prop) -&gt; prop -&gt; prop
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; prop
 forall prop. IsProp prop =&gt; Bool -&gt; prop
@@ -91,23 +91,23 @@ forall prop. IsProp prop =&gt; Bool -&gt; prop
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Bool
 </span><a href="Cooked.MockChain.UtxoPredicate.html#hasOnlyAda"><span class="hs-identifier hs-var">hasOnlyAda</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522327"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679522624"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-32"></span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- | Returns whether the difference in value between two states is at most</span><span>
 </span><span id="line-34"></span><span class="hs-comment">--  a given bound. Note that the difference in value between states can be negative,</span><span>
 </span><span id="line-35"></span><span class="hs-comment">--  hence, the order of parameters matters here. See 'utxoStateDiffTotal' for more.</span><span>
-</span><span id="line-36"></span><span id="local-6989586621679522323"><span class="annot"><a href="Cooked.MockChain.UtxoState.Testing.html#equivModuloAtMost"><span class="hs-identifier hs-type">equivModuloAtMost</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522323"><span class="hs-identifier hs-type">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522323"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
+</span><span id="line-36"></span><span id="local-6989586621679522620"><span class="annot"><a href="Cooked.MockChain.UtxoState.Testing.html#equivModuloAtMost"><span class="hs-identifier hs-type">equivModuloAtMost</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522620"><span class="hs-identifier hs-type">prop</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoState.html#UtxoState"><span class="hs-identifier hs-type">UtxoState</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522620"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
 </span><span id="line-37"></span><span id="equivModuloAtMost"><span class="annot"><span class="annottext">equivModuloAtMost :: Value -&gt; UtxoState -&gt; UtxoState -&gt; prop
-</span><a href="Cooked.MockChain.UtxoState.Testing.html#equivModuloAtMost"><span class="hs-identifier hs-var hs-var">equivModuloAtMost</span></a></span></span><span> </span><span id="local-6989586621679522321"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522321"><span class="hs-identifier hs-var">maxV</span></a></span></span><span> </span><span id="local-6989586621679522320"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522320"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679522319"><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522319"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.UtxoState.Testing.html#equivModuloAtMost"><span class="hs-identifier hs-var hs-var">equivModuloAtMost</span></a></span></span><span> </span><span id="local-6989586621679522618"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679522618"><span class="hs-identifier hs-var">maxV</span></a></span></span><span> </span><span id="local-6989586621679522617"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522617"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679522616"><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522616"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Value -&gt; prop
 forall prop. IsProp prop =&gt; Value -&gt; prop
-</span><a href="#local-6989586621679522318"><span class="hs-identifier hs-var">noNegativeToken</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; prop) -&gt; (Value -&gt; Value) -&gt; Value -&gt; prop
+</span><a href="#local-6989586621679522615"><span class="hs-identifier hs-var">noNegativeToken</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; prop) -&gt; (Value -&gt; Value) -&gt; Value -&gt; prop
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679522321"><span class="hs-identifier hs-var">maxV</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679522618"><span class="hs-identifier hs-var">maxV</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Value) -&gt; (Value -&gt; Value) -&gt; Value -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -121,23 +121,23 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UtxoState -&gt; UtxoState -&gt; Map Address UtxoValueSetDiff
 </span><a href="Cooked.MockChain.UtxoState.html#utxoStateDiff"><span class="hs-identifier hs-var">utxoStateDiff</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522320"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
-</span><a href="#local-6989586621679522319"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><a href="#local-6989586621679522617"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoState
+</span><a href="#local-6989586621679522616"><span class="hs-identifier hs-var">b</span></a></span><span>
 </span><span id="line-39"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-40"></span><span>    </span><span id="local-6989586621679522316"><span class="annot"><a href="#local-6989586621679522318"><span class="hs-identifier hs-type">noNegativeToken</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522316"><span class="hs-identifier hs-type">prop</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522316"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
-</span><span id="line-41"></span><span>    </span><span id="local-6989586621679522318"><span class="annot"><span class="annottext">noNegativeToken :: Value -&gt; prop
-</span><a href="#local-6989586621679522318"><span class="hs-identifier hs-var hs-var">noNegativeToken</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName, Integer) -&gt; prop)
+</span><span id="line-40"></span><span>    </span><span id="local-6989586621679522613"><span class="annot"><a href="#local-6989586621679522615"><span class="hs-identifier hs-type">noNegativeToken</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Testing.html#IsProp"><span class="hs-identifier hs-type">IsProp</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522613"><span class="hs-identifier hs-type">prop</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522613"><span class="hs-identifier hs-type">prop</span></a></span></span><span>
+</span><span id="line-41"></span><span>    </span><span id="local-6989586621679522615"><span class="annot"><span class="annottext">noNegativeToken :: Value -&gt; prop
+</span><a href="#local-6989586621679522615"><span class="hs-identifier hs-var hs-var">noNegativeToken</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName, Integer) -&gt; prop)
 -&gt; [(CurrencySymbol, TokenName, Integer)] -&gt; prop
 forall prop a. IsProp prop =&gt; (a -&gt; prop) -&gt; [a] -&gt; prop
 </span><a href="Cooked.MockChain.Testing.html#testAll"><span class="hs-identifier hs-var">testAll</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol
 </span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679522315"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679522315"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; prop
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679522612"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679522612"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; prop
 forall prop. IsProp prop =&gt; Bool -&gt; prop
 </span><a href="Cooked.MockChain.Testing.html#testBool"><span class="hs-identifier hs-var">testBool</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; prop) -&gt; Bool -&gt; prop
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679522315"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679522612"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; prop)
