@@ -64,7 +64,8 @@ txProjectFund p = do
         )
           :=>: ( paysPK fundingTarget (datumTotal <> minAda) :
                  map (`paysPK` (token 1 <> minAda)) uniqueAddrs
-                 -- uncomment below (and comment above) to attempt to pay owner all tokens
+                 -- uncomment below (and comment above) to attempt to introduce a
+                 -- vulnerability where the owner receives all tokens
                  -- map (\_ -> paysPK fundingTarget token) uniqueAddrs
                )
 

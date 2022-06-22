@@ -55,7 +55,7 @@ instance Eq ValParams where
     pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
 
 -- | All data the minting policy of the reward token needs to
--- know. These are known after the opening transaction
+-- know. These are known after the project funding transaction
 newtype PolicyParams = PolicyParams
   { -- | TokenName of the reward token
     pRewardTokenName :: Value.TokenName
@@ -219,6 +219,7 @@ getTotalValue = sum . mapMaybe getValue
 -- It is valid if
 -- * the transaction is signed by the address being refunded
 -- * all inputs of the transaction point to the original funder
+-- * the output points to the original funder
 -- * contributor is refunded the amount contributed
 {-# INLINEABLE validIndividualRefund #-}
 validIndividualRefund :: L.PubKeyHash -> L.ScriptContext -> Bool
