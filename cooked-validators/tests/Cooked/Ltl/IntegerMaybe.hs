@@ -1,55 +1,32 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TupleSections #-}
 
-module Cooked.LtlTests (tests) where
+module Cooked.Ltl.IntegerMaybe (integerMaybeTests) where
 
-import Control.Monad
-import Control.Monad.State
-import Control.Monad.Writer
+import Control.Monad (MonadPlus, msum, mzero)
+import Control.Monad.Identity (Identity)
+import Control.Monad.State (execStateT, get, put)
+import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Cooked.Ltl
-import Data.Maybe (isJust, mapMaybe)
-import Debug.Trace (trace)
+import Cooked.Ltl.Structure (Mod (Mod), ModExt, lift, toLabelled)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (Assertion, assertBool, testCase)
+import Test.Tasty.HUnit (assertBool, testCase)
 
--- The builtins are the events on the trace we wanna modify
-data IntegerBuiltin a where
-  EmitInteger :: Integer -> IntegerBuiltin ()
+-- The type of modifications on integers that can fail
+type IntegerMaybeMods = ModExt Integer Maybe
 
--- The type of modifications. Here we consider that modifications
--- can actually fail, hence the inclusion of Maybe
-type DoubleHalveMods = (Integer, [String]) -> Maybe (Integer, [String])
-
-type DoubleHalveOp = LtlOp DoubleHalveMods IntegerBuiltin
-
--- This doubles integers
-doubleInteger :: DoubleHalveMods
-doubleInteger (n, l) = return (2 * n, "double" : l)
-
--- This halves integers when then are even
-halveInteger :: DoubleHalveMods
-halveInteger (n, l) = if even n then Just (div n 2, "halve" : l) else Nothing
-
--- Couple an integer with an empty list of modifications
-initInteger :: Integer -> (Integer, [String])
-initInteger = (, [])
-
-instance {-# OVERLAPS #-} Semigroup DoubleHalveMods where
-  a <> b = a >=> b
-
--- mempty does something in that it encapsulates the value
-instance {-# OVERLAPS #-} Monoid DoubleHalveMods where
-  mempty = return
+-- The builtins with a single observable event
+data EmitInteger a where
+  EmitInteger :: Integer -> EmitInteger ()
 
 instance
   MonadPlus m =>
   InterpLtl
     -- We interpret in terms of modifications that double or halve integers
-    DoubleHalveMods
+    IntegerMaybeMods
     -- The events from the system, here only emitting integers
-    IntegerBuiltin
+    EmitInteger
     -- Since the modifications can fail, we mark states are being modified
     -- By coupling them with the names of the functions that have modified them
     (WriterT [(Integer, [String])] m)
@@ -59,40 +36,47 @@ instance
   interpBuiltin (EmitInteger i) =
     get
       >>= msum
-        . map (\(u, v) -> tell [u] <* put v)
-        . mapMaybe (\(now, later) -> (,later) <$> now (initInteger i))
+        . map
+          ( \(now, later) -> case now (toLabelled i) of
+              Nothing -> mzero
+              Just res -> tell [res] <* put later
+          )
         . nowLaterList
 
 -- The staged actions, here there is only one
-emitInteger :: Integer -> Staged (LtlOp DoubleHalveMods IntegerBuiltin) ()
+emitInteger :: Integer -> Staged (LtlOp IntegerMaybeMods EmitInteger) ()
 emitInteger i = Instr (Builtin (EmitInteger i)) Return
 
+-- Operators built from the emission of integers that can fail
+type IntegerMaybeOp = LtlOp IntegerMaybeMods EmitInteger
+
 -- Interprets all the layers into a final result (a list of modified traces)
-go :: Staged DoubleHalveOp a -> [[(Integer, [String])]]
+go :: Staged IntegerMaybeOp a -> [[(Integer, [String])]]
 go = execWriterT . flip execStateT [] . interpLtl
 
--- The type of traces that will eventually be run in tests
-type DoubleHalveTrace = Staged DoubleHalveOp ()
+-- Some modifications
+-- - The modification that always double integers,
+-- - The modification that halves integers when possible
+doubleInteger = lift $ Mod "double" (return . (2 *))
+halveInteger = lift $ Mod "halve" (\n -> if even n then Just (div n 2) else Nothing)
 
--- A helper function to generate a trace from a list of integers
-generateTrace :: [Integer] -> DoubleHalveTrace
+-- A function returning all indexes of a list
+getAllIndexes = zipWith const [0 ..]
+
+-- A function that returns all indexes in a list that were modified by a given name
+getIndexesModifiedBy :: String -> [(a, [String])] -> [Integer]
+getIndexesModifiedBy s = map fst . filter (elem s . snd) . zip [0 ..] . map snd
+
+-- A function that generates a trace from a list of integers
 generateTrace = foldl (\acc -> (acc >>) . emitInteger) (Return ())
 
 -- Some test traces
 [subTraceEven, subTraceOdd, subTraceAll] = [[2, 4, 6], [5, 9, 3], [8, 7, 1, 0, 2, 6]]
+
 [traceEven, traceOdd, traceAll] = map generateTrace [subTraceEven, subTraceOdd, subTraceAll]
 
--- Retrieved the indexes of the values that were modified by a given function
-getIndexesModifiedBy :: String -> [(a, [String])] -> [Integer]
-getIndexesModifiedBy s =
-  map fst . filter (elem s . snd) . zip [0 ..] . map snd
-
--- Retrieves all the indexes
-getAllIndexes :: [a] -> [Integer]
-getAllIndexes = zipWith const [0 ..]
-
-tests :: [TestTree]
-tests =
+integerMaybeTests :: [TestTree]
+integerMaybeTests =
   [ testGroup
       "Even tests"
       ( let computations = go $ everywhere halveInteger traceEven
@@ -144,7 +128,7 @@ tests =
                   length eComputations == length subTraceAll,
               testCase "There eventually is a serie of even numbers in 3 cases" $
                 assertBool "Wrong number of sequences" $
-                  trace (show fComputations) (length fComputations == 3)
+                  length fComputations == 3
             ]
       )
   ]

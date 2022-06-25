@@ -85,8 +85,10 @@ test-suite spec
   other-modules:
       Cooked.AttackSpec
       Cooked.BalanceSpec
+      Cooked.Ltl.IntegerIdentity
+      Cooked.Ltl.IntegerMaybe
+      Cooked.Ltl.Structure
       Cooked.LtlSpec
-      Cooked.LtlTests
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
       Cooked.MockChain.WalletSpec
