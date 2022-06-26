@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Cooked.Ltl.Structure where
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), (<=<))
 import Cooked.Ltl (Staged, interpLtl, LtlOp, InterpLtl)
 import Control.Monad.State (execStateT)
 import Control.Monad.Trans.Writer (execWriterT, WriterT)
@@ -24,7 +24,7 @@ type ModExt a m =
   Labelled a -> m (Labelled a)
 
 instance {-# OVERLAPS #-} Monad m => Semigroup (ModExt a m) where
-  a <> b = a >=> b
+  (<>) = (<=<)
 
 -- mempty does something in that it encapsulates the value
 instance {-# OVERLAPS #-} Monad m => Monoid (ModExt a m) where

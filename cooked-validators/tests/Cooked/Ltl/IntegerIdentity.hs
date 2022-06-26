@@ -11,9 +11,9 @@ import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Cooked.Ltl
 import Cooked.Ltl.Structure (Labelled, Mod (Mod), ModExt, labelledBy, lift, toLabelled)
 import Data.Set (fromList)
+import Debug.Trace (trace)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertBool, testCase, (@?=))
-import Debug.Trace (trace)
 
 -- The type of modifications on integers that cannot fail
 type IntegerIdentityMods = ModExt Integer Identity
@@ -77,18 +77,6 @@ emptyTraces = [return (), void getInteger]
 testTraces :: [Staged IntegerIdentityOp ()]
 testTraces = emptyTraces ++ nonemptyTraces
 
-assertEqualSets :: (Show a, Ord a) => [a] -> [a] -> Assertion
-assertEqualSets l r =
-  assertBool
-    ( "unequal sets:\n"
-        ++ "expected: "
-        ++ show r
-        ++ "\n"
-        ++ " but got: "
-        ++ show l
-    )
-    (fromList l == fromList r)
-
 integerIdentityTests :: [TestTree]
 integerIdentityTests =
   [ testGroup
@@ -118,13 +106,13 @@ integerIdentityTests =
                 forM_
                   testTraces
                   ( \tr ->
-                      assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr)
+                      assertBool "The outputs should be identical" (go (startLtl a >> tr) == go (startLtl b >> tr))
                   ),
               testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
                 forM_
                   nonemptyTraces
                   ( \tr ->
-                      assertEqualSets (go $ startLtl c >> tr) (go $ startLtl d >> tr)
+                      assertBool "The outputs should be identical" (go (startLtl c >> tr) == go (startLtl d >> tr))
                   )
             ]
       ),
@@ -155,30 +143,31 @@ integerIdentityTests =
             ( \tr ->
                 assertBool
                   "There should be n^2 cases"
-                  ( let out = go $ somewhere (addValue 3) $ somewhere (addValue 1) tr in
-                     null out || length out == length (head out) ^ 2
+                  ( let out = go $ somewhere (addValue 3) $ somewhere (addValue 1) tr
+                     in null out || length out == length (head out) ^ 2
                   )
             ),
         testCase "modality order is respected" $
           assertBool
             "The modality order should be respected"
-            ( let e = go $ everywhere (addValue 1) $ everywhere (setValue 2) $ emitInteger 1 in trace (show e) 
-            (fst (head (head (go $ everywhere (addValue 1) $ everywhere (setValue 2) $ emitInteger 1))) == 3))
+            (fst (head (head (go $ everywhere (addValue 1) $ everywhere (setValue 2) $ emitInteger 1))) == 3),
+        testCase "nested everywhere combies modifications" $
+          assertBool
+            "The outputs should be identical"
+            ( map
+                fst
+                ( head $
+                    go $
+                      everywhere (addValue 1) $
+                        emitInteger 42
+                          >> everywhere
+                            (addValue 2)
+                            ( emitInteger 43
+                                >> everywhere (addValue 3) (emitInteger 44)
+                            )
+                          >> emitInteger 45
+                )
+                == [42 + 1, 43 + 1 + 2, 44 + 3 + 1 + 2, 45 + 1]
+            )
       ]
-      --     testCase "modality order is respected" $
-      --       assertEqualSets (go $ everywhere (1 +) $ everywhere (const 2) $ emitInteger 1) [[3]],
-      --     testCase "nested everywhere combines modifications" $
-      --       assertEqualSets
-      --         ( go $
-      --             everywhere (1 +) $
-      --               emitInteger 42
-      --                 >> everywhere
-      --                   (2 +)
-      --                   ( emitInteger 43
-      --                       >> everywhere (3 *) (emitInteger 44)
-      --                   )
-      --                 >> emitInteger 45
-      --         )
-      --         [[42 + 1, 43 + 1 + 2, 44 * 3 + 1 + 2, 45 + 1]]
-      --   ]
   ]
