@@ -35,3 +35,6 @@ lift :: Monad m =>
   Mod a m ->
   ModExt a m
 lift (Mod mName mExec) (a , l) = (, mName : l) <$> mExec a
+
+labelledBy :: Labelled a -> String -> Bool
+labelledBy (_,l) s = s `elem` l

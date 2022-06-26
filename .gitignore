@@ -7,3 +7,4 @@ dist-newstyle
 *.artifact
 *.swp
 docs/
+cooked-validators/TAGS

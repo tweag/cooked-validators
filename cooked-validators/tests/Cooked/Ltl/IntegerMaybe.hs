@@ -9,7 +9,7 @@ import Control.Monad.Identity (Identity)
 import Control.Monad.State (execStateT, get, put)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Cooked.Ltl
-import Cooked.Ltl.Structure (Mod (Mod), ModExt, lift, toLabelled)
+import Cooked.Ltl.Structure (Mod (Mod), ModExt, lift, toLabelled, Labelled)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, testCase)
 
@@ -43,15 +43,16 @@ instance
           )
         . nowLaterList
 
--- The staged actions, here there is only one
-emitInteger :: Integer -> Staged (LtlOp IntegerMaybeMods EmitInteger) ()
-emitInteger i = Instr (Builtin (EmitInteger i)) Return
 
 -- Operators built from the emission of integers that can fail
 type IntegerMaybeOp = LtlOp IntegerMaybeMods EmitInteger
 
+-- The staged actions, here there is only one
+emitInteger :: Integer -> Staged IntegerMaybeOp ()
+emitInteger i = Instr (Builtin (EmitInteger i)) Return
+
 -- Interprets all the layers into a final result (a list of modified traces)
-go :: Staged IntegerMaybeOp a -> [[(Integer, [String])]]
+go :: Staged IntegerMaybeOp a -> [[Labelled Integer]]
 go = execWriterT . flip execStateT [] . interpLtl
 
 -- Some modifications
