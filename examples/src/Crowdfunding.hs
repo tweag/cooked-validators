@@ -317,7 +317,11 @@ validLaunch :: ValParams -> L.ScriptContext -> Bool
 validLaunch cf ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
-      total = getTotalValue $ getAllDatums txi
+      datums = getAllDatums txi
+      total = getTotalValue datums
+      funderDatums =
+        filter (\d -> isJust (getFunder d) && getOwner d == fundingTarget cf) datums
+      vals = mapMaybe getValue funderDatums
    in traceIfFalse
         "Contributions after the deadline are not permitted"
         (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
@@ -327,25 +331,20 @@ validLaunch cf ctx =
         && traceIfFalse
           "Funding target not paid total contributions"
           (fundingTarget cf `receives` (total - L.txInfoFee txi))
+        && traceIfFalse
+          "Contribution is not at least the minimum value"
+          (all (`Value.geq` minContribution cf) vals)
 
 -- | An individual contributing during launch is valid if
 -- * the owner signs the transaction
--- * the contribution is at least the minimum bid
+-- * the contribution is at least the minimum value
 {-# INLINEABLE validFund #-}
 validFund :: L.PubKeyHash -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
 validFund _ to _ ctx =
   let txi = L.scriptContextTxInfo ctx
-      datums = getAllDatums txi
-      allParams = mapMaybe getValParams datums
-      [currParams] = filter (\vp -> fundingTarget vp == to) allParams
-      Just input = L.findOwnInput ctx
-      value = L.txOutValue $ L.txInInfoResolved input
    in traceIfFalse
         "Transaction not signed by owner"
         (txi `L.txSignedBy` to)
-        && traceIfFalse
-          "Contribution is not at least the minimum value"
-          (value `Value.geq` minContribution currParams)
 
 {-# INLINEABLE validate #-}
 validate :: Datum -> Action -> L.ScriptContext -> Bool
