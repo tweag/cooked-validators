@@ -217,6 +217,20 @@ manyContributorsSomeRefundsFund = do
   Cf.txRefund `as` wallet 8
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
 
+-- | one contribution, attempting to refund when contribution does not exceed minimum
+-- NOTE: this currently is allowed. This is likely a design decision flaw, since in
+-- an owner refunding transaction this is not allowed. This is due to the fact that
+-- an individual refund transaction does not consume the project proposal datum, so
+-- the minimum contribution is not available to be checked by the individual refunding
+-- validator. The potential fix is to have the funding datum take in the ValParams
+-- as a paramater.
+oneContributionRefundBelowMinimum :: MonadMockChain m => m ()
+oneContributionRefundBelowMinimum = do
+  t0 <- currentTime
+  Cf.txOpen (bananaParams t0)
+  Cf.txIndividualFund (bananaParams t0) (banana 1) `as` wallet 3
+  Cf.txRefund `as` wallet 3
+
 successfulSingle :: TestTree
 successfulSingle =
   testGroup
@@ -244,7 +258,9 @@ successfulSingle =
       testCase "many contributors, owner refunds" $
         testSucceedsFrom testInit manyContributorsOwnerRefunds,
       testCase "many contributors, some refund, project funded" $
-        testSucceedsFrom testInit manyContributorsSomeRefundsFund
+        testSucceedsFrom testInit manyContributorsSomeRefundsFund,
+      testCase "one contribution not exceeding minimum, refunded" $
+        testSucceedsFrom testInit oneContributionRefundBelowMinimum
     ]
 
 -- | one contribution, refund error: wallet 1 attempts to refund without contributing
@@ -284,6 +300,18 @@ ownerRefundsErrorDeadline = do
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
   Cf.txRefundAll (bananaParams t0) `as` wallet 2
 
+-- | attempting to refund all contributors when one contribution does not
+-- exceed the minimum contribution
+ownerRefundsErrorMinimum :: MonadMockChain m => m ()
+ownerRefundsErrorMinimum = do
+  t0 <- currentTime
+  Cf.txOpen (bananaParams t0)
+  Cf.txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
+  Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
+  Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  Cf.txRefundAll (bananaParams t0) `as` wallet 2
+
 -- | two contributions, error: one contribution does not exceed minimum
 twoContributionsFundErrorMinimum :: MonadMockChain m => m ()
 twoContributionsFundErrorMinimum = do
@@ -317,6 +345,8 @@ failingSingle =
         testFailsFrom testInit oneContributionFundErrorDeadline,
       testCase "owner refunds before the deadline" $
         testFailsFrom testInit ownerRefundsErrorDeadline,
+      testCase "owner refunds, one contribution does not exceed minimum" $
+        testFailsFrom testInit ownerRefundsErrorMinimum,
       testCase "contribution does not exceed minimum" $
         testFailsFrom testInit twoContributionsFundErrorMinimum,
       testCase "owner pays self all funds after the deadline" $
