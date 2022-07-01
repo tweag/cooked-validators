@@ -43,6 +43,9 @@ in {
         cacert # git SSL
         pkg-config # required by libsystemd-journal
 
+        # We need cvc4 at least to run pirouette
+        cvc4
+
         # haskell development tools pulled from regular nixpkgs
         hpack
         hlint
