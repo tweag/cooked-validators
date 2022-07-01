@@ -26,7 +26,7 @@ tests =
   [ testGroup
       "unit"
       [ -- This test case is the regression test for two bug fixes, namely PRs
-        -- 110 and 131.  The `as` on the second transaction is there for a very
+        -- 110 and 132.  The `as` on the second transaction is there for a very
         -- specific reason: It introduces a 'Return' in the middle of the AST,
         -- since `as` is defined in terms of `signingWith`, which in turn is
         -- reified as
@@ -45,7 +45,7 @@ tests =
         -- Instead, we must now use the function `interpLtlAndPruneUnfinished`
         -- if we wish to prune all branches that have not completely applied all
         -- modifications at the end of the computation.
-        testCase "(PR110, PR131) somewhere (Just . f) >> a >> b >> c == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $
+        testCase "(PR110, PR132) somewhere (Just . f) >> a >> b >> c == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $
           let f (TxSkel lbl opts cs) =
                 case toConstraints cs of
                   is :=>: os -> TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10000000) : os))
