@@ -52,7 +52,7 @@ emptyTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
 emptyTraces = [return (), void getInteger]
 
 testTraces :: [Staged (LtlOp TestModification TestBuiltin) ()]
-testTraces = emptyTraces ++ nonemptyTraces
+testTraces = nonemptyTraces ++ emptyTraces
 
 assertAll :: [a] -> (a -> Assertion) -> Assertion
 assertAll space f = mapM_ f space
@@ -74,9 +74,9 @@ tests =
   [ testGroup
       "simple laws"
       [ testCase "LtlFalsity fails on every computation" $
-          assertAll testTraces (\tr -> go (startLtl LtlFalsity >> tr) @?= []),
+          assertAll testTraces (\tr -> go (modifyLtl LtlFalsity tr) @?= []),
         testCase "LtlTruth leaves every computation unchanged" $
-          assertAll testTraces (\tr -> go (startLtl LtlTruth >> tr) @?= go tr),
+          assertAll testTraces (\tr -> go (modifyLtl LtlTruth tr) @?= go tr),
         testCase "x `LtlUntil` y == y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))" $
           let x = LtlAtom (1 +)
               y = LtlAtom (2 +)
@@ -84,7 +84,7 @@ tests =
               b = y `LtlOr` (x `LtlAnd` LtlNext (x `LtlUntil` y))
            in assertAll
                 testTraces
-                (\tr -> assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr)),
+                (\tr -> assertEqualSets (go $ modifyLtl a tr) (go $ modifyLtl b tr)),
         testCase "x `LtlRelease` y == y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y)) for nonempty traces" $
           let x = LtlAtom (1 +)
               y = LtlAtom (2 +)
@@ -92,7 +92,7 @@ tests =
               b = y `LtlAnd` (x `LtlOr` LtlNext (x `LtlRelease` y))
            in assertAll
                 nonemptyTraces
-                (\tr -> assertEqualSets (go $ startLtl a >> tr) (go $ startLtl b >> tr))
+                (\tr -> assertEqualSets (go $ modifyLtl a tr) (go $ modifyLtl b tr))
       ],
     testGroup
       "unit tests"
@@ -108,7 +108,7 @@ tests =
                 testTraces
                 ( \tr ->
                     assertEqualSets
-                      (go $ startLtl (LtlNext $ LtlAtom (n +)) >> tr)
+                      (go $ modifyLtl (LtlNext $ LtlAtom (n +)) tr)
                       (incSeconds $ go tr)
                 ),
         testCase "everywhere changes everything" $

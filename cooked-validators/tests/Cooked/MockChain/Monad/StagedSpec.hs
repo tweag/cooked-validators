@@ -21,30 +21,37 @@ smcEq a b = go a @?= go b
   where
     go = map fst . interpretAndRun
 
-possibleTraces :: [StagedMockChain ()]
-possibleTraces =
-  [ return (),
-    void $ validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)],
-    void $ do
-      validateTxConstr [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
-      validateTxConstr [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4_200_000)]
-  ]
-
 tests :: [TestTree]
 tests =
   [ testGroup
       "unit"
-      [ testCase "somewhere (Just . f) >> a >> b >> c == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $
+      [ -- This test case is the regression test for two bug fixes, namely PRs
+        -- 110 and 131.  The `as` on the second transaction is there for a very
+        -- specific reason: It introduces a 'Return' in the middle of the AST,
+        -- since `as` is defined in terms of `signingWith`, which in turn is
+        -- reified as
+        --
+        -- > SigningWith :: NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
+        --
+        -- Now, in a term like `SigningWith ws smc`, the last instruction in
+        -- `smc` has to be a `Return`. This means that we can not define the
+        -- `Return` case of `interpLtl` like this
+        --
+        -- > interpLtl (Return a) = get >>= \xs -> if all finished xs then return a else mzero
+        --
+        -- (which was the case before we found this bug), as it will potentially
+        -- prune branches prematurely.
+        --
+        -- Instead, we must now use the function `interpLtlAndPruneUnfinished`
+        -- if we wish to prune all branches that have not completely applied all
+        -- modifications at the end of the computation.
+        testCase "(PR110, PR131) somewhere (Just . f) >> a >> b >> c == [f a >> b >> c , a >> f b >> c , a >> b >> f c]" $
           let f (TxSkel lbl opts cs) =
                 case toConstraints cs of
                   is :=>: os -> TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10000000) : os))
               tr f g h = void $ do
                 validateTxSkel $ f $ txSkel [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4200000)]
-                validateTxSkel $ g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]
-                -- This return is here on purpose; it adds something that is not a ValidateTxSkel to
-                -- the staged AST. Check https://github.com/tweag/plutus-libs/pull/110 for the
-                -- bug that triggered these tests to be created.
-                _ <- return ()
+                validateTxSkel (g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4200000)]) `as` wallet 2
                 validateTxSkel $ h $ txSkel [paysPK (walletPKHash $ wallet 4) (Pl.lovelaceValueOf 4200000)]
            in somewhere (Just . f) (tr id id id) `smcEq` (tr f id id <|> tr id f id <|> tr id id f),
         testCase "somewhere (\\case b -> b'; _ -> Nothing) >> a >> b >> c == [a >> b' >> c]" $

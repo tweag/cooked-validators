@@ -249,7 +249,7 @@ interpLtl ::
   (InterpLtl modification builtin m) =>
   Staged (LtlOp modification builtin) a ->
   StateT [Ltl modification] m a
-interpLtl (Return a) = get >>= \xs -> if all finished xs then return a else mzero
+interpLtl (Return a) = return a
 interpLtl (Instr (StartLtl x) f) = get >>= put . (x :) >>= interpLtl . f
 interpLtl (Instr StopLtl f) = do
   xs <- get
@@ -263,6 +263,20 @@ interpLtl (Instr StopLtl f) = do
         else mzero
 interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
+-- | Interpret a 'Staged' computation into a suitable domain, using the function
+-- 'interpBuiltin' to interpret the builtins. At the end of the computation,
+-- prune branches that still have un'finished' modifications applied to
+-- them. See the discussion on the regression test case for PRs 110 and 131 in
+-- 'StagedSpec.hs' for a discussion on why this function has to exist.
+interpLtlAndPruneUnfinished ::
+  (InterpLtl modification builtin m) =>
+  Staged (LtlOp modification builtin) a ->
+  StateT [Ltl modification] m a
+interpLtlAndPruneUnfinished f = do
+  res <- interpLtl f
+  mods <- get
+  if all finished mods then return res else mzero
+
 -- * Convenience functions
 
 -- Users of this module should never use 'StartLtl' and 'StopLtl'
@@ -271,11 +285,6 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 -- 'MonadModal' because there might be other possibilities to equip a monad with
 -- LTL modifications beside the method above.
 
--- | Introduce an LTL formula to be in effect from now on, modifying the
--- remainder of the computation.
-startLtl :: Ltl modification -> Staged (LtlOp modification builtin) ()
-startLtl x = Instr (StartLtl x) Return
-
 -- | Monads that allow modificaitons with LTL formulas.
 class Monad m => MonadModal m where
   type Modification m :: Type
@@ -283,7 +292,7 @@ class Monad m => MonadModal m where
 
 instance MonadModal (Staged (LtlOp modification builtin)) where
   type Modification (Staged (LtlOp modification builtin)) = modification
-  modifyLtl x tr = startLtl x >> tr >>= \res -> Instr StopLtl Return >> return res
+  modifyLtl x tr = Instr (StartLtl x) Return >> tr >>= \res -> Instr StopLtl Return >> return res
 
 -- | Apply a modification somewhere in the given computation. The modification
 -- must apply at least once.

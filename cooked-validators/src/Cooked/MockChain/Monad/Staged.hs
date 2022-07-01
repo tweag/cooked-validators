@@ -48,16 +48,16 @@ interpretAndRun = interpretAndRunWith runMockChainT
 --  the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
--- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
---  computation yields a potential list of 'MockChainT' computations, which emmit
---  a description of their operation. Recall a 'MockChainT' is a state and except
---  monad composed:
+-- | The 'interpret' function gives semantics to our traces. One
+--  'StagedMockChain' computation yields a potential list of 'MockChainT'
+--  computations, which emit a description of their operation. Recall a
+--  'MockChainT' is a state and except monad composed:
 --
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = flip evalStateT [] . interpLtl
+interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
