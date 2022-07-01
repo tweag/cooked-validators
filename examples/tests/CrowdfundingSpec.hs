@@ -448,7 +448,7 @@ attacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryDupTokens
+          tryDatumHijack
     ]
 
 tests :: TestTree
