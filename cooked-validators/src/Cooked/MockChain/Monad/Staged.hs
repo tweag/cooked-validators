@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -48,16 +49,16 @@ interpretAndRun = interpretAndRunWith runMockChainT
 --  the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT TraceDescr [])
 
--- | The 'interpret' function gives semantics to our traces. One 'StagedMockChain'
---  computation yields a potential list of 'MockChainT' computations, which emmit
---  a description of their operation. Recall a 'MockChainT' is a state and except
---  monad composed:
+-- | The 'interpret' function gives semantics to our traces. One
+--  'StagedMockChain' computation yields a potential list of 'MockChainT'
+--  computations, which emit a description of their operation. Recall a
+--  'MockChainT' is a state and except monad composed:
 --
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
 interpret :: StagedMockChain a -> InterpMockChain a
-interpret = flip evalStateT [] . interpLtl
+interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
@@ -118,8 +119,18 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
-        . map (\(now, later) -> maybe mzero validateTxSkel (now skel) <* put later)
+        . map (uncurry interpretAndTell)
         . nowLaterList
+    where
+      interpretAndTell now later =
+        case now skel of
+          Just skel' -> do
+            signers <- askSigners
+            lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+            tx <- validateTxSkel skel'
+            put later
+            return tx
+          Nothing -> mzero
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
@@ -132,7 +143,10 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin GetSlotConfig = slotConfig
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
-  interpBuiltin (Fail msg) = fail msg
+  interpBuiltin (Fail msg) = do
+    signers <- askSigners
+    lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ Fail msg
+    fail msg
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
