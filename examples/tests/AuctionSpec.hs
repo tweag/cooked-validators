@@ -173,7 +173,9 @@ attacks =
     [ testCase "token duplication" $
         testFailsFrom'
           -- Ensure that the trace fails and gives back an error message satisfying a specific condition
-          (isCekEvaluationFailureWithMsg ("not minting or burning" `isPrefixOf`))
+          ( isCekEvaluationFailureWithMsg
+              (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
+          )
           testInit
           tryDupTokens,
       testCase "datum hijacking" $
