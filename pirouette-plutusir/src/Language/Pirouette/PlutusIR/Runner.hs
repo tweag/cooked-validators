@@ -25,9 +25,10 @@ import Test.Tasty.HUnit
 pirouetteCompiledCode' ::
   StoppingCondition ->
   Pl.CompiledCode a ->
+  PrtUnorderedDefs PlutusIR ->
   AssumeProve PlutusIR ->
   Assertion
-pirouetteCompiledCode' stop code (toAssume :==>: toProve) =
+pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toProve) =
   case Pl.getPir code of
     Nothing -> assertFailure "Can't getPir of the provided code"
     Just pir ->
@@ -36,7 +37,7 @@ pirouetteCompiledCode' stop code (toAssume :==>: toProve) =
         Right (main0, decls0) ->
           -- We try to remove as many 'nameUnique' bits as possible, to help with
           -- writing predicates and referring to types.
-          let (decls1, main) = declsUniqueNames decls0 main0
+          let (decls1, main) = declsUniqueNames (augments `M.union` decls0) main0
               -- TODO: what if we don't manage to infer the type of main? Also, can't we make this interface much better? These empty lists are awkward here.
               Right (Just mainTy) = runExcept $ runReaderT (typeInferTerm main) ((decls1, []), [])
               (mainTyArgs, mainTyRes) = SystF.tyFunArgs mainTy

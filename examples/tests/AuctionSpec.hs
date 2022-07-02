@@ -1,5 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -17,9 +18,12 @@ import Cooked.Tx.Constraints
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
+import Language.Pirouette.PlutusIR
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
+import Pirouette
+import Pirouette.Monad
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -211,6 +215,31 @@ bidderAlternative =
       testInit
       bidderAlternativeTrace
 
+-- * Pirouette tests
+
+pirouetteTests :: TestTree
+pirouetteTests =
+  testGroup
+    "Pirouette"
+    [ testCase "bid-keeps-token" $
+        pirouetteCompiledCode'
+          (\st -> False)
+          A.compiledValidate
+          [pirDecls|
+            fun isBid : Action -> Bool
+                = \(a : Action) . match_Bid @Bool a
+                    (\(b : BidderInfo) . True)
+                    False
+
+            fun receivesToken : ValParams -> ScriptContext -> Bool
+                = \(p : ValParams) (ctx : ScriptContext) . False
+          |]
+          ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext) . if @Bool res then isBid a else False |]
+              :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext) .
+                        receivesToken p ctx |]
+          )
+    ]
+
 -- * Collecting all the tests in this module
 
 miscTests :: TestTree
@@ -226,5 +255,6 @@ tests =
     [ successfulSingle,
       failingSingle,
       attacks,
-      miscTests
+      miscTests,
+      pirouetteTests
     ]

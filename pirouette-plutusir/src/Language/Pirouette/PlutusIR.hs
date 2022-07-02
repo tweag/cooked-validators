@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 
-module Language.Pirouette.PlutusIR (module X, pir, pirTy) where
+module Language.Pirouette.PlutusIR (module X, pir, pirTy, pirDecls) where
 
 import Language.Pirouette.PlutusIR.Runner as X
 import Language.Pirouette.PlutusIR.SMT as X
@@ -11,6 +11,9 @@ import qualified Language.Pirouette.QuasiQuoter as QQ
 
 pir :: QQ.QuasiQuoter
 pir = QQ.term @PlutusIR
+
+pirDecls :: QQ.QuasiQuoter
+pirDecls = QQ.progNoTC @PlutusIR
 
 pirTy :: QQ.QuasiQuoter
 pirTy = QQ.ty @PlutusIR
