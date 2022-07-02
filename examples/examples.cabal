@@ -40,6 +40,8 @@ library
     , hspec
     , lens
     , mtl
+    , pirouette >=2.0.0
+    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core
@@ -90,6 +92,8 @@ test-suite spec
     , hspec
     , lens
     , mtl
+    , pirouette >=2.0.0
+    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core

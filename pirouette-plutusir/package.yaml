@@ -33,6 +33,7 @@ dependencies:
   - flat >= 0.4.5
   - plutus-core
   - plutus-ledger
+  - plutus-tx
   - pirouette >= 2.0.0
 
 library:

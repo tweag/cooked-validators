@@ -41,6 +41,7 @@ library
     , pirouette >=2.0.0
     , plutus-core
     , plutus-ledger
+    , plutus-tx
     , prettyprinter
     , tasty
     , tasty-expected-failure
@@ -84,6 +85,7 @@ test-suite spec
     , pirouette-plutusir
     , plutus-core
     , plutus-ledger
+    , plutus-tx
     , prettyprinter
     , tasty
     , tasty-expected-failure
