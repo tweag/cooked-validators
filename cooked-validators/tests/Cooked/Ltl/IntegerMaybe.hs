@@ -9,7 +9,7 @@ import Control.Monad.Identity (Identity)
 import Control.Monad.State (execStateT, get, put)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Cooked.Ltl
-import Cooked.Ltl.Structure (Mod (Mod), ModExt, lift, toLabelled, Labelled)
+import Cooked.Ltl.MMods (Labelled, Mod (Mod), ModExt, lift, toLabelled)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, testCase)
 
@@ -43,7 +43,6 @@ instance
           )
         . nowLaterList
 
-
 -- Operators built from the emission of integers that can fail
 type IntegerMaybeOp = LtlOp IntegerMaybeMods EmitInteger
 
@@ -59,6 +58,7 @@ go = execWriterT . flip execStateT [] . interpLtl
 -- - The modification that always double integers,
 -- - The modification that halves integers when possible
 doubleInteger = lift $ Mod "double" (return . (2 *))
+
 halveInteger = lift $ Mod "halve" (\n -> if even n then Just (div n 2) else Nothing)
 
 -- A function returning all indexes of a list

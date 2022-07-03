@@ -87,7 +87,7 @@ test-suite spec
       Cooked.BalanceSpec
       Cooked.Ltl.IntegerIdentity
       Cooked.Ltl.IntegerMaybe
-      Cooked.Ltl.Structure
+      Cooked.Ltl.MMods
       Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec

@@ -2,7 +2,6 @@ module Cooked.LtlSpec (tests) where
 
 import Cooked.Ltl.IntegerIdentity (integerIdentityTests)
 import Cooked.Ltl.IntegerMaybe (integerMaybeTests)
-
 import Test.Tasty (TestTree, testGroup)
 
 tests :: [TestTree]

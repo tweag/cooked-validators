@@ -9,7 +9,7 @@ import Control.Monad.Identity (Identity, runIdentity)
 import Control.Monad.State (execStateT, get, put)
 import Control.Monad.Writer (WriterT, execWriterT, tell)
 import Cooked.Ltl
-import Cooked.Ltl.Structure (Labelled, Mod (Mod), ModExt, labelledBy, lift, toLabelled)
+import Cooked.Ltl.MMods (Labelled, Mod (Mod), ModExt, labelledBy, lift, toLabelled)
 import Data.Set (fromList)
 import Debug.Trace (trace)
 import Test.Tasty (TestTree, testGroup)

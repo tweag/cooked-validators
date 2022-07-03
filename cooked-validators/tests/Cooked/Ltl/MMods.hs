@@ -1,8 +1,8 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Cooked.Ltl.Structure where
-import Control.Monad ((>=>), (<=<))
+module Cooked.Ltl.MMods where
+import Control.Monad ((<=<))
 import Cooked.Ltl (Staged, interpLtl, LtlOp, InterpLtl)
 import Control.Monad.State (execStateT)
 import Control.Monad.Trans.Writer (execWriterT, WriterT)
