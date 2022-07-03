@@ -227,7 +227,7 @@ pirouetteTests =
           A.compiledValidate
           [pirDecls|
             fun isBid : Action -> Bool
-                = \(a : Action) . match_Bid @Bool a
+                = \(a : Action) . Action_match a @Bool
                     (\(b : BidderInfo) . True)
                     False
 

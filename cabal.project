@@ -31,7 +31,7 @@ packages:
 source-repository-package
   type: git
   location: https://github.com/tweag/pirouette.git
-  tag: 64c82cc0ccdeb2f48c62d5e6e67af9cf728a609f
+  tag: 26c3417c601e84cea1a94782cdd2d793600f0f45
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
