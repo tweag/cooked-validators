@@ -126,24 +126,25 @@ stEmpty :: St name
 stEmpty = St M.empty M.empty
 
 -- | The translation environment consists of the stack of bound term and type variables.
-newtype Env name = Env
-  { stack :: [(name, Either SystF.Kind (Type PlutusIR))]
+data Env name = Env
+  { termStack :: [(name, Type PlutusIR)],
+    typeStack :: [(name, SystF.Kind)]
   }
 
 envEmpty :: Env name
-envEmpty = Env []
+envEmpty = Env [] []
 
 pushNames :: [(name, Type PlutusIR)] -> Env name -> Env name
-pushNames ns env = env {stack = map (second Right) ns ++ stack env}
+pushNames ns env = env {termStack = ns ++ termStack env}
 
 pushName :: name -> Type PlutusIR -> Env name -> Env name
-pushName n ty env = env {stack = (n, Right ty) : stack env}
+pushName n ty env = env {termStack = (n, ty) : termStack env}
 
 pushType :: name -> SystF.Kind -> Env name -> Env name
-pushType ty ki env = env {stack = (ty, Left ki) : stack env}
+pushType ty ki env = env {typeStack = (ty, ki) : typeStack env}
 
 pushTypes :: [(name, SystF.Kind)] -> Env name -> Env name
-pushTypes ty env = env {stack = map (second Left) ty ++ stack env}
+pushTypes ty env = env {typeStack = ty ++ typeStack env}
 
 -- | Translates a program into a list of declarations and a body.
 trProgram ::
@@ -207,9 +208,10 @@ bindingCtxDeps termBinds = do
       DepsOf Name ->
       TrM loc (DepsOf Name)
     go xs origDeps delta = do
-      vs <- asks stack
+      vs <- asks termStack
+      ts <- asks typeStack
       let currDeps = M.unionWith S.union origDeps delta
-      let newDelta = M.fromList $ map (second $ termCtxDeps vs currDeps) xs
+      let newDelta = M.fromList $ map (second $ termCtxDeps vs ts currDeps) xs
       if delta == newDelta
         then return currDeps
         else go xs origDeps newDelta
@@ -233,34 +235,33 @@ bindingCtxDeps termBinds = do
 termCtxDeps ::
   forall tyname name uni loc.
   (PIRConstraint tyname name P.DefaultFun) =>
-  [(Name, Either SystF.Kind (Type PlutusIR))] ->
+  [(Name, Type PlutusIR)] ->
+  [(Name, SystF.Kind)] ->
   DepsOf Name ->
   PIR.Term tyname name uni P.DefaultFun loc ->
   S.Set (Dep Name)
-termCtxDeps vs deps (PIR.Var _ n) =
+termCtxDeps vs _ deps (PIR.Var _ n) =
   -- The vs represent the stack of bound variables that were bound OUTSIDE the term we're
   -- looking at. note how we do NOT change vs on the PIR.LamAbs case!
   case L.elemIndex (toName n) (map fst vs) of
-    Just i -> case unsafeIdx "termCtxDeps" vs i of
-      (n0, Right ty) -> S.singleton $ TermDep n0 ty
-      _ -> error "Found term variables referring to types"
+    Just i -> S.singleton $ uncurry TermDep $ unsafeIdx "termCtxDeps" vs i
     Nothing -> fromMaybe S.empty $ M.lookup (toName n) deps
-termCtxDeps vs deps (PIR.LamAbs _ _ _ t) = termCtxDeps vs deps t -- TODO: What happens in case there is name shadowing? We'll mess this up!
-termCtxDeps vs deps (PIR.Apply _ tfun targ) = S.union (termCtxDeps vs deps tfun) (termCtxDeps vs deps targ)
-termCtxDeps vs deps (PIR.TyInst _ t i) = tyCtxDeps vs deps i `S.union` termCtxDeps vs deps t
-termCtxDeps vs deps (PIR.TyAbs _ _ _ t) = termCtxDeps vs deps t
-termCtxDeps vs deps (PIR.IWrap _ _ _ t) = termCtxDeps vs deps t
-termCtxDeps vs deps (PIR.Unwrap _ t) = termCtxDeps vs deps t
-termCtxDeps vs deps (PIR.Let _ _ bs t) =
+termCtxDeps vs ts deps (PIR.LamAbs _ _ _ t) = termCtxDeps vs ts deps t -- TODO: What happens in case there is name shadowing? We'll mess this up!
+termCtxDeps vs ts deps (PIR.Apply _ tfun targ) = S.union (termCtxDeps vs ts deps tfun) (termCtxDeps vs ts deps targ)
+termCtxDeps vs ts deps (PIR.TyInst _ t i) = tyCtxDeps ts deps i `S.union` termCtxDeps vs ts deps t
+termCtxDeps vs ts deps (PIR.TyAbs _ _ _ t) = termCtxDeps vs ts deps t
+termCtxDeps vs ts deps (PIR.IWrap _ _ _ t) = termCtxDeps vs ts deps t
+termCtxDeps vs ts deps (PIR.Unwrap _ t) = termCtxDeps vs ts deps t
+termCtxDeps vs ts deps (PIR.Let _ _ bs t) =
   S.union
-    (termCtxDeps vs deps t)
-    (S.unions (map (either (termCtxDeps vs deps . fst . snd) (const S.empty) . eitherDataTerm) $ NE.toList bs))
-termCtxDeps _ _ _ = S.empty
+    (termCtxDeps vs ts deps t)
+    (S.unions (map (either (termCtxDeps vs ts deps . fst . snd) (const S.empty) . eitherDataTerm) $ NE.toList bs))
+termCtxDeps _ _ _ _ = S.empty
 
 tyCtxDeps ::
   forall tyname uni loc.
   (ToName tyname) =>
-  [(Name, Either SystF.Kind (Type PlutusIR))] ->
+  [(Name, SystF.Kind)] ->
   DepsOf Name ->
   PIR.Type tyname uni loc ->
   S.Set (Dep Name)
@@ -269,9 +270,7 @@ tyCtxDeps ts deps (PIR.TyVar _ n)
   | toName n == "Bool" = S.empty
   | otherwise =
     case L.elemIndex (toName n) (map fst ts) of
-      Just i -> case unsafeIdx "tyCtxDeps" ts i of
-        (n0, Left k) -> S.singleton $ TypeDep i n0 k
-        _ -> error "Found types depending on terms"
+      Just i -> S.singleton $ uncurry (TypeDep i) $ unsafeIdx "tyCtxDeps" ts i
       Nothing -> fromMaybe S.empty $ M.lookup (toName n) deps
 tyCtxDeps ts deps (PIR.TyFun _ tyA tyB) = tyCtxDeps ts deps tyA `S.union` tyCtxDeps ts deps tyB
 tyCtxDeps ts deps (PIR.TyApp _ tyA tyB) = tyCtxDeps ts deps tyA `S.union` tyCtxDeps ts deps tyB
@@ -361,7 +360,7 @@ trType (PIR.TyVar _ tyn)
   | otherwise = do
     let tyName = toName tyn
     -- First we try to see if this type is a bound variable
-    bounds <- asks (map fst . stack)
+    bounds <- asks (map fst . typeStack)
     case L.elemIndex tyName bounds of
       Just ix -> return $ SystF.TyPure (SystF.Bound (SystF.Ann tyName) $ fromIntegral ix)
       -- If it's not a bound variable, we check whether its a type synonym
@@ -460,7 +459,7 @@ trTerm mn t = do
       | toName n == "Bool_match" =
         return $ SystF.termPure $ SystF.Free $ Builtin P.IfThenElse
       | otherwise = do
-        vs <- asks stack
+        vs <- asks termStack
         case L.elemIndex (toName n) (map fst vs) of
           Just i -> return $ SystF.termPure (SystF.Bound (SystF.Ann $ toName n) $ fromIntegral i)
           Nothing -> do
@@ -496,7 +495,8 @@ trTerm mn t = do
     -- provide to satisfy its dependencies. Check the comment to 'go' above for an example.
     getTransitiveDepsAsArgs :: Name -> TrM loc [Arg PlutusIR]
     getTransitiveDepsAsArgs n = do
-      vs <- asks (map fst . stack)
+      vs <- asks (map fst . termStack)
+      ts <- asks (map fst . typeStack)
       mDepsOn <- gets (M.lookup n . stDepsOf)
       case mDepsOn of
         Nothing -> return []
@@ -512,7 +512,7 @@ trTerm mn t = do
           let tyArgs =
                 map
                   ( SystF.TyArg . SystF.TyPure . uncurry SystF.Bound
-                      . (\x -> (SystF.Ann x, fromIntegral $ fromJust $ L.elemIndex x vs))
+                      . (\x -> (SystF.Ann x, fromIntegral $ fromJust $ L.elemIndex x ts))
                       . fst
                   )
                   tyDeps
