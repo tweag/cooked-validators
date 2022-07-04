@@ -189,22 +189,21 @@ mPrettyValue =
         [v] -> Just v
         _ -> Just $ PP.lbrace <> PP.indent 1 (PP.vsep vs) <> PP.space <> PP.rbrace
   )
-    . map (uncurry prettyCurrencyAndAmount)
-    . Pl.toList
-    . Pl.getValue
+    . map prettyCurrencyAndAmount
+    . filter (\(_, _, n) -> n /= 0)
+    . Pl.flattenValue
 
-prettyCurrencyAndAmount :: Pl.CurrencySymbol -> Pl.Map Pl.TokenName Integer -> Doc ann
-prettyCurrencyAndAmount symbol =
-  PP.vsep . map (uncurry prettyToken) . Pl.toList
+prettyCurrencyAndAmount :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> Doc ann
+prettyCurrencyAndAmount (symbol, tName, amount) = prettyToken tName amount
   where
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
     prettySymbol = PP.pretty . take 7 . show
 
     prettySpacedNumber :: Integer -> Doc ann
-    prettySpacedNumber i =
-      if i >= 0
-        then psnTerm "" 0 i
-        else "-" <> psnTerm "" 0 (- i)
+    prettySpacedNumber i
+      | 0 == i = "0" -- this case should never be reached under normal use through 'mPrettyValue'
+      | i > 0 = psnTerm "" 0 i
+      | otherwise = "-" <> psnTerm "" 0 (- i)
       where
         psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
         psnTerm acc _ 0 = acc
