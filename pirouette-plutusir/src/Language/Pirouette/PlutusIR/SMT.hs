@@ -50,8 +50,12 @@ trPIRType PIRTypeData = PureSMT.fun "pir_Data" []
 -- and `Pair a` is represented by `PIRTypePair (pirType a) Nothing`
 trPIRType (PIRTypePair (Just pirType1) (Just pirType2)) =
   PureSMT.fun "pir_Tuple2" [trPIRType pirType1, trPIRType pirType2]
+trPIRType (PIRTypePair Nothing Nothing) =
+  PureSMT.fun "pir_Tuple2" []
 trPIRType (PIRTypeList (Just pirType)) =
   PureSMT.fun "pir_List" [trPIRType pirType]
+trPIRType (PIRTypeList Nothing) =
+  PureSMT.fun "pir_List" []
 trPIRType pirType =
   error $ "Translate builtin type to smtlib: " <> show pirType <> " not yet handled."
 

@@ -21,6 +21,7 @@ import qualified Pirouette.Term.Syntax.SystemF as SystF
 import Pirouette.Term.TypeChecker
 import Pirouette.Transformations
 import Pirouette.Transformations.Contextualize
+import qualified PlutusCore.Pretty as Pl
 import qualified PlutusTx.Code as Pl
 import Test.Tasty.HUnit
 
@@ -30,7 +31,8 @@ pirouetteDeclsFromCompiledCode :: Pl.CompiledCode a -> IO (Term PlutusIR, Decls 
 pirouetteDeclsFromCompiledCode code =
   case Pl.getPir code of
     Nothing -> assertFailure "Can't getPir of the provided code"
-    Just pir ->
+    Just pir -> do
+      writeFile "prog.pir" (show $ Pl.prettyClassicDebug pir)
       case runExcept $ trProgram pir of
         Left err0 -> assertFailure $ "Error translating pir: " ++ show err0
         Right res -> return res
@@ -119,6 +121,7 @@ gogogo toDo prog0 (IncorrectnessParams fn ty (assume :==>: toProve)) = do
   let prog2 = defunctionalize prog1
   liftIO (writeFile "prog2-defun" $ show $ pretty $ prtUODecls prog2)
   let prog3 = elimEvenOddMutRec prog2
+  liftIO (writeFile "prog3-ord" $ unlines $ map show $ prtDepOrder prog3)
   liftIO (writeFile "prog3-nomr" $ show $ pretty $ prtDecls prog3)
   let orderedDecls = prog3
   -- Now we can contextualize the necessary terms and run the worker

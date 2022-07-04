@@ -43,6 +43,15 @@ import qualified PlutusIR.Core.Type as PIR
 -- So instead we transform any usage of a 'PIRType' with
 -- 'Bool' into the built-in one.
 
+-- [HACK: Translation of higher rank types]
+-- Some parts of the program, in particular constructors, might rely on @(forall a . a -> a)@
+-- for some undefined things. Under the hypothesis that these are all unused, we just
+-- substitute that with Unit instead because we can't have a constructor:
+--
+-- > C :: (forall a . a -> a) -> SomeType
+--
+-- in SMT.
+
 -- | Plutus' Internal Representation AST requires a lot of type variables
 --  and constraints; we'll just add a constraint synonym to make it easier
 --  to write this everywhere.
@@ -287,8 +296,20 @@ trDataOrTypeBinding (PIR.TypeBind _ tyvard tybody) =
   let tyName = toName $ PIR._tyVarDeclName tyvard
    in do
         ty <- trType tybody
-        modify (\st -> st {stTypeSynonyms = M.insert tyName ty (stTypeSynonyms st)})
+        -- See [HACK: Higher rank types]
+        let ty' =
+              if isIdFunction ty
+                then SystF.TyPure (SystF.Free (TyBuiltin PIRTypeUnit))
+                else ty
+        modify (\st -> st {stTypeSynonyms = M.insert tyName ty' (stTypeSynonyms st)})
         return M.empty
+  where
+    isIdFunction :: Type PlutusIR -> Bool
+    isIdFunction (SystF.TyAll _ _ (SystF.TyFun x y)) =
+      case x of
+        SystF.TyApp (SystF.Bound _ 0) [] -> x == y
+        _ -> False
+    isIdFunction _ = False
 trDataOrTypeBinding (PIR.DatatypeBind _ (PIR.Datatype _ tyvard args dest cons))
   -- See [HACK: Translation of 'Bool']
   | toName (PIR._tyVarDeclName tyvard) == "Bool" =
