@@ -57,6 +57,8 @@ pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toP
   -- PrtUnorderedDefs decls1 = prenex $ PrtUnorderedDefs decls0'
   -- TODO: what if we don't manage to infer the type of main? Also, can't we make this interface much better? These empty lists are awkward here.
   let Right (Just mainTy) = runExcept $ runReaderT (typeInferTerm main) ((decls1, []), [])
+  let mainName = fromString "__main"
+  let mainDef = DFunDef FunDef {funIsRec = NonRec, funBody = main, funTy = mainTy}
   let (mainTyArgs, mainTyRes) = SystF.tyFunArgs mainTy
 
   -- If @main :: Parms -> Datum -> Redeemer -> Ctx -> RES@, then the type of our toAssume and toProve terms is:
@@ -76,12 +78,15 @@ pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toP
   let proveDef = DFunDef FunDef {funIsRec = NonRec, funBody = proveTerm, funTy = ty}
 
   -- The final declarations are:
-  let decls = M.insert (TermNamespace, assumeName) assumeDef $ M.insert (TermNamespace, proveName) proveDef decls1
+  let decls =
+        M.insert (TermNamespace, mainName) mainDef $
+          M.insert (TermNamespace, assumeName) assumeDef $
+            M.insert (TermNamespace, proveName) proveDef decls1
 
   -- Finally, we prepare the following problem to send to the solver
   let ip =
         IncorrectnessParams
-          { ipTarget = main,
+          { ipTarget = SystF.termPure (SystF.Free (TermSig mainName)),
             ipTargetType = mainTyRes,
             ipCondition =
               SystF.termPure (SystF.Free (TermSig assumeName))
