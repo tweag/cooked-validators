@@ -83,12 +83,6 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
           M.insert (TermNamespace, assumeName) assumeDef $
             M.insert (TermNamespace, proveName) proveDef decls1
 
-  -- Finally, we prepare the following problem to send to the solver
-  let ipTy = mainTyRes
-  let ipFn = SystF.termPure (SystF.Free (TermSig mainName))
-  let ipAssume = SystF.termPure (SystF.Free (TermSig assumeName))
-  let ipProve = SystF.termPure (SystF.Free (TermSig proveName))
-
   -- At this point, we're almost ready to call the prover. It does help tp ensure that our
   -- definitions are type-correct, though!
   case typeCheckDecls decls of
@@ -98,11 +92,10 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
       let dump = fst <$> optsDumpIntermediate opts
       orderedDecls <- runStages dump (pirouetteBoundedSymExecStages fpath) (PrtUnorderedDefs decls)
       res <- flip runReaderT orderedDecls $ do
-        ty' <- contextualizeType ipTy
-        fn' <- contextualizeTerm ipFn
-        assume' <- contextualizeTerm ipAssume
-        toProve' <- contextualizeTerm ipProve
-        proveAny (optsPirouette opts) isCounter (Problem ty' fn' assume' toProve')
+        fn' <- prtTermDefOf mainName
+        assume' <- prtTermDefOf assumeName
+        toProve' <- prtTermDefOf proveName
+        proveAny (optsPirouette opts) isCounter (Problem mainTyRes fn' assume' toProve')
       case res of
         Just Path {pathResult = CounterExample _ model} -> do
           assertFailure $ "Counterexample:\n" ++ show (pretty model)

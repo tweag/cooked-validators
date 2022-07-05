@@ -229,7 +229,8 @@ pirouetteTests :: TestTree
 pirouetteTests =
   testGroup
     "Pirouette"
-    [ localOption (PirouetteDumpPrefix ["init"] "test") $
+    [ localOption (PirouetteSolverDebug False) $
+        -- localOption (PirouetteDumpPrefix ["init"] "test") $
         testBoundedSymExec
           "bid-keeps-token"
           A.compiledValidate
@@ -270,7 +271,7 @@ pirouetteTests =
           ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
                 . and (isSpending ctx) (and res (isBid a)) |]
               :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
-                        . True |]
+                        . False |]
           )
     ]
 
