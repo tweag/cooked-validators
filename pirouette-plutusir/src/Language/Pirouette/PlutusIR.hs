@@ -2,7 +2,7 @@
 
 module Language.Pirouette.PlutusIR (module X, pir, pirTy, pirDecls) where
 
-import Language.Pirouette.PlutusIR.Runner as X
+import Language.Pirouette.PlutusIR.Runner.Tasty as X
 import Language.Pirouette.PlutusIR.SMT as X
 import Language.Pirouette.PlutusIR.Syntax as X
 import Language.Pirouette.PlutusIR.ToTerm as X (trProgram, trProgramDecls)

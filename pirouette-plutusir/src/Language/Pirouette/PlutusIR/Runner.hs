@@ -4,53 +4,47 @@
 module Language.Pirouette.PlutusIR.Runner where
 
 import Control.Monad.Except
-import Control.Monad.Identity
 import Control.Monad.Reader
-import Data.Data
 import Data.Default
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String
-import Data.Tagged
 import Language.Pirouette.PlutusIR.SMT ()
 import Language.Pirouette.PlutusIR.Syntax
 import Language.Pirouette.PlutusIR.ToTerm
 import Language.Pirouette.PlutusIR.Typing ()
 import Pirouette
 import Pirouette.Monad
-import Pirouette.Symbolic.Eval
+import Pirouette.Symbolic.Eval hiding (Options)
+import qualified Pirouette.Symbolic.Eval as P (Options)
 import Pirouette.Symbolic.Prover
-import Pirouette.Symbolic.Prover.Runner
 import Pirouette.Term.Syntax
 import qualified Pirouette.Term.Syntax.SystemF as SystF
 import Pirouette.Term.TypeChecker
 import Pirouette.Transformations
 import qualified PlutusCore.Pretty as Pl
 import qualified PlutusTx.Code as Pl
-import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Tasty.Options
 
--- | Returns the main term and decls from a 'Pl.CompiledCode'. Runs in @IO@ because
---  we call 'assertFailure' if anything fails.
-pirouetteDeclsFromCompiledCode :: Pl.CompiledCode a -> IO (Term PlutusIR, Decls PlutusIR)
-pirouetteDeclsFromCompiledCode code =
-  case Pl.getPir code of
-    Nothing -> assertFailure "Can't getPir of the provided code"
-    Just pir -> do
-      writeFile "prog.pir" (show $ Pl.prettyClassicDebug pir)
-      case runExcept $ trProgram pir of
-        Left err0 -> assertFailure $ "Error translating pir: " ++ show err0
-        Right res -> return res
+-- | Set of options to control the particular run of pirouette
+data Options = Options
+  { optsPirouette :: P.Options,
+    optsDumpIntermediate :: Maybe ([String], FilePath)
+  }
 
--- | Runs pirouette on some 'Pl.CompiledCode'
-pirouetteCompiledCode' ::
-  StoppingCondition ->
+instance Default Options where
+  def = Options def Nothing
+
+-- | Runs pirouette on some 'Pl.CompiledCode' with some 'Options'. You should likely be using
+-- the interface to pirouette from "Language.Pirouette.PlutusIR.Runner.Tasty" instead, which
+-- will be a little more ergonomic.
+pirouetteCompiledCodeOpts ::
+  Options ->
   Pl.CompiledCode a ->
   PrtUnorderedDefs PlutusIR ->
   AssumeProve PlutusIR ->
   Assertion
-pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toProve) = do
+pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: toProve) = do
   (main0, decls0) <- pirouetteDeclsFromCompiledCode code
 
   -- first we contextualize the user declarations, making sure they will refer to their right
@@ -100,13 +94,15 @@ pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toP
   case typeCheckDecls decls of
     Left tyerr -> assertFailure $ show $ pretty tyerr
     Right _ -> do
-      orderedDecls <- runStages _ (pirouetteBoundedSymExecStages fpath) (PrtUnorderedDefs decls)
+      let fpath = maybe "" snd $ optsDumpIntermediate opts
+      let dump = fst <$> optsDumpIntermediate opts
+      orderedDecls <- runStages dump (pirouetteBoundedSymExecStages fpath) (PrtUnorderedDefs decls)
       res <- flip runReaderT orderedDecls $ do
         ty' <- contextualizeType ipTy
         fn' <- contextualizeTerm ipFn
         assume' <- contextualizeTerm ipAssume
         toProve' <- contextualizeTerm ipProve
-        proveAny _ isCounter (Problem ty' fn' assume' toProve')
+        proveAny (optsPirouette opts) isCounter (Problem ty' fn' assume' toProve')
       case res of
         Just Path {pathResult = CounterExample _ model} -> do
           assertFailure $ "Counterexample:\n" ++ show (pretty model)
@@ -154,6 +150,8 @@ pirouetteBoundedSymExecStages fpath =
         argName = SystF.argElim id id
 {- ORMOLU_ENABLE -}
 
+-- * Auxiliar Definitions
+
 data Stages a b where
   Id :: Stages a a
   Comp :: String -> (a -> b) -> (String -> b -> IO ()) -> Stages b c -> Stages a c
@@ -170,6 +168,18 @@ runStages dump (Comp stageName f dbg rest) a = do
         Nothing -> False
         Just [] -> True
         Just prefs -> any (`L.isPrefixOf` stageName) prefs
+
+-- | Returns the main term and decls from a 'Pl.CompiledCode'. Runs in @IO@ because
+--  we call 'assertFailure' if anything fails.
+pirouetteDeclsFromCompiledCode :: Pl.CompiledCode a -> IO (Term PlutusIR, Decls PlutusIR)
+pirouetteDeclsFromCompiledCode code =
+  case Pl.getPir code of
+    Nothing -> assertFailure "Can't getPir of the provided code"
+    Just pir -> do
+      writeFile "prog.pir" (show $ Pl.prettyClassicDebug pir)
+      case runExcept $ trProgram pir of
+        Left err0 -> assertFailure $ "Error translating pir: " ++ show err0
+        Right res -> return res
 
 {-
 -- was execIncorrectnessLogic, but I'm needing to dump the intermediate steps

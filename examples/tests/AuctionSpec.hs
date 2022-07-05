@@ -221,11 +221,10 @@ pirouetteTests :: TestTree
 pirouetteTests =
   testGroup
     "Pirouette"
-    [ testCase "bid-keeps-token" $
-        pirouetteCompiledCode'
-          (\st -> False)
-          A.compiledValidate
-          [pirDecls|
+    [ testBoundedSymExec
+        "bid-keeps-token"
+        A.compiledValidate
+        [pirDecls|
             fun isBid : Action -> Bool
                 = \(a : Action) . Action_match a @Bool
                     (\(b : BidderInfo) . True)
@@ -234,10 +233,11 @@ pirouetteTests =
             fun receivesToken : ValParams -> ScriptContext -> Bool
                 = \(p : ValParams) (ctx : ScriptContext) . False
           |]
-          ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext) . if @Bool res then isBid a else False |]
-              :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext) .
-                        receivesToken p ctx |]
-          )
+        ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
+                . if @Bool res then isBid a else False |]
+            :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
+                        . receivesToken p ctx |]
+        )
     ]
 
 -- * Collecting all the tests in this module

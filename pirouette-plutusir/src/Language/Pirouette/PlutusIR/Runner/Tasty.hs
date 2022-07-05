@@ -1,29 +1,18 @@
 module Language.Pirouette.PlutusIR.Runner.Tasty where
 
-import Control.Monad.Except
-import Control.Monad.Identity
-import Control.Monad.Reader
 import Data.Data
 import Data.Default
-import qualified Data.Map as M
-import Data.String
 import Data.Tagged
 import Language.Pirouette.PlutusIR.Runner
 import Language.Pirouette.PlutusIR.SMT ()
 import Language.Pirouette.PlutusIR.Syntax
-import Language.Pirouette.PlutusIR.ToTerm
 import Language.Pirouette.PlutusIR.Typing ()
 import Pirouette
 import Pirouette.Monad
-import Pirouette.Symbolic.Eval
-import Pirouette.Symbolic.Prover
-import Pirouette.Symbolic.Prover.Runner
-import Pirouette.Term.Syntax
-import qualified Pirouette.Term.Syntax.SystemF as SystF
-import Pirouette.Term.TypeChecker
-import Pirouette.Transformations
-import qualified PlutusCore.Pretty as Pl
+import Pirouette.Symbolic.Eval hiding (Options)
+import qualified Pirouette.Symbolic.Eval as P (Options (..))
 import qualified PlutusTx.Code as Pl
+import qualified PureSMT
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.Options
@@ -38,7 +27,14 @@ testBoundedSymExec name code augments cond =
   askOption $ \(PirouetteStoppingCondition stop) ->
     askOption $ \(PirouetteSolverDebug dbg) ->
       askOption $ \dump ->
-        _
+        let opts =
+              Options
+                { optsPirouette = P.Options (def {PureSMT.debug = dbg}) stop,
+                  optsDumpIntermediate = case dump of
+                    PirouetteDumpNothing -> Nothing
+                    PirouetteDumpPrefix prefs fpath -> Just (prefs, fpath)
+                }
+         in testCase name $ pirouetteCompiledCodeOpts opts code augments cond
 
 -- * Tasty Options
 
@@ -62,7 +58,7 @@ newtype PirouetteSolverDebug = PirouetteSolverDebug Bool
 
 instance IsOption PirouetteSolverDebug where
   defaultValue = PirouetteSolverDebug False
-  parseValue = safeReadBool
+  parseValue = fmap PirouetteSolverDebug . safeReadBool
 
   optionName = Tagged "piroutte-solver-dbg"
   optionHelp = Tagged "If set to 'true', will echo all messages from the solver to stdout"
@@ -73,7 +69,7 @@ instance IsOption PirouetteSolverDebug where
 --  if not available through the command line: must be used with 'localOption'
 data PirouetteDumpIntermediate
   = PirouetteDumpNothing
-  | PirouetteDumpAny [String] FilePath
+  | PirouetteDumpPrefix [String] FilePath
   deriving (Typeable)
 
 instance IsOption PirouetteDumpIntermediate where
@@ -82,13 +78,3 @@ instance IsOption PirouetteDumpIntermediate where
 
   optionName = Tagged "piroutte-dump-intermediate"
   optionHelp = Tagged "This options must be set with localOption; check the source for info"
-
-{-
-Hook options to tasty:
-
-data PirouetteStoppingCondition  PirouetteStoppingCondition StoppingCondition
-  deriving (Typeable)
-
-instance IsOption PirouetteStoppingCondition where
-  ...
--}
