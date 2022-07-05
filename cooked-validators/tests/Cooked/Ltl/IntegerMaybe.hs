@@ -68,16 +68,11 @@ getAllIndexes = zipWith const [0 ..]
 getIndexesModifiedBy :: String -> [(a, [String])] -> [Integer]
 getIndexesModifiedBy s = map fst . filter (elem s . snd) . zip [0 ..] . map snd
 
--- A function that generates a trace from a list of integers
-generateTrace = foldl (\acc -> (acc >>) . emitInteger) (Return ())
-
--- Some test traces
-[subTraceEven, subTraceOdd, subTraceAll] = [[2, 4, 6], [5, 9, 3], [8, 7, 1, 0, 2, 6]]
-
-[traceEven, traceOdd, traceAll] = map generateTrace [subTraceEven, subTraceOdd, subTraceAll]
-
 integerMaybeTests :: [TestTree]
 integerMaybeTests =
+  let generateTrace = foldl (\acc -> (acc >>) . emitInteger) (Return ())
+      [subTraceEven, subTraceOdd, subTraceAll] = [[2, 4, 6], [5, 9, 3], [8, 7, 1, 0, 2, 6]]
+      [traceEven, traceOdd, traceAll] = map generateTrace [subTraceEven, subTraceOdd, subTraceAll] in 
   [ testGroup
       "Even tests"
       ( let computations = go $ everywhere halveInteger traceEven
@@ -100,7 +95,7 @@ integerMaybeTests =
          in [ testCase "Odd numbers are never be halved" $
                 assertBool "No trace should be computed" $
                   null sComputations,
-              testCase "Any odd number can possibly be halved" $
+              testCase "Any odd number can possibly be doubled" $
                 assertBool "There are missing traces" $
                   length dComputations == 3,
               testCase "Only 1 odd number was marked doubled in each computation" $
