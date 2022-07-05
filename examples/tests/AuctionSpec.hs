@@ -217,27 +217,61 @@ bidderAlternative =
 
 -- * Pirouette tests
 
+{-
+receivesToken :: ValParams -> L.ScriptContext -> Bool
+receivesToken auction ctx =
+  let txi = L.scriptContextTxInfo ctx
+      selfh = L.ownHash ctx
+   in Value.assetClassValueOf (L.valueLockedBy txi selfh) (threadTokenAssetClass auction) == 1
+-}
+
 pirouetteTests :: TestTree
 pirouetteTests =
   testGroup
     "Pirouette"
-    [ testBoundedSymExec
-        "bid-keeps-token"
-        A.compiledValidate
-        [pirDecls|
+    [ localOption (PirouetteDumpPrefix ["init"] "test") $
+        testBoundedSymExec
+          "bid-keeps-token"
+          A.compiledValidate
+          [pirDecls|
             fun isBid : Action -> Bool
                 = \(a : Action) . Action_match a @Bool
                     (\(b : BidderInfo) . True)
                     False
 
+            fun and : Bool -> Bool -> Bool
+                = \(a : Bool) (b : Bool) . if @Bool a then b else False
+
+            fun isSpending : ScriptContext -> Bool
+                = \(ctx : ScriptContext)
+                  . ScriptContext_match ctx @Bool
+                      (\(txi : TxInfo) (sp : ScriptPurpose)
+                       . ScriptPurpose_match sp @Bool
+                         (\(u : Unit) . False)
+                         (\(m : ByteString) . False)
+                         (\(r : StakingCredential) . False)
+                         (\(r : TxOutRef) . True)
+                      )
+
             fun receivesToken : ValParams -> ScriptContext -> Bool
-                = \(p : ValParams) (ctx : ScriptContext) . False
+                = \(p : ValParams) (ctx : ScriptContext)
+                  . ValParams_match p @Bool
+                    (\(s : StaticValParams) (bs : ByteString) (threadTokenAC : Tuple2 ByteString ByteString)
+                     . ScriptContext_match ctx @Bool
+                      (\(txi : TxInfo) (sp : ScriptPurpose)
+                       . ScriptPurpose_match sp @Bool
+                         (\(u : Unit) . bottom @Bool)
+                         (\(m : ByteString) . bottom @Bool)
+                         (\(r : StakingCredential) . bottom @Bool)
+                         (\(r : TxOutRef) . True)
+                      )
+                    )
           |]
-        ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
-                . if @Bool res then isBid a else False |]
-            :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
-                        . receivesToken p ctx |]
-        )
+          ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
+                . and (isSpending ctx) (and res (isBid a)) |]
+              :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
+                        . True |]
+          )
     ]
 
 -- * Collecting all the tests in this module
