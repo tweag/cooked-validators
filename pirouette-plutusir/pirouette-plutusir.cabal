@@ -14,6 +14,7 @@ library
   exposed-modules:
       Language.Pirouette.PlutusIR
       Language.Pirouette.PlutusIR.Runner
+      Language.Pirouette.PlutusIR.Runner.Tasty
       Language.Pirouette.PlutusIR.SMT
       Language.Pirouette.PlutusIR.Syntax
       Language.Pirouette.PlutusIR.ToTerm
@@ -28,6 +29,7 @@ library
     , base >=4.9 && <5
     , bytestring
     , containers
+    , data-default
     , deriving-compat
     , flat >=0.4.5
     , gitrev
@@ -43,6 +45,7 @@ library
     , plutus-ledger
     , plutus-tx
     , prettyprinter
+    , tagged
     , tasty
     , tasty-expected-failure
     , tasty-hspec
@@ -71,6 +74,7 @@ test-suite spec
     , base >=4.9 && <5
     , bytestring
     , containers
+    , data-default
     , deriving-compat
     , flat >=0.4.5
     , gitrev
@@ -87,6 +91,7 @@ test-suite spec
     , plutus-ledger
     , plutus-tx
     , prettyprinter
+    , tagged
     , tasty
     , tasty-expected-failure
     , tasty-hspec

@@ -1,12 +1,17 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 
 module Language.Pirouette.PlutusIR.Runner where
 
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
+import Data.Data
+import Data.Default
+import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String
+import Data.Tagged
 import Language.Pirouette.PlutusIR.SMT ()
 import Language.Pirouette.PlutusIR.Syntax
 import Language.Pirouette.PlutusIR.ToTerm
@@ -20,10 +25,11 @@ import Pirouette.Term.Syntax
 import qualified Pirouette.Term.Syntax.SystemF as SystF
 import Pirouette.Term.TypeChecker
 import Pirouette.Transformations
-import Pirouette.Transformations.Contextualize
 import qualified PlutusCore.Pretty as Pl
 import qualified PlutusTx.Code as Pl
+import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.Options
 
 -- | Returns the main term and decls from a 'Pl.CompiledCode'. Runs in @IO@ because
 --  we call 'assertFailure' if anything fails.
@@ -84,21 +90,23 @@ pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toP
             M.insert (TermNamespace, proveName) proveDef decls1
 
   -- Finally, we prepare the following problem to send to the solver
-  let ip =
-        IncorrectnessParams
-          { ipTarget = SystF.termPure (SystF.Free (TermSig mainName)),
-            ipTargetType = mainTyRes,
-            ipCondition =
-              SystF.termPure (SystF.Free (TermSig assumeName))
-                :==>: SystF.termPure (SystF.Free (TermSig proveName))
-          }
+  let ipTy = mainTyRes
+  let ipFn = SystF.termPure (SystF.Free (TermSig mainName))
+  let ipAssume = SystF.termPure (SystF.Free (TermSig assumeName))
+  let ipProve = SystF.termPure (SystF.Free (TermSig proveName))
 
   -- At this point, we're almost ready to call the prover. It does help tp ensure that our
   -- definitions are type-correct, though!
   case typeCheckDecls decls of
     Left tyerr -> assertFailure $ show $ pretty tyerr
     Right _ -> do
-      res <- gogogo (proveAny stop isCounter) (PrtUnorderedDefs decls) ip
+      orderedDecls <- runStages _ (pirouetteBoundedSymExecStages fpath) (PrtUnorderedDefs decls)
+      res <- flip runReaderT orderedDecls $ do
+        ty' <- contextualizeType ipTy
+        fn' <- contextualizeTerm ipFn
+        assume' <- contextualizeTerm ipAssume
+        toProve' <- contextualizeTerm ipProve
+        proveAny _ isCounter (Problem ty' fn' assume' toProve')
       case res of
         Just Path {pathResult = CounterExample _ model} -> do
           assertFailure $ "Counterexample:\n" ++ show (pretty model)
@@ -109,6 +117,61 @@ pirouetteCompiledCode' stop code (PrtUnorderedDefs augments) (toAssume :==>: toP
       | s /= OutOfFuel = True
     isCounter _ = False
 
+{- ORMOLU_DISABLE -}
+-- | Defines the stages a pirouette program goes through; the first stage is the identidy to enable us
+--  to easily print the set of definitions that come from translating a PlutusIR program into a
+--  pirouette one, before the set of definitions that happen in between.
+pirouetteBoundedSymExecStages ::
+  -- | The filepath to dump stages to, if the user requires that when running
+  FilePath ->
+  Stages (PrtUnorderedDefs PlutusIR) (PrtOrderedDefs PlutusIR)
+pirouetteBoundedSymExecStages fpath =
+  Comp "init" id dumpUDefs $
+  Comp "monomorphize" monomorphize dumpUDefs $
+  Comp "defunctionalize" defunctionalize dumpUDefs $
+  Comp "cycle-elim" elimEvenOddMutRec dumpOrdDefs
+  Id
+  where
+    typecheck :: String -> Decls PlutusIR -> IO ()
+    typecheck stageName prog =
+      case typeCheckDecls prog of
+        Left tyerr -> assertFailure ("Result of stage " ++ stageName ++ " has type errors:\n" ++ show (pretty tyerr))
+        Right _ -> return ()
+
+    dumpUDefs :: String -> PrtUnorderedDefs PlutusIR -> IO ()
+    dumpUDefs stageName (PrtUnorderedDefs prog) = do
+      writeFile (fpath ++ "-" ++ stageName) $ show $ pretty prog
+      typecheck stageName prog
+
+    -- Similar to dumpUDefs, but dumps things in order
+    dumpOrdDefs :: String -> PrtOrderedDefs PlutusIR -> IO ()
+    dumpOrdDefs stageName (PrtOrderedDefs prog ord) = do
+      let ordProg = map (\arg -> runReader (prtDefOf (argNamespace arg) (argName arg)) (PrtUnorderedDefs prog)) ord
+      writeFile (fpath ++ "-" ++ stageName) $ show $ pretty ordProg
+      typecheck stageName prog
+      where
+        argNamespace = SystF.argElim (const TypeNamespace) (const TermNamespace)
+        argName = SystF.argElim id id
+{- ORMOLU_ENABLE -}
+
+data Stages a b where
+  Id :: Stages a a
+  Comp :: String -> (a -> b) -> (String -> b -> IO ()) -> Stages b c -> Stages a c
+
+runStages :: (MonadIO m) => Maybe [String] -> Stages a b -> a -> m b
+runStages _dump Id a = return a
+runStages dump (Comp stageName f dbg rest) a = do
+  let b = f a
+  when shouldDebug $ liftIO $ dbg stageName b
+  runStages dump rest b
+  where
+    shouldDebug =
+      case dump of
+        Nothing -> False
+        Just [] -> True
+        Just prefs -> any (`L.isPrefixOf` stageName) prefs
+
+{-
 -- was execIncorrectnessLogic, but I'm needing to dump the intermediate steps
 gogogo ::
   (Language lang, LanguageBuiltinTypes lang, MonadIO m) =>
@@ -136,19 +199,4 @@ gogogo toDo prog0 (IncorrectnessParams fn ty (assume :==>: toProve)) = do
   liftIO (writeFile "prog3-nomr" $ show $ pretty $ prtDecls prog3)
   let orderedDecls = prog3
   -- Now we can contextualize the necessary terms and run the worker
-  flip runReaderT orderedDecls $ do
-    ty' <- contextualizeType ty
-    fn' <- contextualizeTerm fn
-    assume' <- contextualizeTerm assume
-    toProve' <- contextualizeTerm toProve
-    toDo (Problem ty' fn' assume' toProve')
-
-{-
-Hook options to tasty:
-
-data PirouetteStoppingCondition = PirouetteStoppingCondition StoppingCondition
-  deriving (Typeable)
-
-instance IsOption PirouetteStoppingCondition where
-  ...
 -}
