@@ -323,8 +323,11 @@ validLaunch cf ctx =
         filter (\d -> isJust (getFunder d) && getOwner d == fundingTarget cf) datums
       vals = mapMaybe getValue funderDatums
    in traceIfFalse
-        "Contributions after the deadline are not permitted"
-        (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
+        "Transaction not signed by owner"
+        (txi `L.txSignedBy` fundingTarget cf)
+        && traceIfFalse
+          "Contributions after the deadline are not permitted"
+          (crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi)
         && traceIfFalse
           "Total contributions do not exceed threshold"
           (total `Value.geq` threshold cf)

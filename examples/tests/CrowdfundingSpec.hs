@@ -62,14 +62,14 @@ nothing = return ()
 oneContribution :: MonadMockChain m => m ()
 oneContribution = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
 
 -- | one contribution, refunded
 oneContributionRefund :: MonadMockChain m => m ()
 oneContributionRefund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
   Cf.txRefund `as` wallet 3
 
@@ -77,7 +77,7 @@ oneContributionRefund = do
 oneContributionFund :: MonadMockChain m => m ()
 oneContributionFund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
 
@@ -85,7 +85,7 @@ oneContributionFund = do
 oneContributorRefund :: MonadMockChain m => m ()
 oneContributorRefund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
   Cf.txRefund `as` wallet 3
@@ -94,7 +94,7 @@ oneContributorRefund = do
 oneContributorFund :: MonadMockChain m => m ()
 oneContributorFund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
@@ -103,7 +103,7 @@ oneContributorFund = do
 ownerContributes :: MonadMockChain m => m ()
 ownerContributes = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 2
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
 
@@ -111,7 +111,7 @@ ownerContributes = do
 ownerRefunds :: MonadMockChain m => m ()
 ownerRefunds = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
@@ -122,7 +122,7 @@ ownerRefunds = do
 ownerRefundsSameContributor :: MonadMockChain m => m ()
 ownerRefundsSameContributor = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
@@ -132,7 +132,7 @@ ownerRefundsSameContributor = do
 twoContributionsRefund :: MonadMockChain m => m ()
 twoContributionsRefund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txRefund `as` wallet 1
@@ -142,7 +142,7 @@ twoContributionsRefund = do
 twoContributionsFund :: MonadMockChain m => m ()
 twoContributionsFund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
@@ -151,7 +151,7 @@ twoContributionsFund = do
 multipleContributionsOneRefunded :: MonadMockChain m => m ()
 multipleContributionsOneRefunded = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 4
@@ -162,7 +162,7 @@ multipleContributionsOneRefunded = do
 manyContributorsFund :: MonadMockChain m => m ()
 manyContributorsFund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
@@ -180,7 +180,7 @@ manyContributorsFund = do
 manyContributorsOwnerRefunds :: MonadMockChain m => m ()
 manyContributorsOwnerRefunds = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
@@ -200,7 +200,7 @@ manyContributorsOwnerRefunds = do
 manyContributorsSomeRefundsFund :: MonadMockChain m => m ()
 manyContributorsSomeRefundsFund = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 4
@@ -221,7 +221,7 @@ manyContributorsSomeRefundsFund = do
 oneContributionRefundBelowMinimum :: MonadMockChain m => m ()
 oneContributionRefundBelowMinimum = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 1) `as` wallet 3
   Cf.txRefund `as` wallet 3
 
@@ -230,7 +230,7 @@ oneContributionRefundBelowMinimum = do
 ownerRefundsBelowMinimum :: MonadMockChain m => m ()
 ownerRefundsBelowMinimum = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
@@ -275,7 +275,7 @@ successfulSingle =
 oneContributionRefundError :: MonadMockChain m => m ()
 oneContributionRefundError = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 3
   Cf.txRefund `as` wallet 1
 
@@ -284,7 +284,7 @@ oneContributionRefundError = do
 oneContributionFundErrorAmount :: MonadMockChain m => m ()
 oneContributionFundErrorAmount = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 1
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
 
@@ -293,7 +293,7 @@ oneContributionFundErrorAmount = do
 oneContributionFundErrorDeadline :: MonadMockChain m => m ()
 oneContributionFundErrorDeadline = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
@@ -302,7 +302,7 @@ oneContributionFundErrorDeadline = do
 ownerRefundsErrorDeadline :: MonadMockChain m => m ()
 ownerRefundsErrorDeadline = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
@@ -312,7 +312,7 @@ ownerRefundsErrorDeadline = do
 twoContributionsFundErrorMinimum :: MonadMockChain m => m ()
 twoContributionsFundErrorMinimum = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 1) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
@@ -322,7 +322,7 @@ twoContributionsFundErrorMinimum = do
 ownerRefundsVulnerability :: MonadMockChain m => m ()
 ownerRefundsVulnerability = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
@@ -353,7 +353,7 @@ failingSingle =
 oneContributionFundErrorOwner :: MonadMockChain m => m ()
 oneContributionFundErrorOwner = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txProjectFund (bananaParams t0) `as` wallet 1
 
@@ -363,7 +363,7 @@ oneContributionFundErrorOwner = do
 ownerRefundsErrorOwner :: MonadMockChain m => m ()
 ownerRefundsErrorOwner = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 1
   Cf.txIndividualFund (bananaParams t0) (banana 4) `as` wallet 3
   Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 4
@@ -410,7 +410,7 @@ holdingInState (UtxoState m) w
 oneContributionFundAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
 oneContributionFundAlternativeTrace = do
   t0 <- currentTime
-  Cf.txOpen (bananaParams t0)
+  Cf.txOpen (bananaParams t0) `as` wallet 2
   Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 9
     <|> Cf.txIndividualFund (bananaParams t0) (banana 5) `as` wallet 10
   Cf.txProjectFund (bananaParams t0) `as` wallet 2
