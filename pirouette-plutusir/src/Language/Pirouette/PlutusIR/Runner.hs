@@ -65,7 +65,8 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
   --
   -- > RES -> Parms -> Datum -> Redeemer -> Bool
   --
-  let ty = SystF.TyFun mainTyRes (foldr SystF.TyFun (SystF.TyPure $ SystF.Free (TyBuiltin PIRTypeBool)) mainTyArgs)
+  let bool = SystF.TyPure $ SystF.Free (TyBuiltin PIRTypeBool)
+  let ty = SystF.TyFun bool (foldr SystF.TyFun bool mainTyArgs)
 
   -- Because we might use higher order or polymorphic functions in our assume and prove definitons, we will actually reify
   -- them into definitions and put them in the context, this will make sure that we will transform them accordingly

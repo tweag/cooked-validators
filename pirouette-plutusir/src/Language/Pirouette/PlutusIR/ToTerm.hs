@@ -27,8 +27,10 @@ import Data.Maybe (fromJust, fromMaybe)
 import qualified Data.Set as S
 import Data.Text (Text)
 import Language.Pirouette.PlutusIR.Syntax
+import Pirouette.Monad
 import Pirouette.Term.Syntax
 import qualified Pirouette.Term.Syntax.SystemF as SystF
+import Pirouette.Transformations.Term
 import PlutusCore (DefaultUni (..))
 import qualified PlutusCore as P
 import qualified PlutusCore.Pretty as P
@@ -152,7 +154,13 @@ trProgram ::
   (PIRConstraint tyname name P.DefaultFun) =>
   PIR.Program tyname name DefaultUni P.DefaultFun loc ->
   Except (Err loc) (Term PlutusIR, Decls PlutusIR)
-trProgram (PIR.Program _ t) = runReaderT (evalStateT (runWriterT (fst <$> trTerm Nothing t)) stEmpty) envEmpty
+trProgram (PIR.Program _ t) = do
+  (main, decls) <- runReaderT (evalStateT (runWriterT (fst <$> trTerm Nothing t)) stEmpty) envEmpty
+  let (main', decls') =
+        flip runReader (PrtUnorderedDefs decls) $
+          (,) <$> removeExcessiveDestArgs main
+            <*> (M.fromList <$> mapM (secondM (defTermMapM removeExcessiveDestArgs)) (M.toList decls))
+  return (main', decls')
 
 -- | Translates a program into a list of declarations, ignoring the body.
 trProgramDecls ::
@@ -312,8 +320,8 @@ trDataOrTypeBinding (PIR.TypeBind _ tyvard tybody) =
     isIdFunction _ = False
 trDataOrTypeBinding (PIR.DatatypeBind _ (PIR.Datatype _ tyvard args dest cons))
   -- See [HACK: Translation of 'Bool']
-  | toName (PIR._tyVarDeclName tyvard) == "Bool" =
-    pure mempty
+  -- ## | toName (PIR._tyVarDeclName tyvard) == "Bool" =
+  -- ##   pure mempty
   | otherwise =
     let tyName = toName $ PIR._tyVarDeclName tyvard
         tyKind = trKind $ PIR._tyVarDeclKind tyvard
@@ -355,8 +363,8 @@ trType (PIR.TyForall _ v k body) =
   SystF.TyAll (SystF.Ann $ toName v) (trKind k) <$> local (pushType (toName v) (trKind k)) (trType body)
 trType (PIR.TyVar _ tyn)
   -- See [HACK: Translation of 'Bool']
-  | toName tyn == "Bool" =
-    return $ SystF.TyPure (SystF.Free $ TyBuiltin PIRTypeBool)
+  -- ## | toName tyn == "Bool" =
+  -- ##   return $ SystF.TyPure (SystF.Free $ TyBuiltin PIRTypeBool)
   | otherwise = do
     let tyName = toName tyn
     -- First we try to see if this type is a bound variable
@@ -452,12 +460,12 @@ trTerm mn t = do
       WriterT (Decls PlutusIR) (TrM loc) (Term PlutusIR)
     go (PIR.Var _ n)
       -- See [HACK: Translation of 'Bool']
-      | toName n == "True" =
-        return $ SystF.termPure $ SystF.Free $ Constant (PIRConstBool True)
-      | toName n == "False" =
-        return $ SystF.termPure $ SystF.Free $ Constant (PIRConstBool False)
-      | toName n == "Bool_match" =
-        return $ SystF.termPure $ SystF.Free $ Builtin P.IfThenElse
+      -- ## | toName n == "True" =
+      -- ##   return $ SystF.termPure $ SystF.Free $ Constant (PIRConstBool True)
+      -- ## | toName n == "False" =
+      -- ##   return $ SystF.termPure $ SystF.Free $ Constant (PIRConstBool False)
+      -- ## | toName n == "Bool_match" =
+      -- ##   return $ SystF.termPure $ SystF.Free $ Builtin P.IfThenElse
       | otherwise = do
         vs <- asks termStack
         case L.elemIndex (toName n) (map fst vs) of
@@ -466,10 +474,10 @@ trTerm mn t = do
             args <- lift $ getTransitiveDepsAsArgs (toName n)
             return $ SystF.App (SystF.Free $ TermSig (toName n)) args
     -- See [HACK: Translation of 'Bool']
-    go (PIR.TyInst _ (PIR.Apply _ v@(PIR.Var _ n) x) tyR)
-      | toName n == "Bool_match" =
-        SystF.app <$> (SystF.app <$> go v <*> lift (SystF.TyArg <$> trType tyR))
-          <*> (SystF.TermArg <$> go x)
+    -- ## go (PIR.TyInst _ (PIR.Apply _ v@(PIR.Var _ n) x) tyR)
+    -- ##   | toName n == "Bool_match" =
+    -- ##     SystF.app <$> (SystF.app <$> go v <*> lift (SystF.TyArg <$> trType tyR))
+    -- ##       <*> (SystF.TermArg <$> go x)
     go (PIR.Constant _ (P.Some (P.ValueOf tx x))) =
       return $ SystF.termPure $ SystF.Free $ Constant $ defUniToConstant tx x
     go (PIR.Builtin _ f) = return $ SystF.termPure $ SystF.Free $ Builtin f
