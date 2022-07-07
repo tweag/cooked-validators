@@ -89,4 +89,4 @@ stealerValidator =
     $$(PlutusTx.compile [||validateSteal||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @StealerDatum @StealerRedeemer
+    wrap = Scripts.mkUntypedValidator @StealerDatum @StealerRedeemer

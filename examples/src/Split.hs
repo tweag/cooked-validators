@@ -73,4 +73,4 @@ splitValidator =
     $$(PlutusTx.compile [||validateSplit||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @SplitDatum @SplitRedeemer
+    wrap = Scripts.mkUntypedValidator @SplitDatum @SplitRedeemer

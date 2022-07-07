@@ -277,7 +277,7 @@ pmultisig =
     $$(PlutusTx.compile [||validatePayment||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @Datum @Redeemer
+    wrap = Scripts.mkUntypedValidator @Datum @Redeemer
 
 {-# INLINEABLE pmultisigAddr #-}
 pmultisigAddr :: Params -> Ledger.Address
@@ -339,6 +339,6 @@ threadTokenAssetClass oref = Value.assetClass (threadTokenSymbol oref threadToke
 threadTokenPolicy :: Api.TxOutRef -> Value.TokenName -> Scripts.MintingPolicy
 threadTokenPolicy oref tok =
   Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||\x y -> Scripts.wrapMintingPolicy $ mkPolicy (x, y)||])
+    $$(PlutusTx.compile [||\x y -> Scripts.mkUntypedMintingPolicy $ mkPolicy (x, y)||])
       `PlutusTx.applyCode` PlutusTx.liftCode oref
       `PlutusTx.applyCode` PlutusTx.liftCode tok

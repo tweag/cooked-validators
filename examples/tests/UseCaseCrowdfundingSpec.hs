@@ -45,7 +45,7 @@ typedValidator =
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = TScripts.wrapValidator
+    wrap = TScripts.mkUntypedValidator
 
 data Crowdfunding
 

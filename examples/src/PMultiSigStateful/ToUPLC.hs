@@ -21,4 +21,4 @@ pmultisigBS parms =
                                  `PlutusTx.applyCode` PlutusTx.liftCode parms
                              )
   where
-    wrap = Scripts.wrapValidator @Datum @Redeemer
+    wrap = Scripts.mkUntypedValidator @Datum @Redeemer
