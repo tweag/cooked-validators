@@ -8,8 +8,9 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
-import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Ada as Pl
+import qualified Ledger.Typed.Scripts as Pl
+import qualified Ledger.Typed.Scripts.Validators as Scripts
 import PlutusTx.Builtins
 import qualified PlutusTx.IsData.Class as Pl
 import qualified Split
@@ -20,7 +21,6 @@ import Test.Hspec
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
-import qualified Ledger.Typed.Scripts.Validators as Scripts
 
 -- | Parameters to share 400 among wallets 2 and 3
 lockParams :: Split.SplitDatum

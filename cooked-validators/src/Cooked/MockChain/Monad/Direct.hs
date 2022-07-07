@@ -106,7 +106,7 @@ data BalanceStage
   deriving (Show, Eq)
 
 data MockChainEnv = MockChainEnv
-  { mceSlotConfig :: Pl.SlotConfig,
+  { mceParams :: Pl.Params,
     mceSigners :: NE.NonEmpty Wallet
   }
   deriving (Show)
@@ -237,12 +237,12 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = asks (Pl.slotToEndPOSIXTime . mceSlotConfig) <*> gets mcstCurrentSlot
+  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
   awaitTime t = do
-    sc <- asks mceSlotConfig
+    sc <- slotConfig
     s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
     return $ Pl.slotToBeginPOSIXTime sc s
 
@@ -251,7 +251,9 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   askSigners = asks mceSigners
 
-  slotConfig = asks mceSlotConfig
+  params = asks mceParams
+
+  localParams f = local (\e -> e {mceParams = f (mceParams e)})
 
 -- | This validates a given 'Pl.Tx' in its proper context; this is a very tricky thing to do. We're basing
 --  ourselves off from how /plutus-apps/ is doing it.
@@ -271,7 +273,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 -- around to re-sign the transaction.
 runTransactionValidation ::
   Pl.Slot ->
-  Pl.SlotConfig ->
+  Pl.Params ->
   Pl.UtxoIndex ->
   -- | List of required signers
   [Pl.PaymentPubKeyHash] ->
@@ -279,10 +281,8 @@ runTransactionValidation ::
   [Wallet] ->
   Pl.Tx ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
-runTransactionValidation s slotCfg ix reqSigners signers tx =
-  let parms = def {Pl.pSlotConfig = slotCfg}
-
-      ((e1, idx'), evs) =
+runTransactionValidation s parms ix reqSigners signers tx =
+  let ((e1, idx'), evs) =
         Pl.runValidation
           (Pl.validateTransaction s tx)
           (Pl.ValidationCtx ix parms)
@@ -307,9 +307,9 @@ validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Pl.Tx -> MockChainT m Pl.T
 validateTx' reqSigs tx = do
   s <- currentSlot
   ix <- gets mcstIndex
-  slotCfg <- asks mceSlotConfig
+  ps <- asks mceParams
   signers <- askSigners
-  let (ix', status, _evs) = runTransactionValidation s slotCfg ix reqSigs (NE.toList signers) tx
+  let (ix', status, _evs) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -438,12 +438,11 @@ setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.Unbalanc
 setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
   let requiredSigners = S.toList reqSigs0
-  slotCfg <- slotConfig
-  let parms = def {Pl.pSlotConfig = slotCfg}
-  case Pl.fromPlutusIndex parms $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
+  ps <- asks mceParams
+  case Pl.fromPlutusIndex ps $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
-      config <- asks mceSlotConfig
+      config <- slotConfig
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
       -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
@@ -452,9 +451,9 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       let startingFee = Pl.lovelaceValueOf 3000000
       let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
       fee <-
-        calcFee 5 startingFee requiredSigners cUtxoIndex parms tx
+        calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
           `catchError` \case
-            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex parms tx
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex ps tx
             e -> throwError e
       return $ tx {Pl.txFee = fee}
   where

@@ -205,8 +205,12 @@ class (MonadBlockChain m) => MonadMockChain m where
   -- | Returns the current set of signing wallets.
   askSigners :: m (NE.NonEmpty Wallet)
 
-  -- | Returns the slot configuration of the mock chain.
-  slotConfig :: m Pl.SlotConfig
+  -- | Returns the protocol parameters of the mock chain, which includes
+  -- the slot config.
+  params :: m Pl.Params
+
+  -- | Modify the parameters according to some function
+  localParams :: (Pl.Params -> Pl.Params) -> m a -> m a
 
 -- | Runs a given block of computations signing transactions as @w@.
 as :: (MonadMockChain m) => m a -> Wallet -> m a
@@ -215,6 +219,16 @@ as ma w = signingWith (w NE.:| []) ma
 -- | Flipped version of 'as'
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
+
+-- | Return the 'Pl.SlotConfig' contained within the current 'Pl.Params'
+slotConfig :: (MonadMockChain m) => m Pl.SlotConfig
+slotConfig = Pl.pSlotConfig <$> params
+
+-- | Set higher limits on transaction size and execution units.
+-- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
+-- Note that if you need this your Plutus script will probably not validate on Mainnet.
+allowBigTransactions :: (MonadMockChain m) => m a -> m a
+allowBigTransactions = localParams Pl.allowBigTransactions
 
 -- ** Modalities
 
@@ -252,7 +266,8 @@ f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
   askSigners = lift askSigners
-  slotConfig = lift slotConfig
+  params = lift params
+  localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 

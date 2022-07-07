@@ -37,18 +37,18 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import Plutus.V1.Ledger.Contexts hiding (findDatum)
-import qualified Plutus.V1.Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
+import qualified Plutus.V1.Ledger.Api as Api
+import Plutus.V1.Ledger.Contexts hiding (findDatum)
+import qualified Plutus.V1.Ledger.Contexts as Validation
 import qualified Plutus.V1.Ledger.Value as Value
 import qualified PlutusTx
 import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
-import qualified Plutus.V1.Ledger.Api as Api
 
 -- | This multisig script will receive as a parameter the list of elligible signers
 --  and the threshold number of signatures. Moreover, we pass the threadToken NFT

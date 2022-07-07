@@ -23,8 +23,8 @@ module PMultiSigStateful.DatumHijacking where
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
-import qualified Plutus.V1.Ledger.Contexts as Contexts
 import qualified Ledger.Typed.Scripts as Scripts
+import qualified Plutus.V1.Ledger.Contexts as Contexts
 import qualified PlutusTx
 import qualified PlutusTx.Eq as Pl
 import PlutusTx.Prelude hiding (Applicative (..))

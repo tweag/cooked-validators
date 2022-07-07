@@ -180,7 +180,7 @@ tests =
 
 sampleTrace1 :: TestTree
 sampleTrace1 =
-  testCase "Example Trivial Trace" $ testSucceeds exampleMtrace
+  testCase "Example Trivial Trace" $ testSucceeds (allowBigTransactions exampleMtrace)
 
 exampleMtrace :: MonadMockChain m => m ()
 exampleMtrace = do
@@ -229,16 +229,17 @@ sampleGroup1 =
       [ testProperty "Can execute payment with enough signatures" $
           QC.forAll
             successParams
-            (\p -> testSucceeds @QC.Property $ propose p >>= execute p),
+            (\p -> testSucceeds @QC.Property $ allowBigTransactions $ propose p >>= execute p),
         testProperty "Cannot execute payment without enough signatures" $
-          QC.forAll failureParams (\p -> testFails @QC.Property $ propose p >>= execute p),
+          QC.forAll failureParams (\p -> testFails @QC.Property $ allowBigTransactions $ propose p >>= execute p),
         testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
           QC.forAll
             successParams
-            ( \p -> testFails @QC.Property $ do
-                i <- propose p
-                w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
+            ( \p -> testFails @QC.Property $
+                allowBigTransactions $ do
+                  i <- propose p
+                  w3utxos <- pkUtxos (walletPKHash $ wallet 9)
+                  somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
             )
       ]
 
@@ -316,7 +317,7 @@ instance Eq DupTokenAttacked where
 -- uses 'txInfoOutputs' recklessly, instead of 'getContinuingOutputs',
 -- chances are said script will be vulnerable.
 datumHijackingTrace :: TestTree
-datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ testFails datumHijacking
+datumHijackingTrace = testCase "not vulnerable to datum hijacking" $ testFails $ allowBigTransactions datumHijacking
 
 attacker :: Wallet
 attacker = wallet 9
