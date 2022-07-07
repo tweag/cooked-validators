@@ -58,7 +58,7 @@ mkCarefulPolicy tName allowedAmount _ ctx
 carefulPolicy :: L.TokenName -> Integer -> L.MintingPolicy
 carefulPolicy tName allowedAmount =
   L.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> L.wrapMintingPolicy (mkCarefulPolicy n x)||])
+    $$(Pl.compile [||\n x -> L.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
       `Pl.applyCode` Pl.liftCode tName
       `Pl.applyCode` Pl.liftCode allowedAmount
 
@@ -69,7 +69,7 @@ mkCarelessPolicy _ _ = True
 carelessPolicy :: L.MintingPolicy
 carelessPolicy =
   L.mkMintingPolicyScript
-    $$(Pl.compile [||L.wrapMintingPolicy mkCarelessPolicy||])
+    $$(Pl.compile [||L.mkUntypedMintingPolicy mkCarelessPolicy||])
 
 dupTokenTrace :: MonadBlockChain m => L.MintingPolicy -> L.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
@@ -269,7 +269,7 @@ carefulValidator =
     $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @MockDatum @()
+    wrap = L.mkUntypedValidator @MockDatum @()
 
 {-# INLINEABLE mkCarelessValidator #-}
 mkCarelessValidator :: MockDatum -> () -> L.ScriptContext -> Bool
@@ -281,7 +281,7 @@ carelessValidator =
     $$(Pl.compile [||mkCarelessValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @MockDatum @()
+    wrap = L.mkUntypedValidator @MockDatum @()
 
 datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do

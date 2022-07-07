@@ -280,16 +280,22 @@ runTransactionValidation ::
   Pl.Tx ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
 runTransactionValidation s slotCfg ix reqSigners signers tx =
-  let ((e1, idx'), evs) = Pl.runValidation (Pl.validateTransaction s tx) (Pl.ValidationCtx ix slotCfg)
+  let parms = def {Pl.pSlotConfig = slotCfg}
+
+      ((e1, idx'), evs) =
+        Pl.runValidation
+          (Pl.validateTransaction s tx)
+          (Pl.ValidationCtx ix parms)
       -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
-      cardanoTx = either (error . show) id $ Pl.fromPlutusTx cardanoIndex reqSigners tx
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex parms ix
+      cardanoTx = either (error . show) id $ Pl.fromPlutusTx parms cardanoIndex reqSigners tx
 
       -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
       e2 =
         Pl.hasValidationErrors
+          parms
           (fromIntegral s)
           cardanoIndex
           (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
@@ -377,15 +383,23 @@ generateUnbalTx TxSkel {txConstraints} =
   let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
    in first MCETxError $ Pl.mkTx lkups constrs
 
+myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+myAdjustUnbalTx parms utx =
+  case Pl.adjustUnbalancedTx parms utx of
+    Left err -> error (show err)
+    Right (_, res) -> res
+
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 generateTx' skel@(TxSkel _ _ constraintsSpec) = do
   modify $ updateDatumStr skel
   signers <- askSigners
+  slotCfg <- slotConfig
+  let parms = def {Pl.pSlotConfig = slotCfg}
   case generateUnbalTx skel of
     Left err -> throwError err
     Right ubtx -> do
-      let adjust = if adjustUnbalTx opts then Pl.adjustUnbalancedTx else id
+      let adjust = if adjustUnbalTx opts then myAdjustUnbalTx parms else id
       let (_ :=>: outputConstraints) = toConstraints constraintsSpec
       let reorderedUbtx =
             if forceOutputOrdering opts
@@ -423,8 +437,10 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
-  let requiredSigners = M.keys reqSigs0
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
+  let requiredSigners = S.toList reqSigs0
+  slotCfg <- slotConfig
+  let parms = def {Pl.pSlotConfig = slotCfg}
+  case Pl.fromPlutusIndex parms $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       config <- asks mceSlotConfig
@@ -436,9 +452,9 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       let startingFee = Pl.lovelaceValueOf 3000000
       let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
       fee <-
-        calcFee 5 startingFee requiredSigners cUtxoIndex tx
+        calcFee 5 startingFee requiredSigners cUtxoIndex parms tx
           `catchError` \case
-            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex tx
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex parms tx
             e -> throwError e
       return $ tx {Pl.txFee = fee}
   where
@@ -449,19 +465,20 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
       Pl.Value ->
       [Pl.PaymentPubKeyHash] ->
       Pl.UTxO Pl.EmulatorEra ->
+      Pl.Params ->
       Pl.Tx ->
       MockChainT m Pl.Value
-    calcFee n fee reqSigs cUtxoIndex tx = do
+    calcFee n fee reqSigs cUtxoIndex parms tx = do
       let tx1 = tx {Pl.txFee = fee}
       attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
-      case Pl.evaluateTransactionFee cUtxoIndex reqSigs attemptedTx of
+      case Pl.evaluateTransactionFee parms cUtxoIndex reqSigs attemptedTx of
         -- necessary to capture script failure for failed cases
         Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee
           | newFee == fee -> pure newFee -- reached fixpoint
           | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
-          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex tx
+          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex parms tx
 
 balanceTxFrom ::
   (Monad m) =>
@@ -472,7 +489,7 @@ balanceTxFrom ::
   Pl.UnbalancedTx ->
   MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
 balanceTxFrom bPol skipBalancing col w ubtx = do
-  let requiredSigners = M.keys (Pl.unBalancedTxRequiredSignatories ubtx)
+  let requiredSigners = S.toList (Pl.unBalancedTxRequiredSignatories ubtx)
   colTxIns <- calcCollateral w col
   tx <-
     setFeeAndValidRange bPol w $
