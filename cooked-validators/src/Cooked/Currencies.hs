@@ -15,10 +15,10 @@ module Cooked.Currencies where
 
 import qualified Ledger
 import qualified Ledger as Pl
-import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Pl
 import qualified Ledger.Value as Value
+import qualified Plutus.Script.Utils.V1.Scripts as Validation
 import qualified PlutusTx
 import qualified PlutusTx.Builtins.Class as Pl
 import PlutusTx.Prelude hiding (Applicative (..))
@@ -80,7 +80,7 @@ mkQuickCurrencyPolicy _ _ = True
 quickCurrencyPolicy :: Scripts.MintingPolicy
 quickCurrencyPolicy =
   Ledger.mkMintingPolicyScript
-    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy mkQuickCurrencyPolicy||])
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
 quickCurrencySymbol :: Value.CurrencySymbol
 quickCurrencySymbol = Validation.scriptCurrencySymbol quickCurrencyPolicy
@@ -92,7 +92,7 @@ mkPermanentCurrencyPolicy _ _ = False
 permanentCurrencyPolicy :: Scripts.MintingPolicy
 permanentCurrencyPolicy =
   Ledger.mkMintingPolicyScript
-    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy mkPermanentCurrencyPolicy||])
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
 
 permanentCurrencySymbol :: Value.CurrencySymbol
 permanentCurrencySymbol = Validation.scriptCurrencySymbol permanentCurrencyPolicy

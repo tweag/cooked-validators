@@ -135,7 +135,7 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
     }
 outConstraintToTxOut (PaysScript validator datum value) =
   Pl.TxOut
-    { Pl.txOutAddress = Pl.scriptAddress (Pl.validatorScript validator),
+    { Pl.txOutAddress = Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator,
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
     }
