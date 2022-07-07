@@ -37,7 +37,6 @@ in {
         libsodium
         lzma
         zlib
-        secp256k1
 
         # required to build in a pure nix shell
         git
@@ -52,6 +51,7 @@ in {
         # iohk-specific stuff that we require
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
+        iohkpkgs.secp256k1
      ] ++ lib.optional (stdenv.isLinux) systemd.dev;
 
   # Besides what's needed for building, we also want our instance of the
