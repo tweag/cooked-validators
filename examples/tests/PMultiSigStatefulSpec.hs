@@ -363,7 +363,7 @@ datumHijackingTrace' =
     testFailsFrom'
       isCekEvaluationFailure
       def
-      datumHijacking'
+      $ allowBigTransactions datumHijacking'
 
 datumHijacking' :: MonadModalMockChain m => m ()
 datumHijacking' =
