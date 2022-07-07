@@ -37,6 +37,7 @@ in {
         libsodium
         lzma
         zlib
+        secp256k1
 
         # required to build in a pure nix shell
         git
