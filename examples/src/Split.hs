@@ -22,7 +22,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import Ledger.Contexts (ScriptContext (..))
+import Plutus.V1.Ledger.Contexts (ScriptContext (..))
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value (geq)
 import qualified PlutusTx

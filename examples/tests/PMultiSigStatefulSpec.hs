@@ -107,7 +107,7 @@ mkProposal reqSigs pmt = do
 --   on top of their payment. This is to avoid complex scenarios where someone signed
 --   twice, or even an attack where the attacker would execute the mkPay transaction
 --   but keep all the locked ada to themselves.
-mkSign :: MonadBlockChain m => Params -> Payment -> Pl.PrivateKey -> m ()
+mkSign :: MonadBlockChain m => Params -> Payment -> PrivateKey -> m ()
 mkSign params pmt sk = do
   pkh <- ownPaymentPubKeyHash
   void $

@@ -21,7 +21,7 @@ import Data.Either (isRight)
 import Debug.Trace
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import qualified Ledger.Contexts as Validation
+import qualified Plutus.V1.Ledger.Contexts as Validation
 import qualified Ledger.TimeSlot as TimeSlot
 import qualified Ledger.Typed.Scripts as TScripts
 import qualified Ledger.Value as Value

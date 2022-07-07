@@ -7,7 +7,7 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
-import qualified Plutus.V1.Ledger.Ada as Pl
+import qualified Ledger.Ada as Pl
 import qualified Split
 import Split.OffChain
 import Test.Hspec
