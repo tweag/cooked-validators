@@ -28,37 +28,7 @@ let
       }];
     }).components.exes;
     [haskell-language-server haskell-language-server-wrapper];
-
-  # Brings in a custom secp256k1 to match the instructions from:
-  # https://github.com/input-output-hk/cardano-node/blob/6a465b09b5dfd5fe281061b94f69faee1227800a/doc/getting-started/install.md#installing-secp256k1
-  custom-secp256k1 =
-    rawpkgs.stdenv.mkDerivation {
-      pname = "secp256k1";
-
-      version = "custom-secp256k1";
-
-      src = rawpkgs.fetchFromGitHub {
-        owner = "bitcoin-core";
-        repo = "secp256k1";
-        rev = "ac83be33d0956faf6b7f61a60ab524ef7d6a473a";
-        # When unsure, use: sha256 = rawpkgs.lib.fakeSha256;
-        # it will fail and show us the right sha
-        sha256 = "sha256-xltV3ECQ0oZhPIAlmn0WU1j2se1Px3ka/HQk6GZ764c=";
-      };
-
-      nativeBuildInputs = [ rawpkgs.autoreconfHook ];
-
-      configureFlags = [
-        "--enable-benchmark=no"
-        "--enable-exhaustive-tests=no"
-        "--enable-experimental"
-        "--enable-module-ecdh"
-        "--enable-module-recovery"
-        "--enable-module-schnorrsig"
-        "--enable-tests=yes"
-      ];
-    };
-in { 
+in {
   # We will split our dependencies into those deps that are needed for
   # building and testing; and those that are needed for development
   # the purpose is to keep CI happier and make it as fast as possible.
@@ -67,7 +37,6 @@ in {
         libsodium
         lzma
         zlib
-        custom-secp256k1
 
         # required to build in a pure nix shell
         git
@@ -82,6 +51,7 @@ in {
         # iohk-specific stuff that we require
         iohkpkgs.haskell-nix.internal-cabal-install
         iohkpkgs.haskell-nix.compiler.ghc810420210212
+        iohkpkgs.secp256k1
      ] ++ lib.optional (stdenv.isLinux) systemd.dev;
 
   # Besides what's needed for building, we also want our instance of the
