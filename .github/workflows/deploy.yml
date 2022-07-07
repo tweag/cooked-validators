@@ -31,9 +31,9 @@ jobs:
         path: |
           ~/.cabal/store
           dist-newstyle
-        key: cabal-cache-${{ github.sha }}
+        key: cabal-cache-0-${{ github.sha }}
         restore-keys: |
-          cabal-cache
+          cabal-cache-0-
 
     - name: Chmod haddock script
       run: |

@@ -37,13 +37,13 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
-import Ledger.Contexts hiding (findDatum)
-import qualified Ledger.Contexts as Validation
 import qualified Ledger.Typed.Scripts as Scripts
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
+import qualified Plutus.V1.Ledger.Api as Api
+import Plutus.V1.Ledger.Contexts hiding (findDatum)
+import qualified Plutus.V1.Ledger.Contexts as Validation
 import qualified Plutus.V1.Ledger.Value as Value
-import qualified Plutus.V2.Ledger.Api as Api
 import qualified PlutusTx
 import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Prelude hiding (Applicative (..))
@@ -260,7 +260,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 {-# INLINEABLE verifySig #-}
 verifySig :: Ledger.PubKey -> BuiltinByteString -> Ledger.Signature -> Bool
 verifySig pk msg s =
-  verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
+  verifyEd25519Signature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
 
 -- Finally, we wrap everything up and make the script available.
 
@@ -277,11 +277,11 @@ pmultisig =
     $$(PlutusTx.compile [||validatePayment||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @Datum @Redeemer
+    wrap = Scripts.mkUntypedValidator @Datum @Redeemer
 
 {-# INLINEABLE pmultisigAddr #-}
 pmultisigAddr :: Params -> Ledger.Address
-pmultisigAddr = Ledger.scriptAddress . Scripts.validatorScript . pmultisig
+pmultisigAddr = Scripts.validatorAddress . pmultisig
 
 -- * Minting Policy
 
@@ -325,7 +325,7 @@ mkPolicy (oref, tn) _ ctx
 
 {-# INLINEABLE threadTokenSymbol #-}
 threadTokenSymbol :: Api.TxOutRef -> Value.TokenName -> Api.CurrencySymbol
-threadTokenSymbol oref = Validation.scriptCurrencySymbol . threadTokenPolicy oref
+threadTokenSymbol oref = Scripts.scriptCurrencySymbol . threadTokenPolicy oref
 
 {-# INLINEABLE threadTokenName #-}
 threadTokenName :: Value.TokenName
@@ -339,6 +339,6 @@ threadTokenAssetClass oref = Value.assetClass (threadTokenSymbol oref threadToke
 threadTokenPolicy :: Api.TxOutRef -> Value.TokenName -> Scripts.MintingPolicy
 threadTokenPolicy oref tok =
   Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||\x y -> Scripts.wrapMintingPolicy $ mkPolicy (x, y)||])
+    $$(PlutusTx.compile [||\x y -> Scripts.mkUntypedMintingPolicy $ mkPolicy (x, y)||])
       `PlutusTx.applyCode` PlutusTx.liftCode oref
       `PlutusTx.applyCode` PlutusTx.liftCode tok

@@ -22,10 +22,10 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (mapMaybe)
 import Data.String
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Crypto as Pl
 import qualified Ledger.Index as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.V1.Ledger.Ada as Pl
 import qualified Plutus.V1.Ledger.Api as Pl
 import qualified Plutus.V1.Ledger.Crypto as Pl
 import qualified Plutus.V1.Ledger.Tx as Pl

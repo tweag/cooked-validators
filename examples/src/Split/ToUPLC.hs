@@ -20,4 +20,4 @@ splitBS =
       $$(PlutusTx.compile [||wrap||])
         `PlutusTx.applyCode` $$(PlutusTx.compile [||validateSplit||])
   where
-    wrap = Scripts.wrapValidator @SplitDatum @SplitRedeemer
+    wrap = Scripts.mkUntypedValidator @SplitDatum @SplitRedeemer

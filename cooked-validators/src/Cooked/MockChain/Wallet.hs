@@ -6,7 +6,7 @@
 module Cooked.MockChain.Wallet where
 
 import qualified Cardano.Api as C
-import qualified Cardano.Crypto.Wallet as Crypto
+import qualified Cardano.Crypto.Wallet as CWCrypto
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -28,6 +28,8 @@ import Unsafe.Coerce
 -- changes from Plutus.
 
 type Wallet = CW.MockWallet
+
+type PrivateKey = CWCrypto.XPrv
 
 instance Eq Wallet where
   (==) = (==) `on` CW.mwWalletId
@@ -66,24 +68,24 @@ walletAddress w =
     (Pl.PubKeyCredential $ walletPKHash w)
     (Pl.StakingHash . Pl.PubKeyCredential <$> walletStakingPKHash w)
 
-walletSK :: CW.MockWallet -> Pl.PrivateKey
+walletSK :: CW.MockWallet -> PrivateKey
 walletSK = Pl.unPaymentPrivateKey . CW.paymentPrivateKey
 
 -- Massive hack to be able to open a MockPrivateKey; this is needed because
 -- the constructor and accessor to MockPrivateKey are not exported. Hence,
 -- we make an isomorphic datatype, unsafeCoerce to this datatype then extract
 -- whatever we need from it.
-newtype HACK = HACK {please :: Crypto.XPrv}
+newtype HACK = HACK {please :: CWCrypto.XPrv}
 
 -- | Don't use this; its a hack and will be deprecated once we have time
 --  to make a PR into plutus exporting the things we need. If you use this anyway,
 --  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic
 --  because @MockPrivateKey@ is not exported either; having a dedicated function makes
 --  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.
-hackUnMockPrivateKey :: a -> Crypto.XPrv
+hackUnMockPrivateKey :: a -> CWCrypto.XPrv
 hackUnMockPrivateKey = please . unsafeCoerce
 
-walletStakingSK :: Wallet -> Maybe Pl.PrivateKey
+walletStakingSK :: Wallet -> Maybe PrivateKey
 walletStakingSK = fmap hackUnMockPrivateKey . CW.mwStakeKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
