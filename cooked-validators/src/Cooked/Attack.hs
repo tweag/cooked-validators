@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cooked.Attack where
 
@@ -27,7 +28,8 @@ import Type.Reflection
 -- In cooked-validators, a _single transaction attack_ on a smart contract is a
 -- function that modifies one transaction: An attacker applies this function to
 -- a transaction in an otherwise normal chain of transactions, somehow fools the
--- validator script(s), and profits. So, attacks in should modify 'TxSkel's.
+-- validator script(s), and profits. So, attacks in cooked-valiadators should
+-- modify 'TxSkel's.
 --
 -- It would be nice to have a collection of parametric attacks, together with an
 -- easy way to add new attacks to that collection. This module contains the
@@ -120,9 +122,10 @@ mkAttack optic f =
     (\skel flag -> if flag then Just skel else Nothing)
 
 -- | A more fine-grained attack: Traverse all foci of the optic from the left to
--- the right, while counting them, and modify only those foci that return @Just@
--- _and_ whose index satisfies a given predicate. This is useful if you have
--- many indentical outputs but you only want to modify a few of them.
+-- the right, while counting the foci to which the modification successfully
+-- applies, and modify only those modifiable foci whose index satisfies a given
+-- predicate. This is useful if you have many indentical outputs but you only
+-- want to modify a few of them.
 mkSelectAttack ::
   Is k A_Traversal =>
   -- | Optic focussing potentially interesting points to modify.
@@ -288,3 +291,43 @@ datumHijackingTarget = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||
   where
     tgt :: Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()
     tgt _ _ _ = ()
+
+-- * Double satisfaction attack
+
+inFibre :: forall a ty b. (Typeable a, Typeable b) => ty b -> Maybe (a :~~: b)
+inFibre _ = typeRep @a `eqTypeRep` typeRep @b
+
+spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
+spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraintP
+
+doubleSatAttack ::
+  forall a.
+  (Typeable a) =>
+  (L.TypedValidator a -> L.RedeemerType a -> (SpendableOut, L.DatumType a) -> Maybe MiscConstraint) ->
+  Wallet ->
+  Attack
+doubleSatAttack select attacker skel =
+  addLabel DoubleSatLbl
+    . paySurplusTo attacker
+    <$> mkAccumLAttack
+      (singular spendsScriptConstraintsT)
+      ( \_ constr -> case constr of
+          SpendsScriptConstraint v r (o, d) ->
+            case inFibre @a v of
+              Just HRefl -> (constr, select v r (o, d))
+              Nothing -> (constr, Nothing)
+      )
+      Nothing
+      ( \sk mConstr -> case mConstr of
+          Nothing -> Nothing
+          Just c -> Just $ over miscConstraintsL (c :) sk
+      )
+      skel
+  where
+    paySurplusTo :: Wallet -> TxSkel -> TxSkel
+    paySurplusTo w sk = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) sk
+      where
+        surplus = txSkelInValue skel <> Pl.negate (txSkelOutValue skel)
+
+data DoubleSatLbl = DoubleSatLbl
+  deriving (Eq, Show)
