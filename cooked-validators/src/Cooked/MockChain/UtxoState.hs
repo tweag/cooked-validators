@@ -14,7 +14,6 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Value as Pl
-import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP

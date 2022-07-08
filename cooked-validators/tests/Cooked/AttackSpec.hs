@@ -40,6 +40,9 @@ assertTxSkelEqual expected actual =
     )
     $ actual == expected
 
+dummyMcst :: MockChainSt
+dummyMcst = def
+
 -- * Tests for the token duplication attack
 
 {-# INLINEABLE mkCarefulPolicy #-}
@@ -106,6 +109,7 @@ dupTokenAttackTests =
               dupTokenAttack
                 select
                 attacker
+                dummyMcst
                 skelIn
             skelExpected v1 v2 v3 v4 =
               txSkelLbl
@@ -168,7 +172,12 @@ dupTokenAttackTests =
                              (L.assetClassValue ac1 1)
                          ]
                 )
-            skelOut = dupTokenAttack (\_ i -> Just $ i + 1) attacker skelIn
+            skelOut =
+              dupTokenAttack
+                (\_ i -> Just $ i + 1)
+                attacker
+                dummyMcst
+                skelIn
          in assertTxSkelEqual (Just skelExpected) skelOut
     ]
 
@@ -315,6 +324,7 @@ datumHijackingAttackTests =
                       && x2 `L.geq` x
                 )
                 select
+                dummyMcst
                 skelIn
             skelExpected a b =
               txSkelLbl

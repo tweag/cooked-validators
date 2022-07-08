@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -106,10 +107,12 @@ instance MonadFail StagedMockChain where
 -- * 'InterpLtl' instance
 
 instance {-# OVERLAPS #-} Semigroup Attack where
-  f <> g = maybe Nothing f . g
+  f <> g = \mcst skel -> case g mcst skel of
+    Just skel' -> f mcst skel'
+    Nothing -> Nothing
 
 instance {-# OVERLAPS #-} Monoid Attack where
-  mempty = Just
+  mempty = \_ skel -> Just skel
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
@@ -122,8 +125,10 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
         . map (uncurry interpretAndTell)
         . nowLaterList
     where
-      interpretAndTell now later =
-        case now skel of
+      interpretAndTell :: Attack -> [Ltl Attack] -> StateT [Ltl Attack] InterpMockChain Pl.CardanoTx
+      interpretAndTell now later = do
+        mockSt <- lift get
+        case now mockSt skel of
           Just skel' -> do
             signers <- askSigners
             lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
@@ -147,6 +152,11 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
     signers <- askSigners
     lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ Fail msg
     fail msg
+
+-- ** Modalities
+
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ Attack)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 

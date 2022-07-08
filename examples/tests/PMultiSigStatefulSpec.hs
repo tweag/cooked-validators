@@ -238,7 +238,7 @@ sampleGroup1 =
             ( \p -> testFails @QC.Property $ do
                 i <- propose p
                 w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                somewhere (dupTokenAttack (head w3utxos) i) (execute p i)
+                somewhere (\_ sk -> dupTokenAttack (head w3utxos) i sk) (execute p i)
             )
       ]
 
