@@ -11,7 +11,7 @@ import Cooked.Tx.Constraints.Type
 import qualified Ledger as L
 import qualified Ledger.Ada as L
 import qualified Ledger.Typed.Scripts as L
-import qualified Ledger.Value as L
+import qualified Ledger.Value as L hiding (adaSymbol, adaToken)
 import Optics.Core
 
 -- A few remarks:

@@ -13,10 +13,10 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import qualified Ledger as Pl
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)
 import qualified Plutus.Contract as C
-import qualified Plutus.V1.Ledger.Ada as Pl
 import Split
 import qualified Wallet.Emulator.Wallet as C
 

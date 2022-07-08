@@ -4,7 +4,8 @@ package cardano-crypto-praos
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus-apps.git
-  tag: v2022-04-06
+  -- This is a commit from June 28
+  tag: a9763f89f65ec4c17b11a40de37a4824c3a7a201
   subdir:
     freer-extras
     plutus-chain-index
@@ -14,6 +15,7 @@ source-repository-package
     plutus-pab
     plutus-ledger
     plutus-ledger-constraints
+    plutus-script-utils
     plutus-use-cases
     quickcheck-dynamic
     playground-common
@@ -21,7 +23,7 @@ source-repository-package
 -- Everything below this point has been copied from plutus-apps' cabal.project
 
 -- Bump this if you need newer packages.
-index-state: 2022-02-22T20:47:03Z
+index-state: 2022-05-18T00:00:00Z
 
 packages:
   cooked-validators
@@ -45,14 +47,12 @@ benchmarks: true
 test-show-details: streaming
 
 allow-newer:
-  size-based:template-haskell
+    *:aeson
+  , size-based:template-haskell
 
 constraints:
-     -- Because later versions of hedgehog introduce a change which break 'cardano-ledger':
-     -- Test/Cardano/Chain/Delegation/Model.hs:91:41: error:
-     --   • Could not deduce (TraversableB SignalSDELEG)
-     -- TODO: Try to remove on next `cardano-node` version upgrade.
-     hedgehog >= 1.0.2 && < 1.1
+     aeson >= 2,
+     hedgehog >= 1.1
 
 -- These packages appear in our dependency tree and are very slow to build.
 -- Empirically, turning off optimization shaves off ~50% build time.
@@ -90,7 +90,7 @@ package cardano-wallet-core-integration
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/iohk-monitoring-framework
-  tag: 46f994e216a1f8b36fe4669b47b2a7011b0e153c
+  tag: 066f7002aac5a0efc20e49643fea45454f226caa
   subdir:
     contra-tracer
     iohk-monitoring
@@ -107,7 +107,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus
-  tag: 4127e9cd6e889824d724c30eae55033cb50cbf3e
+  tag: d24a7540e4659b57ce2ab25dadb968991e232191
   subdir:
     plutus-core
     plutus-ledger-api
@@ -150,7 +150,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-wallet
-  tag: f6d4db733c4e47ee11683c343b440552f59beff7
+  tag: 0cdd1b72a16b2f287b5f1bf137b5eba15bc7f300
   subdir:
     lib/cli
     lib/core
@@ -164,11 +164,13 @@ source-repository-package
     lib/text-class
 
 -- Should follow cardano-wallet.
--- Currently tracking v1.34.1.
+-- More precisally, this should be a version compatible with the current
+-- Cardano mainnet (>=1.35).
+-- Current version is dated to 2022/05/24.
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-node
-  tag: 73f9a746362695dc2cb63ba757fbcabb81733d23
+  tag: 95c3692cfbd4cdb82071495d771b23e51840fb0e
   subdir:
     cardano-api
     cardano-cli
@@ -183,8 +185,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-config
-  tag: e9de7a2cf70796f6ff26eac9f9540184ded0e4e6
-  --sha256: 1wm1c99r5zvz22pdl8nhkp13falvqmj8dgkm8fxskwa9ydqz01ld
+  tag: 1646e9167fab36c0bff82317743b96efa2d3adaa
 
 -- Using a fork until our patches can be merged upstream
 source-repository-package
@@ -196,16 +197,16 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/hedgehog-extras
-  tag: edf6945007177a638fbeb8802397f3a6f4e47c14
-  --sha256: 0wc7qzkc7j4ns2rz562h6qrx2f8xyq7yjcb7zidnj7f6j0pcd0i9
+  tag: 967d79533c21e33387d0227a5f6cc185203fe658
 
 -- Should follow cardano-wallet.
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-ledger
-  tag: 1a9ec4ae9e0b09d54e49b2a40c4ead37edadcce5
+  tag: e290bf8d0ea272a51e9acd10adc96b4e12e00d37
   subdir:
     eras/alonzo/impl
+    eras/babbage/impl
     eras/byron/chain/executable-spec
     eras/byron/crypto
     eras/byron/crypto/test
@@ -219,7 +220,7 @@ source-repository-package
     libs/cardano-ledger-core
     libs/cardano-ledger-pretty
     libs/cardano-protocol-tpraos
-    libs/compact-map
+    libs/vector-map
     libs/non-integral
     libs/set-algebra
     libs/small-steps
@@ -229,10 +230,8 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/ouroboros-network
-  tag: 4fac197b6f0d2ff60dc3486c593b68dc00969fbf
+  tag: 04245dbd69387da98d3a37de9f400965e922bb0e
   subdir:
-    io-classes
-    io-sim
     monoidal-synchronisation
     network-mux
     ntp-client
@@ -244,22 +243,40 @@ source-repository-package
     ouroboros-network
     ouroboros-network-framework
     ouroboros-network-testing
+
+-- Should follow cardano-node.
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/io-sim
+  tag: 57e888b1894829056cb00b7b5785fdf6a74c3271
+  subdir:
+    io-classes
+    io-sim
     strict-stm
+
+-- Should follow cardano-node.
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/typed-protocols
+  tag: 181601bc3d9e9d21a671ce01e0b481348b3ca104
+  subdir:
     typed-protocols
     typed-protocols-cborg
     typed-protocols-examples
+
 
 -- Should follow cardano-wallet.
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-base
-  tag: 41545ba3ac6b3095966316a99883d678b5ab8da8
+  tag: 631cb6cf1fa01ab346233b610a38b3b4cba6e6ab
   subdir:
     base-deriving-via
     binary
     binary/test
     cardano-crypto-class
     cardano-crypto-praos
+    cardano-crypto-tests
     measures
     orphans-deriving-via
     slotting
@@ -284,7 +301,7 @@ source-repository-package
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-addresses
-  tag: 71006f9eb956b0004022e80aadd4ad50d837b621
+  tag: b9f424cc64459a95a2f190a1839ec9bc94cc778c
   subdir:
     command-line
     core
@@ -301,3 +318,25 @@ source-repository-package
   location: https://github.com/input-output-hk/Win32-network
   tag: 3825d3abf75f83f406c1f7161883c438dac7277d
 
+-- Until https://github.com/tibbe/ekg-json/pull/12 gets merged with aeson2 support
+source-repository-package
+  type: git
+  location: https://github.com/vshabanov/ekg-json
+  tag: 00ebe7211c981686e65730b7144fbf5350462608
+
+-- TODO This is a compatibility shim to make it easier for our library dependencies to
+-- be compatible with both aeson 1 & 2.  Once downstream projects are all upgraded to
+-- work with aeson-2, library dependencies will need to be updated to no longer use
+-- this compatibility shim and have bounds to indicate they work with aeson-2 only.
+-- After this, the dependency to hw-aeson can be dropped.
+source-repository-package
+    type: git
+    location: https://github.com/haskell-works/hw-aeson
+    tag: d99d2f3e39a287607418ae605b132a3deb2b753f
+    --sha256: 1vxqcwjg9q37wbwi27y9ba5163lzfz51f1swbi0rp681yg63zvn4
+
+-- Temporary indexing
+source-repository-package
+  type: git
+  location: https://github.com/raduom/hysterical-screams
+  tag: f3bbd38a19f99de5c8ddc650c94330b2d09a865b

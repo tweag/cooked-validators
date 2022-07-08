@@ -197,7 +197,7 @@ threadTokenName = Value.tokenName "AuctionToken"
 threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 threadTokenPolicy pars =
   L.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
 threadTokenAssetClassFromOrefAndLot :: L.TxOutRef -> L.Value -> Value.AssetClass
@@ -337,4 +337,4 @@ auctionValidator =
     compiledValidate
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @AuctionState @Action
+    wrap = Scripts.mkUntypedValidator @AuctionState @Action

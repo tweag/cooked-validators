@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -37,6 +37,8 @@ library
       Example
   other-modules:
       Paths_cooked_validators
+  autogen-modules:
+      Paths_cooked_validators
   hs-source-dirs:
       src
   ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
@@ -67,6 +69,7 @@ library
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
@@ -91,6 +94,8 @@ test-suite spec
       Cooked.MockChain.WalletSpec
       Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
+      Paths_cooked_validators
+  autogen-modules:
       Paths_cooked_validators
   hs-source-dirs:
       tests/
@@ -122,6 +127,7 @@ test-suite spec
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter

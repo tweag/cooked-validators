@@ -8,9 +8,9 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
-import qualified Ledger as Pl (scriptAddress)
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Plutus.V1.Ledger.Ada as Pl
+import qualified Ledger.Typed.Scripts.Validators as Scripts
 import PlutusTx.Builtins
 import qualified PlutusTx.IsData.Class as Pl
 import qualified Split
@@ -48,7 +48,7 @@ tests =
           case unsafeTypedValidatorFromBS @Split.Split splitBS of
             Left err -> assertFailure "couldn't load the Split contract from its binary repr"
             Right res ->
-              let defAddr = Pl.scriptAddress $ Pl.validatorScript Split.splitValidator
-                  bsAddr = Pl.scriptAddress $ Pl.validatorScript res
+              let defAddr = Scripts.validatorAddress Split.splitValidator
+                  bsAddr = Scripts.validatorAddress res
                in defAddr @=? bsAddr
     ]
