@@ -14,7 +14,6 @@ module Cooked.Attack where
 
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.RawUPLC (unsafeTypedValidatorFromUPLC)
-import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
@@ -119,7 +118,7 @@ mkAttack ::
 mkAttack optic f =
   mkAccumLAttack
     optic
-    ( \_ flag x -> case f x of
+    ( \flag x -> case f x of
         Just y -> (y, True)
         Nothing -> (x, flag)
     )
@@ -147,7 +146,7 @@ mkSelectAttack ::
 mkSelectAttack optic f select =
   mkAccumLAttack
     optic
-    ( \_ (flag, index) x -> case f x of
+    ( \(flag, index) x -> case f x of
         Just y ->
           if select index
             then (y, (True, index + 1))
@@ -168,7 +167,7 @@ mkAccumLAttack ::
   Optic' k is TxSkel a ->
   -- | function that describes the modification of the accumulator and the
   -- current focus.
-  (MockChainSt -> acc -> a -> (a, acc)) ->
+  (acc -> a -> (a, acc)) ->
   -- | initial accumulator
   acc ->
   -- | function to decide whether the traversal modified the 'TxSkel' in the
@@ -179,7 +178,7 @@ mkAccumLAttack ::
   (MockChainSt -> TxSkel -> acc -> Maybe TxSkel) ->
   Attack
 mkAccumLAttack optic f initAcc test mcst skel =
-  let (skel', acc) = mapAccumLOf optic (f mcst) initAcc skel
+  let (skel', acc) = mapAccumLOf optic f initAcc skel
    in test mcst skel' acc
 
 -- * General helpers
@@ -325,13 +324,13 @@ doubleSatAttack DoubleSatParams {..} mcst skel =
     . paySurplusTo dsAttacker
     <$> mkAccumLAttack
       (singular spendsScriptConstraintsT)
-      ( \mcst _ constr ->
+      ( \_ constr ->
           if dsSelectSpendsScript constr
             then (constr, SpendsScript dsExtraInputOwner dsExtraInputRedeemer <$> extraUtxo)
             else (constr, Nothing)
       )
       Nothing
-      ( \mcst sk mConstr -> case mConstr of
+      ( \_ sk mConstr -> case mConstr of
           Nothing -> Nothing
           Just c -> Just $ over miscConstraintsL (c :) sk
       )

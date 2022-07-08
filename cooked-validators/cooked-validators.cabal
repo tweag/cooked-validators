@@ -84,6 +84,10 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
+      Cooked.AttackSpec.Common
+      Cooked.AttackSpec.DatumHijackingAttack
+      Cooked.AttackSpec.DoubleSatAttack
+      Cooked.AttackSpec.DupTokenAttack
       Cooked.BalanceSpec
       Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
