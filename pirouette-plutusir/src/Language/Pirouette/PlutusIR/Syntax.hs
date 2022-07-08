@@ -290,10 +290,9 @@ instance LanguageParser PlutusIR where
             P.Sha2_256 <$ symbol "b/sha2",
             P.Sha3_256 <$ symbol "b/sha3",
             P.Blake2b_256 <$ symbol "b/blake2b",
-            P.VerifySignature <$ symbol "b/verifySignature",
-            -- P.VerifyEd25519Signature <$ symbol "b/verifyEd25519Signature",
-            -- P.VerifyEcdsaSecp256k1Signature <$ symbol "b/verifyEcdsaSecp256k1Signature",
-            -- P.VerifySchnorrSecp256k1Signature <$ symbol "b/verifySchnorrSecp256k1Signature",
+            P.VerifyEd25519Signature <$ symbol "b/verifyEd25519Signature",
+            P.VerifyEcdsaSecp256k1Signature <$ symbol "b/verifyEcdsaSecp256k1Signature",
+            P.VerifySchnorrSecp256k1Signature <$ symbol "b/verifySchnorrSecp256k1Signature",
             -- Strings
             P.AppendString <$ symbol "b/appendString",
             P.EqualsString <$ symbol "b/equalsString",
