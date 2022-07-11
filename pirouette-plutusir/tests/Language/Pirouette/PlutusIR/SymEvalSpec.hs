@@ -6,6 +6,7 @@ module Language.Pirouette.PlutusIR.SymEvalSpec where
 
 import Control.Monad.Except (runExcept)
 import Control.Monad.Reader (ReaderT (runReaderT))
+import Data.Default
 import qualified Data.Map as M
 import Language.Pirouette.PlutusIR
 import Language.Pirouette.PlutusIR.Common (openAndParsePIR)
@@ -29,7 +30,7 @@ execFromPIRFile ::
   FilePath -> IncorrectnessParams PlutusIR -> IO [Path PlutusIR (EvaluationWitness PlutusIR)]
 execFromPIRFile path problem = do
   (_pirMain, pirDecls) <- openAndParsePIR path
-  execIncorrectnessLogic proveUnbounded pirDecls problem
+  execIncorrectnessLogic (proveUnbounded def) pirDecls problem
 
 tests :: [TestTree]
 tests =
