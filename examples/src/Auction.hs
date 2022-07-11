@@ -20,11 +20,14 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
-import qualified Ledger as L
+import qualified Ledger as Pl
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Interval as Interval
+import Ledger.Scripts as Pl
 import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
+import qualified Plutus.Script.Utils.V1.Scripts as Pl (scriptCurrencySymbol)
+import qualified Plutus.V1.Ledger.Api as Api
 import qualified PlutusTx
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
@@ -35,11 +38,11 @@ import qualified Prelude as Haskell
 -- validator needs to know
 data StaticValParams = StaticValParams
   { -- | no bids are accepted later than this
-    bidDeadline' :: L.POSIXTime,
+    bidDeadline' :: Pl.POSIXTime,
     -- | minimum bid in Lovelace
     minBid' :: Integer,
     -- | value that is being auctioned
-    lot' :: L.Value
+    lot' :: Pl.Value
   }
   deriving (Haskell.Show)
 
@@ -52,7 +55,7 @@ PlutusTx.unstableMakeIsData ''StaticValParams
 data ValParams = ValParams
   { staticValParams :: StaticValParams,
     -- | address of the seller
-    seller :: L.PubKeyHash,
+    seller :: Pl.PubKeyHash,
     -- | The asset class of the thread token. It's is needed here to
     -- break a circular dependency between the vaildator and the
     -- minting policy: The minting policy needs to know the (hash of
@@ -62,7 +65,7 @@ data ValParams = ValParams
     -- that it can ensure the token is correctly passed on. In
     -- principle, the validator could compute this AssetClass, if it
     -- knows the minting policy and the TokenName (using
-    -- 'L.scriptCurrencySymbol' and 'Value.assetClass'). This would
+    -- 'Pl.scriptCurrencySymbol' and 'Value.assetClass'). This would
     -- make the minting policy a parameter of the validator, so that
     -- each would depend on the other. This is a way out.
     threadTokenAssetClass :: Value.AssetClass
@@ -72,13 +75,13 @@ data ValParams = ValParams
 PlutusTx.makeLift ''ValParams
 PlutusTx.unstableMakeIsData ''ValParams
 
-bidDeadline :: ValParams -> L.POSIXTime
+bidDeadline :: ValParams -> Pl.POSIXTime
 bidDeadline = bidDeadline' . staticValParams
 
 minBid :: ValParams -> Integer
 minBid = minBid' . staticValParams
 
-lot :: ValParams -> L.Value
+lot :: ValParams -> Pl.Value
 lot = lot' . staticValParams
 
 -- | All data the minting policy of the thread token needs to
@@ -87,9 +90,9 @@ data PolicyParams = PolicyParams
   { -- | TokenName of the thread token
     pThreadTokenName :: Value.TokenName,
     -- | outref of the utxo the seller spent the lot from
-    pLotOutRef :: L.TxOutRef,
+    pLotOutRef :: Pl.TxOutRef,
     -- | lot of the auction
-    pLot :: L.Value
+    pLot :: Pl.Value
   }
 
 PlutusTx.makeLift ''PolicyParams
@@ -99,7 +102,7 @@ data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
     bid :: Integer,
     -- | the last bidder's address
-    bidder :: L.PubKeyHash
+    bidder :: Pl.PubKeyHash
   }
   deriving (Haskell.Show)
 
@@ -158,19 +161,19 @@ PlutusTx.unstableMakeIsData ''Action
 -- 'validHammer', so that this minting policy only checks that at
 -- exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> L.Address -> L.ScriptContext -> Bool
+mkPolicy :: PolicyParams -> Pl.Address -> Pl.ScriptContext -> Bool
 mkPolicy (PolicyParams tName lotOref lot) validator ctx
   | amnt == Just 1 =
     traceIfFalse
       "Lot UTxO not consumed"
-      (any (\i -> L.txInInfoOutRef i == lotOref) $ L.txInfoInputs txi)
+      (any (\i -> Pl.txInInfoOutRef i == lotOref) $ Pl.txInfoInputs txi)
       && case filter
-        (\o -> L.txOutAddress o == validator)
-        (L.txInfoOutputs txi) of
+        (\o -> Pl.txOutAddress o == validator)
+        (Pl.txInfoOutputs txi) of
         [o] ->
           traceIfFalse
             "Validator does not receive the lot and the thread token of freshly opened auction"
-            (L.txOutValue o `Value.geq` (lot <> token))
+            (Pl.txOutValue o `Value.geq` (lot <> token))
             && traceIfFalse
               "Validator not in 'NoBids'-state on freshly opened auction"
               (outputAuctionState txi o == Just NoBids)
@@ -179,15 +182,15 @@ mkPolicy (PolicyParams tName lotOref lot) validator ctx
     True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
-    txi = L.scriptContextTxInfo ctx
-    L.Minting me = L.scriptContextPurpose ctx
+    txi = Pl.scriptContextTxInfo ctx
+    Pl.Minting me = Pl.scriptContextPurpose ctx
 
-    token :: L.Value
+    token :: Pl.Value
     token = Value.singleton me tName 1
 
     amnt :: Maybe Integer
-    amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs == L.ownCurrencySymbol ctx && tn == tName -> Just a
+    amnt = case Value.flattenValue (Pl.txInfoMint txi) of
+      [(cs, tn, a)] | cs == Pl.ownCurrencySymbol ctx && tn == tName -> Just a
       _ -> Nothing
 
 {-# INLINEABLE threadTokenName #-}
@@ -196,41 +199,41 @@ threadTokenName = Value.tokenName "AuctionToken"
 
 threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 threadTokenPolicy pars =
-  L.mkMintingPolicyScript $
+  Api.mkMintingPolicyScript $
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
-threadTokenAssetClassFromOrefAndLot :: L.TxOutRef -> L.Value -> Value.AssetClass
+threadTokenAssetClassFromOrefAndLot :: Pl.TxOutRef -> Pl.Value -> Value.AssetClass
 threadTokenAssetClassFromOrefAndLot lotOutRef lot =
   Value.assetClass
-    (L.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef lot)
+    (Pl.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef lot)
     threadTokenName
 
 -- * The validator and its helpers
 
 {- INLINEABLE bidTimeRange -}
-bidTimeRange :: ValParams -> L.POSIXTimeRange
+bidTimeRange :: ValParams -> Pl.POSIXTimeRange
 bidTimeRange a = Interval.to (bidDeadline a)
 
 {- INLINEABLE hammerTimeRange -}
-hammerTimeRange :: ValParams -> L.POSIXTimeRange
+hammerTimeRange :: ValParams -> Pl.POSIXTimeRange
 hammerTimeRange a = Interval.from (bidDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
 
 {- INLINEABLE outputAuctionState -}
-outputAuctionState :: L.TxInfo -> L.TxOut -> Maybe AuctionState
+outputAuctionState :: Pl.TxInfo -> Pl.TxOut -> Maybe AuctionState
 outputAuctionState txi o = do
-  h <- L.txOutDatum o
-  L.Datum d <- L.findDatum h txi
+  h <- Pl.txOutDatum o
+  Pl.Datum d <- Pl.findDatum h txi
   PlutusTx.fromBuiltinData d
 
 -- | Test that the value paid to the giv,en public key address is at
 -- least the given value
 
 {- INLINEABLE receivesFrom -}
-receivesFrom :: L.TxInfo -> L.PubKeyHash -> L.Value -> Bool
-receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
+receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
+receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
@@ -242,23 +245,23 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 --    * the last bidder has gotten their money back from the validator
 
 {- INLINEABLE validBid -}
-validBid :: ValParams -> AuctionState -> Integer -> L.PubKeyHash -> L.ScriptContext -> Bool
+validBid :: ValParams -> AuctionState -> Integer -> Pl.PubKeyHash -> Pl.ScriptContext -> Bool
 validBid auction datum bid bidder ctx =
-  let txi = L.scriptContextTxInfo ctx
-      selfh = L.ownHash ctx
+  let txi = Pl.scriptContextTxInfo ctx
+      selfh = Pl.ownHash ctx
       receives = receivesFrom txi
    in traceIfFalse
         "Bidding past the deadline is not permitted"
-        (bidTimeRange auction `Interval.contains` L.txInfoValidRange txi)
-        && traceIfFalse "Bid transaction not signed by bidder" (txi `L.txSignedBy` bidder)
+        (bidTimeRange auction `Interval.contains` Pl.txInfoValidRange txi)
+        && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
         && traceIfFalse
           "Validator does not lock lot, bid, and thread token"
-          ( L.valueLockedBy txi selfh
+          ( Pl.valueLockedBy txi selfh
               `Value.geq` ( lot auction <> Ada.lovelaceValueOf bid
                               <> Value.assetClassValue (threadTokenAssetClass auction) 1
                           )
           )
-        && case L.getContinuingOutputs ctx of
+        && case Pl.getContinuingOutputs ctx of
           [o] ->
             traceIfFalse
               "Not in the correct 'Bidding'-state after bidding"
@@ -283,16 +286,16 @@ validBid auction datum bid bidder ctx =
 --    * the seller gets the lot
 
 {- INLINEABLE validHammer -}
-validHammer :: ValParams -> AuctionState -> L.ScriptContext -> Bool
+validHammer :: ValParams -> AuctionState -> Pl.ScriptContext -> Bool
 validHammer auction datum ctx =
-  let txi = L.scriptContextTxInfo ctx
+  let txi = Pl.scriptContextTxInfo ctx
       receives = receivesFrom txi
    in traceIfFalse
         "Hammer before the deadline is not permitted"
-        (hammerTimeRange auction `Interval.contains` L.txInfoValidRange txi)
+        (hammerTimeRange auction `Interval.contains` Pl.txInfoValidRange txi)
         && traceIfFalse
           "Hammer does not burn exactly one thread token"
-          (L.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass auction) (-1))
+          (Pl.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass auction) (-1))
         && case datum of
           NoBids ->
             traceIfFalse
@@ -307,7 +310,7 @@ validHammer auction datum ctx =
                 (seller auction `receives` Ada.lovelaceValueOf lastBid)
 
 {- INLINEABLE validate -}
-validate :: ValParams -> AuctionState -> Action -> L.ScriptContext -> Bool
+validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
   Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx

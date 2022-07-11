@@ -37,6 +37,7 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
+  - plutus-script-utils
   - playground-common
   - scientific
   - serialise >= 0.2.3.0
