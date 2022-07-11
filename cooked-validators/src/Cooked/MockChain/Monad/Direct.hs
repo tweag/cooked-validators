@@ -37,10 +37,12 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Fee as Pl
 import Ledger.Orphans ()
+import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Validation as Pl
-import qualified Ledger.Value as Pl hiding (adaSymbol, adaToken)
+import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
@@ -215,7 +217,7 @@ instance Default MockChainSt where
   def = mockChainSt0
 
 utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
-utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ initialTxFor i0]]
+utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ Pl.EmulatorTx $ initialTxFor i0]]
 
 utxoIndex0 :: Pl.UtxoIndex
 utxoIndex0 = utxoIndex0From def
@@ -282,7 +284,7 @@ runTransactionValidation ::
   Pl.Tx ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
 runTransactionValidation s parms ix reqSigners signers tx =
-  let ((e1, idx'), evs) =
+  let (e1, evs) =
         Pl.runValidation
           (Pl.validateTransaction s tx)
           (Pl.ValidationCtx ix parms)
@@ -299,7 +301,14 @@ runTransactionValidation s parms ix reqSigners signers tx =
           (fromIntegral s)
           cardanoIndex
           (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
-   in (idx', e1 <|> e2, evs)
+
+      -- Now we compute the new index
+      e = e1 <|> e2
+      idx' = case e of
+        Just (Pl.Phase1, _) -> ix
+        Just (Pl.Phase2, _) -> Pl.insertCollateral (Pl.EmulatorTx tx) ix
+        Nothing -> Pl.insert (Pl.EmulatorTx tx) ix
+   in (idx', e, evs)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
@@ -428,14 +437,17 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
     -- Order outputs according to the order of output constraints
     applyTxOutConstraintOrder :: [OutConstraint] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
     applyTxOutConstraintOrder ocs tx =
-      let txOuts' = orderTxOutputs ocs . Pl.txOutputs . Pl.unBalancedTxTx $ tx
-       in tx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx tx) {Pl.txOutputs = txOuts'}}
+      let Right tx' = Pl.unBalancedTxTx tx
+          txOuts' = orderTxOutputs ocs . Pl.txOutputs $ tx'
+       in tx {Pl.unBalancedTxTx = Right $ tx' {Pl.txOutputs = txOuts'}}
 
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
+setFeeAndValidRange bPol w (Pl.UnbalancedTx (Left _) reqSigs0 uindex slotRange) =
+  error "Impossible: we have a CardanoBuildTx"
+setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
   let requiredSigners = S.toList reqSigs0
   ps <- asks mceParams
@@ -470,7 +482,7 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx tx0 reqSigs0 uindex slotRange) = do
     calcFee n fee reqSigs cUtxoIndex parms tx = do
       let tx1 = tx {Pl.txFee = fee}
       attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
-      case Pl.evaluateTransactionFee parms cUtxoIndex reqSigs attemptedTx of
+      case Pl.estimateTransactionFee parms cUtxoIndex reqSigs attemptedTx of
         -- necessary to capture script failure for failed cases
         Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
@@ -490,9 +502,10 @@ balanceTxFrom ::
 balanceTxFrom bPol skipBalancing col w ubtx = do
   let requiredSigners = S.toList (Pl.unBalancedTxRequiredSignatories ubtx)
   colTxIns <- calcCollateral w col
+  let Right ubtx' = Pl.unBalancedTxTx ubtx
   tx <-
     setFeeAndValidRange bPol w $
-      ubtx {Pl.unBalancedTxTx = (Pl.unBalancedTxTx ubtx) {Pl.txCollateral = colTxIns}}
+      ubtx {Pl.unBalancedTxTx = Right $ ubtx' {Pl.txCollateral = colTxIns}}
   (requiredSigners,)
     <$> if skipBalancing
       then return tx

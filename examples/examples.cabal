@@ -48,6 +48,7 @@ library
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
@@ -100,6 +101,7 @@ test-suite spec
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
