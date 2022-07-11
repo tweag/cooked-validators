@@ -16,7 +16,7 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger as L hiding (singleton, validatorHash)
+import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
 import qualified Ledger.Contexts as L
 import qualified Ledger.Typed.Scripts as L
@@ -26,14 +26,12 @@ import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- * Tests for the datum hijacking attack
-
--- ** Mock contract for the datum hijacking attack
+-- * Mock contract for the datum hijacking attack
 
 -- This is a very simple contract: The first transaction locks some Ada to the
 -- validator, using the datum 'FirstLock', the second transaction then re-locks
 -- the same amount to the same validator, using the datum 'SecondLock'. The
--- datum hijacking attack should target the secon transaction, and substitute a
+-- datum hijacking attack should target the second transaction, and substitute a
 -- different recipient.
 
 data MockDatum = FirstLock | SecondLock deriving (Show)
@@ -86,7 +84,7 @@ txRelock v = do
   utxo : _ <- scriptUtxosSuchThat v (\d _ -> FirstLock Pl.== d)
   void $ validateTxSkel $ relockTxSkel v (fst utxo)
 
--- ** Validators for the datum hijacking attack
+-- * Validators for the datum hijacking attack
 
 -- | Try to extract a datum from an output.
 {-# INLINEABLE outputDatum #-}
@@ -141,6 +139,8 @@ datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m (
 datumHijackingTrace v = do
   txLock v
   txRelock v
+
+-- * TestTree for the datum hijacking attack
 
 tests :: TestTree
 tests =

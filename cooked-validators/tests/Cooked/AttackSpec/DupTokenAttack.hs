@@ -23,8 +23,6 @@ import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- * Tests for the token duplication attack
-
 {-# INLINEABLE mkCarefulPolicy #-}
 mkCarefulPolicy :: L.TokenName -> Integer -> () -> L.ScriptContext -> Bool
 mkCarefulPolicy tName allowedAmount _ ctx

@@ -12,12 +12,15 @@
 
 module Cooked.Attack where
 
+import Control.Arrow
+import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.RawUPLC (unsafeTypedValidatorFromUPLC)
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import qualified Data.Map as M
+import Data.Default
 import Data.Maybe
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as L
@@ -306,7 +309,7 @@ spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraint
 
 data DoubleSatParams b = DoubleSatParams
   { dsExtraInputOwner :: L.TypedValidator b,
-    dsExtraInputPred :: L.Value -> L.DatumType b -> Bool,
+    dsExtraInputPred :: L.DatumType b -> L.Value -> Bool,
     dsExtraInputRedeemer :: L.RedeemerType b,
     dsSelectSpendsScript :: SpendsScriptConstraint -> Bool,
     dsAttacker :: Wallet
@@ -323,11 +326,13 @@ doubleSatAttack DoubleSatParams {..} mcst skel =
   addLabel DoubleSatLbl
     . paySurplusTo dsAttacker
     <$> mkAccumLAttack
-      (singular spendsScriptConstraintsT)
-      ( \_ constr ->
-          if dsSelectSpendsScript constr
-            then (constr, SpendsScript dsExtraInputOwner dsExtraInputRedeemer <$> extraUtxo)
-            else (constr, Nothing)
+      spendsScriptConstraintsT
+      ( \acc constr -> case acc of
+          Nothing ->
+            if dsSelectSpendsScript constr
+              then (constr, SpendsScript dsExtraInputOwner dsExtraInputRedeemer <$> extraUtxo)
+              else (constr, Nothing)
+          _ -> (constr, acc)
       )
       Nothing
       ( \_ sk mConstr -> case mConstr of
@@ -337,43 +342,36 @@ doubleSatAttack DoubleSatParams {..} mcst skel =
       mcst
       skel
   where
-    getDatumFromHash :: L.DatumHash -> Maybe (L.DatumType b)
-    getDatumFromHash dh = do
-      L.Datum d <- M.lookup dh (mcstDatums mcst)
-      Pl.fromBuiltinData d
-
-    -- try to get a UTxO from the 'MockChainSt' that belongs to
-    -- 'dsExtraInputOwner' and whose value and datum satisfy 'dsExtraInputPred'
-    extraUtxo :: Maybe (SpendableOut, L.DatumType b)
-    extraUtxo =
-      let -- a list of all UTxOs belonging to 'dsExtraInputOwner' and satisfying
-          -- the 'dsExtraInputPred'
-          candidates =
-            M.toList $
-              M.filter
-                ( \case
-                    L.TxOut a v (Just dh) ->
-                      (a == L.validatorAddress dsExtraInputOwner)
-                        && maybe False (dsExtraInputPred v) (getDatumFromHash dh)
-                    _ -> False
-                )
-                (L.getIndex $ mcstIndex mcst)
-       in case candidates of
-            (oref, L.TxOut a v (Just dh)) : _ ->
-              (( oref,
-                 L.ScriptChainIndexTxOut
-                   a
-                   (Left $ L.validatorHash dsExtraInputOwner)
-                   (Left dh)
-                   v
-               ),)
-                <$> getDatumFromHash dh
-            _ -> Nothing
+    extraUtxo = listToMaybe $ scriptUtxosSuchThatMcst mcst dsExtraInputOwner dsExtraInputPred
 
     paySurplusTo :: Wallet -> TxSkel -> TxSkel
     paySurplusTo w sk = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) sk
       where
-        surplus = txSkelInValue skel <> Pl.negate (txSkelOutValue skel)
+        surplus = txSkelInValue sk <> Pl.negate (txSkelInValue skel)
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)
+
+utxosSuchThatMcst ::
+  (Pl.FromData a) =>
+  MockChainSt ->
+  L.Address ->
+  UtxoPredicate a ->
+  [(SpendableOut, Maybe a)]
+utxosSuchThatMcst mcst addr select =
+  case runMockChainRaw def mcst (utxosSuchThat addr select) of
+    Left _ -> []
+    Right (utxos, _) -> utxos
+
+scriptUtxosSuchThatMcst ::
+  (Pl.FromData (L.DatumType a)) =>
+  MockChainSt ->
+  L.TypedValidator a ->
+  (L.DatumType a -> L.Value -> Bool) ->
+  [(SpendableOut, L.DatumType a)]
+scriptUtxosSuchThatMcst mcst val select =
+  map (second fromJust) $
+    utxosSuchThatMcst
+      mcst
+      (L.scriptHashAddress $ L.validatorHash val)
+      (maybe (const False) select)
