@@ -43,35 +43,13 @@ trPIRType PIRTypeInteger = PureSMT.tInt
 trPIRType PIRTypeBool = PureSMT.tBool
 trPIRType PIRTypeString = PureSMT.tString
 trPIRType PIRTypeByteString = PureSMT.tString
-trPIRType PIRTypeUnit = PureSMT.fun "pir_Unit" []
-trPIRType PIRTypeData = PureSMT.fun "pir_Data" []
--- Note: why do Pair have maybes?
--- Note answer, because types can be partially applied in System F,
--- and `Pair a` is represented by `PIRTypePair (pirType a) Nothing`
-trPIRType (PIRTypePair (Just pirType1) (Just pirType2)) =
-  PureSMT.fun "pir_Tuple2" [trPIRType pirType1, trPIRType pirType2]
-trPIRType (PIRTypePair Nothing Nothing) =
-  PureSMT.fun "pir_Tuple2" []
-trPIRType (PIRTypeList (Just pirType)) =
-  PureSMT.fun "pir_List" [trPIRType pirType]
-trPIRType (PIRTypeList Nothing) =
-  PureSMT.fun "pir_List" []
-trPIRType pirType =
-  error $ "Translate builtin type to smtlib: " <> show pirType <> " not yet handled."
 
 -- TODO Implement remaining constants
 trPIRConstant :: PIRConstant -> PureSMT.SExpr
 trPIRConstant (PIRConstInteger n) = PureSMT.int n
 trPIRConstant (PIRConstByteString _bs) = error "Not implemented: PIRConstByteString to SMT"
-trPIRConstant PIRConstUnit = PureSMT.fun "Unit" []
 trPIRConstant (PIRConstBool b) = PureSMT.bool b
 trPIRConstant (PIRConstString txt) = PureSMT.text txt
-trPIRConstant (PIRConstList lst) = go lst
-  where
-    go [] = PureSMT.fun "Nil" []
-    go (x : xs) = PureSMT.fun "Cons" [trPIRConstant x, go xs]
-trPIRConstant (PIRConstPair x y) = PureSMT.fun "Tuple2" [trPIRConstant x, trPIRConstant y]
-trPIRConstant (PIRConstData _dat) = error "Not implemented: PIRConstData to SMT"
 
 -- | These operations can be fully evaluated
 -- if the given arguments are constants.
@@ -265,12 +243,6 @@ instance LanguageSymEval PlutusIR where
           P.AppendString -> PIRConstString $ x <> y
           P.EqualsString -> PIRConstBool $ x == y
           _ -> error "ill-typed application"
-  branchesBuiltinTerm op _ [TermArg (K (PIRConstData x)), TermArg (K (PIRConstData y))]
-    | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
-      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
-        case op of
-          P.EqualsData -> PIRConstBool $ x == y
-          _ -> error "ill-typed application"
   -- if-then-else goes to the helpers
   branchesBuiltinTerm P.IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
     let isEq P.EqualsInteger = True
@@ -351,7 +323,7 @@ instance LanguageSymEval PlutusIR where
   branchesBuiltinTerm P.HeadList _ [TyArg a, TermArg lst] =
     continueWithListMatch a a lst errorTerm (App (Bound (Ann "x") 1) []) []
   branchesBuiltinTerm P.TailList _ [TyArg a, TermArg lst] =
-    continueWithListMatch a (listOf a) lst errorTerm (App (Bound (Ann "xs") 0) []) []
+    continueWithListMatch a (tyListOf a) lst errorTerm (App (Bound (Ann "xs") 0) []) []
   branchesBuiltinTerm P.NullList _ [TyArg a, TermArg lst] =
     continueWithListMatch
       a
@@ -363,7 +335,7 @@ instance LanguageSymEval PlutusIR where
   branchesBuiltinTerm P.UnConstrData _ [d] =
     continueWithDataMatch
       d
-      (TyArg (builtin (PIRTypePair (Just PIRTypeInteger) (Just PIRTypeData))))
+      (TyArg (tyTuple2Of (builtin PIRTypeInteger) tyData))
       (App (Free $ TermSig "Tuple2") [TermArg $ App (Bound (Ann "i") 1) [], TermArg $ App (Bound (Ann "ds") 0) []])
       errorTerm
       errorTerm
@@ -373,7 +345,7 @@ instance LanguageSymEval PlutusIR where
   branchesBuiltinTerm P.UnMapData _ [d] =
     continueWithDataMatch
       d
-      (TyArg (listOf (builtin (PIRTypePair (Just PIRTypeData) (Just PIRTypeData)))))
+      (TyArg (tyListOf (tyTuple2Of tyData tyData)))
       errorTerm
       (App (Bound (Ann "es") 0) [])
       errorTerm
@@ -383,7 +355,7 @@ instance LanguageSymEval PlutusIR where
   branchesBuiltinTerm P.UnListData _ [d] =
     continueWithDataMatch
       d
-      (TyArg (listOf (builtin PIRTypeData)))
+      (TyArg (tyListOf tyData))
       errorTerm
       errorTerm
       (App (Bound (Ann "ds") 0) [])
@@ -445,7 +417,7 @@ continueWithListMatch tyA tyR lst caseNil caseCons excess =
       TermArg lst,
       TyArg tyR,
       TermArg $ caseNil `appN` excess,
-      TermArg $ Lam (Ann "x") tyA $ Lam (Ann "xs") (listOf tyA) $ caseCons `appN` excess
+      TermArg $ Lam (Ann "x") tyA $ Lam (Ann "xs") (tyListOf tyA) $ caseCons `appN` excess
     ]
 
 -- | Indicates that the next step is an application of
@@ -467,26 +439,15 @@ continueWithDataMatch dat tyR caseC caseM caseL caseI caseB excess =
     "Data_match"
     [ dat,
       tyR,
-      TermArg $ Lam (Ann "i") (builtin PIRTypeInteger) $ Lam (Ann "ds") (listOf (builtin PIRTypeData)) caseC `appN` excess,
-      TermArg $ Lam (Ann "es") (listOf (builtin (PIRTypePair (Just PIRTypeData) (Just PIRTypeData)))) $ caseM `appN` excess,
-      TermArg $ Lam (Ann "ds") (listOf (builtin PIRTypeData)) $ caseL `appN` excess,
+      TermArg $ Lam (Ann "i") (builtin PIRTypeInteger) $ Lam (Ann "ds") (tyListOf tyData) caseC `appN` excess,
+      TermArg $ Lam (Ann "es") (tyListOf (tyTuple2Of tyData tyData)) $ caseM `appN` excess,
+      TermArg $ Lam (Ann "ds") (tyListOf tyData) $ caseL `appN` excess,
       TermArg $ Lam (Ann "i") (builtin PIRTypeInteger) $ caseI `appN` excess,
       TermArg $ Lam (Ann "b") (builtin PIRTypeByteString) $ caseB `appN` excess
     ]
 
 errorTerm :: AnnTerm ty ann (SystemF.VarMeta meta ann (TermBase lang))
 errorTerm = App (Free Bottom) []
-
-listOf ::
-  AnnType ann (SystemF.VarMeta meta ann (TypeBase lang)) ->
-  AnnType ann (SystemF.VarMeta meta ann (TypeBase lang))
-listOf x = TyApp (Free $ TySig "List") [x]
-
-tuple2Of ::
-  AnnType ann (SystemF.VarMeta meta ann (TypeBase lang)) ->
-  AnnType ann (SystemF.VarMeta meta ann (TypeBase lang)) ->
-  AnnType ann (SystemF.VarMeta meta ann (TypeBase lang))
-tuple2Of x y = TyApp (Free $ TySig "Tuple2") [x, y]
 
 builtin :: PIRBuiltinType -> AnnType ann (SystemF.VarMeta meta ann (TypeBase PlutusIR))
 builtin nm = TyApp (Free $ TyBuiltin nm) []

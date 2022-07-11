@@ -52,7 +52,7 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
   let augments' = runReader (contextualizeDecls augments) (PrtUnorderedDefs decls0)
   -- Now we try to remove as many 'nameUnique' bits as possible, to help with writing
   -- predicates and referring to types.
-  let (decls1, main) = (augments' `M.union` decls0, main0)
+  let (decls1, main) = (augments' `M.union` decls0 `M.union` builtinTypeDecls decls0, main0)
 
   -- PrtUnorderedDefs decls1 = prenex $ PrtUnorderedDefs decls0'
   -- TODO: what if we don't manage to infer the type of main? Also, can't we make this interface much better? These empty lists are awkward here.

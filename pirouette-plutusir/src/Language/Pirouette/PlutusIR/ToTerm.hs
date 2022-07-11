@@ -307,7 +307,7 @@ trDataOrTypeBinding (PIR.TypeBind _ tyvard tybody) =
         -- See [HACK: Higher rank types]
         let ty' =
               if isIdFunction ty
-                then SystF.TyPure (SystF.Free (TyBuiltin PIRTypeUnit))
+                then SystF.TyPure (SystF.Free (TySig "Unit"))
                 else ty
         modify (\st -> st {stTypeSynonyms = M.insert tyName ty' (stTypeSynonyms st)})
         return M.empty
@@ -380,8 +380,7 @@ trType (PIR.TyVar _ tyn)
           Nothing -> return $ SystF.TyPure (SystF.Free $ TySig tyName)
 trType (PIR.TyFun _ t u) = SystF.TyFun <$> trType t <*> trType u
 trType (PIR.TyApp _ t u) = SystF.tyApp <$> trType t <*> trType u
-trType (PIR.TyBuiltin _ (P.SomeTypeIn uni)) =
-  return $ SystF.TyPure (SystF.Free $ TyBuiltin $ defUniToType uni)
+trType (PIR.TyBuiltin _ (P.SomeTypeIn uni)) = return $ defUniToType uni
 trType (PIR.TyIFix l _ _) = throwError $ NotYetImplemented l "TyIFix"
 
 trTermType ::
@@ -478,8 +477,7 @@ trTerm mn t = do
     -- ##   | toName n == "Bool_match" =
     -- ##     SystF.app <$> (SystF.app <$> go v <*> lift (SystF.TyArg <$> trType tyR))
     -- ##       <*> (SystF.TermArg <$> go x)
-    go (PIR.Constant _ (P.Some (P.ValueOf tx x))) =
-      return $ SystF.termPure $ SystF.Free $ Constant $ defUniToConstant tx x
+    go (PIR.Constant _ (P.Some (P.ValueOf tx x))) = return $ defUniToConstant tx x
     go (PIR.Builtin _ f) = return $ SystF.termPure $ SystF.Free $ Builtin f
     go (PIR.Error _ ty) = SystF.App (SystF.Free Bottom) . (: []) . SystF.TyArg <$> lift (trType ty)
     go (PIR.IWrap _ _ _ t0) = go t0 -- VCM: are we sure we don't neet to

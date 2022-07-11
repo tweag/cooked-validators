@@ -23,11 +23,12 @@ import Data.Data
 import Data.Foldable
 import Data.Maybe (isJust)
 import qualified Data.Set as S
+import Data.String
 import qualified Data.Text as T
 import Language.Haskell.TH.Syntax (Lift)
 import Language.Pirouette.QuasiQuoter.Syntax hiding (TyAll, TyApp, TyFun)
 import Pirouette.Term.Syntax
-import Pirouette.Term.Syntax.SystemF as SystF
+import qualified Pirouette.Term.Syntax.SystemF as SystF
 import PlutusCore
   ( DefaultUni (..),
     pattern DefaultUniList,
@@ -68,137 +69,170 @@ instance LanguageBuiltins PlutusIR where
       ++ [("Tuple2", tuple2TypeDef) | not (isDefined "Tuple2")]
       ++ [("Data", dataTypeDef)]
     where
-      a = TyApp (Bound (Ann "a") 0) []
-      b = TyApp (Bound (Ann "a") 1) []
+      a = SystF.TyApp (SystF.Bound (SystF.Ann "a") 0) []
 
       isDefined nm = isJust (lookup nm definedTypes)
 
-      listOf x = TyApp (Free $ TySig "List") [x]
-      tuple2Of x y = TyApp (Free $ TySig "Tuple2") [x, y]
-      builtin nm = TyApp (Free $ TyBuiltin nm) []
+      listOf x = SystF.TyApp (SystF.Free $ TySig "List") [x]
+      tuple2Of x y = SystF.TyApp (SystF.Free $ TySig "Tuple2") [x, y]
+      builtin nm = SystF.TyApp (SystF.Free $ TyBuiltin nm) []
 
       listTypeDef =
         Datatype
-          { kind = KTo KStar KStar,
-            typeVariables = [("a", KStar)],
+          { kind = SystF.KTo SystF.KStar SystF.KStar,
+            typeVariables = [("a", SystF.KStar)],
             destructor = "Nil_match",
             constructors =
-              [ ("Nil", TyAll (Ann "a") KStar (listOf a)),
-                ("Cons", TyAll (Ann "a") KStar (TyFun a (TyFun (listOf a) (listOf a))))
+              [ ("Nil", SystF.TyAll (SystF.Ann "a") SystF.KStar (listOf a)),
+                ("Cons", SystF.TyAll (SystF.Ann "a") SystF.KStar (SystF.TyFun a (SystF.TyFun (listOf a) (listOf a))))
               ]
           }
 
       unitTypeDef =
         Datatype
-          { kind = KStar,
+          { kind = SystF.KStar,
             typeVariables = [],
             destructor = "Unit_match",
-            constructors = [("Unit", builtin PIRTypeUnit)]
+            constructors = [("Unit", SystF.TyPure (SystF.Free $ TySig "Unit"))]
           }
 
       -- !! warning, we define it as "Tuple2 b a" to reuse 'a' for both list and tuple
+      b = SystF.TyApp (SystF.Bound (SystF.Ann "b") 1) []
       tuple2TypeDef =
         Datatype
-          { kind = KTo KStar (KTo KStar KStar),
-            typeVariables = [("b", KStar), ("a", KStar)],
+          { kind = SystF.KTo SystF.KStar (SystF.KTo SystF.KStar SystF.KStar),
+            typeVariables = [("b", SystF.KStar), ("a", SystF.KStar)],
             destructor = "Tuple2_match",
             constructors =
-              [ ("Tuple2", TyAll (Ann "b") KStar $ TyAll (Ann "a") KStar $ TyFun b (TyFun a (tuple2Of b a)))
+              [ ("Tuple2", SystF.TyAll (SystF.Ann "b") SystF.KStar $ SystF.TyAll (SystF.Ann "a") SystF.KStar $ SystF.TyFun b (SystF.TyFun a (tuple2Of b a)))
               ]
           }
 
       -- defined following https://github.com/input-output-hk/plutus/blob/master/plutus-core/plutus-core/src/PlutusCore/Data.hs
       dataTypeDef =
         Datatype
-          { kind = KStar,
+          { kind = SystF.KStar,
             typeVariables = [],
             destructor = "Data_match",
             constructors =
-              [ ("Data_Constr", TyFun (builtin PIRTypeInteger) (TyFun tyListData tyData)),
-                ("Data_Map", TyFun (builtin $ PIRTypeList (Just (PIRTypePair (Just PIRTypeData) (Just PIRTypeData)))) tyData),
-                ("Data_List", TyFun tyListData tyData),
-                ("Data_I", TyFun (builtin PIRTypeInteger) tyData),
-                ("Data_B", TyFun (builtin PIRTypeByteString) tyData)
+              [ ("Data_Constr", SystF.TyFun (builtin PIRTypeInteger) (SystF.TyFun (tyListOf tyData) tyData)),
+                ("Data_Map", SystF.TyFun (tyListOf (tyTuple2Of tyData tyData)) tyData),
+                ("Data_List", SystF.TyFun (tyListOf tyData) tyData),
+                ("Data_I", SystF.TyFun (builtin PIRTypeInteger) tyData),
+                ("Data_B", SystF.TyFun (builtin PIRTypeByteString) tyData)
               ]
           }
 
-      tyListData = builtin (PIRTypeList (Just PIRTypeData))
-      tyData = builtin PIRTypeData
+tyConstant :: PIRBuiltinType -> Type PlutusIR
+tyConstant = SystF.TyPure . SystF.Free . TyBuiltin
 
-cstToBuiltinType :: PIRConstant -> PIRBuiltinType
-cstToBuiltinType (PIRConstInteger _) = PIRTypeInteger
-cstToBuiltinType (PIRConstByteString _) = PIRTypeByteString
-cstToBuiltinType PIRConstUnit = PIRTypeUnit
-cstToBuiltinType (PIRConstBool _) = PIRTypeBool
-cstToBuiltinType (PIRConstString _) = PIRTypeString
-cstToBuiltinType (PIRConstList []) = PIRTypeList Nothing
-cstToBuiltinType (PIRConstList (c : cs)) =
-  let res = PIRTypeList (Just $ cstToBuiltinType c)
-   in if all (== res) (cstToBuiltinType <$> cs)
-        then res
-        else error "typeOfConstant: mismatching element types in a PIRConstList"
-cstToBuiltinType (PIRConstPair c1 c2) =
-  PIRTypePair (Just (cstToBuiltinType c1)) (Just (cstToBuiltinType c2))
-cstToBuiltinType (PIRConstData _) = PIRTypeData
+tyApp ::
+  String ->
+  [SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))] ->
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))
+tyApp n = SystF.TyApp (SystF.Free $ TySig $ fromString n)
+
+tyListOf ::
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR)) ->
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))
+tyListOf = tyApp "List" . (: [])
+
+tyTuple2Of ::
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR)) ->
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR)) ->
+  SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))
+tyTuple2Of x y = tyApp "Tuple2" [x, y]
+
+tyData :: SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))
+tyData = tyApp "Data" []
+
+tyUnit :: SystF.AnnType ann (SystF.VarMeta meta ann (TypeBase PlutusIR))
+tyUnit = tyApp "Unit" []
+
+cstToBuiltinType :: PIRConstant -> Type PlutusIR
+cstToBuiltinType (PIRConstInteger _) = tyConstant PIRTypeInteger
+cstToBuiltinType (PIRConstByteString _) = tyConstant PIRTypeByteString
+cstToBuiltinType (PIRConstBool _) = tyConstant PIRTypeBool
+cstToBuiltinType (PIRConstString _) = tyConstant PIRTypeString
 
 -- | Builtin Plutus Types
 data PIRBuiltinType
   = PIRTypeInteger
   | PIRTypeByteString
-  | PIRTypeUnit
   | PIRTypeBool
   | PIRTypeString
-  | PIRTypeData
-  | PIRTypeList (Maybe PIRBuiltinType)
-  | PIRTypePair (Maybe PIRBuiltinType) (Maybe PIRBuiltinType)
   deriving (Eq, Ord, Show, Read, Data, Typeable, Lift)
 
-defUniToType :: forall k (a :: k). DefaultUni (P.Esc a) -> PIRBuiltinType
-defUniToType DefaultUniInteger = PIRTypeInteger
-defUniToType DefaultUniByteString = PIRTypeByteString
-defUniToType DefaultUniUnit = PIRTypeUnit
-defUniToType DefaultUniBool = PIRTypeBool
-defUniToType DefaultUniString = PIRTypeString
-defUniToType DefaultUniData = PIRTypeData
-defUniToType (DefaultUniList a) = PIRTypeList (Just (defUniToType a))
-defUniToType (DefaultUniPair a b) = PIRTypePair (Just $ defUniToType a) (Just $ defUniToType b)
-defUniToType DefaultUniProtoList = PIRTypeList Nothing
-defUniToType DefaultUniProtoPair = PIRTypePair Nothing Nothing
-defUniToType (DefaultUniApply DefaultUniProtoPair a) = PIRTypePair (Just $ defUniToType a) Nothing
+defUniToType :: forall k (a :: k). DefaultUni (P.Esc a) -> Type PlutusIR
+defUniToType DefaultUniInteger = tyConstant PIRTypeInteger
+defUniToType DefaultUniByteString = tyConstant PIRTypeByteString
+defUniToType DefaultUniBool = tyConstant PIRTypeBool
+defUniToType DefaultUniString = tyConstant PIRTypeString
+defUniToType DefaultUniUnit = tyUnit
+defUniToType DefaultUniData = tyData
+defUniToType (DefaultUniList a) = tyListOf (defUniToType a)
+defUniToType (DefaultUniPair a b) = tyTuple2Of (defUniToType a) (defUniToType b)
+-- The following are partially applied:
+defUniToType DefaultUniProtoList = tyApp "List" []
+defUniToType DefaultUniProtoPair = tyApp "Tuple2" []
+defUniToType (DefaultUniApply DefaultUniProtoPair a) = tyApp "Tuple2" [defUniToType a]
 defUniToType x = error $ "defUniToType impossible: " ++ show x
 
 -- | Untyped Plutus Constants
 data PIRConstant
   = PIRConstInteger Integer
   | PIRConstByteString BS.ByteString
-  | PIRConstUnit
   | PIRConstBool Bool
   | PIRConstString T.Text
-  | PIRConstList [PIRConstant]
-  | PIRConstPair PIRConstant PIRConstant
-  | PIRConstData P.Data
   deriving (Eq, Ord, Show, Data, Typeable, Lift)
 
-defUniToConstant :: DefaultUni (P.Esc a) -> a -> PIRConstant
-defUniToConstant DefaultUniInteger x = PIRConstInteger x
-defUniToConstant DefaultUniByteString x = PIRConstByteString x
-defUniToConstant DefaultUniUnit _ = PIRConstUnit
-defUniToConstant DefaultUniBool x = PIRConstBool x
-defUniToConstant DefaultUniString x = PIRConstString x
-defUniToConstant DefaultUniData x = PIRConstData x
-defUniToConstant (DefaultUniList a) x = PIRConstList (map (defUniToConstant a) x)
-defUniToConstant (DefaultUniPair a b) x = PIRConstPair (defUniToConstant a (fst x)) (defUniToConstant b (snd x))
+termConstant :: PIRConstant -> Term PlutusIR
+termConstant = SystF.termPure . SystF.Free . Constant
+
+ctorApp :: String -> [Arg PlutusIR] -> Term PlutusIR
+ctorApp name = SystF.App (SystF.Free (TermSig $ fromString name))
+
+defUniToConstant :: DefaultUni (P.Esc a) -> a -> Term PlutusIR
+defUniToConstant DefaultUniInteger x = termConstant $ PIRConstInteger x
+defUniToConstant DefaultUniByteString x = termConstant $ PIRConstByteString x
+defUniToConstant DefaultUniBool x = termConstant $ PIRConstBool x
+defUniToConstant DefaultUniString x = termConstant $ PIRConstString x
+defUniToConstant DefaultUniUnit _ = ctorApp "Unit" []
+defUniToConstant (DefaultUniList a) x =
+  let tyA = SystF.TyArg $ defUniToType a
+   in foldr (\uni t -> ctorApp "Cons" [tyA, SystF.TermArg (defUniToConstant a uni), SystF.TermArg t]) (ctorApp "Nil" [tyA]) x
+defUniToConstant (DefaultUniPair a b) x =
+  let tyA = SystF.TyArg $ defUniToType a
+      tyB = SystF.TyArg $ defUniToType b
+   in ctorApp "Tuple2" [tyA, tyB, SystF.TermArg (defUniToConstant a (fst x)), SystF.TermArg (defUniToConstant b (snd x))]
+defUniToConstant DefaultUniData x = reifyData x
 defUniToConstant uni _ = error $ "defUniToConstant impossible: " ++ show uni
+
+reifyData :: P.Data -> Term PlutusIR
+reifyData (P.Constr cN fields) =
+  ctorApp
+    "Constr"
+    [ SystF.TermArg (termConstant $ PIRConstInteger cN),
+      SystF.TermArg $ defUniToConstant (DefaultUniList DefaultUniData) fields
+    ]
+reifyData (P.Map kvs) =
+  ctorApp
+    "Map"
+    [ SystF.TermArg $
+        defUniToConstant (DefaultUniList (DefaultUniPair DefaultUniData DefaultUniData)) kvs
+    ]
+reifyData (P.List xs) =
+  ctorApp
+    "List"
+    [SystF.TermArg $ defUniToConstant (DefaultUniList DefaultUniData) xs]
+reifyData (P.I i) = ctorApp "I" [SystF.TermArg $ termConstant $ PIRConstInteger i]
+reifyData (P.B bs) = ctorApp "B" [SystF.TermArg $ termConstant $ PIRConstByteString bs]
 
 instance Pretty PIRBuiltinType where
   pretty PIRTypeInteger = "Integer"
   pretty PIRTypeByteString = "ByteString"
-  pretty PIRTypeUnit = "Unit"
   pretty PIRTypeBool = "Bool"
   pretty PIRTypeString = "String"
-  pretty PIRTypeData = "Data"
-  pretty (PIRTypeList a) = brackets (sep ["List", pretty a])
-  pretty (PIRTypePair a b) = brackets (sep ["Pair", pretty a, pretty b])
 
 instance Pretty (Maybe PIRBuiltinType) where
   pretty Nothing = "-"
@@ -207,12 +241,8 @@ instance Pretty (Maybe PIRBuiltinType) where
 instance Pretty PIRConstant where
   pretty (PIRConstInteger x) = pretty x
   pretty (PIRConstByteString x) = "b" <> pretty x
-  pretty PIRConstUnit = "unit"
   pretty (PIRConstBool x) = pretty x
   pretty (PIRConstString x) = dquotes (pretty x)
-  pretty (PIRConstData d) = "d" <> braces (pretty d)
-  pretty (PIRConstList xs) = "l" <> brackets (sep $ punctuate comma $ map pretty xs)
-  pretty (PIRConstPair x y) = "p" <> brackets (sep $ punctuate comma $ map pretty [x, y])
 
 instance Pretty P.Data where
   pretty (P.Constr cN fields) = pretty cN <+> pretty fields
@@ -232,12 +262,8 @@ instance LanguageParser PlutusIR where
           try
           [ PIRTypeInteger <$ symbol "Integer",
             PIRTypeByteString <$ symbol "ByteString",
-            PIRTypeUnit <$ symbol "Unit",
             PIRTypeBool <$ symbol "Bool",
-            PIRTypeString <$ symbol "String",
-            PIRTypeData <$ symbol "Data",
-            PIRTypeList Nothing <$ symbol "List",
-            PIRTypePair Nothing Nothing <$ symbol "Pair"
+            PIRTypeString <$ symbol "String"
           ]
 
   -- TODO: more constants
@@ -247,7 +273,6 @@ instance LanguageParser PlutusIR where
         map
           try
           [ PIRConstInteger <$> try integer,
-            PIRConstUnit <$ symbol "Unit",
             PIRConstBool <$> parseBoolean,
             PIRConstString . T.pack <$> stringLiteral
           ]
@@ -354,6 +379,6 @@ instance LanguageParser PlutusIR where
     ]
 
   reservedNames = S.fromList $ words "True False unit"
-  reservedTypeNames = S.fromList $ words "Bool Unit List Data Pair String ByteString"
+  reservedTypeNames = S.fromList $ words "Bool String ByteString"
 
   ifThenElse resTy c t e = SystF.App (SystF.Free $ Builtin P.IfThenElse) $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]
