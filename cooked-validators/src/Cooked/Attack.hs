@@ -15,6 +15,7 @@ import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Maybe
 import qualified Ledger as L hiding (validatorHash)
+import qualified Ledger.Scripts as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
