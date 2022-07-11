@@ -37,9 +37,11 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
+import qualified Ledger.Scripts as Ledger
 import qualified Ledger.Typed.Scripts as Scripts
 -- The PlutusTx and its prelude provide the functions we can use for on-chain computations.
 
+import qualified Plutus.Script.Utils.V1.Scripts as Scripts (scriptCurrencySymbol)
 import qualified Plutus.V1.Ledger.Api as Api
 import Plutus.V1.Ledger.Contexts hiding (findDatum)
 import qualified Plutus.V1.Ledger.Contexts as Validation
@@ -260,7 +262,7 @@ validatePayment Params {..} (Accumulator payment signees) _ ctx
 {-# INLINEABLE verifySig #-}
 verifySig :: Ledger.PubKey -> BuiltinByteString -> Ledger.Signature -> Bool
 verifySig pk msg s =
-  verifyEd25519Signature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
+  verifySignature (Api.getLedgerBytes $ Ledger.getPubKey pk) msg (Ledger.getSignature s)
 
 -- Finally, we wrap everything up and make the script available.
 

@@ -17,11 +17,13 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger as L hiding (singleton, validatorHash)
-import qualified Ledger.Ada as L
-import qualified Ledger.Typed.Scripts as L
-import qualified Ledger.Value as L
+import qualified Ledger as Pl hiding (singleton, validatorHash)
+import qualified Ledger.Ada as Pl
+import qualified Ledger.Scripts as Pl
+import qualified Ledger.Typed.Scripts as Pl
+import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.V1.Scripts as Pl hiding (validatorHash)
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -43,40 +45,40 @@ assertTxSkelEqual expected actual =
 -- * Tests for the token duplication attack
 
 {-# INLINEABLE mkCarefulPolicy #-}
-mkCarefulPolicy :: L.TokenName -> Integer -> () -> L.ScriptContext -> Bool
+mkCarefulPolicy :: Pl.TokenName -> Integer -> () -> Pl.ScriptContext -> Bool
 mkCarefulPolicy tName allowedAmount _ ctx
   | amnt Pl.== Just allowedAmount = True
   | otherwise = Pl.trace "tried to mint wrong amount" False
   where
-    txi = L.scriptContextTxInfo ctx
+    txi = Pl.scriptContextTxInfo ctx
 
     amnt :: Maybe Integer
-    amnt = case L.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs Pl.== L.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
+    amnt = case Pl.flattenValue (Pl.txInfoMint txi) of
+      [(cs, tn, a)] | cs Pl.== Pl.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
       _ -> Nothing
 
-carefulPolicy :: L.TokenName -> Integer -> L.MintingPolicy
+carefulPolicy :: Pl.TokenName -> Integer -> Pl.MintingPolicy
 carefulPolicy tName allowedAmount =
-  L.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> L.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
+  Pl.mkMintingPolicyScript $
+    $$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
       `Pl.applyCode` Pl.liftCode tName
       `Pl.applyCode` Pl.liftCode allowedAmount
 
 {-# INLINEABLE mkCarelessPolicy #-}
-mkCarelessPolicy :: () -> L.ScriptContext -> Bool
+mkCarelessPolicy :: () -> Pl.ScriptContext -> Bool
 mkCarelessPolicy _ _ = True
 
-carelessPolicy :: L.MintingPolicy
+carelessPolicy :: Pl.MintingPolicy
 carelessPolicy =
-  L.mkMintingPolicyScript
-    $$(Pl.compile [||L.mkUntypedMintingPolicy mkCarelessPolicy||])
+  Pl.mkMintingPolicyScript
+    $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
-dupTokenTrace :: MonadBlockChain m => L.MintingPolicy -> L.TokenName -> Integer -> Wallet -> m ()
+dupTokenTrace :: MonadBlockChain m => Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
   where
     skel =
       txSkelOpts (def {adjustUnbalTx = True}) $
-        let minted = L.singleton (L.scriptCurrencySymbol pol) tName amount
+        let minted = Pl.singleton (Pl.scriptCurrencySymbol pol) tName amount
          in [Mints (Nothing @()) [pol] minted]
               :=>: [paysPK (walletPKHash recipient) minted]
 
@@ -86,20 +88,20 @@ dupTokenAttackTests =
     "token duplication attack"
     [ testCase "unit test on a 'TxSkel'" $
         let attacker = wallet 6
-            tName1 = L.tokenName "MockToken1"
-            tName2 = L.tokenName "MockToken2"
+            tName1 = Pl.tokenName "MockToken1"
+            tName2 = Pl.tokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = L.assetClass (L.scriptCurrencySymbol pol1) tName1
-            ac2 = L.assetClass (L.scriptCurrencySymbol pol2) tName2
+            ac1 = Pl.assetClass (Pl.scriptCurrencySymbol pol1) tName1
+            ac2 = Pl.assetClass (Pl.scriptCurrencySymbol pol2) tName2
             skelIn =
               txSkel
-                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 1 <> L.assetClassValue ac2 1),
-                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 3),
-                    Mints (Nothing @()) [pol1] (L.assetClassValue ac1 7)
+                ( [ Mints (Nothing @()) [pol1, pol2] (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 1),
+                    Mints (Nothing @()) [pol2] (Pl.assetClassValue ac2 3),
+                    Mints (Nothing @()) [pol1] (Pl.assetClassValue ac1 7)
                   ]
-                    :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
+                    :=>: [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
+                           paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2)
                          ]
                 )
             skelOut select =
@@ -110,15 +112,15 @@ dupTokenAttackTests =
             skelExpected v1 v2 v3 v4 =
               txSkelLbl
                 DupTokenLbl
-                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 v1 <> L.assetClassValue ac2 v2),
-                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
-                    Mints (Nothing @()) [pol1] (L.assetClassValue ac1 v4)
+                ( [ Mints (Nothing @()) [pol1, pol2] (Pl.assetClassValue ac1 v1 <> Pl.assetClassValue ac2 v2),
+                    Mints (Nothing @()) [pol2] (Pl.assetClassValue ac2 v3),
+                    Mints (Nothing @()) [pol1] (Pl.assetClassValue ac1 v4)
                   ]
-                    :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2),
+                    :=>: [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
+                           paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2),
                            paysPK
                              (walletPKHash attacker)
-                             (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
+                             (Pl.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> Pl.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
                          ]
                 )
          in assertTxSkelEqual (Just $ skelExpected 2 2 4 8) (skelOut (\_ n -> Just $ n + 1))
@@ -127,7 +129,7 @@ dupTokenAttackTests =
                 (Just $ skelExpected 6 1 3 12)
                 (skelOut (\ac n -> if ac == ac1 then Just (n + 5) else Nothing)),
       testCase "careful minting policy" $
-        let tName = L.tokenName "MockToken"
+        let tName = Pl.tokenName "MockToken"
             pol = carefulPolicy tName 1
          in testFailsFrom'
               isCekEvaluationFailure
@@ -137,7 +139,7 @@ dupTokenAttackTests =
                   (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
-        let tName = L.tokenName "MockToken"
+        let tName = Pl.tokenName "MockToken"
             pol = carelessPolicy
          in testSucceeds $
               somewhere
@@ -146,26 +148,26 @@ dupTokenAttackTests =
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
             pol = carelessPolicy
-            ac1 = L.assetClass (L.scriptCurrencySymbol pol) (L.tokenName "mintedToken")
+            ac1 = Pl.assetClass (Pl.scriptCurrencySymbol pol) (Pl.tokenName "mintedToken")
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
               txSkel
-                ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 1)]
+                ( [Mints (Nothing @()) [pol] (Pl.assetClassValue ac1 1)]
                     :=>: [ paysPK
                              (walletPKHash (wallet 1))
-                             (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2)
+                             (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2)
                          ]
                 )
             skelExpected =
               txSkelLbl
                 DupTokenLbl
-                ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 2)]
+                ( [Mints (Nothing @()) [pol] (Pl.assetClassValue ac1 2)]
                     :=>: [ paysPK
                              (walletPKHash (wallet 1))
-                             (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2),
+                             (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2),
                            paysPK
                              (walletPKHash attacker)
-                             (L.assetClassValue ac1 1)
+                             (Pl.assetClassValue ac1 1)
                          ]
                 )
             skelOut = dupTokenAttack (\_ i -> Just $ i + 1) attacker skelIn
@@ -195,28 +197,28 @@ Pl.unstableMakeIsData ''MockDatum
 
 data MockContract
 
-instance L.ValidatorTypes MockContract where
+instance Pl.ValidatorTypes MockContract where
   type DatumType MockContract = MockDatum
   type RedeemerType MockContract = ()
 
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
-lockValue :: L.Value
-lockValue = L.lovelaceValueOf 12345678
+lockValue :: Pl.Value
+lockValue = Pl.lovelaceValueOf 12345678
 
-lockTxSkel :: SpendableOut -> L.TypedValidator MockContract -> TxSkel
+lockTxSkel :: SpendableOut -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
   txSkelOpts
     (def {adjustUnbalTx = True})
     ([SpendsPK o] :=>: [PaysScript v FirstLock lockValue])
 
-txLock :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
+txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   me <- ownPaymentPubKeyHash
-  utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
+  utxo : _ <- pkUtxosSuchThatValue me (`Pl.geq` lockValue)
   void $ validateTxSkel $ lockTxSkel utxo v
 
-relockTxSkel :: L.TypedValidator MockContract -> SpendableOut -> TxSkel
+relockTxSkel :: Pl.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
   txSkelOpts
     (def {adjustUnbalTx = True})
@@ -226,7 +228,7 @@ relockTxSkel v o =
 
 txRelock ::
   MonadBlockChain m =>
-  L.TypedValidator MockContract ->
+  Pl.TypedValidator MockContract ->
   m ()
 txRelock v = do
   utxo : _ <- scriptUtxosSuchThat v (\d _ -> FirstLock Pl.== d)
@@ -236,16 +238,16 @@ txRelock v = do
 
 -- | Try to extract a datum from an output.
 {-# INLINEABLE outputDatum #-}
-outputDatum :: L.TxInfo -> L.TxOut -> Maybe MockDatum
+outputDatum :: Pl.TxInfo -> Pl.TxOut -> Maybe MockDatum
 outputDatum txi o = do
-  h <- L.txOutDatum o
-  L.Datum d <- L.findDatum h txi
+  h <- Pl.txOutDatum o
+  Pl.Datum d <- Pl.findDatum h txi
   Pl.fromBuiltinData d
 
 {-# INLINEABLE mkMockValidator #-}
-mkMockValidator :: (L.ScriptContext -> [L.TxOut]) -> MockDatum -> () -> L.ScriptContext -> Bool
+mkMockValidator :: (Pl.ScriptContext -> [Pl.TxOut]) -> MockDatum -> () -> Pl.ScriptContext -> Bool
 mkMockValidator getOutputs datum _ ctx =
-  let txi = L.scriptContextTxInfo ctx
+  let txi = Pl.scriptContextTxInfo ctx
    in case datum of
         FirstLock ->
           case getOutputs ctx of
@@ -255,35 +257,35 @@ mkMockValidator getOutputs datum _ ctx =
                 (outputDatum txi o Pl.== Just SecondLock)
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
-                  (L.txOutValue o == lockValue)
+                  (Pl.txOutValue o == lockValue)
             _ -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
 
 {-# INLINEABLE mkCarefulValidator #-}
-mkCarefulValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarefulValidator = mkMockValidator L.getContinuingOutputs
+mkCarefulValidator :: MockDatum -> () -> Pl.ScriptContext -> Bool
+mkCarefulValidator = mkMockValidator Pl.getContinuingOutputs
 
-carefulValidator :: L.TypedValidator MockContract
+carefulValidator :: Pl.TypedValidator MockContract
 carefulValidator =
-  L.mkTypedValidator @MockContract
+  Pl.mkTypedValidator @MockContract
     $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator @MockDatum @()
 
 {-# INLINEABLE mkCarelessValidator #-}
-mkCarelessValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarelessValidator = mkMockValidator (L.txInfoOutputs . L.scriptContextTxInfo)
+mkCarelessValidator :: MockDatum -> () -> Pl.ScriptContext -> Bool
+mkCarelessValidator = mkMockValidator (Pl.txInfoOutputs . Pl.scriptContextTxInfo)
 
-carelessValidator :: L.TypedValidator MockContract
+carelessValidator :: Pl.TypedValidator MockContract
 carelessValidator =
-  L.mkTypedValidator @MockContract
+  Pl.mkTypedValidator @MockContract
     $$(Pl.compile [||mkCarelessValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator @MockDatum @()
 
-datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
+datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do
   txLock v
   txRelock v
@@ -296,9 +298,9 @@ datumHijackingAttackTests =
         let val1 = carelessValidator
             val2 = carefulValidator
             thief = datumHijackingTarget @MockContract
-            x1 = L.lovelaceValueOf 10001
-            x2 = L.lovelaceValueOf 10000
-            x3 = L.lovelaceValueOf 9999
+            x1 = Pl.lovelaceValueOf 10001
+            x2 = Pl.lovelaceValueOf 10000
+            x3 = Pl.lovelaceValueOf 9999
             skelIn =
               txSkel
                 [ PaysScript val1 SecondLock x1,
@@ -310,15 +312,15 @@ datumHijackingAttackTests =
             skelOut select =
               datumHijackingAttack @MockContract
                 ( \v d x ->
-                    L.validatorHash val1 == L.validatorHash v
+                    Pl.validatorHash val1 == Pl.validatorHash v
                       && SecondLock Pl.== d
-                      && x2 `L.geq` x
+                      && x2 `Pl.geq` x
                 )
                 select
                 skelIn
             skelExpected a b =
               txSkelLbl
-                (DatumHijackingLbl $ L.validatorHash thief)
+                (DatumHijackingLbl $ Pl.validatorHash thief)
                 [ PaysScript val1 SecondLock x1,
                   PaysScript a SecondLock x3,
                   PaysScript val2 SecondLock x1,
@@ -335,7 +337,7 @@ datumHijackingAttackTests =
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
-                      L.validatorHash v == L.validatorHash carefulValidator
+                      Pl.validatorHash v == Pl.validatorHash carefulValidator
                         && SecondLock Pl.== d
                   )
                   (const True)
@@ -347,7 +349,7 @@ datumHijackingAttackTests =
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
-                      L.validatorHash v == L.validatorHash carelessValidator
+                      Pl.validatorHash v == Pl.validatorHash carelessValidator
                         && SecondLock Pl.== d
                   )
                   (const True)

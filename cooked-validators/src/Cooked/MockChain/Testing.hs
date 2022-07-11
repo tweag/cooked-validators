@@ -14,8 +14,8 @@ import Cooked.MockChain.Wallet
 import Data.Default
 import qualified Data.Text as T
 import Debug.Trace
-import Ledger (ScriptError (EvaluationError))
 import Ledger.Index (ValidationError (ScriptFailure))
+import Ledger.Scripts (ScriptError (EvaluationError))
 import qualified Test.QuickCheck as QC
 import qualified Test.Tasty.HUnit as HU
 
