@@ -133,12 +133,6 @@ data PIRDefaultFun
   | -- Pairs
     FstPair
   | SndPair
-  | -- Lists
-    ChooseList
-  | MkCons
-  | HeadList
-  | TailList
-  | NullList
   | -- Data
     -- It is convenient to have a "choosing" function for a data type that has more than two
     -- constructors to get pattern matching over it and we may end up having multiple such data
@@ -161,8 +155,17 @@ data PIRDefaultFun
   | MkNilPairData
   deriving (Eq, Show, Ord, Data, Typeable, Lift)
 
+appSig :: Name -> [Arg PlutusIR] -> Term PlutusIR
+appSig hd = SystF.App (SystF.Free $ TermSig hd)
+
+appBuiltin :: PIRDefaultFun -> [Arg PlutusIR] -> Term PlutusIR
+appBuiltin hd = SystF.App (SystF.Free $ Builtin hd)
+
 builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
-builtinToTerm hd = SystF.App (SystF.Free (Builtin $ fromSupportedPlutusDefaultFun hd))
+builtinToTerm P.ChooseList = appSig "chooseList"
+builtinToTerm P.TailList = appSig "tailList"
+builtinToTerm P.HeadList = appSig "headList"
+builtinToTerm hd = appBuiltin $ fromSupportedPlutusDefaultFun hd
 
 fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
 fromSupportedPlutusDefaultFun P.AddInteger = AddInteger
@@ -196,11 +199,6 @@ fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
 fromSupportedPlutusDefaultFun P.Trace = Trace
 fromSupportedPlutusDefaultFun P.FstPair = FstPair
 fromSupportedPlutusDefaultFun P.SndPair = SndPair
-fromSupportedPlutusDefaultFun P.ChooseList = ChooseList
-fromSupportedPlutusDefaultFun P.MkCons = MkCons
-fromSupportedPlutusDefaultFun P.HeadList = HeadList
-fromSupportedPlutusDefaultFun P.TailList = TailList
-fromSupportedPlutusDefaultFun P.NullList = NullList
 fromSupportedPlutusDefaultFun P.ChooseData = ChooseData
 fromSupportedPlutusDefaultFun P.ConstrData = ConstrData
 fromSupportedPlutusDefaultFun P.MapData = MapData
@@ -216,6 +214,7 @@ fromSupportedPlutusDefaultFun P.EqualsData = EqualsData
 fromSupportedPlutusDefaultFun P.MkPairData = MkPairData
 fromSupportedPlutusDefaultFun P.MkNilData = MkNilData
 fromSupportedPlutusDefaultFun P.MkNilPairData = MkNilPairData
+fromSupportedPlutusDefaultFun x = error ("Unsupported: " ++ show x)
 
 tyConstant :: PIRBuiltinType -> Type PlutusIR
 tyConstant = SystF.TyPure . SystF.Free . TyBuiltin
@@ -407,12 +406,6 @@ instance LanguageParser PlutusIR where
             -- Pairs
             FstPair <$ symbol "b/fstPair",
             SndPair <$ symbol "b/sndPair",
-            -- Lists
-            ChooseList <$ symbol "b/chooseList",
-            MkCons <$ symbol "b/mkCons",
-            HeadList <$ symbol "b/headList",
-            TailList <$ symbol "b/tailList",
-            NullList <$ symbol "b/nullList",
             -- Data
             -- It is convenient to have a "choosing" function for a data type that has more than two
             -- constructors to get pattern matching over it and we may end up having multiple such data

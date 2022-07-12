@@ -61,11 +61,6 @@ instance LanguageBuiltinTypes PlutusIR where
   typeOfBuiltin Trace = forall "a" (tString :->: tVar "a" 0 :->: tVar "a" 0)
   typeOfBuiltin FstPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "a" 1))
   typeOfBuiltin SndPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "b" 0))
-  -- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1009
-  typeOfBuiltin ChooseList =
-    forall "a" (forall "b" (tyListOf (tVar "a" 1) :->: tVar "b" 0 :->: tVar "b" 0 :->: tVar "b" 0))
-  typeOfBuiltin HeadList = forall "a" (tyListOf (tVar "a" 0) :->: tVar "a" 0)
-  typeOfBuiltin TailList = forall "a" (tyListOf (tVar "a" 0) :->: tyListOf (tVar "a" 0))
   -- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1075
   typeOfBuiltin ChooseData =
     forall "a" (tyData :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0)

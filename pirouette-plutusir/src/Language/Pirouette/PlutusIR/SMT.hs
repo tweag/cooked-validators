@@ -109,13 +109,10 @@ trPIRFun :: PIRDefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 -- Pattern matching in disguise,
 -- so we return here Nothing and then "translate"
 -- into an actual match in 'branchesBuiltinTerm'
-trPIRFun ChooseList _ = Nothing
 trPIRFun ChooseUnit _ = Nothing
 trPIRFun ChooseData _ = Nothing
 trPIRFun FstPair _ = Nothing
 trPIRFun SndPair _ = Nothing
-trPIRFun HeadList _ = Nothing
-trPIRFun TailList _ = Nothing
 trPIRFun UnConstrData _ = Nothing
 trPIRFun UnMapData _ = Nothing
 trPIRFun UnListData _ = Nothing
@@ -128,7 +125,6 @@ trPIRFun op [x] =
   case op of
     Trace -> Just $ PureSMT.List [x]
     -- some simple operations
-    NullList -> Just $ PureSMT.eq x (PureSMT.fun "Nil" [])
     -- constructors
     -- those are defined as unary functions for historical reasons
     MkNilData -> Just $ PureSMT.fun "Nil" []
@@ -166,7 +162,6 @@ trPIRFun op [x, y] =
     EqualsString -> Just $ PureSMT.eq x y
     EqualsData -> Just $ PureSMT.eq x y
     -- constructors
-    MkCons -> Just $ PureSMT.fun "Cons" [x, y]
     MkPairData -> Just $ PureSMT.fun "Tuple2" [x, y]
     ConstrData -> Just $ PureSMT.fun "Constr" [x, y]
     _ ->
@@ -272,8 +267,6 @@ instance LanguageSymEval PlutusIR where
     continueWith "Nil" []
   branchesBuiltinTerm MkNilPairData _ _args =
     continueWith "Nil" []
-  branchesBuiltinTerm MkCons _ _args =
-    continueWith "Nil" []
   branchesBuiltinTerm ConstrData _ args =
     continueWith "Data_Constr" args
   branchesBuiltinTerm MapData _ args =
@@ -287,11 +280,6 @@ instance LanguageSymEval PlutusIR where
   -- pattern matching and built-in matchers
 
   -- they take the arguments in a different order
-  branchesBuiltinTerm
-    ChooseList
-    _
-    (TyArg a : TyArg tyR : TermArg lst : TermArg caseNil : TermArg caseCons : excess) =
-      continueWithListMatch a tyR lst caseNil caseCons excess
   branchesBuiltinTerm ChooseUnit _ (tyR : unit : rest) =
     continueWith "Unit_match" (unit : tyR : rest)
   branchesBuiltinTerm
@@ -319,18 +307,6 @@ instance LanguageSymEval PlutusIR where
         tyB,
         TermArg $ Lam (Ann "x") a $ Lam (Ann "y") b $ App (Bound (Ann "y") 0) []
       ]
-  branchesBuiltinTerm HeadList _ [TyArg a, TermArg lst] =
-    continueWithListMatch a a lst errorTerm (App (Bound (Ann "x") 1) []) []
-  branchesBuiltinTerm TailList _ [TyArg a, TermArg lst] =
-    continueWithListMatch a (tyListOf a) lst errorTerm (App (Bound (Ann "xs") 0) []) []
-  branchesBuiltinTerm NullList _ [TyArg a, TermArg lst] =
-    continueWithListMatch
-      a
-      (builtin PIRTypeBool)
-      lst
-      (K $ PIRConstBool True)
-      (K $ PIRConstBool False)
-      []
   branchesBuiltinTerm UnConstrData _ [d] =
     continueWithDataMatch
       d

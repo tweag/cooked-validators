@@ -154,13 +154,7 @@ trProgram ::
   (PIRConstraint tyname name P.DefaultFun) =>
   PIR.Program tyname name DefaultUni P.DefaultFun loc ->
   Except (Err loc) (Term PlutusIR, Decls PlutusIR)
-trProgram (PIR.Program _ t) = do
-  (main, decls) <- runReaderT (evalStateT (runWriterT (fst <$> trTerm Nothing t)) stEmpty) envEmpty
-  let (main', decls') =
-        flip runReader (PrtUnorderedDefs decls) $
-          (,) <$> removeExcessiveDestArgs main
-            <*> (M.fromList <$> mapM (secondM (defTermMapM removeExcessiveDestArgs)) (M.toList decls))
-  return (main', decls')
+trProgram (PIR.Program _ t) = runReaderT (evalStateT (runWriterT (fst <$> trTerm Nothing t)) stEmpty) envEmpty
 
 -- | Translates a program into a list of declarations, ignoring the body.
 trProgramDecls ::

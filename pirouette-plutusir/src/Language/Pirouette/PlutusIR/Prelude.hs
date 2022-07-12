@@ -13,6 +13,29 @@ data List (a : Type)
   = Nil : List a
   | Cons : a -> List a -> List a
   destructor Nil_match
+
+-- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1009
+
+fun chooseList : all (a : Type) (b : Type) . List a -> b -> b -> b
+  = /\(a : Type) (b : Type) . \(x : List a) (caseNil : b) (caseCons : b)
+  . Nil_match @a x @b
+      caseNil
+      (\(hd : a) (tl : List a) . caseCons)
+
+fun tailList : all (a : Type) . List a -> List a
+  = /\(a : Type) . \(x : List a)
+  . Nil_match @a x @(List a)
+      (bottom @(List a))
+      (\(hd : a) (tl : List a) . tl)
+
+fun headList : all (a : Type) . List a -> a
+  = /\(a : Type) . \(x : List a)
+  . Nil_match @a x @a
+      (bottom @a)
+      (\(hd : a) (tl : List a) . hd)
+
+
+
 |]
 
 {-

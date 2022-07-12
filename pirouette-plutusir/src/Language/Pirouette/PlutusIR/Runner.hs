@@ -119,6 +119,7 @@ pirouetteBoundedSymExecStages ::
   Stages (PrtUnorderedDefs PlutusIR) (PrtOrderedDefs PlutusIR)
 pirouetteBoundedSymExecStages fpath =
   Comp "init" id dumpUDefs $
+  Comp "rm-excessive-destr" removeExcessiveDestArgs' dumpUDefs $
   Comp "monomorphize" monomorphize dumpUDefs $
   Comp "defunctionalize" defunctionalize dumpUDefs $
   Comp "cycle-elim" elimEvenOddMutRec dumpOrdDefs
@@ -145,6 +146,13 @@ pirouetteBoundedSymExecStages fpath =
         argNamespace = SystF.argElim (const TypeNamespace) (const TermNamespace)
         argName = SystF.argElim id id
 {- ORMOLU_ENABLE -}
+
+-- | Version of removeExcessiveDestArgs that works on all the terms
+removeExcessiveDestArgs' :: PrtUnorderedDefs PlutusIR -> PrtUnorderedDefs PlutusIR
+removeExcessiveDestArgs' defs =
+  PrtUnorderedDefs $
+    flip runReader defs $
+      M.fromList <$> mapM (secondM (defTermMapM removeExcessiveDestArgs)) (M.toList $ prtUODecls defs)
 
 -- * Auxiliar Definitions
 
