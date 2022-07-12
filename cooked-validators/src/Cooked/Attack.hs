@@ -17,12 +17,10 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.RawUPLC (unsafeTypedValidatorFromUPLC)
 import Cooked.MockChain.UtxoPredicate
-import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Default
-import qualified Data.Map as M
 import Data.Maybe
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as L
@@ -398,7 +396,3 @@ possibleSpendsScriptConstraints ::
 possibleSpendsScriptConstraints mcst val redeemers =
   concatMap (\o -> map (\r -> SpendsScript val r o) (redeemers o)) $
     scriptUtxosSuchThatMcst mcst val (\_ _ -> True)
-
--- -- | All scripts that own an UTxO in the given 'MockChainSt'ate
--- knownScriptsMcst :: MockChainSt -> [L.ValidatorHash]
--- knownScriptsMcst = mapMaybe L.toValidatorHash . M.keys . utxoState . mcstToUtxoState
