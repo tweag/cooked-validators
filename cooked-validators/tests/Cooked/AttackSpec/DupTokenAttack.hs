@@ -103,10 +103,10 @@ tests =
                              (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
                          ]
                 )
-         in assertTxSkelEqual (Just $ skelExpected 2 2 4 8) (skelOut (\_ n -> Just $ n + 1))
-              .&&. assertTxSkelEqual Nothing (skelOut (\_ n -> Just n))
-              .&&. assertTxSkelEqual
-                (Just $ skelExpected 6 1 3 12)
+         in assertSameTxSkels [skelExpected 2 2 4 8] (skelOut (\_ n -> Just $ n + 1))
+              .&&. assertSameTxSkels [] (skelOut (\_ n -> Just n))
+              .&&. assertSameTxSkels
+                [skelExpected 6 1 3 12]
                 (skelOut (\ac n -> if ac == ac1 then Just (n + 5) else Nothing)),
       testCase "careful minting policy" $
         let tName = L.tokenName "MockToken"
@@ -156,5 +156,5 @@ tests =
                 attacker
                 def
                 skelIn
-         in assertTxSkelEqual (Just skelExpected) skelOut
+         in assertSameTxSkels [skelExpected] skelOut
     ]

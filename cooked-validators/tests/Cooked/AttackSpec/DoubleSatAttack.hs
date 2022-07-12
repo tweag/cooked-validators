@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -19,6 +20,7 @@ import Data.Default
 import qualified Ledger.Ada as L
 import qualified Ledger.Contexts as L
 import qualified Ledger.Typed.Scripts as L
+import qualified Ledger.Value as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Eq as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -65,20 +67,20 @@ aValidator =
   where
     wrap = L.wrapValidator @ADatum @ARedeemer
 
-data BDatum = BDatum1 | BDatum2 deriving (Show)
+data BDatum = BDatum deriving (Show)
 
 instance Pl.Eq BDatum where
-  BDatum1 == BDatum1 = True
-  BDatum2 == BDatum2 = True
-  _ == _ = False
+  BDatum == BDatum = True
 
 Pl.makeLift ''BDatum
 Pl.unstableMakeIsData ''BDatum
 
-data BRedeemer = BRedeemer deriving (Show)
+data BRedeemer = BRedeemer1 | BRedeemer2 deriving (Show)
 
 instance Pl.Eq BRedeemer where
-  BRedeemer == BRedeemer = True
+  BRedeemer1 == BRedeemer1 = True
+  BRedeemer2 == BRedeemer2 = True
+  _ == _ = False
 
 Pl.makeLift ''BRedeemer
 Pl.unstableMakeIsData ''BRedeemer
@@ -101,9 +103,8 @@ bValidator =
   where
     wrap = L.wrapValidator @BDatum @BRedeemer
 
--- | In the initial state of the Mockchain, the A validator owns two UTxOs, with
--- different values, and the B validator owns two UtxOs, distinguished by their
--- datum.
+-- | In the initial state of the Mockchain, the A and B validators each own
+-- a few UTxOs, with different values
 dsTestMockChainSt :: MockChainSt
 dsTestMockChainSt = case runMockChainRaw def def setup of
   Left _ -> def -- this branch will not be reached
@@ -112,8 +113,11 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
     setup = do
       validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
       validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum1 (L.lovelaceValueOf 4_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum2 (L.lovelaceValueOf 5_000_000)]
+      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
+      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
+      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
+      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
+      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
 
 tests :: TestTree
 tests =
@@ -123,51 +127,81 @@ tests =
         let params =
               DoubleSatParams
                 { dsExtraInputOwner = bValidator,
-                  dsExtraInputPred = \d _ -> d Pl.== BDatum1,
-                  dsExtraInputRedeemer = BRedeemer,
-                  dsSelectSpendsScript = \case
-                    SpendsScriptConstraint aValidator _ (o, _) -> sOutValue o == L.lovelaceValueOf 2_000_000,
+                  dsExtraInputSelect = \(SpendsScriptConstraint _ _ (aOut, _)) bOut _ ->
+                    let aValue = sOutValue aOut
+                        bValue = sOutValue bOut
+                     in if
+                            | aValue == L.lovelaceValueOf 2_000_000 ->
+                              -- condition not satisfied by any UTxO in 'dsTestMockChain'
+                              [BRedeemer1 | bValue == L.lovelaceValueOf 123]
+                            | aValue == L.lovelaceValueOf 3_000_000 ->
+                              [BRedeemer1 | bValue == L.lovelaceValueOf 6_000_000]
+                            | aValue == L.lovelaceValueOf 4_000_000 ->
+                              if
+                                  | bValue == L.lovelaceValueOf 6_000_000 -> [BRedeemer1]
+                                  | bValue == L.lovelaceValueOf 7_000_000 -> [BRedeemer1, BRedeemer2]
+                                  | otherwise -> []
+                            | otherwise -> [],
                   dsAttacker = wallet 6
                 }
-            [aOut1] =
-              scriptUtxosSuchThatMcst
-                dsTestMockChainSt
-                aValidator
-                (\_ v -> v == L.lovelaceValueOf 2_000_000)
-            [aOut2] =
-              scriptUtxosSuchThatMcst
-                dsTestMockChainSt
-                aValidator
-                (\_ v -> v == L.lovelaceValueOf 3_000_000)
-            [bOut1] =
-              scriptUtxosSuchThatMcst
-                dsTestMockChainSt
-                bValidator
-                (\d _ -> d Pl.== BDatum1)
+            [[aOut1], [aOut2], [aOut3], [aOut4]] =
+              map
+                ( \n ->
+                    scriptUtxosSuchThatMcst
+                      dsTestMockChainSt
+                      aValidator
+                      (\_ v -> v == L.lovelaceValueOf n)
+                )
+                [ 2_000_000,
+                  3_000_000,
+                  4_000_000,
+                  5_000_000
+                ]
+            [[bOut1], [bOut2], [bOut3]] =
+              map
+                ( \n ->
+                    scriptUtxosSuchThatMcst
+                      dsTestMockChainSt
+                      bValidator
+                      (\_ v -> v == L.lovelaceValueOf n)
+                )
+                [ 6_000_000,
+                  7_000_000,
+                  8_000_000
+                ]
             skelIn aOuts =
               txSkel $
                 map (SpendsScript aValidator ARedeemer) aOuts
                   :=>: [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
             skelOut aOuts = doubleSatAttack params dsTestMockChainSt $ skelIn aOuts
-            skelExpected aOuts =
-              if containsAOut1 aOuts
-                then
-                  Just $
+            skelExpected aOuts bOuts =
+              map
+                ( \((bOut, bDat), bRed) ->
                     txSkelLbl DoubleSatLbl $
-                      ( SpendsScript bValidator BRedeemer bOut1 :
+                      ( SpendsScript bValidator bRed (bOut, bDat) :
                         map (SpendsScript aValidator ARedeemer) aOuts
                       )
                         :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                               paysPK (walletPKHash (wallet 6)) (L.lovelaceValueOf 4_000_000)
+                               paysPK (walletPKHash (wallet 6)) (sOutValue bOut)
                              ]
-                else Nothing
-            containsAOut1 aOuts = any (\(o, _) -> sOutValue o == L.lovelaceValueOf 2_000_000) aOuts
+                )
+                bOuts
          in testConjoin $
               map
-                (\aOuts -> assertTxSkelEqual (skelExpected aOuts) (skelOut aOuts))
-                [ [aOut1],
-                  [aOut2],
-                  [aOut1, aOut2],
-                  [aOut2, aOut1]
+                (\(aOuts, bOuts) -> assertSameTxSkels (skelExpected aOuts bOuts) (skelOut aOuts))
+                [ ([aOut1], []),
+                  ([aOut2], [(bOut1, BRedeemer1)]),
+                  ([aOut3], [(bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]),
+                  ([aOut4], []),
+                  ([aOut1, aOut4], []),
+                  ([aOut4, aOut1], []),
+                  ([aOut1, aOut2], [(bOut1, BRedeemer1)]),
+                  ([aOut2, aOut4], [(bOut1, BRedeemer1)]),
+                  ( [aOut2, aOut3],
+                    [(bOut1, BRedeemer1), (bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]
+                  ),
+                  ( [aOut1, aOut2, aOut3, aOut4],
+                    [(bOut1, BRedeemer1), (bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]
+                  )
                 ]
     ]

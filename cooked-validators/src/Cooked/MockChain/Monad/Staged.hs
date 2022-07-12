@@ -107,12 +107,12 @@ instance MonadFail StagedMockChain where
 -- * 'InterpLtl' instance
 
 instance {-# OVERLAPS #-} Semigroup Attack where
-  f <> g = \mcst skel -> case g mcst skel of
-    Just skel' -> f mcst skel'
-    Nothing -> Nothing
+  -- TODO: should we try to make the entries of the returned list unique (up to
+  -- reordering of MiscConstraints)?
+  f <> g = \mcst skel -> concatMap (f mcst) $ g mcst skel
 
 instance {-# OVERLAPS #-} Monoid Attack where
-  mempty = \_ skel -> Just skel
+  mempty = \_ skel -> [skel]
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
@@ -128,14 +128,16 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
       interpretAndTell :: Attack -> [Ltl Attack] -> StateT [Ltl Attack] InterpMockChain Pl.CardanoTx
       interpretAndTell now later = do
         mockSt <- lift get
-        case now mockSt skel of
-          Just skel' -> do
-            signers <- askSigners
-            lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-            tx <- validateTxSkel skel'
-            put later
-            return tx
-          Nothing -> mzero
+        msum $
+          map
+            ( \skel' -> do
+                signers <- askSigners
+                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+                tx <- validateTxSkel skel'
+                put later
+                return tx
+            )
+            (now mockSt skel)
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot

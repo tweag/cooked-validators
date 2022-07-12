@@ -180,9 +180,9 @@ tests =
                   PaysScript val1 FirstLock x2,
                   PaysScript b SecondLock x2
                 ]
-         in assertTxSkelEqual (Just $ skelExpected thief val1) (skelOut (0 ==))
-              .&&. assertTxSkelEqual (Just $ skelExpected val1 thief) (skelOut (1 ==))
-              .&&. assertTxSkelEqual (Just $ skelExpected thief thief) (skelOut (const True)),
+         in assertSameTxSkels [skelExpected thief val1] (skelOut (0 ==))
+              .&&. assertSameTxSkels [skelExpected val1 thief] (skelOut (1 ==))
+              .&&. assertSameTxSkels [skelExpected thief thief] (skelOut (const True)),
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure

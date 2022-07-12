@@ -17,10 +17,12 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.RawUPLC (unsafeTypedValidatorFromUPLC)
 import Cooked.MockChain.UtxoPredicate
+import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Default
+import qualified Data.Map as M
 import Data.Maybe
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as L
@@ -103,7 +105,7 @@ import Type.Reflection
 -- | The type of attacks that operate on a single transaction. The idea is to
 -- try to modify a transaction, or return @Nothing@ if the modification does not
 -- apply; use in a 'MonadModalMockChain'.
-type Attack = MockChainSt -> TxSkel -> Maybe TxSkel
+type Attack = MockChainSt -> TxSkel -> [TxSkel]
 
 -- | The simplest way to make an attack from an optic: Try to apply a given
 -- function of type @a -> Maybe a@ to all foci of an optic, modifying all foci
@@ -126,7 +128,7 @@ mkAttack optic f =
         Nothing -> (x, flag)
     )
     False
-    (\_ skel flag -> if flag then Just skel else Nothing)
+    (\_ skel flag -> [skel | flag])
 
 -- | A more fine-grained attack: Traverse all foci of the optic from the left to
 -- the right, while counting the foci to which the modification successfully
@@ -157,7 +159,7 @@ mkSelectAttack optic f select =
         Nothing -> (x, (flag, index))
     )
     (False, 0)
-    (\_ skel (flag, _) -> if flag then Just skel else Nothing)
+    (\_ skel (flag, _) -> [skel | flag])
 
 -- | A very general attack: Traverse all foci of the optic from the left to the
 -- right, collecting an accumulator while also (optionally) modifying the
@@ -178,7 +180,7 @@ mkAccumLAttack ::
   -- > \state skel acc -> if someTest state skel acc
   -- >                    then Just (someFinalModification state skel acc)
   -- >                    else Nothing
-  (MockChainSt -> TxSkel -> acc -> Maybe TxSkel) ->
+  (MockChainSt -> TxSkel -> acc -> [TxSkel]) ->
   Attack
 mkAccumLAttack optic f initAcc test mcst skel =
   let (skel', acc) = mapAccumLOf optic f initAcc skel
@@ -309,9 +311,11 @@ spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraint
 
 data DoubleSatParams b = DoubleSatParams
   { dsExtraInputOwner :: L.TypedValidator b,
-    dsExtraInputPred :: L.DatumType b -> L.Value -> Bool,
-    dsExtraInputRedeemer :: L.RedeemerType b,
-    dsSelectSpendsScript :: SpendsScriptConstraint -> Bool,
+    -- | For every 'SpendsScriptConstraint' in the original transaction, go
+    -- through all @(SpendableOut, L.DatumType b)@ pairs describing UTxOs
+    -- belonging to the 'dsExtraInputOwner', and try to redeem them with the
+    -- returned list of redeemers
+    dsExtraInputSelect :: SpendsScriptConstraint -> SpendableOut -> L.DatumType b -> [L.RedeemerType b],
     dsAttacker :: Wallet
   }
 
@@ -323,32 +327,36 @@ doubleSatAttack ::
   DoubleSatParams b ->
   Attack
 doubleSatAttack DoubleSatParams {..} mcst skel =
-  addLabel DoubleSatLbl
-    . paySurplusTo dsAttacker
-    <$> mkAccumLAttack
-      spendsScriptConstraintsT
-      ( \acc constr -> case acc of
-          Nothing ->
-            if dsSelectSpendsScript constr
-              then (constr, SpendsScript dsExtraInputOwner dsExtraInputRedeemer <$> extraUtxo)
-              else (constr, Nothing)
-          _ -> (constr, acc)
-      )
-      Nothing
-      ( \_ sk mConstr -> case mConstr of
-          Nothing -> Nothing
-          Just c -> Just $ over miscConstraintsL (c :) sk
-      )
-      mcst
-      skel
+  mkAccumLAttack
+    spendsScriptConstraintsT
+    ( \acc ssc ->
+        ( ssc,
+          possibleSpendsScriptConstraints
+            mcst
+            dsExtraInputOwner
+            (uncurry $ dsExtraInputSelect ssc)
+            ++ acc
+        )
+    )
+    []
+    ( \_ sk acc ->
+        map
+          ( \ssc ->
+              addLabel DoubleSatLbl
+                . paySurplusTo dsAttacker
+                $ over miscConstraintsL (ssc :) sk
+          )
+          acc
+    )
+    mcst
+    skel
   where
-    extraUtxo = listToMaybe $ scriptUtxosSuchThatMcst mcst dsExtraInputOwner dsExtraInputPred
-
     paySurplusTo :: Wallet -> TxSkel -> TxSkel
     paySurplusTo w sk = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) sk
       where
         surplus = txSkelInValue sk <> Pl.negate (txSkelInValue skel)
 
+-- TODO define some more useful labels?
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)
 
@@ -375,3 +383,22 @@ scriptUtxosSuchThatMcst mcst val select =
       mcst
       (L.scriptHashAddress $ L.validatorHash val)
       (maybe (const False) select)
+
+-- | Generate all possible 'SpendsScript' constraints using UTxOs belonging to
+-- the given validator, where we try to redeem each of these UTxOs with the list
+-- of redeemers returned by the second argument.
+possibleSpendsScriptConstraints ::
+  ( SpendsConstrs a,
+    Pl.FromData (L.DatumType a)
+  ) =>
+  MockChainSt ->
+  L.TypedValidator a ->
+  ((SpendableOut, L.DatumType a) -> [L.RedeemerType a]) ->
+  [MiscConstraint]
+possibleSpendsScriptConstraints mcst val redeemers =
+  concatMap (\o -> map (\r -> SpendsScript val r o) (redeemers o)) $
+    scriptUtxosSuchThatMcst mcst val (\_ _ -> True)
+
+-- -- | All scripts that own an UTxO in the given 'MockChainSt'ate
+-- knownScriptsMcst :: MockChainSt -> [L.ValidatorHash]
+-- knownScriptsMcst = mapMaybe L.toValidatorHash . M.keys . utxoState . mcstToUtxoState
