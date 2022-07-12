@@ -165,6 +165,8 @@ builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
 builtinToTerm P.ChooseList = appSig "chooseList"
 builtinToTerm P.TailList = appSig "tailList"
 builtinToTerm P.HeadList = appSig "headList"
+builtinToTerm P.FstPair = appSig "fstPair"
+builtinToTerm P.SndPair = appSig "sndPair"
 builtinToTerm hd = appBuiltin $ fromSupportedPlutusDefaultFun hd
 
 fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
@@ -197,8 +199,6 @@ fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
 fromSupportedPlutusDefaultFun P.IfThenElse = IfThenElse
 fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
 fromSupportedPlutusDefaultFun P.Trace = Trace
-fromSupportedPlutusDefaultFun P.FstPair = FstPair
-fromSupportedPlutusDefaultFun P.SndPair = SndPair
 fromSupportedPlutusDefaultFun P.ChooseData = ChooseData
 fromSupportedPlutusDefaultFun P.ConstrData = ConstrData
 fromSupportedPlutusDefaultFun P.MapData = MapData

@@ -35,6 +35,19 @@ fun headList : all (a : Type) . List a -> a
       (\(hd : a) (tl : List a) . hd)
 
 
+data Tuple2 (a : Type) (b : Type)
+  = Tuple2 : a -> b -> Tuple2 a b
+  destructor Tuple2_match
+
+fun fstPair : all (a : Type) (b : Type) . Tuple2 a b -> a
+  = /\(a : Type) (b : Type) . \(t : Tuple2 a b)
+  . Tuple2_match @a @b t @a
+      (\(e1 : a) (e2 : b) . e1)
+
+fun sndPair : all (a : Type) (b : Type) . Tuple2 a b -> b
+  = /\(a : Type) (b : Type) . \(t : Tuple2 a b)
+  . Tuple2_match @a @b t @b
+      (\(e1 : a) (e2 : b) . e2)
 
 |]
 
