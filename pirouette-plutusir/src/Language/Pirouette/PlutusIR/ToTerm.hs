@@ -454,10 +454,34 @@ trTerm mn t = do
     --
     -- Note how we also passed @x@, which is a dependency of @f@, to the call to @f@!
     -- That's what the 'getTransitiveDepsAsArgs' below is responsible for doing.
+
+    -- The 'goSpine' function will translate the arguments of an application first, which gives
+    -- us an easier time to specialize certain terms at translation time.
+    goSpine ::
+      PIR.Term tyname name DefaultUni P.DefaultFun loc ->
+      WriterT (Decls PlutusIR) (TrM loc) (PIR.Term tyname name DefaultUni P.DefaultFun loc, [Arg PlutusIR])
+    goSpine (PIR.Apply _ tfun targ) =
+      (\(res, as) a -> (res, as ++ [SystF.TermArg a])) <$> goSpine tfun <*> go targ
+    goSpine (PIR.TyInst _ t0 ty) =
+      (\(res, as) a -> (res, as ++ [SystF.TyArg a])) <$> goSpine t0 <*> lift (trType ty)
+    goSpine t0 = return (t0, [])
+
     go ::
       PIR.Term tyname name DefaultUni P.DefaultFun loc ->
       WriterT (Decls PlutusIR) (TrM loc) (Term PlutusIR)
-    go (PIR.Var _ n)
+    go t0 = do
+      (hd, args) <- goSpine t0
+      case hd of
+        PIR.Builtin _ b -> return $ builtinToTerm b args
+        _ -> (`SystF.appN` args) <$> goHead hd
+
+    goHead ::
+      PIR.Term tyname name DefaultUni P.DefaultFun loc ->
+      WriterT (Decls PlutusIR) (TrM loc) (Term PlutusIR)
+    goHead (PIR.Apply _ tfun targ) = error "goHead: PIR.Apply is supposd to be handled by goSpine"
+    goHead (PIR.TyInst _ t0 ty) = error "goHead: PIR.TyInst is supposed to be handled by goSpine"
+    goHead (PIR.Builtin _ f) = error "goHead: PIR.Builtin is supposed to be handled by go"
+    goHead (PIR.Var _ n)
       -- See [HACK: Translation of 'Bool']
       -- ## | toName n == "True" =
       -- ##   return $ SystF.termPure $ SystF.Free $ Constant (PIRConstBool True)
@@ -477,22 +501,19 @@ trTerm mn t = do
     -- ##   | toName n == "Bool_match" =
     -- ##     SystF.app <$> (SystF.app <$> go v <*> lift (SystF.TyArg <$> trType tyR))
     -- ##       <*> (SystF.TermArg <$> go x)
-    go (PIR.Constant _ (P.Some (P.ValueOf tx x))) = return $ defUniToConstant tx x
-    go (PIR.Builtin _ f) = return $ SystF.termPure $ SystF.Free $ Builtin f
-    go (PIR.Error _ ty) = SystF.App (SystF.Free Bottom) . (: []) . SystF.TyArg <$> lift (trType ty)
-    go (PIR.IWrap _ _ _ t0) = go t0 -- VCM: are we sure we don't neet to
-    go (PIR.Unwrap _ t0) = go t0 --      preserve the wrap/unwraps?
-    go (PIR.TyInst _ t0 ty) = SystF.app <$> go t0 <*> lift (SystF.TyArg <$> trType ty)
-    go (PIR.TyAbs _ ty k t0) = do
+    goHead (PIR.Constant _ (P.Some (P.ValueOf tx x))) = return $ defUniToConstant tx x
+    goHead (PIR.Error _ ty) = SystF.App (SystF.Free Bottom) . (: []) . SystF.TyArg <$> lift (trType ty)
+    goHead (PIR.IWrap _ _ _ t0) = go t0 -- VCM: are we sure we don't neet to
+    goHead (PIR.Unwrap _ t0) = go t0 --      preserve the wrap/unwraps?
+    goHead (PIR.TyAbs _ ty k t0) = do
       SystF.Abs (SystF.Ann $ toName ty) (trKind k) <$> local (pushType (toName ty) (trKind k)) (go t0)
-    go (PIR.LamAbs _ n tyd t0) = do
+    goHead (PIR.LamAbs _ n tyd t0) = do
       ty <- lift $ trType tyd
       SystF.Lam (SystF.Ann $ toName n) ty <$> local (pushName (toName n) ty) (go t0)
-    go (PIR.Apply _ tfun targ) = SystF.app <$> go tfun <*> (SystF.TermArg <$> go targ)
     -- For let-statements, we will push the (translated) definitions to the top level;
     -- we must be careful and push the variables we've seen so far as a local context
     -- to those definitions.
-    go (PIR.Let _ r bs t0) = do
+    goHead (PIR.Let _ r bs t0) = do
       bs' <- lift (trBindings $ map (r,) $ NE.toList bs)
       tell bs'
       go t0

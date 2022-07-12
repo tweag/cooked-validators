@@ -15,7 +15,6 @@ import Pirouette.Symbolic.Eval.BranchingHelpers
 import Pirouette.Symbolic.Eval.Types
 import Pirouette.Term.Syntax.Base
 import Pirouette.Term.Syntax.SystemF as SystemF
-import qualified PlutusCore as P
 import qualified PureSMT
 
 -- See https://github.com/input-output-hk/plutus/blob/master/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs
@@ -54,38 +53,38 @@ trPIRConstant (PIRConstString txt) = PureSMT.text txt
 -- | These operations can be fully evaluated
 -- if the given arguments are constants.
 -- For example, @3 + 4@ is *not* stuck.
-plutusIRBasicOps :: [P.DefaultFun]
+plutusIRBasicOps :: [PIRDefaultFun]
 plutusIRBasicOps =
-  [ P.AddInteger,
-    P.SubtractInteger,
-    P.MultiplyInteger,
-    P.DivideInteger,
-    P.ModInteger,
-    P.QuotientInteger,
-    P.RemainderInteger,
-    P.AppendString,
-    P.AppendByteString,
-    P.ConsByteString,
-    P.IndexByteString,
-    P.SliceByteString
+  [ AddInteger,
+    SubtractInteger,
+    MultiplyInteger,
+    DivideInteger,
+    ModInteger,
+    QuotientInteger,
+    RemainderInteger,
+    AppendString,
+    AppendByteString,
+    ConsByteString,
+    IndexByteString,
+    SliceByteString
   ]
 
 -- | These relations can be fully evaluated
 -- if the given arguments are constants.
 -- For example, @3 < 4@ is *not* stuck.
-plutusIRBasicRels :: [P.DefaultFun]
+plutusIRBasicRels :: [PIRDefaultFun]
 plutusIRBasicRels =
-  [ P.EqualsInteger,
-    P.LessThanInteger,
-    P.LessThanEqualsInteger,
-    P.EqualsByteString,
-    P.EqualsString,
-    P.EqualsData,
-    P.LessThanByteString,
-    P.LessThanEqualsByteString
+  [ EqualsInteger,
+    LessThanInteger,
+    LessThanEqualsInteger,
+    EqualsByteString,
+    EqualsString,
+    EqualsData,
+    LessThanByteString,
+    LessThanEqualsByteString
   ]
 
-trPIRFun :: P.DefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
+trPIRFun :: PIRDefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 
 -- TODO Implement remaining builtins: those used by the "Auction" example
 -- validator are marked with an [A] and as commented out lines in the
@@ -94,51 +93,51 @@ trPIRFun :: P.DefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 -- ** Hash and signatures **
 
 --
---     P.Sha2_256
---     P.Sha3_256
---     P.Blake2b_256
---     P.VerifySignature
+--     Sha2_256
+--     Sha3_256
+--     Blake2b_256
+--     VerifySignature
 --
 
 -- ** Strings and encoding **
 
 --
---     P.EncodeUtf8
---     P.DecodeUtf8
+--     EncodeUtf8
+--     DecodeUtf8
 --
 
 -- Pattern matching in disguise,
 -- so we return here Nothing and then "translate"
 -- into an actual match in 'branchesBuiltinTerm'
-trPIRFun P.ChooseList _ = Nothing
-trPIRFun P.ChooseUnit _ = Nothing
-trPIRFun P.ChooseData _ = Nothing
-trPIRFun P.FstPair _ = Nothing
-trPIRFun P.SndPair _ = Nothing
-trPIRFun P.HeadList _ = Nothing
-trPIRFun P.TailList _ = Nothing
-trPIRFun P.UnConstrData _ = Nothing
-trPIRFun P.UnMapData _ = Nothing
-trPIRFun P.UnListData _ = Nothing
-trPIRFun P.UnIData _ = Nothing
-trPIRFun P.UnBData _ = Nothing
+trPIRFun ChooseList _ = Nothing
+trPIRFun ChooseUnit _ = Nothing
+trPIRFun ChooseData _ = Nothing
+trPIRFun FstPair _ = Nothing
+trPIRFun SndPair _ = Nothing
+trPIRFun HeadList _ = Nothing
+trPIRFun TailList _ = Nothing
+trPIRFun UnConstrData _ = Nothing
+trPIRFun UnMapData _ = Nothing
+trPIRFun UnListData _ = Nothing
+trPIRFun UnIData _ = Nothing
+trPIRFun UnBData _ = Nothing
 -- If-then-else is complicated
-trPIRFun P.IfThenElse _ = Nothing
+trPIRFun IfThenElse _ = Nothing
 -- Unary
 trPIRFun op [x] =
   case op of
-    P.Trace -> Just $ PureSMT.List [x]
+    Trace -> Just $ PureSMT.List [x]
     -- some simple operations
-    P.NullList -> Just $ PureSMT.eq x (PureSMT.fun "Nil" [])
+    NullList -> Just $ PureSMT.eq x (PureSMT.fun "Nil" [])
     -- constructors
     -- those are defined as unary functions for historical reasons
-    P.MkNilData -> Just $ PureSMT.fun "Nil" []
-    P.MkNilPairData -> Just $ PureSMT.fun "Nil" []
+    MkNilData -> Just $ PureSMT.fun "Nil" []
+    MkNilPairData -> Just $ PureSMT.fun "Nil" []
     -- and these are for Data
-    P.MapData -> Just $ PureSMT.fun "Map" [x]
-    P.ListData -> Just $ PureSMT.fun "List" [x]
-    P.IData -> Just $ PureSMT.fun "I" [x]
-    P.BData -> Just $ PureSMT.fun "B" [x]
+    MapData -> Just $ PureSMT.fun "Map" [x]
+    ListData -> Just $ PureSMT.fun "List" [x]
+    IData -> Just $ PureSMT.fun "I" [x]
+    BData -> Just $ PureSMT.fun "B" [x]
     _ ->
       error $
         "Translate builtin to SMT: "
@@ -148,28 +147,28 @@ trPIRFun op [x] =
 trPIRFun op [x, y] =
   case op of
     -- integer operations
-    P.AddInteger -> Just $ PureSMT.add x y
-    P.SubtractInteger -> Just $ PureSMT.sub x y
-    P.MultiplyInteger -> Just $ PureSMT.mul x y
+    AddInteger -> Just $ PureSMT.add x y
+    SubtractInteger -> Just $ PureSMT.sub x y
+    MultiplyInteger -> Just $ PureSMT.mul x y
     -- divMod and quotRem work differently
     -- when not exact, but this is a good approximation
-    P.DivideInteger -> Just $ PureSMT.div x y
-    P.ModInteger -> Just $ PureSMT.mod x y
-    P.QuotientInteger -> Just $ PureSMT.div x y
-    P.RemainderInteger -> Just $ PureSMT.mod x y
+    DivideInteger -> Just $ PureSMT.div x y
+    ModInteger -> Just $ PureSMT.mod x y
+    QuotientInteger -> Just $ PureSMT.div x y
+    RemainderInteger -> Just $ PureSMT.mod x y
     -- operations over other types
-    P.AppendString -> Just $ PureSMT.fun "str.++" [x, y]
+    AppendString -> Just $ PureSMT.fun "str.++" [x, y]
     -- relations
-    P.EqualsInteger -> Just $ PureSMT.eq x y
-    P.LessThanInteger -> Just $ PureSMT.lt x y
-    P.LessThanEqualsInteger -> Just $ PureSMT.leq x y
-    P.EqualsByteString -> Just $ PureSMT.eq x y
-    P.EqualsString -> Just $ PureSMT.eq x y
-    P.EqualsData -> Just $ PureSMT.eq x y
+    EqualsInteger -> Just $ PureSMT.eq x y
+    LessThanInteger -> Just $ PureSMT.lt x y
+    LessThanEqualsInteger -> Just $ PureSMT.leq x y
+    EqualsByteString -> Just $ PureSMT.eq x y
+    EqualsString -> Just $ PureSMT.eq x y
+    EqualsData -> Just $ PureSMT.eq x y
     -- constructors
-    P.MkCons -> Just $ PureSMT.fun "Cons" [x, y]
-    P.MkPairData -> Just $ PureSMT.fun "Tuple2" [x, y]
-    P.ConstrData -> Just $ PureSMT.fun "Constr" [x, y]
+    MkCons -> Just $ PureSMT.fun "Cons" [x, y]
+    MkPairData -> Just $ PureSMT.fun "Tuple2" [x, y]
+    ConstrData -> Just $ PureSMT.fun "Constr" [x, y]
     _ ->
       error $
         "Translate builtin to SMT: "
@@ -192,37 +191,37 @@ instance LanguageSymEval PlutusIR where
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
       (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
         case op of
-          P.AddInteger -> PIRConstInteger $ x + y
-          P.SubtractInteger -> PIRConstInteger $ x - y
-          P.MultiplyInteger -> PIRConstInteger $ x * y
-          P.DivideInteger -> PIRConstInteger $ x `div` y
-          P.ModInteger -> PIRConstInteger $ x `mod` y
-          P.QuotientInteger -> PIRConstInteger $ x `quot` y
-          P.RemainderInteger -> PIRConstInteger $ x `rem` y
-          P.EqualsInteger -> PIRConstBool $ x == y
-          P.LessThanInteger -> PIRConstBool $ x < y
-          P.LessThanEqualsInteger -> PIRConstBool $ x <= y
+          AddInteger -> PIRConstInteger $ x + y
+          SubtractInteger -> PIRConstInteger $ x - y
+          MultiplyInteger -> PIRConstInteger $ x * y
+          DivideInteger -> PIRConstInteger $ x `div` y
+          ModInteger -> PIRConstInteger $ x `mod` y
+          QuotientInteger -> PIRConstInteger $ x `quot` y
+          RemainderInteger -> PIRConstInteger $ x `rem` y
+          EqualsInteger -> PIRConstBool $ x == y
+          LessThanInteger -> PIRConstBool $ x < y
+          LessThanEqualsInteger -> PIRConstBool $ x <= y
           _ -> error "ill-typed application"
   branchesBuiltinTerm op _ [TermArg (K (PIRConstByteString x)), TermArg (K (PIRConstByteString y))]
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
       (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
         case op of
-          P.AppendByteString -> PIRConstByteString (x <> y)
-          P.EqualsByteString -> PIRConstBool $ x == y
-          P.LessThanByteString -> PIRConstBool $ x < y
-          P.LessThanEqualsByteString -> PIRConstBool $ x <= y
+          AppendByteString -> PIRConstByteString (x <> y)
+          EqualsByteString -> PIRConstBool $ x == y
+          LessThanByteString -> PIRConstBool $ x < y
+          LessThanEqualsByteString -> PIRConstBool $ x <= y
           _ -> error "ill-typed application"
-  branchesBuiltinTerm P.LengthOfByteString _ [TermArg (K (PIRConstByteString b))] =
+  branchesBuiltinTerm LengthOfByteString _ [TermArg (K (PIRConstByteString b))] =
     let r = K $ PIRConstInteger (fromIntegral $ BS.length b)
      in pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]
   branchesBuiltinTerm
-    P.ConsByteString
+    ConsByteString
     _
     [TermArg (K (PIRConstInteger i)), TermArg (K (PIRConstByteString b))] =
       let r = K $ PIRConstByteString (BS.cons (fromInteger i) b)
        in pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]
   branchesBuiltinTerm
-    P.IndexByteString
+    IndexByteString
     _
     [TermArg (K (PIRConstByteString b)), TermArg (K (PIRConstInteger i))] =
       let r =
@@ -231,7 +230,7 @@ instance LanguageSymEval PlutusIR where
               else K $ PIRConstInteger $ fromIntegral (BS.index b (fromInteger i))
        in pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]
   branchesBuiltinTerm
-    P.IndexByteString
+    IndexByteString
     _
     [TermArg (K (PIRConstInteger start)), TermArg (K (PIRConstInteger n)), TermArg (K (PIRConstByteString xs))] =
       let r = K $ PIRConstByteString $ BS.take (fromInteger n) (BS.drop (fromInteger start) xs)
@@ -240,15 +239,15 @@ instance LanguageSymEval PlutusIR where
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
       (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
         case op of
-          P.AppendString -> PIRConstString $ x <> y
-          P.EqualsString -> PIRConstBool $ x == y
+          AppendString -> PIRConstString $ x <> y
+          EqualsString -> PIRConstBool $ x == y
           _ -> error "ill-typed application"
   -- if-then-else goes to the helpers
-  branchesBuiltinTerm P.IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
-    let isEq P.EqualsInteger = True
-        isEq P.EqualsString = True
-        isEq P.EqualsByteString = True
-        isEq P.EqualsData = True
+  branchesBuiltinTerm IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
+    let isEq EqualsInteger = True
+        isEq EqualsString = True
+        isEq EqualsByteString = True
+        isEq EqualsData = True
         isEq _ = False
         isTrue (K (PIRConstBool True)) = True
         isTrue _ = False
@@ -269,40 +268,40 @@ instance LanguageSymEval PlutusIR where
   -- the pattern matching much better b/c we know
   -- the constructor that has been applied
 
-  branchesBuiltinTerm P.MkNilData _ _args =
+  branchesBuiltinTerm MkNilData _ _args =
     continueWith "Nil" []
-  branchesBuiltinTerm P.MkNilPairData _ _args =
+  branchesBuiltinTerm MkNilPairData _ _args =
     continueWith "Nil" []
-  branchesBuiltinTerm P.MkCons _ _args =
+  branchesBuiltinTerm MkCons _ _args =
     continueWith "Nil" []
-  branchesBuiltinTerm P.ConstrData _ args =
+  branchesBuiltinTerm ConstrData _ args =
     continueWith "Data_Constr" args
-  branchesBuiltinTerm P.MapData _ args =
+  branchesBuiltinTerm MapData _ args =
     continueWith "Data_Map" args
-  branchesBuiltinTerm P.ListData _ args =
+  branchesBuiltinTerm ListData _ args =
     continueWith "Data_List" args
-  branchesBuiltinTerm P.IData _ args =
+  branchesBuiltinTerm IData _ args =
     continueWith "Data_I" args
-  branchesBuiltinTerm P.BData _ args =
+  branchesBuiltinTerm BData _ args =
     continueWith "Data_B" args
   -- pattern matching and built-in matchers
 
   -- they take the arguments in a different order
   branchesBuiltinTerm
-    P.ChooseList
+    ChooseList
     _
     (TyArg a : TyArg tyR : TermArg lst : TermArg caseNil : TermArg caseCons : excess) =
       continueWithListMatch a tyR lst caseNil caseCons excess
-  branchesBuiltinTerm P.ChooseUnit _ (tyR : unit : rest) =
+  branchesBuiltinTerm ChooseUnit _ (tyR : unit : rest) =
     continueWith "Unit_match" (unit : tyR : rest)
   branchesBuiltinTerm
-    P.ChooseData
+    ChooseData
     _
     (tyR : dat : TermArg caseC : TermArg caseM : TermArg caseL : TermArg caseI : TermArg caseB : excess) =
       continueWithDataMatch dat tyR caseC caseM caseL caseI caseB excess
   -- built-in matchers
 
-  branchesBuiltinTerm P.FstPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
+  branchesBuiltinTerm FstPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
     continueWith
       "Tuple2_match"
       [ tyA,
@@ -311,7 +310,7 @@ instance LanguageSymEval PlutusIR where
         tyA,
         TermArg $ Lam (Ann "x") a $ Lam (Ann "y") b $ App (Bound (Ann "x") 1) []
       ]
-  branchesBuiltinTerm P.SndPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
+  branchesBuiltinTerm SndPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
     continueWith
       "Tuple2_match"
       [ tyA,
@@ -320,11 +319,11 @@ instance LanguageSymEval PlutusIR where
         tyB,
         TermArg $ Lam (Ann "x") a $ Lam (Ann "y") b $ App (Bound (Ann "y") 0) []
       ]
-  branchesBuiltinTerm P.HeadList _ [TyArg a, TermArg lst] =
+  branchesBuiltinTerm HeadList _ [TyArg a, TermArg lst] =
     continueWithListMatch a a lst errorTerm (App (Bound (Ann "x") 1) []) []
-  branchesBuiltinTerm P.TailList _ [TyArg a, TermArg lst] =
+  branchesBuiltinTerm TailList _ [TyArg a, TermArg lst] =
     continueWithListMatch a (tyListOf a) lst errorTerm (App (Bound (Ann "xs") 0) []) []
-  branchesBuiltinTerm P.NullList _ [TyArg a, TermArg lst] =
+  branchesBuiltinTerm NullList _ [TyArg a, TermArg lst] =
     continueWithListMatch
       a
       (builtin PIRTypeBool)
@@ -332,7 +331,7 @@ instance LanguageSymEval PlutusIR where
       (K $ PIRConstBool True)
       (K $ PIRConstBool False)
       []
-  branchesBuiltinTerm P.UnConstrData _ [d] =
+  branchesBuiltinTerm UnConstrData _ [d] =
     continueWithDataMatch
       d
       (TyArg (tyTuple2Of (builtin PIRTypeInteger) tyData))
@@ -342,7 +341,7 @@ instance LanguageSymEval PlutusIR where
       errorTerm
       errorTerm
       []
-  branchesBuiltinTerm P.UnMapData _ [d] =
+  branchesBuiltinTerm UnMapData _ [d] =
     continueWithDataMatch
       d
       (TyArg (tyListOf (tyTuple2Of tyData tyData)))
@@ -352,7 +351,7 @@ instance LanguageSymEval PlutusIR where
       errorTerm
       errorTerm
       []
-  branchesBuiltinTerm P.UnListData _ [d] =
+  branchesBuiltinTerm UnListData _ [d] =
     continueWithDataMatch
       d
       (TyArg (tyListOf tyData))
@@ -362,7 +361,7 @@ instance LanguageSymEval PlutusIR where
       errorTerm
       errorTerm
       []
-  branchesBuiltinTerm P.UnIData _ [d] =
+  branchesBuiltinTerm UnIData _ [d] =
     continueWithDataMatch
       d
       (TyArg (builtin PIRTypeInteger))
@@ -372,7 +371,7 @@ instance LanguageSymEval PlutusIR where
       (App (Bound (Ann "i") 0) [])
       errorTerm
       []
-  branchesBuiltinTerm P.UnBData _ [d] =
+  branchesBuiltinTerm UnBData _ [d] =
     continueWithDataMatch
       d
       (TyArg (builtin PIRTypeByteString))

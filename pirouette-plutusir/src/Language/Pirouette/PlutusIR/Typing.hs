@@ -16,7 +16,6 @@ import Data.String (fromString)
 import Language.Pirouette.PlutusIR.Syntax
 import Pirouette.Term.Syntax
 import qualified Pirouette.Term.Syntax.SystemF as SystF
-import qualified PlutusCore as P
 
 -- | Shortcut for system F arrows
 infixr 2 :->:
@@ -46,34 +45,34 @@ forall x = SystF.TyAll (SystF.ann x) SystF.KStar
 instance LanguageBuiltinTypes PlutusIR where
   typeOfConstant = cstToBuiltinType
 
-  typeOfBuiltin P.AddInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.SubtractInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.MultiplyInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.DivideInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.ModInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.QuotientInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.RemainderInteger = tInt :->: tInt :->: tInt
-  typeOfBuiltin P.EqualsInteger = tInt :->: tInt :->: tBool
-  typeOfBuiltin P.LessThanInteger = tInt :->: tInt :->: tBool
-  typeOfBuiltin P.LessThanEqualsInteger = tInt :->: tInt :->: tBool
-  typeOfBuiltin P.EqualsString = tString :->: tString :->: tBool
-  typeOfBuiltin P.EqualsByteString = tByteString :->: tByteString :->: tBool
-  typeOfBuiltin P.IfThenElse = forall "a" (tBool :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0)
-  typeOfBuiltin P.Trace = forall "a" (tString :->: tVar "a" 0 :->: tVar "a" 0)
-  typeOfBuiltin P.FstPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "a" 1))
-  typeOfBuiltin P.SndPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "b" 0))
+  typeOfBuiltin AddInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin SubtractInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin MultiplyInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin DivideInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin ModInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin QuotientInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin RemainderInteger = tInt :->: tInt :->: tInt
+  typeOfBuiltin EqualsInteger = tInt :->: tInt :->: tBool
+  typeOfBuiltin LessThanInteger = tInt :->: tInt :->: tBool
+  typeOfBuiltin LessThanEqualsInteger = tInt :->: tInt :->: tBool
+  typeOfBuiltin EqualsString = tString :->: tString :->: tBool
+  typeOfBuiltin EqualsByteString = tByteString :->: tByteString :->: tBool
+  typeOfBuiltin IfThenElse = forall "a" (tBool :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0)
+  typeOfBuiltin Trace = forall "a" (tString :->: tVar "a" 0 :->: tVar "a" 0)
+  typeOfBuiltin FstPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "a" 1))
+  typeOfBuiltin SndPair = forall "a" (forall "b" (tyTuple2Of (tVar "a" 1) (tVar "b" 0) :->: tVar "b" 0))
   -- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1009
-  typeOfBuiltin P.ChooseList =
+  typeOfBuiltin ChooseList =
     forall "a" (forall "b" (tyListOf (tVar "a" 1) :->: tVar "b" 0 :->: tVar "b" 0 :->: tVar "b" 0))
-  typeOfBuiltin P.HeadList = forall "a" (tyListOf (tVar "a" 0) :->: tVar "a" 0)
-  typeOfBuiltin P.TailList = forall "a" (tyListOf (tVar "a" 0) :->: tyListOf (tVar "a" 0))
+  typeOfBuiltin HeadList = forall "a" (tyListOf (tVar "a" 0) :->: tVar "a" 0)
+  typeOfBuiltin TailList = forall "a" (tyListOf (tVar "a" 0) :->: tyListOf (tVar "a" 0))
   -- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1075
-  typeOfBuiltin P.ChooseData =
+  typeOfBuiltin ChooseData =
     forall "a" (tyData :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0)
-  typeOfBuiltin P.UnConstrData = tyData :->: tyTuple2Of tInt (tyListOf tyData)
-  typeOfBuiltin P.UnIData = tyData :->: tInt
-  typeOfBuiltin P.UnBData = tyData :->: tByteString
-  typeOfBuiltin P.MkNilData = tyData
+  typeOfBuiltin UnConstrData = tyData :->: tyTuple2Of tInt (tyListOf tyData)
+  typeOfBuiltin UnIData = tyData :->: tInt
+  typeOfBuiltin UnBData = tyData :->: tByteString
+  typeOfBuiltin MkNilData = tyData
   -- TODO: implement the types of other builtins, but make sure to always bring in a golden
   -- test that comes from the plutus compiler. We should REALLY not be guessing these types,
   -- no matter how simple they seem.

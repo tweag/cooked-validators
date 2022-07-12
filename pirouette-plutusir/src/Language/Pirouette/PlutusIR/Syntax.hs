@@ -21,7 +21,6 @@ import Control.Monad.Combinators.Expr
 import qualified Data.ByteString as BS
 import Data.Data
 import Data.Foldable
-import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Data.String
 import qualified Data.Text as T
@@ -42,12 +41,17 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- * Declaring the builtins of PlutusIR.
-
 -- | Defining the 'PlutusIR' as a language, which contains a set of builtin (types and terms)
 -- and constants.
 data PlutusIR
   deriving (Data, Typeable)
+
+-- * Declaring the builtins of PlutusIR.
+
+instance LanguageBuiltins PlutusIR where
+  type BuiltinTypes PlutusIR = PIRBuiltinType
+  type BuiltinTerms PlutusIR = PIRDefaultFun
+  type Constants PlutusIR = PIRConstant
 
 deriving instance Data P.DefaultFun
 
@@ -55,73 +59,163 @@ deriving instance Lift P.DefaultFun
 
 deriving instance Lift P.Data
 
-type PIRDefaultFun = P.DefaultFun
+-- * Builtin Types
 
-instance LanguageBuiltins PlutusIR where
-  type BuiltinTypes PlutusIR = PIRBuiltinType
-  type BuiltinTerms PlutusIR = PIRDefaultFun
-  type Constants PlutusIR = PIRConstant
+-- $bintypes
+-- We will only consider four types as builtin types in pirouette. The reason being that
+-- it is much easier to rely as much as possible on pirouette's data definitinos, since
+-- these integrate seamlessly with the entirety of pirouette, for things like @List@, @Data@, etc
 
-  builtinTypeDefinitions definedTypes =
-    -- only define List and Unit if they are not yet defined
-    [("List", listTypeDef) | not (isDefined "List")]
-      ++ [("Unit", unitTypeDef) | not (isDefined "Unit")]
-      ++ [("Tuple2", tuple2TypeDef) | not (isDefined "Tuple2")]
-      ++ [("Data", dataTypeDef)]
-    where
-      a = SystF.TyApp (SystF.Bound (SystF.Ann "a") 0) []
+-- | Builtin Plutus Types
+data PIRBuiltinType
+  = PIRTypeInteger
+  | PIRTypeByteString
+  | PIRTypeBool
+  | PIRTypeString
+  deriving (Eq, Ord, Show, Read, Data, Typeable, Lift)
 
-      isDefined nm = isJust (lookup nm definedTypes)
+defUniToType :: forall k (a :: k). DefaultUni (P.Esc a) -> Type PlutusIR
+defUniToType DefaultUniInteger = tyConstant PIRTypeInteger
+defUniToType DefaultUniByteString = tyConstant PIRTypeByteString
+defUniToType DefaultUniBool = tyConstant PIRTypeBool
+defUniToType DefaultUniString = tyConstant PIRTypeString
+defUniToType DefaultUniUnit = tyUnit
+defUniToType DefaultUniData = tyData
+defUniToType (DefaultUniList a) = tyListOf (defUniToType a)
+defUniToType (DefaultUniPair a b) = tyTuple2Of (defUniToType a) (defUniToType b)
+-- The following are partially applied:
+defUniToType DefaultUniProtoList = tyApp "List" []
+defUniToType DefaultUniProtoPair = tyApp "Tuple2" []
+defUniToType (DefaultUniApply DefaultUniProtoPair a) = tyApp "Tuple2" [defUniToType a]
+defUniToType x = error $ "defUniToType impossible: " ++ show x
 
-      listOf x = SystF.TyApp (SystF.Free $ TySig "List") [x]
-      tuple2Of x y = SystF.TyApp (SystF.Free $ TySig "Tuple2") [x, y]
-      builtin nm = SystF.TyApp (SystF.Free $ TyBuiltin nm) []
+-- | We will keep builtin functions related to any type in 'PIRBuiltinType',
+--  any other functions will be compiled to something else.
+data PIRDefaultFun
+  = AddInteger
+  | SubtractInteger
+  | MultiplyInteger
+  | DivideInteger
+  | QuotientInteger
+  | RemainderInteger
+  | ModInteger
+  | EqualsInteger
+  | LessThanInteger
+  | LessThanEqualsInteger
+  | -- Bytestrings
+    AppendByteString
+  | ConsByteString
+  | SliceByteString
+  | LengthOfByteString
+  | IndexByteString
+  | EqualsByteString
+  | LessThanByteString
+  | LessThanEqualsByteString
+  | -- Cryptography and hashes
+    Sha2_256
+  | Sha3_256
+  | Blake2b_256
+  | VerifySignature
+  | -- VerifyEd25519Signature
+    -- VerifyEcdsaSecp256k1Signature
+    -- VerifySchnorrSecp256k1Signature
+    -- Strings
+    AppendString
+  | EqualsString
+  | EncodeUtf8
+  | DecodeUtf8
+  | -- Bool
+    IfThenElse
+  | -- Unit
+    ChooseUnit
+  | -- Tracing
+    Trace
+  | -- Pairs
+    FstPair
+  | SndPair
+  | -- Lists
+    ChooseList
+  | MkCons
+  | HeadList
+  | TailList
+  | NullList
+  | -- Data
+    -- It is convenient to have a "choosing" function for a data type that has more than two
+    -- constructors to get pattern matching over it and we may end up having multiple such data
+    -- types, hence we include the name of the data type as a suffix.
+    ChooseData
+  | ConstrData
+  | MapData
+  | ListData
+  | IData
+  | BData
+  | UnConstrData
+  | UnMapData
+  | UnListData
+  | UnIData
+  | UnBData
+  | EqualsData
+  | -- Misc constructors
+    MkPairData
+  | MkNilData
+  | MkNilPairData
+  deriving (Eq, Show, Ord, Data, Typeable, Lift)
 
-      listTypeDef =
-        Datatype
-          { kind = SystF.KTo SystF.KStar SystF.KStar,
-            typeVariables = [("a", SystF.KStar)],
-            destructor = "Nil_match",
-            constructors =
-              [ ("Nil", SystF.TyAll (SystF.Ann "a") SystF.KStar (listOf a)),
-                ("Cons", SystF.TyAll (SystF.Ann "a") SystF.KStar (SystF.TyFun a (SystF.TyFun (listOf a) (listOf a))))
-              ]
-          }
+builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
+builtinToTerm hd = SystF.App (SystF.Free (Builtin $ fromSupportedPlutusDefaultFun hd))
 
-      unitTypeDef =
-        Datatype
-          { kind = SystF.KStar,
-            typeVariables = [],
-            destructor = "Unit_match",
-            constructors = [("Unit", SystF.TyPure (SystF.Free $ TySig "Unit"))]
-          }
-
-      -- !! warning, we define it as "Tuple2 b a" to reuse 'a' for both list and tuple
-      b = SystF.TyApp (SystF.Bound (SystF.Ann "b") 1) []
-      tuple2TypeDef =
-        Datatype
-          { kind = SystF.KTo SystF.KStar (SystF.KTo SystF.KStar SystF.KStar),
-            typeVariables = [("b", SystF.KStar), ("a", SystF.KStar)],
-            destructor = "Tuple2_match",
-            constructors =
-              [ ("Tuple2", SystF.TyAll (SystF.Ann "b") SystF.KStar $ SystF.TyAll (SystF.Ann "a") SystF.KStar $ SystF.TyFun b (SystF.TyFun a (tuple2Of b a)))
-              ]
-          }
-
-      -- defined following https://github.com/input-output-hk/plutus/blob/master/plutus-core/plutus-core/src/PlutusCore/Data.hs
-      dataTypeDef =
-        Datatype
-          { kind = SystF.KStar,
-            typeVariables = [],
-            destructor = "Data_match",
-            constructors =
-              [ ("Data_Constr", SystF.TyFun (builtin PIRTypeInteger) (SystF.TyFun (tyListOf tyData) tyData)),
-                ("Data_Map", SystF.TyFun (tyListOf (tyTuple2Of tyData tyData)) tyData),
-                ("Data_List", SystF.TyFun (tyListOf tyData) tyData),
-                ("Data_I", SystF.TyFun (builtin PIRTypeInteger) tyData),
-                ("Data_B", SystF.TyFun (builtin PIRTypeByteString) tyData)
-              ]
-          }
+fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
+fromSupportedPlutusDefaultFun P.AddInteger = AddInteger
+fromSupportedPlutusDefaultFun P.SubtractInteger = SubtractInteger
+fromSupportedPlutusDefaultFun P.MultiplyInteger = MultiplyInteger
+fromSupportedPlutusDefaultFun P.DivideInteger = DivideInteger
+fromSupportedPlutusDefaultFun P.QuotientInteger = QuotientInteger
+fromSupportedPlutusDefaultFun P.RemainderInteger = RemainderInteger
+fromSupportedPlutusDefaultFun P.ModInteger = ModInteger
+fromSupportedPlutusDefaultFun P.EqualsInteger = EqualsInteger
+fromSupportedPlutusDefaultFun P.LessThanInteger = LessThanInteger
+fromSupportedPlutusDefaultFun P.LessThanEqualsInteger = LessThanEqualsInteger
+fromSupportedPlutusDefaultFun P.AppendByteString = AppendByteString
+fromSupportedPlutusDefaultFun P.ConsByteString = ConsByteString
+fromSupportedPlutusDefaultFun P.SliceByteString = SliceByteString
+fromSupportedPlutusDefaultFun P.LengthOfByteString = LengthOfByteString
+fromSupportedPlutusDefaultFun P.IndexByteString = IndexByteString
+fromSupportedPlutusDefaultFun P.EqualsByteString = EqualsByteString
+fromSupportedPlutusDefaultFun P.LessThanByteString = LessThanByteString
+fromSupportedPlutusDefaultFun P.LessThanEqualsByteString = LessThanEqualsByteString
+fromSupportedPlutusDefaultFun P.Sha2_256 = Sha2_256
+fromSupportedPlutusDefaultFun P.Sha3_256 = Sha3_256
+fromSupportedPlutusDefaultFun P.Blake2b_256 = Blake2b_256
+fromSupportedPlutusDefaultFun P.VerifySignature = VerifySignature
+fromSupportedPlutusDefaultFun P.AppendString = AppendString
+fromSupportedPlutusDefaultFun P.EqualsString = EqualsString
+fromSupportedPlutusDefaultFun P.EncodeUtf8 = EncodeUtf8
+fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
+fromSupportedPlutusDefaultFun P.IfThenElse = IfThenElse
+fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
+fromSupportedPlutusDefaultFun P.Trace = Trace
+fromSupportedPlutusDefaultFun P.FstPair = FstPair
+fromSupportedPlutusDefaultFun P.SndPair = SndPair
+fromSupportedPlutusDefaultFun P.ChooseList = ChooseList
+fromSupportedPlutusDefaultFun P.MkCons = MkCons
+fromSupportedPlutusDefaultFun P.HeadList = HeadList
+fromSupportedPlutusDefaultFun P.TailList = TailList
+fromSupportedPlutusDefaultFun P.NullList = NullList
+fromSupportedPlutusDefaultFun P.ChooseData = ChooseData
+fromSupportedPlutusDefaultFun P.ConstrData = ConstrData
+fromSupportedPlutusDefaultFun P.MapData = MapData
+fromSupportedPlutusDefaultFun P.ListData = ListData
+fromSupportedPlutusDefaultFun P.IData = IData
+fromSupportedPlutusDefaultFun P.BData = BData
+fromSupportedPlutusDefaultFun P.UnConstrData = UnConstrData
+fromSupportedPlutusDefaultFun P.UnMapData = UnMapData
+fromSupportedPlutusDefaultFun P.UnListData = UnListData
+fromSupportedPlutusDefaultFun P.UnIData = UnIData
+fromSupportedPlutusDefaultFun P.UnBData = UnBData
+fromSupportedPlutusDefaultFun P.EqualsData = EqualsData
+fromSupportedPlutusDefaultFun P.MkPairData = MkPairData
+fromSupportedPlutusDefaultFun P.MkNilData = MkNilData
+fromSupportedPlutusDefaultFun P.MkNilPairData = MkNilPairData
 
 tyConstant :: PIRBuiltinType -> Type PlutusIR
 tyConstant = SystF.TyPure . SystF.Free . TyBuiltin
@@ -154,29 +248,6 @@ cstToBuiltinType (PIRConstInteger _) = tyConstant PIRTypeInteger
 cstToBuiltinType (PIRConstByteString _) = tyConstant PIRTypeByteString
 cstToBuiltinType (PIRConstBool _) = tyConstant PIRTypeBool
 cstToBuiltinType (PIRConstString _) = tyConstant PIRTypeString
-
--- | Builtin Plutus Types
-data PIRBuiltinType
-  = PIRTypeInteger
-  | PIRTypeByteString
-  | PIRTypeBool
-  | PIRTypeString
-  deriving (Eq, Ord, Show, Read, Data, Typeable, Lift)
-
-defUniToType :: forall k (a :: k). DefaultUni (P.Esc a) -> Type PlutusIR
-defUniToType DefaultUniInteger = tyConstant PIRTypeInteger
-defUniToType DefaultUniByteString = tyConstant PIRTypeByteString
-defUniToType DefaultUniBool = tyConstant PIRTypeBool
-defUniToType DefaultUniString = tyConstant PIRTypeString
-defUniToType DefaultUniUnit = tyUnit
-defUniToType DefaultUniData = tyData
-defUniToType (DefaultUniList a) = tyListOf (defUniToType a)
-defUniToType (DefaultUniPair a b) = tyTuple2Of (defUniToType a) (defUniToType b)
--- The following are partially applied:
-defUniToType DefaultUniProtoList = tyApp "List" []
-defUniToType DefaultUniProtoPair = tyApp "Tuple2" []
-defUniToType (DefaultUniApply DefaultUniProtoPair a) = tyApp "Tuple2" [defUniToType a]
-defUniToType x = error $ "defUniToType impossible: " ++ show x
 
 -- | Untyped Plutus Constants
 data PIRConstant
@@ -251,6 +322,9 @@ instance Pretty P.Data where
   pretty (P.I i) = pretty i
   pretty (P.B bs) = pretty bs
 
+instance Pretty PIRDefaultFun where
+  pretty s = "b/" <> pretty (show s)
+
 -- * Parsing
 
 instance LanguageParser PlutusIR where
@@ -292,94 +366,94 @@ instance LanguageParser PlutusIR where
         map
           try
           [ -- Integers
-            P.AddInteger <$ symbol "b/addInteger",
-            P.SubtractInteger <$ symbol "b/subtractInteger",
-            P.MultiplyInteger <$ symbol "b/multiplyInteger",
-            P.DivideInteger <$ symbol "b/divideInteger",
-            P.QuotientInteger <$ symbol "b/quotientInteger",
-            P.RemainderInteger <$ symbol "b/remainderInteger",
-            P.ModInteger <$ symbol "b/modInteger",
-            P.EqualsInteger <$ symbol "b/equalsInteger",
-            P.LessThanInteger <$ symbol "b/lessThanInteger",
-            P.LessThanEqualsInteger <$ symbol "b/lessThanEqualsInteger",
+            AddInteger <$ symbol "b/addInteger",
+            SubtractInteger <$ symbol "b/subtractInteger",
+            MultiplyInteger <$ symbol "b/multiplyInteger",
+            DivideInteger <$ symbol "b/divideInteger",
+            QuotientInteger <$ symbol "b/quotientInteger",
+            RemainderInteger <$ symbol "b/remainderInteger",
+            ModInteger <$ symbol "b/modInteger",
+            EqualsInteger <$ symbol "b/equalsInteger",
+            LessThanInteger <$ symbol "b/lessThanInteger",
+            LessThanEqualsInteger <$ symbol "b/lessThanEqualsInteger",
             -- Bytestrings
-            P.AppendByteString <$ symbol "b/appendByteString",
-            P.ConsByteString <$ symbol "b/consByteString",
-            P.SliceByteString <$ symbol "b/sliceByteString",
-            P.LengthOfByteString <$ symbol "b/lengthOfByteString",
-            P.IndexByteString <$ symbol "b/indexByteString",
-            P.EqualsByteString <$ symbol "b/equalsByteString",
-            P.LessThanByteString <$ symbol "b/lessThanByteString",
-            P.LessThanEqualsByteString <$ symbol "b/lessThanEqualsByteString",
+            AppendByteString <$ symbol "b/appendByteString",
+            ConsByteString <$ symbol "b/consByteString",
+            SliceByteString <$ symbol "b/sliceByteString",
+            LengthOfByteString <$ symbol "b/lengthOfByteString",
+            IndexByteString <$ symbol "b/indexByteString",
+            EqualsByteString <$ symbol "b/equalsByteString",
+            LessThanByteString <$ symbol "b/lessThanByteString",
+            LessThanEqualsByteString <$ symbol "b/lessThanEqualsByteString",
             -- Cryptography and hashes
-            P.Sha2_256 <$ symbol "b/sha2",
-            P.Sha3_256 <$ symbol "b/sha3",
-            P.Blake2b_256 <$ symbol "b/blake2b",
-            P.VerifySignature <$ symbol "b/verifySignature",
+            Sha2_256 <$ symbol "b/sha2",
+            Sha3_256 <$ symbol "b/sha3",
+            Blake2b_256 <$ symbol "b/blake2b",
+            VerifySignature <$ symbol "b/verifySignature",
             -- P.VerifyEd25519Signature <$ symbol "b/verifyEd25519Signature",
             -- P.VerifyEcdsaSecp256k1Signature <$ symbol "b/verifyEcdsaSecp256k1Signature",
             -- P.VerifySchnorrSecp256k1Signature <$ symbol "b/verifySchnorrSecp256k1Signature",
             -- Strings
-            P.AppendString <$ symbol "b/appendString",
-            P.EqualsString <$ symbol "b/equalsString",
-            P.EncodeUtf8 <$ symbol "b/encodeUtf8",
-            P.DecodeUtf8 <$ symbol "b/decodeUtf8",
+            AppendString <$ symbol "b/appendString",
+            EqualsString <$ symbol "b/equalsString",
+            EncodeUtf8 <$ symbol "b/encodeUtf8",
+            DecodeUtf8 <$ symbol "b/decodeUtf8",
             -- Bool
-            P.IfThenElse <$ symbol "b/ifThenElse",
+            IfThenElse <$ symbol "b/ifThenElse",
             -- Unit
-            P.ChooseUnit <$ symbol "b/chooseUnit",
+            ChooseUnit <$ symbol "b/chooseUnit",
             -- Tracing
-            P.Trace <$ symbol "b/trace",
+            Trace <$ symbol "b/trace",
             -- Pairs
-            P.FstPair <$ symbol "b/fstPair",
-            P.SndPair <$ symbol "b/sndPair",
+            FstPair <$ symbol "b/fstPair",
+            SndPair <$ symbol "b/sndPair",
             -- Lists
-            P.ChooseList <$ symbol "b/chooseList",
-            P.MkCons <$ symbol "b/mkCons",
-            P.HeadList <$ symbol "b/headList",
-            P.TailList <$ symbol "b/tailList",
-            P.NullList <$ symbol "b/nullList",
+            ChooseList <$ symbol "b/chooseList",
+            MkCons <$ symbol "b/mkCons",
+            HeadList <$ symbol "b/headList",
+            TailList <$ symbol "b/tailList",
+            NullList <$ symbol "b/nullList",
             -- Data
             -- It is convenient to have a "choosing" function for a data type that has more than two
             -- constructors to get pattern matching over it and we may end up having multiple such data
             -- types, hence we include the name of the data type as a suffix.
-            P.ChooseData <$ symbol "b/chooseData",
-            P.ConstrData <$ symbol "b/constrData",
-            P.MapData <$ symbol "b/mapData",
-            P.ListData <$ symbol "b/listData",
-            P.IData <$ symbol "b/iData",
-            P.BData <$ symbol "b/bData",
-            P.UnConstrData <$ symbol "b/unConstrData",
-            P.UnMapData <$ symbol "b/unMapData",
-            P.UnListData <$ symbol "b/unListData",
-            P.UnIData <$ symbol "b/unIData",
-            P.UnBData <$ symbol "b/unBData",
-            P.EqualsData <$ symbol "b/equalsData",
+            ChooseData <$ symbol "b/chooseData",
+            ConstrData <$ symbol "b/constrData",
+            MapData <$ symbol "b/mapData",
+            ListData <$ symbol "b/listData",
+            IData <$ symbol "b/iData",
+            BData <$ symbol "b/bData",
+            UnConstrData <$ symbol "b/unConstrData",
+            UnMapData <$ symbol "b/unMapData",
+            UnListData <$ symbol "b/unListData",
+            UnIData <$ symbol "b/unIData",
+            UnBData <$ symbol "b/unBData",
+            EqualsData <$ symbol "b/equalsData",
             -- Misc constructors
-            P.MkPairData <$ symbol "b/mkPairData",
-            P.MkNilData <$ symbol "b/mkNilData",
-            P.MkNilPairData <$ symbol "b/mkNilPairData"
+            MkPairData <$ symbol "b/mkPairData",
+            MkNilData <$ symbol "b/mkNilData",
+            MkNilPairData <$ symbol "b/mkNilPairData"
           ]
 
   -- Some builtins will also be available through more familiar infix operators
   operators =
-    [ [ InfixR (symbol "*" >> return (exprBinApp P.MultiplyInteger)),
-        InfixR (symbol "/" >> return (exprBinApp P.DivideInteger)),
-        InfixR (symbol "%" >> return (exprBinApp P.ModInteger))
+    [ [ InfixR (symbol "*" >> return (exprBinApp MultiplyInteger)),
+        InfixR (symbol "/" >> return (exprBinApp DivideInteger)),
+        InfixR (symbol "%" >> return (exprBinApp ModInteger))
       ],
-      [ InfixR (symbol "+" >> return (exprBinApp P.AddInteger)),
-        InfixR (symbol "-" >> return (exprBinApp P.SubtractInteger))
+      [ InfixR (symbol "+" >> return (exprBinApp AddInteger)),
+        InfixR (symbol "-" >> return (exprBinApp SubtractInteger))
       ],
-      [ InfixN (symbol "<" >> return (exprBinApp P.LessThanInteger)),
-        InfixN (symbol "<=" >> return (exprBinApp P.LessThanEqualsInteger)),
-        InfixN (symbol "==i" >> return (exprBinApp P.EqualsInteger)),
-        InfixN (symbol "==d" >> return (exprBinApp P.EqualsData)),
-        InfixN (symbol "==bs" >> return (exprBinApp P.EqualsByteString)),
-        InfixN (symbol "==s" >> return (exprBinApp P.EqualsString))
+      [ InfixN (symbol "<" >> return (exprBinApp LessThanInteger)),
+        InfixN (symbol "<=" >> return (exprBinApp LessThanEqualsInteger)),
+        InfixN (symbol "==i" >> return (exprBinApp EqualsInteger)),
+        InfixN (symbol "==d" >> return (exprBinApp EqualsData)),
+        InfixN (symbol "==bs" >> return (exprBinApp EqualsByteString)),
+        InfixN (symbol "==s" >> return (exprBinApp EqualsString))
       ]
     ]
 
   reservedNames = S.fromList $ words "True False unit"
   reservedTypeNames = S.fromList $ words "Bool String ByteString"
 
-  ifThenElse resTy c t e = SystF.App (SystF.Free $ Builtin P.IfThenElse) $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]
+  ifThenElse resTy c t e = SystF.App (SystF.Free $ Builtin IfThenElse) $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]

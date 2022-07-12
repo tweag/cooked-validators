@@ -9,6 +9,7 @@ import Data.Default
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String
+import Language.Pirouette.PlutusIR.Prelude
 import Language.Pirouette.PlutusIR.SMT ()
 import Language.Pirouette.PlutusIR.Syntax
 import Language.Pirouette.PlutusIR.ToTerm
@@ -45,14 +46,15 @@ pirouetteCompiledCodeOpts ::
   AssumeProve PlutusIR ->
   Assertion
 pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: toProve) = do
-  (main0, decls0) <- pirouetteDeclsFromCompiledCode code
+  (main0, preDecls) <- pirouetteDeclsFromCompiledCode code
+  let PrtUnorderedDefs decls0 = complementWithBuiltinPrelude $ PrtUnorderedDefs preDecls
 
   -- first we contextualize the user declarations, making sure they will refer to their right
   -- counterparts in  @decls0@.
   let augments' = runReader (contextualizeDecls augments) (PrtUnorderedDefs decls0)
   -- Now we try to remove as many 'nameUnique' bits as possible, to help with writing
   -- predicates and referring to types.
-  let (decls1, main) = (augments' `M.union` decls0 `M.union` builtinTypeDecls decls0, main0)
+  let (decls1, main) = (augments' `M.union` decls0, main0)
 
   -- PrtUnorderedDefs decls1 = prenex $ PrtUnorderedDefs decls0'
   -- TODO: what if we don't manage to infer the type of main? Also, can't we make this interface much better? These empty lists are awkward here.
