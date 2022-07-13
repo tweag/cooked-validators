@@ -109,8 +109,6 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
   where
     isCounter Path {pathResult = CounterExample _ _, pathStatus = s}
       | s /= OutOfFuel = True
-    isCounter Path {pathResult = Verified, pathStatus = s} =
-      error "Got one verified!"
     isCounter _ = False
 
 {- ORMOLU_DISABLE -}
