@@ -256,54 +256,6 @@ continueWith destr args = do
       tm = App (Free $ TermSig destr') args
   pure $ Just [Branch {additionalInfo = mempty, newTerm = tm}]
 
--- | Indicates that the next step is an application of
--- the List destructor. Note that this function does *not*
--- include any check for well-scopedness, so be careful!
-continueWithListMatch ::
-  (ToSMT meta, Applicative m, lang ~ PlutusIR) =>
-  TypeMeta lang meta ->
-  TypeMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  [ArgMeta lang meta] ->
-  m (Maybe [Branch lang meta])
-continueWithListMatch tyA tyR lst caseNil caseCons excess =
-  continueWith
-    "Nil_match"
-    [ TyArg tyA,
-      TermArg lst,
-      TyArg tyR,
-      TermArg $ caseNil `appN` excess,
-      TermArg $ Lam (Ann "x") tyA $ Lam (Ann "xs") (tyListOf tyA) $ caseCons `appN` excess
-    ]
-
--- | Indicates that the next step is an application of
--- the Data destructor. Note that this function does *not*
--- include any check for well-scopedness, so be careful!
-continueWithDataMatch ::
-  (ToSMT meta, Applicative m, lang ~ PlutusIR) =>
-  ArgMeta lang meta ->
-  ArgMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  TermMeta lang meta ->
-  [ArgMeta lang meta] ->
-  m (Maybe [Branch lang meta])
-continueWithDataMatch dat tyR caseC caseM caseL caseI caseB excess =
-  continueWith
-    "Data_match"
-    [ dat,
-      tyR,
-      TermArg $ Lam (Ann "i") (builtin PIRTypeInteger) $ Lam (Ann "ds") (tyListOf tyData) caseC `appN` excess,
-      TermArg $ Lam (Ann "es") (tyListOf (tyTuple2Of tyData tyData)) $ caseM `appN` excess,
-      TermArg $ Lam (Ann "ds") (tyListOf tyData) $ caseL `appN` excess,
-      TermArg $ Lam (Ann "i") (builtin PIRTypeInteger) $ caseI `appN` excess,
-      TermArg $ Lam (Ann "b") (builtin PIRTypeByteString) $ caseB `appN` excess
-    ]
-
 errorTerm :: AnnTerm ty ann (SystemF.VarMeta meta ann (TermBase lang))
 errorTerm = App (Free Bottom) []
 
