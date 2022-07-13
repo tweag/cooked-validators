@@ -57,4 +57,6 @@ in {
   # Besides what's needed for building, we also want our instance of the
   # the haskell-language-server
   dev-deps = [ custom-hls ];
+
+  LD_LIBRARY_PATH = with rawpkgs; "${zlib}/lib:${lzma.out}/lib";
 }
