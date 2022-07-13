@@ -100,6 +100,9 @@ spendsScriptConstraintP =
         _ -> Nothing
     )
 
+spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
+spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraintP
+
 spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
 spendableOutL =
   lens

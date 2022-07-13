@@ -4,24 +4,15 @@
 
 module Cooked.Attack.DoubleSat where
 
-import Control.Arrow
 import Cooked.Attack.Common
-import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
-import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import Data.Default
-import Data.Maybe
-import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
-
-spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
-spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraintP
 
 data DoubleSatParams b = DoubleSatParams
   { dsExtraInputOwner :: L.TypedValidator b,
@@ -70,33 +61,8 @@ doubleSatAttack DoubleSatParams {..} mcst skel =
       where
         surplus = txSkelInValue sk <> Pl.negate (txSkelInValue skel)
 
--- TODO define some more useful labels?
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)
-
-utxosSuchThatMcst ::
-  (Pl.FromData a) =>
-  MockChainSt ->
-  L.Address ->
-  UtxoPredicate a ->
-  [(SpendableOut, Maybe a)]
-utxosSuchThatMcst mcst addr select =
-  case runMockChainRaw def mcst (utxosSuchThat addr select) of
-    Left _ -> []
-    Right (utxos, _) -> utxos
-
-scriptUtxosSuchThatMcst ::
-  (Pl.FromData (L.DatumType a)) =>
-  MockChainSt ->
-  L.TypedValidator a ->
-  (L.DatumType a -> L.Value -> Bool) ->
-  [(SpendableOut, L.DatumType a)]
-scriptUtxosSuchThatMcst mcst val select =
-  map (second fromJust) $
-    utxosSuchThatMcst
-      mcst
-      (L.scriptHashAddress $ L.validatorHash val)
-      (maybe (const False) select)
 
 -- | Generate all possible 'SpendsScript' constraints using UTxOs belonging to
 -- the given validator, where we try to redeem each of these UTxOs with the list
