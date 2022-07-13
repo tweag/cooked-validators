@@ -14,6 +14,10 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
+      Cooked.Attack.Common
+      Cooked.Attack.DatumHijacking
+      Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
