@@ -14,6 +14,16 @@ instance LanguagePrelude PlutusIR where
   builtinPrelude =
     [pirDeclsWithTC|
 
+-- * Booleans
+
+data Bool
+  = True : Bool
+  | False : Bool
+  destructor Bool_match
+
+fun ifThenElse : all (res : Type) . Bool -> res -> res -> res
+  = /\(res : Type) . \(cond : Bool) (th : res) (el : res) . Bool_match cond @res th el
+
 -- * Lists
 
 data List (a : Type)

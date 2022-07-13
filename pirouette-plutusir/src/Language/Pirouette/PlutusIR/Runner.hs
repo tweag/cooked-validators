@@ -9,7 +9,7 @@ import Data.Default
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.String
-import Language.Pirouette.PlutusIR.Prelude
+import Language.Pirouette.PlutusIR.Prelude ()
 import Language.Pirouette.PlutusIR.SMT ()
 import Language.Pirouette.PlutusIR.Syntax
 import Language.Pirouette.PlutusIR.ToTerm
@@ -67,8 +67,8 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
   --
   -- > RES -> Parms -> Datum -> Redeemer -> Bool
   --
-  let bool = SystF.TyPure $ SystF.Free (TyBuiltin PIRTypeBool)
-  let ty = SystF.TyFun bool (foldr SystF.TyFun bool mainTyArgs)
+  let tBool = SystF.TyPure . SystF.Free . TySig $ fromString "Bool"
+  let ty = SystF.TyFun tBool (foldr SystF.TyFun tBool mainTyArgs)
 
   -- Because we might use higher order or polymorphic functions in our assume and prove definitons, we will actually reify
   -- them into definitions and put them in the context, this will make sure that we will transform them accordingly
@@ -100,8 +100,10 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
         toProve' <- prtTermDefOf proveName
         proveAny (optsPirouette opts) isCounter (Problem mainTyRes fn' assume' toProve')
       case res of
-        Just Path {pathResult = CounterExample _ model} -> do
-          assertFailure $ "Counterexample:\n" ++ show (pretty model)
+        Just Path {pathResult = CounterExample t model} -> do
+          case model of
+            Model [] -> assertFailure $ "Stuck at:\n" ++ show (pretty t)
+            _ -> assertFailure $ "Counterexample:\n" ++ show (pretty model)
         Just _ -> error "Should never happen"
         Nothing -> return () -- success, no counter found anywhere.
   where

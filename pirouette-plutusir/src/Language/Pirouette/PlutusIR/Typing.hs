@@ -30,7 +30,7 @@ systfType = SystF.TyPure . SystF.Free . TyBuiltin
 -- Shortcuts for PIR builtin types in systemF
 tInt, tBool, tByteString, tString :: Type PlutusIR
 tInt = systfType PIRTypeInteger
-tBool = systfType PIRTypeBool
+tBool = SystF.TyPure . SystF.Free . TySig $ "Bool"
 tByteString = systfType PIRTypeByteString
 tString = systfType PIRTypeString
 
@@ -57,7 +57,6 @@ instance LanguageBuiltinTypes PlutusIR where
   typeOfBuiltin LessThanEqualsInteger = tInt :->: tInt :->: tBool
   typeOfBuiltin EqualsString = tString :->: tString :->: tBool
   typeOfBuiltin EqualsByteString = tByteString :->: tByteString :->: tBool
-  typeOfBuiltin IfThenElse = forall "a" (tBool :->: tVar "a" 0 :->: tVar "a" 0 :->: tVar "a" 0)
   typeOfBuiltin Trace = forall "a" (tString :->: tVar "a" 0 :->: tVar "a" 0)
   -- TODO: implement the types of other builtins, but make sure to always bring in a golden
   -- test that comes from the plutus compiler. We should REALLY not be guessing these types,

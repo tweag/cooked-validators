@@ -6,12 +6,13 @@
 module Language.Pirouette.PlutusIR.SMT where
 
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Base64 as B64
 import Data.Text (Text)
+import qualified Data.Text.Encoding as T
 import Language.Pirouette.PlutusIR.Syntax
 import Pirouette.Monad
 import Pirouette.SMT.Base
 import Pirouette.SMT.Constraints
-import Pirouette.Symbolic.Eval.BranchingHelpers
 import Pirouette.Symbolic.Eval.Types
 import Pirouette.Term.Syntax.Base
 import Pirouette.Term.Syntax.SystemF as SystemF
@@ -39,15 +40,13 @@ instance LanguageSMT PlutusIR where
 
 trPIRType :: PIRBuiltinType -> PureSMT.SExpr
 trPIRType PIRTypeInteger = PureSMT.tInt
-trPIRType PIRTypeBool = PureSMT.tBool
 trPIRType PIRTypeString = PureSMT.tString
 trPIRType PIRTypeByteString = PureSMT.tString
 
 -- TODO Implement remaining constants
 trPIRConstant :: PIRConstant -> PureSMT.SExpr
 trPIRConstant (PIRConstInteger n) = PureSMT.int n
-trPIRConstant (PIRConstByteString _bs) = error "Not implemented: PIRConstByteString to SMT"
-trPIRConstant (PIRConstBool b) = PureSMT.bool b
+trPIRConstant (PIRConstByteString bs) = PureSMT.text $ T.decodeUtf8 $ B64.encode bs
 trPIRConstant (PIRConstString txt) = PureSMT.text txt
 
 -- | These operations can be fully evaluated
@@ -109,8 +108,13 @@ trPIRFun :: PIRDefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 -- so we return here Nothing and then "translate"
 -- into an actual match in 'branchesBuiltinTerm'
 trPIRFun ChooseUnit _ = Nothing
--- If-then-else is complicated
-trPIRFun IfThenElse _ = Nothing
+-- Relations returning booleans actually need to instruct the solver
+-- to branch, their interpretation is handled in 'branchesBuiltinTerm'
+trPIRFun EqualsInteger _ = Nothing
+trPIRFun LessThanInteger _ = Nothing
+trPIRFun LessThanEqualsInteger _ = Nothing
+trPIRFun EqualsByteString _ = Nothing
+trPIRFun EqualsString _ = Nothing
 -- Unary
 trPIRFun op [x] =
   case op of
@@ -135,12 +139,6 @@ trPIRFun op [x, y] =
     RemainderInteger -> Just $ PureSMT.mod x y
     -- operations over other types
     AppendString -> Just $ PureSMT.fun "str.++" [x, y]
-    -- relations
-    EqualsInteger -> Just $ PureSMT.eq x y
-    LessThanInteger -> Just $ PureSMT.lt x y
-    LessThanEqualsInteger -> Just $ PureSMT.leq x y
-    EqualsByteString -> Just $ PureSMT.eq x y
-    EqualsString -> Just $ PureSMT.eq x y
     _ ->
       error $
         "Translate builtin to SMT: "
@@ -153,35 +151,78 @@ trPIRFun op _ =
       <> show op
       <> " is not an implemented constant/operator/function"
 
+trPIRBooleanRel :: PIRDefaultFun -> PureSMT.SExpr -> PureSMT.SExpr -> PureSMT.SExpr
+trPIRBooleanRel EqualsInteger x y = PureSMT.eq x y
+trPIRBooleanRel LessThanInteger x y = PureSMT.lt x y
+trPIRBooleanRel LessThanEqualsInteger x y = PureSMT.leq x y
+trPIRBooleanRel EqualsByteString x y = PureSMT.eq x y
+trPIRBooleanRel EqualsString x y = PureSMT.eq x y
+trPIRBooleanRel op _ _ = error $ "trPIRBooleanRel: " <> show op <> " is not yet implemented"
+
 pattern K :: Constants lang -> AnnTerm ty ann (SystemF.VarMeta meta ann (TermBase lang))
 pattern K n = App (Free (Constant n)) []
 
+pattern S :: meta -> AnnTerm ty ann (SystemF.VarMeta meta ann (TermBase lang))
+pattern S n = App (Meta n) []
+
+wrapBoolean :: PureSMT.SExpr -> PureSMT.SExpr
+wrapBoolean smtBuiltinBool = PureSMT.ite smtBuiltinBool (wrapOne "True") (wrapOne "False")
+  where
+    wrapOne name = PureSMT.as (PureSMT.symbol (toSmtName name)) (PureSMT.symbol "Bool")
+
+reifyBoolean :: Bool -> AnnTerm ty ann (SystemF.VarMeta meta ann (TermBase lang))
+reifyBoolean x = SystemF.App (SystemF.Free (TermSig ctor)) []
+  where
+    ctor = if x then "True" else "False"
+
 instance LanguageSymEval PlutusIR where
+  -- We don't have builtin booleans, its part of our prelude! Hence, whenever asserting
+  -- whether a predicate "is true", we actually assert it is equal to the
+  -- "True" constructor
+  isTrue x = PureSMT.eq x (PureSMT.as (PureSMT.symbol (toSmtName "True")) (PureSMT.symbol (toSmtName "Bool")))
+
   -- basic operations over constants
 
+  -- TODO: This is cool, we could implement some tracing in the SMT monad to help
+  -- debug counter-examples! For now, just ignore traces.
+  branchesBuiltinTerm Trace _ [TyArg _, TermArg _, TermArg res] =
+    pure $ Just [Branch {additionalInfo = mempty, newTerm = res}]
   branchesBuiltinTerm op _ [TermArg (K (PIRConstInteger x)), TermArg (K (PIRConstInteger y))]
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
-      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
+      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]) $
         case op of
-          AddInteger -> PIRConstInteger $ x + y
-          SubtractInteger -> PIRConstInteger $ x - y
-          MultiplyInteger -> PIRConstInteger $ x * y
-          DivideInteger -> PIRConstInteger $ x `div` y
-          ModInteger -> PIRConstInteger $ x `mod` y
-          QuotientInteger -> PIRConstInteger $ x `quot` y
-          RemainderInteger -> PIRConstInteger $ x `rem` y
-          EqualsInteger -> PIRConstBool $ x == y
-          LessThanInteger -> PIRConstBool $ x < y
-          LessThanEqualsInteger -> PIRConstBool $ x <= y
+          AddInteger -> K $ PIRConstInteger $ x + y
+          SubtractInteger -> K $ PIRConstInteger $ x - y
+          MultiplyInteger -> K $ PIRConstInteger $ x * y
+          DivideInteger -> K $ PIRConstInteger $ x `div` y
+          ModInteger -> K $ PIRConstInteger $ x `mod` y
+          QuotientInteger -> K $ PIRConstInteger $ x `quot` y
+          RemainderInteger -> K $ PIRConstInteger $ x `rem` y
+          EqualsInteger -> reifyBoolean $ x == y
+          LessThanInteger -> reifyBoolean $ x < y
+          LessThanEqualsInteger -> reifyBoolean $ x <= y
           _ -> error "ill-typed application"
+  branchesBuiltinTerm op tr [TermArg x, TermArg y]
+    | op `elem` plutusIRBasicRels = do
+      tx <- tr x
+      ty <- tr y
+      case (,) <$> tx <*> ty of
+        Nothing -> pure Nothing
+        Just (rx, ry) -> do
+          let rel = trPIRBooleanRel op rx ry
+          pure $
+            Just
+              [ Branch {additionalInfo = And [Native rel], newTerm = reifyBoolean True},
+                Branch {additionalInfo = And [Native $ PureSMT.not rel], newTerm = reifyBoolean False}
+              ]
   branchesBuiltinTerm op _ [TermArg (K (PIRConstByteString x)), TermArg (K (PIRConstByteString y))]
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
-      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
+      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]) $
         case op of
-          AppendByteString -> PIRConstByteString (x <> y)
-          EqualsByteString -> PIRConstBool $ x == y
-          LessThanByteString -> PIRConstBool $ x < y
-          LessThanEqualsByteString -> PIRConstBool $ x <= y
+          AppendByteString -> K $ PIRConstByteString (x <> y)
+          EqualsByteString -> reifyBoolean $ x == y
+          LessThanByteString -> reifyBoolean $ x < y
+          LessThanEqualsByteString -> reifyBoolean $ x <= y
           _ -> error "ill-typed application"
   branchesBuiltinTerm LengthOfByteString _ [TermArg (K (PIRConstByteString b))] =
     let r = K $ PIRConstInteger (fromIntegral $ BS.length b)
@@ -209,31 +250,31 @@ instance LanguageSymEval PlutusIR where
        in pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]
   branchesBuiltinTerm op _ [TermArg (K (PIRConstString x)), TermArg (K (PIRConstString y))]
     | op `elem` plutusIRBasicOps || op `elem` plutusIRBasicRels =
-      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = K r}]) $
+      (\r -> pure $ Just [Branch {additionalInfo = mempty, newTerm = r}]) $
         case op of
-          AppendString -> PIRConstString $ x <> y
-          EqualsString -> PIRConstBool $ x == y
+          AppendString -> K $ PIRConstString $ x <> y
+          EqualsString -> reifyBoolean $ x == y
           _ -> error "ill-typed application"
   -- if-then-else goes to the helpers
-  branchesBuiltinTerm IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
-    let isEq EqualsInteger = True
-        isEq EqualsString = True
-        isEq EqualsByteString = True
-        isEq _ = False
-        isTrue (K (PIRConstBool True)) = True
-        isTrue _ = False
-        isFalse (K (PIRConstBool False)) = True
-        isFalse _ = False
-     in ifThenElseBranching
-          isTrue
-          (K (PIRConstBool True))
-          isFalse
-          (K (PIRConstBool False))
-          isEq
-          c
-          t
-          e
-          excess
+  -- branchesBuiltinTerm IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
+  --   let isEq EqualsInteger = True
+  --       isEq EqualsString = True
+  --       isEq EqualsByteString = True
+  --       isEq _ = False
+  --       isTrue (K (PIRConstBool True)) = True
+  --       isTrue _ = False
+  --       isFalse (K (PIRConstBool False)) = True
+  --       isFalse _ = False
+  --    in ifThenElseBranching
+  --         isTrue
+  --         (K (PIRConstBool True))
+  --         isFalse
+  --         (K (PIRConstBool False))
+  --         isEq
+  --         c
+  --         t
+  --         e
+  --         excess
   -- pattern matching and built-in matchers
 
   -- they take the arguments in a different order

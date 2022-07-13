@@ -70,14 +70,12 @@ deriving instance Lift P.Data
 data PIRBuiltinType
   = PIRTypeInteger
   | PIRTypeByteString
-  | PIRTypeBool
   | PIRTypeString
   deriving (Eq, Ord, Show, Read, Data, Typeable, Lift)
 
 defUniToType :: forall k (a :: k). DefaultUni (P.Esc a) -> Type PlutusIR
 defUniToType DefaultUniInteger = tyConstant PIRTypeInteger
 defUniToType DefaultUniByteString = tyConstant PIRTypeByteString
-defUniToType DefaultUniBool = tyConstant PIRTypeBool
 defUniToType DefaultUniString = tyConstant PIRTypeString
 defUniToType DefaultUniUnit = tyUnit
 defUniToType DefaultUniData = tyData
@@ -124,8 +122,6 @@ data PIRDefaultFun
   | EqualsString
   | EncodeUtf8
   | DecodeUtf8
-  | -- Bool
-    IfThenElse
   | -- Unit
     ChooseUnit
   | -- Tracing
@@ -139,6 +135,8 @@ appBuiltin :: PIRDefaultFun -> [Arg PlutusIR] -> Term PlutusIR
 appBuiltin hd = SystF.App (SystF.Free $ Builtin hd)
 
 builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
+-- Bool
+builtinToTerm P.IfThenElse = appSig "ifThenElse"
 -- Lists
 builtinToTerm P.ChooseList = appSig "chooseList"
 builtinToTerm P.TailList = appSig "tailList"
@@ -181,7 +179,6 @@ fromSupportedPlutusDefaultFun P.AppendString = AppendString
 fromSupportedPlutusDefaultFun P.EqualsString = EqualsString
 fromSupportedPlutusDefaultFun P.EncodeUtf8 = EncodeUtf8
 fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
-fromSupportedPlutusDefaultFun P.IfThenElse = IfThenElse
 fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
 fromSupportedPlutusDefaultFun P.Trace = Trace
 fromSupportedPlutusDefaultFun x = error ("Unsupported: " ++ show x)
@@ -215,14 +212,12 @@ tyUnit = tyApp "Unit" []
 cstToBuiltinType :: PIRConstant -> Type PlutusIR
 cstToBuiltinType (PIRConstInteger _) = tyConstant PIRTypeInteger
 cstToBuiltinType (PIRConstByteString _) = tyConstant PIRTypeByteString
-cstToBuiltinType (PIRConstBool _) = tyConstant PIRTypeBool
 cstToBuiltinType (PIRConstString _) = tyConstant PIRTypeString
 
 -- | Untyped Plutus Constants
 data PIRConstant
   = PIRConstInteger Integer
   | PIRConstByteString BS.ByteString
-  | PIRConstBool Bool
   | PIRConstString T.Text
   deriving (Eq, Ord, Show, Data, Typeable, Lift)
 
@@ -235,7 +230,7 @@ ctorApp name = SystF.App (SystF.Free (TermSig $ fromString name))
 defUniToConstant :: DefaultUni (P.Esc a) -> a -> Term PlutusIR
 defUniToConstant DefaultUniInteger x = termConstant $ PIRConstInteger x
 defUniToConstant DefaultUniByteString x = termConstant $ PIRConstByteString x
-defUniToConstant DefaultUniBool x = termConstant $ PIRConstBool x
+defUniToConstant DefaultUniBool x = ctorApp (if x then "True" else "False") []
 defUniToConstant DefaultUniString x = termConstant $ PIRConstString x
 defUniToConstant DefaultUniUnit _ = ctorApp "Unit" []
 defUniToConstant (DefaultUniList a) x =
@@ -271,7 +266,6 @@ reifyData (P.B bs) = ctorApp "B" [SystF.TermArg $ termConstant $ PIRConstByteStr
 instance Pretty PIRBuiltinType where
   pretty PIRTypeInteger = "Integer"
   pretty PIRTypeByteString = "ByteString"
-  pretty PIRTypeBool = "Bool"
   pretty PIRTypeString = "String"
 
 instance Pretty (Maybe PIRBuiltinType) where
@@ -281,7 +275,6 @@ instance Pretty (Maybe PIRBuiltinType) where
 instance Pretty PIRConstant where
   pretty (PIRConstInteger x) = pretty x
   pretty (PIRConstByteString x) = "b" <> pretty x
-  pretty (PIRConstBool x) = pretty x
   pretty (PIRConstString x) = dquotes (pretty x)
 
 instance Pretty P.Data where
@@ -305,7 +298,6 @@ instance LanguageParser PlutusIR where
           try
           [ PIRTypeInteger <$ symbol "Integer",
             PIRTypeByteString <$ symbol "ByteString",
-            PIRTypeBool <$ symbol "Bool",
             PIRTypeString <$ symbol "String"
           ]
 
@@ -316,11 +308,9 @@ instance LanguageParser PlutusIR where
         map
           try
           [ PIRConstInteger <$> try integer,
-            PIRConstBool <$> parseBoolean,
             PIRConstString . T.pack <$> stringLiteral
           ]
     where
-      parseBoolean = (True <$ symbol "True") <|> (False <$ symbol "False")
       integer :: Parser Integer
       integer = L.lexeme spaceConsumer L.decimal
       -- copied from
@@ -367,8 +357,6 @@ instance LanguageParser PlutusIR where
             EqualsString <$ symbol "b/equalsString",
             EncodeUtf8 <$ symbol "b/encodeUtf8",
             DecodeUtf8 <$ symbol "b/decodeUtf8",
-            -- Bool
-            IfThenElse <$ symbol "b/ifThenElse",
             -- Unit
             ChooseUnit <$ symbol "b/chooseUnit",
             -- Tracing
@@ -392,7 +380,7 @@ instance LanguageParser PlutusIR where
       ]
     ]
 
-  reservedNames = S.fromList $ words "True False unit"
-  reservedTypeNames = S.fromList $ words "Bool String ByteString"
+  reservedNames = S.fromList $ words ""
+  reservedTypeNames = S.fromList $ words "Integer String ByteString"
 
-  ifThenElse resTy c t e = SystF.App (SystF.Free $ Builtin IfThenElse) $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]
+  ifThenElse resTy c t e = appSig "ifThenElse" $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]
