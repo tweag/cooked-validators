@@ -79,6 +79,7 @@ test-suite spec
       Paths_examples
   hs-source-dirs:
       tests
+  ghc-options: -threaded
   build-depends:
       QuickCheck
     , aeson

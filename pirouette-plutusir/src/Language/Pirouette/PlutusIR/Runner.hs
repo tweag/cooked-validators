@@ -94,21 +94,23 @@ pirouetteCompiledCodeOpts opts code (PrtUnorderedDefs augments) (toAssume :==>: 
       let fpath = maybe "" snd $ optsDumpIntermediate opts
       let dump = fst <$> optsDumpIntermediate opts
       orderedDecls <- runStages dump (pirouetteBoundedSymExecStages fpath) (PrtUnorderedDefs decls)
-      res <- flip runReaderT orderedDecls $ do
+      (res, stats) <- flip runReaderT orderedDecls $ do
         fn' <- prtTermDefOf mainName
         assume' <- prtTermDefOf assumeName
         toProve' <- prtTermDefOf proveName
-        proveAny (optsPirouette opts) isCounter (Problem mainTyRes fn' assume' toProve')
+        proveAnyAccum (optsPirouette opts) isCounter (Problem mainTyRes fn' assume' toProve')
       case res of
         Just Path {pathResult = CounterExample t model} -> do
           case model of
             Model [] -> assertFailure $ "Stuck at:\n" ++ show (pretty t)
             _ -> assertFailure $ "Counterexample:\n" ++ show (pretty model)
         Just _ -> error "Should never happen"
-        Nothing -> return () -- success, no counter found anywhere.
+        Nothing -> print stats -- success, no counter found anywhere.
   where
     isCounter Path {pathResult = CounterExample _ _, pathStatus = s}
       | s /= OutOfFuel = True
+    isCounter Path {pathResult = Verified, pathStatus = s} =
+      error "Got one verified!"
     isCounter _ = False
 
 {- ORMOLU_DISABLE -}
