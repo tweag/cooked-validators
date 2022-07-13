@@ -79,7 +79,6 @@ plutusIRBasicRels =
     LessThanEqualsInteger,
     EqualsByteString,
     EqualsString,
-    EqualsData,
     LessThanByteString,
     LessThanEqualsByteString
   ]
@@ -110,30 +109,12 @@ trPIRFun :: PIRDefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 -- so we return here Nothing and then "translate"
 -- into an actual match in 'branchesBuiltinTerm'
 trPIRFun ChooseUnit _ = Nothing
-trPIRFun ChooseData _ = Nothing
-trPIRFun FstPair _ = Nothing
-trPIRFun SndPair _ = Nothing
-trPIRFun UnConstrData _ = Nothing
-trPIRFun UnMapData _ = Nothing
-trPIRFun UnListData _ = Nothing
-trPIRFun UnIData _ = Nothing
-trPIRFun UnBData _ = Nothing
 -- If-then-else is complicated
 trPIRFun IfThenElse _ = Nothing
 -- Unary
 trPIRFun op [x] =
   case op of
     Trace -> Just $ PureSMT.List [x]
-    -- some simple operations
-    -- constructors
-    -- those are defined as unary functions for historical reasons
-    MkNilData -> Just $ PureSMT.fun "Nil" []
-    MkNilPairData -> Just $ PureSMT.fun "Nil" []
-    -- and these are for Data
-    MapData -> Just $ PureSMT.fun "Map" [x]
-    ListData -> Just $ PureSMT.fun "List" [x]
-    IData -> Just $ PureSMT.fun "I" [x]
-    BData -> Just $ PureSMT.fun "B" [x]
     _ ->
       error $
         "Translate builtin to SMT: "
@@ -160,10 +141,6 @@ trPIRFun op [x, y] =
     LessThanEqualsInteger -> Just $ PureSMT.leq x y
     EqualsByteString -> Just $ PureSMT.eq x y
     EqualsString -> Just $ PureSMT.eq x y
-    EqualsData -> Just $ PureSMT.eq x y
-    -- constructors
-    MkPairData -> Just $ PureSMT.fun "Tuple2" [x, y]
-    ConstrData -> Just $ PureSMT.fun "Constr" [x, y]
     _ ->
       error $
         "Translate builtin to SMT: "
@@ -242,7 +219,6 @@ instance LanguageSymEval PlutusIR where
     let isEq EqualsInteger = True
         isEq EqualsString = True
         isEq EqualsByteString = True
-        isEq EqualsData = True
         isEq _ = False
         isTrue (K (PIRConstBool True)) = True
         isTrue _ = False
@@ -258,105 +234,12 @@ instance LanguageSymEval PlutusIR where
           t
           e
           excess
-  -- applying constructors functions during evaluation
-  -- is quite useful because we tend can interact with
-  -- the pattern matching much better b/c we know
-  -- the constructor that has been applied
-
-  branchesBuiltinTerm MkNilData _ _args =
-    continueWith "Nil" []
-  branchesBuiltinTerm MkNilPairData _ _args =
-    continueWith "Nil" []
-  branchesBuiltinTerm ConstrData _ args =
-    continueWith "Data_Constr" args
-  branchesBuiltinTerm MapData _ args =
-    continueWith "Data_Map" args
-  branchesBuiltinTerm ListData _ args =
-    continueWith "Data_List" args
-  branchesBuiltinTerm IData _ args =
-    continueWith "Data_I" args
-  branchesBuiltinTerm BData _ args =
-    continueWith "Data_B" args
   -- pattern matching and built-in matchers
 
   -- they take the arguments in a different order
   branchesBuiltinTerm ChooseUnit _ (tyR : unit : rest) =
     continueWith "Unit_match" (unit : tyR : rest)
-  branchesBuiltinTerm
-    ChooseData
-    _
-    (tyR : dat : TermArg caseC : TermArg caseM : TermArg caseL : TermArg caseI : TermArg caseB : excess) =
-      continueWithDataMatch dat tyR caseC caseM caseL caseI caseB excess
   -- built-in matchers
-
-  branchesBuiltinTerm FstPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
-    continueWith
-      "Tuple2_match"
-      [ tyA,
-        tyB,
-        tuple,
-        tyA,
-        TermArg $ Lam (Ann "x") a $ Lam (Ann "y") b $ App (Bound (Ann "x") 1) []
-      ]
-  branchesBuiltinTerm SndPair _ [tyA@(TyArg a), tyB@(TyArg b), tuple] =
-    continueWith
-      "Tuple2_match"
-      [ tyA,
-        tyB,
-        tuple,
-        tyB,
-        TermArg $ Lam (Ann "x") a $ Lam (Ann "y") b $ App (Bound (Ann "y") 0) []
-      ]
-  branchesBuiltinTerm UnConstrData _ [d] =
-    continueWithDataMatch
-      d
-      (TyArg (tyTuple2Of (builtin PIRTypeInteger) tyData))
-      (App (Free $ TermSig "Tuple2") [TermArg $ App (Bound (Ann "i") 1) [], TermArg $ App (Bound (Ann "ds") 0) []])
-      errorTerm
-      errorTerm
-      errorTerm
-      errorTerm
-      []
-  branchesBuiltinTerm UnMapData _ [d] =
-    continueWithDataMatch
-      d
-      (TyArg (tyListOf (tyTuple2Of tyData tyData)))
-      errorTerm
-      (App (Bound (Ann "es") 0) [])
-      errorTerm
-      errorTerm
-      errorTerm
-      []
-  branchesBuiltinTerm UnListData _ [d] =
-    continueWithDataMatch
-      d
-      (TyArg (tyListOf tyData))
-      errorTerm
-      errorTerm
-      (App (Bound (Ann "ds") 0) [])
-      errorTerm
-      errorTerm
-      []
-  branchesBuiltinTerm UnIData _ [d] =
-    continueWithDataMatch
-      d
-      (TyArg (builtin PIRTypeInteger))
-      errorTerm
-      errorTerm
-      errorTerm
-      (App (Bound (Ann "i") 0) [])
-      errorTerm
-      []
-  branchesBuiltinTerm UnBData _ [d] =
-    continueWithDataMatch
-      d
-      (TyArg (builtin PIRTypeByteString))
-      errorTerm
-      errorTerm
-      errorTerm
-      errorTerm
-      (App (Bound (Ann "b") 0) [])
-      []
   branchesBuiltinTerm _rest _translator _args =
     pure Nothing
 

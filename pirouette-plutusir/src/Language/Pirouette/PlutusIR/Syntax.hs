@@ -130,29 +130,6 @@ data PIRDefaultFun
     ChooseUnit
   | -- Tracing
     Trace
-  | -- Pairs
-    FstPair
-  | SndPair
-  | -- Data
-    -- It is convenient to have a "choosing" function for a data type that has more than two
-    -- constructors to get pattern matching over it and we may end up having multiple such data
-    -- types, hence we include the name of the data type as a suffix.
-    ChooseData
-  | ConstrData
-  | MapData
-  | ListData
-  | IData
-  | BData
-  | UnConstrData
-  | UnMapData
-  | UnListData
-  | UnIData
-  | UnBData
-  | EqualsData
-  | -- Misc constructors
-    MkPairData
-  | MkNilData
-  | MkNilPairData
   deriving (Eq, Show, Ord, Data, Typeable, Lift)
 
 appSig :: Name -> [Arg PlutusIR] -> Term PlutusIR
@@ -162,11 +139,19 @@ appBuiltin :: PIRDefaultFun -> [Arg PlutusIR] -> Term PlutusIR
 appBuiltin hd = SystF.App (SystF.Free $ Builtin hd)
 
 builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
+-- Lists
 builtinToTerm P.ChooseList = appSig "chooseList"
 builtinToTerm P.TailList = appSig "tailList"
 builtinToTerm P.HeadList = appSig "headList"
+-- Tuples
 builtinToTerm P.FstPair = appSig "fstPair"
 builtinToTerm P.SndPair = appSig "sndPair"
+-- Data
+builtinToTerm P.ChooseData = appSig "chooseData"
+builtinToTerm P.UnIData = appSig "unIData"
+builtinToTerm P.UnBData = appSig "unBData"
+builtinToTerm P.UnConstrData = appSig "unConstrData"
+builtinToTerm P.MkNilData = appSig "mkNilData"
 builtinToTerm hd = appBuiltin $ fromSupportedPlutusDefaultFun hd
 
 fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
@@ -199,21 +184,6 @@ fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
 fromSupportedPlutusDefaultFun P.IfThenElse = IfThenElse
 fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
 fromSupportedPlutusDefaultFun P.Trace = Trace
-fromSupportedPlutusDefaultFun P.ChooseData = ChooseData
-fromSupportedPlutusDefaultFun P.ConstrData = ConstrData
-fromSupportedPlutusDefaultFun P.MapData = MapData
-fromSupportedPlutusDefaultFun P.ListData = ListData
-fromSupportedPlutusDefaultFun P.IData = IData
-fromSupportedPlutusDefaultFun P.BData = BData
-fromSupportedPlutusDefaultFun P.UnConstrData = UnConstrData
-fromSupportedPlutusDefaultFun P.UnMapData = UnMapData
-fromSupportedPlutusDefaultFun P.UnListData = UnListData
-fromSupportedPlutusDefaultFun P.UnIData = UnIData
-fromSupportedPlutusDefaultFun P.UnBData = UnBData
-fromSupportedPlutusDefaultFun P.EqualsData = EqualsData
-fromSupportedPlutusDefaultFun P.MkPairData = MkPairData
-fromSupportedPlutusDefaultFun P.MkNilData = MkNilData
-fromSupportedPlutusDefaultFun P.MkNilPairData = MkNilPairData
 fromSupportedPlutusDefaultFun x = error ("Unsupported: " ++ show x)
 
 tyConstant :: PIRBuiltinType -> Type PlutusIR
@@ -402,30 +372,7 @@ instance LanguageParser PlutusIR where
             -- Unit
             ChooseUnit <$ symbol "b/chooseUnit",
             -- Tracing
-            Trace <$ symbol "b/trace",
-            -- Pairs
-            FstPair <$ symbol "b/fstPair",
-            SndPair <$ symbol "b/sndPair",
-            -- Data
-            -- It is convenient to have a "choosing" function for a data type that has more than two
-            -- constructors to get pattern matching over it and we may end up having multiple such data
-            -- types, hence we include the name of the data type as a suffix.
-            ChooseData <$ symbol "b/chooseData",
-            ConstrData <$ symbol "b/constrData",
-            MapData <$ symbol "b/mapData",
-            ListData <$ symbol "b/listData",
-            IData <$ symbol "b/iData",
-            BData <$ symbol "b/bData",
-            UnConstrData <$ symbol "b/unConstrData",
-            UnMapData <$ symbol "b/unMapData",
-            UnListData <$ symbol "b/unListData",
-            UnIData <$ symbol "b/unIData",
-            UnBData <$ symbol "b/unBData",
-            EqualsData <$ symbol "b/equalsData",
-            -- Misc constructors
-            MkPairData <$ symbol "b/mkPairData",
-            MkNilData <$ symbol "b/mkNilData",
-            MkNilPairData <$ symbol "b/mkNilPairData"
+            Trace <$ symbol "b/trace"
           ]
 
   -- Some builtins will also be available through more familiar infix operators
@@ -440,7 +387,6 @@ instance LanguageParser PlutusIR where
       [ InfixN (symbol "<" >> return (exprBinApp LessThanInteger)),
         InfixN (symbol "<=" >> return (exprBinApp LessThanEqualsInteger)),
         InfixN (symbol "==i" >> return (exprBinApp EqualsInteger)),
-        InfixN (symbol "==d" >> return (exprBinApp EqualsData)),
         InfixN (symbol "==bs" >> return (exprBinApp EqualsByteString)),
         InfixN (symbol "==s" >> return (exprBinApp EqualsString))
       ]

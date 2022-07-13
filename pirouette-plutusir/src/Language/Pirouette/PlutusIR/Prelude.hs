@@ -6,15 +6,20 @@ import Language.Pirouette.PlutusIR.QuasiQuoter
 import Language.Pirouette.PlutusIR.Syntax
 import Pirouette.Monad
 
+-- The functions from this prelude are implementations of Plutus builtins
+-- in terms of raw pirouette; they are based on:
+-- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1009
+
 instance LanguagePrelude PlutusIR where
   builtinPrelude =
     [pirDeclsWithTC|
+
+-- * Lists
+
 data List (a : Type)
   = Nil : List a
   | Cons : a -> List a -> List a
   destructor Nil_match
-
--- https://github.com/input-output-hk/plutus/blob/3c4067bb96251444c43ad2b17bc19f337c8b47d7/plutus-core/plutus-core/src/PlutusCore/Default/Builtins.hs#L1009
 
 fun chooseList : all (a : Type) (b : Type) . List a -> b -> b -> b
   = /\(a : Type) (b : Type) . \(x : List a) (caseNil : b) (caseCons : b)
@@ -34,6 +39,7 @@ fun headList : all (a : Type) . List a -> a
       (bottom @a)
       (\(hd : a) (tl : List a) . hd)
 
+-- * Tuples
 
 data Tuple2 (a : Type) (b : Type)
   = Tuple2 : a -> b -> Tuple2 a b
@@ -48,6 +54,57 @@ fun sndPair : all (a : Type) (b : Type) . Tuple2 a b -> b
   = /\(a : Type) (b : Type) . \(t : Tuple2 a b)
   . Tuple2_match @a @b t @b
       (\(e1 : a) (e2 : b) . e2)
+
+-- * Unit
+
+data Unit = Unit : Unit
+  destructor Unit_match
+
+-- * Data
+
+data Data
+  = Constr : Integer -> List Data -> Data
+  | Map : List (Tuple2 Data Data) -> Data
+  | List : List Data -> Data
+  | I : Integer -> Data
+  | B : ByteString -> Data
+  destructor Data_match
+
+fun chooseData : all (a : Type) . Data -> a -> a -> a -> a -> a -> a
+  = /\(a : Type) . \(d : Data) (constr : a) (map : a) (list : a) (i : a) (b : a)
+  . Data_match d @a
+      (\(m : Integer) (ms : List Data) . constr)
+      (\(l : List (Tuple2 Data Data)) . map)
+      (\(l : List Data) . list)
+      (\(x : Integer) . i)
+      (\(x : ByteString) . i)
+
+fun unIData : Data -> Integer
+  = \(d : Data) . Data_match d @Integer
+      (\(m : Integer) (ms : List Data) . bottom @Integer)
+      (\(l : List (Tuple2 Data Data)) . bottom @Integer)
+      (\(l : List Data) . bottom @Integer)
+      (\(x : Integer) . x)
+      (\(x : ByteString) . bottom @Integer)
+
+fun unConstrData : Data -> Tuple2 Integer (List Data)
+  = \(d : Data) . Data_match d @(Tuple2 Integer (List Data))
+      (\(m : Integer) (ms : List Data) . Tuple2 @Integer @(List Data) m ms)
+      (\(l : List (Tuple2 Data Data)) . bottom @(Tuple2 Integer (List Data)))
+      (\(l : List Data) . bottom @(Tuple2 Integer (List Data)))
+      (\(x : Integer) . bottom @(Tuple2 Integer (List Data)))
+      (\(x : ByteString) . bottom @(Tuple2 Integer (List Data)))
+
+fun unBData : Data -> ByteString
+  = \(d : Data) . Data_match d @ByteString
+      (\(m : Integer) (ms : List Data) . bottom @ByteString)
+      (\(l : List (Tuple2 Data Data)) . bottom @ByteString)
+      (\(l : List Data) . bottom @ByteString)
+      (\(x : Integer) . bottom @ByteString)
+      (\(x : ByteString) . x)
+
+fun mkNilData : Data = List (Nil @Data)
+
 
 |]
 
