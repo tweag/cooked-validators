@@ -18,9 +18,10 @@ import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Default
 import qualified Ledger.Ada as L
-import qualified Ledger.Contexts as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
+import qualified Plutus.Script.Utils.V1.Scripts as L
+import qualified Plutus.V1.Ledger.Contexts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Eq as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -65,7 +66,7 @@ aValidator =
     $$(Pl.compile [||mkAValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @ADatum @ARedeemer
+    wrap = L.mkUntypedValidator @ADatum @ARedeemer
 
 data BDatum = BDatum deriving (Show)
 
@@ -101,7 +102,7 @@ bValidator =
     $$(Pl.compile [||mkBValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @BDatum @BRedeemer
+    wrap = L.mkUntypedValidator @BDatum @BRedeemer
 
 -- | In the initial state of the Mockchain, the A and B validators each own
 -- a few UTxOs, with different values

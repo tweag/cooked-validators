@@ -12,7 +12,7 @@ import Cooked.Attack.Common
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import qualified Ledger as L hiding (validatorHash)
+import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import qualified PlutusTx as Pl
 import Type.Reflection
@@ -51,10 +51,10 @@ datumHijackingAttack change select mcst skel =
               then Just $ PaysScriptConstraint thief dat money
               else Nothing
           Nothing -> Nothing
-   in addLabel (DatumHijackingLbl $ L.validatorHash thief)
+   in addLabel (DatumHijackingLbl $ L.validatorAddress thief)
         <$> mkSelectAttack paysScriptConstraintsT changeRecipient select mcst skel
 
-newtype DatumHijackingLbl = DatumHijackingLbl L.ValidatorHash
+newtype DatumHijackingLbl = DatumHijackingLbl L.Address
   deriving (Show, Eq)
 
 -- | The trivial validator that always succeds; this is a sufficient target for

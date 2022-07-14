@@ -14,10 +14,11 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
 import qualified Ledger.Ada as L
-import qualified Ledger.Contexts as L
 import qualified Ledger.Scripts as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
+import qualified Plutus.Script.Utils.V1.Scripts as L
+import qualified Plutus.V1.Ledger.Contexts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -39,7 +40,7 @@ mkCarefulPolicy tName allowedAmount _ ctx
 carefulPolicy :: L.TokenName -> Integer -> L.MintingPolicy
 carefulPolicy tName allowedAmount =
   L.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> L.wrapMintingPolicy (mkCarefulPolicy n x)||])
+    $$(Pl.compile [||\n x -> L.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
       `Pl.applyCode` Pl.liftCode tName
       `Pl.applyCode` Pl.liftCode allowedAmount
 
@@ -50,7 +51,7 @@ mkCarelessPolicy _ _ = True
 carelessPolicy :: L.MintingPolicy
 carelessPolicy =
   L.mkMintingPolicyScript
-    $$(Pl.compile [||L.wrapMintingPolicy mkCarelessPolicy||])
+    $$(Pl.compile [||L.mkUntypedMintingPolicy mkCarelessPolicy||])
 
 dupTokenTrace :: MonadBlockChain m => L.MintingPolicy -> L.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel

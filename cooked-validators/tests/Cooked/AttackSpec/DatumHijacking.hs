@@ -18,9 +18,9 @@ import Cooked.Tx.Constraints
 import Data.Default
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
-import qualified Ledger.Contexts as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
+import qualified Plutus.V1.Ledger.Scripts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -121,7 +121,7 @@ carefulValidator =
     $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @MockDatum @()
+    wrap = L.mkUntypedValidator @MockDatum @()
 
 {-# INLINEABLE mkCarelessValidator #-}
 mkCarelessValidator :: MockDatum -> () -> L.ScriptContext -> Bool
@@ -133,7 +133,7 @@ carelessValidator =
     $$(Pl.compile [||mkCarelessValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.wrapValidator @MockDatum @()
+    wrap = L.mkUntypedValidator @MockDatum @()
 
 datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do
@@ -173,7 +173,7 @@ tests =
                 skelIn
             skelExpected a b =
               txSkelLbl
-                (DatumHijackingLbl $ L.validatorHash thief)
+                (DatumHijackingLbl $ L.validatorAddress thief)
                 [ PaysScript val1 SecondLock x1,
                   PaysScript a SecondLock x3,
                   PaysScript val2 SecondLock x1,
