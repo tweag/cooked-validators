@@ -29,7 +29,7 @@
 -- 4. The operator publishes the game result after the bid-collecting
 --    deadline and before the publishing deadline, and it distributes
 --    the money among the winners
--- 5. The winners are able to get their money back if the operator
+-- 5. Players are able to get their money back if the operator
 --    does not publish the game results before the publishing
 --    deadline.
 --
