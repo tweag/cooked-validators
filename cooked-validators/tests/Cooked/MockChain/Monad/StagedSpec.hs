@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Writer.Strict
 import Cooked.Ltl
 import Cooked.MockChain
+import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
@@ -15,24 +16,6 @@ import Data.Maybe
 import qualified Ledger.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
-
-assertSubset :: (Show a, Eq a) => [a] -> [a] -> Assertion
-assertSubset l r =
-  testConjoin
-    ( map
-        ( \x ->
-            assertBool
-              ( "not a subset:\n\n" ++ show x
-                  ++ "\n\nis not an element of\n\n"
-                  ++ show r
-              )
-              $ x `elem` r
-        )
-        l
-    )
-
-assertSameSets :: (Show a, Eq a) => [a] -> [a] -> Assertion
-assertSameSets l r = assertSubset l r .&&. assertSubset r l
 
 smcEq :: (Show a, Eq a) => StagedMockChain a -> StagedMockChain a -> Assertion
 smcEq a b = go a `assertSameSets` go b

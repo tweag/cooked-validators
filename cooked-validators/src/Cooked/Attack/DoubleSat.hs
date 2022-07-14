@@ -63,15 +63,19 @@ doubleSatAttack DoubleSatParams {..} mcst skel =
       where
         surplus = txSkelInValue s <> Pl.negate (txSkelInValue skel)
 
-    -- Generate all possible 'SpendsScript' constraints using UTxOs belonging to
-    -- the given validator, where we try to redeem each of these UTxOs with the
-    -- list of redeemers returned by the second argument.
+    -- Generate all possible 'SpendsScript' constraints using UTxOs that belong
+    -- to the 'dsExtraInputOwner' and that are not already being spent in the
+    -- original transaction. We try to redeem each of these UTxOs with the list
+    -- of redeemers calculated by the passed function.
     extraSpendsScriptConstraints ::
       ((SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
       [MiscConstraint]
     extraSpendsScriptConstraints redeemers =
       concatMap (\utxo -> map (\r -> SpendsScript dsExtraInputOwner r utxo) (redeemers utxo)) $
-        scriptUtxosSuchThatMcst mcst dsExtraInputOwner (\_ _ -> True)
+        filter (\(spOut, _) -> spOut `notElem` currentSpOuts) $
+          scriptUtxosSuchThatMcst mcst dsExtraInputOwner (\_ _ -> True)
+      where
+        currentSpOuts = view (partsOf $ spendsScriptConstraintsT % spendableOutL) skel
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)

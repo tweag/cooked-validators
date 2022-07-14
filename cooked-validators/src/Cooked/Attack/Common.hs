@@ -159,10 +159,7 @@ mkSplittingAttack strategy optic f g mcst skel = resSkels
 
     splitter = case strategy of
       OneChange -> oneChange
-      AllCombinations -> tailSafe . allCombinations
-      where
-        tailSafe [] = []
-        tailSafe (_ : xs) = xs
+      AllCombinations -> allCombinations
 
 oneChange :: [(a, [(a, b)])] -> [([a], [b])]
 oneChange = inner []
@@ -172,14 +169,19 @@ oneChange = inner []
     inner _ _ = []
 
 allCombinations :: [(a, [(a, b)])] -> [([a], [b])]
-allCombinations [] = []
-allCombinations [(a, os)] = ([a], []) : map (bimap (: []) (: [])) os
-allCombinations ((a, os) : r) =
-  let r' = allCombinations r
-   in map (first (a :)) r'
-        ++ concatMap (\(a', m) -> map (bimap (a' :) (m :)) r') os
+allCombinations = tailSafe . allCombinations'
+  where
+    allCombinations' :: [(a, [(a, b)])] -> [([a], [b])]
+    allCombinations' [] = []
+    allCombinations' [(a, os)] = ([a], []) : map (bimap (: []) (: [])) os
+    allCombinations' ((a, os) : r) =
+      let r' = allCombinations' r
+       in map (first (a :)) r'
+            ++ concatMap (\(a', m) -> map (bimap (a' :) (m :)) r') os
 
-example = [(1, [(11, 'a'), (12, 'b')]), (2, [(21, 'c'), (22, 'd'), (23, 'e')]), (3, [])]
+    tailSafe :: [t] -> [t]
+    tailSafe [] = []
+    tailSafe (_ : xs) = xs
 
 data SplitStrategy = OneChange | AllCombinations
 

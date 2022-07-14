@@ -206,3 +206,6 @@ tests =
                   )
                 ]
     ]
+
+-- TODO: Test that the double satisfaciton attack does not add outputs that are
+-- already being spent

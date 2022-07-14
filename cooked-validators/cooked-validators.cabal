@@ -88,6 +88,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
+      Cooked.AttackSpec.Common
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.DoubleSat
       Cooked.AttackSpec.DupToken
@@ -99,6 +100,7 @@ test-suite spec
       Cooked.MockChain.WalletSpec
       Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
+      Cooked.TestUtils
       Paths_cooked_validators
   hs-source-dirs:
       tests/
