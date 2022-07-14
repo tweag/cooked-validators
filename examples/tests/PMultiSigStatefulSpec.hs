@@ -236,12 +236,11 @@ sampleGroup1 =
         testProperty "Cannot duplicate token over \\Cref{sec:simple-traces}" $
           QC.forAll
             successParams
-            ( \p -> testFails @QC.Property $ 
+            ( \p -> testFails @QC.Property $
                 allowBigTransactions $ do
                   i <- propose p
                   w3utxos <- pkUtxos (walletPKHash $ wallet 9)
                   somewhere (\_ sk -> maybeToList $ dupTokenAttack (head w3utxos) i sk) (execute p i)
-
             )
       ]
 
