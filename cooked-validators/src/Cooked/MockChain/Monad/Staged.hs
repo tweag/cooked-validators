@@ -24,7 +24,6 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -79,7 +78,8 @@ data MockChainBuiltin a where
   -- the following are only available in MonadMockChain, not MonadBlockChain:
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
   AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
-  GetSlotConfig :: MockChainBuiltin Pl.SlotConfig
+  GetParams :: MockChainBuiltin Pl.Params
+  LocalParams :: (Pl.Params -> Pl.Params) -> StagedMockChain a -> MockChainBuiltin a
   -- the following are not strictly blockchain specific, but they allow us to
   -- combine several traces into one and to signal failure.
 
@@ -147,7 +147,8 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
-  interpBuiltin GetSlotConfig = slotConfig
+  interpBuiltin GetParams = params
+  interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
@@ -178,7 +179,8 @@ instance MonadBlockChain StagedMockChain where
 instance MonadMockChain StagedMockChain where
   signingWith ws act = singletonBuiltin (SigningWith ws act)
   askSigners = singletonBuiltin AskSigners
-  slotConfig = singletonBuiltin GetSlotConfig
+  params = singletonBuiltin GetParams
+  localParams f act = singletonBuiltin (LocalParams f act)
 
 -- * Human Readable Traces
 

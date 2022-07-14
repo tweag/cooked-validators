@@ -21,7 +21,9 @@ import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
+import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx as Pl
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
@@ -135,7 +137,7 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
     }
 outConstraintToTxOut (PaysScript validator datum value) =
   Pl.TxOut
-    { Pl.txOutAddress = Pl.scriptAddress (Pl.validatorScript validator),
+    { Pl.txOutAddress = Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator,
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
     }

@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -19,6 +19,8 @@ library
       Split.OffChain
       Split.ToUPLC
   other-modules:
+      Paths_examples
+  autogen-modules:
       Paths_examples
   hs-source-dirs:
       src
@@ -46,6 +48,7 @@ library
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
@@ -69,6 +72,8 @@ test-suite spec
       SplitSpec
       SplitUPLCSpec
       UseCaseCrowdfundingSpec
+      Paths_examples
+  autogen-modules:
       Paths_examples
   hs-source-dirs:
       tests
@@ -96,6 +101,7 @@ test-suite spec
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases

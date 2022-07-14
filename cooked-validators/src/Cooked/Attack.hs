@@ -11,6 +11,7 @@ import Cooked.Attack.DatumHijacking
 import Cooked.Attack.DoubleSat
 import Cooked.Attack.DupToken
 
+
 -- The idea of this module: Turning optics into attacks
 -------------------------------------------------------
 --
