@@ -8,11 +8,11 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.AttackSpec.DoubleSatAttack (tests) where
+module Cooked.AttackSpec.DoubleSat (tests) where
 
 import Control.Arrow
 import Cooked.Attack
-import Cooked.AttackSpec.Common
+import Cooked.AttackSpec.Util
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
@@ -127,7 +127,7 @@ tests =
         let params =
               DoubleSatParams
                 { dsExtraInputOwner = bValidator,
-                  dsExtraInputSelect = \(SpendsScriptConstraint _ _ (aOut, _)) bOut _ ->
+                  dsExtraInputSelect = \(SpendsScriptConstraint _ _ (aOut, _)) (bOut, _) ->
                     let aValue = sOutValue aOut
                         bValue = sOutValue bOut
                      in if
@@ -142,7 +142,8 @@ tests =
                                   | bValue == L.lovelaceValueOf 7_000_000 -> [BRedeemer1, BRedeemer2]
                                   | otherwise -> []
                             | otherwise -> [],
-                  dsAttacker = wallet 6
+                  dsAttacker = wallet 6,
+                  dsSplitStrategy = OneChange
                 }
             [[aOut1], [aOut2], [aOut3], [aOut4]] =
               map

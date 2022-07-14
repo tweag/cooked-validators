@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 module Cooked.Attack.Common where
 
@@ -9,6 +10,7 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
+import Data.Bifunctor hiding (first, second)
 import Data.Default
 import Data.Maybe
 import qualified Ledger as L hiding (validatorHash)
@@ -85,52 +87,101 @@ mkSelectAttack optic f select =
 
 -- * Constructing 'Attack's that return zero or more modified transactions
 
--- | This attack generates potentially very many modified 'TxSkel's, by
--- considering all possible combinations of modified and unmodified foci.
+-- | This attack generates potentially very may modified TxSkels, or potentially
+-- very few. For each focus, a list of possible modifications, each with an
+-- associated label, is computed. The 'SplitStrategy' determines how to combine
+-- modifications and labels.
 --
 -- By way of example, consider
 --
--- > mkTraverseOfAttack optic f st skel                    (*)
+-- > mkSplittingAttack strategy optic f st skel
 --
 -- where @optic@ has three foci @x,y,x@ in @skel@. Assume that for each of these
--- foci, the lists of possible modifications are given by
+-- foci, the lists of possible modifications together with their labels are
+-- given by
 --
--- > f st x = [x1, x2]
+-- f st x = [(x1, 'a'), (x2, 'b')]
 --
--- > f st y = [y1, y2, y3]
+-- f st y = [(y1, 'c'), (y2, 'd'), (y3, 'e')]
 --
--- > f st z = []
+-- f st z = []
 --
--- Then, (*) evaluates to a list of 11 modified 'TxSkel's. Let's explain them.
+-- The strategy 'OneChange' returns all possible modifications of the intial
+-- 'TxSkel' obtained by applying exactly one of the modifications. In the
+-- example, this would mean 2 + 3 + 0 = 5 modified 'TxSkel's, namely the ones
+-- corresponding to the following lists of (un)modified foci, together with
+-- their (singleton) lists of labels:
 --
--- In principle, there are ((2+1) * (3+1) * (0+1)) = 12 possible combinations of
--- modified and unmodified foci:
---
--- > [ [x, y, z],
--- >   [x1, y, z],
--- >   [x2, y, z],
--- >   [x, y1, z],
--- >   [x, y2, z],
--- >   [x, y3, z],
--- >   [x1, y1, z],
--- >   [x2, y1, z],
--- >   [x1, y2, z],
--- >   [x2, y2, z],
--- >   [x1, y3, z],
--- >   [x2, y3, z]
+-- > [ ([x1, y,  z], "a"),
+-- >   ([x2, y,  z], "b"),
+-- >   ([x,  y1, z], "c"),
+-- >   ([x,  y2, z], "d"),
+-- >   ([x,  y3, z], "e")
 -- > ]
 --
--- The first of these corresponds just to the initial 'TxSkel', so it is
--- filtered out.
-mkTraverseOfAttack ::
+-- The strategy 'AllCombinations' returns all modifications in which at least
+-- one focus has been modified. In the example, there are (2+1) * (3+1) * (0+1)
+-- = 12 combinations of applied and non-applied modifications, but one of them
+-- is the one that leaves everything unchanged, which leaves us with the
+-- following 11:
+--
+-- > [ ([x,  y1, z], "c"),
+-- >   ([x,  y2, z], "d"),
+-- >   ([x,  y3, z], "e"),
+-- >   ([x1, y,  z], "a"),
+-- >   ([x1, y1, z], "ac"),
+-- >   ([x1, y2, z], "ad"),
+-- >   ([x1, y3, z], "ae"),
+-- >   ([x2, y,  z], "b"),
+-- >   ([x2, y1, z], "bc"),
+-- >   ([x2, y2, z], "bd"),
+-- >   ([x2, y3, z], "be")
+-- > ]
+mkSplittingAttack ::
   Is k A_Traversal =>
+  SplitStrategy ->
   -- | Optic focussing potentially interesting points to modify
   Optic' k is TxSkel a ->
-  -- | function that returns the possible modifications of the current focus
-  (MockChainSt -> a -> [a]) ->
+  -- | Function that returns possible modifications of the current focus,
+  -- together with some piece of extra information
+  (MockChainSt -> a -> [(a, b)]) ->
+  -- | function to look at a modified 'TxSkel' and the list of labels of all
+  -- modifications applied to it, in order to apply optional further
+  -- modifications. The order of labels is not specified (yet?)
+  ([b] -> TxSkel -> TxSkel) ->
   Attack
-mkTraverseOfAttack optic f mcst skel =
-  tail $ traverseOf optic (\x -> x : f mcst x) skel
+mkSplittingAttack strategy optic f g mcst skel = resSkels
+  where
+    fociWithOptions = map (\x -> (x, f mcst x)) $ view (partsOf optic) skel
+
+    resSkels :: [TxSkel]
+    resSkels = map (\(foci, mods) -> g mods $ set (partsOf optic) foci skel) $ splitter fociWithOptions
+
+    splitter = case strategy of
+      OneChange -> oneChange
+      AllCombinations -> tailSafe . allCombinations
+      where
+        tailSafe [] = []
+        tailSafe (_ : xs) = xs
+
+oneChange :: [(a, [(a, b)])] -> [([a], [b])]
+oneChange = inner []
+  where
+    inner :: [a] -> [(a, [(a, b)])] -> [([a], [b])]
+    inner l ((x, ms) : r) = map (\(x', h) -> (l ++ x' : map fst r, [h])) ms ++ inner (l ++ [x]) r
+    inner _ _ = []
+
+allCombinations :: [(a, [(a, b)])] -> [([a], [b])]
+allCombinations [] = []
+allCombinations [(a, os)] = ([a], []) : map (bimap (: []) (: [])) os
+allCombinations ((a, os) : r) =
+  let r' = allCombinations r
+   in map (first (a :)) r'
+        ++ concatMap (\(a', m) -> map (bimap (a' :) (m :)) r') os
+
+example = [(1, [(11, 'a'), (12, 'b')]), (2, [(21, 'c'), (22, 'd'), (23, 'e')]), (3, [])]
+
+data SplitStrategy = OneChange | AllCombinations
 
 -- | A very general attack: Traverse all foci of the optic from the left to the
 -- right, collecting an accumulator while also (optionally) modifying the

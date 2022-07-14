@@ -1,4 +1,4 @@
-module Cooked.AttackSpec.Common where
+module Cooked.AttackSpec.Util where
 
 import Cooked.Tx.Constraints
 import Test.Tasty.HUnit

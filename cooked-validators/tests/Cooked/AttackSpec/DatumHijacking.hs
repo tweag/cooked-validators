@@ -7,11 +7,11 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.AttackSpec.DatumHijackingAttack (tests) where
+module Cooked.AttackSpec.DatumHijacking (tests) where
 
 import Control.Monad
 import Cooked.Attack
-import Cooked.AttackSpec.Common
+import Cooked.AttackSpec.Util
 import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
