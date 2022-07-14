@@ -19,6 +19,7 @@ import Data.Default
 import Data.Either (isLeft, isRight)
 import Data.Function (on)
 import Data.List (nub, nubBy)
+import Data.Maybe
 import Data.Typeable
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
@@ -238,7 +239,7 @@ sampleGroup1 =
             ( \p -> testFails @QC.Property $ do
                 i <- propose p
                 w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                somewhere (\_ sk -> dupTokenAttack (head w3utxos) i sk) (execute p i)
+                somewhere (\_ sk -> maybeToList $ dupTokenAttack (head w3utxos) i sk) (execute p i)
             )
       ]
 
