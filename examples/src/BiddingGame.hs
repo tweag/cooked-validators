@@ -54,6 +54,7 @@ import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value (geq)
+import Plutus.V1.Ledger.Api (Datum (Datum))
 import Plutus.V1.Ledger.Contexts (ScriptContext (..))
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
@@ -104,14 +105,26 @@ minLovelace = 2000000
 
 validateBid
   :: BidParams -> BidDatum -> BidRedeemer -> ScriptContext -> Bool
-validateBid _p d r _ctx =
-    case r of
+validateBid p d r ctx =
+    let info :: Ledger.TxInfo
+        info = Ledger.scriptContextTxInfo ctx
+
+        consumesGameStart =
+          isJust $
+            Ledger.findDatumHash
+              (Datum $ PlutusTx.toBuiltinData $ GameStart p)
+              info
+
+     in case r of
       BidCollection ->
         case d of
           GameStart _p ->
-             traceIfFalse "only the operator can collect the output of gamestart" False
+             traceIfFalse "only the operator can collect the output of gamestart"
+               (elem (operator p) $ Ledger.txInfoSignatories info)
           Bid _gr ->
-               traceIfFalse "there must be an output containing the list of bidders and the total money that each one bet" False
+               traceIfFalse "the transaction must consume an output with datum GameStart"
+                 consumesGameStart
+            && traceIfFalse "there must be an output containing the list of bidders and the total money that each one bet" False
             && traceIfFalse "there must not be other outputs" False
             && traceIfFalse "the bidder of this output must be included in the list of bidders in the transaction output" False
           _ ->
