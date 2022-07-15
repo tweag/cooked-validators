@@ -130,13 +130,18 @@ validateBid p d r ctx =
           _ ->
              traceIfFalse "BidCollection can only take outputs with GameStart and Bid datums" False
       GameClose _gr ->
-           traceIfFalse "publication deadline expired" False
-        && traceIfFalse "bidding deadline hasn't expired" False
-        && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
-        && traceIfFalse "the operator must earns a commission" False
-        && traceIfFalse "all winners must earn in proportion to what they bid" False
-        && traceIfFalse "nobody else is allowed to earn anything" False
-        && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)" False
+        case d of
+          CollectedBids _bids ->
+               traceIfFalse "publication deadline expired" False
+            && traceIfFalse "bidding deadline hasn't expired" False
+            && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
+            && traceIfFalse "the operator must earns a commission" False
+            && traceIfFalse "all winners must earn in proportion to what they bid" False
+            && traceIfFalse "nobody else is allowed to earn anything" False
+            && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)" False
+          _ ->
+            traceIfFalse "GameClose can only take an output with datum BidCollection" False
+
       BidReclaim ->
         case d of
           Bid _gr ->
