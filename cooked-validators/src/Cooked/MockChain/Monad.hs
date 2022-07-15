@@ -218,7 +218,6 @@ as ma w = signingWith (w NE.:| []) ma
 signs :: (MonadMockChain m) => Wallet -> m a -> m a
 signs = flip as
 
-
 -- | Return the 'Pl.SlotConfig' contained within the current 'Pl.Params'
 slotConfig :: (MonadMockChain m) => m Pl.SlotConfig
 slotConfig = Pl.pSlotConfig <$> params

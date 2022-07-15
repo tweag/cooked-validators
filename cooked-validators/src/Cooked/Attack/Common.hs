@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TupleSections #-}
 
 module Cooked.Attack.Common where
 
@@ -13,7 +12,7 @@ import Cooked.Tx.Constraints.Optics
 import Data.Bifunctor hiding (first, second)
 import Data.Default
 import Data.Maybe
-import qualified Ledger as L hiding (validatorHash)
+import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
@@ -235,7 +234,7 @@ scriptUtxosSuchThatMcst mcst val select =
   map (second fromJust) $
     utxosSuchThatMcst
       mcst
-      (L.scriptHashAddress $ L.validatorHash val)
+      (L.validatorAddress val)
       (maybe (const False) select)
 
 -- * General helpers
