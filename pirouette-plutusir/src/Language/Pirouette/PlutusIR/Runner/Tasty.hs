@@ -45,7 +45,7 @@ mkStoppingCondition :: (SymEvalStatistics -> Int) -> Int -> PirouetteStoppingCon
 mkStoppingCondition f limit = PirouetteStoppingCondition $ \st -> f st > limit
 
 instance IsOption PirouetteStoppingCondition where
-  defaultValue = PirouetteStoppingCondition $ stoppingCondition def
+  defaultValue = PirouetteStoppingCondition $ shouldStop def
   parseValue ('c' : num) = mkStoppingCondition sestConstructors <$> safeRead num
   parseValue ('f' : num) = mkStoppingCondition sestConsumedFuel <$> safeRead num
   parseValue _ = Nothing

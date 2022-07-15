@@ -143,7 +143,7 @@ run_hlint() {
 }
 
 
-projects=("cooked-validators" "examples")
+projects=("cooked-validators" "examples" "pirouette-plutusir")
 overall_ok=true
 
 for p in ${projects[*]}; do

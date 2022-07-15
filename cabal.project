@@ -32,12 +32,11 @@ packages:
   cooked-validators
   examples
   pirouette-plutusir
-  ../pirouette
 
--- source-repository-package
---   type: git
---   location: https://github.com/tweag/pirouette.git
---   tag: 0362caa473e866f33296f02ff80f4ab355faeed0
+source-repository-package
+  type: git
+  location: https://github.com/tweag/pirouette.git
+  tag: b06ac5e56c4e5640bdf4d8060abd391c341ef819
 
 -- We never, ever, want this.
 write-ghc-environment-files: never

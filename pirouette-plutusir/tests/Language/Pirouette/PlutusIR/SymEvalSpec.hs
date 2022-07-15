@@ -47,7 +47,7 @@ tests =
                       :==>: [pir| \(result : Integer) (x : Integer) . 0 < x |]
                 }
             )
-            `pathSatisfies` (isSingleton .&. all isCounter),
+            `pathSatisfies` (any isCounter),
         testCase "[input > 0] add 1 [result > 1] verified" $
           execFromPIRFile
             "resources/fromPlutusIRSpec-01.pir"
@@ -59,6 +59,6 @@ tests =
                       :==>: [pir| \(result : Integer) (x : Integer) . 0 < x |]
                 }
             )
-            `pathSatisfies` (isSingleton .&. all isVerified)
+            `pathSatisfies` (any isVerified .&. (not . any isCounter))
       ]
   ]

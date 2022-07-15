@@ -42,10 +42,8 @@ tests =
 
 assertTrProgramOk :: FilePath -> Assertion
 assertTrProgramOk flatFilePath = do
-  (_, PrtUnorderedDefs decls) <- openAndDecodeFlat flatFilePath
-  -- writeFile "decls.pirouette" (show $ pretty decls)
-  let allDecls = builtinTypeDecls decls <> decls
-  -- print $ pretty allDecls
+  (_, decls) <- openAndDecodeFlat flatFilePath
+  let PrtUnorderedDefs allDecls = complementWithBuiltinPrelude decls
   case typeCheckDecls allDecls of
     Left err -> assertFailure $ "Typecheck program: " ++ show (pretty err)
     Right _ -> return ()

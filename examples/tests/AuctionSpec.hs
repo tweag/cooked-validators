@@ -217,20 +217,16 @@ bidderAlternative =
 
 -- * Pirouette tests
 
-{-
-receivesToken :: ValParams -> L.ScriptContext -> Bool
-receivesToken auction ctx =
-  let txi = L.scriptContextTxInfo ctx
-      selfh = L.ownHash ctx
-   in Value.assetClassValueOf (L.valueLockedBy txi selfh) (threadTokenAssetClass auction) == 1
--}
-
+-- | This test is here mainly to test that we constantly get to the point of running pirouette,
+-- that is, our transformations and the interface with PlutusIR (coming from @pirouette-plutusir@)
+-- is working. The stopping condition is deliberatly tight so that we don't run forever on CI.
+-- It is the task of future PRs to address pirouette's runtime.
 pirouetteTests :: TestTree
 pirouetteTests =
   testGroup
     "Pirouette"
     [ localOption (PirouetteSolverDebug False) $
-        localOption (PirouetteStoppingCondition $ \st -> sestConstructors st > 14) $
+        localOption (PirouetteStoppingCondition $ \st -> sestConstructors st > 3) $
           localOption PirouetteDumpNothing $
             testBoundedSymExec
               "bid-keeps-token"
