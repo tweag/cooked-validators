@@ -1,4 +1,7 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use list comprehension" #-}
 
 module Cooked.MockChain.Monad.StagedSpec (tests) where
 
