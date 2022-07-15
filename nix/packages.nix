@@ -1,4 +1,4 @@
-{ 
+{
   sources ? import ./sources.nix {},
 
   # Bring in our pinned nixpkgs, but also brings in iohk's modiied nixpkgs
@@ -34,6 +34,8 @@ in {
   # the purpose is to keep CI happier and make it as fast as possible.
   build-deps = with rawpkgs; [
         # libs required to build plutus
+	vim
+        glibc
         libsodium
         lzma
         zlib
@@ -45,7 +47,6 @@ in {
 
         # haskell development tools pulled from regular nixpkgs
         hpack
-        hlint
         ormolu
      ] ++ [
         # iohk-specific stuff that we require

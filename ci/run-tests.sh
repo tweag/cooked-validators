@@ -122,27 +122,6 @@ run_cabal_test() {
   return $cabal_res
 }
 
-## Runs hlint on a project; creates artifacts with potential failures
-run_hlint() {
-  local proj=$1
-  echo "Running 'hlint' on $proj"
-
-  ## Since SimpleSMT is an external library, we want to minimize the difference.
-  ## Hence, we do not run `hlint` on it.
-  local hlint_res=0
-  if $ci; then
-    hlint --hint="ci/hlint.yaml" "$proj" | tee "./${proj}-hlint.out"
-    hlint_res=$?
-    echo "run_hlint:$hlint_res" >> "./${proj}-hlint.res"
-  else
-    hlint --hint="ci/hlint.yaml" "$proj"
-    hlint_res=$?
-  fi
-
-  return $hlint_res
-}
-
-
 projects=("cooked-validators" "examples")
 overall_ok=true
 
@@ -151,7 +130,6 @@ for p in ${projects[*]}; do
   ormolu_ok=true
   cabal_build_ok=true
   cabal_test_ok=true
-  hlint_ok=true
 
   run_hpack "$p"
   if [[ "$?" -ne "0" ]]; then
@@ -177,12 +155,6 @@ for p in ${projects[*]}; do
   if [[ "$?" -ne "0" ]]; then
     echo "[FAILURE] 'ormolu' failed for $p; check the respective artifact."
     ormolu_ok=false
-  fi
-
-  run_hlint "$p"
-  if [[ "$?" -ne "0" ]]; then
-    echo "[FAILURE] 'hlint' failed for $p; check the respective artifact."
-    hlint_ok=false
   fi
 
   if $ci; then
