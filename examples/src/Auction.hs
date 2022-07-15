@@ -211,6 +211,7 @@ threadTokenAssetClassFromOrefAndLot lotOutRef lot =
 
 -- * The validator and its helpers
 
+
 {-# INLINEABLE bidTimeRange #-}
 bidTimeRange :: ValParams -> Pl.POSIXTimeRange
 bidTimeRange a = Interval.to (bidDeadline a)
