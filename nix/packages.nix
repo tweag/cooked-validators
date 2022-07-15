@@ -34,7 +34,7 @@ in {
   # the purpose is to keep CI happier and make it as fast as possible.
   build-deps = with rawpkgs; [
         # libs required to build plutus
-	vim
+        vim
         glibc
         libsodium
         lzma
