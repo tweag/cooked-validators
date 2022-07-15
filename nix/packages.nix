@@ -47,6 +47,7 @@ in {
 
         # haskell development tools pulled from regular nixpkgs
         hpack
+        hlint
         ormolu
      ] ++ [
         # iohk-specific stuff that we require
