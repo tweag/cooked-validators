@@ -61,67 +61,97 @@ import Schema (ToSchema)
 import qualified Prelude as Haskell
 
 
+-- * On-chain validation
+--
+-- $contract-flow
+-- Contract flow
+--
+-- * The operator creates an output to the script with datum @GameStart@
+-- * The bidders pay to the script with datum @Bid GameResult@
+-- * The operator collects the bids and pays to the script with all of
+--   the collected money and datum @CollectedBids _bids@.
+-- * The operator publishes the result and pays to the winners.
+--
+-- If the operator does not collect, players reclaim their individual bids.
+-- If the operator does not publish the result, anyone can return the
+-- collected bids to all players.
+
 data BidParams = BidParams
   { biddingDeadline :: Ledger.POSIXTime
   , publishingDeadline :: Ledger.POSIXTime
   , minimumBid :: Integer
-  , description :: String
+  , description :: BuiltinByteString
   , operator :: Ledger.PubKeyHash
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 type GameResult = Bool
-type BidDatum = ()
+data BidDatum
+  = GameStart BidParams
+  | Bid GameResult
+  | -- | Contains the bidders, with duplicates if they bidded more than once.
+    CollectedBids [(Ledger.PubKeyHash, GameResult, Integer)]
+  deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
 data BidRedeemer
-  = GameStart
-  | Bid GameResult
-  | BidCollection
+  = BidCollection
   | GameClose GameResult
   | BidReclaim
 
+minLovelace :: Integer
+minLovelace = 2000000
+
 validateBid
   :: BidParams -> BidDatum -> BidRedeemer -> ScriptContext -> Bool
-validateBid o d r s = case r of
-    GameStart ->
-      traceIfFalse "the bidding deadline needs to come before the publishing deadline" False
-      && traceIfFalse "there must be an output for the operator" False
-    Bid gr ->
-      traceIfFalse "bidding deadline expired" False
-      && traceIfFalse "bid is too small" False
-    BidCollection ->
-         traceIfFalse "collecting bids needs to consume the output of the game start" False
-      && traceIfFalse "there must be an output containing the list of bidders and the total money that each one bet" False
-      && traceIfFalse "there must not be other outputs" False
-      && traceIfFalse "the bidder of this output must be included in the list of bidders in the transaction output" False
-    GameClose gr ->
-         traceIfFalse "publication deadline expired" False
-      && traceIfFalse "bidding deadline hasn't expired" False
-      && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
-      && traceIfFalse "the operator must earns a commission" False
-      && traceIfFalse "all winners must earn in proportion to what they bid" False
-      && traceIfFalse "nobody else is allowed to earn anything" False
-      && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)" False
-    BidReclaim ->
-         traceIfFalse "publication deadline must have expired" False
-      && traceIfFalse "the transaction must be signed by the bidder" False
+validateBid _p d r _ctx =
+    case r of
+      BidCollection ->
+        case d of
+          GameStart _p ->
+             traceIfFalse "only the operator can collect the output of gamestart" False
+          Bid _gr ->
+               traceIfFalse "there must be an output containing the list of bidders and the total money that each one bet" False
+            && traceIfFalse "there must not be other outputs" False
+            && traceIfFalse "the bidder of this output must be included in the list of bidders in the transaction output" False
+          _ ->
+             traceIfFalse "BidCollection can only take outputs with GameStart and Bid datums" False
+      GameClose _gr ->
+           traceIfFalse "publication deadline expired" False
+        && traceIfFalse "bidding deadline hasn't expired" False
+        && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
+        && traceIfFalse "the operator must earns a commission" False
+        && traceIfFalse "all winners must earn in proportion to what they bid" False
+        && traceIfFalse "nobody else is allowed to earn anything" False
+        && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)" False
+      BidReclaim ->
+        case d of
+          Bid _gr ->
+               traceIfFalse "publication deadline must have expired" False
+            && traceIfFalse "the transaction must pay to the bidder" False
+          CollectedBids _bids ->
+               traceIfFalse "publication deadline must have expired" False
+            && traceIfFalse "the transaction must pay to all players" False
+          _ ->
+             traceIfFalse "BidReclaim can only take outputs with Bid and BidCollection datums" False
 
 -- Plutus boilerplate
 
 data BiddingGame
 
-PlutusTx.makeLift ''BidDatum
+PlutusTx.makeLift ''BidParams
 PlutusTx.unstableMakeIsData ''BidDatum
+PlutusTx.unstableMakeIsData ''BidParams
+PlutusTx.unstableMakeIsData ''BidRedeemer
 
 instance Scripts.ValidatorTypes BiddingGame where
-  type RedeemerType Split = ()
-  type DatumType Split = SplitDatum
+  type RedeemerType BiddingGame = BidRedeemer
+  type DatumType BiddingGame = BidDatum
 
-bidValidator :: Scripts.TypedValidator BidDatum
-bidValidator =
+bidValidator :: BidParams -> Scripts.TypedValidator BiddingGame
+bidValidator p =
   Scripts.mkTypedValidator @BiddingGame
-    $$(PlutusTx.compile [||validateBid||])
+    ($$(PlutusTx.compile [||validateBid||]) `PlutusTx.applyCode` PlutusTx.liftCode p)
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.mkUntypedValidator @SplitDatum @SplitRedeemer
+    wrap = Scripts.mkUntypedValidator @BidDatum @BidRedeemer
