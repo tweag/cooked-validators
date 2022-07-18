@@ -41,7 +41,7 @@ library
       Paths_cooked_validators
   hs-source-dirs:
       src
-  ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
+  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
     , aeson

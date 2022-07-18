@@ -49,6 +49,7 @@ library:
   source-dirs: src
   ghc-options:
     -Wall
+    -Wno-missed-extra-shared-lib
     -fobject-code
     -fno-ignore-interface-pragmas
     -fno-omit-interface-pragmas
