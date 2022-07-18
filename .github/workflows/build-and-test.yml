@@ -67,7 +67,7 @@ jobs:
       run: |
         is_ok=true
         for proj in "examples" "cooked-validators"; do
-          for step in "hpack" "ormolu" "cabal-build" "cabal-test" "hlint"; do
+          for step in "hpack" "ormolu" "cabal-build" "cabal-test"; do
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)

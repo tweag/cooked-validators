@@ -1,4 +1,4 @@
-{ 
+{
   sources ? import ./sources.nix {},
 
   # Bring in our pinned nixpkgs, but also brings in iohk's modiied nixpkgs
