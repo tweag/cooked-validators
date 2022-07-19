@@ -80,7 +80,7 @@ import qualified Prelude as Haskell
 data BidParams = BidParams
   { biddingDeadline :: Ledger.POSIXTime
   , publishingDeadline :: Ledger.POSIXTime
-  , minimumBid :: Integer
+  , minimumBid :: Ada.Ada
   , description :: BuiltinByteString
   , operator :: Ledger.PubKeyHash
   }
@@ -88,12 +88,15 @@ data BidParams = BidParams
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 type GameResult = Bool
-type Bids = [(Ledger.PubKeyHash, GameResult, Integer)]
+
+-- | [(bidder, bet result, amount)]
+type Bids = [(Ledger.PubKeyHash, GameResult, Ada.Ada)]
 
 data BidDatum
   = GameStart BidParams
-  | Bid GameResult
-  | -- | Contains the bidders, with duplicates if they bidded more than once.
+  | -- | Contains the identity of the bidder and the bet result
+    Bid Ledger.PubKeyHash GameResult
+  | -- | Contains the bidders, with duplicates if they bid more than once.
     CollectedBids Bids
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
@@ -107,24 +110,11 @@ minLovelace = 2000000
 
 validateBid
   :: BidParams -> BidDatum -> BidRedeemer -> ScriptContext -> Bool
-validateBid p d r ctx =
+validateBid p d0 r ctx =
     let info :: Ledger.TxInfo
         info = Ledger.scriptContextTxInfo ctx
 
-        inputs = Ledger.txInfoInputs info
-
         outputs = Ledger.txInfoOutputs info
-
-        consumesGameStart =
-          case Ledger.findDatumHash
-                (Datum $ PlutusTx.toBuiltinData $ GameStart p)
-                info
-            of
-            Just h ->
-              let hasDatum =
-                   (Just h ==) . Ledger.txOutDatumHash . Ledger.txInInfoResolved
-               in any hasDatum inputs
-            Nothing -> False
 
         outputHasCollectedBids bids =
           case Ledger.findDatumHash
@@ -134,23 +124,33 @@ validateBid p d r ctx =
             Just h -> any ((Just h ==) . Ledger.txOutDatumHash) outputs
             Nothing -> False
 
+        bidIsInTransactionBids bidder gr bids =
+          case findInputWithDatum (Bid bidder gr) info of
+            Just i ->
+              let betValue = Ada.fromValue $ Ledger.txOutValue $ Ledger.txInInfoResolved i
+               in any (\(b, gr', v) -> bidder == b && gr == gr' && betValue == v) bids
+            Nothing ->
+              False
+
      in case r of
       BidCollection bids ->
-        case d of
+        case d0 of
           GameStart _p ->
              traceIfFalse "only the operator can collect the output of gamestart"
                (elem (operator p) $ Ledger.txInfoSignatories info)
-          Bid _gr ->
+          Bid bidder gr ->
                traceIfFalse "the transaction must consume an output with datum GameStart"
-                 consumesGameStart
+                 (isJust $ findInputWithDatum (GameStart p) info)
             && traceIfFalse "there must be a single output containing the list of bidders and the total money that each one bet"
                  (outputHasCollectedBids bids)
-            && traceIfFalse "there must not be other outputs" False
-            && traceIfFalse "the bidder of this output must be included in the list of bidders in the transaction output" False
+            && traceIfFalse "there must not be other outputs"
+                 (length outputs == 1)
+            && traceIfFalse "the bid of this output must be included in the list of bids in the transaction output"
+                 (bidIsInTransactionBids bidder gr bids)
           _ ->
              traceIfFalse "BidCollection can only take outputs with GameStart and Bid datums" False
       GameClose _gr ->
-        case d of
+        case d0 of
           CollectedBids _bids ->
                traceIfFalse "publication deadline expired" False
             && traceIfFalse "bidding deadline hasn't expired" False
@@ -163,8 +163,8 @@ validateBid p d r ctx =
             traceIfFalse "GameClose can only take an output with datum BidCollection" False
 
       BidReclaim ->
-        case d of
-          Bid _gr ->
+        case d0 of
+          Bid _bidder _gr ->
                traceIfFalse "publication deadline must have expired" False
             && traceIfFalse "the transaction must pay to the bidder" False
           CollectedBids _bids ->
@@ -172,6 +172,18 @@ validateBid p d r ctx =
             && traceIfFalse "the transaction must pay to all players" False
           _ ->
              traceIfFalse "BidReclaim can only take outputs with Bid and BidCollection datums" False
+  where
+    findInputWithDatum :: BidDatum -> Ledger.TxInfo -> Maybe Ledger.TxInInfo
+    findInputWithDatum d info =
+      case Ledger.findDatumHash
+             (Datum $ PlutusTx.toBuiltinData d)
+             info
+        of
+        Just h ->
+          let hasDatum =
+                (Just h ==) . Ledger.txOutDatumHash . Ledger.txInInfoResolved
+           in find hasDatum (Ledger.txInfoInputs info)
+        Nothing -> Nothing
 
 -- Plutus boilerplate
 
