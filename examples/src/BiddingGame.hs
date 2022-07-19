@@ -111,13 +111,20 @@ validateBid p d r ctx =
     let info :: Ledger.TxInfo
         info = Ledger.scriptContextTxInfo ctx
 
+        inputs = Ledger.txInfoInputs info
+
         outputs = Ledger.txInfoOutputs info
 
         consumesGameStart =
-          isJust $
-            Ledger.findDatumHash
-              (Datum $ PlutusTx.toBuiltinData $ GameStart p)
-              info
+          case Ledger.findDatumHash
+                (Datum $ PlutusTx.toBuiltinData $ GameStart p)
+                info
+            of
+            Just h ->
+              let hasDatum =
+                   (Just h ==) . Ledger.txOutDatumHash . Ledger.txInInfoResolved
+               in any hasDatum inputs
+            Nothing -> False
 
         outputHasCollectedBids bids =
           case Ledger.findDatumHash
