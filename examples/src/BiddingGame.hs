@@ -79,6 +79,7 @@ import qualified Prelude as Haskell
 
 data BidParams = BidParams
   { biddingDeadline :: Ledger.POSIXTime
+  , collectionDeadline :: Ledger.POSIXTime
   , publishingDeadline :: Ledger.POSIXTime
   , minimumBid :: Ada.Ada
   , description :: BuiltinByteString
@@ -139,7 +140,9 @@ validateBid p d0 r ctx =
              traceIfFalse "only the operator can collect the output of gamestart"
                (elem (operator p) $ Ledger.txInfoSignatories info)
           Bid bidder gr ->
-               traceIfFalse "the transaction must consume an output with datum GameStart"
+               traceIfFalse "collection deadline expired"
+                 (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+            && traceIfFalse "the transaction must consume an output with datum GameStart"
                  (isJust $ findInputWithDatum (GameStart p) info)
             && traceIfFalse "there must be a single output containing the list of bidders and the total money that each one bet"
                  (outputHasCollectedBids bids)
@@ -152,8 +155,10 @@ validateBid p d0 r ctx =
       GameClose _gr ->
         case d0 of
           CollectedBids _bids ->
-               traceIfFalse "publication deadline expired" False
-            && traceIfFalse "bidding deadline hasn't expired" False
+               traceIfFalse "publication deadline expired"
+                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+            && traceIfFalse "bidding deadline hasn't expired"
+                 (Ledger.to (biddingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
             && traceIfFalse "the operator must earns a commission" False
             && traceIfFalse "all winners must earn in proportion to what they bid" False
@@ -165,10 +170,12 @@ validateBid p d0 r ctx =
       BidReclaim ->
         case d0 of
           Bid _bidder _gr ->
-               traceIfFalse "publication deadline must have expired" False
+               traceIfFalse "publication deadline must have expired"
+                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to the bidder" False
           CollectedBids _bids ->
-               traceIfFalse "publication deadline must have expired" False
+               traceIfFalse "publication deadline must have expired"
+                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to all players" False
           _ ->
              traceIfFalse "BidReclaim can only take outputs with Bid and BidCollection datums" False
