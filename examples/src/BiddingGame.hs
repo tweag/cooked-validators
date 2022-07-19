@@ -91,12 +91,12 @@ data BidParams = BidParams
 type GameResult = Bool
 
 -- | [(bidder, bet result, amount)]
-type Bids = [(Ledger.PubKeyHash, GameResult, Ada.Ada)]
+type Bids = [(Ledger.PaymentPubKeyHash, GameResult, Ada.Ada)]
 
 data BidDatum
   = GameStart BidParams
-  | -- | Contains the identity of the bidder and the bet result
-    Bid Ledger.PubKeyHash GameResult
+  | -- | Contains the identity of the bidder, the bet result, and the amount
+    Bid Ledger.PaymentPubKeyHash GameResult Ada.Ada
   | -- | Contains the bidders, with duplicates if they bid more than once.
     CollectedBids Bids
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
@@ -125,13 +125,9 @@ validateBid p d0 r ctx =
             Just h -> any ((Just h ==) . Ledger.txOutDatumHash) outputs
             Nothing -> False
 
-        bidIsInTransactionBids bidder gr bids =
-          case findInputWithDatum (Bid bidder gr) info of
-            Just i ->
-              let betValue = Ada.fromValue $ Ledger.txOutValue $ Ledger.txInInfoResolved i
-               in any (\(b, gr', v) -> bidder == b && gr == gr' && betValue == v) bids
-            Nothing ->
-              False
+        paysTo h v =
+          let oAddress = Ledger.pubKeyHashAddress h Nothing
+           in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == v) outputs
 
      in case r of
       BidCollection bids ->
@@ -139,17 +135,17 @@ validateBid p d0 r ctx =
           GameStart _p ->
              traceIfFalse "only the operator can collect the output of gamestart"
                (elem (operator p) $ Ledger.txInfoSignatories info)
-          Bid bidder gr ->
+          Bid bidder gr v ->
                traceIfFalse "collection deadline expired"
                  (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must consume an output with datum GameStart"
                  (isJust $ findInputWithDatum (GameStart p) info)
-            && traceIfFalse "there must be a single output containing the list of bidders and the total money that each one bet"
+            && traceIfFalse "there must be an output containing the list of bids"
                  (outputHasCollectedBids bids)
             && traceIfFalse "there must not be other outputs"
                  (length outputs == 1)
             && traceIfFalse "the bid of this output must be included in the list of bids in the transaction output"
-                 (bidIsInTransactionBids bidder gr bids)
+                 (any (\(b, gr', v') -> bidder == b && gr == gr' && v == v') bids)
           _ ->
              traceIfFalse "BidCollection can only take outputs with GameStart and Bid datums" False
       GameClose _gr ->
@@ -169,10 +165,11 @@ validateBid p d0 r ctx =
 
       BidReclaim ->
         case d0 of
-          Bid _bidder _gr ->
+          Bid bidder _gr v ->
                traceIfFalse "publication deadline must have expired"
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
-            && traceIfFalse "the transaction must pay to the bidder" False
+            && traceIfFalse "the transaction must pay to the bidder"
+                 (paysTo bidder (Ada.toValue v))
           CollectedBids _bids ->
                traceIfFalse "publication deadline must have expired"
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
