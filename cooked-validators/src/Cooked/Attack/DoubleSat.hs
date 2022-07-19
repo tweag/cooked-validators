@@ -34,7 +34,7 @@ office. They both leave satisfied."
 
 The double satisfaction attack 'doubleSatAttack' provided by this module changes
 a transaction by adding one or more extra UTxOs belonging to a given script to
-the inputs of the transaction. I will try to redeem each of these extra UTxOs
+the inputs of a transaction. It will try to redeem each of these extra UTxOs
 with a list of redeemers, which depend on a 'SpendsScript' constraint in the
 original 'TxSkel' and value and datum of the extra UTxO. This makes it so that
 the 'txInValue' of the modified transaction will be greater than that of the
@@ -46,10 +46,10 @@ original transaction, and that surplus will be paid to the attacker's wallet.
 data DoubleSatParams b = DoubleSatParams
   { -- | The script from which to spend extra inputs.
     dsExtraInputOwner :: L.TypedValidator b,
-    -- | For every 'SpendsScriptConstraint' in the original transaction, go
-    -- through all @(SpendableOut, L.DatumType b)@ pairs describing UTxOs
-    -- belonging to the 'dsExtraInputOwner', and try to redeem them with the
-    -- returned list of redeemers.
+    -- | For every 'SpendsScriptConstraint' in the transaction under
+    -- modification and all available @(SpendableOut, L.DatumType b)@ pairs
+    -- describing UTxOs belonging to the 'dsExtraInputOwner', decides whether to
+    -- try and reddeem them, and if so, with which redeemers.
     dsExtraInputSelect :: SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b],
     -- | The wallet to which any surplus will be paid
     dsAttacker :: Wallet,
@@ -61,12 +61,12 @@ data DoubleSatParams b = DoubleSatParams
     --   modified 'TxSkel's will consume exactly one extra input.
     --
     -- - With @dsSplitStrategy = AllCombinations@, all modified 'TxSkels' that
-    --   consume at least one extra UTxO are tried. That is, if there are n
+    --   consume _at least one_ extra UTxO are tried. That is, if there are n
     --   'SpendsScript' constraints in the original transaction, the modified
-    --   transactions will consume at most n extra inputs (and least one). Each
-    --   possible combination of extra UTxO and redeemer for the given
-    --   'SpendsScript' constraint is tried together with all options for all
-    --   other 'SpendsScript' constraints. This means that all cases that the
+    --   transactions will consume up to n extra inputs. Each possible
+    --   combination of extra UTxO and redeemer for the given 'SpendsScript'
+    --   constraint is tried together with all options for all other
+    --   'SpendsScript' constraints. This means that all cases that the
     --   'OneChange'-case checks are also explored here, plus some (potentially
     --   very many) more.
     --
