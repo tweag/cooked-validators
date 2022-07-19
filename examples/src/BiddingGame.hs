@@ -88,15 +88,17 @@ data BidParams = BidParams
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 
 type GameResult = Bool
+type Bids = [(Ledger.PubKeyHash, GameResult, Integer)]
+
 data BidDatum
   = GameStart BidParams
   | Bid GameResult
   | -- | Contains the bidders, with duplicates if they bidded more than once.
-    CollectedBids [(Ledger.PubKeyHash, GameResult, Integer)]
+    CollectedBids Bids
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
 data BidRedeemer
-  = BidCollection
+  = BidCollection Bids
   | GameClose GameResult
   | BidReclaim
 
@@ -109,14 +111,24 @@ validateBid p d r ctx =
     let info :: Ledger.TxInfo
         info = Ledger.scriptContextTxInfo ctx
 
+        outputs = Ledger.txInfoOutputs info
+
         consumesGameStart =
           isJust $
             Ledger.findDatumHash
               (Datum $ PlutusTx.toBuiltinData $ GameStart p)
               info
 
+        outputHasCollectedBids bids =
+          case Ledger.findDatumHash
+                 (Datum $ PlutusTx.toBuiltinData $ CollectedBids bids)
+                 info
+            of
+            Just h -> any ((Just h ==) . Ledger.txOutDatumHash) outputs
+            Nothing -> False
+
      in case r of
-      BidCollection ->
+      BidCollection bids ->
         case d of
           GameStart _p ->
              traceIfFalse "only the operator can collect the output of gamestart"
@@ -124,7 +136,8 @@ validateBid p d r ctx =
           Bid _gr ->
                traceIfFalse "the transaction must consume an output with datum GameStart"
                  consumesGameStart
-            && traceIfFalse "there must be an output containing the list of bidders and the total money that each one bet" False
+            && traceIfFalse "there must be a single output containing the list of bidders and the total money that each one bet"
+                 (outputHasCollectedBids bids)
             && traceIfFalse "there must not be other outputs" False
             && traceIfFalse "the bidder of this output must be included in the list of bidders in the transaction output" False
           _ ->
