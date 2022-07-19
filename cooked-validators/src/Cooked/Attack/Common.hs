@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Cooked.Attack.Common where
 
@@ -86,24 +88,24 @@ mkSelectAttack optic f select =
 
 -- * Constructing 'Attack's that return zero or more modified transactions
 
--- | This attack generates potentially very may modified TxSkels, or potentially
--- very few. For each focus, a list of possible modifications, each with an
--- associated label, is computed. The 'SplitStrategy' determines how to combine
--- modifications and labels.
+-- | This attack generates potentially very many modified TxSkels, or
+-- potentially very few. For each focus, a list of possible modifications, each
+-- with an associated label, is computed. The 'SplitStrategy' argument
+-- determines how to combine modifications and labels.
 --
 -- By way of example, consider
 --
 -- > mkSplittingAttack strategy optic f st skel
 --
--- where @optic@ has three foci @x,y,x@ in @skel@. Assume that for each of these
+-- where @optic@ has three foci @x,y,z@ in @skel@. Assume that for each of these
 -- foci, the lists of possible modifications together with their labels are
 -- given by
 --
--- f st x = [(x1, 'a'), (x2, 'b')]
+-- > f st x = [(x1, 'a'), (x2, 'b')]
 --
--- f st y = [(y1, 'c'), (y2, 'd'), (y3, 'e')]
+-- > f st y = [(y1, 'c'), (y2, 'd'), (y3, 'e')]
 --
--- f st z = []
+-- > f st z = []
 --
 -- The strategy 'OneChange' returns all possible modifications of the intial
 -- 'TxSkel' obtained by applying exactly one of the modifications. In the
@@ -119,10 +121,9 @@ mkSelectAttack optic f select =
 -- > ]
 --
 -- The strategy 'AllCombinations' returns all modifications in which at least
--- one focus has been modified. In the example, there are (2+1) * (3+1) * (0+1)
--- = 12 combinations of applied and non-applied modifications, but one of them
--- is the one that leaves everything unchanged, which leaves us with the
--- following 11:
+-- one focus is modified. In the example, there are (2+1) * (3+1) * (0+1) = 12
+-- combinations of applied and non-applied modifications, but one of them is the
+-- one that leaves everything unchanged, which leaves us with the following 11:
 --
 -- > [ ([x,  y1, z], "c"),
 -- >   ([x,  y2, z], "d"),
@@ -137,6 +138,7 @@ mkSelectAttack optic f select =
 -- >   ([x2, y3, z], "be")
 -- > ]
 mkSplittingAttack ::
+  forall k is a b.
   Is k A_Traversal =>
   SplitStrategy ->
   -- | Optic focussing potentially interesting points to modify
@@ -149,13 +151,33 @@ mkSplittingAttack ::
   -- modifications. The order of labels is not specified (yet?)
   ([b] -> TxSkel -> TxSkel) ->
   Attack
-mkSplittingAttack strategy optic f g mcst skel = resSkels
+mkSplittingAttack strategy optic f g mcst skel = modifiedSkels
   where
+    modifiedSkels :: [TxSkel]
+    modifiedSkels =
+      map
+        ( \(foci, mods) ->
+            g mods $
+              set (partsOf optic) foci skel
+        )
+        $ splitter fociWithOptions
+
+    -- The list 'fociWithOptions' has one element for each focus. This element
+    -- is a pair of the unmodified focus and a list of potential modifications
+    -- to that focus, together with the label associated to that modified focus.
+    fociWithOptions :: [(a, [(a, b)])]
     fociWithOptions = map (\x -> (x, f mcst x)) $ view (partsOf optic) skel
 
-    resSkels :: [TxSkel]
-    resSkels = map (\(foci, mods) -> g mods $ set (partsOf optic) foci skel) $ splitter fociWithOptions
-
+    -- We expect the invariant
+    --
+    -- > all (\r -> length (fst r) == length xs) (splitter xs)
+    --
+    -- for 'splitter': The elements of the returned list are pairs of
+    --
+    -- - a list of (potentially) modified foci and
+    --
+    -- - a list of labels to be applied to the 'TxSkel' with the modifed foci.
+    splitter :: [(a, [(a, b)])] -> [([a], [b])]
     splitter = case strategy of
       OneChange -> oneChange
       AllCombinations -> allCombinations
