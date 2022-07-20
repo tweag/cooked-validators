@@ -165,8 +165,8 @@ validateBid p d0 r ctx =
                  (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the operator must earns a commission" False
             && traceIfFalse "all winners must earn in proportion to what they bid" False
-            && traceIfFalse "nobody else is allowed to earn anything" False
-            && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)" False
+            && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
+                 (elem (operator p) $ Ledger.txInfoSignatories info)
           _ ->
             traceIfFalse "GameClose can only take an output with datum BidCollection" False
 
