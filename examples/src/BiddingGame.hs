@@ -154,7 +154,7 @@ validateBid p d0 r ctx =
                traceIfFalse "publication deadline expired"
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "bidding deadline hasn't expired"
-                 (Ledger.to (biddingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+                 (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
             && traceIfFalse "the operator must earns a commission" False
             && traceIfFalse "all winners must earn in proportion to what they bid" False
@@ -167,12 +167,12 @@ validateBid p d0 r ctx =
         case d0 of
           Bid bidder _gr v ->
                traceIfFalse "collection deadline must have expired"
-                 (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+                 (collectionDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to the bidder"
                  (paysTo bidder (Ada.toValue v))
           CollectedBids bids ->
                traceIfFalse "publication deadline must have expired"
-                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+                 (publishingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to all players"
                  (all (\(b, _, v) -> paysTo b (Ada.toValue v)) bids)
           _ ->
