@@ -46,6 +46,9 @@
 -- of the game. Otherwise, she could chose to only collect the bids of
 -- the losers and never pay any money back to the winners.
 --
+-- If a player bets more than once, the on-chain validation doesn't ensure
+-- that the operator pays her for all her winning bets.
+--
 module BiddingGame where
 
 import Data.Aeson (FromJSON, ToJSON)
