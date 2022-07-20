@@ -83,7 +83,7 @@ data BidParams = BidParams
   , publishingDeadline :: Ledger.POSIXTime
   , minimumBid :: Ada.Ada
   , description :: BuiltinByteString
-  , operator :: Ledger.PubKeyHash
+  , operator :: Ledger.PaymentPubKeyHash
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -139,12 +139,23 @@ validateBid p d0 r ctx =
           let oAddress = Ledger.pubKeyHashAddress h Nothing
            in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == v) outputs
 
+        paysToAllWinners gr bids =
+          let winners = filter ((gr ==) . gameResult) bids
+              total_winners = sum (map amount winners)
+              commission = Ada.lovelaceOf (1000000 * length bids)
+              total = sum (map amount bids) - commission
+              winnerIsPaid b =
+                if gameResult b /= gr then True
+                else paysTo (bidder b) (Ada.toValue $ total * amount b `Ada.divide` total_winners)
+           in
+              all winnerIsPaid bids
+
      in case r of
       BidCollection bids ->
         case d0 of
           GameStart _p ->
              traceIfFalse "only the operator can collect the output of gamestart"
-               (elem (operator p) $ Ledger.txInfoSignatories info)
+               (elem (Ledger.unPaymentPubKeyHash $ operator p) $ Ledger.txInfoSignatories info)
           Bid bid ->
                traceIfFalse "collection deadline expired"
                  (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
@@ -156,17 +167,19 @@ validateBid p d0 r ctx =
                  (elem bid bids)
           _ ->
              traceIfFalse "BidCollection can only take outputs with GameStart and Bid datums" False
-      GameClose _gr ->
+      GameClose gr ->
         case d0 of
-          CollectedBids _bids ->
+          CollectedBids bids ->
                traceIfFalse "publication deadline expired"
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "bidding deadline hasn't expired"
                  (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "the operator must earns a commission" False
-            && traceIfFalse "all winners must earn in proportion to what they bid" False
+            && traceIfFalse "the operator must earn a commission"
+                 (paysTo (operator p) (Ada.toValue (Ada.lovelaceOf (1000000 * length bids))))
+            && traceIfFalse "all winners must earn in proportion to what they bid"
+                 (paysToAllWinners gr bids)
             && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
-                 (elem (operator p) $ Ledger.txInfoSignatories info)
+                 (elem (Ledger.unPaymentPubKeyHash $ operator p) $ Ledger.txInfoSignatories info)
           _ ->
             traceIfFalse "GameClose can only take an output with datum BidCollection" False
 
