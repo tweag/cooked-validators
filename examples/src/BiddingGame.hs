@@ -163,7 +163,6 @@ validateBid p d0 r ctx =
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "bidding deadline hasn't expired"
                  (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "the transaction must consume the output of exactly one bid collecting transaction" False
             && traceIfFalse "the operator must earns a commission" False
             && traceIfFalse "all winners must earn in proportion to what they bid" False
             && traceIfFalse "nobody else is allowed to earn anything" False
