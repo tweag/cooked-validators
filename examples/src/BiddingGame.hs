@@ -137,7 +137,7 @@ validateBid p d0 r ctx =
 
         paysTo h v =
           let oAddress = Ledger.pubKeyHashAddress h Nothing
-           in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == v) outputs
+           in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == Ada.toValue v) outputs
 
         paysToAllWinners gr bids =
           let winners = filter ((gr ==) . gameResult) bids
@@ -146,7 +146,7 @@ validateBid p d0 r ctx =
               total = sum (map amount bids) - commission
               winnerIsPaid b =
                 if gameResult b /= gr then True
-                else paysTo (bidder b) (Ada.toValue $ total * amount b `Ada.divide` total_winners)
+                else paysTo (bidder b) (total * amount b `Ada.divide` total_winners)
            in
               all winnerIsPaid bids
 
@@ -175,7 +175,7 @@ validateBid p d0 r ctx =
             && traceIfFalse "bidding deadline hasn't expired"
                  (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the operator must earn a commission"
-                 (paysTo (operator p) (Ada.toValue (Ada.lovelaceOf (1000000 * length bids))))
+                 (paysTo (operator p) (Ada.lovelaceOf (1000000 * length bids)))
             && traceIfFalse "all winners must earn in proportion to what they bid"
                  (paysToAllWinners gr bids)
             && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
@@ -189,12 +189,12 @@ validateBid p d0 r ctx =
                traceIfFalse "collection deadline must have expired"
                  (collectionDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to the bidder"
-                 (paysTo (bidder bid) (Ada.toValue (amount bid)))
+                 (paysTo (bidder bid) (amount bid))
           CollectedBids bids ->
                traceIfFalse "publication deadline must have expired"
                  (publishingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to all players"
-                 (all (\b -> paysTo (bidder b) (Ada.toValue (amount b))) bids)
+                 (all (\b -> paysTo (bidder b) (amount b)) bids)
           _ ->
              traceIfFalse "BidReclaim can only take outputs with Bid and BidCollection datums" False
   where
