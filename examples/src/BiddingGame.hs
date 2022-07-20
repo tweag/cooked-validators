@@ -170,10 +170,11 @@ validateBid p d0 r ctx =
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to the bidder"
                  (paysTo bidder (Ada.toValue v))
-          CollectedBids _bids ->
+          CollectedBids bids ->
                traceIfFalse "publication deadline must have expired"
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
-            && traceIfFalse "the transaction must pay to all players" False
+            && traceIfFalse "the transaction must pay to all players"
+                 (all (\(b, _, v) -> paysTo b (Ada.toValue v)) bids)
           _ ->
              traceIfFalse "BidReclaim can only take outputs with Bid and BidCollection datums" False
   where
