@@ -56,9 +56,9 @@ import GHC.Generics (Generic)
 import qualified Ledger
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Value as Value (geq)
-import Plutus.V1.Ledger.Api (Datum (Datum))
+import qualified Plutus.V1.Ledger.Api as Api
 import Plutus.V1.Ledger.Contexts (ScriptContext (..))
+import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
@@ -84,7 +84,7 @@ data BidParams = BidParams
   { biddingDeadline :: Ledger.POSIXTime
   , collectionDeadline :: Ledger.POSIXTime
   , publishingDeadline :: Ledger.POSIXTime
-  , minimumBid :: Ada.Ada
+  , minimumBid :: Ledger.Value
   , description :: BuiltinByteString
   , operator :: Ledger.PaymentPubKeyHash
   }
@@ -96,7 +96,7 @@ type GameResult = Bool
 data BidData = BidData
   { bidder :: Ledger.PaymentPubKeyHash
   , gameResult :: GameResult
-  , amount :: Ada.Ada
+  , amount :: Ledger.Value
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
@@ -128,28 +128,34 @@ validateBid p d0 r ctx =
 
         outputHasCollectedBids bids =
           case Ledger.findDatumHash
-                 (Datum $ PlutusTx.toBuiltinData $ CollectedBids bids)
+                 (Api.Datum $ PlutusTx.toBuiltinData $ CollectedBids bids)
                  info
             of
             Just h ->
               any (\o ->    Just h == Ledger.txOutDatumHash o
-                         && Ledger.txOutValue o == Ada.toValue (sum (map amount bids))
+                         && Ledger.txOutValue o == sum (map amount bids)
                   )
                   outputs
             Nothing -> False
 
         paysTo h v =
           let oAddress = Ledger.pubKeyHashAddress h Nothing
-           in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == Ada.toValue v) outputs
+           in any (\o -> oAddress == Ledger.txOutAddress o && Ledger.txOutValue o == v) outputs
 
         paysToAllWinners gr bids =
           let winners = filter ((gr ==) . gameResult) bids
               total_winners = sum (map amount winners)
-              commission = Ada.lovelaceOf (1000000 * length bids)
+              commission = Ada.lovelaceValueOf (1000000 * length bids)
               total = sum (map amount bids) - commission
               winnerIsPaid b =
                 if gameResult b /= gr then True
-                else paysTo (bidder b) (total * amount b `Ada.divide` total_winners)
+                else
+                  paysTo
+                    (bidder b)
+                    (Api.unionWith Builtins.divideInteger
+                       (Api.unionWith (*) total (amount b))
+                       total_winners
+                    )
            in
               all winnerIsPaid bids
 
@@ -178,7 +184,7 @@ validateBid p d0 r ctx =
             && traceIfFalse "bidding deadline hasn't expired"
                  (biddingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the operator must earn a commission"
-                 (paysTo (operator p) (Ada.lovelaceOf (1000000 * length bids)))
+                 (paysTo (operator p) (Ada.lovelaceValueOf (1000000 * length bids)))
             && traceIfFalse "all winners must earn in proportion to what they bid"
                  (paysToAllWinners gr bids)
             && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
@@ -204,7 +210,7 @@ validateBid p d0 r ctx =
     findInputWithDatum :: BidDatum -> Ledger.TxInfo -> Maybe Ledger.TxInInfo
     findInputWithDatum d info =
       case Ledger.findDatumHash
-             (Datum $ PlutusTx.toBuiltinData d)
+             (Api.Datum $ PlutusTx.toBuiltinData d)
              info
         of
         Just h ->
