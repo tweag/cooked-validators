@@ -166,8 +166,8 @@ validateBid p d0 r ctx =
       BidReclaim ->
         case d0 of
           Bid bidder _gr v ->
-               traceIfFalse "publication deadline must have expired"
-                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+               traceIfFalse "collection deadline must have expired"
+                 (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must pay to the bidder"
                  (paysTo bidder (Ada.toValue v))
           CollectedBids bids ->
