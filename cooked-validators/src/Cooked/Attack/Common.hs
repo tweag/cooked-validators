@@ -95,7 +95,7 @@ mkSelectAttack optic f select =
 --
 -- By way of example, consider
 --
--- > mkSplittingAttack strategy optic f st skel
+-- > mkSplittingAttack strategy optic f g st skel
 --
 -- where @optic@ has three foci @x,y,z@ in @skel@. Assume that for each of these
 -- foci, the lists of possible modifications together with their labels are
@@ -144,7 +144,7 @@ mkSplittingAttack ::
   -- | Optic focussing potentially interesting points to modify
   Optic' k is TxSkel a ->
   -- | Function that returns possible modifications of the current focus,
-  -- together with some piece of extra information
+  -- together with some piece of extra information (labels)
   (MockChainSt -> a -> [(a, b)]) ->
   -- | function to look at a modified 'TxSkel' and the list of labels of all
   -- modifications applied to it, in order to apply optional further

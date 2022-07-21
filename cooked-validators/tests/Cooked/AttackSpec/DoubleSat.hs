@@ -124,29 +124,47 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    [ testCase "unit test on a 'TxSkel'" $
+    [ testGroup
+        "smart constructors for 'DoubleSatParams'"
+        [], -- TODO
+      testCase "unit test on a 'TxSkel'" $
         let params =
               DoubleSatParams
-                { dsExtraInputOwner = bValidator,
-                  dsExtraInputSelect = \(SpendsScriptConstraint _ _ (aOut, _)) (bOut, _) ->
-                    let aValue = sOutValue aOut
-                        bValue = sOutValue bOut
-                     in if
-                            | aValue == L.lovelaceValueOf 2_000_000 ->
-                              -- condition not satisfied by any UTxO in 'dsTestMockChain'
-                              [BRedeemer1 | bValue == L.lovelaceValueOf 123]
-                            | aValue == L.lovelaceValueOf 3_000_000 ->
-                              [BRedeemer1 | bValue == L.lovelaceValueOf 6_000_000]
-                            | aValue == L.lovelaceValueOf 4_000_000 ->
-                              if
-                                  | bValue == L.lovelaceValueOf 6_000_000 -> [BRedeemer1]
-                                  | bValue == L.lovelaceValueOf 7_000_000 -> [BRedeemer1, BRedeemer2]
-                                  | otherwise -> []
-                            | otherwise -> [],
+                { dsExtraConstraints = \mcst ssc ->
+                    let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
+                     in case ssc of
+                          SpendsScriptConstraint _ _ (aOut, _) ->
+                            let aValue = sOutValue aOut
+                             in if
+                                    | aValue == L.lovelaceValueOf 2_000_000 ->
+                                      [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                        | (bOut, bDatum) <- bUtxos,
+                                          sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                      ]
+                                    | aValue == L.lovelaceValueOf 3_000_000 ->
+                                      [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                        | (bOut, bDatum) <- bUtxos,
+                                          sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                      ]
+                                    | aValue == L.lovelaceValueOf 4_000_000 ->
+                                      concatMap
+                                        ( \(bOut, bDatum) ->
+                                            let bValue = sOutValue bOut
+                                             in if
+                                                    | bValue == L.lovelaceValueOf 6_000_000 ->
+                                                      [toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)]
+                                                    | bValue == L.lovelaceValueOf 7_000_000 ->
+                                                      [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum),
+                                                        toConstraints $ SpendsScript bValidator BRedeemer2 (bOut, bDatum)
+                                                      ]
+                                                    | otherwise -> []
+                                        )
+                                        bUtxos
+                                    | otherwise -> [],
                   dsAttacker = wallet 6,
                   dsSplitStrategy = OneChange
                 }
-            [[aOut1], [aOut2], [aOut3], [aOut4]] =
+            [[aUtxo1], [aUtxo2], [aUtxo3], [aUtxo4]] =
               map
                 ( \n ->
                     scriptUtxosSuchThatMcst
@@ -159,7 +177,7 @@ tests =
                   4_000_000,
                   5_000_000
                 ]
-            [[bOut1], [bOut2], [bOut3]] =
+            [[bUtxo1], [bUtxo2], [bUtxo3]] =
               map
                 ( \n ->
                     scriptUtxosSuchThatMcst
@@ -171,39 +189,42 @@ tests =
                   7_000_000,
                   8_000_000
                 ]
-            skelIn aOuts =
+            skelIn aUtxos =
               txSkel $
-                map (SpendsScript aValidator ARedeemer) aOuts
+                map (SpendsScript aValidator ARedeemer) aUtxos
                   :=>: [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
-            skelOut aOuts = doubleSatAttack params dsTestMockChainSt $ skelIn aOuts
-            skelExpected aOuts bOuts =
+            skelOut aUtxos = doubleSatAttack params dsTestMockChainSt $ skelIn aUtxos
+
+            skelExpected aUtxos bUtxos =
               map
                 ( \((bOut, bDat), bRed) ->
                     txSkelLbl DoubleSatLbl $
                       ( SpendsScript bValidator bRed (bOut, bDat) :
-                        map (SpendsScript aValidator ARedeemer) aOuts
+                        map (SpendsScript aValidator ARedeemer) aUtxos
                       )
                         :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                               paysPK (walletPKHash (wallet 6)) (sOutValue bOut)
+                               paysPK
+                                 (walletPKHash (wallet 6))
+                                 (sOutValue bOut <> foldMap (sOutValue . fst) aUtxos <> L.lovelaceValueOf (- 2_500_000))
                              ]
                 )
-                bOuts
+                bUtxos
          in testConjoin $
               map
-                (\(aOuts, bOuts) -> assertSameTxSkels (skelExpected aOuts bOuts) (skelOut aOuts))
-                [ ([aOut1], []),
-                  ([aOut2], [(bOut1, BRedeemer1)]),
-                  ([aOut3], [(bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]),
-                  ([aOut4], []),
-                  ([aOut1, aOut4], []),
-                  ([aOut4, aOut1], []),
-                  ([aOut1, aOut2], [(bOut1, BRedeemer1)]),
-                  ([aOut2, aOut4], [(bOut1, BRedeemer1)]),
-                  ( [aOut2, aOut3],
-                    [(bOut1, BRedeemer1), (bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]
+                (\(aUtxos, bUtxos) -> assertSameTxSkels (skelExpected aUtxos bUtxos) (skelOut aUtxos))
+                [ ([aUtxo1], []),
+                  ([aUtxo2], [(bUtxo1, BRedeemer1)]),
+                  ([aUtxo3], [(bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]),
+                  ([aUtxo4], []),
+                  ([aUtxo1, aUtxo4], []),
+                  ([aUtxo4, aUtxo1], []),
+                  ([aUtxo1, aUtxo2], [(bUtxo1, BRedeemer1)]),
+                  ([aUtxo2, aUtxo4], [(bUtxo1, BRedeemer1)]),
+                  ( [aUtxo2, aUtxo3],
+                    [(bUtxo1, BRedeemer1), (bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]
                   ),
-                  ( [aOut1, aOut2, aOut3, aOut4],
-                    [(bOut1, BRedeemer1), (bOut1, BRedeemer1), (bOut2, BRedeemer1), (bOut2, BRedeemer2)]
+                  ( [aUtxo1, aUtxo2, aUtxo3, aUtxo4],
+                    [(bUtxo1, BRedeemer1), (bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]
                   )
                 ]
     ]
