@@ -41,7 +41,7 @@ prettyWallet pkh =
     phash = prettyHash pkh
 
 prettyOutConstraint :: OutConstraint -> Doc ann
-prettyOutConstraint (PaysScript val datum value) =
+prettyOutConstraint (PaysScript val _ datum value) =
   prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
 prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
   prettyEnum

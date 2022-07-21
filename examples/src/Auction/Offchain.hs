@@ -45,7 +45,7 @@ txOpen p = do
             token,
           SpendsPK utxo
         ]
-          :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
+          :=>: [ paysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
                ]
   return (p', q)
 
@@ -71,7 +71,7 @@ txBid p bid = do
             (A.Bid (A.BidderInfo bid bidder))
             utxo
         ]
-          :=>: ( [ PaysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
+          :=>: ( [ paysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
                      A.lot p <> Ada.lovelaceValueOf bid <> Value.assetClassValue (A.threadTokenAssetClass p) 1
                  ]
                    <> case previousBidder (snd utxo) of

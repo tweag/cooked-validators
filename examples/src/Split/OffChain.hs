@@ -31,7 +31,7 @@ txLock script datum =
   void $
     validateTxConstrLbl
       (TxLock datum)
-      [ PaysScript
+      [ paysScript
           script
           datum
           (Pl.lovelaceValueOf (Split.amount datum))

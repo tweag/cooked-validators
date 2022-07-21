@@ -153,12 +153,13 @@ instance Eq MiscConstraint where
 
 -- | Constraints which specify new transaction outputs
 data OutConstraint where
-  -- | Creates an UTxO to the given validator, with the given datum
-  -- and the given value. That is, lets the scirpt lock the given
-  -- value.
+  -- | Creates an UTxO to the given validator, with an optional
+  -- staking credential, and with the given datum and the given
+  -- value. That is, lets the script lock the given value.
   PaysScript ::
     (PaysScriptConstrs a) =>
     Pl.TypedValidator a ->
+    Maybe Pl.StakingCredential ->
     Pl.DatumType a ->
     Pl.Value ->
     OutConstraint
@@ -178,9 +179,9 @@ data OutConstraint where
 -- NB don't forget to update the Eq instance when adding new constructors
 
 instance Eq OutConstraint where
-  PaysScript s1 d1 v1 == PaysScript s2 d2 v2 =
+  PaysScript s1 sc1 d1 v1 == PaysScript s2 sc2 d2 v2 =
     case s1 ~*~? s2 of
-      Just HRefl -> (s1, v1) == (s2, v2) && d1 Pl.== d2
+      Just HRefl -> (s1, v1) == (s2, v2) && sc1 Pl.== sc2 && d1 Pl.== d2
       Nothing -> False
   PaysPKWithDatum pk1 stake1 d1 v1 == PaysPKWithDatum pk2 stake2 d2 v2 =
     case d1 ~*~? d2 of
@@ -212,6 +213,9 @@ instance ConstraintsSpec OutConstraint where
 
 paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
 paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
+
+paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> OutConstraint
+paysScript tv = PaysScript tv Nothing
 
 mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 mints = Mints @() Nothing

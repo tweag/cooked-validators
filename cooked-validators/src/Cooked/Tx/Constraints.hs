@@ -85,7 +85,7 @@ instance ToLedgerConstraint MiscConstraint where
   toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
 
 instance ToLedgerConstraint OutConstraint where
-  extractDatumStr (PaysScript _validator datum _value) =
+  extractDatumStr (PaysScript _validator _ datum _value) =
     M.singleton (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum) (show datum)
   extractDatumStr (PaysPKWithDatum _pk _stak mdat _v) =
     maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
@@ -100,14 +100,20 @@ instance ToLedgerConstraint OutConstraint where
           -- a different 'WithOwnStakePubKeyHash' constraint?
           <> maybe mempty Pl.ownStakePubKeyHash stak
       constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
-  toLedgerConstraint (PaysScript v datum value) = (lkups, constr)
+  toLedgerConstraint (PaysScript v msc datum value) = (lkups, constr)
     where
       lkups = Pl.otherScript (Pl.validatorScript v)
       constr =
-        Pl.mustPayToOtherScript
-          (Pl.validatorHash $ Pl.validatorScript v)
-          (Pl.Datum $ Pl.toBuiltinData datum)
-          value
+        Pl.singleton $
+          Pl.MustPayToOtherScript
+            (Pl.validatorHash $ Pl.validatorScript v)
+            (getStakeValidatorHash msc)
+            (Pl.Datum $ Pl.toBuiltinData datum)
+            value
+      getStakeValidatorHash :: Maybe Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
+      getStakeValidatorHash (Just (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh)))) =
+        Just $ Pl.StakeValidatorHash svh
+      getStakeValidatorHash _ = Nothing
 
 instance ToLedgerConstraint Constraints where
   extractDatumStr (miscConstraints :=>: outConstraints) =
@@ -135,12 +141,17 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
     }
-outConstraintToTxOut (PaysScript validator datum value) =
-  Pl.TxOut
-    { Pl.txOutAddress = Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator,
-      Pl.txOutValue = value,
-      Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-    }
+outConstraintToTxOut (PaysScript validator msc datum value) =
+  let outAddr = appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator
+   in Pl.TxOut
+        { Pl.txOutAddress = outAddr,
+          Pl.txOutValue = value,
+          Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+        }
+  where
+    appendStakingCredential :: Maybe Pl.StakingCredential -> Pl.Address -> Pl.Address
+    appendStakingCredential Nothing addr = addr
+    appendStakingCredential (Just sc) addr = addr {Pl.addressStakingCredential = Just sc}
 
 -- | Reorders the outputs of a transaction according to the ordered list of
 -- output constraints that generate them. Fails in case of mismatch. The
