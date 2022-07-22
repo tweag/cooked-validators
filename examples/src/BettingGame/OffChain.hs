@@ -18,7 +18,8 @@ import qualified Ledger.Typed.Scripts as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)
 import qualified Plutus.Contract as C
 import qualified Plutus.V1.Ledger.Api as Api
-import qualified PlutusTx.Prelude as Pl (sum)
+import qualified PlutusTx.Builtins as Builtins
+import qualified PlutusTx.Prelude as Pl ((-), sum)
 import BettingGame
 import qualified Wallet.Emulator.Wallet as C
 
@@ -59,11 +60,11 @@ data TxBet = TxBet BetParams BetData deriving (Show, Eq)
 
 txCollectBets :: MonadBlockChain m => BetParams -> m ()
 txCollectBets p = do
-    betOutputs <- scriptUtxosSuchThat (betValidator p) isValidBet
-    gameStartOutput : _ <-  scriptUtxosSuchThat (betValidator p) isGameStart
+    let script = betValidator p
+    betOutputs <- scriptUtxosSuchThat script isValidBet
+    gameStartOutput : _ <-  scriptUtxosSuchThat script isGameStart
 
     let bets = map betFromOutput betOutputs
-        script = betValidator p
     void $
       validateTxConstrLbl
         TxCollectBets
@@ -84,6 +85,42 @@ txCollectBets p = do
 
 -- | Label for 'txCollectBets' skeleton
 data TxCollectBets = TxCollectBets deriving (Show, Eq)
+
+txClose :: MonadBlockChain m => BetParams -> GameResult -> m ()
+txClose p gr0 = do
+    let script = betValidator p
+    -- TODO: check that the collected bets are legit and not forged by an
+    -- attacker.
+    collectedBetsOutput@(_, CollectedBets bets) : _ <-  scriptUtxosSuchThat script isCollectedBets
+    let commission = Pl.lovelaceValueOf (fromIntegral (1000000 * length bets))
+    void $
+      validateTxConstrLbl
+        TxCollectBets
+        ( [ SpendsScript script (GameClose gr0) collectedBetsOutput ]
+          :=>:
+          (paysPK (operator p) commission
+            : [ paysPK (player b) v | b <- bets, Just v <- [paidToBet commission gr0 bets b] ]
+          )
+        )
+
+  where
+    isCollectedBets CollectedBets{} _ = True
+    isCollectedBets _ _ = False
+
+    paidToBet :: Pl.Value -> GameResult -> [BetData] -> BetData -> Maybe Pl.Value
+    paidToBet commission gr bets b =
+      let winners = filter ((gr ==) . gameResult) bets
+          total_winners = Pl.sum (map amount winners)
+          total = Pl.sum (map amount bets) Pl.- commission
+       in if gameResult b /= gr then Nothing
+          else
+            Just $ Api.unionWith Builtins.divideInteger
+              (Api.unionWith (*) total (amount b))
+              total_winners
+
+-- | Label for 'txCollectBets' skeleton
+data TxClose = TxClose BetParams deriving (Show, Eq)
+
 
 {-
 
