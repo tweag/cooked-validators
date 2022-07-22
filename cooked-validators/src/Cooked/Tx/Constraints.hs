@@ -104,12 +104,14 @@ instance ToLedgerConstraint OutConstraint where
     where
       lkups = Pl.otherScript (Pl.validatorScript v)
       constr =
-        Pl.singleton $
-          Pl.MustPayToOtherScript
-            (Pl.validatorHash $ Pl.validatorScript v)
-            (getStakeValidatorHash msc)
-            (Pl.Datum $ Pl.toBuiltinData datum)
-            value
+        Pl.singleton
+          ( Pl.MustPayToOtherScript
+              (Pl.validatorHash $ Pl.validatorScript v)
+              (getStakeValidatorHash msc)
+              (Pl.Datum $ Pl.toBuiltinData datum)
+              value
+          )
+          <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
       getStakeValidatorHash :: Maybe Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
       getStakeValidatorHash (Just (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh)))) =
         Just $ Pl.StakeValidatorHash svh
