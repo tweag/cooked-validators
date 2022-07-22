@@ -127,6 +127,9 @@ tests =
     [ testGroup
         "smart constructors for 'DoubleSatParams'"
         [], -- TODO
+      testGroup
+        "unit tests for 'joinConstraints'"
+        [], -- TODO
       testCase "unit test on a 'TxSkel'" $
         let params =
               DoubleSatParams
@@ -203,9 +206,7 @@ tests =
                         map (SpendsScript aValidator ARedeemer) aUtxos
                       )
                         :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                               paysPK
-                                 (walletPKHash (wallet 6))
-                                 (sOutValue bOut <> foldMap (sOutValue . fst) aUtxos <> L.lovelaceValueOf (- 2_500_000))
+                               paysPK (walletPKHash (wallet 6)) (sOutValue bOut)
                              ]
                 )
                 bUtxos

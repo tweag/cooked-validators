@@ -107,8 +107,8 @@ mkSelectAttack optic f select =
 --
 -- > f st z = []
 --
--- The strategy 'OneChange' returns all possible modifications of the intial
--- 'TxSkel' obtained by applying exactly one of the modifications. In the
+-- The strategy 'OneChange' passes to @g@ all possible modifications of the
+-- intial 'TxSkel' obtained by applying exactly one of the modifications. In the
 -- example, this would mean 2 + 3 + 0 = 5 modified 'TxSkel's, namely the ones
 -- corresponding to the following lists of (un)modified foci, together with
 -- their (singleton) lists of labels:
@@ -120,8 +120,8 @@ mkSelectAttack optic f select =
 -- >   ([x,  y3, z], "e")
 -- > ]
 --
--- The strategy 'AllCombinations' returns all modifications in which at least
--- one focus is modified. In the example, there are (2+1) * (3+1) * (0+1) = 12
+-- The strategy 'AllCombinations' passes to @g@ all modifications that change at
+-- least focus. In the example, there are (2+1) * (3+1) * (0+1) = 12
 -- combinations of applied and non-applied modifications, but one of them is the
 -- one that leaves everything unchanged, which leaves us with the following 11:
 --
@@ -149,13 +149,13 @@ mkSplittingAttack ::
   -- | function to look at a modified 'TxSkel' and the list of labels of all
   -- modifications applied to it, in order to apply optional further
   -- modifications. The order of labels is not specified (yet?)
-  ([b] -> TxSkel -> TxSkel) ->
+  ([b] -> TxSkel -> [TxSkel]) ->
   Attack
 mkSplittingAttack strategy optic f g mcst skel = modifiedSkels
   where
     modifiedSkels :: [TxSkel]
     modifiedSkels =
-      map
+      concatMap
         ( \(foci, mods) ->
             g mods $
               set (partsOf optic) foci skel

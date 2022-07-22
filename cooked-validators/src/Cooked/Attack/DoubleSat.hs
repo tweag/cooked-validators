@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -11,10 +12,11 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import Data.Bifunctor
-import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
+import qualified Ledger.Value as L
 import Optics.Core
+import qualified Plutus.V1.Ledger.Interval as Pl
+import qualified Plutus.V1.Ledger.Time as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
 
@@ -51,16 +53,15 @@ data DoubleSatParams = DoubleSatParams
     -- modification, calculate a list of extra 'Constraints' to add to the
     -- transaction in order to try a double satisfaction attack.
     --
-    -- Extra 'Constraints' like @extraIs :=>: extraOs@ are added to pre-existing
-    -- 'Constraints' @is :=>: os@ as follows:
+    -- Extra 'Constraints' are added to pre-existing 'Constraints' with the
+    -- function 'joinConstraints', which makes sure that no additional
+    -- constraint tries to an UTxO that's already being spent and other such
+    -- checks. See the documentation comments for that function below.
     --
-    -- > (extraIs ++ is) :=>: (os :=>: extraOs)
-    --
-    -- while the order on the left of ':=>:' shouldn't matter, the order on the
-    -- right is chosen deliberately because contracts may rely on the ordering
-    -- transaction outputs. If you want to try all permutations on the right,
-    -- look at the function 'tryOutPermutations', which is an attack-agnostic
-    -- way to accomplish that.
+    -- We add 'OutConstraint's at the end of the list, because some contracts
+    -- rely on the ordering of (the first few) transaction outputs. If you want
+    -- to try permutations of transaction outputs, look at the function
+    -- 'tryOutPermutations', which is an attack-agnostic way to accomplish that.
     dsExtraConstraints :: MockChainSt -> SpendsScriptConstraint -> [Constraints],
     -- | The wallet to which any surplus will be paid.
     dsAttacker :: Wallet,
@@ -84,26 +85,34 @@ data DoubleSatParams = DoubleSatParams
     --   constraints. This means that all cases that the 'OneChange'-case checks
     --   are also explored here, plus some (potentially very many) more.
     --
+    -- If there is a conflict between some of the 'Constraints' that are to be
+    -- added to an output transaction (for example, two 'Constraints' might
+    -- require the same UTxO to be spent with different redeemers), that
+    -- combination is not tried.
+    --
     -- See the comments for 'mkSplittingAttack' for more explanation on
     -- 'SplitStrategy'.
     dsSplitStrategy :: SplitStrategy
   }
 
--- | Parameters for a double satisfaction attack that takes the following
--- perspective: "I hav set of traces that I want to use to test whether a given,
--- fixed validator is vulnerable to a double satisfaction attack"
---
--- TODO more explanation/better interface
-doubleSatParamsAddSingleFrom ::
+-- | Parameters for a double satisfaction attack that adds one extra input
+-- belonging to a given validator to transactions. Each of the modified
+-- transactions will contain exactly one extra 'SpendsScript' constraint.
+dsOneExtraInputFrom ::
   ( SpendsConstrs b,
     Pl.FromData (L.DatumType b)
   ) =>
+  -- | The validator to take extra inputs from.
   L.TypedValidator b ->
+  -- | For all 'SpendsScript' constraints of the original transaction, decide
+  -- whether to add an extra UTxO, and if so, which redeemers to try. Each
+  -- redeemer is tried on a separate output transaction.
   (SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  -- | Wallet of the attacker. Any value contained in the extra UTxO consumed by
+  -- the modified transactions is paid to this wallet.
   Wallet ->
-  SplitStrategy ->
   DoubleSatParams
-doubleSatParamsAddSingleFrom extraInputOwner extraInputRedeemers attacker splitStrategy =
+dsOneExtraInputFrom extraInputOwner extraInputRedeemers attacker =
   DoubleSatParams
     { dsExtraConstraints = \mcst ssc ->
         let extraUtxos = scriptUtxosSuchThatMcst mcst extraInputOwner (\_ _ -> True)
@@ -115,7 +124,7 @@ doubleSatParamsAddSingleFrom extraInputOwner extraInputRedeemers attacker splitS
               )
               extraUtxos,
       dsAttacker = attacker,
-      dsSplitStrategy = splitStrategy
+      dsSplitStrategy = OneChange
     }
 
 -- | Double satisfaction attack. See the comments for 'DoubleSatParams' and its
@@ -132,30 +141,125 @@ doubleSatAttack DoubleSatParams {..} =
           (ssc,)
           (dsExtraConstraints mcst ssc)
     )
-    ( \extraConstrs skelOld ->
-        addLabel DoubleSatLbl $
-          paySurplusTo dsAttacker $
-            over txConstraintsL (accConstraints extraConstrs) skelOld
+    ( \extraConstrList skelOld ->
+        let extraConstrs = accConstraints extraConstrList ([] :=>: [])
+            extraInValue = foldOf (constraintPairI % _1 % traversed % valueAT) extraConstrs
+            extraOutValue = foldOf (constraintPairI % _2 % traversed % valueL) extraConstrs
+            surplus = extraInValue <> Pl.negate extraOutValue
+         in [ addLabel DoubleSatLbl $
+                payTo dsAttacker surplus $
+                  over txConstraintsL (extraConstrs `joinConstraints`) skelOld
+              | extraConstrs `strictlyExtendsConstraints` (skelOld ^. txConstraintsL)
+            ]
     )
   where
-    paySurplusTo :: Wallet -> TxSkel -> TxSkel
-    paySurplusTo w s = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) s
-      where
-        surplus = txSkelInValue s <> Pl.negate (txSkelOutValue s)
+    payTo :: Wallet -> L.Value -> TxSkel -> TxSkel
+    payTo w v = over outConstraintsL (++ [paysPK (walletPKHash w) v])
 
     -- Accumulate a list of 'Constraints' into a single 'Constraints', in such a
     -- way that extra 'MiscConstraint's are added in the front (the order should
     -- not matter), and extra 'OutConstraint's are added in the back (here, the
     -- order might matter).
     --
-    -- Note for the future: Adding constraints in this way is dangerous: We
-    -- might for example add two constraints that try to spend the same UTxO
-    -- with different redeemers.
+    -- Note: This combines the list of extra constraints into a
     accConstraints :: [Constraints] -> Constraints -> Constraints
     accConstraints [] acc = acc
-    accConstraints ((is :=>: os) : cs) acc =
-      over constraintPairI (bimap (is ++) (++ os)) $
-        accConstraints cs acc
+    accConstraints (c : cs) acc = c `joinConstraints` accConstraints cs acc
+
+-- | Extend the constraints in the second argument with the ones from the first
+-- argument, but only if there are no conflicts:
+--
+-- - No 'SpendsScript' or 'SpendsPK' constraints trying to spend the same UTxO
+--
+-- - No incompatible time ranges
+joinConstraints :: Constraints -> Constraints -> Constraints
+joinConstraints (extraIs :=>: extraOs) r@(is :=>: os) =
+  case miscListExtend extraIs is of
+    Nothing -> r
+    Just is' -> is' :=>: (os ++ extraOs)
+  where
+    miscListExtend :: [MiscConstraint] -> [MiscConstraint] -> Maybe [MiscConstraint]
+    miscListExtend [] rs = Just rs
+    miscListExtend (m : ls) rs = case miscListExtend ls rs of
+      Nothing -> Nothing
+      Just ms -> case checkMiscExtend m ms of
+        Incompatible -> Nothing
+        AlreadyThere -> Just ms
+        CompatibleExtension -> Just $ m : ms
+
+-- | Return @True@ iff the constraints in the first argument can be added
+-- without conflict to the ones in the second argument, and they are not alreay
+-- covered by the constraints in the second argument.
+strictlyExtendsConstraints :: Constraints -> Constraints -> Bool
+strictlyExtendsConstraints (is :=>: os) (is' :=>: os') =
+  case checkMiscListExtend is is' of
+    Incompatible -> False
+    AlreadyThere -> not (all (`elem` os') os)
+    CompatibleExtension -> True
+  where
+    -- check that all constraints from the first list can be added one after
+    -- the other to the second list.
+    checkMiscListExtend :: [MiscConstraint] -> [MiscConstraint] -> CheckMiscExtend
+    checkMiscListExtend [] _ = AlreadyThere
+    checkMiscListExtend (l : ls) rs = case checkMiscExtend l rs of
+      Incompatible -> Incompatible
+      CompatibleExtension -> case checkMiscListExtend ls (l : rs) of
+        Incompatible -> Incompatible
+        _ -> CompatibleExtension
+      AlreadyThere -> checkMiscListExtend ls (l : rs)
+
+data CheckMiscExtend = Incompatible | AlreadyThere | CompatibleExtension
+
+-- | Check how a given 'MiscConstraint' relates to a set of other
+-- 'MiscConstraint's:
+--
+-- - If the set of constraints already includes the given constraint (either
+--   directly or as a consequence), return 'AlreadyThere'
+--
+-- - If the given constraint can be added to the set without conflict, return 'CompatibleExtension'
+--
+-- - Otherwise, return 'Incompatible'
+checkMiscExtend :: MiscConstraint -> [MiscConstraint] -> CheckMiscExtend
+checkMiscExtend _ [] = CompatibleExtension
+checkMiscExtend mc mcs =
+  if mc `elem` mcs
+    then AlreadyThere
+    else
+      let spends :: SpendableOut -> MiscConstraint -> Bool
+          spends o (SpendsScript _ _ (o', _)) = o == o'
+          spends o (SpendsPK o') = o == o'
+          spends _ _ = False
+
+          validRange :: [MiscConstraint] -> Pl.POSIXTimeRange
+          validRange [] = Pl.always
+          validRange (Before t : ms) = Pl.to t `Pl.intersection` validRange ms
+          validRange (After t : ms) = Pl.from t `Pl.intersection` validRange ms
+          validRange (ValidateIn range : ms) = range `Pl.intersection` validRange ms
+          validRange (_ : ms) = validRange ms
+       in case mc of
+            SpendsScript _ _ (o, _) -> if any (spends o) mcs then Incompatible else CompatibleExtension
+            SpendsPK o -> if any (spends o) mcs then Incompatible else CompatibleExtension
+            Before t ->
+              let oldRange = validRange mcs
+                  newRange = Pl.to t
+               in if
+                      | newRange `Pl.contains` oldRange -> AlreadyThere
+                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                      | otherwise -> Incompatible
+            After t ->
+              let oldRange = validRange mcs
+                  newRange = Pl.from t
+               in if
+                      | newRange `Pl.contains` oldRange -> AlreadyThere
+                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                      | otherwise -> Incompatible
+            ValidateIn newRange ->
+              let oldRange = validRange mcs
+               in if
+                      | newRange `Pl.contains` oldRange -> AlreadyThere
+                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                      | otherwise -> Incompatible
+            _ -> CompatibleExtension
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)

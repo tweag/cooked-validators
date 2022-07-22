@@ -14,6 +14,7 @@ import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Optics
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
@@ -174,9 +175,9 @@ tryDoubleSat = do
   (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   somewhere
     ( doubleSatAttack
-        ( DoubleSatParams
-            { dsExtraInputOwner = A.auctionValidator p,
-              dsExtraInputSelect = \_ _ ->
+        ( dsOneExtraInputFrom
+            (A.auctionValidator p)
+            ( \_ _ ->
                 A.Hammer :
                 map
                   (A.Bid . uncurry A.BidderInfo)
@@ -186,10 +187,9 @@ tryDoubleSat = do
                     (4, walletPKHash $ wallet 6),
                     (3, walletPKHash $ wallet 1),
                     (3, walletPKHash $ wallet 6)
-                  ],
-              dsAttacker = wallet 6,
-              dsSplitStrategy = AllCombinations
-            }
+                  ]
+            )
+            (wallet 6)
         )
     )
     ( do
