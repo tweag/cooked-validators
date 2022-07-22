@@ -124,7 +124,10 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    [ testGroup
+    [ testCase "the two test validators have different addresses" $
+        assertBool "the addresses are the same" $
+          L.validatorAddress aValidator /= L.validatorAddress bValidator,
+      testGroup
         "smart constructors for 'DoubleSatParams'"
         [], -- TODO
       testGroup

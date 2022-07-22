@@ -96,6 +96,7 @@ test-suite spec
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.DoubleSat
       Cooked.AttackSpec.DupToken
+      Cooked.AttackSpec.OutPermutations
       Cooked.AttackSpec.Util
       Cooked.BalanceSpec
       Cooked.LtlSpec
