@@ -42,18 +42,17 @@ txStart p =
 -- | Label for 'txStart' skeleton
 newtype TxStart = TxStart BetParams deriving (Show, Eq)
 
-txBet :: MonadBlockChain m => BetParams -> GameResult -> Pl.Value -> m ()
-txBet p gr v = do
+txBet :: MonadBlockChain m => (BetParams, (GameResult, Pl.Value)) -> m ()
+txBet (p, (gr, v)) = do
     player <- ownPaymentPubKeyHash
     let d = BetData player gr v
     void $
       validateTxConstrLbl
         (TxBet p d)
-        [ PaysScript
-            (betValidator p)
-            (Bet d)
-            v
-        ]
+        ( [ Before (bettingDeadline p) ]
+          :=>:
+          [ PaysScript (betValidator p) (Bet d) v ]
+        )
 
 -- | Label for 'txBet' skeleton
 data TxBet = TxBet BetParams BetData deriving (Show, Eq)
@@ -68,7 +67,9 @@ txCollectBets p = do
     void $
       validateTxConstrLbl
         TxCollectBets
-        ( map (SpendsScript script (BetCollection bets)) (gameStartOutput : betOutputs)
+        ( ( Before (collectionDeadline p)
+          : map (SpendsScript script (BetCollection bets)) (gameStartOutput : betOutputs)
+          )
           :=>: [ PaysScript script (CollectedBets bets) (Api.unionWith max (Pl.sum (map amount bets)) minValue) ]
         )
 
@@ -86,8 +87,8 @@ txCollectBets p = do
 -- | Label for 'txCollectBets' skeleton
 data TxCollectBets = TxCollectBets deriving (Show, Eq)
 
-txClose :: MonadBlockChain m => BetParams -> GameResult -> m ()
-txClose p gr0 = do
+txClose :: MonadBlockChain m => (BetParams, GameResult) -> m ()
+txClose (p, gr0) = do
     let script = betValidator p
     -- TODO: check that the collected bets are legit and not forged by an
     -- attacker.
@@ -96,7 +97,9 @@ txClose p gr0 = do
     void $
       validateTxConstrLbl
         TxCollectBets
-        ( [ SpendsScript script (GameClose gr0) collectedBetsOutput ]
+        ( [ Before (publishingDeadline p)
+          , SpendsScript script (GameClose gr0) collectedBetsOutput
+          ]
           :=>:
           (paysPK (operator p) commission
             : [ paysPK (player b) v | b <- bets, Just v <- [paidToBet commission gr0 bets b] ]
@@ -118,7 +121,7 @@ txClose p gr0 = do
               (Api.unionWith (*) total (amount b))
               total_winners
 
--- | Label for 'txCollectBets' skeleton
+-- | Label for 'txClose' skeleton
 data TxClose = TxClose BetParams deriving (Show, Eq)
 
 txReclaim :: MonadBlockChain m => BetParams -> m ()
@@ -132,8 +135,10 @@ txReclaim p = do
       let total = Pl.sum [ amount d | (_, Bet d) <- betOutputs ]
       void $
         validateTxConstrLbl
-          TxCollectBets
-          ( map (SpendsScript script BetReclaim) betOutputs
+          TxReclaim
+          ( ( After (collectionDeadline p)
+            : map (SpendsScript script BetReclaim) betOutputs
+            )
             :=>:
             [ paysPK ply total ]
           )
@@ -142,8 +147,10 @@ txReclaim p = do
       collectedBetsOutput@(_, CollectedBets bets) : _ ->
         void $
           validateTxConstrLbl
-            TxCollectBets
-            ( [ SpendsScript script BetReclaim collectedBetsOutput ]
+            TxReclaim
+            ( [ After (publishingDeadline p)
+              , SpendsScript script BetReclaim collectedBetsOutput
+              ]
               :=>:
               [ paysPK (player b) (amount b) | b <- bets ]
             )
@@ -155,37 +162,28 @@ txReclaim p = do
     isCollectedBets CollectedBets{} _ = True
     isCollectedBets _ _ = False
 
-{-
+-- | Label for 'txReclaim' skeleton
+data TxReclaim = TxReclaim deriving (Show, Eq)
 
-TODO: check deadlines
+-- TODO: check deadlines
 
+type BettingGameSchema =
+             C.Endpoint "start" BetParams
+       C..\/ C.Endpoint "bet" (BetParams, (GameResult, Pl.Value))
+       C..\/ C.Endpoint "collectBets" BetParams
+       C..\/ C.Endpoint "close" (BetParams, GameResult)
+       C..\/ C.Endpoint "reclaim" BetParams
 
--- * Contract monad endpoints and schema
+mkSchemaDefinitions ''BettingGameSchema
 
-data LockArgs = LockArgs
-  { recipient1Wallet :: C.Wallet,
-    recipient2Wallet :: C.Wallet,
-    totalAda :: Pl.Ada
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass (ToJSON, FromJSON, ToSchema)
-
-type SplitSchema = C.Endpoint "lock" LockArgs C..\/ C.Endpoint "unlock" ()
-
-mkSchemaDefinitions ''SplitSchema
-
-mkSplitData :: LockArgs -> SplitDatum
-mkSplitData LockArgs {recipient1Wallet, recipient2Wallet, totalAda} =
-  let convert :: C.Wallet -> Pl.PubKeyHash
-      convert = Pl.unPaymentPubKeyHash . C.mockWalletPaymentPubKeyHash
-   in SplitDatum
-        { recipient1 = convert recipient1Wallet,
-          recipient2 = convert recipient2Wallet,
-          amount = fromIntegral totalAda
-        }
-
-endpoints :: (C.AsContractError e) => C.Promise w SplitSchema e ()
+endpoints :: (C.AsContractError e) => C.Promise w BettingGameSchema e ()
 endpoints =
-  C.endpoint @"lock" (txLock splitValidator . mkSplitData)
-    `C.select` C.endpoint @"unlock" (const $ txUnlock splitValidator)
--}
+  C.endpoint @"start" txStart
+    `C.select`
+  C.endpoint @"bet" txBet
+    `C.select`
+  C.endpoint @"collectBets" txCollectBets
+    `C.select`
+  C.endpoint @"close" txClose
+    `C.select`
+  C.endpoint @"reclaim" txReclaim
