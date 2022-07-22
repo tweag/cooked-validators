@@ -121,54 +121,44 @@ txClose p gr0 = do
 -- | Label for 'txCollectBets' skeleton
 data TxClose = TxClose BetParams deriving (Show, Eq)
 
+txReclaim :: MonadBlockChain m => BetParams -> m ()
+txReclaim p = do
+    let script = betValidator p
+    ply <- ownPaymentPubKeyHash
+    betOutputs <- scriptUtxosSuchThat script (isBetOf ply)
+    unless (null betOutputs) $ do
+      -- TODO: Allow to reclaim bets where the amount doesn't
+      -- match the output value
+      let total = Pl.sum [ amount d | (_, Bet d) <- betOutputs ]
+      void $
+        validateTxConstrLbl
+          TxCollectBets
+          ( map (SpendsScript script BetReclaim) betOutputs
+            :=>:
+            [ paysPK ply total ]
+          )
+    collectedBetsOutputs <- scriptUtxosSuchThat script isCollectedBets
+    case collectedBetsOutputs of
+      collectedBetsOutput@(_, CollectedBets bets) : _ ->
+        void $
+          validateTxConstrLbl
+            TxCollectBets
+            ( [ SpendsScript script BetReclaim collectedBetsOutput ]
+              :=>:
+              [ paysPK (player b) (amount b) | b <- bets ]
+            )
+      _ -> return ()
+  where
+    isBetOf ply (Bet d) _ = ply == player d
+    isBetOf _ _ _ = False
+
+    isCollectedBets CollectedBets{} _ = True
+    isCollectedBets _ _ = False
 
 {-
 
--- * Transaction Skeleton Generators
+TODO: check deadlines
 
--- | Transaction to lock some amount into the split contract; note that
--- we receive the split contract as parameter because we use this same function
--- in the @tests/SplitSpec.hs@ and @tests/SplitUPLCSpec.hs@. The later loads
--- the split contract as a raw untyped PlutusCore contract.
-txLock :: MonadBlockChain m => Pl.TypedValidator Split -> SplitDatum -> m ()
-txLock script datum =
-  void $
-    validateTxConstrLbl
-      (TxLock datum)
-      [ PaysScript
-          script
-          datum
-          (Pl.lovelaceValueOf (Split.amount datum))
-      ]
-
--- | Label for 'txLock' skeleton, making it immediately recognizable
--- when printing traces.
-newtype TxLock = TxLock SplitDatum deriving (Show, Eq)
-
--- | Whether a script output concerns a public key hash
-isARecipient :: Pl.PubKeyHash -> SplitDatum -> a -> Bool
-isARecipient pkh datum _ = pkh `elem` [Split.recipient1 datum, Split.recipient2 datum]
-
--- | Unlocks the first 'SplitDatum' where our wallet is a recipient of.
-txUnlock :: (MonadBlockChain m) => Pl.TypedValidator Split -> m ()
-txUnlock script = do
-  pkh <- ownPaymentPubKeyHash
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
-    scriptUtxosSuchThat script (isARecipient pkh)
-  let half = div amount 2
-  let share1 = half
-  let share2 = amount - half
-  void $
-    validateTxConstrLbl
-      TxUnlock
-      ( [SpendsScript script () (output, datum)]
-          :=>: [ paysPK r1 (Pl.lovelaceValueOf share1),
-                 paysPK r2 (Pl.lovelaceValueOf share2)
-               ]
-      )
-
--- | Label for 'txUnlock' skeleton
-data TxUnlock = TxUnlock deriving (Show, Eq)
 
 -- * Contract monad endpoints and schema
 

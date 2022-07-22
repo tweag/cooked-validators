@@ -209,6 +209,7 @@ validateBet p d0 r ctx =
           Bet bet ->
                traceIfFalse "collection deadline must have expired"
                  (collectionDeadline p `Ledger.before` Ledger.txInfoValidRange info)
+               -- TODO: forbid double satisfaction attacks
             && traceIfFalse "the transaction must pay to the player"
                  (paysTo (player bet) (amount bet))
           CollectedBets bets ->
