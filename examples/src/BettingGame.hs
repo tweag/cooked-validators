@@ -100,6 +100,10 @@ data BetData = BetData
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
+instance Eq BetParams where
+  BetParams a b c d e f == BetParams a' b' c' d' e' f' =
+    a == a' && b == b' && c == c' && d == d' && e == e' && f == f'
+
 instance Eq BetData where
   BetData a b c == BetData a' b' c' = a == a' && b == b' && c == c'
 
@@ -110,13 +114,23 @@ data BetDatum
     CollectedBets [BetData]
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
+instance Eq BetDatum where
+  GameStart p == GameStart p' = p == p'
+  Bet d == Bet d' = d == d'
+  CollectedBets xs == CollectedBets xs' = xs == xs'
+  _ == _ = False
+
 data BetRedeemer
   = BetCollection [BetData]
   | GameClose GameResult
   | BetReclaim
+  deriving Haskell.Show
 
-minLovelace :: Integer
-minLovelace = 2000000
+instance Eq BetRedeemer where
+  BetCollection a == BetCollection a' = a == a'
+  GameClose a == GameClose a' = a == a'
+  BetReclaim == BetReclaim = True
+  _ == _ = False
 
 validateBet
   :: BetParams -> BetDatum -> BetRedeemer -> ScriptContext -> Bool

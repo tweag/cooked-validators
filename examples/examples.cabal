@@ -12,7 +12,8 @@ library
   exposed-modules:
       Auction
       Auction.Offchain
-      BiddingGame
+      BettingGame
+      BettingGame.OffChain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
