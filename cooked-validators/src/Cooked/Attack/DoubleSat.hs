@@ -24,10 +24,9 @@ import qualified PlutusTx.Numeric as Pl
 
 A double satisfaction attack consists in trying to satisfy the requirements for
 what conceptually are two transactions in a single transaction, and doing so
-incompletely. It succeeds whenever the requirements of two validators (which
-often are the same) ovelap, but the outputs of the transaction are not
-sufficiently unique, so that both validators see the outputs as satisfying
-"their" requirement.
+incompletely. It succeeds whenever the requirements of two validators ovelap,
+but the required outputs of the transaction are not sufficiently unique, so that
+both validators see them as satisfying "their" requirement.
 
 The mechanism is explained very well in the following analogy from the Plutus
 documentation: "Suppose that two tax auditors from two different departments
@@ -54,14 +53,15 @@ data DoubleSatParams = DoubleSatParams
     -- transaction in order to try a double satisfaction attack.
     --
     -- Extra 'Constraints' are added to pre-existing 'Constraints' with the
-    -- function 'joinConstraints', which makes sure that no additional
-    -- constraint tries to an UTxO that's already being spent and other such
+    -- function 'addConstraints', which makes sure that no additional
+    -- constraint tries spend an UTxO that's already being spent and other such
     -- checks. See the documentation comments for that function below.
     --
-    -- We add 'OutConstraint's at the end of the list, because some contracts
-    -- rely on the ordering of (the first few) transaction outputs. If you want
-    -- to try permutations of transaction outputs, look at the function
-    -- 'tryOutPermutations', which is an attack-agnostic way to accomplish that.
+    -- We add 'OutConstraint's at the end of the list of transaction outputs,
+    -- because some contracts rely on the ordering of (the first few)
+    -- outputs. If you want to try permutations of transaction outputs, look at
+    -- the function 'tryOutPermutations', which is an attack-agnostic way to
+    -- accomplish that.
     dsExtraConstraints :: MockChainSt -> SpendsScriptConstraint -> [Constraints],
     -- | The wallet to which any surplus will be paid.
     dsAttacker :: Wallet,
@@ -148,8 +148,8 @@ doubleSatAttack DoubleSatParams {..} =
             surplus = extraInValue <> Pl.negate extraOutValue
          in [ addLabel DoubleSatLbl $
                 payTo dsAttacker surplus $
-                  over txConstraintsL (extraConstrs `joinConstraints`) skelOld
-              | extraConstrs `strictlyExtendsConstraints` (skelOld ^. txConstraintsL)
+                  over txConstraintsL (extraConstrs `addConstraints`) skelOld
+              | extraConstrs `strictlyExtendsConstraints` txConstraints skelOld
             ]
     )
   where
@@ -164,7 +164,7 @@ doubleSatAttack DoubleSatParams {..} =
     -- Note: This combines the list of extra constraints into a
     accConstraints :: [Constraints] -> Constraints -> Constraints
     accConstraints [] acc = acc
-    accConstraints (c : cs) acc = c `joinConstraints` accConstraints cs acc
+    accConstraints (c : cs) acc = c `addConstraints` accConstraints cs acc
 
 -- | Extend the constraints in the second argument with the ones from the first
 -- argument, but only if there are no conflicts:
@@ -172,8 +172,8 @@ doubleSatAttack DoubleSatParams {..} =
 -- - No 'SpendsScript' or 'SpendsPK' constraints trying to spend the same UTxO
 --
 -- - No incompatible time ranges
-joinConstraints :: Constraints -> Constraints -> Constraints
-joinConstraints (extraIs :=>: extraOs) r@(is :=>: os) =
+addConstraints :: Constraints -> Constraints -> Constraints
+addConstraints (extraIs :=>: extraOs) r@(is :=>: os) =
   case miscListExtend extraIs is of
     Nothing -> r
     Just is' -> is' :=>: (os ++ extraOs)
@@ -222,44 +222,49 @@ data CheckMiscExtend = Incompatible | AlreadyThere | CompatibleExtension
 checkMiscExtend :: MiscConstraint -> [MiscConstraint] -> CheckMiscExtend
 checkMiscExtend _ [] = CompatibleExtension
 checkMiscExtend mc mcs =
-  if mc `elem` mcs
-    then AlreadyThere
-    else
-      let spends :: SpendableOut -> MiscConstraint -> Bool
-          spends o (SpendsScript _ _ (o', _)) = o == o'
-          spends o (SpendsPK o') = o == o'
-          spends _ _ = False
+  case mc of
+    -- 'Mints' and 'SignedBy' Constraints can always be added
+    Mints {} -> CompatibleExtension
+    SignedBy _ -> CompatibleExtension
+    _ ->
+      if mc `elem` mcs
+        then AlreadyThere
+        else case mc of
+          SpendsScript _ _ (o, _) -> if any (spends o) mcs then Incompatible else CompatibleExtension
+          SpendsPK o -> if any (spends o) mcs then Incompatible else CompatibleExtension
+          Before t ->
+            let oldRange = validRange mcs
+                newRange = Pl.to t
+             in if
+                    | newRange `Pl.contains` oldRange -> AlreadyThere
+                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                    | otherwise -> Incompatible
+          After t ->
+            let oldRange = validRange mcs
+                newRange = Pl.from t
+             in if
+                    | newRange `Pl.contains` oldRange -> AlreadyThere
+                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                    | otherwise -> Incompatible
+          ValidateIn newRange ->
+            let oldRange = validRange mcs
+             in if
+                    | newRange `Pl.contains` oldRange -> AlreadyThere
+                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
+                    | otherwise -> Incompatible
+          _ -> CompatibleExtension -- This case will never be reached
+  where
+    spends :: SpendableOut -> MiscConstraint -> Bool
+    spends o (SpendsScript _ _ (o', _)) = o == o'
+    spends o (SpendsPK o') = o == o'
+    spends _ _ = False
 
-          validRange :: [MiscConstraint] -> Pl.POSIXTimeRange
-          validRange [] = Pl.always
-          validRange (Before t : ms) = Pl.to t `Pl.intersection` validRange ms
-          validRange (After t : ms) = Pl.from t `Pl.intersection` validRange ms
-          validRange (ValidateIn range : ms) = range `Pl.intersection` validRange ms
-          validRange (_ : ms) = validRange ms
-       in case mc of
-            SpendsScript _ _ (o, _) -> if any (spends o) mcs then Incompatible else CompatibleExtension
-            SpendsPK o -> if any (spends o) mcs then Incompatible else CompatibleExtension
-            Before t ->
-              let oldRange = validRange mcs
-                  newRange = Pl.to t
-               in if
-                      | newRange `Pl.contains` oldRange -> AlreadyThere
-                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                      | otherwise -> Incompatible
-            After t ->
-              let oldRange = validRange mcs
-                  newRange = Pl.from t
-               in if
-                      | newRange `Pl.contains` oldRange -> AlreadyThere
-                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                      | otherwise -> Incompatible
-            ValidateIn newRange ->
-              let oldRange = validRange mcs
-               in if
-                      | newRange `Pl.contains` oldRange -> AlreadyThere
-                      | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                      | otherwise -> Incompatible
-            _ -> CompatibleExtension
+    validRange :: [MiscConstraint] -> Pl.POSIXTimeRange
+    validRange [] = Pl.always
+    validRange (Before t : ms) = Pl.to t `Pl.intersection` validRange ms
+    validRange (After t : ms) = Pl.from t `Pl.intersection` validRange ms
+    validRange (ValidateIn range : ms) = range `Pl.intersection` validRange ms
+    validRange (_ : ms) = validRange ms
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)

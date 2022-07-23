@@ -12,45 +12,51 @@ tests :: TestTree
 tests =
   testGroup
     "output permutation attack"
-    [ testGroup
+    [ testCase
         "tests for 'distinctPermutations'"
         $ let assertPermutEq actual expected =
                 assertSameSets actual expected
                   .&&. (length actual @?= length expected)
-           in [ testCase "correct result for []" $
-                  distinctPermutations @Integer [] @?= [[]],
-                testCase "correct result for [1,2,3]" $
-                  distinctPermutations [1, 2, 3]
-                    `assertPermutEq` [ [1, 2, 3],
-                                       [1, 3, 2],
-                                       [2, 1, 3],
-                                       [2, 3, 1],
-                                       [3, 1, 2],
-                                       [3, 2, 1]
-                                     ],
-                testCase "correct result for [1,1]" $
-                  distinctPermutations [1, 1]
-                    `assertPermutEq` [[1, 1]],
-                testCase "correct result for [1,2,1]" $
-                  distinctPermutations [1, 2, 1]
-                    `assertPermutEq` [ [1, 2, 1],
-                                       [2, 1, 1],
-                                       [1, 1, 2]
-                                     ],
-                testCase "correct result for [2,1,3,1]" $
-                  distinctPermutations [2, 1, 3, 1]
-                    `assertPermutEq` [ [2, 1, 3, 1],
-                                       [1, 1, 2, 3],
-                                       [1, 1, 3, 2],
-                                       [1, 2, 1, 3],
-                                       [1, 3, 1, 2],
-                                       [1, 2, 3, 1],
-                                       [1, 3, 2, 1],
-                                       [2, 1, 1, 3],
-                                       [3, 1, 1, 2],
-                                       [3, 1, 2, 1],
-                                       [2, 3, 1, 1],
-                                       [3, 2, 1, 1]
-                                     ]
-              ]
+           in testConjoin $
+                map
+                  ( \(input, expected) ->
+                      assertPermutEq (distinctPermutations @Int input) expected
+                  )
+                  [ ( [],
+                      [[]]
+                    ),
+                    ( [1, 2, 3],
+                      [ [1, 2, 3],
+                        [1, 3, 2],
+                        [2, 1, 3],
+                        [2, 3, 1],
+                        [3, 1, 2],
+                        [3, 2, 1]
+                      ]
+                    ),
+                    ( [1, 1],
+                      [[1, 1]]
+                    ),
+                    ( [1, 2, 1],
+                      [ [2, 1, 1],
+                        [1, 2, 1],
+                        [1, 1, 2]
+                      ]
+                    ),
+                    ( [2, 1, 3, 1],
+                      [ [1, 1, 2, 3],
+                        [1, 1, 3, 2],
+                        [1, 2, 1, 3],
+                        [1, 3, 1, 2],
+                        [1, 2, 3, 1],
+                        [1, 3, 2, 1],
+                        [2, 1, 1, 3],
+                        [3, 1, 1, 2],
+                        [2, 1, 3, 1],
+                        [3, 1, 2, 1],
+                        [2, 3, 1, 1],
+                        [3, 2, 1, 1]
+                      ]
+                    )
+                  ]
     ]
