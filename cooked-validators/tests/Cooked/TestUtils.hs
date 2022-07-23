@@ -23,13 +23,16 @@ assertSubset l r =
     )
 
 assertSameSets :: (Show a, Eq a) => [a] -> [a] -> Assertion
-assertSameSets l r = assertSubset l r .&&. assertSubset r l
+assertSameSets l r = (length l @?= length r) .&&. assertSubset l r .&&. assertSubset r l
 
 instance Show MiscConstraint where
   show = show . prettyMiscConstraint
 
 instance Show OutConstraint where
   show = show . prettyOutConstraint
+
+instance Show TxSkel where
+  show = show . prettyTxSkel []
 
 -- | assert that two constraints are the same, up to reordering of inputs.
 --
