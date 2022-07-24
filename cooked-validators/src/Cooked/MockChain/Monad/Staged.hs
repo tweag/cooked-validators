@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -106,10 +107,12 @@ instance MonadFail StagedMockChain where
 -- * 'InterpLtl' instance
 
 instance {-# OVERLAPS #-} Semigroup Attack where
-  f <> g = maybe Nothing f . g
+  -- TODO: should we try to make the entries of the returned list unique (up to
+  -- reordering of MiscConstraints)?
+  f <> g = \mcst skel -> concatMap (f mcst) $ g mcst skel
 
 instance {-# OVERLAPS #-} Monoid Attack where
-  mempty = Just
+  mempty = \_ skel -> [skel]
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
@@ -122,15 +125,19 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
         . map (uncurry interpretAndTell)
         . nowLaterList
     where
-      interpretAndTell now later =
-        case now skel of
-          Just skel' -> do
-            signers <- askSigners
-            lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-            tx <- validateTxSkel skel'
-            put later
-            return tx
-          Nothing -> mzero
+      interpretAndTell :: Attack -> [Ltl Attack] -> StateT [Ltl Attack] InterpMockChain Pl.CardanoTx
+      interpretAndTell now later = do
+        mockSt <- lift get
+        msum $
+          map
+            ( \skel' -> do
+                signers <- askSigners
+                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+                tx <- validateTxSkel skel'
+                put later
+                return tx
+            )
+            (now mockSt skel)
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
@@ -148,6 +155,11 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
     signers <- askSigners
     lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ Fail msg
     fail msg
+
+-- ** Modalities
+
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ Attack)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 

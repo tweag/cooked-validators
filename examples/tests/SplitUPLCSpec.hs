@@ -10,7 +10,7 @@ import Data.Either (isLeft, isRight)
 import Data.Maybe (fromMaybe)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Ledger.Typed.Scripts.Validators as Scripts
+import qualified Plutus.Script.Utils.V1.Typed.Scripts.Validators as Scripts
 import PlutusTx.Builtins
 import qualified PlutusTx.IsData.Class as Pl
 import qualified Split

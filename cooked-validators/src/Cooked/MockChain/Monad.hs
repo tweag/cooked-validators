@@ -17,8 +17,6 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
-import Cooked.Attack
-import Cooked.Ltl
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
@@ -229,11 +227,6 @@ slotConfig = Pl.pSlotConfig <$> params
 -- Note that if you need this your Plutus script will probably not validate on Mainnet.
 allowBigTransactions :: (MonadMockChain m) => m a -> m a
 allowBigTransactions = localParams Pl.allowBigTransactions
-
--- ** Modalities
-
--- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ Attack)
 
 -- ** Deriving further 'MonadBlockChain' instances
 
