@@ -1,0 +1,1246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE MultiWayIf #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RecordWildCards #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TupleSections #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.DoubleSat</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.Common.html"><span class="hs-identifier">Cooked.Attack.Common</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html"><span class="hs-identifier">Cooked.MockChain.Monad.Direct</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html"><span class="hs-identifier">Cooked.MockChain.Wallet</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html"><span class="hs-identifier">Cooked.Tx.Constraints</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html"><span class="hs-identifier">Cooked.Tx.Constraints.Optics</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Value</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.V1.Ledger.Interval</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.V1.Ledger.Time</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">{- Note: What is a double satisfaction attack?
+
+A double satisfaction attack consists in trying to satisfy the requirements for
+what conceptually are two transactions in a single transaction, and doing so
+incompletely. It succeeds whenever the requirements of two validators ovelap,
+but the required outputs of the transaction are not sufficiently unique, so that
+both validators see them as satisfying &quot;their&quot; requirement.
+
+The mechanism is explained very well in the following analogy from the Plutus
+documentation: &quot;Suppose that two tax auditors from two different departments
+come to visit you in turn to see if you&#8217;ve paid your taxes. You come up with a
+clever scheme to confuse them. Your tax liability to both departments is $10, so
+you make a single payment to the tax office&#8217;s bank account for $10. When the
+auditors arrive, you show them your books, containing the payment to the tax
+office. They both leave satisfied.&quot;
+
+The double satisfaction attack 'doubleSatAttack' provided by this module works
+by adding some extra 'Constraints' depending on some 'a's on the transaction
+under modification, and on the current 'MockChainSt'ate. This very general
+concept allows the implementation of common double satisfaction patterns as
+special cases, which will correspond to smart constructors for the
+'DoubleSatParams' type. In particular, we can add
+
+- a 'SpendsScript', depending on a 'SpendsScript' on the original transaction,
+- one or more 'Mints', depending on a 'SpendsScript' on the original transaction,
+- a 'SpendsScript', depending on a 'PaysScript' on the original transaction,
+- ...
+
+A few scenarios like these are implemented below as smart constructors for
+'DoubleSatParams'.
+
+-}</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack. You probably don't want to</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- initialise these by hand; better use one of the smart constructors defined</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- below.</span><span>
+</span><span id="line-59"></span><span class="hs-keyword">data</span><span> </span><span id="DoubleSatParams"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-var">DoubleSatParams</span></a></span></span><span> </span><span id="local-6989586621679536794"><span class="annot"><a href="#local-6989586621679536794"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoubleSatParams"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-var">DoubleSatParams</span></a></span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | Each focus of this traversal is one potential reason to add extra</span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-comment">-- 'Constraint's.</span><span>
+</span><span id="line-62"></span><span>    </span><span id="dsOptic"><span class="annot"><span class="annottext">DoubleSatParams a -&gt; Traversal' TxSkel a
+</span><a href="Cooked.Attack.DoubleSat.html#dsOptic"><span class="hs-identifier hs-var hs-var">dsOptic</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536794"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-comment">-- | For every 'a' in the transaction under modification, calculate a list</span><span>
+</span><span id="line-64"></span><span>    </span><span class="hs-comment">-- of extra 'Constraints' to add to the transaction in order to try a double</span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-comment">-- satisfaction attack.</span><span>
+</span><span id="line-66"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span>    </span><span class="hs-comment">-- Extra 'Constraints' are added to pre-existing 'Constraints' with the</span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-comment">-- function 'addConstraints', which makes sure that no additional constraint</span><span>
+</span><span id="line-69"></span><span>    </span><span class="hs-comment">-- tries spending an UTxO that's already being spent and other such</span><span>
+</span><span id="line-70"></span><span>    </span><span class="hs-comment">-- checks. See the documentation comments for that function below.</span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-comment">-- We add 'OutConstraint's at the end of the list of transaction outputs,</span><span>
+</span><span id="line-73"></span><span>    </span><span class="hs-comment">-- because some contracts rely on the ordering of (the first few)</span><span>
+</span><span id="line-74"></span><span>    </span><span class="hs-comment">-- outputs. If you want to try permutations of transaction outputs, look at</span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-comment">-- the function 'tryOutPermutations', which is an attack-agnostic way to</span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-comment">-- accomplish that.</span><span>
+</span><span id="line-77"></span><span>    </span><span id="dsExtraConstraints"><span class="annot"><span class="annottext">DoubleSatParams a -&gt; MockChainSt -&gt; a -&gt; [Constraints]
+</span><a href="Cooked.Attack.DoubleSat.html#dsExtraConstraints"><span class="hs-identifier hs-var hs-var">dsExtraConstraints</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679536794"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-comment">-- | The wallet to which any surplus will be paid.</span><span>
+</span><span id="line-79"></span><span>    </span><span id="dsAttacker"><span class="annot"><span class="annottext">DoubleSatParams a -&gt; Wallet
+</span><a href="Cooked.Attack.DoubleSat.html#dsAttacker"><span class="hs-identifier hs-var hs-var">dsAttacker</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-comment">-- | How to combine extra 'Constraint's:</span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-comment">-- There are at the moment the following two strategies for how to combine</span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-comment">-- additional 'Constraints' belonging to _different_ 'SpendsScript'</span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-comment">-- constraints of the original transaction.</span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-comment">-- - With @dsSplitStrategy = OneChange@, each extra 'Constraints' is added</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-comment">--   onto a separate modified 'TxSkel': Each of the output modified</span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-comment">--   'TxSkel's will receive exactly one of the extra 'Constraints'.</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-comment">-- - With @dsSplitStrategy = AllCombinations@, al 'TxSkels' obtained by</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-comment">--   adding _at least one_ extra 'Constraints' belonging to an original 'a'</span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-comment">--   are tried: If there are n 'a's in the original transaction, the</span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-comment">--   modified transactions will incorporate up to n extra 'Constraints'. For</span><span>
+</span><span id="line-94"></span><span>    </span><span class="hs-comment">--   a given 'a' on the original transaction, each of its extra</span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-comment">--   'Constraints' is tried together with all options for all other</span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-comment">--   'a's. This means that all cases that the 'OneChange'-case checks are</span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-comment">--   also explored here, plus some (potentially very many) more.</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-comment">-- If there is a conflict between some of the 'Constraints' that are to be</span><span>
+</span><span id="line-100"></span><span>    </span><span class="hs-comment">-- added to an output transaction (for example, two 'Constraints' might</span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-comment">-- require the same UTxO to be spent with different redeemers), that</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-comment">-- combination is not tried.</span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-104"></span><span>    </span><span class="hs-comment">-- See the comments for 'mkSplittingAttack' for more explanation on</span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-comment">-- 'SplitStrategy'.</span><span>
+</span><span id="line-106"></span><span>    </span><span id="dsSplitStrategy"><span class="annot"><span class="annottext">DoubleSatParams a -&gt; SplitStrategy
+</span><a href="Cooked.Attack.DoubleSat.html#dsSplitStrategy"><span class="hs-identifier hs-var hs-var">dsSplitStrategy</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Common.html#SplitStrategy"><span class="hs-identifier hs-type">SplitStrategy</span></a></span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-comment">-- * Smart constructors for 'DoubleSatParams'</span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one</span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- 'SpendsScriptConstraint' for a UTxO belonging to a given validator. Each of</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- the modified transactions will contain exactly one extra 'SpendsScript'</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- constraint.</span><span>
+</span><span id="line-115"></span><span id="local-6989586621679536808"><span id="local-6989586621679536809"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscFromOwner"><span class="hs-identifier hs-type">dsAddOneSscFromOwner</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536809"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-117"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536809"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-119"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536808"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-120"></span><span>  </span><span class="hs-comment">-- | The validator to take extra inputs from.</span><span>
+</span><span id="line-121"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679536809"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-comment">-- | For all 'a's of the original transaction, decide whether to add an extra</span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-comment">-- UTxO currently belonging to the @extraInputOwner@, and if so, which</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-comment">-- redeemers to try. Each redeemer is tried on a separate output transaction.</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679536808"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536809"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536809"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-comment">-- Wallet of the attacker. Any value contained in the extra UTxO consumed by</span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-comment">-- the modified transaction is psid to this wallet.</span><span>
+</span><span id="line-128"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-129"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536808"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-130"></span><span id="dsAddOneSscFromOwner"><span class="annot"><span class="annottext">dsAddOneSscFromOwner :: Traversal' TxSkel a
+-&gt; TypedValidator b
+-&gt; (a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscFromOwner"><span class="hs-identifier hs-var hs-var">dsAddOneSscFromOwner</span></a></span></span><span> </span><span id="local-6989586621679536684"><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536684"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679536683"><span class="annot"><span class="annottext">TypedValidator b
+</span><a href="#local-6989586621679536683"><span class="hs-identifier hs-var">extraInputOwner</span></a></span></span><span> </span><span id="local-6989586621679536682"><span class="annot"><span class="annottext">a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b]
+</span><a href="#local-6989586621679536682"><span class="hs-identifier hs-var">extraInputRedeemers</span></a></span></span><span> </span><span id="local-6989586621679536681"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536681"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-131"></span><span>  </span><span class="annot"><span class="annottext">Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [SpendsScriptConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+forall a.
+Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [SpendsScriptConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddSsc"><span class="hs-identifier hs-var">dsAddSsc</span></a></span><span>
+</span><span id="line-132"></span><span>    </span><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536684"><span class="hs-identifier hs-var">optic</span></a></span><span>
+</span><span id="line-133"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536679"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536679"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679536678"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536678"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-134"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679536677"><span class="annot"><span class="annottext">extraUtxos :: [(SpendableOut, DatumType b)]
+</span><a href="#local-6989586621679536677"><span class="hs-identifier hs-var hs-var">extraUtxos</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MockChainSt
+-&gt; TypedValidator b
+-&gt; (DatumType b -&gt; Value -&gt; Bool)
+-&gt; [(SpendableOut, DatumType b)]
+forall a.
+FromData (DatumType a) =&gt;
+MockChainSt
+-&gt; TypedValidator a
+-&gt; (DatumType a -&gt; Value -&gt; Bool)
+-&gt; [(SpendableOut, DatumType a)]
+</span><a href="Cooked.Attack.Common.html#scriptUtxosSuchThatMcst"><span class="hs-identifier hs-var">scriptUtxosSuchThatMcst</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536679"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator b
+</span><a href="#local-6989586621679536683"><span class="hs-identifier hs-var">extraInputOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">DatumType b
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-135"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">((SpendableOut, DatumType b) -&gt; [SpendsScriptConstraint])
+-&gt; [(SpendableOut, DatumType b)] -&gt; [SpendsScriptConstraint]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span>
+</span><span id="line-136"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536674"><span class="annot"><span class="annottext">(SpendableOut, DatumType b)
+</span><a href="#local-6989586621679536674"><span class="hs-identifier hs-var">utxo</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-137"></span><span>                  </span><span class="annot"><span class="annottext">(RedeemerType b -&gt; SpendsScriptConstraint)
+-&gt; [RedeemerType b] -&gt; [SpendsScriptConstraint]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span>
+</span><span id="line-138"></span><span>                    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679536673"><span class="annot"><span class="annottext">RedeemerType b
+</span><a href="#local-6989586621679536673"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator b
+-&gt; RedeemerType b
+-&gt; (SpendableOut, DatumType b)
+-&gt; SpendsScriptConstraint
+forall a.
+SpendsConstrs a =&gt;
+TypedValidator a
+-&gt; RedeemerType a
+-&gt; (SpendableOut, DatumType a)
+-&gt; SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator b
+</span><a href="#local-6989586621679536683"><span class="hs-identifier hs-var">extraInputOwner</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType b
+</span><a href="#local-6989586621679536673"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">(SpendableOut, DatumType b)
+</span><a href="#local-6989586621679536674"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b]
+</span><a href="#local-6989586621679536682"><span class="hs-identifier hs-var">extraInputRedeemers</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536678"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">(SpendableOut, DatumType b)
+</span><a href="#local-6989586621679536674"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>              </span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>              </span><span class="annot"><span class="annottext">[(SpendableOut, DatumType b)]
+</span><a href="#local-6989586621679536677"><span class="hs-identifier hs-var">extraUtxos</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536681"><span class="hs-identifier hs-var">attacker</span></a></span><span>
+</span><span id="line-144"></span><span>    </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="Cooked.Attack.Common.html#OneChange"><span class="hs-identifier hs-var">OneChange</span></a></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one extra</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- 'SpendsScript' constraint for a Utxo belonging to a given validator to</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- transactions, depending on 'PaysScript' constraints already present on the</span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- transaction.  Each of the modified transactions will contain exactly one</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'</span><span>
+</span><span id="line-151"></span><span class="hs-comment">-- for explanation of the arguments.</span><span>
+</span><span id="line-152"></span><span id="local-6989586621679536670"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToPsc"><span class="hs-identifier hs-type">dsAddOneSscToPsc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-153"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536670"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-154"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536670"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-156"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679536670"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536670"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536670"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-158"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-159"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span></span><span>
+</span><span id="line-160"></span><span id="dsAddOneSscToPsc"><span class="annot"><span class="annottext">dsAddOneSscToPsc :: TypedValidator b
+-&gt; (PaysScriptConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams PaysScriptConstraint
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToPsc"><span class="hs-identifier hs-var hs-var">dsAddOneSscToPsc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
+-&gt; TypedValidator b
+-&gt; (PaysScriptConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams PaysScriptConstraint
+forall b a.
+(SpendsConstrs b, FromData (DatumType b)) =&gt;
+Traversal' TxSkel a
+-&gt; TypedValidator b
+-&gt; (a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscFromOwner"><span class="hs-identifier hs-var">dsAddOneSscFromOwner</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-var">paysScriptConstraintsT</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one extra</span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- 'SpendsScript' constraint for a Utxo belonging to a given validator to</span><span>
+</span><span id="line-164"></span><span class="hs-comment">-- transactions, depending on 'SpendsScript' constraints already present on the</span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- transaction.  Each of the modified transactions will contain exactly one</span><span>
+</span><span id="line-166"></span><span class="hs-comment">-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'</span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- for explanation of the arguments.</span><span>
+</span><span id="line-168"></span><span id="local-6989586621679536667"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToSsc"><span class="hs-identifier hs-type">dsAddOneSscToSsc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-169"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536667"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536667"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-172"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679536667"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-173"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536667"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536667"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-174"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-175"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span></span><span>
+</span><span id="line-176"></span><span id="dsAddOneSscToSsc"><span class="annot"><span class="annottext">dsAddOneSscToSsc :: TypedValidator b
+-&gt; (SpendsScriptConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams SpendsScriptConstraint
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToSsc"><span class="hs-identifier hs-var hs-var">dsAddOneSscToSsc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel SpendsScriptConstraint
+-&gt; TypedValidator b
+-&gt; (SpendsScriptConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams SpendsScriptConstraint
+forall b a.
+(SpendsConstrs b, FromData (DatumType b)) =&gt;
+Traversal' TxSkel a
+-&gt; TypedValidator b
+-&gt; (a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscFromOwner"><span class="hs-identifier hs-var">dsAddOneSscFromOwner</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintsT"><span class="hs-identifier hs-var">spendsScriptConstraintsT</span></a></span><span>
+</span><span id="line-177"></span><span>
+</span><span id="line-178"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one extra</span><span>
+</span><span id="line-179"></span><span class="hs-comment">-- 'SpendsScript' constraint for a Utxo belonging to a given validator to</span><span>
+</span><span id="line-180"></span><span class="hs-comment">-- transactions, depending on 'Mints' constraints already present on the</span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- transaction.  Each of the modified transactions will contain exactly one</span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'</span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- for explanation of the arguments.</span><span>
+</span><span id="line-184"></span><span id="local-6989586621679536664"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToMc"><span class="hs-identifier hs-type">dsAddOneSscToMc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-185"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536664"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-186"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536664"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-187"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-188"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679536664"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-189"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536664"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679536664"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-190"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-191"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span></span><span>
+</span><span id="line-192"></span><span id="dsAddOneSscToMc"><span class="annot"><span class="annottext">dsAddOneSscToMc :: TypedValidator b
+-&gt; (MintsConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams MintsConstraint
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscToMc"><span class="hs-identifier hs-var hs-var">dsAddOneSscToMc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
+-&gt; TypedValidator b
+-&gt; (MintsConstraint
+    -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams MintsConstraint
+forall b a.
+(SpendsConstrs b, FromData (DatumType b)) =&gt;
+Traversal' TxSkel a
+-&gt; TypedValidator b
+-&gt; (a -&gt; (SpendableOut, DatumType b) -&gt; [RedeemerType b])
+-&gt; Wallet
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddOneSscFromOwner"><span class="hs-identifier hs-var">dsAddOneSscFromOwner</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-var">mintsConstraintsT</span></a></span><span>
+</span><span id="line-193"></span><span>
+</span><span id="line-194"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one or more extra</span><span>
+</span><span id="line-195"></span><span class="hs-comment">-- 'Mints' constraints to transactions, depending on 'SpendsScript' constraints</span><span>
+</span><span id="line-196"></span><span class="hs-comment">-- already present on the transaction.  Each of the modified transactions will</span><span>
+</span><span id="line-197"></span><span class="hs-comment">-- contain at least one extra 'Mints' constraint.</span><span>
+</span><span id="line-198"></span><span id="local-6989586621679536661"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddMcToSsc"><span class="hs-identifier hs-type">dsAddMcToSsc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-199"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MintsConstrs"><span class="hs-identifier hs-type">MintsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536661"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-200"></span><span>  </span><span class="hs-comment">-- | For all 'SpendsScript' constraints of the original transaction, decide</span><span>
+</span><span id="line-201"></span><span>  </span><span class="hs-comment">-- whether to mint some extra value, and which redeemer and minting policies</span><span>
+</span><span id="line-202"></span><span>  </span><span class="hs-comment">-- to use to do so.</span><span>
+</span><span id="line-203"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679536661"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.MintingPolicy</span></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-204"></span><span>  </span><span class="hs-comment">-- | Wallet of the attacker. Any extra minted values are paid to this wallet.</span><span>
+</span><span id="line-205"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-206"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span></span><span>
+</span><span id="line-207"></span><span id="dsAddMcToSsc"><span class="annot"><span class="annottext">dsAddMcToSsc :: (SpendsScriptConstraint -&gt; [(Maybe a, [MintingPolicy], Value)])
+-&gt; Wallet -&gt; DoubleSatParams SpendsScriptConstraint
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddMcToSsc"><span class="hs-identifier hs-var hs-var">dsAddMcToSsc</span></a></span></span><span> </span><span id="local-6989586621679536659"><span class="annot"><span class="annottext">SpendsScriptConstraint -&gt; [(Maybe a, [MintingPolicy], Value)]
+</span><a href="#local-6989586621679536659"><span class="hs-identifier hs-var">extraMints</span></a></span></span><span> </span><span id="local-6989586621679536658"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536658"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-208"></span><span>  </span><span class="annot"><span class="annottext">Traversal' TxSkel SpendsScriptConstraint
+-&gt; (MockChainSt -&gt; SpendsScriptConstraint -&gt; [MintsConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams SpendsScriptConstraint
+forall a.
+Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [MintsConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddMc"><span class="hs-identifier hs-var">dsAddMc</span></a></span><span>
+</span><span id="line-209"></span><span>    </span><span class="annot"><span class="annottext">Traversal' TxSkel SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintsT"><span class="hs-identifier hs-var">spendsScriptConstraintsT</span></a></span><span>
+</span><span id="line-210"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">MockChainSt
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679536656"><span class="annot"><span class="annottext">SpendsScriptConstraint
+</span><a href="#local-6989586621679536656"><span class="hs-identifier hs-var">ssc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">((Maybe a, [MintingPolicy], Value) -&gt; MintsConstraint)
+-&gt; [(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679536655"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679536655"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679536654"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679536654"><span class="hs-identifier hs-var">ps</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679536653"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536653"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+forall a.
+MintsConstrs a =&gt;
+Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679536655"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679536654"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536653"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint])
+-&gt; [(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SpendsScriptConstraint -&gt; [(Maybe a, [MintingPolicy], Value)]
+</span><a href="#local-6989586621679536659"><span class="hs-identifier hs-var">extraMints</span></a></span><span> </span><span class="annot"><span class="annottext">SpendsScriptConstraint
+</span><a href="#local-6989586621679536656"><span class="hs-identifier hs-var">ssc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-211"></span><span>    </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536658"><span class="hs-identifier hs-var">attacker</span></a></span><span>
+</span><span id="line-212"></span><span>    </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="Cooked.Attack.Common.html#AllCombinations"><span class="hs-identifier hs-var">AllCombinations</span></a></span><span>
+</span><span id="line-213"></span><span>
+</span><span id="line-214"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds one or more extra</span><span>
+</span><span id="line-215"></span><span class="hs-comment">-- 'Mints' constraints to transactions, depending on 'Mints' constraints</span><span>
+</span><span id="line-216"></span><span class="hs-comment">-- already present on the transaction.  Each of the modified transactions will</span><span>
+</span><span id="line-217"></span><span class="hs-comment">-- contain at least one extra 'Mints' constraint.</span><span>
+</span><span id="line-218"></span><span class="hs-comment">--</span><span>
+</span><span id="line-219"></span><span class="hs-comment">-- Note that this is more general than just a token duplication attack as</span><span>
+</span><span id="line-220"></span><span class="hs-comment">-- implemented by 'dupTokenAttack': That attack is used to make _one_ minting</span><span>
+</span><span id="line-221"></span><span class="hs-comment">-- policy mint more tokens, with this attack, more than one minting policy may</span><span>
+</span><span id="line-222"></span><span class="hs-comment">-- be involved.</span><span>
+</span><span id="line-223"></span><span id="local-6989586621679536650"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddMcToMc"><span class="hs-identifier hs-type">dsAddMcToMc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-224"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MintsConstrs"><span class="hs-identifier hs-type">MintsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536650"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-225"></span><span>  </span><span class="hs-comment">-- | For all 'Mints' constraints of the original transaction, decide</span><span>
+</span><span id="line-226"></span><span>  </span><span class="hs-comment">-- whether to mint some extra value, and which redeemer and minting policies</span><span>
+</span><span id="line-227"></span><span>  </span><span class="hs-comment">-- to use to do so.</span><span>
+</span><span id="line-228"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679536650"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.MintingPolicy</span></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-229"></span><span>  </span><span class="hs-comment">-- | Wallet of the attacker. Any extra minted values are paid to this wallet.</span><span>
+</span><span id="line-230"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-231"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span></span><span>
+</span><span id="line-232"></span><span id="dsAddMcToMc"><span class="annot"><span class="annottext">dsAddMcToMc :: (MintsConstraint -&gt; [(Maybe a, [MintingPolicy], Value)])
+-&gt; Wallet -&gt; DoubleSatParams MintsConstraint
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddMcToMc"><span class="hs-identifier hs-var hs-var">dsAddMcToMc</span></a></span></span><span> </span><span id="local-6989586621679536648"><span class="annot"><span class="annottext">MintsConstraint -&gt; [(Maybe a, [MintingPolicy], Value)]
+</span><a href="#local-6989586621679536648"><span class="hs-identifier hs-var">extraMints</span></a></span></span><span> </span><span id="local-6989586621679536647"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536647"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-233"></span><span>  </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
+-&gt; (MockChainSt -&gt; MintsConstraint -&gt; [MintsConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams MintsConstraint
+forall a.
+Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [MintsConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddMc"><span class="hs-identifier hs-var">dsAddMc</span></a></span><span>
+</span><span id="line-234"></span><span>    </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-var">mintsConstraintsT</span></a></span><span>
+</span><span id="line-235"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">MockChainSt
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679536646"><span class="annot"><span class="annottext">MintsConstraint
+</span><a href="#local-6989586621679536646"><span class="hs-identifier hs-var">mc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">((Maybe a, [MintingPolicy], Value) -&gt; MintsConstraint)
+-&gt; [(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679536645"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679536645"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679536644"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679536644"><span class="hs-identifier hs-var">ps</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679536643"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536643"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+forall a.
+MintsConstrs a =&gt;
+Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679536645"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679536644"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536643"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint])
+-&gt; [(Maybe a, [MintingPolicy], Value)] -&gt; [MintsConstraint]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MintsConstraint -&gt; [(Maybe a, [MintingPolicy], Value)]
+</span><a href="#local-6989586621679536648"><span class="hs-identifier hs-var">extraMints</span></a></span><span> </span><span class="annot"><span class="annottext">MintsConstraint
+</span><a href="#local-6989586621679536646"><span class="hs-identifier hs-var">mc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-236"></span><span>    </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536647"><span class="hs-identifier hs-var">attacker</span></a></span><span>
+</span><span id="line-237"></span><span>    </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="Cooked.Attack.Common.html#AllCombinations"><span class="hs-identifier hs-var">AllCombinations</span></a></span><span>
+</span><span id="line-238"></span><span>
+</span><span id="line-239"></span><span class="hs-comment">-- | Parameters for a double satisfaction attack that adds 'SpendsScript'</span><span>
+</span><span id="line-240"></span><span class="hs-comment">-- constraints.</span><span>
+</span><span id="line-241"></span><span id="local-6989586621679536822"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddSsc"><span class="hs-identifier hs-type">dsAddSsc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-242"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536822"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-243"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679536822"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-244"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-245"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Common.html#SplitStrategy"><span class="hs-identifier hs-type">SplitStrategy</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-246"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536822"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-247"></span><span id="dsAddSsc"><span class="annot"><span class="annottext">dsAddSsc :: Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [SpendsScriptConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddSsc"><span class="hs-identifier hs-var hs-var">dsAddSsc</span></a></span></span><span> </span><span id="local-6989586621679536642"><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536642"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679536641"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [SpendsScriptConstraint]
+</span><a href="#local-6989586621679536641"><span class="hs-identifier hs-var">extraSsc</span></a></span></span><span> </span><span id="local-6989586621679536640"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536640"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span id="local-6989586621679536639"><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="#local-6989586621679536639"><span class="hs-identifier hs-var">splitStrategy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-248"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatParams :: forall a.
+Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [Constraints])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span>
+</span><span id="line-249"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">dsOptic :: Traversal' TxSkel a
+</span><a href="Cooked.Attack.DoubleSat.html#dsOptic"><span class="hs-identifier hs-var">dsOptic</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536642"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-250"></span><span>      </span><span class="annot"><span class="annottext">dsExtraConstraints :: MockChainSt -&gt; a -&gt; [Constraints]
+</span><a href="Cooked.Attack.DoubleSat.html#dsExtraConstraints"><span class="hs-identifier hs-var">dsExtraConstraints</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536638"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536638"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679536637"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536637"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-251"></span><span>        </span><span class="annot"><span class="annottext">(SpendsScriptConstraint -&gt; Constraints)
+-&gt; [SpendsScriptConstraint] -&gt; [Constraints]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span>
+</span><span id="line-252"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Constraints
+forall a. ConstraintsSpec a =&gt; a -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#toConstraints"><span class="hs-identifier hs-var">toConstraints</span></a></span><span>
+</span><span id="line-253"></span><span>              </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Constraints)
+-&gt; (SpendsScriptConstraint -&gt; MiscConstraint)
+-&gt; SpendsScriptConstraint
+-&gt; Constraints
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism NoIx MiscConstraint SpendsScriptConstraint
+-&gt; SpendsScriptConstraint -&gt; MiscConstraint
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism NoIx MiscConstraint SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintP"><span class="hs-identifier hs-var">spendsScriptConstraintP</span></a></span><span>
+</span><span id="line-254"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-255"></span><span>          </span><span class="annot"><span class="annottext">([SpendsScriptConstraint] -&gt; [Constraints])
+-&gt; [SpendsScriptConstraint] -&gt; [Constraints]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [SpendsScriptConstraint]
+</span><a href="#local-6989586621679536641"><span class="hs-identifier hs-var">extraSsc</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536638"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536637"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-256"></span><span>      </span><span class="annot"><span class="annottext">dsAttacker :: Wallet
+</span><a href="Cooked.Attack.DoubleSat.html#dsAttacker"><span class="hs-identifier hs-var">dsAttacker</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536640"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-257"></span><span>      </span><span class="annot"><span class="annottext">dsSplitStrategy :: SplitStrategy
+</span><a href="Cooked.Attack.DoubleSat.html#dsSplitStrategy"><span class="hs-identifier hs-var">dsSplitStrategy</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="#local-6989586621679536639"><span class="hs-identifier hs-var">splitStrategy</span></a></span><span>
+</span><span id="line-258"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-259"></span><span>
+</span><span id="line-260"></span><span class="hs-comment">-- | Parameters for a doubleSatisfactionAttack that adds 'Mints' constraints.</span><span>
+</span><span id="line-261"></span><span id="local-6989586621679536802"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#dsAddMc"><span class="hs-identifier hs-type">dsAddMc</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-262"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536802"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-263"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679536802"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-264"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-265"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Common.html#SplitStrategy"><span class="hs-identifier hs-type">SplitStrategy</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-266"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536802"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-267"></span><span id="dsAddMc"><span class="annot"><span class="annottext">dsAddMc :: Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [MintsConstraint])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#dsAddMc"><span class="hs-identifier hs-var hs-var">dsAddMc</span></a></span></span><span> </span><span id="local-6989586621679536632"><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536632"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679536631"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [MintsConstraint]
+</span><a href="#local-6989586621679536631"><span class="hs-identifier hs-var">extraMc</span></a></span></span><span> </span><span id="local-6989586621679536630"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536630"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span id="local-6989586621679536629"><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="#local-6989586621679536629"><span class="hs-identifier hs-var">splitStrategy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-268"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatParams :: forall a.
+Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [Constraints])
+-&gt; Wallet
+-&gt; SplitStrategy
+-&gt; DoubleSatParams a
+</span><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span>
+</span><span id="line-269"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">dsOptic :: Traversal' TxSkel a
+</span><a href="Cooked.Attack.DoubleSat.html#dsOptic"><span class="hs-identifier hs-var">dsOptic</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536632"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-270"></span><span>      </span><span class="annot"><span class="annottext">dsExtraConstraints :: MockChainSt -&gt; a -&gt; [Constraints]
+</span><a href="Cooked.Attack.DoubleSat.html#dsExtraConstraints"><span class="hs-identifier hs-var">dsExtraConstraints</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536628"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536628"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679536627"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536627"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-271"></span><span>        </span><span class="annot"><span class="annottext">(MintsConstraint -&gt; Constraints)
+-&gt; [MintsConstraint] -&gt; [Constraints]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span>
+</span><span id="line-272"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Constraints
+forall a. ConstraintsSpec a =&gt; a -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#toConstraints"><span class="hs-identifier hs-var">toConstraints</span></a></span><span>
+</span><span id="line-273"></span><span>              </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Constraints)
+-&gt; (MintsConstraint -&gt; MiscConstraint)
+-&gt; MintsConstraint
+-&gt; Constraints
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism NoIx MiscConstraint MintsConstraint
+-&gt; MintsConstraint -&gt; MiscConstraint
+forall k (is :: IxList) t b.
+Is k A_Review =&gt;
+Optic' k is t b -&gt; b -&gt; t
+</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Prism NoIx MiscConstraint MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintP"><span class="hs-identifier hs-var">mintsConstraintP</span></a></span><span>
+</span><span id="line-274"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-275"></span><span>          </span><span class="annot"><span class="annottext">([MintsConstraint] -&gt; [Constraints])
+-&gt; [MintsConstraint] -&gt; [Constraints]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [MintsConstraint]
+</span><a href="#local-6989586621679536631"><span class="hs-identifier hs-var">extraMc</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536628"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536627"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-276"></span><span>      </span><span class="annot"><span class="annottext">dsAttacker :: Wallet
+</span><a href="Cooked.Attack.DoubleSat.html#dsAttacker"><span class="hs-identifier hs-var">dsAttacker</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536630"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-277"></span><span>      </span><span class="annot"><span class="annottext">dsSplitStrategy :: SplitStrategy
+</span><a href="Cooked.Attack.DoubleSat.html#dsSplitStrategy"><span class="hs-identifier hs-var">dsSplitStrategy</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="#local-6989586621679536629"><span class="hs-identifier hs-var">splitStrategy</span></a></span><span>
+</span><span id="line-278"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-279"></span><span>
+</span><span id="line-280"></span><span class="hs-comment">-- * The double satisfaction attack</span><span>
+</span><span id="line-281"></span><span>
+</span><span id="line-282"></span><span class="hs-comment">-- | Double satisfaction attack. See the comments for 'DoubleSatParams' and its</span><span>
+</span><span id="line-283"></span><span class="hs-comment">-- smart constructors for explanation.</span><span>
+</span><span id="line-284"></span><span id="local-6989586621679536625"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-type">doubleSatAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-285"></span><span>  </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679536625"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-286"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Common.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span></span><span>
+</span><span id="line-287"></span><span id="doubleSatAttack"><span class="annot"><span class="annottext">doubleSatAttack :: DoubleSatParams a -&gt; Attack
+</span><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-var hs-var">doubleSatAttack</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatParams"><span class="hs-identifier hs-type">DoubleSatParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679536620"><span id="local-6989586621679536621"><span id="local-6989586621679536622"><span id="local-6989586621679536623"><span class="annot"><span class="annottext">Traversal' TxSkel a
+Wallet
+SplitStrategy
+MockChainSt -&gt; a -&gt; [Constraints]
+dsSplitStrategy :: SplitStrategy
+dsAttacker :: Wallet
+dsExtraConstraints :: MockChainSt -&gt; a -&gt; [Constraints]
+dsOptic :: Traversal' TxSkel a
+dsSplitStrategy :: forall a. DoubleSatParams a -&gt; SplitStrategy
+dsAttacker :: forall a. DoubleSatParams a -&gt; Wallet
+dsExtraConstraints :: forall a. DoubleSatParams a -&gt; MockChainSt -&gt; a -&gt; [Constraints]
+dsOptic :: forall a. DoubleSatParams a -&gt; Traversal' TxSkel a
+</span><a href="#local-6989586621679536620"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-288"></span><span>  </span><span class="annot"><span class="annottext">SplitStrategy
+-&gt; Traversal' TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [(a, Constraints)])
+-&gt; ([Constraints] -&gt; TxSkel -&gt; [TxSkel])
+-&gt; Attack
+forall a b k (is :: IxList).
+Is k A_Traversal =&gt;
+SplitStrategy
+-&gt; Optic' k is TxSkel a
+-&gt; (MockChainSt -&gt; a -&gt; [(a, b)])
+-&gt; ([b] -&gt; TxSkel -&gt; [TxSkel])
+-&gt; Attack
+</span><a href="Cooked.Attack.Common.html#mkSplittingAttack"><span class="hs-identifier hs-var">mkSplittingAttack</span></a></span><span>
+</span><span id="line-289"></span><span>    </span><span class="annot"><span class="annottext">SplitStrategy
+</span><a href="#local-6989586621679536620"><span class="hs-identifier hs-var">dsSplitStrategy</span></a></span><span>
+</span><span id="line-290"></span><span>    </span><span class="annot"><span class="annottext">Traversal' TxSkel a
+</span><a href="#local-6989586621679536623"><span class="hs-identifier hs-var">dsOptic</span></a></span><span>
+</span><span id="line-291"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536618"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536618"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679536617"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536617"><span class="hs-identifier hs-var">ssc</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-292"></span><span>        </span><span class="annot"><span class="annottext">(Constraints -&gt; (a, Constraints))
+-&gt; [Constraints] -&gt; [(a, Constraints)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span>
+</span><span id="line-293"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536617"><span class="hs-identifier hs-var">ssc</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span>
+</span><span id="line-294"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [Constraints]
+</span><a href="#local-6989586621679536622"><span class="hs-identifier hs-var">dsExtraConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679536618"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679536617"><span class="hs-identifier hs-var">ssc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-295"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-296"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679536616"><span class="annot"><span class="annottext">[Constraints]
+</span><a href="#local-6989586621679536616"><span class="hs-identifier hs-var">extraConstrList</span></a></span></span><span> </span><span id="local-6989586621679536615"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679536615"><span class="hs-identifier hs-var">skelOld</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-297"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679536614"><span class="annot"><span class="annottext">extraConstrs :: Constraints
+</span><a href="#local-6989586621679536614"><span class="hs-identifier hs-var hs-var">extraConstrs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Constraints] -&gt; Constraints -&gt; Constraints
+</span><a href="#local-6989586621679536613"><span class="hs-identifier hs-var">accConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">[Constraints]
+</span><a href="#local-6989586621679536616"><span class="hs-identifier hs-var">extraConstrList</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">:=&gt;:</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-298"></span><span>            </span><span id="local-6989586621679536611"><span class="annot"><span class="annottext">extraInValue :: Value
+</span><a href="#local-6989586621679536611"><span class="hs-identifier hs-var hs-var">extraInValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx Constraints Value -&gt; Constraints -&gt; Value
+forall k a (is :: IxList) s.
+(Is k A_Fold, Monoid a) =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+</span><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-var">constraintPairI</span></a></span><span> </span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+     [MiscConstraint]
+     [MiscConstraint]
+-&gt; Optic
+     A_Lens
+     NoIx
+     Constraints
+     Constraints
+     [MiscConstraint]
+     [MiscConstraint]
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+  [MiscConstraint]
+  [MiscConstraint]
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  Constraints
+  Constraints
+  [MiscConstraint]
+  [MiscConstraint]
+-&gt; Optic
+     A_Traversal
+     NoIx
+     [MiscConstraint]
+     [MiscConstraint]
+     MiscConstraint
+     MiscConstraint
+-&gt; Optic
+     A_Traversal
+     NoIx
+     Constraints
+     Constraints
+     MiscConstraint
+     MiscConstraint
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  [MiscConstraint]
+  [MiscConstraint]
+  MiscConstraint
+  MiscConstraint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  Constraints
+  Constraints
+  MiscConstraint
+  MiscConstraint
+-&gt; Optic
+     An_AffineTraversal NoIx MiscConstraint MiscConstraint Value Value
+-&gt; Optic' A_Traversal NoIx Constraints Value
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  An_AffineTraversal NoIx MiscConstraint MiscConstraint Value Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueAT"><span class="hs-identifier hs-var">valueAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536614"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
+</span><span id="line-299"></span><span>            </span><span id="local-6989586621679536604"><span class="annot"><span class="annottext">extraOutValue :: Value
+</span><a href="#local-6989586621679536604"><span class="hs-identifier hs-var hs-var">extraOutValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx Constraints Value -&gt; Constraints -&gt; Value
+forall k a (is :: IxList) s.
+(Is k A_Fold, Monoid a) =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+</span><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-var">constraintPairI</span></a></span><span> </span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+     [OutConstraint]
+     [OutConstraint]
+-&gt; Optic
+     A_Lens NoIx Constraints Constraints [OutConstraint] [OutConstraint]
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+  [OutConstraint]
+  [OutConstraint]
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens NoIx Constraints Constraints [OutConstraint] [OutConstraint]
+-&gt; Optic
+     A_Traversal
+     NoIx
+     [OutConstraint]
+     [OutConstraint]
+     OutConstraint
+     OutConstraint
+-&gt; Optic
+     A_Traversal
+     NoIx
+     Constraints
+     Constraints
+     OutConstraint
+     OutConstraint
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  [OutConstraint]
+  [OutConstraint]
+  OutConstraint
+  OutConstraint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  Constraints
+  Constraints
+  OutConstraint
+  OutConstraint
+-&gt; Optic A_Lens NoIx OutConstraint OutConstraint Value Value
+-&gt; Optic' A_Traversal NoIx Constraints Value
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx OutConstraint OutConstraint Value Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536614"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
+</span><span id="line-300"></span><span>            </span><span id="local-6989586621679536601"><span class="annot"><span class="annottext">surplus :: Value
+</span><a href="#local-6989586621679536601"><span class="hs-identifier hs-var hs-var">surplus</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536611"><span class="hs-identifier hs-var">extraInValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
+forall a. AdditiveGroup a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">Pl.negate</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536604"><span class="hs-identifier hs-var">extraOutValue</span></a></span><span>
+</span><span id="line-301"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl -&gt; TxSkel -&gt; TxSkel
+forall x. LabelConstrs x =&gt; x -&gt; TxSkel -&gt; TxSkel
+</span><a href="Cooked.Attack.Common.html#addLabel"><span class="hs-identifier hs-var">addLabel</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl
+</span><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; TxSkel
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-302"></span><span>                </span><span class="annot"><span class="annottext">Wallet -&gt; Value -&gt; TxSkel -&gt; TxSkel
+</span><a href="#local-6989586621679536597"><span class="hs-identifier hs-var">payTo</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536621"><span class="hs-identifier hs-var">dsAttacker</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536601"><span class="hs-identifier hs-var">surplus</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; TxSkel
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-303"></span><span>                  </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel Constraints Constraints
+-&gt; (Constraints -&gt; Constraints) -&gt; TxSkel -&gt; TxSkel
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel Constraints Constraints
+</span><a href="Cooked.Tx.Constraints.Optics.html#txConstraintsL"><span class="hs-identifier hs-var">txConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536614"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Constraints -&gt; Constraints
+</span><a href="Cooked.Attack.DoubleSat.html#addConstraints"><span class="hs-operator hs-var">`addConstraints`</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679536615"><span class="hs-identifier hs-var">skelOld</span></a></span><span>
+</span><span id="line-304"></span><span>              </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536614"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Constraints -&gt; Bool
+</span><a href="Cooked.Attack.DoubleSat.html#strictlyExtendsConstraints"><span class="hs-operator hs-var">`strictlyExtendsConstraints`</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#txConstraints"><span class="hs-identifier hs-var hs-var">txConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679536615"><span class="hs-identifier hs-var">skelOld</span></a></span><span>
+</span><span id="line-305"></span><span>            </span><span class="hs-special">]</span><span>
+</span><span id="line-306"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-307"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-308"></span><span>    </span><span class="annot"><a href="#local-6989586621679536597"><span class="hs-identifier hs-type">payTo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-309"></span><span>    </span><span id="local-6989586621679536597"><span class="annot"><span class="annottext">payTo :: Wallet -&gt; Value -&gt; TxSkel -&gt; TxSkel
+</span><a href="#local-6989586621679536597"><span class="hs-identifier hs-var hs-var">payTo</span></a></span></span><span> </span><span id="local-6989586621679536591"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536591"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679536590"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536590"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel [OutConstraint] [OutConstraint]
+-&gt; ([OutConstraint] -&gt; [OutConstraint]) -&gt; TxSkel -&gt; TxSkel
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel [OutConstraint] [OutConstraint]
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[OutConstraint] -&gt; [OutConstraint] -&gt; [OutConstraint]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
+</span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679536591"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679536590"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-310"></span><span>
+</span><span id="line-311"></span><span>    </span><span class="hs-comment">-- Accumulate a list of 'Constraints' into a single 'Constraints', in such a</span><span>
+</span><span id="line-312"></span><span>    </span><span class="hs-comment">-- way that extra 'MiscConstraint's are added in the front (the order should</span><span>
+</span><span id="line-313"></span><span>    </span><span class="hs-comment">-- not matter), and extra 'OutConstraint's are added in the back (here, the</span><span>
+</span><span id="line-314"></span><span>    </span><span class="hs-comment">-- order might matter).</span><span>
+</span><span id="line-315"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-316"></span><span>    </span><span class="hs-comment">-- Note: This combines the list of extra constraints into a</span><span>
+</span><span id="line-317"></span><span>    </span><span class="annot"><a href="#local-6989586621679536613"><span class="hs-identifier hs-type">accConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
+</span><span id="line-318"></span><span>    </span><span id="local-6989586621679536613"><span class="annot"><span class="annottext">accConstraints :: [Constraints] -&gt; Constraints -&gt; Constraints
+</span><a href="#local-6989586621679536613"><span class="hs-identifier hs-var hs-var">accConstraints</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679536586"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536586"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536586"><span class="hs-identifier hs-var">acc</span></a></span><span>
+</span><span id="line-319"></span><span>    </span><span class="annot"><a href="#local-6989586621679536613"><span class="hs-identifier hs-var">accConstraints</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536585"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536585"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536584"><span class="annot"><span class="annottext">[Constraints]
+</span><a href="#local-6989586621679536584"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679536583"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536583"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536585"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Constraints -&gt; Constraints
+</span><a href="Cooked.Attack.DoubleSat.html#addConstraints"><span class="hs-operator hs-var">`addConstraints`</span></a></span><span> </span><span class="annot"><span class="annottext">[Constraints] -&gt; Constraints -&gt; Constraints
+</span><a href="#local-6989586621679536613"><span class="hs-identifier hs-var">accConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">[Constraints]
+</span><a href="#local-6989586621679536584"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536583"><span class="hs-identifier hs-var">acc</span></a></span><span>
+</span><span id="line-320"></span><span>
+</span><span id="line-321"></span><span class="hs-comment">-- * Extending 'Constraints'</span><span>
+</span><span id="line-322"></span><span>
+</span><span id="line-323"></span><span class="hs-comment">-- | Extend the constraints in the second argument with the ones from the first</span><span>
+</span><span id="line-324"></span><span class="hs-comment">-- argument, but only if there are no conflicts:</span><span>
+</span><span id="line-325"></span><span class="hs-comment">--</span><span>
+</span><span id="line-326"></span><span class="hs-comment">-- - No 'SpendsScript' or 'SpendsPK' constraints trying to spend the same UTxO</span><span>
+</span><span id="line-327"></span><span class="hs-comment">--</span><span>
+</span><span id="line-328"></span><span class="hs-comment">-- - No incompatible time ranges</span><span>
+</span><span id="line-329"></span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#addConstraints"><span class="hs-identifier hs-type">addConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
+</span><span id="line-330"></span><span id="addConstraints"><span class="annot"><span class="annottext">addConstraints :: Constraints -&gt; Constraints -&gt; Constraints
+</span><a href="Cooked.Attack.DoubleSat.html#addConstraints"><span class="hs-identifier hs-var hs-var">addConstraints</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536582"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536582"><span class="hs-identifier hs-var">extraIs</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679536581"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536581"><span class="hs-identifier hs-var">extraOs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679536580"><span class="annot"><span class="annottext">r :: Constraints
+</span><a href="#local-6989586621679536580"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679536579"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536579"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679536578"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536578"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-331"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [MiscConstraint] -&gt; Maybe [MiscConstraint]
+</span><a href="#local-6989586621679536577"><span class="hs-identifier hs-var">miscListExtend</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536582"><span class="hs-identifier hs-var">extraIs</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536579"><span class="hs-identifier hs-var">is</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-332"></span><span>    </span><span class="annot"><span class="annottext">Maybe [MiscConstraint]
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679536580"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-333"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679536576"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536576"><span class="hs-identifier hs-var">is'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536576"><span class="hs-identifier hs-var">is'</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">:=&gt;:</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536578"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint] -&gt; [OutConstraint] -&gt; [OutConstraint]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536581"><span class="hs-identifier hs-var">extraOs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-334"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-335"></span><span>    </span><span class="annot"><a href="#local-6989586621679536577"><span class="hs-identifier hs-type">miscListExtend</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-336"></span><span>    </span><span id="local-6989586621679536577"><span class="annot"><span class="annottext">miscListExtend :: [MiscConstraint] -&gt; [MiscConstraint] -&gt; Maybe [MiscConstraint]
+</span><a href="#local-6989586621679536577"><span class="hs-identifier hs-var hs-var">miscListExtend</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679536575"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536575"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; Maybe [MiscConstraint]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536575"><span class="hs-identifier hs-var">rs</span></a></span><span>
+</span><span id="line-337"></span><span>    </span><span class="annot"><a href="#local-6989586621679536577"><span class="hs-identifier hs-var">miscListExtend</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536574"><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536574"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536573"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536573"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679536572"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536572"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [MiscConstraint] -&gt; Maybe [MiscConstraint]
+</span><a href="#local-6989586621679536577"><span class="hs-identifier hs-var">miscListExtend</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536573"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536572"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-338"></span><span>      </span><span class="annot"><span class="annottext">Maybe [MiscConstraint]
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [MiscConstraint]
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-339"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679536571"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536571"><span class="hs-identifier hs-var">ms</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#checkMiscExtend"><span class="hs-identifier hs-var">checkMiscExtend</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536574"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536571"><span class="hs-identifier hs-var">ms</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-340"></span><span>        </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [MiscConstraint]
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-341"></span><span>        </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; Maybe [MiscConstraint]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536571"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-342"></span><span>        </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; Maybe [MiscConstraint]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">([MiscConstraint] -&gt; Maybe [MiscConstraint])
+-&gt; [MiscConstraint] -&gt; Maybe [MiscConstraint]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536574"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536571"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-343"></span><span>
+</span><span id="line-344"></span><span class="hs-comment">-- | Return @True@ iff the constraints in the first argument can be added</span><span>
+</span><span id="line-345"></span><span class="hs-comment">-- without conflict to the ones in the second argument, and they are not alreay</span><span>
+</span><span id="line-346"></span><span class="hs-comment">-- covered by the constraints in the second argument.</span><span>
+</span><span id="line-347"></span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#strictlyExtendsConstraints"><span class="hs-identifier hs-type">strictlyExtendsConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-348"></span><span id="strictlyExtendsConstraints"><span class="annot"><span class="annottext">strictlyExtendsConstraints :: Constraints -&gt; Constraints -&gt; Bool
+</span><a href="Cooked.Attack.DoubleSat.html#strictlyExtendsConstraints"><span class="hs-identifier hs-var hs-var">strictlyExtendsConstraints</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536566"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536566"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679536565"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536565"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536564"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536564"><span class="hs-identifier hs-var">is'</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679536563"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536563"><span class="hs-identifier hs-var">os'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-349"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="#local-6989586621679536562"><span class="hs-identifier hs-var">checkMiscListExtend</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536566"><span class="hs-identifier hs-var">is</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536564"><span class="hs-identifier hs-var">is'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-350"></span><span>    </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-351"></span><span>    </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(OutConstraint -&gt; Bool) -&gt; [OutConstraint] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">OutConstraint -&gt; [OutConstraint] -&gt; Bool
+forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
+</span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536563"><span class="hs-identifier hs-var">os'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679536565"><span class="hs-identifier hs-var">os</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-352"></span><span>    </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-353"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-354"></span><span>    </span><span class="hs-comment">-- check that all constraints from the first list can be added one after</span><span>
+</span><span id="line-355"></span><span>    </span><span class="hs-comment">-- the other to the second list.</span><span>
+</span><span id="line-356"></span><span>    </span><span class="annot"><a href="#local-6989586621679536562"><span class="hs-identifier hs-type">checkMiscListExtend</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#CheckMiscExtend"><span class="hs-identifier hs-type">CheckMiscExtend</span></a></span><span>
+</span><span id="line-357"></span><span>    </span><span id="local-6989586621679536562"><span class="annot"><span class="annottext">checkMiscListExtend :: [MiscConstraint] -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="#local-6989586621679536562"><span class="hs-identifier hs-var hs-var">checkMiscListExtend</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span>
+</span><span id="line-358"></span><span>    </span><span class="annot"><a href="#local-6989586621679536562"><span class="hs-identifier hs-var">checkMiscListExtend</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536558"><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536558"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536557"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536557"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679536556"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536556"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#checkMiscExtend"><span class="hs-identifier hs-var">checkMiscExtend</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536558"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536556"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-359"></span><span>      </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span>
+</span><span id="line-360"></span><span>      </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="#local-6989586621679536562"><span class="hs-identifier hs-var">checkMiscListExtend</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536557"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536558"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536556"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-361"></span><span>        </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span>
+</span><span id="line-362"></span><span>        </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-363"></span><span>      </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="#local-6989586621679536562"><span class="hs-identifier hs-var">checkMiscListExtend</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536557"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536558"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536556"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-364"></span><span>
+</span><span id="line-365"></span><span class="hs-keyword">data</span><span> </span><span id="CheckMiscExtend"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#CheckMiscExtend"><span class="hs-identifier hs-var">CheckMiscExtend</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Incompatible"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="AlreadyThere"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="CompatibleExtension"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span></span><span>
+</span><span id="line-366"></span><span>
+</span><span id="line-367"></span><span class="hs-comment">-- | Check how a given 'MiscConstraint' relates to a set of other</span><span>
+</span><span id="line-368"></span><span class="hs-comment">-- 'MiscConstraint's:</span><span>
+</span><span id="line-369"></span><span class="hs-comment">--</span><span>
+</span><span id="line-370"></span><span class="hs-comment">-- - If the set of constraints already includes the given constraint (either</span><span>
+</span><span id="line-371"></span><span class="hs-comment">--   directly or as a consequence), return 'AlreadyThere'</span><span>
+</span><span id="line-372"></span><span class="hs-comment">--</span><span>
+</span><span id="line-373"></span><span class="hs-comment">-- - If the given constraint can be added to the set without conflict, return 'CompatibleExtension'</span><span>
+</span><span id="line-374"></span><span class="hs-comment">--</span><span>
+</span><span id="line-375"></span><span class="hs-comment">-- - Otherwise, return 'Incompatible'</span><span>
+</span><span id="line-376"></span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#checkMiscExtend"><span class="hs-identifier hs-type">checkMiscExtend</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#CheckMiscExtend"><span class="hs-identifier hs-type">CheckMiscExtend</span></a></span><span>
+</span><span id="line-377"></span><span id="checkMiscExtend"><span class="annot"><span class="annottext">checkMiscExtend :: MiscConstraint -&gt; [MiscConstraint] -&gt; CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#checkMiscExtend"><span class="hs-identifier hs-var hs-var">checkMiscExtend</span></a></span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-378"></span><span class="annot"><a href="Cooked.Attack.DoubleSat.html#checkMiscExtend"><span class="hs-identifier hs-var">checkMiscExtend</span></a></span><span> </span><span id="local-6989586621679536555"><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536555"><span class="hs-identifier hs-var">mc</span></a></span></span><span> </span><span id="local-6989586621679536554"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-379"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536555"><span class="hs-identifier hs-var">mc</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-380"></span><span>    </span><span class="hs-comment">-- 'Mints' and 'SignedBy' Constraints can always be added</span><span>
+</span><span id="line-381"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-382"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-383"></span><span>    </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-384"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536555"><span class="hs-identifier hs-var">mc</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; Bool
+forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
+</span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><span id="line-385"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span>
+</span><span id="line-386"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679536555"><span class="hs-identifier hs-var">mc</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-387"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536550"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536550"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Bool) -&gt; [MiscConstraint] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">any</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SpendableOut -&gt; MiscConstraint -&gt; Bool
+</span><a href="#local-6989586621679536548"><span class="hs-identifier hs-var">spends</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536550"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-388"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span id="local-6989586621679536546"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536546"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Bool) -&gt; [MiscConstraint] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">any</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SpendableOut -&gt; MiscConstraint -&gt; Bool
+</span><a href="#local-6989586621679536548"><span class="hs-identifier hs-var">spends</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536546"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-389"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679536544"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536544"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-390"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679536543"><span class="annot"><span class="annottext">oldRange :: POSIXTimeRange
+</span><a href="#local-6989586621679536543"><span class="hs-identifier hs-var hs-var">oldRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><span id="line-391"></span><span>                </span><span id="local-6989586621679536541"><span class="annot"><span class="annottext">newRange :: POSIXTimeRange
+</span><a href="#local-6989586621679536541"><span class="hs-identifier hs-var hs-var">newRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
+forall a. a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Pl.to</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536544"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-392"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span>
+</span><span id="line-393"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536541"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.contains`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536543"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span>
+</span><span id="line-394"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536541"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. (Enum a, Ord a) =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.overlaps`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536543"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-395"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span>
+</span><span id="line-396"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679536536"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536536"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-397"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679536535"><span class="annot"><span class="annottext">oldRange :: POSIXTimeRange
+</span><a href="#local-6989586621679536535"><span class="hs-identifier hs-var hs-var">oldRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><span id="line-398"></span><span>                </span><span id="local-6989586621679536534"><span class="annot"><span class="annottext">newRange :: POSIXTimeRange
+</span><a href="#local-6989586621679536534"><span class="hs-identifier hs-var hs-var">newRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
+forall a. a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Pl.from</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536536"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-399"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span>
+</span><span id="line-400"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536534"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.contains`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536535"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span>
+</span><span id="line-401"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536534"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. (Enum a, Ord a) =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.overlaps`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536535"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-402"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span>
+</span><span id="line-403"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679536531"><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536531"><span class="hs-identifier hs-var">newRange</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-404"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679536530"><span class="annot"><span class="annottext">oldRange :: POSIXTimeRange
+</span><a href="#local-6989586621679536530"><span class="hs-identifier hs-var hs-var">oldRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536554"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><span id="line-405"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span>
+</span><span id="line-406"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536531"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.contains`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536530"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#AlreadyThere"><span class="hs-identifier hs-var">AlreadyThere</span></a></span><span>
+</span><span id="line-407"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536531"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; Bool
+forall a. (Enum a, Ord a) =&gt; Interval a -&gt; Interval a -&gt; Bool
+</span><span class="hs-operator hs-var">`Pl.overlaps`</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536530"><span class="hs-identifier hs-var">oldRange</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span>
+</span><span id="line-408"></span><span>                    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#Incompatible"><span class="hs-identifier hs-var">Incompatible</span></a></span><span>
+</span><span id="line-409"></span><span>          </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CheckMiscExtend
+</span><a href="Cooked.Attack.DoubleSat.html#CompatibleExtension"><span class="hs-identifier hs-var">CompatibleExtension</span></a></span><span> </span><span class="hs-comment">-- This case will never be reached</span><span>
+</span><span id="line-410"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-411"></span><span>    </span><span class="annot"><a href="#local-6989586621679536548"><span class="hs-identifier hs-type">spends</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-412"></span><span>    </span><span id="local-6989586621679536548"><span class="annot"><span class="annottext">spends :: SpendableOut -&gt; MiscConstraint -&gt; Bool
+</span><a href="#local-6989586621679536548"><span class="hs-identifier hs-var hs-var">spends</span></a></span></span><span> </span><span id="local-6989586621679536529"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536529"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536528"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536528"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536529"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; SpendableOut -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536528"><span class="hs-identifier hs-var">o'</span></a></span><span>
+</span><span id="line-413"></span><span>    </span><span class="annot"><a href="#local-6989586621679536548"><span class="hs-identifier hs-var">spends</span></a></span><span> </span><span id="local-6989586621679536527"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536527"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span id="local-6989586621679536526"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536526"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536527"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; SpendableOut -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679536526"><span class="hs-identifier hs-var">o'</span></a></span><span>
+</span><span id="line-414"></span><span>    </span><span class="annot"><a href="#local-6989586621679536548"><span class="hs-identifier hs-var">spends</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-415"></span><span>
+</span><span id="line-416"></span><span>    </span><span class="annot"><a href="#local-6989586621679536542"><span class="hs-identifier hs-type">validRange</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.POSIXTimeRange</span></span><span>
+</span><span id="line-417"></span><span>    </span><span id="local-6989586621679536542"><span class="annot"><span class="annottext">validRange :: [MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var hs-var">validRange</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+forall a. Interval a
+</span><span class="hs-identifier hs-var">Pl.always</span></span><span>
+</span><span id="line-418"></span><span>    </span><span class="annot"><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679536524"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536524"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536523"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536523"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
+forall a. a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Pl.to</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536524"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; POSIXTimeRange
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Interval a
+</span><span class="hs-operator hs-var">`Pl.intersection`</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536523"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-419"></span><span>    </span><span class="annot"><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679536521"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536521"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536520"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536520"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; POSIXTimeRange
+forall a. a -&gt; Interval a
+</span><span class="hs-identifier hs-var">Pl.from</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679536521"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; POSIXTimeRange
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Interval a
+</span><span class="hs-operator hs-var">`Pl.intersection`</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536520"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-420"></span><span>    </span><span class="annot"><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679536519"><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536519"><span class="hs-identifier hs-var">range</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536518"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536518"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679536519"><span class="hs-identifier hs-var">range</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; POSIXTimeRange -&gt; POSIXTimeRange
+forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Interval a
+</span><span class="hs-operator hs-var">`Pl.intersection`</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536518"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-421"></span><span>    </span><span class="annot"><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679536517"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536517"><span class="hs-identifier hs-var">ms</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; POSIXTimeRange
+</span><a href="#local-6989586621679536542"><span class="hs-identifier hs-var">validRange</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679536517"><span class="hs-identifier hs-var">ms</span></a></span><span>
+</span><span id="line-422"></span><span>
+</span><span id="line-423"></span><span class="hs-keyword">data</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span>
+</span><span id="line-424"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679536513"><span id="local-6989586621679536515"><span class="annot"><span class="annottext">DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+(DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool)
+-&gt; (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool) -&gt; Eq DoubleSatLbl
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+$c/= :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+== :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+$c== :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679536506"><span id="local-6989586621679536508"><span id="local-6989586621679536510"><span class="annot"><span class="annottext">Int -&gt; DoubleSatLbl -&gt; ShowS
+[DoubleSatLbl] -&gt; ShowS
+DoubleSatLbl -&gt; String
+(Int -&gt; DoubleSatLbl -&gt; ShowS)
+-&gt; (DoubleSatLbl -&gt; String)
+-&gt; ([DoubleSatLbl] -&gt; ShowS)
+-&gt; Show DoubleSatLbl
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DoubleSatLbl] -&gt; ShowS
+$cshowList :: [DoubleSatLbl] -&gt; ShowS
+show :: DoubleSatLbl -&gt; String
+$cshow :: DoubleSatLbl -&gt; String
+showsPrec :: Int -&gt; DoubleSatLbl -&gt; ShowS
+$cshowsPrec :: Int -&gt; DoubleSatLbl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-425"></span></pre></body></html>

@@ -19,8 +19,8 @@
 </span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
 </span><span id="line-20"></span><span>
 </span><span id="line-21"></span><span class="hs-comment">-- TODO shall MonadFail really be the constraint on the MonadBlockChain class?</span><span>
-</span><span id="line-22"></span><span id="local-6989586621679524455"><span id="local-6989586621679524456"><span id="local-6989586621679524457"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679524457"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadFail</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679524456"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524455"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524457"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-23"></span><span>  </span><span id="local-6989586621679524451"><span class="annot"><span class="annottext">fail :: String -&gt; Contract w s e a
+</span><span id="line-22"></span><span id="local-6989586621679535868"><span id="local-6989586621679535869"><span id="local-6989586621679535870"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679535870"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadFail</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679535869"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535868"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535870"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>  </span><span id="local-6989586621679535864"><span class="annot"><span class="annottext">fail :: String -&gt; Contract w s e a
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">fail</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">e -&gt; Contract w s e a
 forall e (m :: * -&gt; *) a. MonadError e m =&gt; e -&gt; m a
 </span><span class="hs-identifier hs-var">C.throwError</span></span><span> </span><span class="annot"><span class="annottext">(e -&gt; Contract w s e a)
@@ -35,27 +35,27 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
 </span><span class="hs-identifier hs-var">T.pack</span></span></span></span></span><span>
 </span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span id="local-6989586621679524444"><span id="local-6989586621679524445"><span id="local-6989586621679524446"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679524446"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679524445"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524444"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524446"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-26"></span><span>  </span><span id="local-6989586621679524433"><span class="annot"><span class="annottext">validateTxSkel :: TxSkel -&gt; Contract w s e CardanoTx
-</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var hs-var hs-var hs-var">validateTxSkel</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679524430"><span class="annot"><span class="annottext">Constraints
+</span><span id="line-25"></span><span id="local-6989586621679535857"><span id="local-6989586621679535858"><span id="local-6989586621679535859"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679535859"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679535858"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535857"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535859"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679535846"><span class="annot"><span class="annottext">validateTxSkel :: TxSkel -&gt; Contract w s e CardanoTx
+</span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var hs-var hs-var hs-var">validateTxSkel</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679535843"><span class="annot"><span class="annottext">Constraints
 txConstraints :: TxSkel -&gt; Constraints
 txConstraints :: Constraints
-</span><a href="Cooked.Tx.Constraints.Type.html#txConstraints"><span class="hs-identifier hs-var hs-var">txConstraints</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679524428"><span class="annot"><span class="annottext">TxOpts
+</span><a href="Cooked.Tx.Constraints.Type.html#txConstraints"><span class="hs-identifier hs-var hs-var">txConstraints</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679535841"><span class="annot"><span class="annottext">TxOpts
 txOpts :: TxSkel -&gt; TxOpts
 txOpts :: TxOpts
 </span><a href="Cooked.Tx.Constraints.Type.html#txOpts"><span class="hs-identifier hs-var hs-var">txOpts</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-27"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679524426"><span class="annot"><span class="annottext">ScriptLookups Void
-</span><a href="#local-6989586621679524426"><span class="hs-identifier hs-var">lkups</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679524425"><span class="annot"><span class="annottext">TxConstraints Void Void
-</span><a href="#local-6989586621679524425"><span class="hs-identifier hs-var">constrs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; LedgerConstraint Void
+</span><span id="line-27"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679535839"><span class="annot"><span class="annottext">ScriptLookups Void
+</span><a href="#local-6989586621679535839"><span class="hs-identifier hs-var">lkups</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679535838"><span class="annot"><span class="annottext">TxConstraints Void Void
+</span><a href="#local-6989586621679535838"><span class="hs-identifier hs-var">constrs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; LedgerConstraint Void
 forall constraint a.
 ToLedgerConstraint constraint =&gt;
 constraint -&gt; LedgerConstraint a
 </span><a href="Cooked.Tx.Constraints.html#toLedgerConstraint"><span class="hs-identifier hs-var">toLedgerConstraint</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Constraints -&gt; Constraints
 forall a. ConstraintsSpec a =&gt; a -&gt; Constraints
 </span><a href="Cooked.Tx.Constraints.Type.html#toConstraints"><span class="hs-identifier hs-var">toConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
-</span><a href="#local-6989586621679524430"><span class="hs-identifier hs-var">txConstraints</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-28"></span><span>    </span><span id="local-6989586621679524422"><span class="annot"><span class="annottext">CardanoTx
-</span><a href="#local-6989586621679524422"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ScriptLookups Void
+</span><a href="#local-6989586621679535843"><span class="hs-identifier hs-var">txConstraints</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>    </span><span id="local-6989586621679535835"><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679535835"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ScriptLookups Void
 -&gt; TxConstraints (RedeemerType Void) (DatumType Void)
 -&gt; Contract w s e CardanoTx
 forall a w (s :: Row *) e.
@@ -65,14 +65,14 @@ ScriptLookups a
 -&gt; TxConstraints (RedeemerType a) (DatumType a)
 -&gt; Contract w s e CardanoTx
 </span><span class="hs-identifier hs-var">C.submitTxConstraintsWith</span></span><span> </span><span class="annot"><span class="annottext">ScriptLookups Void
-</span><a href="#local-6989586621679524426"><span class="hs-identifier hs-var">lkups</span></a></span><span> </span><span class="annot"><span class="annottext">TxConstraints Void Void
+</span><a href="#local-6989586621679535839"><span class="hs-identifier hs-var">lkups</span></a></span><span> </span><span class="annot"><span class="annottext">TxConstraints Void Void
 TxConstraints (RedeemerType Void) (DatumType Void)
-</span><a href="#local-6989586621679524425"><span class="hs-identifier hs-var">constrs</span></a></span><span>
+</span><a href="#local-6989586621679535838"><span class="hs-identifier hs-var">constrs</span></a></span><span>
 </span><span id="line-29"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; Contract w s e () -&gt; Contract w s e ()
 forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
 </span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOpts -&gt; Bool
 </span><a href="Cooked.Tx.Constraints.Type.html#awaitTxConfirmed"><span class="hs-identifier hs-var hs-var">awaitTxConfirmed</span></a></span><span> </span><span class="annot"><span class="annottext">TxOpts
-</span><a href="#local-6989586621679524428"><span class="hs-identifier hs-var">txOpts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Contract w s e () -&gt; Contract w s e ())
+</span><a href="#local-6989586621679535841"><span class="hs-identifier hs-var">txOpts</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Contract w s e () -&gt; Contract w s e ())
 -&gt; Contract w s e () -&gt; Contract w s e ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxId -&gt; Contract w s e ()
@@ -83,19 +83,19 @@ TxId -&gt; Contract w s e ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; TxId
 </span><span class="hs-identifier hs-var">Pl.getCardanoTxId</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
-</span><a href="#local-6989586621679524422"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><a href="#local-6989586621679535835"><span class="hs-identifier hs-var">tx</span></a></span><span>
 </span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">CardanoTx -&gt; Contract w s e CardanoTx
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx
-</span><a href="#local-6989586621679524422"><span class="hs-identifier hs-var">tx</span></a></span><span>
+</span><a href="#local-6989586621679535835"><span class="hs-identifier hs-var">tx</span></a></span><span>
 </span><span id="line-31"></span><span>
-</span><span id="line-32"></span><span>  </span><span id="local-6989586621679524416"><span class="annot"><span class="annottext">utxosSuchThat :: Address
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679535829"><span class="annot"><span class="annottext">utxosSuchThat :: Address
 -&gt; UtxoPredicate a -&gt; Contract w s e [(SpendableOut, Maybe a)]
-</span><a href="Cooked.MockChain.Monad.html#utxosSuchThat"><span class="hs-identifier hs-var hs-var hs-var hs-var">utxosSuchThat</span></a></span></span><span> </span><span id="local-6989586621679524414"><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679524414"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679524413"><span class="annot"><span class="annottext">UtxoPredicate a
-</span><a href="#local-6989586621679524413"><span class="hs-identifier hs-var">datumPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-33"></span><span>    </span><span id="local-6989586621679524412"><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679524412"><span class="hs-identifier hs-var">allUtxos</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef ChainIndexTxOut -&gt; [SpendableOut]
+</span><a href="Cooked.MockChain.Monad.html#utxosSuchThat"><span class="hs-identifier hs-var hs-var hs-var hs-var">utxosSuchThat</span></a></span></span><span> </span><span id="local-6989586621679535827"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679535827"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679535826"><span class="annot"><span class="annottext">UtxoPredicate a
+</span><a href="#local-6989586621679535826"><span class="hs-identifier hs-var">datumPred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>    </span><span id="local-6989586621679535825"><span class="annot"><span class="annottext">[SpendableOut]
+</span><a href="#local-6989586621679535825"><span class="hs-identifier hs-var">allUtxos</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Map TxOutRef ChainIndexTxOut -&gt; [SpendableOut]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">M.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map TxOutRef ChainIndexTxOut -&gt; [SpendableOut])
 -&gt; Contract w s e (Map TxOutRef ChainIndexTxOut)
@@ -106,34 +106,34 @@ forall w (s :: Row *) e.
 AsContractError e =&gt;
 Address -&gt; Contract w s e (Map TxOutRef ChainIndexTxOut)
 </span><span class="hs-identifier hs-var">C.utxosAt</span></span><span> </span><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679524414"><span class="hs-identifier hs-var">addr</span></a></span><span>
-</span><span id="line-34"></span><span>    </span><span id="local-6989586621679524408"><span class="annot"><span class="annottext">[Maybe (SpendableOut, Maybe a)]
-</span><a href="#local-6989586621679524408"><span class="hs-identifier hs-var">maybeUtxosWithDatums</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[SpendableOut]
+</span><a href="#local-6989586621679535827"><span class="hs-identifier hs-var">addr</span></a></span><span>
+</span><span id="line-34"></span><span>    </span><span id="local-6989586621679535821"><span class="annot"><span class="annottext">[Maybe (SpendableOut, Maybe a)]
+</span><a href="#local-6989586621679535821"><span class="hs-identifier hs-var">maybeUtxosWithDatums</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[SpendableOut]
 -&gt; (SpendableOut -&gt; Contract w s e (Maybe (SpendableOut, Maybe a)))
 -&gt; Contract w s e [Maybe (SpendableOut, Maybe a)]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 t a -&gt; (a -&gt; m b) -&gt; m (t b)
 </span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679524412"><span class="hs-identifier hs-var">allUtxos</span></a></span><span> </span><span class="annot"><span class="annottext">((SpendableOut -&gt; Contract w s e (Maybe (SpendableOut, Maybe a)))
+</span><a href="#local-6989586621679535825"><span class="hs-identifier hs-var">allUtxos</span></a></span><span> </span><span class="annot"><span class="annottext">((SpendableOut -&gt; Contract w s e (Maybe (SpendableOut, Maybe a)))
  -&gt; Contract w s e [Maybe (SpendableOut, Maybe a)])
 -&gt; (SpendableOut -&gt; Contract w s e (Maybe (SpendableOut, Maybe a)))
 -&gt; Contract w s e [Maybe (SpendableOut, Maybe a)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679524406"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679524406"><span class="hs-identifier hs-var">utxo</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679535819"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679535819"><span class="hs-identifier hs-var">utxo</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-35"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679524404"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679524404"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe DatumHash
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679535817"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679535817"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe DatumHash
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl.toTxOut</span></span><span> </span><span class="annot"><span class="annottext">(ChainIndexTxOut -&gt; TxOut) -&gt; ChainIndexTxOut -&gt; TxOut
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; ChainIndexTxOut
 forall a b. (a, b) -&gt; b
 </span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679524406"><span class="hs-identifier hs-var">utxo</span></a></span><span>
-</span><span id="line-36"></span><span>      </span><span id="local-6989586621679524402"><span class="annot"><span class="annottext">Maybe Datum
-</span><a href="#local-6989586621679524402"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut -&gt; Contract w s e (Maybe Datum)
+</span><a href="#local-6989586621679535819"><span class="hs-identifier hs-var">utxo</span></a></span><span>
+</span><span id="line-36"></span><span>      </span><span id="local-6989586621679535815"><span class="annot"><span class="annottext">Maybe Datum
+</span><a href="#local-6989586621679535815"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut -&gt; Contract w s e (Maybe Datum)
 forall e w (s :: Row *).
 AsContractError e =&gt;
 ChainIndexTxOut -&gt; Contract w s e (Maybe Datum)
@@ -143,10 +143,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; ChainIndexTxOut
 forall a b. (a, b) -&gt; b
 </span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679524406"><span class="hs-identifier hs-var">utxo</span></a></span><span>
-</span><span id="line-37"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679524400"><span class="annot"><span class="annottext">typedDatum :: Maybe a
-</span><a href="#local-6989586621679524400"><span class="hs-identifier hs-var hs-var">typedDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Datum
-</span><a href="#local-6989586621679524402"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Datum -&gt; (Datum -&gt; Maybe a) -&gt; Maybe a
+</span><a href="#local-6989586621679535819"><span class="hs-identifier hs-var">utxo</span></a></span><span>
+</span><span id="line-37"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679535813"><span class="annot"><span class="annottext">typedDatum :: Maybe a
+</span><a href="#local-6989586621679535813"><span class="hs-identifier hs-var hs-var">typedDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Datum
+</span><a href="#local-6989586621679535815"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Datum -&gt; (Datum -&gt; Maybe a) -&gt; Maybe a
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; Maybe a
 forall a. FromData a =&gt; BuiltinData -&gt; Maybe a
@@ -165,14 +165,14 @@ forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
 </span><span id="line-39"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">UtxoPredicate a
-</span><a href="#local-6989586621679524413"><span class="hs-identifier hs-var">datumPred</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679524400"><span class="hs-identifier hs-var">typedDatum</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679524404"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><a href="#local-6989586621679535826"><span class="hs-identifier hs-var">datumPred</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679535813"><span class="hs-identifier hs-var">typedDatum</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679535817"><span class="hs-identifier hs-var">val</span></a></span><span>
 </span><span id="line-40"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(SpendableOut, Maybe a) -&gt; Maybe (SpendableOut, Maybe a)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679524406"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679524400"><span class="hs-identifier hs-var">typedDatum</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679535819"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679535813"><span class="hs-identifier hs-var">typedDatum</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-41"></span><span>          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (SpendableOut, Maybe a)
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
@@ -187,11 +187,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Maybe (SpendableOut, Maybe a)] -&gt; [(SpendableOut, Maybe a)]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span> </span><span class="annot"><span class="annottext">[Maybe (SpendableOut, Maybe a)]
-</span><a href="#local-6989586621679524408"><span class="hs-identifier hs-var">maybeUtxosWithDatums</span></a></span><span>
+</span><a href="#local-6989586621679535821"><span class="hs-identifier hs-var">maybeUtxosWithDatums</span></a></span><span>
 </span><span id="line-43"></span><span>
-</span><span id="line-44"></span><span>  </span><span id="local-6989586621679524396"><span class="annot"><span class="annottext">txOutByRef :: TxOutRef -&gt; Contract w s e (Maybe TxOut)
-</span><a href="Cooked.MockChain.Monad.html#txOutByRef"><span class="hs-identifier hs-var hs-var hs-var hs-var">txOutByRef</span></a></span></span><span> </span><span id="local-6989586621679524394"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679524394"><span class="hs-identifier hs-var">ref</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ChainIndexTxOut -&gt; TxOut) -&gt; Maybe ChainIndexTxOut -&gt; Maybe TxOut
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679535809"><span class="annot"><span class="annottext">txOutByRef :: TxOutRef -&gt; Contract w s e (Maybe TxOut)
+</span><a href="Cooked.MockChain.Monad.html#txOutByRef"><span class="hs-identifier hs-var hs-var hs-var hs-var">txOutByRef</span></a></span></span><span> </span><span id="local-6989586621679535807"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679535807"><span class="hs-identifier hs-var">ref</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ChainIndexTxOut -&gt; TxOut) -&gt; Maybe ChainIndexTxOut -&gt; Maybe TxOut
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl.toTxOut</span></span><span> </span><span class="annot"><span class="annottext">(Maybe ChainIndexTxOut -&gt; Maybe TxOut)
@@ -203,9 +203,9 @@ forall w (s :: Row *) e.
 AsContractError e =&gt;
 TxOutRef -&gt; Contract w s e (Maybe ChainIndexTxOut)
 </span><span class="hs-identifier hs-var">C.unspentTxOutFromRef</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679524394"><span class="hs-identifier hs-var">ref</span></a></span><span>
+</span><a href="#local-6989586621679535807"><span class="hs-identifier hs-var">ref</span></a></span><span>
 </span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span>  </span><span id="local-6989586621679524392"><span class="annot"><span class="annottext">ownPaymentPubKeyHash :: Contract w s e PubKeyHash
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679535805"><span class="annot"><span class="annottext">ownPaymentPubKeyHash :: Contract w s e PubKeyHash
 </span><a href="Cooked.MockChain.Monad.html#ownPaymentPubKeyHash"><span class="hs-identifier hs-var hs-var hs-var hs-var">ownPaymentPubKeyHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(PaymentPubKeyHash -&gt; PubKeyHash)
 -&gt; Contract w s e PaymentPubKeyHash -&gt; Contract w s e PubKeyHash
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
@@ -216,30 +216,30 @@ AsContractError e =&gt;
 Contract w s e PaymentPubKeyHash
 </span><span class="hs-identifier hs-var">C.ownFirstPaymentPubKeyHash</span></span><span>
 </span><span id="line-47"></span><span>
-</span><span id="line-48"></span><span>  </span><span id="local-6989586621679524388"><span class="annot"><span class="annottext">currentSlot :: Contract w s e Slot
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679535801"><span class="annot"><span class="annottext">currentSlot :: Contract w s e Slot
 </span><a href="Cooked.MockChain.Monad.html#currentSlot"><span class="hs-identifier hs-var hs-var hs-var hs-var">currentSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Contract w s e Slot
 forall w (s :: Row *) e. AsContractError e =&gt; Contract w s e Slot
 </span><span class="hs-identifier hs-var">C.currentSlot</span></span><span>
-</span><span id="line-49"></span><span>  </span><span id="local-6989586621679524385"><span class="annot"><span class="annottext">currentTime :: Contract w s e POSIXTime
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679535798"><span class="annot"><span class="annottext">currentTime :: Contract w s e POSIXTime
 </span><a href="Cooked.MockChain.Monad.html#currentTime"><span class="hs-identifier hs-var hs-var hs-var hs-var">currentTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Contract w s e POSIXTime
 forall w (s :: Row *) e.
 AsContractError e =&gt;
 Contract w s e POSIXTime
 </span><span class="hs-identifier hs-var">C.currentTime</span></span><span>
-</span><span id="line-50"></span><span>  </span><span id="local-6989586621679524382"><span class="annot"><span class="annottext">awaitSlot :: Slot -&gt; Contract w s e Slot
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679535795"><span class="annot"><span class="annottext">awaitSlot :: Slot -&gt; Contract w s e Slot
 </span><a href="Cooked.MockChain.Monad.html#awaitSlot"><span class="hs-identifier hs-var hs-var hs-var hs-var">awaitSlot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Slot -&gt; Contract w s e Slot
 forall w (s :: Row *) e.
 AsContractError e =&gt;
 Slot -&gt; Contract w s e Slot
 </span><span class="hs-identifier hs-var">C.awaitSlot</span></span><span>
-</span><span id="line-51"></span><span>  </span><span id="local-6989586621679524379"><span class="annot"><span class="annottext">awaitTime :: POSIXTime -&gt; Contract w s e POSIXTime
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679535792"><span class="annot"><span class="annottext">awaitTime :: POSIXTime -&gt; Contract w s e POSIXTime
 </span><a href="Cooked.MockChain.Monad.html#awaitTime"><span class="hs-identifier hs-var hs-var hs-var hs-var">awaitTime</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Contract w s e POSIXTime
 forall w (s :: Row *) e.
 AsContractError e =&gt;
 POSIXTime -&gt; Contract w s e POSIXTime
 </span><span class="hs-identifier hs-var">C.awaitTime</span></span></span></span></span><span>
 </span><span id="line-52"></span><span>
-</span><span id="line-53"></span><span id="local-6989586621679524497"><span id="local-6989586621679524498"><span id="local-6989586621679524499"><span class="annot"><a href="Cooked.MockChain.Monad.Contract.html#datumFromTxOut"><span class="hs-identifier hs-type">datumFromTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679524499"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ChainIndexTxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679524498"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524497"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679524499"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Datum</span></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-53"></span><span id="local-6989586621679535910"><span id="local-6989586621679535911"><span id="local-6989586621679535912"><span class="annot"><a href="Cooked.MockChain.Monad.Contract.html#datumFromTxOut"><span class="hs-identifier hs-type">datumFromTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.AsContractError</span></span><span> </span><span class="annot"><a href="#local-6989586621679535912"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ChainIndexTxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Contract</span></span><span> </span><span class="annot"><a href="#local-6989586621679535911"><span class="hs-identifier hs-type">w</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535910"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679535912"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Datum</span></span><span class="hs-special">)</span></span></span></span><span>
 </span><span id="line-54"></span><span id="datumFromTxOut"><span class="annot"><span class="annottext">datumFromTxOut :: ChainIndexTxOut -&gt; Contract w s e (Maybe Datum)
 </span><a href="Cooked.MockChain.Monad.Contract.html#datumFromTxOut"><span class="hs-identifier hs-var hs-var">datumFromTxOut</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PublicKeyChainIndexTxOut</span></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Datum -&gt; Contract w s e (Maybe Datum)
 forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
@@ -248,8 +248,8 @@ forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-55"></span><span class="annot"><a href="Cooked.MockChain.Monad.Contract.html#datumFromTxOut"><span class="hs-identifier hs-var">datumFromTxOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Either ValidatorHash Validator
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679524374"><span class="annot"><span class="annottext">Datum
-</span><a href="#local-6989586621679524374"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679535787"><span class="annot"><span class="annottext">Datum
+</span><a href="#local-6989586621679535787"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Datum -&gt; Contract w s e (Maybe Datum)
 forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
 </span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Maybe Datum -&gt; Contract w s e (Maybe Datum))
@@ -258,16 +258,16 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Datum -&gt; Maybe Datum
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Datum
-</span><a href="#local-6989586621679524374"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><a href="#local-6989586621679535787"><span class="hs-identifier hs-var">d</span></a></span><span>
 </span><span id="line-56"></span><span class="hs-comment">-- datum is always present in the nominal case, guaranteed by chain-index</span><span>
 </span><span id="line-57"></span><span class="annot"><a href="Cooked.MockChain.Monad.Contract.html#datumFromTxOut"><span class="hs-identifier hs-var">datumFromTxOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Either ValidatorHash Validator
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679524373"><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679524373"><span class="hs-identifier hs-var">dh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679535786"><span class="annot"><span class="annottext">DatumHash
+</span><a href="#local-6989586621679535786"><span class="hs-identifier hs-var">dh</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; Contract w s e (Maybe Datum)
 forall w (s :: Row *) e.
 AsContractError e =&gt;
 DatumHash -&gt; Contract w s e (Maybe Datum)
 </span><span class="hs-identifier hs-var">C.datumFromHash</span></span><span> </span><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679524373"><span class="hs-identifier hs-var">dh</span></a></span><span>
+</span><a href="#local-6989586621679535786"><span class="hs-identifier hs-var">dh</span></a></span><span>
 </span><span id="line-58"></span></pre></body></html>

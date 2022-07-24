@@ -31,8 +31,8 @@
 </span><span id="line-31"></span><span>
 </span><span id="line-32"></span><span class="hs-keyword">type</span><span> </span><span id="PrivateKey"><span class="annot"><a href="Cooked.MockChain.Wallet.html#PrivateKey"><span class="hs-identifier hs-var">PrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CWCrypto.XPrv</span></span><span>
 </span><span id="line-33"></span><span>
-</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679519943"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-35"></span><span>  </span><span id="local-6989586621679519941"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679532376"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679532374"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -41,8 +41,8 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var hs-var">CW.mwWalletId</span></span><span>
 </span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679519926"><span id="local-6989586621679519928"><span id="local-6989586621679519930"><span id="local-6989586621679519932"><span id="local-6989586621679519934"><span id="local-6989586621679519936"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-38"></span><span>  </span><span id="local-6989586621679519924"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679532359"><span id="local-6989586621679532361"><span id="local-6989586621679532363"><span id="local-6989586621679532365"><span id="local-6989586621679532367"><span id="local-6989586621679532369"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679532357"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
@@ -58,27 +58,27 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span id="line-42"></span><span>
 </span><span id="line-43"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-44"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Int -&gt; Wallet
-</span><a href="Cooked.MockChain.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679519919"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519919"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="Cooked.MockChain.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679532352"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679532352"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-45"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519919"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679532352"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519919"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679532352"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679519915"><span class="annot"><span class="annottext">i :: Int
-</span><a href="#local-6989586621679519915"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519919"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679532348"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679532348"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679532352"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><a href="Cooked.MockChain.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Int -&gt; Wallet
 forall a. [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519915"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679532348"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WalletNumber -&gt; Wallet
 </span><span class="hs-identifier hs-var">CW.fromWalletNumber</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; WalletNumber
@@ -87,7 +87,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679519919"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532352"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-47"></span><span>
 </span><span id="line-48"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#walletPKHashToId"><span class="hs-identifier hs-type">walletPKHashToId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
 </span><span id="line-49"></span><span id="walletPKHashToId"><span class="annot"><span class="annottext">walletPKHashToId :: PubKeyHash -&gt; Maybe Int
@@ -97,10 +97,10 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Map PubKeyHash Int -&gt; Maybe Int
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">M.lookup</span></span><span> </span><span class="annot"><span class="annottext">Map PubKeyHash Int
-</span><a href="#local-6989586621679519908"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
+</span><a href="#local-6989586621679532341"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
 </span><span id="line-50"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-51"></span><span>    </span><span id="local-6989586621679519908"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
-</span><a href="#local-6989586621679519908"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(PubKeyHash, Int)] -&gt; Map PubKeyHash Int
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679532341"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
+</span><a href="#local-6989586621679532341"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(PubKeyHash, Int)] -&gt; Map PubKeyHash Int
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(PubKeyHash, Int)] -&gt; Map PubKeyHash Int)
 -&gt; ([Wallet] -&gt; [(PubKeyHash, Int)])
@@ -166,8 +166,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-64"></span><span>
 </span><span id="line-65"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#walletAddress"><span class="hs-identifier hs-type">walletAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span>
 </span><span id="line-66"></span><span id="walletAddress"><span class="annot"><span class="annottext">walletAddress :: Wallet -&gt; Address
-</span><a href="Cooked.MockChain.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679519895"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519895"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679532328"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532328"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-67"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Pl.Address</span></span><span>
 </span><span id="line-68"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
@@ -175,7 +175,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519895"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532328"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-69"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Pl.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
@@ -186,7 +186,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519895"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532328"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-70"></span><span>
 </span><span id="line-71"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CW.MockWallet</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span><span>
 </span><span id="line-72"></span><span id="walletSK"><span class="annot"><span class="annottext">walletSK :: Wallet -&gt; XPrv
@@ -209,7 +209,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-82"></span><span class="hs-comment">--  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic</span><span>
 </span><span id="line-83"></span><span class="hs-comment">--  because @MockPrivateKey@ is not exported either; having a dedicated function makes</span><span>
 </span><span id="line-84"></span><span class="hs-comment">--  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.</span><span>
-</span><span id="line-85"></span><span id="local-6989586621679519986"><span class="annot"><a href="Cooked.MockChain.Wallet.html#hackUnMockPrivateKey"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679519986"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CWCrypto.XPrv</span></span></span><span>
+</span><span id="line-85"></span><span id="local-6989586621679532419"><span class="annot"><a href="Cooked.MockChain.Wallet.html#hackUnMockPrivateKey"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679532419"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">CWCrypto.XPrv</span></span></span><span>
 </span><span id="line-86"></span><span id="hackUnMockPrivateKey"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
 </span><a href="Cooked.MockChain.Wallet.html#hackUnMockPrivateKey"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HACK -&gt; XPrv
 </span><a href="Cooked.MockChain.Wallet.html#please"><span class="hs-identifier hs-var hs-var">please</span></a></span><span> </span><span class="annot"><span class="annottext">(HACK -&gt; XPrv) -&gt; (a -&gt; HACK) -&gt; a -&gt; XPrv
@@ -232,33 +232,33 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-90"></span><span>
 </span><span id="line-91"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#toPKHMap"><span class="hs-identifier hs-type">toPKHMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">M.Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.PubKeyHash</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-92"></span><span id="toPKHMap"><span class="annot"><span class="annottext">toPKHMap :: [Wallet] -&gt; Map PubKeyHash Wallet
-</span><a href="Cooked.MockChain.Wallet.html#toPKHMap"><span class="hs-identifier hs-var hs-var">toPKHMap</span></a></span></span><span> </span><span id="local-6989586621679519881"><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679519881"><span class="hs-identifier hs-var">ws</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(PubKeyHash, Wallet)] -&gt; Map PubKeyHash Wallet
+</span><a href="Cooked.MockChain.Wallet.html#toPKHMap"><span class="hs-identifier hs-var hs-var">toPKHMap</span></a></span></span><span> </span><span id="local-6989586621679532314"><span class="annot"><span class="annottext">[Wallet]
+</span><a href="#local-6989586621679532314"><span class="hs-identifier hs-var">ws</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(PubKeyHash, Wallet)] -&gt; Map PubKeyHash Wallet
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">M.fromList</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519880"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519880"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679519880"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519880"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679519881"><span class="hs-identifier hs-var">ws</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679532313"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532313"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679532313"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532313"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Wallet]
+</span><a href="#local-6989586621679532314"><span class="hs-identifier hs-var">ws</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-93"></span><span>
 </span><span id="line-94"></span><span class="hs-comment">-- * Signs a transaction</span><span>
 </span><span id="line-95"></span><span>
 </span><span id="line-96"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#txAddSignature"><span class="hs-identifier hs-type">txAddSignature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span>
 </span><span id="line-97"></span><span id="txAddSignature"><span class="annot"><span class="annottext">txAddSignature :: Wallet -&gt; Tx -&gt; Tx
-</span><a href="Cooked.MockChain.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679519878"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519878"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
+</span><a href="Cooked.MockChain.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679532311"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532311"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
 </span><span class="hs-identifier hs-var">Pl.addSignature'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
 </span><a href="Cooked.MockChain.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519878"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532311"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-98"></span><span>
 </span><span id="line-99"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#txAddSignatureAPI"><span class="hs-identifier hs-type">txAddSignatureAPI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.AlonzoEra</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.AlonzoEra</span></span><span>
 </span><span id="line-100"></span><span id="txAddSignatureAPI"><span class="annot"><span class="annottext">txAddSignatureAPI :: Wallet -&gt; Tx AlonzoEra -&gt; Tx AlonzoEra
-</span><a href="Cooked.MockChain.Wallet.html#txAddSignatureAPI"><span class="hs-identifier hs-var hs-var">txAddSignatureAPI</span></a></span></span><span> </span><span id="local-6989586621679519875"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519875"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx AlonzoEra -&gt; Tx AlonzoEra
+</span><a href="Cooked.MockChain.Wallet.html#txAddSignatureAPI"><span class="hs-identifier hs-var hs-var">txAddSignatureAPI</span></a></span></span><span> </span><span id="local-6989586621679532308"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532308"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx AlonzoEra -&gt; Tx AlonzoEra
 </span><span class="hs-identifier hs-var">Validation.addSignature</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
 </span><a href="Cooked.MockChain.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519875"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532308"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-101"></span><span>
 </span><span id="line-102"></span><span class="hs-comment">-- * Initial distribution of funds</span><span>
 </span><span id="line-103"></span><span>
@@ -292,7 +292,7 @@ forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span id="line-131"></span><span class="hs-comment">--  Check the corresponding @Default InitialDistribution@ instance for the default value.</span><span>
 </span><span id="line-132"></span><span class="hs-keyword">newtype</span><span> </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="InitialDistribution"><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span></span><span> </span><span class="hs-special">{</span><span id="distribution"><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.MockChain.Wallet.html#distribution"><span class="hs-identifier hs-var hs-var">distribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">M.Map</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">]</span><span class="hs-special">}</span><span>
-</span><span id="line-133"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679519868"><span id="local-6989586621679519870"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
+</span><span id="line-133"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679532301"><span id="local-6989586621679532303"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
 (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; Eq InitialDistribution
@@ -301,7 +301,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 == :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 $c== :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519862"><span id="local-6989586621679519864"><span id="local-6989586621679519866"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679532295"><span id="local-6989586621679532297"><span id="local-6989586621679532299"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
 [InitialDistribution] -&gt; ShowS
 InitialDistribution -&gt; String
 (Int -&gt; InitialDistribution -&gt; ShowS)
@@ -327,7 +327,7 @@ forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Bool) -&gt; [Value] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Bool
-</span><a href="#local-6989586621679519858"><span class="hs-identifier hs-var">hasMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">([Value] -&gt; Bool)
+</span><a href="#local-6989586621679532291"><span class="hs-identifier hs-var">hasMinAda</span></a></span><span> </span><span class="annot"><span class="annottext">([Value] -&gt; Bool)
 -&gt; ((Wallet, [Value]) -&gt; [Value]) -&gt; (Wallet, [Value]) -&gt; Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Wallet, [Value]) -&gt; [Value]
@@ -347,12 +347,12 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.MockChain.Wallet.html#distribution"><span class="hs-identifier hs-var hs-var">distribution</span></a></span><span>
 </span><span id="line-139"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-140"></span><span>    </span><span id="local-6989586621679519858"><span class="annot"><span class="annottext">hasMinAda :: Value -&gt; Bool
-</span><a href="#local-6989586621679519858"><span class="hs-identifier hs-var hs-var">hasMinAda</span></a></span></span><span> </span><span id="local-6989586621679519856"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519856"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
+</span><span id="line-140"></span><span>    </span><span id="local-6989586621679532291"><span class="annot"><span class="annottext">hasMinAda :: Value -&gt; Bool
+</span><a href="#local-6989586621679532291"><span class="hs-identifier hs-var hs-var">hasMinAda</span></a></span></span><span> </span><span id="local-6989586621679532289"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679532289"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
 </span><a href="Cooked.MockChain.Wallet.html#minAda"><span class="hs-identifier hs-var">minAda</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
 </span><span class="hs-operator hs-var">`Pl.leq`</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519856"><span class="hs-identifier hs-var">vl</span></a></span><span>
+</span><a href="#local-6989586621679532289"><span class="hs-identifier hs-var">vl</span></a></span><span>
 </span><span id="line-141"></span><span>
 </span><span id="line-142"></span><span class="hs-comment">-- | Proxy to 'Pl.minAdaTxOut' as a 'Pl.Value'</span><span>
 </span><span id="line-143"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#minAda"><span class="hs-identifier hs-type">minAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
@@ -361,11 +361,11 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">Pl.toValue</span></span><span> </span><span class="annot"><span class="annottext">Ada
 </span><span class="hs-identifier hs-var">Pl.minAdaTxOut</span></span><span>
 </span><span id="line-145"></span><span>
-</span><span id="line-146"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679519847"><span id="local-6989586621679519849"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-147"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679519845"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679519845"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679519844"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679519843"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679519843"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
+</span><span id="line-146"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679532280"><span id="local-6989586621679532282"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679532278"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679532278"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679532277"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679532276"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679532276"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
 -&gt; Map Wallet [Value] -&gt; InitialDistribution
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -375,18 +375,18 @@ forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Ma
 </span><span class="hs-identifier hs-var">M.unionWith</span></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; [Value] -&gt; [Value]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679519845"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679519843"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><a href="#local-6989586621679532278"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679532276"><span class="hs-identifier hs-var">j</span></a></span><span>
 </span><span id="line-148"></span><span>
-</span><span id="line-149"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679519836"><span id="local-6989586621679519838"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-150"></span><span>  </span><span id="local-6989586621679519834"><span class="annot"><span class="annottext">mempty :: InitialDistribution
+</span><span id="line-149"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679532269"><span id="local-6989586621679532271"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-150"></span><span>  </span><span id="local-6989586621679532267"><span class="annot"><span class="annottext">mempty :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">M.empty</span></span><span>
 </span><span id="line-151"></span><span>
 </span><span id="line-152"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-153"></span><span>  </span><span id="local-6989586621679519830"><span class="annot"><span class="annottext">def :: InitialDistribution
+</span><span id="line-153"></span><span>  </span><span id="local-6989586621679532263"><span class="annot"><span class="annottext">def :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
 -&gt; Map Wallet [Value] -&gt; InitialDistribution
@@ -407,10 +407,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. Int -&gt; a -&gt; [a]
 </span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519826"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679532259"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-154"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-155"></span><span>      </span><span id="local-6989586621679519826"><span class="annot"><span class="annottext">defLovelace :: Value
-</span><a href="#local-6989586621679519826"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><span id="line-155"></span><span>      </span><span id="local-6989586621679532259"><span class="annot"><span class="annottext">defLovelace :: Value
+</span><a href="#local-6989586621679532259"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">100_000_000</span></span><span>
 </span><span id="line-156"></span><span>
@@ -444,14 +444,14 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-164"></span><span>
 </span><span id="line-165"></span><span class="annot"><a href="Cooked.MockChain.Wallet.html#initialTxFor"><span class="hs-identifier hs-type">initialTxFor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span>
 </span><span id="line-166"></span><span id="initialTxFor"><span class="annot"><span class="annottext">initialTxFor :: InitialDistribution -&gt; Tx
-</span><a href="Cooked.MockChain.Wallet.html#initialTxFor"><span class="hs-identifier hs-var hs-var">initialTxFor</span></a></span></span><span> </span><span id="local-6989586621679519821"><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679519821"><span class="hs-identifier hs-var">initDist</span></a></span></span><span>
+</span><a href="Cooked.MockChain.Wallet.html#initialTxFor"><span class="hs-identifier hs-var hs-var">initialTxFor</span></a></span></span><span> </span><span id="local-6989586621679532254"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679532254"><span class="hs-identifier hs-var">initDist</span></a></span></span><span>
 </span><span id="line-167"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
 </span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; Bool -&gt; Bool
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Bool
 </span><a href="Cooked.MockChain.Wallet.html#validInitialDistribution"><span class="hs-identifier hs-var">validInitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679519821"><span class="hs-identifier hs-var">initDist</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679532254"><span class="hs-identifier hs-var">initDist</span></a></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-168"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; Tx
 forall a. HasCallStack =&gt; String -&gt; a
 </span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
@@ -474,39 +474,39 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Wallet, [Value]) -&gt; [Value]
 forall a b. (a, b) -&gt; b
 </span><span class="hs-identifier hs-var">snd</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
-</span><a href="#local-6989586621679519817"><span class="hs-identifier hs-var">initDist'</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679532250"><span class="hs-identifier hs-var">initDist'</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-172"></span><span>        </span><span class="annot"><span class="annottext">txOutputs :: [TxOut]
 </span><span class="hs-identifier hs-var">Pl.txOutputs</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Wallet, [Value]) -&gt; [TxOut]) -&gt; [(Wallet, [Value])] -&gt; [TxOut]
 forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
-</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679519814"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519814"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679519813"><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679519813"><span class="hs-identifier hs-var">vs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxOut) -&gt; [Value] -&gt; [TxOut]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679532247"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532247"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679532246"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679532246"><span class="hs-identifier hs-var">vs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxOut) -&gt; [Value] -&gt; [TxOut]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Value -&gt; TxOut
-</span><a href="#local-6989586621679519812"><span class="hs-identifier hs-var">initUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519814"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679519813"><span class="hs-identifier hs-var">vs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
-</span><a href="#local-6989586621679519817"><span class="hs-identifier hs-var">initDist'</span></a></span><span>
+</span><a href="#local-6989586621679532245"><span class="hs-identifier hs-var">initUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532247"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679532246"><span class="hs-identifier hs-var">vs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
+</span><a href="#local-6989586621679532250"><span class="hs-identifier hs-var">initDist'</span></a></span><span>
 </span><span id="line-173"></span><span>      </span><span class="hs-special">}</span><span>
 </span><span id="line-174"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-175"></span><span>    </span><span id="local-6989586621679519812"><span class="annot"><span class="annottext">initUtxosFor :: Wallet -&gt; Value -&gt; TxOut
-</span><a href="#local-6989586621679519812"><span class="hs-identifier hs-var hs-var">initUtxosFor</span></a></span></span><span> </span><span id="local-6989586621679519811"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519811"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679519810"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519810"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; Maybe DatumHash -&gt; TxOut
+</span><span id="line-175"></span><span>    </span><span id="local-6989586621679532245"><span class="annot"><span class="annottext">initUtxosFor :: Wallet -&gt; Value -&gt; TxOut
+</span><a href="#local-6989586621679532245"><span class="hs-identifier hs-var hs-var">initUtxosFor</span></a></span></span><span> </span><span id="local-6989586621679532244"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679532244"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679532243"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679532243"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; Maybe DatumHash -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl.TxOut</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Address
 </span><a href="Cooked.MockChain.Wallet.html#walletAddress"><span class="hs-identifier hs-var">walletAddress</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679519811"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679519810"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe DatumHash
+</span><a href="#local-6989586621679532244"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679532243"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe DatumHash
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-176"></span><span>
-</span><span id="line-177"></span><span>    </span><span id="local-6989586621679519817"><span class="annot"><span class="annottext">initDist' :: [(Wallet, [Value])]
-</span><a href="#local-6989586621679519817"><span class="hs-identifier hs-var hs-var">initDist'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; [(Wallet, [Value])]
+</span><span id="line-177"></span><span>    </span><span id="local-6989586621679532250"><span class="annot"><span class="annottext">initDist' :: [(Wallet, [Value])]
+</span><a href="#local-6989586621679532250"><span class="hs-identifier hs-var hs-var">initDist'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; [(Wallet, [Value])]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">M.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; [(Wallet, [Value])])
 -&gt; Map Wallet [Value] -&gt; [(Wallet, [Value])]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.MockChain.Wallet.html#distribution"><span class="hs-identifier hs-var hs-var">distribution</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679519821"><span class="hs-identifier hs-var">initDist</span></a></span><span>
+</span><a href="#local-6989586621679532254"><span class="hs-identifier hs-var">initDist</span></a></span><span>
 </span><span id="line-178"></span></pre></body></html>

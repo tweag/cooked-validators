@@ -1,743 +1,87 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
-</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
-</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
-</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
-</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
-</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Cooked.Attack.Common.html"><span class="hs-identifier">Cooked.Attack.Common</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html"><span class="hs-identifier">Cooked.Attack.DatumHijacking</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html"><span class="hs-identifier">Cooked.Attack.DoubleSat</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Cooked.Attack.DupToken.html"><span class="hs-identifier">Cooked.Attack.DupToken</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Cooked.Attack.OutPermutations.html"><span class="hs-identifier">Cooked.Attack.OutPermutations</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">where</span><span>
 </span><span id="line-9"></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack</span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-11"></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.RawUPLC.html"><span class="hs-identifier">Cooked.MockChain.RawUPLC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier">unsafeTypedValidatorFromUPLC</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html"><span class="hs-identifier">Cooked.MockChain.Wallet</span></a></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html"><span class="hs-identifier">Cooked.Tx.Constraints</span></a></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html"><span class="hs-identifier">Cooked.Tx.Constraints.Optics</span></a></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">validatorHash</span><span class="hs-special">)</span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">negate</span></span><span class="hs-special">)</span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Type.Reflection</span></span><span>
-</span><span id="line-24"></span><span>
-</span><span id="line-25"></span><span class="hs-comment">-- The idea of this module: Turning optics into attacks</span><span>
-</span><span id="line-26"></span><span class="hs-comment">-------------------------------------------------------</span><span>
-</span><span id="line-27"></span><span class="hs-comment">--</span><span>
-</span><span id="line-28"></span><span class="hs-comment">-- In cooked-validators, a _single transaction attack_ on a smart contract is a</span><span>
-</span><span id="line-29"></span><span class="hs-comment">-- function that modifies one transaction: An attacker applies this function to</span><span>
-</span><span id="line-30"></span><span class="hs-comment">-- a transaction in an otherwise normal chain of transactions, somehow fools the</span><span>
-</span><span id="line-31"></span><span class="hs-comment">-- validator script(s), and profits. So, attacks in should modify 'TxSkel's.</span><span>
-</span><span id="line-32"></span><span class="hs-comment">--</span><span>
-</span><span id="line-33"></span><span class="hs-comment">-- It would be nice to have a collection of parametric attacks, together with an</span><span>
-</span><span id="line-34"></span><span class="hs-comment">-- easy way to add new attacks to that collection. This module contains the</span><span>
-</span><span id="line-35"></span><span class="hs-comment">-- beginnings of such a collection, and also a hopefully useful mechanism to</span><span>
-</span><span id="line-36"></span><span class="hs-comment">-- extend it.</span><span>
-</span><span id="line-37"></span><span class="hs-comment">--</span><span>
-</span><span id="line-38"></span><span class="hs-comment">-- Since most attacks are of the form &quot;look deep into the nested data types</span><span>
-</span><span id="line-39"></span><span class="hs-comment">-- within a 'TxSkel' and change something&quot;, The idea is to use the optics</span><span>
-</span><span id="line-40"></span><span class="hs-comment">-- defined in &quot;Cooked.Tx.Constraints.Optics&quot; and turn them into suitable</span><span>
-</span><span id="line-41"></span><span class="hs-comment">-- modifications.</span><span>
-</span><span id="line-42"></span><span class="hs-comment">--</span><span>
-</span><span id="line-43"></span><span class="hs-comment">-- Optic attack example: Token duplication</span><span>
-</span><span id="line-44"></span><span class="hs-comment">------------------------------------------</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.Common.html"><span class="hs-identifier">Cooked.Attack.Common</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html"><span class="hs-identifier">Cooked.Attack.DatumHijacking</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.DoubleSat.html"><span class="hs-identifier">Cooked.Attack.DoubleSat</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.DupToken.html"><span class="hs-identifier">Cooked.Attack.DupToken</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.OutPermutations.html"><span class="hs-identifier">Cooked.Attack.OutPermutations</span></a></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- The idea of this module: Turning optics into attacks</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-------------------------------------------------------</span><span>
+</span><span id="line-18"></span><span class="hs-comment">--</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- In cooked-validators, a _single transaction attack_ on a smart contract is a</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- function that modifies one transaction: An attacker applies this function to</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- a transaction in an otherwise normal chain of transactions, somehow fools the</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- validator script(s), and profits. So, attacks in cooked-valiadators should</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- modify 'TxSkel's.</span><span>
+</span><span id="line-24"></span><span class="hs-comment">--</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- It would be nice to have a collection of parametric attacks, together with an</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- easy way to add new attacks to that collection. This module and its</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- submodules contain the beginnings of such a collection, and also a hopefully</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- useful mechanisms to extend it.</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- Since most attacks are of the form &quot;look deep into the nested data types</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- within a 'TxSkel' and change something&quot;, The idea is to use the optics</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- defined in &quot;Cooked.Tx.Constraints.Optics&quot; and turn them into attacks.</span><span>
+</span><span id="line-33"></span><span class="hs-comment">--</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- Optic attack example: Token duplication</span><span>
+</span><span id="line-35"></span><span class="hs-comment">------------------------------------------</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- There's a 'dupTokenAttack' in &quot;Cooked.Attack.DupToken&quot;, and its</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- implementation is quite readable; the purpose of the following is not to</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- explain that function in detail, but to motivate how one should write new</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- attacks using this module.</span><span>
+</span><span id="line-41"></span><span class="hs-comment">--</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- A _token duplication_ attack consists in trying to increase the amount of</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- tokens a transaction mints and paying the surplus to an attacker. A naive</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- idea to implement the token duplication attack would then be</span><span>
 </span><span id="line-45"></span><span class="hs-comment">--</span><span>
-</span><span id="line-46"></span><span class="hs-comment">-- There's a 'dupTokenAttack' below, and it's implementation is quite readable;</span><span>
-</span><span id="line-47"></span><span class="hs-comment">-- the purpose of the following is not to explain that function in detail, but</span><span>
-</span><span id="line-48"></span><span class="hs-comment">-- to illustrate how one should write new attacks using this module.</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- &gt; naiveDupTokenAttack :: Wallet -&gt; (Value -&gt; Value) -&gt; TxSkel -&gt; TxSkel</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- &gt; naiveDupTokenAttack attacker increaseValue =</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- &gt;   paySurplusTo attacker . over (mintsConstraintT % valueL) increaseValue</span><span>
 </span><span id="line-49"></span><span class="hs-comment">--</span><span>
-</span><span id="line-50"></span><span class="hs-comment">-- A _token duplication_ attack consists in trying to increase the amount of</span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- tokens a transaction mints and paying the surplus to an attacker.  An idea to</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- implement the token duplication attack would then be</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- where @paySurplusTo :: Wallet -&gt; TxSkel -&gt; TxSkel@ is a suitable function</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- that modifies a 'TxSkel' to play any extra minted tokens to a given</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- wallet.</span><span>
 </span><span id="line-53"></span><span class="hs-comment">--</span><span>
-</span><span id="line-54"></span><span class="hs-comment">-- &gt; naiveDupTokenAttack :: Wallet -&gt; (Value -&gt; Value) -&gt; TxSkel -&gt; TxSkel</span><span>
-</span><span id="line-55"></span><span class="hs-comment">-- &gt; naiveDupTokenAttack attacker increaseValue =</span><span>
-</span><span id="line-56"></span><span class="hs-comment">-- &gt;   paySurplusTo attacker . over (mintsConstraintT % valueL) increaseValue</span><span>
-</span><span id="line-57"></span><span class="hs-comment">--</span><span>
-</span><span id="line-58"></span><span class="hs-comment">-- where @paySurplusTo :: Wallet -&gt; TxSkel -&gt; TxSkel@ is a suitable function</span><span>
-</span><span id="line-59"></span><span class="hs-comment">-- that modifies a 'TxSkel' to play any extra minted tokens to a given</span><span>
-</span><span id="line-60"></span><span class="hs-comment">-- wallet.</span><span>
-</span><span id="line-61"></span><span class="hs-comment">--</span><span>
-</span><span id="line-62"></span><span class="hs-comment">-- This is idea is almost right, save for the type of @naiveDupTokenAttack@: If</span><span>
-</span><span id="line-63"></span><span class="hs-comment">-- @increaseValue@ did not in fact _change_ any of the minted values values, or</span><span>
-</span><span id="line-64"></span><span class="hs-comment">-- if there were no 'MintsConstraint's in the transaction under consideration,</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- we have no way to detect this failure. That's why this module provides</span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- functions like</span><span>
-</span><span id="line-67"></span><span class="hs-comment">--</span><span>
-</span><span id="line-68"></span><span class="hs-comment">-- &gt; mkAttack :: Is k A_Traversal =&gt; Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; TxSkel -&gt; Maybe TxSkel</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- This is idea is almost right, save for the type of @naiveDupTokenAttack@: If</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- @increaseValue@ did not in fact _change_ any of the minted values, or if</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- there were no 'MintsConstraint's in the transaction under consideration, we</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- have no way to detect this failure. Also, depending on the current state of</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- the 'MockChain' there might be more than one possibly interesting way to</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- modify the initial transaction. That's why we set</span><span>
+</span><span id="line-60"></span><span class="hs-comment">--</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- &gt; type Attack = MockChainSt -&gt; TxSkel -&gt; [TxSkel]</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- and the module &quot;Cooked.Attack.Common&quot; provides functions like</span><span>
+</span><span id="line-64"></span><span class="hs-comment">--</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- &gt; mkAttack :: Is k A_Traversal =&gt; Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Attack</span><span>
+</span><span id="line-66"></span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- which is a kind of &quot;'over' with failure&quot;: The list of modified 'TxSkel's</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- returned by @mkAttack optic f state skel@ will be nonempty if and only if</span><span>
 </span><span id="line-69"></span><span class="hs-comment">--</span><span>
-</span><span id="line-70"></span><span class="hs-comment">-- which is a kind of &quot;'over' with failure&quot;: Given any @optic@ and @f@, we have</span><span>
-</span><span id="line-71"></span><span class="hs-comment">-- @mkAttack optic f skel == Just skel'@ if and only if</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- - the @optic@ being used in the attack has at least one focus on the input</span><span>
+</span><span id="line-71"></span><span class="hs-comment">--   @skel@, and</span><span>
 </span><span id="line-72"></span><span class="hs-comment">--</span><span>
-</span><span id="line-73"></span><span class="hs-comment">-- - @optic@ has at least one focus on @skel@, and</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- - the function @f@ returns @Just@ on at least one of the foci.</span><span>
 </span><span id="line-74"></span><span class="hs-comment">--</span><span>
-</span><span id="line-75"></span><span class="hs-comment">-- - @f@ returns @Just@ on at least one of the foci of @optic@ on @skel@.</span><span>
-</span><span id="line-76"></span><span class="hs-comment">--</span><span>
-</span><span id="line-77"></span><span class="hs-comment">-- In that case, @skel'@ is the transaction skeleton we get by replacing all</span><span>
-</span><span id="line-78"></span><span class="hs-comment">-- foci @x@ with @f x == Just x'@ with @x'@. This allows us to write</span><span>
-</span><span id="line-79"></span><span class="hs-comment">-- 'dupTokenAttack' as below.</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- In that case, the returned list will contain exactly one modified 'TxSkel',</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- with all foci modified by @f@.</span><span>
+</span><span id="line-77"></span><span class="hs-comment">--</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- There are also other functions like 'mkAttack' that return more than one</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- modification in &quot;Cooked.Attack.Common&quot;.</span><span>
 </span><span id="line-80"></span><span class="hs-comment">--</span><span>
-</span><span id="line-81"></span><span class="hs-comment">-- Note that this 'dupTokenAttack' is contract-agnostic. Also note that, despite</span><span>
-</span><span id="line-82"></span><span class="hs-comment">-- (because?) of its generality, it is very easy to implement. Our growing</span><span>
-</span><span id="line-83"></span><span class="hs-comment">-- collection of optics will hopefully mean that it will become easier and</span><span>
-</span><span id="line-84"></span><span class="hs-comment">-- easier to write attacks.</span><span>
-</span><span id="line-85"></span><span class="hs-comment">--</span><span>
-</span><span id="line-86"></span><span class="hs-comment">-- Using attacks</span><span>
-</span><span id="line-87"></span><span class="hs-comment">----------------</span><span>
-</span><span id="line-88"></span><span class="hs-comment">--</span><span>
-</span><span id="line-89"></span><span class="hs-comment">-- The attacks from this module can be used with the modailties in any</span><span>
-</span><span id="line-90"></span><span class="hs-comment">-- 'MonadModalMockChain'. These allow combintations of single-transaction</span><span>
-</span><span id="line-91"></span><span class="hs-comment">-- attacks into coordinated attacks of many transactions.</span><span>
-</span><span id="line-92"></span><span>
-</span><span id="line-93"></span><span class="hs-comment">-- * The type of attacks, and functions to turn optics into attacks</span><span>
-</span><span id="line-94"></span><span>
-</span><span id="line-95"></span><span class="hs-comment">-- | The type of attacks that operate on a single transaction. The idea is to</span><span>
-</span><span id="line-96"></span><span class="hs-comment">-- try to modify a transaction, or return @Nothing@ if the modification does not</span><span>
-</span><span id="line-97"></span><span class="hs-comment">-- apply; use in a 'MonadModalMockChain'.</span><span>
-</span><span id="line-98"></span><span class="hs-keyword">type</span><span> </span><span id="Attack"><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-var">Attack</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-99"></span><span>
-</span><span id="line-100"></span><span class="hs-comment">-- | The simplest way to make an attack from an optic: Try to apply a given</span><span>
-</span><span id="line-101"></span><span class="hs-comment">-- function of type @a -&gt; Maybe a@ to all foci of an optic, modifying all foci</span><span>
-</span><span id="line-102"></span><span class="hs-comment">-- that return @Just@. This attack returns @Just@ if at least one modification</span><span>
-</span><span id="line-103"></span><span class="hs-comment">-- was successful, i.e. if at least one of the foci evaluates to @Just@;</span><span>
-</span><span id="line-104"></span><span class="hs-comment">-- otherwise it returns @Nothing@.</span><span>
-</span><span id="line-105"></span><span id="local-6989586621679522021"><span id="local-6989586621679522022"><span id="local-6989586621679522023"><span class="annot"><a href="Cooked.Attack.html#mkAttack"><span class="hs-identifier hs-type">mkAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-106"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679522023"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-107"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
-</span><span id="line-108"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679522023"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522022"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522021"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-109"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
-</span><span id="line-110"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
-</span><span id="line-111"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679522021"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679522021"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-112"></span><span>  </span><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span></span></span></span><span>
-</span><span id="line-113"></span><span id="mkAttack"><span class="annot"><span class="annottext">mkAttack :: Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Attack
-</span><a href="Cooked.Attack.html#mkAttack"><span class="hs-identifier hs-var hs-var">mkAttack</span></a></span></span><span> </span><span id="local-6989586621679521925"><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521925"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679521924"><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521924"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-114"></span><span>  </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
--&gt; (Bool -&gt; a -&gt; (a, Bool))
--&gt; Bool
--&gt; (TxSkel -&gt; Bool -&gt; Maybe TxSkel)
--&gt; Attack
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind)
-       (acc :: OpticKind).
-Is k A_Traversal =&gt;
-Optic' k is TxSkel a
--&gt; (acc -&gt; a -&gt; (a, acc))
--&gt; acc
--&gt; (TxSkel -&gt; acc -&gt; Maybe TxSkel)
--&gt; Attack
-</span><a href="Cooked.Attack.html#mkAccumLAttack"><span class="hs-identifier hs-var">mkAccumLAttack</span></a></span><span>
-</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521925"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-116"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679521922"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521922"><span class="hs-identifier hs-var">flag</span></a></span></span><span> </span><span id="local-6989586621679521921"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521921"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521924"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521921"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-117"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521920"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521920"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521920"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
-</span><span id="line-118"></span><span>        </span><span class="annot"><span class="annottext">Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521921"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521922"><span class="hs-identifier hs-var">flag</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-119"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-120"></span><span>    </span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">False</span></span><span>
-</span><span id="line-121"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679521919"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521919"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span id="local-6989586621679521918"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521918"><span class="hs-identifier hs-var">flag</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521918"><span class="hs-identifier hs-var">flag</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Attack
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521919"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe TxSkel
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
-</span><span id="line-122"></span><span>
-</span><span id="line-123"></span><span class="hs-comment">-- | A more fine-grained attack: Traverse all foci of the optic from the left to</span><span>
-</span><span id="line-124"></span><span class="hs-comment">-- the right, while counting them, and modify only those foci that return @Just@</span><span>
-</span><span id="line-125"></span><span class="hs-comment">-- _and_ whose index satisfies a given predicate. This is useful if you have</span><span>
-</span><span id="line-126"></span><span class="hs-comment">-- many indentical outputs but you only want to modify a few of them.</span><span>
-</span><span id="line-127"></span><span id="local-6989586621679521952"><span id="local-6989586621679521953"><span id="local-6989586621679521954"><span class="annot"><a href="Cooked.Attack.html#mkSelectAttack"><span class="hs-identifier hs-type">mkSelectAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-128"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679521954"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-129"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
-</span><span id="line-130"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679521954"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679521953"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679521952"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-131"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
-</span><span id="line-132"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
-</span><span id="line-133"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679521952"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679521952"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-134"></span><span>  </span><span class="hs-comment">-- | Maybe the modification applies to (i.e. returns @Just@ on) more than one</span><span>
-</span><span id="line-135"></span><span>  </span><span class="hs-comment">-- focus. Use this function to select the foci to modify by the order in which</span><span>
-</span><span id="line-136"></span><span>  </span><span class="hs-comment">-- they are traversed. If you set this function to @const True@, you should</span><span>
-</span><span id="line-137"></span><span>  </span><span class="hs-comment">-- probably use 'mkAttack', because that the semantic of that function.</span><span>
-</span><span id="line-138"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-139"></span><span>  </span><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span></span></span></span><span>
-</span><span id="line-140"></span><span id="mkSelectAttack"><span class="annot"><span class="annottext">mkSelectAttack :: Optic' k is TxSkel a
--&gt; (a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; Attack
-</span><a href="Cooked.Attack.html#mkSelectAttack"><span class="hs-identifier hs-var hs-var">mkSelectAttack</span></a></span></span><span> </span><span id="local-6989586621679521916"><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521916"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679521915"><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521915"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679521914"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679521914"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-141"></span><span>  </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
--&gt; ((Bool, Integer) -&gt; a -&gt; (a, (Bool, Integer)))
--&gt; (Bool, Integer)
--&gt; (TxSkel -&gt; (Bool, Integer) -&gt; Maybe TxSkel)
--&gt; Attack
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind)
-       (acc :: OpticKind).
-Is k A_Traversal =&gt;
-Optic' k is TxSkel a
--&gt; (acc -&gt; a -&gt; (a, acc))
--&gt; acc
--&gt; (TxSkel -&gt; acc -&gt; Maybe TxSkel)
--&gt; Attack
-</span><a href="Cooked.Attack.html#mkAccumLAttack"><span class="hs-identifier hs-var">mkAccumLAttack</span></a></span><span>
-</span><span id="line-142"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521916"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-143"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679521913"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521913"><span class="hs-identifier hs-var">flag</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679521912"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521912"><span class="hs-identifier hs-var">index</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679521911"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521911"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521915"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521911"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-144"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521910"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521910"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-145"></span><span>          </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679521914"><span class="hs-identifier hs-var">select</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521912"><span class="hs-identifier hs-var">index</span></a></span><span>
-</span><span id="line-146"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521910"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521912"><span class="hs-identifier hs-var">index</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
-forall (a :: OpticKind). Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-147"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521911"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521913"><span class="hs-identifier hs-var">flag</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521912"><span class="hs-identifier hs-var">index</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
-forall (a :: OpticKind). Num a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-148"></span><span>        </span><span class="annot"><span class="annottext">Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521911"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521913"><span class="hs-identifier hs-var">flag</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521912"><span class="hs-identifier hs-var">index</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-149"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-150"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
-</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
-</span><span id="line-151"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679521908"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521908"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679521907"><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521907"><span class="hs-identifier hs-var">flag</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
-</span><a href="#local-6989586621679521907"><span class="hs-identifier hs-var">flag</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Attack
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521908"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe TxSkel
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
-</span><span id="line-152"></span><span>
-</span><span id="line-153"></span><span class="hs-comment">-- | A very general attack: Traverse all foci of the optic from the left to the</span><span>
-</span><span id="line-154"></span><span class="hs-comment">-- right, collecting an accumulator while also (optionally) modifying the</span><span>
-</span><span id="line-155"></span><span class="hs-comment">-- 'TxSkel'. At the end, look at the modified 'TxSkel' and the accumulator to</span><span>
-</span><span id="line-156"></span><span class="hs-comment">-- decide whether the traversal was a success, or whether we should return</span><span>
-</span><span id="line-157"></span><span class="hs-comment">-- @Nothing@.</span><span>
-</span><span id="line-158"></span><span id="local-6989586621679522070"><span id="local-6989586621679522071"><span id="local-6989586621679522072"><span id="local-6989586621679522075"><span class="annot"><a href="Cooked.Attack.html#mkAccumLAttack"><span class="hs-identifier hs-type">mkAccumLAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-159"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679522075"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-160"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify</span><span>
-</span><span id="line-161"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679522075"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522072"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522071"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-162"></span><span>  </span><span class="hs-comment">-- | function that describes the modification of the accumulator and the</span><span>
-</span><span id="line-163"></span><span>  </span><span class="hs-comment">-- current focus.</span><span>
-</span><span id="line-164"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679522070"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522071"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679522071"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679522070"><span class="hs-identifier hs-type">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-165"></span><span>  </span><span class="hs-comment">-- | initial accumulator</span><span>
-</span><span id="line-166"></span><span>  </span><span class="annot"><a href="#local-6989586621679522070"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-167"></span><span>  </span><span class="hs-comment">-- | function to decide whether the traversal modified the 'TxSkel' in the</span><span>
-</span><span id="line-168"></span><span>  </span><span class="hs-comment">-- desired way. This will typically look like this:</span><span>
-</span><span id="line-169"></span><span>  </span><span class="hs-comment">-- &gt; \skel acc -&gt; if someTest skel acc</span><span>
-</span><span id="line-170"></span><span>  </span><span class="hs-comment">-- &gt;               then Just (someFinalModification skel)</span><span>
-</span><span id="line-171"></span><span>  </span><span class="hs-comment">-- &gt;               else Nothing</span><span>
-</span><span id="line-172"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522070"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-173"></span><span>  </span><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span></span></span></span></span><span>
-</span><span id="line-174"></span><span id="mkAccumLAttack"><span class="annot"><span class="annottext">mkAccumLAttack :: Optic' k is TxSkel a
--&gt; (acc -&gt; a -&gt; (a, acc))
--&gt; acc
--&gt; (TxSkel -&gt; acc -&gt; Maybe TxSkel)
--&gt; Attack
-</span><a href="Cooked.Attack.html#mkAccumLAttack"><span class="hs-identifier hs-var hs-var">mkAccumLAttack</span></a></span></span><span> </span><span id="local-6989586621679521906"><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521906"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679521905"><span class="annot"><span class="annottext">acc -&gt; a -&gt; (a, acc)
-</span><a href="#local-6989586621679521905"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679521904"><span class="annot"><span class="annottext">acc
-</span><a href="#local-6989586621679521904"><span class="hs-identifier hs-var">initAcc</span></a></span></span><span> </span><span id="local-6989586621679521903"><span class="annot"><span class="annottext">TxSkel -&gt; acc -&gt; Maybe TxSkel
-</span><a href="#local-6989586621679521903"><span class="hs-identifier hs-var">test</span></a></span></span><span> </span><span id="local-6989586621679521902"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521902"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-175"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679521901"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521901"><span class="hs-identifier hs-var">skel'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679521900"><span class="annot"><span class="annottext">acc
-</span><a href="#local-6989586621679521900"><span class="hs-identifier hs-var">acc</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
--&gt; (acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; TxSkel -&gt; (TxSkel, acc)
-forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind)
-       (acc :: OpticKind).
-Is k A_Traversal =&gt;
-Optic k is s t a b
--&gt; (acc -&gt; a -&gt; (b, acc)) -&gt; acc -&gt; s -&gt; (t, acc)
-</span><span class="hs-identifier hs-var">mapAccumLOf</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679521906"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">acc -&gt; a -&gt; (a, acc)
-</span><a href="#local-6989586621679521905"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">acc
-</span><a href="#local-6989586621679521904"><span class="hs-identifier hs-var">initAcc</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521902"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-176"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; acc -&gt; Maybe TxSkel
-</span><a href="#local-6989586621679521903"><span class="hs-identifier hs-var">test</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521901"><span class="hs-identifier hs-var">skel'</span></a></span><span> </span><span class="annot"><span class="annottext">acc
-</span><a href="#local-6989586621679521900"><span class="hs-identifier hs-var">acc</span></a></span><span>
-</span><span id="line-177"></span><span>
-</span><span id="line-178"></span><span class="hs-comment">-- * General helpers</span><span>
-</span><span id="line-179"></span><span>
-</span><span id="line-180"></span><span class="hs-comment">-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the</span><span>
-</span><span id="line-181"></span><span class="hs-comment">-- given label will be added, forming a pair @(newlabel, oldlabel)@.</span><span>
-</span><span id="line-182"></span><span id="local-6989586621679522031"><span class="annot"><a href="Cooked.Attack.html#addLabel"><span class="hs-identifier hs-type">addLabel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679522031"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679522031"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span></span><span>
-</span><span id="line-183"></span><span id="addLabel"><span class="annot"><span class="annottext">addLabel :: x -&gt; TxSkel -&gt; TxSkel
-</span><a href="Cooked.Attack.html#addLabel"><span class="hs-identifier hs-var hs-var">addLabel</span></a></span></span><span> </span><span id="local-6989586621679521897"><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679521897"><span class="hs-identifier hs-var">newlabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-184"></span><span>  </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel TxLabel TxLabel
--&gt; (TxLabel -&gt; TxLabel) -&gt; TxSkel -&gt; TxSkel
-forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
-Is k A_Setter =&gt;
-Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">over</span></span><span>
-</span><span id="line-185"></span><span>    </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel TxLabel TxLabel
-</span><a href="Cooked.Tx.Constraints.Optics.html#txLabelL"><span class="hs-identifier hs-var">txLabelL</span></a></span><span>
-</span><span id="line-186"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-187"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxLabel
-forall (x :: OpticKind). LabelConstrs x =&gt; Maybe x -&gt; TxLabel
-</span><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe x -&gt; TxLabel) -&gt; Maybe x -&gt; TxLabel
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">x -&gt; Maybe x
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679521897"><span class="hs-identifier hs-var">newlabel</span></a></span><span>
-</span><span id="line-188"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521893"><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679521893"><span class="hs-identifier hs-var">oldlabel</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (x, x) -&gt; TxLabel
-forall (x :: OpticKind). LabelConstrs x =&gt; Maybe x -&gt; TxLabel
-</span><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (x, x) -&gt; TxLabel) -&gt; Maybe (x, x) -&gt; TxLabel
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(x, x) -&gt; Maybe (x, x)
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679521897"><span class="hs-identifier hs-var">newlabel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679521893"><span class="hs-identifier hs-var">oldlabel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-189"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-190"></span><span>
-</span><span id="line-191"></span><span class="hs-comment">-- * Token duplication attack</span><span>
-</span><span id="line-192"></span><span>
-</span><span id="line-193"></span><span class="hs-comment">-- | A token duplication attack which modifies every 'Mints'-constraint of a</span><span>
-</span><span id="line-194"></span><span class="hs-comment">-- 'TxSkel' that satisfies some conditions. This adds a 'DupTokenLbl' to the</span><span>
-</span><span id="line-195"></span><span class="hs-comment">-- labels of the transaction using 'addLabel'.</span><span>
-</span><span id="line-196"></span><span class="annot"><a href="Cooked.Attack.html#dupTokenAttack"><span class="hs-identifier hs-type">dupTokenAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-197"></span><span>  </span><span class="hs-comment">-- | A function describing how the amount of minted tokens of an asset class</span><span>
-</span><span id="line-198"></span><span>  </span><span class="hs-comment">-- should be changed by the attack. The given function @f@ should probably satisfy</span><span>
-</span><span id="line-199"></span><span>  </span><span class="hs-comment">-- &gt; f ac i == Just j -&gt; i &lt; j</span><span>
-</span><span id="line-200"></span><span>  </span><span class="hs-comment">-- for all @ac@ and @i@, i.e. it should increase in the minted amount.</span><span>
-</span><span id="line-201"></span><span>  </span><span class="hs-comment">-- If it does *not* increase the minted amount, or if @f ac i == Nothing@, the</span><span>
-</span><span id="line-202"></span><span>  </span><span class="hs-comment">-- minted amount will be left unchanged.</span><span>
-</span><span id="line-203"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.AssetClass</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-204"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker. Any additional tokens that are minted by the</span><span>
-</span><span id="line-205"></span><span>  </span><span class="hs-comment">-- modified transaction but were not minted by the original transaction are</span><span>
-</span><span id="line-206"></span><span>  </span><span class="hs-comment">-- paid to this wallet.</span><span>
-</span><span id="line-207"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-208"></span><span>  </span><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span><span>
-</span><span id="line-209"></span><span id="dupTokenAttack"><span class="annot"><span class="annottext">dupTokenAttack :: (AssetClass -&gt; Integer -&gt; Maybe Integer) -&gt; Wallet -&gt; Attack
-</span><a href="Cooked.Attack.html#dupTokenAttack"><span class="hs-identifier hs-var hs-var">dupTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679521891"><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Maybe Integer
-</span><a href="#local-6989586621679521891"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679521890"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679521890"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span id="local-6989586621679521889"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521889"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-210"></span><span>  </span><span class="annot"><span class="annottext">DupTokenLbl -&gt; TxSkel -&gt; TxSkel
-forall (x :: OpticKind). LabelConstrs x =&gt; x -&gt; TxSkel -&gt; TxSkel
-</span><a href="Cooked.Attack.html#addLabel"><span class="hs-identifier hs-var">addLabel</span></a></span><span> </span><span class="annot"><span class="annottext">DupTokenLbl
-</span><a href="Cooked.Attack.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; (TxSkel -&gt; TxSkel) -&gt; TxSkel -&gt; TxSkel
-forall (b :: OpticKind) (c :: OpticKind) (a :: OpticKind).
-(b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; TxSkel -&gt; TxSkel -&gt; TxSkel
-</span><a href="#local-6989586621679521886"><span class="hs-identifier hs-var">paySurplusTo</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679521890"><span class="hs-identifier hs-var">attacker</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521889"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-211"></span><span>    </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; Maybe TxSkel -&gt; Maybe TxSkel
-forall (f :: OpticKind -&gt; OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
-Functor f =&gt;
-(a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel Value
--&gt; (Value -&gt; Maybe Value) -&gt; Attack
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind).
-Is k A_Traversal =&gt;
-Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Attack
-</span><a href="Cooked.Attack.html#mkAttack"><span class="hs-identifier hs-var">mkAttack</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
-</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-var">mintsConstraintsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
--&gt; Optic A_Lens NoIx MintsConstraint MintsConstraint Value Value
--&gt; Optic' A_Traversal NoIx TxSkel Value
-forall (k :: OpticKind) (m :: OpticKind) (l :: OpticKind)
-       (ks :: IxList) (is :: IxList) (js :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (u :: OpticKind) (v :: OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
-(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MintsConstraint MintsConstraint Value Value
-forall (a :: OpticKind). HasValue a =&gt; Lens' a Value
-</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Maybe Value
-</span><a href="#local-6989586621679521881"><span class="hs-identifier hs-var">increaseValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521889"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-212"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-213"></span><span>    </span><span class="annot"><a href="#local-6989586621679521881"><span class="hs-identifier hs-type">increaseValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
-</span><span id="line-214"></span><span>    </span><span id="local-6989586621679521881"><span class="annot"><span class="annottext">increaseValue :: Value -&gt; Maybe Value
-</span><a href="#local-6989586621679521881"><span class="hs-identifier hs-var hs-var">increaseValue</span></a></span></span><span> </span><span id="local-6989586621679521880"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521880"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-215"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">((AssetClass, Integer) -&gt; Maybe (AssetClass, Integer))
--&gt; [(AssetClass, Integer)] -&gt; Maybe [(AssetClass, Integer)]
-forall (a :: OpticKind). (a -&gt; Maybe a) -&gt; [a] -&gt; Maybe [a]
-</span><a href="#local-6989586621679521879"><span class="hs-identifier hs-var">someJust</span></a></span><span>
-</span><span id="line-216"></span><span>        </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679521878"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679521878"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679521877"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521877"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Maybe Integer
-</span><a href="#local-6989586621679521891"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679521878"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521877"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-217"></span><span>            </span><span class="annot"><span class="annottext">Maybe Integer
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (AssetClass, Integer)
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-218"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521876"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521876"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521877"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
-forall (a :: OpticKind). Ord a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521876"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">(AssetClass, Integer) -&gt; Maybe (AssetClass, Integer)
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679521878"><span class="hs-identifier hs-var">ac</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679521876"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (AssetClass, Integer)
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-219"></span><span>        </span><span class="hs-special">)</span><span>
-</span><span id="line-220"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Optic' An_Iso NoIx Value [(AssetClass, Integer)]
--&gt; Value -&gt; [(AssetClass, Integer)]
-forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
-       (a :: OpticKind).
-Is k A_Getter =&gt;
-Optic' k is s a -&gt; s -&gt; a
-</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx Value [(AssetClass, Integer)]
-</span><a href="Cooked.Tx.Constraints.Optics.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521880"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-221"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521872"><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679521872"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Maybe Value
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Maybe Value) -&gt; Value -&gt; Maybe Value
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx Value [(AssetClass, Integer)]
--&gt; [(AssetClass, Integer)] -&gt; Value
-forall (k :: OpticKind) (is :: IxList) (t :: OpticKind)
-       (b :: OpticKind).
-Is k A_Review =&gt;
-Optic' k is t b -&gt; b -&gt; t
-</span><span class="hs-identifier hs-var">review</span></span><span> </span><span class="annot"><span class="annottext">Optic' An_Iso NoIx Value [(AssetClass, Integer)]
-</span><a href="Cooked.Tx.Constraints.Optics.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679521872"><span class="hs-identifier hs-var">l</span></a></span><span>
-</span><span id="line-222"></span><span>        </span><span class="annot"><span class="annottext">Maybe [(AssetClass, Integer)]
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Value
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-223"></span><span>
-</span><span id="line-224"></span><span>    </span><span class="annot"><a href="#local-6989586621679521886"><span class="hs-identifier hs-type">paySurplusTo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-225"></span><span>    </span><span id="local-6989586621679521886"><span class="annot"><span class="annottext">paySurplusTo :: Wallet -&gt; TxSkel -&gt; TxSkel -&gt; TxSkel
-</span><a href="#local-6989586621679521886"><span class="hs-identifier hs-var hs-var">paySurplusTo</span></a></span></span><span> </span><span id="local-6989586621679521870"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679521870"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679521869"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521869"><span class="hs-identifier hs-var">skelOld</span></a></span></span><span> </span><span id="local-6989586621679521868"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521868"><span class="hs-identifier hs-var">skelNew</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel [OutConstraint] [OutConstraint]
--&gt; ([OutConstraint] -&gt; [OutConstraint]) -&gt; TxSkel -&gt; TxSkel
-forall (k :: OpticKind) (is :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (a :: OpticKind) (b :: OpticKind).
-Is k A_Setter =&gt;
-Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx TxSkel TxSkel [OutConstraint] [OutConstraint]
-</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[OutConstraint] -&gt; [OutConstraint] -&gt; [OutConstraint]
-forall (a :: OpticKind). [a] -&gt; [a] -&gt; [a]
-</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
-</span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
-</span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679521870"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521864"><span class="hs-identifier hs-var">surplus</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521868"><span class="hs-identifier hs-var">skelNew</span></a></span><span>
-</span><span id="line-226"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-227"></span><span>        </span><span id="local-6989586621679521863"><span class="annot"><span class="annottext">txSkelMintValue :: TxSkel -&gt; Value
-</span><a href="#local-6989586621679521863"><span class="hs-identifier hs-var hs-var">txSkelMintValue</span></a></span></span><span> </span><span id="local-6989586621679521862"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521862"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel Value -&gt; TxSkel -&gt; Value
-forall (k :: OpticKind) (a :: OpticKind) (is :: IxList)
-       (s :: OpticKind).
-(Is k A_Fold, Monoid a) =&gt;
-Optic' k is s a -&gt; s -&gt; a
-</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
-</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-var">mintsConstraintsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MintsConstraint
--&gt; Optic A_Lens NoIx MintsConstraint MintsConstraint Value Value
--&gt; Optic' A_Traversal NoIx TxSkel Value
-forall (k :: OpticKind) (m :: OpticKind) (l :: OpticKind)
-       (ks :: IxList) (is :: IxList) (js :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (u :: OpticKind) (v :: OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
-(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
-Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx MintsConstraint MintsConstraint Value Value
-forall (a :: OpticKind). HasValue a =&gt; Lens' a Value
-</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521862"><span class="hs-identifier hs-var">s</span></a></span><span>
-</span><span id="line-228"></span><span>        </span><span id="local-6989586621679521864"><span class="annot"><span class="annottext">surplus :: Value
-</span><a href="#local-6989586621679521864"><span class="hs-identifier hs-var hs-var">surplus</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; Value
-</span><a href="#local-6989586621679521863"><span class="hs-identifier hs-var">txSkelMintValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521868"><span class="hs-identifier hs-var">skelNew</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
-forall (a :: OpticKind). Semigroup a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
-forall (a :: OpticKind). AdditiveGroup a =&gt; a -&gt; a
-</span><span class="hs-identifier hs-var">Pl.negate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Value
-</span><a href="#local-6989586621679521863"><span class="hs-identifier hs-var">txSkelMintValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521869"><span class="hs-identifier hs-var">skelOld</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-229"></span><span>
-</span><span id="line-230"></span><span>    </span><span class="hs-comment">-- Try to use the given function to modify the elements of the given list. If</span><span>
-</span><span id="line-231"></span><span>    </span><span class="hs-comment">-- at least one modification is successful, return 'Just' the modified list,</span><span>
-</span><span id="line-232"></span><span>    </span><span class="hs-comment">-- otherwise fail returning 'Nothing'.</span><span>
-</span><span id="line-233"></span><span>    </span><span id="local-6989586621679522001"><span class="annot"><a href="#local-6989586621679521879"><span class="hs-identifier hs-type">someJust</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679522001"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679522001"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679522001"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679522001"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
-</span><span id="line-234"></span><span>    </span><span id="local-6989586621679521879"><span class="annot"><span class="annottext">someJust :: (a -&gt; Maybe a) -&gt; [a] -&gt; Maybe [a]
-</span><a href="#local-6989586621679521879"><span class="hs-identifier hs-var hs-var">someJust</span></a></span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe [a]
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-235"></span><span>    </span><span class="annot"><a href="#local-6989586621679521879"><span class="hs-identifier hs-var">someJust</span></a></span><span> </span><span id="local-6989586621679521860"><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521860"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679521859"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521859"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679521858"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679521858"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521860"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521859"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-236"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679521857"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521857"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; Maybe [a]
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; Maybe [a]) -&gt; [a] -&gt; Maybe [a]
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521857"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
-forall (a :: OpticKind). a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a) -&gt; [a] -&gt; [a]
-forall (a :: OpticKind) (b :: OpticKind). (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679521856"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521856"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a -&gt; a
-forall (a :: OpticKind). a -&gt; Maybe a -&gt; a
-</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521856"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521860"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521856"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679521858"><span class="hs-identifier hs-var">xs</span></a></span><span>
-</span><span id="line-237"></span><span>      </span><span class="annot"><span class="annottext">Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679521859"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
-forall (a :: OpticKind). a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [a]) -&gt; Maybe [a] -&gt; Maybe [a]
-forall (f :: OpticKind -&gt; OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
-Functor f =&gt;
-(a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; [a] -&gt; Maybe [a]
-forall (a :: OpticKind). (a -&gt; Maybe a) -&gt; [a] -&gt; Maybe [a]
-</span><a href="#local-6989586621679521879"><span class="hs-identifier hs-var">someJust</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
-</span><a href="#local-6989586621679521860"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679521858"><span class="hs-identifier hs-var">xs</span></a></span><span>
-</span><span id="line-238"></span><span>
-</span><span id="line-239"></span><span class="hs-keyword">data</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span>
-</span><span id="line-240"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679521851"><span id="local-6989586621679521853"><span class="annot"><span class="annottext">DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-(DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
--&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool) -&gt; Eq DupTokenLbl
-forall (a :: OpticKind).
-(a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679521844"><span id="local-6989586621679521846"><span id="local-6989586621679521848"><span class="annot"><span class="annottext">Int -&gt; DupTokenLbl -&gt; ShowS
-[DupTokenLbl] -&gt; ShowS
-DupTokenLbl -&gt; String
-(Int -&gt; DupTokenLbl -&gt; ShowS)
--&gt; (DupTokenLbl -&gt; String)
--&gt; ([DupTokenLbl] -&gt; ShowS)
--&gt; Show DupTokenLbl
-forall (a :: OpticKind).
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [DupTokenLbl] -&gt; ShowS
-$cshowList :: [DupTokenLbl] -&gt; ShowS
-show :: DupTokenLbl -&gt; String
-$cshow :: DupTokenLbl -&gt; String
-showsPrec :: Int -&gt; DupTokenLbl -&gt; ShowS
-$cshowsPrec :: Int -&gt; DupTokenLbl -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-241"></span><span>
-</span><span id="line-242"></span><span class="hs-comment">-- * Datum hijacking attack</span><span>
-</span><span id="line-243"></span><span>
-</span><span id="line-244"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
-</span><span id="line-245"></span><span class="hs-comment">-- different recipient on 'PaysScript' constraints, but leaves the datum as it</span><span>
-</span><span id="line-246"></span><span class="hs-comment">-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in</span><span>
-</span><span id="line-247"></span><span class="hs-comment">-- places where something like 'getContinuingOutputs' should be used. If this</span><span>
-</span><span id="line-248"></span><span class="hs-comment">-- attack goes through, however, a &quot;proper&quot; datum hijacking attack that modifies</span><span>
-</span><span id="line-249"></span><span class="hs-comment">-- the datum in a way that the (relevant part of) the</span><span>
-</span><span id="line-250"></span><span class="hs-comment">-- 'toBuiltinData'-translation stays the same will also work. A</span><span>
-</span><span id="line-251"></span><span class="hs-comment">-- 'DatumHijackingLbl' with the hash of the &quot;thief&quot; validator is added to the</span><span>
-</span><span id="line-252"></span><span class="hs-comment">-- labels of the 'TxSkel' using 'addLabel'.</span><span>
-</span><span id="line-253"></span><span class="annot"><a href="Cooked.Attack.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-254"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679521841"><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-255"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-256"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.UnsafeFromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-257"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.UnsafeFromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-258"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-259"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
-</span><span id="line-260"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
-</span><span id="line-261"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-262"></span><span>  </span><span class="hs-comment">-- | If the selection predicate matches more than one output, select the n-th</span><span>
-</span><span id="line-263"></span><span>  </span><span class="hs-comment">-- output(s) with this predicate.</span><span>
-</span><span id="line-264"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-265"></span><span>  </span><span class="annot"><a href="Cooked.Attack.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span><span>
-</span><span id="line-266"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: (TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool)
--&gt; (Integer -&gt; Bool) -&gt; Attack
-</span><a href="Cooked.Attack.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span id="local-6989586621679521838"><span class="annot"><span class="annottext">TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool
-</span><a href="#local-6989586621679521838"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679521837"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679521837"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span id="local-6989586621679521836"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521836"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-267"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679521835"><span class="annot"><span class="annottext">thief :: TypedValidator a
-</span><a href="#local-6989586621679521835"><span class="hs-identifier hs-var hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-forall (a :: OpticKind). TypedValidator a
-</span><a href="Cooked.Attack.html#datumHijackingTarget"><span class="hs-identifier hs-var">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679521841"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-268"></span><span>
-</span><span id="line-269"></span><span>      </span><span class="annot"><a href="#local-6989586621679521833"><span class="hs-identifier hs-type">changeRecipient</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span>
-</span><span id="line-270"></span><span>      </span><span id="local-6989586621679521833"><span class="annot"><span class="annottext">changeRecipient :: PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
-</span><a href="#local-6989586621679521833"><span class="hs-identifier hs-var hs-var">changeRecipient</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span id="local-6989586621679521831"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679521831"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679521830"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679521830"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679521829"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521829"><span class="hs-identifier hs-var">money</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-271"></span><span>        </span><span class="hs-comment">-- checks whether val _is of the same type as_ the thief, they're obviously different scripts.</span><span>
-</span><span id="line-272"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679521831"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; TypedValidator a -&gt; Maybe (a :~~: a)
-forall (ty :: OpticKind -&gt; OpticKind) (a1 :: OpticKind)
-       (a2 :: OpticKind).
-(Typeable a1, Typeable a2) =&gt;
-ty a1 -&gt; ty a2 -&gt; Maybe (a1 :~~: a2)
-</span><a href="Cooked.Tx.Constraints.Type.html#~%2A~%3F"><span class="hs-operator hs-var">~*~?</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679521835"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-273"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">a :~~: a
-</span><span class="hs-identifier hs-var">HRefl</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-274"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool
-</span><a href="#local-6989586621679521838"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-TypedValidator a
-</span><a href="#local-6989586621679521831"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
-DatumType a
-</span><a href="#local-6989586621679521830"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521829"><span class="hs-identifier hs-var">money</span></a></span><span>
-</span><span id="line-275"></span><span>              </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(PaysScriptConstraint -&gt; Maybe PaysScriptConstraint)
--&gt; PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; DatumType a -&gt; Value -&gt; PaysScriptConstraint
-forall (a :: OpticKind).
-PaysScriptConstrs a =&gt;
-TypedValidator a -&gt; DatumType a -&gt; Value -&gt; PaysScriptConstraint
-</span><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-var">PaysScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679521835"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
-DatumType a
-</span><a href="#local-6989586621679521830"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679521829"><span class="hs-identifier hs-var">money</span></a></span><span>
-</span><span id="line-276"></span><span>              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe PaysScriptConstraint
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-277"></span><span>          </span><span class="annot"><span class="annottext">Maybe (a :~~: a)
-</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe PaysScriptConstraint
-forall (a :: OpticKind). Maybe a
-</span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-278"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; TxSkel -&gt; TxSkel
-forall (x :: OpticKind). LabelConstrs x =&gt; x -&gt; TxSkel -&gt; TxSkel
-</span><a href="Cooked.Attack.html#addLabel"><span class="hs-identifier hs-var">addLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ValidatorHash -&gt; DatumHijackingLbl
-</span><a href="Cooked.Attack.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span><span> </span><span class="annot"><span class="annottext">(ValidatorHash -&gt; DatumHijackingLbl)
--&gt; ValidatorHash -&gt; DatumHijackingLbl
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; ValidatorHash
-forall (a :: OpticKind). TypedValidator a -&gt; ValidatorHash
-</span><span class="hs-identifier hs-var">L.validatorHash</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679521835"><span class="hs-identifier hs-var">thief</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-279"></span><span>        </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; Maybe TxSkel -&gt; Maybe TxSkel
-forall (f :: OpticKind -&gt; OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
-Functor f =&gt;
-(a -&gt; b) -&gt; f a -&gt; f b
-</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel PaysScriptConstraint
--&gt; (PaysScriptConstraint -&gt; Maybe PaysScriptConstraint)
--&gt; (Integer -&gt; Bool)
--&gt; Attack
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind).
-Is k A_Traversal =&gt;
-Optic' k is TxSkel a
--&gt; (a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; Attack
-</span><a href="Cooked.Attack.html#mkSelectAttack"><span class="hs-identifier hs-var">mkSelectAttack</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel PaysScriptConstraint
-</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-var">paysScriptConstraintsT</span></a></span><span> </span><span class="annot"><span class="annottext">PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
-</span><a href="#local-6989586621679521833"><span class="hs-identifier hs-var">changeRecipient</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679521837"><span class="hs-identifier hs-var">select</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679521836"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-280"></span><span>
-</span><span id="line-281"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.ValidatorHash</span></span><span>
-</span><span id="line-282"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679521818"><span id="local-6989586621679521820"><span id="local-6989586621679521822"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
-[DatumHijackingLbl] -&gt; ShowS
-DatumHijackingLbl -&gt; String
-(Int -&gt; DatumHijackingLbl -&gt; ShowS)
--&gt; (DatumHijackingLbl -&gt; String)
--&gt; ([DatumHijackingLbl] -&gt; ShowS)
--&gt; Show DatumHijackingLbl
-forall (a :: OpticKind).
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [DatumHijackingLbl] -&gt; ShowS
-$cshowList :: [DatumHijackingLbl] -&gt; ShowS
-show :: DatumHijackingLbl -&gt; String
-$cshow :: DatumHijackingLbl -&gt; String
-showsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
-$cshowsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679521814"><span id="local-6989586621679521816"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-(DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
--&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
--&gt; Eq DatumHijackingLbl
-forall (a :: OpticKind).
-(a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-$c/= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-== :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-$c== :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-283"></span><span>
-</span><span id="line-284"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is a sufficient target for</span><span>
-</span><span id="line-285"></span><span class="hs-comment">-- the datum hijacking attack since we only want to show feasibility of the</span><span>
-</span><span id="line-286"></span><span class="hs-comment">-- attack.</span><span>
-</span><span id="line-287"></span><span id="local-6989586621679521966"><span class="annot"><a href="Cooked.Attack.html#datumHijackingTarget"><span class="hs-identifier hs-type">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679521966"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-288"></span><span id="datumHijackingTarget"><span class="annot"><span class="annottext">datumHijackingTarget :: TypedValidator a
-</span><a href="Cooked.Attack.html#datumHijackingTarget"><span class="hs-identifier hs-var hs-var">datumHijackingTarget</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-forall (a :: OpticKind).
-Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-</span><a href="Cooked.MockChain.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompiledCodeIn
-  DefaultUni
-  DefaultFun
-  (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
-forall (uni :: OpticKind -&gt; OpticKind) (fun :: OpticKind)
-       (a :: OpticKind).
-(Closed uni, Everywhere uni Flat, Flat fun,
- Everywhere uni PrettyConst, GShow uni, Pretty fun) =&gt;
-CompiledCodeIn uni fun a -&gt; Program NamedDeBruijn uni fun ()
-</span><span class="hs-identifier hs-var">Pl.getPlc</span></span><span> </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">Pl.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">tgt</span><span class="hs-special">||]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-289"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-290"></span><span>    </span><span class="annot"><a href="#local-6989586621679521812"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-291"></span><span>    </span><span id="local-6989586621679521812"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
-</span><a href="#local-6989586621679521812"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-292"></span></pre></body></html>
+</span><span id="line-81"></span><span class="hs-comment">-- Note that we can use 'mkAttack' (or a similar fuction) to write</span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- 'dupTokenAttack' in a contract-agnostic manner. Also note that, despite</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- (because?) of the generality of such attacks, they are relatively easy to</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- implement. Our growing collection of optics in &quot;Cooked.Tx.Constraints.Optics&quot;</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- and other helpers will hopefully mean that it will become easier and easier</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- to write attacks.</span><span>
+</span><span id="line-87"></span></pre></body></html>
