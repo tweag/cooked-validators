@@ -37,24 +37,36 @@ auditors arrive, you show them your books, containing the payment to the tax
 office. They both leave satisfied."
 
 The double satisfaction attack 'doubleSatAttack' provided by this module works
-by adding some extra 'Constraints' that depend on 'SpendsScript' constraints on
-the transaction under modification and the current 'MockChainSt'ate. This very
-general concept allows the implementation of common double satisfaction patterns
-as special cases, which will correspond to smart constructors for the
-'DoubleSatParams' type.
+by adding some extra 'Constraints' depending on some 'a's on the transaction
+under modification, and on the current 'MockChainSt'ate. This very general
+concept allows the implementation of common double satisfaction patterns as
+special cases, which will correspond to smart constructors for the
+'DoubleSatParams' type. In particular, we can add
+
+- a 'SpendsScript', depending on a 'SpendsScript' on the original transaction,
+- one or more 'Mints', depending on a 'SpendsScript' on the original transaction,
+- a 'SpendsScript', depending on a 'PaysScript' on the original transaction,
+- ...
+
+A few scenarios like these are implemented below as smart constructors for
+'DoubleSatParams'.
+
 -}
 
 -- | Parameters for a double satisfaction attack. You probably don't want to
 -- initialise these by hand; better use one of the smart constructors defined
 -- below.
-data DoubleSatParams = DoubleSatParams
-  { -- | For every 'SpendsScriptConstraint' in the transaction under
-    -- modification, calculate a list of extra 'Constraints' to add to the
-    -- transaction in order to try a double satisfaction attack.
+data DoubleSatParams a = DoubleSatParams
+  { -- | Each focus of this traversal is one potential reason to add extra
+    -- 'Constraint's.
+    dsOptic :: Traversal' TxSkel a,
+    -- | For every 'a' in the transaction under modification, calculate a list
+    -- of extra 'Constraints' to add to the transaction in order to try a double
+    -- satisfaction attack.
     --
     -- Extra 'Constraints' are added to pre-existing 'Constraints' with the
-    -- function 'addConstraints', which makes sure that no additional
-    -- constraint tries spend an UTxO that's already being spent and other such
+    -- function 'addConstraints', which makes sure that no additional constraint
+    -- tries spending an UTxO that's already being spent and other such
     -- checks. See the documentation comments for that function below.
     --
     -- We add 'OutConstraint's at the end of the list of transaction outputs,
@@ -62,7 +74,7 @@ data DoubleSatParams = DoubleSatParams
     -- outputs. If you want to try permutations of transaction outputs, look at
     -- the function 'tryOutPermutations', which is an attack-agnostic way to
     -- accomplish that.
-    dsExtraConstraints :: MockChainSt -> SpendsScriptConstraint -> [Constraints],
+    dsExtraConstraints :: MockChainSt -> a -> [Constraints],
     -- | The wallet to which any surplus will be paid.
     dsAttacker :: Wallet,
     -- | How to combine extra 'Constraint's:
@@ -76,14 +88,13 @@ data DoubleSatParams = DoubleSatParams
     --   'TxSkel's will receive exactly one of the extra 'Constraints'.
     --
     -- - With @dsSplitStrategy = AllCombinations@, al 'TxSkels' obtained by
-    --   adding _at least one_ extra 'Constraints' belonging to an original
-    --   'SpendsScript' constraints are tried: If there are n 'SpendsScript'
-    --   constraints in the original transaction, the modified transactions will
-    --   incorporate up to n extra 'Constraints'. For a given 'SpendsScript'
-    --   constraint on the original transaction, each of its extra 'Constraints'
-    --   is tried together with all options for all other 'SpendsScript'
-    --   constraints. This means that all cases that the 'OneChange'-case checks
-    --   are also explored here, plus some (potentially very many) more.
+    --   adding _at least one_ extra 'Constraints' belonging to an original 'a'
+    --   are tried: If there are n 'a's in the original transaction, the
+    --   modified transactions will incorporate up to n extra 'Constraints'. For
+    --   a given 'a' on the original transaction, each of its extra
+    --   'Constraints' is tried together with all options for all other
+    --   'a's. This means that all cases that the 'OneChange'-case checks are
+    --   also explored here, plus some (potentially very many) more.
     --
     -- If there is a conflict between some of the 'Constraints' that are to be
     -- added to an output transaction (for example, two 'Constraints' might
@@ -95,47 +106,188 @@ data DoubleSatParams = DoubleSatParams
     dsSplitStrategy :: SplitStrategy
   }
 
--- | Parameters for a double satisfaction attack that adds one extra input
--- belonging to a given validator to transactions. Each of the modified
--- transactions will contain exactly one extra 'SpendsScript' constraint.
-dsOneExtraInputFrom ::
+-- * Smart constructors for 'DoubleSatParams'
+
+-- | Parameters for a double satisfaction attack that adds one
+-- 'SpendsScriptConstraint' for a UTxO belonging to a given validator. Each of
+-- the modified transactions will contain exactly one extra 'SpendsScript'
+-- constraint.
+dsAddOneSscFromOwner ::
   ( SpendsConstrs b,
     Pl.FromData (L.DatumType b)
   ) =>
+  Traversal' TxSkel a ->
   -- | The validator to take extra inputs from.
   L.TypedValidator b ->
-  -- | For all 'SpendsScript' constraints of the original transaction, decide
-  -- whether to add an extra UTxO, and if so, which redeemers to try. Each
-  -- redeemer is tried on a separate output transaction.
-  (SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
-  -- | Wallet of the attacker. Any value contained in the extra UTxO consumed by
-  -- the modified transactions is paid to this wallet.
+  -- | For all 'a's of the original transaction, decide whether to add an extra
+  -- UTxO currently belonging to the @extraInputOwner@, and if so, which
+  -- redeemers to try. Each redeemer is tried on a separate output transaction.
+  (a -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  -- Wallet of the attacker. Any value contained in the extra UTxO consumed by
+  -- the modified transaction is psid to this wallet.
   Wallet ->
-  DoubleSatParams
-dsOneExtraInputFrom extraInputOwner extraInputRedeemers attacker =
-  DoubleSatParams
-    { dsExtraConstraints = \mcst ssc ->
+  DoubleSatParams a
+dsAddOneSscFromOwner optic extraInputOwner extraInputRedeemers attacker =
+  dsAddSsc
+    optic
+    ( \mcst a ->
         let extraUtxos = scriptUtxosSuchThatMcst mcst extraInputOwner (\_ _ -> True)
          in concatMap
               ( \utxo ->
                   map
-                    (\r -> toConstraints $ SpendsScript extraInputOwner r utxo)
-                    (extraInputRedeemers ssc utxo)
+                    (\r -> SpendsScriptConstraint extraInputOwner r utxo)
+                    (extraInputRedeemers a utxo)
               )
-              extraUtxos,
+              extraUtxos
+    )
+    attacker
+    OneChange
+
+-- | Parameters for a double satisfaction attack that adds one extra
+-- 'SpendsScript' constraint for a Utxo belonging to a given validator to
+-- transactions, depending on 'PaysScript' constraints already present on the
+-- transaction.  Each of the modified transactions will contain exactly one
+-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
+-- for explanation of the arguments.
+dsAddOneSscToPsc ::
+  ( SpendsConstrs b,
+    Pl.FromData (L.DatumType b)
+  ) =>
+  L.TypedValidator b ->
+  (PaysScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Wallet ->
+  DoubleSatParams PaysScriptConstraint
+dsAddOneSscToPsc = dsAddOneSscFromOwner paysScriptConstraintsT
+
+-- | Parameters for a double satisfaction attack that adds one extra
+-- 'SpendsScript' constraint for a Utxo belonging to a given validator to
+-- transactions, depending on 'SpendsScript' constraints already present on the
+-- transaction.  Each of the modified transactions will contain exactly one
+-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
+-- for explanation of the arguments.
+dsAddOneSscToSsc ::
+  ( SpendsConstrs b,
+    Pl.FromData (L.DatumType b)
+  ) =>
+  L.TypedValidator b ->
+  (SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Wallet ->
+  DoubleSatParams SpendsScriptConstraint
+dsAddOneSscToSsc = dsAddOneSscFromOwner spendsScriptConstraintsT
+
+-- | Parameters for a double satisfaction attack that adds one extra
+-- 'SpendsScript' constraint for a Utxo belonging to a given validator to
+-- transactions, depending on 'Mints' constraints already present on the
+-- transaction.  Each of the modified transactions will contain exactly one
+-- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
+-- for explanation of the arguments.
+dsAddOneSscToMc ::
+  ( SpendsConstrs b,
+    Pl.FromData (L.DatumType b)
+  ) =>
+  L.TypedValidator b ->
+  (MintsConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Wallet ->
+  DoubleSatParams MintsConstraint
+dsAddOneSscToMc = dsAddOneSscFromOwner mintsConstraintsT
+
+-- | Parameters for a double satisfaction attack that adds one or more extra
+-- 'Mints' constraints to transactions, depending on 'SpendsScript' constraints
+-- already present on the transaction.  Each of the modified transactions will
+-- contain at least one extra 'Mints' constraint.
+dsAddMcToSsc ::
+  MintsConstrs a =>
+  -- | For all 'SpendsScript' constraints of the original transaction, decide
+  -- whether to mint some extra value, and which redeemer and minting policies
+  -- to use to do so.
+  (SpendsScriptConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
+  -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
+  Wallet ->
+  DoubleSatParams SpendsScriptConstraint
+dsAddMcToSsc extraMints attacker =
+  dsAddMc
+    spendsScriptConstraintsT
+    (\_ ssc -> map (\(r, ps, x) -> MintsConstraint r ps x) $ extraMints ssc)
+    attacker
+    AllCombinations
+
+-- | Parameters for a double satisfaction attack that adds one or more extra
+-- 'Mints' constraints to transactions, depending on 'Mints' constraints
+-- already present on the transaction.  Each of the modified transactions will
+-- contain at least one extra 'Mints' constraint.
+--
+-- Note that this is more general than just a token duplication attack as
+-- implemented by 'dupTokenAttack': That attack is used to make _one_ minting
+-- policy mint more tokens, with this attack, more than one minting policy may
+-- be involved.
+dsAddMcToMc ::
+  MintsConstrs a =>
+  -- | For all 'Mints' constraints of the original transaction, decide
+  -- whether to mint some extra value, and which redeemer and minting policies
+  -- to use to do so.
+  (MintsConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
+  -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
+  Wallet ->
+  DoubleSatParams MintsConstraint
+dsAddMcToMc extraMints attacker =
+  dsAddMc
+    mintsConstraintsT
+    (\_ mc -> map (\(r, ps, x) -> MintsConstraint r ps x) $ extraMints mc)
+    attacker
+    AllCombinations
+
+-- | Parameters for a double satisfaction attack that adds 'SpendsScript'
+-- constraints.
+dsAddSsc ::
+  Traversal' TxSkel a ->
+  (MockChainSt -> a -> [SpendsScriptConstraint]) ->
+  Wallet ->
+  SplitStrategy ->
+  DoubleSatParams a
+dsAddSsc optic extraSsc attacker splitStrategy =
+  DoubleSatParams
+    { dsOptic = optic,
+      dsExtraConstraints = \mcst a ->
+        map
+          ( toConstraints
+              . review spendsScriptConstraintP
+          )
+          $ extraSsc mcst a,
       dsAttacker = attacker,
-      dsSplitStrategy = OneChange
+      dsSplitStrategy = splitStrategy
     }
+
+-- | Parameters for a doubleSatisfactionAttack that adds 'Mints' constraints.
+dsAddMc ::
+  Traversal' TxSkel a ->
+  (MockChainSt -> a -> [MintsConstraint]) ->
+  Wallet ->
+  SplitStrategy ->
+  DoubleSatParams a
+dsAddMc optic extraMc attacker splitStrategy =
+  DoubleSatParams
+    { dsOptic = optic,
+      dsExtraConstraints = \mcst a ->
+        map
+          ( toConstraints
+              . review mintsConstraintP
+          )
+          $ extraMc mcst a,
+      dsAttacker = attacker,
+      dsSplitStrategy = splitStrategy
+    }
+
+-- * The double satisfaction attack
 
 -- | Double satisfaction attack. See the comments for 'DoubleSatParams' and its
 -- smart constructors for explanation.
 doubleSatAttack ::
-  DoubleSatParams ->
+  DoubleSatParams a ->
   Attack
 doubleSatAttack DoubleSatParams {..} =
   mkSplittingAttack
     dsSplitStrategy
-    spendsScriptConstraintsT
+    dsOptic
     ( \mcst ssc ->
         map
           (ssc,)
@@ -165,6 +317,8 @@ doubleSatAttack DoubleSatParams {..} =
     accConstraints :: [Constraints] -> Constraints -> Constraints
     accConstraints [] acc = acc
     accConstraints (c : cs) acc = c `addConstraints` accConstraints cs acc
+
+-- * Extending 'Constraints'
 
 -- | Extend the constraints in the second argument with the ones from the first
 -- argument, but only if there are no conflicts:

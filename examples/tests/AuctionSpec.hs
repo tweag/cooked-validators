@@ -175,7 +175,7 @@ tryDoubleSat = do
   (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   somewhere
     ( doubleSatAttack
-        ( dsOneExtraInputFrom
+        ( dsAddOneSscToSsc
             (A.auctionValidator p)
             ( \_ _ ->
                 A.Hammer :

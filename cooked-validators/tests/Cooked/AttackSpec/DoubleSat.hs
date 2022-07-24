@@ -190,8 +190,12 @@ tests =
               ],
             testCase "unit test on a 'TxSkel'" $
               let params =
+                    -- These parameters could easily be constructed with
+                    -- 'dsAddOneSsctoSsc', but let's build them by hand here, to
+                    -- not depend on that function.
                     DoubleSatParams
-                      { dsExtraConstraints = \mcst ssc ->
+                      { dsOptic = spendsScriptConstraintsT,
+                        dsExtraConstraints = \mcst ssc ->
                           let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
                            in case ssc of
                                 SpendsScriptConstraint _ _ (aOut, _) ->

@@ -138,7 +138,7 @@ mkSelectAttack optic f select =
 -- >   ([x2, y3, z], "be")
 -- > ]
 mkSplittingAttack ::
-  forall k is a b.
+  forall a b k is.
   Is k A_Traversal =>
   SplitStrategy ->
   -- | Optic focussing potentially interesting points to modify
