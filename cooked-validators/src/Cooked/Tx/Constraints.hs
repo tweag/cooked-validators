@@ -171,7 +171,15 @@ outConstraintToTxOut (PaysScript validator msc datum value) =
 orderTxOutputs :: [OutConstraint] -> [Pl.TxOut] -> [Pl.TxOut]
 orderTxOutputs expected given =
   let res = map outConstraintToTxOut expected
-   in res ++ (given List.\\ res)
+  -- Need to have a custom equality, filtering out anything that pays to a script
+  -- as well, even if Nothing is the sc.
+  -- That is, PaysScript val Nothing datum value == PaysScript val (Just _) datum value
+  -- NB: this is a huge hack, should *NOT* be merged to main. We must just use actual
+  -- equality, instead of this filtering with eraseStakingCredential
+   in res ++ (given List.\\ map eraseStakingCredential res)
+      where
+        eraseStakingCredential txOut =
+          txOut { Pl.txOutAddress = (Pl.txOutAddress txOut) {Pl.addressStakingCredential = Nothing} }
 
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> MiscConstraint
