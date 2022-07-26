@@ -14,14 +14,12 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Typed.Scripts as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)
 import qualified Plutus.Contract as C
 import qualified Plutus.V1.Ledger.Api as Api
 import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx.Prelude as Pl ((-), sum)
 import BettingGame
-import qualified Wallet.Emulator.Wallet as C
 
 -- * Transaction Skeleton Generators
 
@@ -67,7 +65,11 @@ txCollectBets p = do
     void $
       validateTxConstrLbl
         TxCollectBets
-        ( ( Before (collectionDeadline p)
+        ( ( ValidateIn
+              (Pl.Interval
+                (Pl.strictLowerBound $ bettingDeadline p)
+                (Pl.upperBound $ collectionDeadline p)
+              )
           : map (SpendsScript script (BetCollection bets)) (gameStartOutput : betOutputs)
           )
           :=>: [ PaysScript script (CollectedBets bets) (Api.unionWith max (Pl.sum (map amount bets)) minValue) ]
@@ -96,8 +98,12 @@ txClose (p, gr0) = do
     let commission = Pl.lovelaceValueOf (fromIntegral (1000000 * length bets))
     void $
       validateTxConstrLbl
-        TxCollectBets
-        ( [ Before (publishingDeadline p)
+        (TxClose p)
+        ( [ ValidateIn
+              (Pl.Interval
+                (Pl.strictLowerBound $ bettingDeadline p)
+                (Pl.upperBound $ publishingDeadline p)
+              )
           , SpendsScript script (GameClose gr0) collectedBetsOutput
           ]
           :=>:

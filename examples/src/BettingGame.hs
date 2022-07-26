@@ -152,6 +152,9 @@ validateBet p d0 r ctx =
                   outputs
             Nothing -> False
 
+        -- TODO: This check doesn't work when the transaction uses inputs
+        -- from h, because the change of these inputs is also added
+        -- in the result of valuePaidTo.
         paysTo h v = Ledger.valuePaidTo info h == v
 
         paysToAllWinners gr bets =
@@ -180,6 +183,8 @@ validateBet p d0 r ctx =
           Bet bet ->
                traceIfFalse "collection deadline expired"
                  (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+            && traceIfFalse "betting deadline hasn't expired"
+                 (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
             && traceIfFalse "the transaction must consume an output with datum GameStart"
                  (isJust $ findInputWithDatum (GameStart p) info)
             && traceIfFalse "there must be an output containing the list of bets"
@@ -195,8 +200,6 @@ validateBet p d0 r ctx =
                  (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
             && traceIfFalse "betting deadline hasn't expired"
                  (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "the operator must earn a commission"
-                 (paysTo (operator p) (Ada.lovelaceValueOf (1000000 * length bets)))
             && traceIfFalse "all winners must earn in proportion to what they bet"
                  (paysToAllWinners gr bets)
             && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
