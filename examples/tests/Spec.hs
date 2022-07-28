@@ -1,7 +1,6 @@
 module Main where
 
 import qualified AuctionSpec
-import qualified BettingGameSpec
 import qualified PMultiSigStatefulSpec
 import qualified SplitSpec
 import qualified SplitUPLCSpec
@@ -17,6 +16,5 @@ main = do
         UseCaseCrowdfundingSpec.tests,
         SplitSpec.tests,
         SplitUPLCSpec.tests,
-        AuctionSpec.tests,
-        BettingGameSpec.tests
+        AuctionSpec.tests
       ]
