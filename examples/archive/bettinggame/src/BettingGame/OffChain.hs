@@ -13,7 +13,6 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default (def)
-import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)

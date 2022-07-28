@@ -39,6 +39,7 @@ test-suite spec
       base >=4.9 && <5
     , bettinggame
     , cooked-validators
+    , data-default
     , plutus-contract
     , plutus-core
     , plutus-ledger

@@ -138,8 +138,6 @@ validateBet p d0 r ctx =
     let info :: Ledger.TxInfo
         info = Ledger.scriptContextTxInfo ctx
 
-        outputs = Ledger.txInfoOutputs info
-
         outputHasCollectedBets bets =
           case Ledger.findDatumHash
                  (Api.Datum $ PlutusTx.toBuiltinData $ CollectedBets bets)
@@ -149,7 +147,7 @@ validateBet p d0 r ctx =
               any (\o ->    Just h == Ledger.txOutDatumHash o
                          && Ledger.txOutValue o == sum (map amount bets)
                   )
-                  outputs
+                  (Ledger.getContinuingOutputs ctx)
             Nothing -> False
 
         -- TODO: This check doesn't work when the transaction uses inputs
