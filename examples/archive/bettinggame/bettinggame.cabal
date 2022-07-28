@@ -15,6 +15,7 @@ library
       aeson
     , base >=4.9 && <5
     , cooked-validators
+    , data-default
     , playground-common
     , plutus-contract
     , plutus-core

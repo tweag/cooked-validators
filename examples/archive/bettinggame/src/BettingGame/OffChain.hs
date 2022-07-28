@@ -12,6 +12,8 @@ module BettingGame.OffChain where
 import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Data.Default (def)
+import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import Playground.Contract hiding (ownPaymentPubKeyHash)
@@ -97,8 +99,10 @@ txClose (p, gr0) = do
     collectedBetsOutput@(_, CollectedBets bets) : _ <-  scriptUtxosSuchThat script isCollectedBets
     let commission = Pl.lovelaceValueOf (fromIntegral (1000000 * length bets))
     void $
-      validateTxConstrLbl
+      validateTxSkel $ txSkelLblOpts
         (TxClose p)
+        def -- print the actual transaction to stderr
+            -- (def { unsafeModTx = RawModTxAfterBalancing Debug.Trace.traceShowId })
         ( [ ValidateIn
               (Pl.Interval
                 (Pl.strictLowerBound $ bettingDeadline p)
