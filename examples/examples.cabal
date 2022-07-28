@@ -12,8 +12,6 @@ library
   exposed-modules:
       Auction
       Auction.Offchain
-      BettingGame
-      BettingGame.OffChain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
@@ -70,7 +68,6 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       AuctionSpec
-      BettingGameSpec
       PMultiSigStatefulSpec
       SplitSpec
       SplitUPLCSpec
