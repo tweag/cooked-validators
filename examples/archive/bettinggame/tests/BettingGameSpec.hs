@@ -14,9 +14,7 @@ import qualified Ledger.Address as Pl
 import qualified Plutus.V1.Ledger.Api as Pl
 import qualified BettingGame
 import BettingGame.OffChain
-import Test.Hspec
 import Test.Tasty
-import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 

@@ -1,6 +1,7 @@
 packages:
   cooked-validators
   examples
+  examples/archive/bettinggame
 
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
