@@ -48,7 +48,6 @@
 --
 -- If a player bets more than once, the on-chain validation doesn't ensure
 -- that the operator pays her for all her winning bets.
---
 module BettingGame where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -58,15 +57,16 @@ import qualified Ledger.Ada as Ada
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Plutus.V1.Ledger.Api as Api
 import Plutus.V1.Ledger.Contexts (ScriptContext (..))
-import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx
+import qualified PlutusTx.Builtins as Builtins
 import PlutusTx.Prelude hiding (Applicative (..))
 import Schema (ToSchema)
 import qualified Prelude as Haskell
 
-
 -- * On-chain validation
+
 --
+
 -- $contract-flow
 -- Contract flow
 --
@@ -81,12 +81,12 @@ import qualified Prelude as Haskell
 -- collected bets to all players.
 
 data BetParams = BetParams
-  { bettingDeadline :: Ledger.POSIXTime
-  , collectionDeadline :: Ledger.POSIXTime
-  , publishingDeadline :: Ledger.POSIXTime
-  , minimumBet :: Ledger.Value
-  , description :: BuiltinByteString
-  , operator :: Ledger.PubKeyHash
+  { bettingDeadline :: Ledger.POSIXTime,
+    collectionDeadline :: Ledger.POSIXTime,
+    publishingDeadline :: Ledger.POSIXTime,
+    minimumBet :: Ledger.Value,
+    description :: BuiltinByteString,
+    operator :: Ledger.PubKeyHash
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
@@ -94,9 +94,9 @@ data BetParams = BetParams
 type GameResult = Bool
 
 data BetData = BetData
-  { player :: Ledger.PubKeyHash
-  , gameResult :: GameResult
-  , amount :: Ledger.Value
+  { player :: Ledger.PubKeyHash,
+    gameResult :: GameResult,
+    amount :: Ledger.Value
   }
   deriving stock (Haskell.Show, Haskell.Eq, Generic)
 
@@ -124,7 +124,7 @@ data BetRedeemer
   = BetCollection [BetData]
   | GameClose GameResult
   | BetReclaim
-  deriving Haskell.Show
+  deriving (Haskell.Show)
 
 instance Eq BetRedeemer where
   BetCollection a == BetCollection a' = a == a'
@@ -132,101 +132,114 @@ instance Eq BetRedeemer where
   BetReclaim == BetReclaim = True
   _ == _ = False
 
-validateBet
-  :: BetParams -> BetDatum -> BetRedeemer -> ScriptContext -> Bool
+validateBet ::
+  BetParams -> BetDatum -> BetRedeemer -> ScriptContext -> Bool
 validateBet p d0 r ctx =
-    let info :: Ledger.TxInfo
-        info = Ledger.scriptContextTxInfo ctx
+  let info :: Ledger.TxInfo
+      info = Ledger.scriptContextTxInfo ctx
 
-        outputHasCollectedBets bets =
-          case Ledger.findDatumHash
-                 (Api.Datum $ PlutusTx.toBuiltinData $ CollectedBets bets)
-                 info
-            of
-            Just h ->
-              any (\o ->    Just h == Ledger.txOutDatumHash o
-                         && Ledger.txOutValue o == sum (map amount bets)
-                  )
-                  (Ledger.getContinuingOutputs ctx)
-            Nothing -> False
+      outputHasCollectedBets bets =
+        case Ledger.findDatumHash
+          (Api.Datum $ PlutusTx.toBuiltinData $ CollectedBets bets)
+          info of
+          Just h ->
+            any
+              ( \o ->
+                  Just h == Ledger.txOutDatumHash o
+                    && Ledger.txOutValue o == sum (map amount bets)
+              )
+              (Ledger.getContinuingOutputs ctx)
+          Nothing -> False
 
-        -- TODO: This check doesn't work when the transaction uses inputs
-        -- from h, because the change of these inputs is also added
-        -- in the result of valuePaidTo.
-        paysTo h v = Ledger.valuePaidTo info h == v
+      -- TODO: This check doesn't work when the transaction uses inputs
+      -- from h, because the change of these inputs is also added
+      -- in the result of valuePaidTo.
+      paysTo h v = Ledger.valuePaidTo info h == v
 
-        paysToAllWinners gr bets =
-          let winners = filter ((gr ==) . gameResult) bets
-              total_winners = sum (map amount winners)
-              commission = Ada.lovelaceValueOf (1000000 * length bets)
-              total = sum (map amount bets) - commission
-              winnerIsPaid b =
-                if gameResult b /= gr then True
+      paysToAllWinners gr bets =
+        let winners = filter ((gr ==) . gameResult) bets
+            total_winners = sum (map amount winners)
+            commission = Ada.lovelaceValueOf (1000000 * length bets)
+            total = sum (map amount bets) - commission
+            winnerIsPaid b =
+              if gameResult b /= gr
+                then True
                 else
                   paysTo
                     (player b)
-                    (Api.unionWith Builtins.divideInteger
-                       (Api.unionWith (*) total (amount b))
-                       total_winners
+                    ( Api.unionWith
+                        Builtins.divideInteger
+                        (Api.unionWith (*) total (amount b))
+                        total_winners
                     )
-           in
-              all winnerIsPaid bets
-
-     in case r of
-      BetCollection bets ->
-        case d0 of
-          GameStart _p ->
-             traceIfFalse "only the operator can collect the output of gamestart"
-               (elem (operator p) $ Ledger.txInfoSignatories info)
-          Bet bet ->
-               traceIfFalse "collection deadline expired"
-                 (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
-            && traceIfFalse "betting deadline hasn't expired"
-                 (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "the transaction must consume an output with datum GameStart"
-                 (isJust $ findInputWithDatum (GameStart p) info)
-            && traceIfFalse "there must be an output containing the list of bets"
-                 (outputHasCollectedBets bets)
-            && traceIfFalse "the bet of this output must be included in the list of bets in the transaction output"
-                 (elem bet bets)
-          _ ->
-             traceIfFalse "BetCollection can only take outputs with GameStart and Bet datums" False
-      GameClose gr ->
-        case d0 of
-          CollectedBets bets ->
-               traceIfFalse "publication deadline expired"
-                 (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
-            && traceIfFalse "betting deadline hasn't expired"
-                 (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "all winners must earn in proportion to what they bet"
-                 (paysToAllWinners gr bets)
-            && traceIfFalse "the transaction must be signed by the operator (so we can trust the result)"
-                 (elem (operator p) $ Ledger.txInfoSignatories info)
-          _ ->
-            traceIfFalse "GameClose can only take an output with datum BetCollection" False
-
-      BetReclaim ->
-        case d0 of
-          Bet bet ->
-               traceIfFalse "collection deadline must have expired"
-                 (collectionDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-               -- TODO: forbid double satisfaction attacks
-            && traceIfFalse "the transaction must pay to the player"
-                 (paysTo (player bet) (amount bet))
-          CollectedBets bets ->
-               traceIfFalse "publication deadline must have expired"
-                 (publishingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
-            && traceIfFalse "the transaction must pay to all players"
-                 (all (\b -> paysTo (player b) (amount b)) bets)
-          _ ->
-             traceIfFalse "BetReclaim can only take outputs with Bet and BetCollection datums" False
+         in all winnerIsPaid bets
+   in case r of
+        BetCollection bets ->
+          case d0 of
+            GameStart _p ->
+              traceIfFalse
+                "only the operator can collect the output of gamestart"
+                (elem (operator p) $ Ledger.txInfoSignatories info)
+            Bet bet ->
+              traceIfFalse
+                "collection deadline expired"
+                (Ledger.to (collectionDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+                && traceIfFalse
+                  "betting deadline hasn't expired"
+                  (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
+                && traceIfFalse
+                  "the transaction must consume an output with datum GameStart"
+                  (isJust $ findInputWithDatum (GameStart p) info)
+                && traceIfFalse
+                  "there must be an output containing the list of bets"
+                  (outputHasCollectedBets bets)
+                && traceIfFalse
+                  "the bet of this output must be included in the list of bets in the transaction output"
+                  (elem bet bets)
+            _ ->
+              traceIfFalse "BetCollection can only take outputs with GameStart and Bet datums" False
+        GameClose gr ->
+          case d0 of
+            CollectedBets bets ->
+              traceIfFalse
+                "publication deadline expired"
+                (Ledger.to (publishingDeadline p) `Ledger.contains` Ledger.txInfoValidRange info)
+                && traceIfFalse
+                  "betting deadline hasn't expired"
+                  (bettingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
+                && traceIfFalse
+                  "all winners must earn in proportion to what they bet"
+                  (paysToAllWinners gr bets)
+                && traceIfFalse
+                  "the transaction must be signed by the operator (so we can trust the result)"
+                  (elem (operator p) $ Ledger.txInfoSignatories info)
+            _ ->
+              traceIfFalse "GameClose can only take an output with datum BetCollection" False
+        BetReclaim ->
+          case d0 of
+            Bet bet ->
+              traceIfFalse
+                "collection deadline must have expired"
+                (collectionDeadline p `Ledger.before` Ledger.txInfoValidRange info)
+                -- TODO: forbid double satisfaction attacks
+                && traceIfFalse
+                  "the transaction must pay to the player"
+                  (paysTo (player bet) (amount bet))
+            CollectedBets bets ->
+              traceIfFalse
+                "publication deadline must have expired"
+                (publishingDeadline p `Ledger.before` Ledger.txInfoValidRange info)
+                && traceIfFalse
+                  "the transaction must pay to all players"
+                  (all (\b -> paysTo (player b) (amount b)) bets)
+            _ ->
+              traceIfFalse "BetReclaim can only take outputs with Bet and BetCollection datums" False
   where
     findInputWithDatum :: BetDatum -> Ledger.TxInfo -> Maybe Ledger.TxInInfo
     findInputWithDatum d info =
       case Ledger.findDatumHash
-             (Api.Datum $ PlutusTx.toBuiltinData d)
-             info
-        of
+        (Api.Datum $ PlutusTx.toBuiltinData d)
+        info of
         Just h ->
           let hasDatum =
                 (Just h ==) . Ledger.txOutDatumHash . Ledger.txInInfoResolved
