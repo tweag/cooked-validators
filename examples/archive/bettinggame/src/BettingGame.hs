@@ -65,8 +65,6 @@ import qualified Prelude as Haskell
 
 -- * On-chain validation
 
---
-
 -- $contract-flow
 -- Contract flow
 --

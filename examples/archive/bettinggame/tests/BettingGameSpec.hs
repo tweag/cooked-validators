@@ -80,12 +80,8 @@ tryDatumHijack =
         )
         (0 ==)
     )
-    ( simpleClosingExample
-    -- <|> ...
-    )
+    simpleClosingExample
   where
-    -- (noBids <|> oneBid <|> twoBids)
-
     simpleClosingExample :: MonadMockChain m => m ()
     simpleClosingExample = do
       t0 <- currentTime

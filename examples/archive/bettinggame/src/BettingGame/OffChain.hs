@@ -172,8 +172,6 @@ txReclaim p = do
 -- | Label for 'txReclaim' skeleton
 data TxReclaim = TxReclaim deriving (Show, Eq)
 
--- TODO: check deadlines
-
 type BettingGameSchema =
   C.Endpoint "start" BetParams
     C..\/ C.Endpoint "bet" (BetParams, (GameResult, Pl.Value))
