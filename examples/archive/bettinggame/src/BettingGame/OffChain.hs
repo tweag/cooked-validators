@@ -1,11 +1,7 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
 
 module BettingGame.OffChain where
 
@@ -16,8 +12,6 @@ import Cooked.Tx.Constraints
 import Data.Default (def)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
-import Playground.Contract hiding (ownPaymentPubKeyHash)
-import qualified Plutus.Contract as C
 import qualified Plutus.V1.Ledger.Api as Api
 import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx.Prelude as Pl (sum, (-))
@@ -171,20 +165,3 @@ txReclaim p = do
 
 -- | Label for 'txReclaim' skeleton
 data TxReclaim = TxReclaim deriving (Show, Eq)
-
-type BettingGameSchema =
-  C.Endpoint "start" BetParams
-    C..\/ C.Endpoint "bet" (BetParams, (GameResult, Pl.Value))
-    C..\/ C.Endpoint "collectBets" BetParams
-    C..\/ C.Endpoint "close" (BetParams, GameResult)
-    C..\/ C.Endpoint "reclaim" BetParams
-
-mkSchemaDefinitions ''BettingGameSchema
-
-endpoints :: (C.AsContractError e) => C.Promise w BettingGameSchema e ()
-endpoints =
-  C.endpoint @"start" txStart
-    `C.select` C.endpoint @"bet" txBet
-    `C.select` C.endpoint @"collectBets" txCollectBets
-    `C.select` C.endpoint @"close" txClose
-    `C.select` C.endpoint @"reclaim" txReclaim
