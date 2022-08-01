@@ -58,6 +58,7 @@ library
     , foldl
     , freer-extras
     , freer-simple
+    , hashable
     , lens
     , memory
     , monad-control
@@ -116,6 +117,7 @@ test-suite spec
     , foldl
     , freer-extras
     , freer-simple
+    , hashable
     , lens
     , memory
     , monad-control

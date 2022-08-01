@@ -6,6 +6,7 @@ import Control.Arrow (second)
 import Cooked.Currencies
 import Cooked.MockChain.Wallet
 import Data.Function (on)
+import qualified Data.Hashable as H
 import qualified Data.List as L
 import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
@@ -15,7 +16,6 @@ import qualified Ledger.Ada as Ada
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl
-import qualified PlutusTx.AssocMap as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -225,15 +225,17 @@ prettyCurrencyAndAmount (symbol, tName, amount) = prettyToken tName amount
        in prettyCurrency <+> prettyAmount
 
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
-prettyAddressTypeAndHash (Pl.Address addrCr _) =
+prettyAddressTypeAndHash (Pl.Address addrCr stakingCred) =
   case addrCr of
-    (Pl.ScriptCredential vh) -> prettyAux "script" vh
+    (Pl.ScriptCredential vh) ->
+      prettyAux "script" vh <> prettyStakingCred stakingCred <> PP.colon
     (Pl.PubKeyCredential pkh) ->
       prettyAux "pubkey" pkh
         <> maybe
           PP.emptyDoc
           ((PP.space <>) . PP.parens . ("wallet #" <>) . PP.pretty)
           (walletPKHashToId pkh)
+        <> PP.colon
   where
     prettyAux :: Show hash => String -> hash -> Doc ann
     prettyAux addressType hash =
@@ -242,4 +244,6 @@ prettyAddressTypeAndHash (Pl.Address addrCr _) =
           PP.space,
           PP.pretty . take 7 . show $ hash
         ]
-        <> PP.colon
+    prettyStakingCred :: Maybe Pl.StakingCredential -> Doc ann
+    prettyStakingCred Nothing = PP.emptyDoc
+    prettyStakingCred (Just sc) = PP.space <> PP.semi <> PP.space <> (PP.pretty . take 7 . show . H.hash) sc
