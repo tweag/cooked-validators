@@ -41,8 +41,10 @@ prettyWallet pkh =
     phash = prettyHash pkh
 
 prettyOutConstraint :: OutConstraint -> Doc ann
-prettyOutConstraint (PaysScript val _ datum value) =
-  prettyEnum ("PaysScript" <+> prettyTypedValidator val) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
+prettyOutConstraint (PaysScript val msc datum value) =
+  prettyEnum ("PaysScript" <+> prettyAddressTypeAndHash addr) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
+  where
+    addr = (Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript val) {Pl.addressStakingCredential = msc}
 prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
   prettyEnum
     ("PaysPK" <+> prettyWallet pkh)
