@@ -73,6 +73,11 @@ data MockChainBuiltin a where
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainBuiltin [(SpendableOut, Maybe a)]
+  UtxosSuchThisAndThat ::
+    (Pl.FromData a) =>
+    (Pl.Address -> Bool) ->
+    (Maybe a -> Pl.Value -> Bool) ->
+    MockChainBuiltin [(SpendableOut, Maybe a)]
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   -- the following are only available in MonadMockChain, not MonadBlockChain:
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
@@ -138,6 +143,7 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin GetCurrentTime = currentTime
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
+  interpBuiltin (UtxosSuchThisAndThat apred dpred) = utxosSuchThisAndThat apred dpred
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetParams = params
@@ -157,6 +163,7 @@ singletonBuiltin b = Instr (Builtin b) Return
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
   utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
+  utxosSuchThisAndThat apred dpred = singletonBuiltin (UtxosSuchThisAndThat apred dpred)
   txOutByRef = singletonBuiltin . TxOutByRef
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot

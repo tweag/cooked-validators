@@ -237,6 +237,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   utxosSuchThat = utxosSuchThat'
 
+  utxosSuchThisAndThat = utxosSuchThisAndThat'
+
   currentSlot = gets mcstCurrentSlot
 
   currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
@@ -339,16 +341,15 @@ validateTx' reqSigs tx = do
         )
       return $ Pl.txId tx
 
-utxosSuchThatWithAddrPred :: 
+utxosSuchThisAndThat' ::
   forall a m.
   (Monad m, Pl.FromData a) =>
-  Pl.Address ->
-  (Pl.Address -> Pl.Address -> Bool) ->
+  (Pl.Address -> Bool) ->
   (Maybe a -> Pl.Value -> Bool) ->
   MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThatWithAddrPred addr addrPred datumPred = do  
+utxosSuchThisAndThat' addrPred datumPred = do
   ix <- gets (Pl.getIndex . mcstIndex)
-  let ix' = M.filter (addrPred addr . Pl.txOutAddress) ix
+  let ix' = M.filter (addrPred . Pl.txOutAddress) ix
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
@@ -380,14 +381,6 @@ utxosSuchThatWithAddrPred addr addrPred datumPred = do
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
 
-utxosSuchThatIgnoringSCred :: 
-  forall a m.
-  (Monad m, Pl.FromData a) =>
-  Pl.Address ->
-  (Maybe a -> Pl.Value -> Bool) ->
-  MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThatIgnoringSCred addr = utxosSuchThatWithAddrPred addr ((==) `on` Pl.addressCredential)
-
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
   forall a m.
@@ -395,7 +388,7 @@ utxosSuchThat' ::
   Pl.Address ->
   (Maybe a -> Pl.Value -> Bool) ->
   MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThat' addr = utxosSuchThatWithAddrPred addr (==)
+utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
 -- | Generates an unbalanced transaction from a skeleton; A
 --  transaction is unbalanced whenever @inputs + mints != outputs + fees@.

@@ -41,6 +41,9 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
           else Nothing
     pure $ catMaybes maybeUtxosWithDatums
 
+  -- TODO: implement this
+  utxosSuchThisAndThat _ _ = undefined
+
   txOutByRef ref = fmap Pl.toTxOut <$> C.unspentTxOutFromRef ref
 
   ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownFirstPaymentPubKeyHash

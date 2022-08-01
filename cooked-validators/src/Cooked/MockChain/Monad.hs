@@ -22,6 +22,7 @@ import Cooked.Ltl
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
+import Data.Function (on)
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
@@ -61,6 +62,12 @@ class (MonadFail m) => MonadBlockChain m where
   utxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
+    UtxoPredicate a ->
+    m [(SpendableOut, Maybe a)]
+
+  utxosSuchThisAndThat ::
+    (Pl.FromData a) =>
+    (Pl.Address -> Bool) ->
     UtxoPredicate a ->
     m [(SpendableOut, Maybe a)]
 
@@ -141,6 +148,18 @@ scriptUtxosSuchThat v predicate =
   map (second fromJust)
     <$> utxosSuchThat
       (Pl.validatorAddress v)
+      (maybe (const False) predicate)
+
+scriptUtxosSuchThatIgnoringSCred ::
+  (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
+  Pl.TypedValidator tv ->
+  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
+  (Pl.DatumType tv -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Pl.DatumType tv)]
+scriptUtxosSuchThatIgnoringSCred v predicate =
+  map (second fromJust)
+    <$> utxosSuchThisAndThat
+      (((==) `on` Pl.addressCredential) (Pl.validatorAddress v))
       (maybe (const False) predicate)
 
 -- | Returns the output associated with a given reference
@@ -251,6 +270,7 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot
