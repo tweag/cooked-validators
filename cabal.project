@@ -22,7 +22,7 @@ source-repository-package
     plutus-streaming
     plutus-use-cases
     playground-common
-
+    
 -- Everything below this point has been copied from plutus-apps' cabal.project
 
 -- Bump this if you need newer packages.
