@@ -348,7 +348,7 @@ utxosSuchThatWithAddrPred ::
   MockChainT m [(SpendableOut, Maybe a)]
 utxosSuchThatWithAddrPred addr addrPred datumPred = do  
   ix <- gets (Pl.getIndex . mcstIndex)
-  let ix' = M.filter ((addrPred addr) . Pl.txOutAddress) ix
+  let ix' = M.filter (addrPred addr . Pl.txOutAddress) ix
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
@@ -386,7 +386,7 @@ utxosSuchThatIgnoringSCred ::
   Pl.Address ->
   (Maybe a -> Pl.Value -> Bool) ->
   MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThatIgnoringSCred addr = utxosSuchThatWithAddrPred addr ((==) on addressCredential)
+utxosSuchThatIgnoringSCred addr = utxosSuchThatWithAddrPred addr ((==) `on` Pl.addressCredential)
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
