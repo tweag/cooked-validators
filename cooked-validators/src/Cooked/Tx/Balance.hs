@@ -6,14 +6,11 @@
 module Cooked.Tx.Balance where
 
 import Control.Arrow ((***))
+import Cooked.PlutusDeps ((+), (-))
+import qualified Cooked.PlutusDeps as Pl
 import Data.Function (on)
 import Data.Kind
 import Data.List (foldl', sortBy)
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
-import qualified Ledger.Value as Pl (Value (..), flattenValue, valueOf)
-import qualified PlutusTx.AssocMap as Map
-import PlutusTx.Numeric ((+), (-))
 import Prelude hiding ((+), (-))
 
 class (Show out, Show (BOutRef out), Eq (BOutRef out)) => BalancableOut out where
@@ -152,4 +149,4 @@ necessaryUtxosFor curr token n (o : os) usedUTxO
 necessaryUtxosFor _ _ _ [] _ = ([], mempty)
 
 singletonValue :: Pl.CurrencySymbol -> Pl.TokenName -> Integer -> Pl.Value
-singletonValue c tn i = Pl.Value (Map.singleton c (Map.singleton tn i))
+singletonValue c tn i = Pl.Value (Pl.singleton c (Pl.singleton tn i))

@@ -11,11 +11,10 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Monad.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Data.Default
 import qualified Data.Text as T
 import Debug.Trace
-import Ledger.Index (ValidationError (ScriptFailure))
-import Ledger.Scripts (ScriptError (EvaluationError))
 import qualified Test.QuickCheck as QC
 import qualified Test.Tasty.HUnit as HU
 
@@ -124,12 +123,12 @@ testFailsFrom' predi = testAllSatisfiesFrom (either predi (testFailureMsg . show
 -- does not rule out the attack being caught by the validator script. For these scenarios it is
 -- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
 isCekEvaluationFailure :: (IsProp prop) => MockChainError -> prop
-isCekEvaluationFailure (MCEValidationError (_, ScriptFailure _)) = testSuccess
+isCekEvaluationFailure (MCEValidationError (_, Pl.ScriptFailure _)) = testSuccess
 isCekEvaluationFailure e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ show e
 
 -- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific error message in the error.
 isCekEvaluationFailureWithMsg :: (IsProp prop) => (String -> Bool) -> MockChainError -> prop
-isCekEvaluationFailureWithMsg f (MCEValidationError (_, ScriptFailure (EvaluationError msgs _)))
+isCekEvaluationFailureWithMsg f (MCEValidationError (_, Pl.ScriptFailure (Pl.EvaluationError msgs _)))
   | any (f . T.unpack) msgs = testSuccess
 isCekEvaluationFailureWithMsg _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ show e
 

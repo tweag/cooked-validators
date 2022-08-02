@@ -21,6 +21,7 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Balance
 import Cooked.Tx.Constraints
 import Data.Bifunctor (Bifunctor (first, second))
@@ -33,19 +34,6 @@ import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Fee as Pl
-import Ledger.Orphans ()
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Validation as Pl
-import qualified Ledger.Value as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Lattice as PlutusTx
-import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
 
@@ -445,7 +433,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange bPol w (Pl.UnbalancedTx (Left _) reqSigs0 uindex slotRange) =
+setFeeAndValidRange _bPol _w (Pl.UnbalancedTx (Left _) _reqSigs0 _uindex _slotRange) =
   error "Impossible: we have a CardanoBuildTx"
 setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
@@ -488,7 +476,7 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRang
         Left err -> throwError $ FailWith $ "calcFee: " ++ show err
         Right newFee
           | newFee == fee -> pure newFee -- reached fixpoint
-          | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
+          | n == 0 -> pure (newFee Pl.\/ fee) -- maximum number of iterations
           | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex parms tx
 
 balanceTxFrom ::

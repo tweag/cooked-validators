@@ -13,18 +13,11 @@ module Cooked.Tx.Constraints
 where
 
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
-import qualified Ledger as Pl hiding (singleton, unspentOutputs)
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.TxConstraints as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
-import qualified PlutusTx as Pl
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
 
@@ -99,7 +92,7 @@ instance ToLedgerConstraint OutConstraint where
           -- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
           -- a different 'WithOwnStakePubKeyHash' constraint?
           <> maybe mempty Pl.ownStakePubKeyHash stak
-      constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
+      constr = Pl.singletonConstraint $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
   toLedgerConstraint (PaysScript v datum value) = (lkups, constr)
     where
       lkups = Pl.otherScript (Pl.validatorScript v)

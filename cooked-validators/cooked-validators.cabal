@@ -34,6 +34,7 @@ library
       Cooked.MockChain.UtxoState
       Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
+      Cooked.PlutusDeps
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Optics

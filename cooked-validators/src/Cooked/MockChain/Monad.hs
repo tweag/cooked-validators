@@ -19,15 +19,11 @@ import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
-import qualified Ledger as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
-import qualified PlutusTx as Pl (FromData)
 
 -- * BlockChain Monad
 

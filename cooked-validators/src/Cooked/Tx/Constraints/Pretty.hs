@@ -7,14 +7,11 @@ module Cooked.Tx.Constraints.Pretty where
 
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Ledger as Pl hiding (unspentOutputs)
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 

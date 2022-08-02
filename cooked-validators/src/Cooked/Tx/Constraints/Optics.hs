@@ -7,14 +7,9 @@
 -- in 'Cooked.Tx.Constraints.Type'.
 module Cooked.Tx.Constraints.Optics where
 
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints.Type
-import qualified Ledger as L
-import qualified Ledger.Ada as L
-import qualified Ledger.Typed.Scripts as L
-import qualified Ledger.Value as L
 import Optics.Core
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
 import Type.Reflection
 
 -- A few remarks:
@@ -66,8 +61,8 @@ data MintsConstraint where
   MintsConstraint ::
     MintsConstrs a =>
     Maybe a ->
-    [L.MintingPolicy] ->
-    L.Value ->
+    [Pl.MintingPolicy] ->
+    Pl.Value ->
     MintsConstraint
 
 mintsConstraintP :: Prism' MiscConstraint MintsConstraint
@@ -87,9 +82,9 @@ mintsConstraintsT = miscConstraintsL % traversed % mintsConstraintP
 data SpendsScriptConstraint where
   SpendsScriptConstraint ::
     (SpendsConstrs a) =>
-    L.TypedValidator a ->
-    L.RedeemerType a ->
-    (SpendableOut, L.DatumType a) ->
+    Pl.TypedValidator a ->
+    Pl.RedeemerType a ->
+    (SpendableOut, Pl.DatumType a) ->
     SpendsScriptConstraint
 
 spendsScriptConstraintP :: Prism' MiscConstraint SpendsScriptConstraint
@@ -130,9 +125,9 @@ spendsPKConstraintP =
 data PaysScriptConstraint where
   PaysScriptConstraint ::
     PaysScriptConstrs a =>
-    L.TypedValidator a ->
-    L.DatumType a ->
-    L.Value ->
+    Pl.TypedValidator a ->
+    Pl.DatumType a ->
+    Pl.Value ->
     PaysScriptConstraint
 
 paysScriptConstraintP :: Prism' OutConstraint PaysScriptConstraint
@@ -152,10 +147,10 @@ paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
 data PaysPKWithDatumConstraint where
   PaysPKWithDatumConstraint ::
     (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
-    L.PubKeyHash ->
-    Maybe L.StakePubKeyHash ->
+    Pl.PubKeyHash ->
+    Maybe Pl.StakePubKeyHash ->
     Maybe a ->
-    L.Value ->
+    Pl.Value ->
     PaysPKWithDatumConstraint
 
 paysPKWithDatumConstraintP :: Prism' OutConstraint PaysPKWithDatumConstraint
@@ -172,21 +167,21 @@ paysPKWithDatumConstraintP =
 paysPKWithDatumConstraintsT :: Traversal' TxSkel PaysPKWithDatumConstraint
 paysPKWithDatumConstraintsT = outConstraintsL % traversed % paysPKWithDatumConstraintP
 
--- * Extracting 'L.Value's from different types
+-- * Extracting 'Pl.Value's from different types
 
 class HasValue a where
-  valueL :: Lens' a L.Value
+  valueL :: Lens' a Pl.Value
 
-instance HasValue L.ChainIndexTxOut where
+instance HasValue Pl.ChainIndexTxOut where
   valueL =
     lens
       ( \case
-          L.PublicKeyChainIndexTxOut _ x -> x
-          L.ScriptChainIndexTxOut _ _ _ x -> x
+          Pl.PublicKeyChainIndexTxOut _ x -> x
+          Pl.ScriptChainIndexTxOut _ _ _ x -> x
       )
       ( \o x -> case o of
-          L.PublicKeyChainIndexTxOut a _ -> L.PublicKeyChainIndexTxOut a x
-          L.ScriptChainIndexTxOut a v d _ -> L.ScriptChainIndexTxOut a v d x
+          Pl.PublicKeyChainIndexTxOut a _ -> Pl.PublicKeyChainIndexTxOut a x
+          Pl.ScriptChainIndexTxOut a v d _ -> Pl.ScriptChainIndexTxOut a v d x
       )
 
 instance HasValue SpendableOut where
@@ -217,7 +212,7 @@ instance HasValue MintsConstraint where
 instance HasValue SpendsScriptConstraint where
   valueL = spendableOutL % valueL
 
-valueAT :: AffineTraversal' MiscConstraint L.Value
+valueAT :: AffineTraversal' MiscConstraint Pl.Value
 valueAT =
   (spendsScriptConstraintP % valueL)
     `unsafeOr` (mintsConstraintP % valueL)
@@ -245,23 +240,23 @@ valueAT =
           (\s a -> u2 (u1 s a) a)
 
 -- | The combined value contained in all 'MiscConstraints' of a 'TxSkel'.
-txSkelInValue :: TxSkel -> L.Value
+txSkelInValue :: TxSkel -> Pl.Value
 txSkelInValue = foldOf (miscConstraintsL % traversed % valueAT)
 
 -- | The combined value contained in all 'OutConstraints' of a 'TxSkel'.
-txSkelOutValue :: TxSkel -> L.Value
+txSkelOutValue :: TxSkel -> Pl.Value
 txSkelOutValue = foldOf (outConstraintsL % traversed % valueL)
 
 -- * Picking apart 'Value's
 
-flattenValueI :: Iso' L.Value [(L.AssetClass, Integer)]
+flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =
   iso
-    (map (\(cSymbol, tName, amount) -> (L.assetClass cSymbol tName, amount)) . L.flattenValue)
-    (foldl (\v (ac, amount) -> v <> L.assetClassValue ac amount) mempty)
+    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
+    (foldl (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
 
--- | The portion of a 'L.Value' that is not Ada.
-nonAdaValue :: L.Value -> L.Value
+-- | The portion of a 'Pl.Value' that is not Ada.
+nonAdaValue :: Pl.Value -> Pl.Value
 nonAdaValue = over flattenValueI (map $ \(ac, i) -> if ac == adaAssetClass then (ac, 0) else (ac, i))
   where
-    adaAssetClass = L.assetClass L.adaSymbol L.adaToken
+    adaAssetClass = Pl.assetClass Pl.adaSymbol Pl.adaToken

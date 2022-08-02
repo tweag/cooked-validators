@@ -2,10 +2,9 @@
 
 module Cooked.MockChain.RawUPLC where
 
+import qualified Cooked.PlutusDeps as Pl
 import qualified Data.ByteString as BS
 import qualified Flat
-import Ledger.Scripts (Script (..), Validator (..))
-import qualified Ledger.Typed.Scripts as TScripts
 import Unsafe.Coerce
 import qualified UntypedPlutusCore as UPLC
 
@@ -19,30 +18,30 @@ import qualified UntypedPlutusCore as UPLC
 unsafeTypedValidatorFromUPLC ::
   forall a.
   UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () ->
-  TScripts.TypedValidator a
+  Pl.TypedValidator a
 unsafeTypedValidatorFromUPLC = unsafeCoerce . typedValidatorFromUPLC
 
--- | Returns a 'TypedValidator' from a UPLC program. The resulting typed validator is instantiated to 'TScripts.Any',
+-- | Returns a 'TypedValidator' from a UPLC program. The resulting typed validator is instantiated to 'Pl.Any',
 --  which means all of its arguments receive a value of type 'BuiltinData'.
 typedValidatorFromUPLC ::
   UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () ->
-  TScripts.TypedValidator TScripts.Any
-typedValidatorFromUPLC = TScripts.unsafeMkTypedValidator . Validator . fromPlc
+  Pl.TypedValidator Pl.Any
+typedValidatorFromUPLC = Pl.unsafeMkTypedValidator . Pl.Validator . fromPlc
   where
     -- copied from: github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-ledger-api/src/Plutus/V1/Ledger/Scripts.hs#L169
-    fromPlc :: UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () -> Script
+    fromPlc :: UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () -> Pl.Script
     fromPlc (UPLC.Program a v t) =
       let nameless = UPLC.termMapNames UPLC.unNameDeBruijn t
-       in Script $ UPLC.Program a v nameless
+       in Pl.Script $ UPLC.Program a v nameless
 
 -- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
 --  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84)
---  applied to a 'TScripts.mkTypedValidator'. If the compiled validator was /not/ wrapped,
+--  applied to a 'Pl.mkTypedValidator'. If the compiled validator was /not/ wrapped,
 --  stick to 'typedValidatorFromBS'.
-unsafeTypedValidatorFromBS :: forall a. BS.ByteString -> Either String (TScripts.TypedValidator a)
+unsafeTypedValidatorFromBS :: forall a. BS.ByteString -> Either String (Pl.TypedValidator a)
 unsafeTypedValidatorFromBS = either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
 
 -- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
 --  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84).
-typedValidatorFromBS :: BS.ByteString -> Either String (TScripts.TypedValidator TScripts.Any)
+typedValidatorFromBS :: BS.ByteString -> Either String (Pl.TypedValidator Pl.Any)
 typedValidatorFromBS = either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat

@@ -5,10 +5,8 @@ module Cooked.MockChain.UtxoState.Testing where
 import Cooked.MockChain.Testing
 import Cooked.MockChain.UtxoPredicate (hasOnlyAda)
 import Cooked.MockChain.UtxoState
+import qualified Cooked.PlutusDeps as Pl
 import qualified Data.Map.Strict as M
-import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
-import qualified PlutusTx.Numeric as Pl
 
 -- * Relations between states
 

@@ -10,15 +10,10 @@ module Cooked.Attack.DoubleSat where
 import Cooked.Attack.Common
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import qualified Ledger.Typed.Scripts as L
-import qualified Ledger.Value as L
 import Optics.Core
-import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V1.Ledger.Time as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Numeric as Pl
 
 {- Note: What is a double satisfaction attack?
 
@@ -114,15 +109,15 @@ data DoubleSatParams a = DoubleSatParams
 -- constraint.
 dsAddOneSscFromOwner ::
   ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
+    Pl.FromData (Pl.DatumType b)
   ) =>
   Traversal' TxSkel a ->
   -- | The validator to take extra inputs from.
-  L.TypedValidator b ->
+  Pl.TypedValidator b ->
   -- | For all 'a's of the original transaction, decide whether to add an extra
   -- UTxO currently belonging to the @extraInputOwner@, and if so, which
   -- redeemers to try. Each redeemer is tried on a separate output transaction.
-  (a -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  (a -> (SpendableOut, Pl.DatumType b) -> [Pl.RedeemerType b]) ->
   -- Wallet of the attacker. Any value contained in the extra UTxO consumed by
   -- the modified transaction is psid to this wallet.
   Wallet ->
@@ -151,10 +146,10 @@ dsAddOneSscFromOwner optic extraInputOwner extraInputRedeemers attacker =
 -- for explanation of the arguments.
 dsAddOneSscToPsc ::
   ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
+    Pl.FromData (Pl.DatumType b)
   ) =>
-  L.TypedValidator b ->
-  (PaysScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Pl.TypedValidator b ->
+  (PaysScriptConstraint -> (SpendableOut, Pl.DatumType b) -> [Pl.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams PaysScriptConstraint
 dsAddOneSscToPsc = dsAddOneSscFromOwner paysScriptConstraintsT
@@ -167,10 +162,10 @@ dsAddOneSscToPsc = dsAddOneSscFromOwner paysScriptConstraintsT
 -- for explanation of the arguments.
 dsAddOneSscToSsc ::
   ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
+    Pl.FromData (Pl.DatumType b)
   ) =>
-  L.TypedValidator b ->
-  (SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Pl.TypedValidator b ->
+  (SpendsScriptConstraint -> (SpendableOut, Pl.DatumType b) -> [Pl.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams SpendsScriptConstraint
 dsAddOneSscToSsc = dsAddOneSscFromOwner spendsScriptConstraintsT
@@ -183,10 +178,10 @@ dsAddOneSscToSsc = dsAddOneSscFromOwner spendsScriptConstraintsT
 -- for explanation of the arguments.
 dsAddOneSscToMc ::
   ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
+    Pl.FromData (Pl.DatumType b)
   ) =>
-  L.TypedValidator b ->
-  (MintsConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  Pl.TypedValidator b ->
+  (MintsConstraint -> (SpendableOut, Pl.DatumType b) -> [Pl.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams MintsConstraint
 dsAddOneSscToMc = dsAddOneSscFromOwner mintsConstraintsT
@@ -200,7 +195,7 @@ dsAddMcToSsc ::
   -- | For all 'SpendsScript' constraints of the original transaction, decide
   -- whether to mint some extra value, and which redeemer and minting policies
   -- to use to do so.
-  (SpendsScriptConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
+  (SpendsScriptConstraint -> [(Maybe a, [Pl.MintingPolicy], Pl.Value)]) ->
   -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
   Wallet ->
   DoubleSatParams SpendsScriptConstraint
@@ -225,7 +220,7 @@ dsAddMcToMc ::
   -- | For all 'Mints' constraints of the original transaction, decide
   -- whether to mint some extra value, and which redeemer and minting policies
   -- to use to do so.
-  (MintsConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
+  (MintsConstraint -> [(Maybe a, [Pl.MintingPolicy], Pl.Value)]) ->
   -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
   Wallet ->
   DoubleSatParams MintsConstraint
@@ -305,7 +300,7 @@ doubleSatAttack DoubleSatParams {..} =
             ]
     )
   where
-    payTo :: Wallet -> L.Value -> TxSkel -> TxSkel
+    payTo :: Wallet -> Pl.Value -> TxSkel -> TxSkel
     payTo w v = over outConstraintsL (++ [paysPK (walletPKHash w) v])
 
     -- Accumulate a list of 'Constraints' into a single 'Constraints', in such a

@@ -5,17 +5,12 @@ module Cooked.MockChain.UtxoState where
 import Control.Arrow (second)
 import Cooked.Currencies
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Value as Pl
-import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 
@@ -154,7 +149,7 @@ prettyAddress address payloads =
         . map (("-" <>) . PP.indent 1)
         . mapMaybe prettyPayloadGroup
         . L.group
-        . L.sortBy (compare `on` (Ada.fromValue . fst))
+        . L.sortBy (compare `on` (Pl.fromValue . fst))
         $ payloads
     ]
 

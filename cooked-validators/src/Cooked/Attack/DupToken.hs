@@ -2,12 +2,11 @@ module Cooked.Attack.DupToken where
 
 import Cooked.Attack.Common
 import Cooked.MockChain.Wallet
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Maybe
-import qualified Ledger as L
 import Optics.Core
-import qualified PlutusTx.Numeric as Pl
 
 -- | A token duplication attack which modifies every 'Mints'-constraint of a
 -- 'TxSkel' that satisfies some conditions. This adds a 'DupTokenLbl' to the
@@ -19,7 +18,7 @@ dupTokenAttack ::
   -- for all @ac@ and @i@, i.e. it should increase in the minted amount.
   -- If it does *not* increase the minted amount, or if @f ac i == Nothing@, the
   -- minted amount will be left unchanged.
-  (L.AssetClass -> Integer -> Maybe Integer) ->
+  (Pl.AssetClass -> Integer -> Maybe Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
@@ -29,7 +28,7 @@ dupTokenAttack change attacker mcst skel =
   addLabel DupTokenLbl . paySurplusTo attacker skel
     <$> mkAttack (mintsConstraintsT % valueL) increaseValue mcst skel
   where
-    increaseValue :: L.Value -> Maybe L.Value
+    increaseValue :: Pl.Value -> Maybe Pl.Value
     increaseValue v =
       case someJust
         ( \(ac, i) -> case change ac i of

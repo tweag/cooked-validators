@@ -2,10 +2,9 @@ module Cooked.MockChain.Constraints where
 
 import Control.Arrow (second)
 import Cooked.MockChain.Monad
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Balance (spendValueFrom)
 import Cooked.Tx.Constraints.Type
-import qualified Ledger as Pl hiding (singleton, unspentOutputs)
-import qualified Ledger.TimeSlot as Pl
 
 -- ** Some supplementary constraints, relying on being in the monad.
 

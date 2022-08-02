@@ -1,9 +1,8 @@
 module Cooked.MockChain.UtxoPredicate where
 
 import Cooked.Currencies
+import qualified Cooked.PlutusDeps as Pl
 import Ledger.Ada (adaSymbol, adaToken)
-import qualified Ledger.Value as Pl
-import qualified PlutusTx.AssocMap as Map
 
 -- * Predicates over Utxos
 
@@ -45,7 +44,7 @@ noDatum _ _ = False
 
 -- | Returns whether or not a given value has a currency symbol present.
 hasCurrencySymbol :: Pl.CurrencySymbol -> Pl.Value -> Bool
-hasCurrencySymbol cs (Pl.Value vl) = Map.member cs vl
+hasCurrencySymbol cs (Pl.Value vl) = Pl.member cs vl
 
 -- | Returns whether or not a given value has an asset class present
 hasAssetClass :: Pl.AssetClass -> Pl.Value -> Bool

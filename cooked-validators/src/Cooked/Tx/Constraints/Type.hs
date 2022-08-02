@@ -10,15 +10,8 @@
 module Cooked.Tx.Constraints.Type where
 
 import Control.Lens
+import qualified Cooked.PlutusDeps as Pl
 import Data.Default
-import qualified Ledger as Pl hiding (unspentOutputs)
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Eq as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its

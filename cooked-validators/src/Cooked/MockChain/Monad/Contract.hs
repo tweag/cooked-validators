@@ -8,15 +8,13 @@ module Cooked.MockChain.Monad.Contract where
 import Control.Lens (review)
 import Control.Monad
 import Cooked.MockChain.Monad
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints
 import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Void
-import qualified Ledger as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Plutus.Contract as C
-import qualified PlutusTx as Pl
 
 -- TODO shall MonadFail really be the constraint on the MonadBlockChain class?
 instance (C.AsContractError e) => MonadFail (C.Contract w s e) where

@@ -9,15 +9,13 @@ import Control.Arrow
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
+import qualified Cooked.PlutusDeps as Pl
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Bifunctor hiding (first, second)
 import Data.Default
 import Data.Maybe
-import qualified Ledger as L
-import qualified Ledger.Typed.Scripts as L
 import Optics.Core
-import qualified PlutusTx as Pl
 
 -- * The type of attacks
 
@@ -236,7 +234,7 @@ mkAccumLAttack optic f initAcc test mcst skel =
 utxosSuchThatMcst ::
   (Pl.FromData a) =>
   MockChainSt ->
-  L.Address ->
+  Pl.Address ->
   UtxoPredicate a ->
   [(SpendableOut, Maybe a)]
 utxosSuchThatMcst mcst addr select =
@@ -247,16 +245,16 @@ utxosSuchThatMcst mcst addr select =
 -- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
 -- argument
 scriptUtxosSuchThatMcst ::
-  (Pl.FromData (L.DatumType a)) =>
+  (Pl.FromData (Pl.DatumType a)) =>
   MockChainSt ->
-  L.TypedValidator a ->
-  (L.DatumType a -> L.Value -> Bool) ->
-  [(SpendableOut, L.DatumType a)]
+  Pl.TypedValidator a ->
+  (Pl.DatumType a -> Pl.Value -> Bool) ->
+  [(SpendableOut, Pl.DatumType a)]
 scriptUtxosSuchThatMcst mcst val select =
   map (second fromJust) $
     utxosSuchThatMcst
       mcst
-      (L.validatorAddress val)
+      (Pl.validatorAddress val)
       (maybe (const False) select)
 
 -- * General helpers
