@@ -17,7 +17,7 @@ import Type.Reflection
 -- prescribed tampering function, that only applies to datums of a certain type.
 tamperDatumAttack ::
   forall a.
-  (Typeable a, PaysScriptConstrs a) =>
+  (PaysScriptConstrs a) =>
   -- | Use this function to return 'Just' the changed datum, if you want to
   -- perform a change, and 'Nothing', if you want to leave it as-is. All datums
   -- on 'PaysScript' constraints not paying to a validator of type @a@ are never
