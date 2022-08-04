@@ -13,6 +13,7 @@ dependencies:
   - bytestring
   - base64-bytestring
   - containers
+  - extra
   - text
   - prettyprinter
   - gitrev
