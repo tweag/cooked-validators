@@ -4,6 +4,7 @@ module Cooked.Attack
     module Cooked.Attack.DoubleSat,
     module Cooked.Attack.DupToken,
     module Cooked.Attack.OutPermutations,
+    module Cooked.Attack.TamperDatum,
   )
 where
 
@@ -12,6 +13,7 @@ import Cooked.Attack.DatumHijacking
 import Cooked.Attack.DoubleSat
 import Cooked.Attack.DupToken
 import Cooked.Attack.OutPermutations
+import Cooked.Attack.TamperDatum
 
 -- The idea of this module: Turning optics into attacks
 -------------------------------------------------------
