@@ -41,7 +41,7 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
           else Nothing
     pure $ catMaybes maybeUtxosWithDatums
 
-  -- TODO: implement this or figure out what to do with it
+  -- Contract does not support grabbing the utxos without a specified address
   utxosSuchThisAndThat _ _ = undefined
 
   txOutByRef ref = fmap Pl.toTxOut <$> C.unspentTxOutFromRef ref
