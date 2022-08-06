@@ -1,9 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Language.Pirouette.PlutusIR.Runner where
 
 import Control.Monad.Except
