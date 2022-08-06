@@ -30,7 +30,7 @@ testBoundedSymExec name code augments cond =
       askOption $ \dump ->
         let opts =
               def
-                { optsPirouette = P.Options (def {PureSMT.debug = dbg}) (\stat -> sestConstructors stat > 14),
+                { optsPirouette = P.Options (def {PureSMT.debug = dbg}) stop,
                   optsDumpIntermediate = case dump of
                     PirouetteDumpNothing -> Nothing
                     PirouetteDumpPrefix prefs fpath -> Just (prefs, fpath)
