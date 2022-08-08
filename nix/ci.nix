@@ -4,5 +4,6 @@
 let
   ourpkgs = import ./packages.nix {};
 in pkgs.mkShell {
+    LANG="C.UTF-8";
     buildInputs = ourpkgs.build-deps;
 }
