@@ -230,7 +230,7 @@ prettyAddressTypeAndHash (Pl.Address addrCr stakingCred) =
     (Pl.ScriptCredential vh) ->
       prettyAux "script" vh <> prettyStakingCred stakingCred <> PP.colon
     (Pl.PubKeyCredential pkh) ->
-      prettyAux "pubkey" pkh
+      prettyAux "pubkey" pkh <> PP.space <> PP.semi <> PP.space <> prettyPubKeyCred pkh
         <> maybe
           PP.emptyDoc
           ((PP.space <>) . PP.parens . ("wallet #" <>) . PP.pretty)
@@ -247,3 +247,6 @@ prettyAddressTypeAndHash (Pl.Address addrCr stakingCred) =
     prettyStakingCred :: Maybe Pl.StakingCredential -> Doc ann
     prettyStakingCred Nothing = PP.emptyDoc
     prettyStakingCred (Just sc) = PP.space <> PP.semi <> PP.space <> (PP.pretty . take 7 . show . H.hash) sc
+
+    prettyPubKeyCred :: Pl.PubKeyHash -> Doc ann
+    prettyPubKeyCred pkh = PP.pretty $ take 7 $ show $ H.hash $ Pl.StakingHash $ Pl.PubKeyCredential pkh
