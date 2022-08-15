@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.TamperDatum</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.Common.html"><span class="hs-identifier">Cooked.Attack.Common</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html"><span class="hs-identifier">Cooked.Tx.Constraints.Optics</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html"><span class="hs-identifier">Cooked.Tx.Constraints.Type</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Type.Reflection</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- | An attack that tries to change the datum on 'PaysScript' constraints with a</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- prescribed tampering function, that only applies to datums of a certain type.</span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Cooked.Attack.TamperDatum.html#tamperDatumAttack"><span class="hs-identifier hs-type">tamperDatumAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679538392"><span class="annot"><a href="#local-6989586621679538392"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679538392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-comment">-- | Use this function to return 'Just' the changed datum, if you want to</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-comment">-- perform a change, and 'Nothing', if you want to leave it as-is. All datums</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-comment">-- on 'PaysScript' constraints not paying to a validator of type @a@ are never</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-comment">-- touched.</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679538392"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679538392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Common.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span><span>
+</span><span id="line-27"></span><span id="tamperDatumAttack"><span class="annot"><span class="annottext">tamperDatumAttack :: (DatumType a -&gt; Maybe (DatumType a)) -&gt; Attack
+</span><a href="Cooked.Attack.TamperDatum.html#tamperDatumAttack"><span class="hs-identifier hs-var hs-var">tamperDatumAttack</span></a></span></span><span> </span><span id="local-6989586621679538391"><span class="annot"><span class="annottext">DatumType a -&gt; Maybe (DatumType a)
+</span><a href="#local-6989586621679538391"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679538390"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679538390"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679538389"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679538389"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TxSkel -&gt; TxSkel
+forall x. LabelConstrs x =&gt; x -&gt; TxSkel -&gt; TxSkel
+</span><a href="Cooked.Attack.Common.html#addLabel"><span class="hs-identifier hs-var">addLabel</span></a></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
+</span><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxSkel) -&gt; [TxSkel] -&gt; [TxSkel]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel (DatumType a)
+-&gt; (DatumType a -&gt; Maybe (DatumType a)) -&gt; Attack
+forall k (is :: IxList) a.
+Is k A_Traversal =&gt;
+Optic' k is TxSkel a -&gt; (a -&gt; Maybe a) -&gt; Attack
+</span><a href="Cooked.Attack.Common.html#mkAttack"><span class="hs-identifier hs-var">mkAttack</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-var">paysScriptConstraintsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
+-&gt; Optic
+     A_Prism
+     '[]
+     PaysScriptConstraint
+     PaysScriptConstraint
+     (TypedValidator a, DatumType a, Value)
+     (TypedValidator a, DatumType a, Value)
+-&gt; Optic
+     A_Traversal
+     '[]
+     TxSkel
+     TxSkel
+     (TypedValidator a, DatumType a, Value)
+     (TypedValidator a, DatumType a, Value)
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(Typeable a, PaysScriptConstrs a) =&gt;
+Optic
+  A_Prism
+  '[]
+  PaysScriptConstraint
+  PaysScriptConstraint
+  (TypedValidator a, DatumType a, Value)
+  (TypedValidator a, DatumType a, Value)
+forall a.
+(Typeable a, PaysScriptConstrs a) =&gt;
+Prism' PaysScriptConstraint (TypedValidator a, DatumType a, Value)
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-var">paysScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679538392"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  '[]
+  TxSkel
+  TxSkel
+  (TypedValidator a, DatumType a, Value)
+  (TypedValidator a, DatumType a, Value)
+-&gt; Optic
+     A_Lens
+     '[]
+     (TypedValidator a, DatumType a, Value)
+     (TypedValidator a, DatumType a, Value)
+     (DatumType a)
+     (DatumType a)
+-&gt; Optic' A_Traversal '[] TxSkel (DatumType a)
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  '[]
+  (TypedValidator a, DatumType a, Value)
+  (TypedValidator a, DatumType a, Value)
+  (DatumType a)
+  (DatumType a)
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DatumType a -&gt; Maybe (DatumType a)
+</span><a href="#local-6989586621679538391"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679538390"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679538389"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679538375"><span id="local-6989586621679538377"><span id="local-6989586621679538379"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
+[TamperDatumLbl] -&gt; ShowS
+TamperDatumLbl -&gt; String
+(Int -&gt; TamperDatumLbl -&gt; ShowS)
+-&gt; (TamperDatumLbl -&gt; String)
+-&gt; ([TamperDatumLbl] -&gt; ShowS)
+-&gt; Show TamperDatumLbl
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [TamperDatumLbl] -&gt; ShowS
+$cshowList :: [TamperDatumLbl] -&gt; ShowS
+show :: TamperDatumLbl -&gt; String
+$cshow :: TamperDatumLbl -&gt; String
+showsPrec :: Int -&gt; TamperDatumLbl -&gt; ShowS
+$cshowsPrec :: Int -&gt; TamperDatumLbl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679538370"><span id="local-6989586621679538372"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+(TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
+-&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool) -&gt; Eq TamperDatumLbl
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+$c/= :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+== :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+$c== :: TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span></pre></body></html>
