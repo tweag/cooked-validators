@@ -14,6 +14,11 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
+      Cooked.Attack.Common
+      Cooked.Attack.DatumHijacking
+      Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
+      Cooked.Attack.OutPermutations
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
@@ -41,7 +46,7 @@ library
       Paths_cooked_validators
   hs-source-dirs:
       src
-  ghc-options: -Wall -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
+  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
     , aeson
@@ -87,6 +92,12 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
+      Cooked.AttackSpec.Common
+      Cooked.AttackSpec.DatumHijacking
+      Cooked.AttackSpec.DoubleSat
+      Cooked.AttackSpec.DupToken
+      Cooked.AttackSpec.OutPermutations
+      Cooked.AttackSpec.Util
       Cooked.BalanceSpec
       Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
@@ -94,6 +105,7 @@ test-suite spec
       Cooked.MockChain.WalletSpec
       Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
+      Cooked.TestUtils
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

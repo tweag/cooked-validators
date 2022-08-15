@@ -16,7 +16,4 @@ in pkgs.mkShell {
       else ''
         export LANG="en_US.UTF-8"
         '';
-
-    # Ensure that libz.so and liblzma.so are available to TH splices, cabal repl, etc.
-    LD_LIBRARY_PATH = ourpkgs.LD_LIBRARY_PATH;
 }
