@@ -19,6 +19,7 @@ library
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
       Cooked.Attack.OutPermutations
+      Cooked.Attack.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain

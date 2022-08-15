@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
@@ -199,6 +200,20 @@ tryDoubleSat = do
         A.txHammer p q
     )
 
+-- | datum tampering attack that tries to change the bidder to wallet 6 on the
+-- 'Bidding' datum
+tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
+tryTamperDatum =
+  somewhere
+    ( tamperDatumAttack @A.Auction
+        ( \case
+            A.Bidding (A.BidderInfo x _) ->
+              Just $ A.Bidding (A.BidderInfo x (walletPKHash $ wallet 6))
+            _ -> Nothing
+        )
+    )
+    (noBids <|> oneBid <|> twoBids)
+
 attacks :: TestTree
 attacks =
   testGroup
@@ -220,7 +235,12 @@ attacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryDoubleSat
+          tryDoubleSat,
+      testCase "datum tampering" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryTamperDatum
     ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'

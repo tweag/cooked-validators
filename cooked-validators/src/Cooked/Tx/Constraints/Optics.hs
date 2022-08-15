@@ -2,6 +2,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Various Optics on 'TxSkels', constraints, and all the other types defined
 -- in 'Cooked.Tx.Constraints.Type'.
@@ -148,6 +151,19 @@ paysScriptConstraintP =
 
 paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
 paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
+
+paysScriptConstraintTypeP ::
+  forall a.
+  (Typeable a, PaysScriptConstrs a) =>
+  Prism' PaysScriptConstraint (L.TypedValidator a, L.DatumType a, L.Value)
+paysScriptConstraintTypeP =
+  prism'
+    (\(v, d, x) -> PaysScriptConstraint v d x)
+    ( \(PaysScriptConstraint v d x) ->
+        case typeOf v `eqTypeRep` typeRep @(L.TypedValidator a) of
+          Just HRefl -> Just (v, d, x)
+          Nothing -> Nothing
+    )
 
 data PaysPKWithDatumConstraint where
   PaysPKWithDatumConstraint ::
