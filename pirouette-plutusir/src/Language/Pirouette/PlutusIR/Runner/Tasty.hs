@@ -9,6 +9,7 @@ import Language.Pirouette.PlutusIR.Syntax
 import Language.Pirouette.PlutusIR.Typing ()
 import Pirouette
 import Pirouette.Monad
+import Pirouette.Runner
 import Pirouette.Symbolic.Eval hiding (Options)
 import qualified Pirouette.Symbolic.Eval as P (Options (..))
 import qualified PlutusTx.Code as Pl
@@ -28,7 +29,7 @@ testBoundedSymExec name code augments cond =
     askOption $ \(PirouetteSolverDebug dbg) ->
       askOption $ \dump ->
         let opts =
-              Options
+              def
                 { optsPirouette = P.Options (def {PureSMT.debug = dbg}) stop,
                   optsDumpIntermediate = case dump of
                     PirouetteDumpNothing -> Nothing

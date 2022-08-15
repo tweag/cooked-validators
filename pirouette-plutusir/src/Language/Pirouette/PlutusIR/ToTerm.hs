@@ -26,6 +26,7 @@ import qualified Data.Map as M
 import Data.Maybe (fromJust, fromMaybe)
 import qualified Data.Set as S
 import Data.Text (Text)
+import Data.Tuple.Extra (secondM)
 import Language.Pirouette.PlutusIR.Syntax
 import Pirouette.Monad
 import Pirouette.Term.Syntax
@@ -578,9 +579,6 @@ eitherDataTerm' (a, x) = either (Left . (a,)) (Right . (a,)) $ eitherDataTerm x
 
 unzipWith :: (c -> Either a b) -> [c] -> ([a], [b])
 unzipWith f = foldr (either (first . (:)) (second . (:)) . f) ([], [])
-
-secondM :: (Monad m) => (b -> m b') -> (a, b) -> m (a, b')
-secondM f (a, b) = (a,) <$> f b
 
 assocL :: (a, (b, c)) -> ((a, b), c)
 assocL (a, (b, c)) = ((a, b), c)

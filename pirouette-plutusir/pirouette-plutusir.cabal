@@ -36,6 +36,7 @@ library
     , containers
     , data-default
     , deriving-compat
+    , extra
     , flat >=0.4.5
     , gitrev
     , haskell-stack-trace-plugin
@@ -84,6 +85,7 @@ test-suite spec
     , containers
     , data-default
     , deriving-compat
+    , extra
     , flat >=0.4.5
     , gitrev
     , haskell-stack-trace-plugin
