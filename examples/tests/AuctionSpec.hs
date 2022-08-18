@@ -19,12 +19,9 @@ import Cooked.Tx.Constraints.Optics
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
-import Language.Pirouette.PlutusIR
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
-import Pirouette
-import Pirouette.Monad
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -253,64 +250,6 @@ bidderAlternative =
       testInit
       bidderAlternativeTrace
 
--- * Pirouette tests
-
--- | This test is here mainly to test that we constantly get to the point of running pirouette,
--- that is, our transformations and the interface with PlutusIR (coming from @pirouette-plutusir@)
--- is working. The stopping condition is deliberatly tight so that we don't run forever on CI.
--- It is the task of future PRs to address pirouette's runtime.
-pirouetteTests :: TestTree
-pirouetteTests =
-  testGroup
-    "Pirouette"
-    [ localOption (PirouetteSolverDebug False) $
-        localOption (PirouetteStoppingCondition $ \st -> sestConstructors st > 3) $
-          localOption PirouetteDumpNothing $
-            testBoundedSymExec
-              "bid-keeps-token"
-              A.compiledValidate
-              [pirDecls|
-            fun isBid : Action -> Bool
-                = \(a : Action) . Action_match a @Bool
-                    (\(b : BidderInfo) . True)
-                    False
-
-            fun and : Bool -> Bool -> Bool
-                = \(a : Bool) (b : Bool) . if @Bool a then b else False
-
-            fun isSpending : ScriptContext -> Bool
-                = \(ctx : ScriptContext)
-                  . ScriptContext_match ctx @Bool
-                      (\(txi : TxInfo) (sp : ScriptPurpose)
-                       . ScriptPurpose_match sp @Bool
-                         (\(u : Unit) . False)
-                         (\(m : ByteString) . False)
-                         (\(r : StakingCredential) . False)
-                         (\(r : TxOutRef) . True)
-                      )
-
-            fun receivesToken : ValParams -> ScriptContext -> Bool
-                = \(p : ValParams) (ctx : ScriptContext)
-                  . ValParams_match p @Bool
-                    (\(s : StaticValParams) (bs : ByteString) (threadTokenAC : Tuple2 ByteString ByteString)
-                     . ScriptContext_match ctx @Bool
-                      (\(txi : TxInfo) (sp : ScriptPurpose)
-                       . ScriptPurpose_match sp @Bool
-                         (\(u : Unit) . bottom @Bool)
-                         (\(m : ByteString) . bottom @Bool)
-                         (\(r : StakingCredential) . bottom @Bool)
-                         (\(r : TxOutRef) . True)
-                      )
-                    )
-          |]
-              ( [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
-                . res |]
-                  -- . and (isSpending ctx) (and res (isBid a)) |]
-                  :==>: [pir| \(res:Bool) (p:ValParams) (s:AuctionState) (a:Action) (ctx:ScriptContext)
-                        . False |]
-              )
-    ]
-
 -- * Collecting all the tests in this module
 
 miscTests :: TestTree
@@ -326,6 +265,5 @@ tests =
     [ successfulSingle,
       failingSingle,
       attacks,
-      miscTests,
-      pirouetteTests
+      miscTests
     ]
