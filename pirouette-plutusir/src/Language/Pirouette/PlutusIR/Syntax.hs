@@ -61,12 +61,10 @@ deriving instance Lift P.Data
 
 -- * Builtin Types
 
--- $bintypes
--- We will only consider four types as builtin types in pirouette. The reason being that
--- it is much easier to rely as much as possible on pirouette's data definitinos, since
--- these integrate seamlessly with the entirety of pirouette, for things like @List@, @Data@, etc
-
--- | Builtin Plutus Types
+-- | Builtin Plutus Types that are considered builtin for Pirouette.
+-- We will only consider a few types as builtin types in pirouette. The reason being that
+-- it is much easier to just /define/ the inductive types as pirouette first class values.
+-- These integrate seamlessly with the entirety of pirouette, classic examples are: @List@, @Data@, etc
 data PIRBuiltinType
   = PIRTypeInteger
   | PIRTypeByteString
@@ -87,8 +85,11 @@ defUniToType DefaultUniProtoPair = tyApp "Tuple2" []
 defUniToType (DefaultUniApply DefaultUniProtoPair a) = tyApp "Tuple2" [defUniToType a]
 defUniToType x = error $ "defUniToType impossible: " ++ show x
 
--- | We will keep builtin functions related to any type in 'PIRBuiltinType',
---  any other functions will be compiled to something else.
+-- | We will keep some of the builtin functions related to any type in 'PIRBuiltinType',
+--  any other functions will be compiled to something else by the 'builtinToTerm' function.
+--  We want to keep this datatype as small as possible: the more builtins we have to handle
+--  the more custom definitions need to be made in the different classes needed to
+--  interface with Pirouette: LanguageSMT, LanguageBuiltinTypes, LanguageSymEval, ...
 data PIRDefaultFun
   = AddInteger
   | SubtractInteger
@@ -122,8 +123,6 @@ data PIRDefaultFun
   | EqualsString
   | EncodeUtf8
   | DecodeUtf8
-  | -- Unit
-    ChooseUnit
   | -- Tracing
     Trace
   deriving (Eq, Show, Ord, Data, Typeable, Lift)
@@ -134,6 +133,13 @@ appSig hd = SystF.App (SystF.Free $ TermSig hd)
 appBuiltin :: PIRDefaultFun -> [Arg PlutusIR] -> Term PlutusIR
 appBuiltin hd = SystF.App (SystF.Free $ Builtin hd)
 
+-- | Translates a PlutusIR stock builtin ('P.DefaultFun') into a term
+--  of Pirouette's view over PlutusIR. The insight here is that we are /not/ translating
+--  all PlutusIR builtins to pirouette builtins: some of those have perfectly simple and
+--  standard implementations. In particular, all functions matching inductive
+--  datatypes are much easier to handle as /defined/ functions, not builtins.
+--  The reason is that the symbolic evaluation already knows how to handle destructors,
+--  but would need to be explained how to handle builtin functions that match on things.
 builtinToTerm :: P.DefaultFun -> [Arg PlutusIR] -> Term PlutusIR
 -- Bool
 builtinToTerm P.IfThenElse = appSig "ifThenElse"
@@ -150,38 +156,46 @@ builtinToTerm P.UnIData = appSig "unIData"
 builtinToTerm P.UnBData = appSig "unBData"
 builtinToTerm P.UnConstrData = appSig "unConstrData"
 builtinToTerm P.MkNilData = appSig "mkNilData"
+-- Unit
+builtinToTerm P.ChooseUnit = appSig "chooseUnit"
+-- Default to translating to supported builtin
 builtinToTerm hd = appBuiltin $ fromSupportedPlutusDefaultFun hd
-
-fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
-fromSupportedPlutusDefaultFun P.AddInteger = AddInteger
-fromSupportedPlutusDefaultFun P.SubtractInteger = SubtractInteger
-fromSupportedPlutusDefaultFun P.MultiplyInteger = MultiplyInteger
-fromSupportedPlutusDefaultFun P.DivideInteger = DivideInteger
-fromSupportedPlutusDefaultFun P.QuotientInteger = QuotientInteger
-fromSupportedPlutusDefaultFun P.RemainderInteger = RemainderInteger
-fromSupportedPlutusDefaultFun P.ModInteger = ModInteger
-fromSupportedPlutusDefaultFun P.EqualsInteger = EqualsInteger
-fromSupportedPlutusDefaultFun P.LessThanInteger = LessThanInteger
-fromSupportedPlutusDefaultFun P.LessThanEqualsInteger = LessThanEqualsInteger
-fromSupportedPlutusDefaultFun P.AppendByteString = AppendByteString
-fromSupportedPlutusDefaultFun P.ConsByteString = ConsByteString
-fromSupportedPlutusDefaultFun P.SliceByteString = SliceByteString
-fromSupportedPlutusDefaultFun P.LengthOfByteString = LengthOfByteString
-fromSupportedPlutusDefaultFun P.IndexByteString = IndexByteString
-fromSupportedPlutusDefaultFun P.EqualsByteString = EqualsByteString
-fromSupportedPlutusDefaultFun P.LessThanByteString = LessThanByteString
-fromSupportedPlutusDefaultFun P.LessThanEqualsByteString = LessThanEqualsByteString
-fromSupportedPlutusDefaultFun P.Sha2_256 = Sha2_256
-fromSupportedPlutusDefaultFun P.Sha3_256 = Sha3_256
-fromSupportedPlutusDefaultFun P.Blake2b_256 = Blake2b_256
-fromSupportedPlutusDefaultFun P.VerifySignature = VerifySignature
-fromSupportedPlutusDefaultFun P.AppendString = AppendString
-fromSupportedPlutusDefaultFun P.EqualsString = EqualsString
-fromSupportedPlutusDefaultFun P.EncodeUtf8 = EncodeUtf8
-fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
-fromSupportedPlutusDefaultFun P.ChooseUnit = ChooseUnit
-fromSupportedPlutusDefaultFun P.Trace = Trace
-fromSupportedPlutusDefaultFun x = error ("Unsupported: " ++ show x)
+  where
+    fromSupportedPlutusDefaultFun :: P.DefaultFun -> PIRDefaultFun
+    fromSupportedPlutusDefaultFun P.AddInteger = AddInteger
+    fromSupportedPlutusDefaultFun P.SubtractInteger = SubtractInteger
+    fromSupportedPlutusDefaultFun P.MultiplyInteger = MultiplyInteger
+    fromSupportedPlutusDefaultFun P.DivideInteger = DivideInteger
+    fromSupportedPlutusDefaultFun P.QuotientInteger = QuotientInteger
+    fromSupportedPlutusDefaultFun P.RemainderInteger = RemainderInteger
+    fromSupportedPlutusDefaultFun P.ModInteger = ModInteger
+    fromSupportedPlutusDefaultFun P.EqualsInteger = EqualsInteger
+    fromSupportedPlutusDefaultFun P.LessThanInteger = LessThanInteger
+    fromSupportedPlutusDefaultFun P.LessThanEqualsInteger = LessThanEqualsInteger
+    fromSupportedPlutusDefaultFun P.AppendByteString = AppendByteString
+    fromSupportedPlutusDefaultFun P.ConsByteString = ConsByteString
+    fromSupportedPlutusDefaultFun P.SliceByteString = SliceByteString
+    fromSupportedPlutusDefaultFun P.LengthOfByteString = LengthOfByteString
+    fromSupportedPlutusDefaultFun P.IndexByteString = IndexByteString
+    fromSupportedPlutusDefaultFun P.EqualsByteString = EqualsByteString
+    fromSupportedPlutusDefaultFun P.LessThanByteString = LessThanByteString
+    fromSupportedPlutusDefaultFun P.LessThanEqualsByteString = LessThanEqualsByteString
+    fromSupportedPlutusDefaultFun P.Sha2_256 = Sha2_256
+    fromSupportedPlutusDefaultFun P.Sha3_256 = Sha3_256
+    fromSupportedPlutusDefaultFun P.Blake2b_256 = Blake2b_256
+    fromSupportedPlutusDefaultFun P.VerifySignature = VerifySignature
+    fromSupportedPlutusDefaultFun P.AppendString = AppendString
+    fromSupportedPlutusDefaultFun P.EqualsString = EqualsString
+    fromSupportedPlutusDefaultFun P.EncodeUtf8 = EncodeUtf8
+    fromSupportedPlutusDefaultFun P.DecodeUtf8 = DecodeUtf8
+    fromSupportedPlutusDefaultFun P.Trace = Trace
+    fromSupportedPlutusDefaultFun x =
+      error $
+        unlines
+          [ "Unsupported builtin: " ++ show x,
+            "You should consider either adding it to the Language.Pirouette.PlutusIR.Prelude",
+            "or add it to the definition of Language.Pirouette.PlutusIR.Syntax.PIRDefaultFun"
+          ]
 
 tyConstant :: PIRBuiltinType -> Type PlutusIR
 tyConstant = SystF.TyPure . SystF.Free . TyBuiltin
@@ -214,7 +228,7 @@ cstToBuiltinType (PIRConstInteger _) = tyConstant PIRTypeInteger
 cstToBuiltinType (PIRConstByteString _) = tyConstant PIRTypeByteString
 cstToBuiltinType (PIRConstString _) = tyConstant PIRTypeString
 
--- | Untyped Plutus Constants
+-- | Constants are the inhabitants of the 'PIRBuiltinType's.
 data PIRConstant
   = PIRConstInteger Integer
   | PIRConstByteString BS.ByteString
@@ -227,6 +241,14 @@ termConstant = SystF.termPure . SystF.Free . Constant
 ctorApp :: String -> [Arg PlutusIR] -> Term PlutusIR
 ctorApp name = SystF.App (SystF.Free (TermSig $ fromString name))
 
+-- | Translates a term of a default type to a pirouette term. Note that because
+-- some builtin types were translated to types defined in our "Language.Pirouette.PlutusIR.Prelude",
+-- we need to reify their values with the correct constructors. For instance, a value of type
+-- @DefaultUniList DefaultUniBool@, say, @[True, False]@, have to be translated to a value:
+--
+-- > Cons @Bool True (Cons @Bool False (Nil @Bool))
+--
+-- where @Cons@, @Nil@, @True@ and @False@ will be defined in the prelude.
 defUniToConstant :: DefaultUni (P.Esc a) -> a -> Term PlutusIR
 defUniToConstant DefaultUniInteger x = termConstant $ PIRConstInteger x
 defUniToConstant DefaultUniByteString x = termConstant $ PIRConstByteString x
@@ -290,7 +312,6 @@ instance Pretty PIRDefaultFun where
 -- * Parsing
 
 instance LanguageParser PlutusIR where
-  -- TODO: How about applied lists and pairs?
   parseBuiltinType =
     label "Builtin type" $
       asum $
@@ -357,8 +378,6 @@ instance LanguageParser PlutusIR where
             EqualsString <$ symbol "b/equalsString",
             EncodeUtf8 <$ symbol "b/encodeUtf8",
             DecodeUtf8 <$ symbol "b/decodeUtf8",
-            -- Unit
-            ChooseUnit <$ symbol "b/chooseUnit",
             -- Tracing
             Trace <$ symbol "b/trace"
           ]
@@ -380,7 +399,7 @@ instance LanguageParser PlutusIR where
       ]
     ]
 
-  reservedNames = S.fromList $ words ""
+  reservedTermNames = S.fromList $ words ""
   reservedTypeNames = S.fromList $ words "Integer String ByteString"
 
   ifThenElse resTy c t e = appSig "ifThenElse" $ SystF.TyArg resTy : map SystF.TermArg [c, t, e]

@@ -104,10 +104,6 @@ trPIRFun :: PIRDefaultFun -> [PureSMT.SExpr] -> Maybe PureSMT.SExpr
 --     DecodeUtf8
 --
 
--- Pattern matching in disguise,
--- so we return here Nothing and then "translate"
--- into an actual match in 'branchesBuiltinTerm'
-trPIRFun ChooseUnit _ = Nothing
 -- Relations returning booleans actually need to instruct the solver
 -- to branch, their interpretation is handled in 'branchesBuiltinTerm'
 trPIRFun EqualsInteger _ = Nothing
@@ -277,9 +273,6 @@ instance LanguageSymEval PlutusIR where
   --         excess
   -- pattern matching and built-in matchers
 
-  -- they take the arguments in a different order
-  branchesBuiltinTerm ChooseUnit _ (tyR : unit : rest) =
-    continueWith "Unit_match" (unit : tyR : rest)
   -- built-in matchers
   branchesBuiltinTerm _rest _translator _args =
     pure Nothing

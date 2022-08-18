@@ -61,7 +61,7 @@ instance LanguageBuiltinTypes PlutusIR where
   -- TODO: implement the types of other builtins, but make sure to always bring in a golden
   -- test that comes from the plutus compiler. We should REALLY not be guessing these types,
   -- no matter how simple they seem.
-  typeOfBuiltin builtin = error $ "typeOfBuiltin " ++ show builtin ++ " is not implemented"
+  typeOfBuiltin builtin = error $ "typeOfBuiltin " ++ show builtin ++ " is not yet implemented"
 
   -- The type of bottom in PlutusIR is similar to Haskell; we translate @PIR.Error loc ty@
   -- to @Free Bottom `App` [TyArg ty]@.
