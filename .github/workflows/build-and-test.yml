@@ -66,7 +66,7 @@ jobs:
     - name: Check result
       run: |
         is_ok=true
-        for proj in "examples" "cooked-validators"; do
+        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
           for step in "hpack" "ormolu" "cabal-build" "cabal-test"; do
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
@@ -79,7 +79,7 @@ jobs:
 
         ## Because there will be a lot of tests, we print a summary of the results
         echo "Summary of results (1 is failure)"
-        for proj in "examples" "cooked-validators"; do
+        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
           echo "Summary for: $proj"
           cat ${proj}-*.res
         done

@@ -1,7 +1,13 @@
 packages:
   cooked-validators
   examples
+  pirouette-plutusir
 
+source-repository-package
+  type: git
+  location: https://github.com/tweag/pirouette.git
+  tag: 41fe7a5836469d1fecde69bf13482d54771926ca
+  
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 

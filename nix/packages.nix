@@ -44,6 +44,9 @@ in {
         pkg-config # required by libsystemd-journal
         openssl # required by HsOpenSSL required indirectly by cooked-validators
 
+        # We need cvc4 at least to run pirouette
+        cvc4
+
         # haskell development tools pulled from regular nixpkgs
         hpack
         hlint

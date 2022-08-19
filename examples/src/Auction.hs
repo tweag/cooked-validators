@@ -211,17 +211,16 @@ threadTokenAssetClassFromOrefAndLot lotOutRef lot =
 
 -- * The validator and its helpers
 
-{- INLINEABLE bidTimeRange -}
+{-# INLINEABLE bidTimeRange #-}
 bidTimeRange :: ValParams -> Pl.POSIXTimeRange
 bidTimeRange a = Interval.to (bidDeadline a)
 
-{- INLINEABLE hammerTimeRange -}
+{-# INLINEABLE hammerTimeRange #-}
 hammerTimeRange :: ValParams -> Pl.POSIXTimeRange
 hammerTimeRange a = Interval.from (bidDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
-
-{- INLINEABLE outputAuctionState -}
+{-# INLINEABLE outputAuctionState #-}
 outputAuctionState :: Pl.TxInfo -> Pl.TxOut -> Maybe AuctionState
 outputAuctionState txi o = do
   h <- Pl.txOutDatum o
@@ -230,8 +229,7 @@ outputAuctionState txi o = do
 
 -- | Test that the value paid to the giv,en public key address is at
 -- least the given value
-
-{- INLINEABLE receivesFrom -}
+{-# INLINEABLE receivesFrom #-}
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
 receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 
@@ -243,8 +241,7 @@ receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 --    * the state of the auction is 'Bidding' with the new bid and bidder
 --    * the validator locks the lot, the new bid, and the thread token
 --    * the last bidder has gotten their money back from the validator
-
-{- INLINEABLE validBid -}
+{-# INLINEABLE validBid #-}
 validBid :: ValParams -> AuctionState -> Integer -> Pl.PubKeyHash -> Pl.ScriptContext -> Bool
 validBid auction datum bid bidder ctx =
   let txi = Pl.scriptContextTxInfo ctx
@@ -284,8 +281,7 @@ validBid auction datum bid bidder ctx =
 --    * the seller has received payment of the highest bid
 -- * afer the transaction, if there have been no bids:
 --    * the seller gets the lot
-
-{- INLINEABLE validHammer -}
+{-# INLINEABLE validHammer #-}
 validHammer :: ValParams -> AuctionState -> Pl.ScriptContext -> Bool
 validHammer auction datum ctx =
   let txi = Pl.scriptContextTxInfo ctx
@@ -309,11 +305,23 @@ validHammer auction datum ctx =
                 "Seller does not receive last bid"
                 (seller auction `receives` Ada.lovelaceValueOf lastBid)
 
-{- INLINEABLE validate -}
+{-# INLINEABLE validate #-}
 validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
   Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
+
+{-# INLINEABLE isBid #-}
+isBid :: Action -> Bool
+isBid (Bid _) = True
+isBid _ = False
+
+{-# INLINEABLE receivesToken #-}
+receivesToken :: ValParams -> Pl.ScriptContext -> Bool
+receivesToken auction ctx =
+  let txi = Pl.scriptContextTxInfo ctx
+      selfh = Pl.ownHash ctx
+   in Value.assetClassValueOf (Pl.valueLockedBy txi selfh) (threadTokenAssetClass auction) == 1
 
 -- Plutus boilerplate to compile the validator
 
@@ -323,10 +331,13 @@ instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
   type DatumType Auction = AuctionState
 
+compiledValidate :: PlutusTx.CompiledCode (ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool)
+compiledValidate = $$(PlutusTx.compile [||validate||])
+
 auctionValidator :: ValParams -> Scripts.TypedValidator Auction
 auctionValidator =
   Scripts.mkTypedValidatorParam @Auction
-    $$(PlutusTx.compile [||validate||])
+    compiledValidate
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.mkUntypedValidator @AuctionState @Action
