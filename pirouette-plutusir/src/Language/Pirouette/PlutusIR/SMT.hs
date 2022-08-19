@@ -251,28 +251,6 @@ instance LanguageSymEval PlutusIR where
           AppendString -> K $ PIRConstString $ x <> y
           EqualsString -> reifyBoolean $ x == y
           _ -> error "ill-typed application"
-  -- if-then-else goes to the helpers
-  -- branchesBuiltinTerm IfThenElse _ (TyArg _ : TermArg c : TermArg t : TermArg e : excess) =
-  --   let isEq EqualsInteger = True
-  --       isEq EqualsString = True
-  --       isEq EqualsByteString = True
-  --       isEq _ = False
-  --       isTrue (K (PIRConstBool True)) = True
-  --       isTrue _ = False
-  --       isFalse (K (PIRConstBool False)) = True
-  --       isFalse _ = False
-  --    in ifThenElseBranching
-  --         isTrue
-  --         (K (PIRConstBool True))
-  --         isFalse
-  --         (K (PIRConstBool False))
-  --         isEq
-  --         c
-  --         t
-  --         e
-  --         excess
-  -- pattern matching and built-in matchers
-
   -- built-in matchers
   branchesBuiltinTerm _rest _translator _args =
     pure Nothing

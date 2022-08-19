@@ -34,8 +34,8 @@ thing `pathSatisfies` property = do
   paths <- thing
   assertBool ("property not satisfied:\n" <> show (vsep $ map pretty paths)) (property paths)
 
-(.&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
-p .&. q = \x -> p x && q x
+(.&&.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
+p .&&. q = \x -> p x && q x
 
 (.||.) :: (a -> Bool) -> (a -> Bool) -> (a -> Bool)
 p .||. q = \x -> p x || q x

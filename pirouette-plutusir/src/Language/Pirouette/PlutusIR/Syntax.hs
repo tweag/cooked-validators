@@ -21,6 +21,7 @@ import Control.Monad.Combinators.Expr
 import qualified Data.ByteString as BS
 import Data.Data
 import Data.Foldable
+import Data.Functor (($>))
 import qualified Data.Set as S
 import Data.String
 import qualified Data.Text as T
@@ -307,7 +308,7 @@ instance Pretty P.Data where
   pretty (P.B bs) = pretty bs
 
 instance Pretty PIRDefaultFun where
-  pretty s = "b/" <> pretty (show s)
+  pretty s = "b/" <> pretty s
 
 -- * Parsing
 
@@ -384,18 +385,18 @@ instance LanguageParser PlutusIR where
 
   -- Some builtins will also be available through more familiar infix operators
   operators =
-    [ [ InfixR (symbol "*" >> return (exprBinApp MultiplyInteger)),
-        InfixR (symbol "/" >> return (exprBinApp DivideInteger)),
-        InfixR (symbol "%" >> return (exprBinApp ModInteger))
+    [ [ InfixR (symbol "*" $> exprBinApp MultiplyInteger),
+        InfixR (symbol "/" $> exprBinApp DivideInteger),
+        InfixR (symbol "%" $> exprBinApp ModInteger)
       ],
-      [ InfixR (symbol "+" >> return (exprBinApp AddInteger)),
-        InfixR (symbol "-" >> return (exprBinApp SubtractInteger))
+      [ InfixR (symbol "+" $> exprBinApp AddInteger),
+        InfixR (symbol "-" $> exprBinApp SubtractInteger)
       ],
-      [ InfixN (symbol "<" >> return (exprBinApp LessThanInteger)),
-        InfixN (symbol "<=" >> return (exprBinApp LessThanEqualsInteger)),
-        InfixN (symbol "==i" >> return (exprBinApp EqualsInteger)),
-        InfixN (symbol "==bs" >> return (exprBinApp EqualsByteString)),
-        InfixN (symbol "==s" >> return (exprBinApp EqualsString))
+      [ InfixN (symbol "<" $> exprBinApp LessThanInteger),
+        InfixN (symbol "<=" $> exprBinApp LessThanEqualsInteger),
+        InfixN (symbol "==i" $> exprBinApp EqualsInteger),
+        InfixN (symbol "==bs" $> exprBinApp EqualsByteString),
+        InfixN (symbol "==s" $> exprBinApp EqualsString)
       ]
     ]
 

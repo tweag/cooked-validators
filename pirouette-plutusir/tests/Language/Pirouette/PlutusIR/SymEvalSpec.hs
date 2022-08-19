@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 
 module Language.Pirouette.PlutusIR.SymEvalSpec where
 
@@ -59,6 +58,6 @@ tests =
                       :==>: [pir| \(result : Integer) (x : Integer) . 0 < x |]
                 }
             )
-            `pathSatisfies` (any isVerified .&. (not . any isCounter))
+            `pathSatisfies` (any isVerified .&&. (not . any isCounter))
       ]
   ]

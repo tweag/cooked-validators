@@ -58,9 +58,11 @@ instance LanguageBuiltinTypes PlutusIR where
   typeOfBuiltin EqualsString = tString :->: tString :->: tBool
   typeOfBuiltin EqualsByteString = tByteString :->: tByteString :->: tBool
   typeOfBuiltin Trace = forall "a" (tString :->: tVar "a" 0 :->: tVar "a" 0)
-  -- TODO: implement the types of other builtins, but make sure to always bring in a golden
-  -- test that comes from the plutus compiler. We should REALLY not be guessing these types,
-  -- no matter how simple they seem.
+  -- TODO: implement the types of other builtins, but make sure to always make a golden
+  -- test that comes from the plutus compiler: write a plutus contract that uses the
+  -- given builtin, generate the pir/flat file with the plutus compiler and bring
+  -- that to this project's test dir, then make sure pirouette can always typecheck that file.
+  -- We should REALLY not be guessing these types, no matter how simple they seem.
   typeOfBuiltin builtin = error $ "typeOfBuiltin " ++ show builtin ++ " is not yet implemented"
 
   -- The type of bottom in PlutusIR is similar to Haskell; we translate @PIR.Error loc ty@
