@@ -23,7 +23,7 @@ import qualified PlutusIR.Parser as PIR
 openAndParsePIR :: FilePath -> IO (Term PlutusIR, PrtUnorderedDefs PlutusIR)
 openAndParsePIR fileName = openAndDecodeWith T.readFile pirParser fileName
   where
-    pirParser = PIR.parse (PIR.program @P.DefaultUni @P.DefaultFun) fileName
+    pirParser = PIR.parse PIR.program fileName
 
 openAndDecodeFlat :: FilePath -> IO (Term PlutusIR, PrtUnorderedDefs PlutusIR)
 openAndDecodeFlat = openAndDecodeWith BS.readFile pirDecoder

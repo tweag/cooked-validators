@@ -15,8 +15,10 @@ import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript)
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Plutus.Script.Utils.V1.Address as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
+import qualified Plutus.Script.Utils.V1.Address as Pl
 
 prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
@@ -91,7 +93,7 @@ prettyTxOut :: Pl.TxOut -> (Doc ann, Maybe (Doc ann))
 prettyTxOut tout = (prettyAddressTypeAndHash $ Pl.txOutAddress tout, mPrettyValue $ Pl.txOutValue tout)
 
 prettyTypedValidator :: Pl.TypedValidator a -> Doc ann
-prettyTypedValidator = prettyAddressTypeAndHash . Pl.scriptAddress . Pl.validatorScript
+prettyTypedValidator = prettyAddressTypeAndHash . Pl.mkValidatorAddress . Pl.validatorScript
 
 prettyDatumVal ::
   (Show (Pl.DatumType a)) =>

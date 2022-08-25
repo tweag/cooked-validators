@@ -96,7 +96,7 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
 txAddSignature w = Pl.addSignature' (walletSK w)
 
-txAddSignatureAPI :: Wallet -> C.Tx C.AlonzoEra -> C.Tx C.AlonzoEra
+txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
 txAddSignatureAPI w = Validation.addSignature (walletSK w)
 
 -- * Initial distribution of funds

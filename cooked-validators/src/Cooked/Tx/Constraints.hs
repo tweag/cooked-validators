@@ -21,9 +21,8 @@ import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified PlutusTx as Pl
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
@@ -60,7 +59,7 @@ instance ToLedgerConstraint MiscConstraint where
   toLedgerConstraint (SpendsScript v r ((oref, o), _a)) = (lkups, constr)
     where
       lkups =
-        Pl.otherScript (Pl.validatorScript v)
+        Pl.plutusV1OtherScript (Pl.validatorScript v)
           <> Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
   toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
@@ -69,11 +68,11 @@ instance ToLedgerConstraint MiscConstraint where
       constr = Pl.mustSpendPubKeyOutput oref
   toLedgerConstraint (Mints Nothing pols v) = (lkups, constr)
     where
-      lkups = foldMap Pl.mintingPolicy pols
+      lkups = foldMap Pl.plutusV1MintingPolicy pols
       constr = Pl.mustMintValue v
   toLedgerConstraint (Mints (Just r) pols v) = (lkups, constr)
     where
-      lkups = foldMap Pl.mintingPolicy pols
+      lkups = foldMap Pl.plutusV1MintingPolicy pols
       constr = Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData r)) v
   toLedgerConstraint (Before t) = (mempty, constr)
     where
@@ -102,7 +101,7 @@ instance ToLedgerConstraint OutConstraint where
       constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
   toLedgerConstraint (PaysScript v datum value) = (lkups, constr)
     where
-      lkups = Pl.otherScript (Pl.validatorScript v)
+      lkups = Pl.plutusV1OtherScript (Pl.validatorScript v)
       constr =
         Pl.mustPayToOtherScript
           (Pl.validatorHash $ Pl.validatorScript v)

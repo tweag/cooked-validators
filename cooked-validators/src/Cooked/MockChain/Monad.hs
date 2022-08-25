@@ -158,7 +158,7 @@ pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
 pkUtxos' pkh = map (second go) <$> pkUtxos pkh
   where
-    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
+    go (Pl.PublicKeyChainIndexTxOut a v _ _) = Pl.TxOut a v Nothing
     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
 
 -- ** Slot and Time Management
@@ -226,7 +226,7 @@ slotConfig = Pl.pSlotConfig <$> params
 -- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
 -- Note that if you need this your Plutus script will probably not validate on Mainnet.
 allowBigTransactions :: (MonadMockChain m) => m a -> m a
-allowBigTransactions = localParams Pl.allowBigTransactions
+allowBigTransactions = localParams Pl.increaseTransactionLimits
 
 -- ** Deriving further 'MonadBlockChain' instances
 

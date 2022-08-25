@@ -115,12 +115,12 @@ data PIRDefaultFun
     Sha2_256
   | Sha3_256
   | Blake2b_256
-  | VerifySignature
-  | -- VerifyEd25519Signature
+  | VerifySignature 
+  -- | VerifyEd25519Signature
     -- VerifyEcdsaSecp256k1Signature
     -- VerifySchnorrSecp256k1Signature
     -- Strings
-    AppendString
+  | AppendString
   | EqualsString
   | EncodeUtf8
   | DecodeUtf8
@@ -184,7 +184,7 @@ builtinToTerm hd = appBuiltin $ fromSupportedPlutusDefaultFun hd
     fromSupportedPlutusDefaultFun P.Sha2_256 = Sha2_256
     fromSupportedPlutusDefaultFun P.Sha3_256 = Sha3_256
     fromSupportedPlutusDefaultFun P.Blake2b_256 = Blake2b_256
-    fromSupportedPlutusDefaultFun P.VerifySignature = VerifySignature
+    fromSupportedPlutusDefaultFun P.VerifyEd25519Signature = VerifySignature
     fromSupportedPlutusDefaultFun P.AppendString = AppendString
     fromSupportedPlutusDefaultFun P.EqualsString = EqualsString
     fromSupportedPlutusDefaultFun P.EncodeUtf8 = EncodeUtf8
@@ -370,8 +370,8 @@ instance LanguageParser PlutusIR where
             Sha2_256 <$ symbol "b/sha2",
             Sha3_256 <$ symbol "b/sha3",
             Blake2b_256 <$ symbol "b/blake2b",
-            VerifySignature <$ symbol "b/verifySignature",
-            -- P.VerifyEd25519Signature <$ symbol "b/verifyEd25519Signature",
+            -- VerifySignature <$ symbol "b/verifySignature", -- doesn't exist anymore ?
+            VerifySignature <$ symbol "b/verifyEd25519Signature",
             -- P.VerifyEcdsaSecp256k1Signature <$ symbol "b/verifyEcdsaSecp256k1Signature",
             -- P.VerifySchnorrSecp256k1Signature <$ symbol "b/verifySchnorrSecp256k1Signature",
             -- Strings

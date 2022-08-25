@@ -13,6 +13,7 @@ module Cooked.Tx.Constraints.Optics where
 import Cooked.Tx.Constraints.Type
 import qualified Ledger as L
 import qualified Ledger.Ada as L
+import qualified Ledger.Ada
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
 import Optics.Core
@@ -197,12 +198,12 @@ instance HasValue L.ChainIndexTxOut where
   valueL =
     lens
       ( \case
-          L.PublicKeyChainIndexTxOut _ x -> x
-          L.ScriptChainIndexTxOut _ _ _ x -> x
+          L.PublicKeyChainIndexTxOut {L._ciTxOutValue = x}-> x
+          L.ScriptChainIndexTxOut {L._ciTxOutValue = x} -> x
       )
       ( \o x -> case o of
-          L.PublicKeyChainIndexTxOut a _ -> L.PublicKeyChainIndexTxOut a x
-          L.ScriptChainIndexTxOut a v d _ -> L.ScriptChainIndexTxOut a v d x
+          L.PublicKeyChainIndexTxOut a _ b c -> L.PublicKeyChainIndexTxOut a x b c
+          L.ScriptChainIndexTxOut a _ b c d  -> L.ScriptChainIndexTxOut a x b c d
       )
 
 instance HasValue SpendableOut where
@@ -280,4 +281,4 @@ flattenValueI =
 nonAdaValue :: L.Value -> L.Value
 nonAdaValue = over flattenValueI (map $ \(ac, i) -> if ac == adaAssetClass then (ac, 0) else (ac, i))
   where
-    adaAssetClass = L.assetClass L.adaSymbol L.adaToken
+    adaAssetClass = L.assetClass Ledger.Ada.adaSymbol Ledger.Ada.adaToken

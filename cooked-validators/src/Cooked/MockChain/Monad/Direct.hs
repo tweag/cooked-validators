@@ -34,7 +34,7 @@ import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
+import qualified Ledger.Ada as ADA
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Fee as Pl
@@ -46,6 +46,7 @@ import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
+import GHC.IO.Exception (IOErrorType(NoSuchThing))
 
 -- * Direct Emulation
 
@@ -66,7 +67,7 @@ mcstToUtxoState s =
   UtxoState . M.fromListWith (<>) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
     go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, UtxoValueSet)
-    go1 _ (Pl.TxOut addr val mdh) = do
+    go1 _ (Pl.TxOut addr val mdh) =
       (addr, UtxoValueSet [(val, mdh >>= go2)])
 
     go2 :: Pl.DatumHash -> Maybe UtxoDatum
@@ -327,7 +328,7 @@ validateTx' reqSigs tx = do
       -- The new mcstIndex is just `ix'`; the new mcstDatums is computed by
       -- removing the datum hashes have been consumed and adding
       -- those that have been created in `tx`.
-      let consumedIns = map Pl.txInRef $ S.toList (Pl.txInputs tx) ++ S.toList (Pl.txCollateral tx)
+      let consumedIns = map Pl.txInRef $ Pl.txInputs tx ++ Pl.txCollateral tx
       consumedDHs <- catMaybes <$> mapM (fmap Pl.txOutDatumHash . outFromOutRef) consumedIns
       let consumedDHs' = M.fromList $ zip consumedDHs (repeat ())
       modify'
@@ -363,7 +364,7 @@ utxosSuchThat' addr datumPred = do
         Pl.PubKeyCredential _ -> do
           let ma = mdatum >>= Pl.fromBuiltinData . Pl.getDatum
           if datumPred ma val
-            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, ma)
+            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val Nothing Nothing, ma)
             else return Nothing
         -- Script addresses, on the other hand, /must/ have a datum present. Hence, we check that mdatum
         -- is a just. If this happens, it probably means there's a bug in cooked and we lost some datum.
@@ -377,7 +378,13 @@ utxosSuchThat' addr datumPred = do
               return
               (Pl.fromBuiltinData (Pl.getDatum datum))
           if datumPred (Just a) val
-            then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
+            then return . Just $ (Pl.ScriptChainIndexTxOut
+                                  { Pl._ciTxOutAddress = oaddr
+                                  , Pl._ciTxOutValue = val
+                                  , Pl._ciTxOutScriptDatum = (datumH, Just datum)
+                                  , Pl._ciTxOutReferenceScript = Nothing
+                                  , Pl._ciTxOutValidator = (Pl.ValidatorHash vh, Nothing)
+                                  }, Just a)
             else return Nothing
 
 -- | Generates an unbalanced transaction from a skeleton; A
@@ -460,7 +467,7 @@ setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRang
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
-      let startingFee = Pl.lovelaceValueOf 3000000
+      let startingFee = ADA.lovelaceValueOf 3000000
       let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
       fee <-
         calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
@@ -505,7 +512,7 @@ balanceTxFrom bPol skipBalancing col w ubtx = do
   let Right ubtx' = Pl.unBalancedTxTx ubtx
   tx <-
     setFeeAndValidRange bPol w $
-      ubtx {Pl.unBalancedTxTx = Right $ ubtx' {Pl.txCollateral = colTxIns}}
+      ubtx {Pl.unBalancedTxTx = Right $ ubtx' {Pl.txCollateral = S.toList colTxIns}}
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
@@ -545,11 +552,11 @@ data BalanceTxRes = BalanceTxRes
 calcBalanceTx :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m BalanceTxRes
 calcBalanceTx w tx = do
   -- We start by gathering all the inputs and summing it
-  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
+  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (Pl.txInputs tx)
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
-  let usedInTxIns = S.map Pl.txInRef (Pl.txInputs tx)
+  let usedInTxIns = S.map Pl.txInRef (S.fromList . Pl.txInputs $ tx)
   allUtxos <- pkUtxos' wPKH
   -- It is important that we only consider utxos that have not been spent in the transaction as "available"
   let availableUtxos = filter ((`S.notMember` usedInTxIns) . fst) allUtxos
@@ -595,7 +602,7 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
         guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
       ]
         ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
-  let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
+  let newTxIns' = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
   return $
     tx
       { Pl.txInputs = Pl.txInputs tx <> newTxIns',
@@ -618,13 +625,13 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
             zip [0 ..] (Pl.txOutputs tx)
 
     sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
-    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . Pl.txOutValue . snd))
+    sortByMoreAda = L.sortBy (flip compare `on` adaVal . Pl.txOutValue . snd)
 
     adaVal :: Pl.Value -> Integer
-    adaVal = Pl.getLovelace . Pl.fromValue
+    adaVal = ADA.getLovelace . ADA.fromValue
 
     isAtLeastMinAda :: Pl.Value -> Bool
-    isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
+    isAtLeastMinAda v = adaVal v >= ADA.getLovelace Pl.minAdaTxOut
 
     adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [Pl.TxOut] -> Int -> Maybe [Pl.TxOut]
     adjustOutputValueAt f xs i =
