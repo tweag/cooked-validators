@@ -59,7 +59,8 @@ data Ltl a
 -- | Split an LTL formula that describes a modification of a computation into a
 -- list of @(doNow, doLater)@ pairs, where
 --
--- * @doNow@ is the modification to be applied to the current time step,
+-- * @doNow@ is the modification to be applied to the current time step, or
+--   @Nothing@ if no modification should be applied,
 --
 -- * @doLater@ is an LTL formula describing the modification that should be
 --   applied from the next time step onwards, and
@@ -70,22 +71,23 @@ data Ltl a
 -- right now and @a `LtlUntil` b@ from the next step onwards; the returned list
 -- will contain these two options.
 --
--- Modifications should form a 'Monoid', where 'mempty' is the do-nothing
--- modification, and '<>' is the composition of modifications. We interpret @a
--- <> b@ as the modification that first applies @b@ and then @a@. Attention:
--- Since we use '<>' to define conjunction, if '<>' is not commutative,
--- conjunction will also fail to be commutative!
-nowLater :: Monoid a => Ltl a -> [(a, Ltl a)]
-nowLater LtlTruth = [(mempty, LtlTruth)]
+-- Modifications should form a 'Semigroup', '<>' is the composition of
+-- modifications. We interpret @a <> b@ as the modification that first applies
+-- @b@ and then @a@. Attention: Since we use '<>' to define conjunction, if '<>'
+-- is not commutative, conjunction will also fail to be commutative!
+nowLater :: Semigroup a => Ltl a -> [(Maybe a, Ltl a)]
+nowLater LtlTruth = [(Nothing, LtlTruth)]
 nowLater LtlFalsity = []
-nowLater (LtlAtom g) = [(g, LtlTruth)]
+nowLater (LtlAtom g) = [(Just g, LtlTruth)]
 nowLater (a `LtlOr` b) = nowLater a ++ nowLater b
 nowLater (a `LtlAnd` b) =
+  -- The 'Semigroup' instance for @Maybe a@ does the right thing here, since
+  -- @Nothing@s are cancelled. For example, @Just a <> Nothing == Just a@.
   [ (f <> g, ltlSimpl $ c `LtlAnd` d)
     | (f, c) <- nowLater a,
       (g, d) <- nowLater b
   ]
-nowLater (LtlNext a) = [(mempty, a)]
+nowLater (LtlNext a) = [(Nothing, a)]
 nowLater (a `LtlUntil` b) =
   nowLater $ b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
 nowLater (a `LtlRelease` b) =
@@ -109,7 +111,7 @@ finished (LtlRelease _ _) = True
 -- then the third and so on. We'd still like to compute a list of @(doNow,
 -- doLater)@ pairs as in 'nowLater', only that the @doLater@ should again be a
 -- list of formulas.
-nowLaterList :: Monoid a => [Ltl a] -> [(a, [Ltl a])]
+nowLaterList :: Semigroup a => [Ltl a] -> [(Maybe a, [Ltl a])]
 nowLaterList = joinNowLaters . map nowLater
   where
     joinNowLaters [] = [(mempty, [])]
@@ -237,7 +239,7 @@ instance Monad (Staged op) where
 -- >      . map (\(now, later) -> applyModification now op <* put later)
 -- >      . nowLaterList
 --
--- (But to write this, @modification@ has to be a 'Monoid' to make
+-- (But to write this, @modification@ has to be a 'Semigroup' to make
 -- 'nowLaterList' work!) Look at the tests for this module and at
 -- "Cooked.MockChain.Monad.Staged" for examples of how to use this type class.
 class MonadPlus m => InterpLtl modification builtin m where

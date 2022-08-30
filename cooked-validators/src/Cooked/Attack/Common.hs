@@ -8,6 +8,8 @@ module Cooked.Attack.Common where
 
 import Control.Arrow
 import Control.Monad
+import Control.Monad.Identity
+import Control.Monad.State
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
@@ -23,7 +25,56 @@ import qualified PlutusTx as Pl
 
 -- * The type of attacks
 
-type Attack m = TxSkel -> m TxSkel
+newtype Attack a = Attack (MockChainSt -> TxSkel -> Maybe (TxSkel, a))
+
+data UntypedAttack where
+  UntypedAttack :: Attack a -> UntypedAttack
+
+instance Functor Attack where
+  fmap f (Attack g) = Attack $ \mcst skel -> g mcst skel >>= Just . second f
+
+instance Applicative Attack where
+  pure x = Attack $ \_ skel -> Just (skel, x)
+  (<*>) = ap
+
+instance Monad Attack where
+  Attack g >>= h =
+    Attack $ \mcst skel -> case g mcst skel of
+      Nothing -> Nothing
+      Just (skel', x) -> case h x of
+        Attack f -> f mcst skel'
+
+-- mkAttack ::
+--   Applicative m =>
+--   Is k A_Traversal =>
+--   -- | Optic focussing potentially interesting points to modify.
+--   Optic' k is TxSkel a ->
+--   -- | The modification to apply; return @Nothing@ if you want to leave the
+--   -- given focus as it is.
+--   (a -> m a) ->
+--   Attack m
+-- mkAttack = traverseOf
+
+-- foo :: Integer -> StateT Integer Identity Integer
+-- foo i = do j <- get
+--            put i
+--            return $ i + j
+
+-- data AtLeastOne a = NoChange a | Change a
+--   deriving (Eq, Show)
+
+-- instance Functor AtLeastOne where
+--   fmap f (NoChange x) = NoChange $ f x
+--   fmap f (Change x) = Change $ f x
+
+-- instance Applicative AtLeastOne where
+--   pure x = NoChange x
+--   (<*>) = ap
+--   -- f <*> NoChange x = Change $ f x
+--   -- f <*> Change x = Change $ f x
+
+-- instance Monad AtLeastOne where
+--   x >>= f = undefined
 
 -- -- * Constructing 'Attack's that return at most one modified transaction
 

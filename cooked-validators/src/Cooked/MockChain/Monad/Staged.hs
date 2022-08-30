@@ -35,15 +35,13 @@ import qualified Prettyprinter.Render.String as PP
 -- with a custom function. This can be used, for example, to supply
 -- a custom 'InitialDistribution' by providing 'runMockChainTFrom'.
 interpretAndRunWith ::
-  MonadPlus am =>
   (forall m. Monad m => MockChainT m a -> m res) ->
-  StagedMockChain am a ->
+  StagedMockChain a ->
   [(res, TraceDescr)]
 interpretAndRunWith f smc = runWriterT $ f $ interpret smc
 
 interpretAndRun ::
-  MonadPlus am =>
-  StagedMockChain am a ->
+  StagedMockChain a ->
   [(Either MockChainError (a, UtxoState), TraceDescr)]
 interpretAndRun = interpretAndRunWith runMockChainT
 
@@ -59,89 +57,92 @@ type InterpMockChain = MockChainT (WriterT TraceDescr [])
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
 --  > =~= st -> [(Either err (a, st) , TraceDescr)]
-interpret :: MonadPlus am => StagedMockChain am a -> InterpMockChain a
+interpret :: StagedMockChain a -> InterpMockChain a
 interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
--- am is the monad attacks live in, a the return type of the reified operation
+-- is the monad attacks live in, a the return type of the reified operation
 
-data MockChainBuiltin am a where
-  ValidateTxSkel :: TxSkel -> MockChainBuiltin am Pl.CardanoTx
-  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin am (Maybe Pl.TxOut)
-  GetCurrentSlot :: MockChainBuiltin am Pl.Slot
-  AwaitSlot :: Pl.Slot -> MockChainBuiltin am Pl.Slot
-  GetCurrentTime :: MockChainBuiltin am Pl.POSIXTime
-  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin am Pl.POSIXTime
+data MockChainBuiltin a where
+  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
+  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)
+  GetCurrentSlot :: MockChainBuiltin Pl.Slot
+  AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
+  GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
+  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   UtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
-    MockChainBuiltin am [(SpendableOut, Maybe a)]
-  OwnPubKey :: MockChainBuiltin am Pl.PubKeyHash
+    MockChainBuiltin [(SpendableOut, Maybe a)]
+  OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   -- the following are only available in MonadMockChain, not MonadBlockChain:
-  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain am a -> MockChainBuiltin am a
-  AskSigners :: MockChainBuiltin am (NE.NonEmpty Wallet)
-  GetParams :: MockChainBuiltin am Pl.Params
-  LocalParams :: (Pl.Params -> Pl.Params) -> StagedMockChain am a -> MockChainBuiltin am a
+  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
+  AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
+  GetParams :: MockChainBuiltin Pl.Params
+  LocalParams :: (Pl.Params -> Pl.Params) -> StagedMockChain a -> MockChainBuiltin a
   -- the following are not strictly blockchain specific, but they allow us to
   -- combine several traces into one and to signal failure.
 
   -- | The empty set of traces
-  Empty :: MockChainBuiltin am a
+  Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
   Alt ::
-    StagedMockChain am a ->
-    StagedMockChain am a ->
-    MockChainBuiltin am a
+    StagedMockChain a ->
+    StagedMockChain a ->
+    MockChainBuiltin a
   -- | The failing operation
-  Fail :: String -> MockChainBuiltin am a
+  Fail :: String -> MockChainBuiltin a
 
-type MockChainOp am = LtlOp (Attack am) (MockChainBuiltin am)
+type MockChainOp = LtlOp UntypedAttack MockChainBuiltin
 
-type StagedMockChain am = Staged (MockChainOp am)
+type StagedMockChain = Staged MockChainOp
 
-instance Alternative (StagedMockChain am) where
+instance Alternative StagedMockChain where
   empty = Instr (Builtin Empty) Return
   a <|> b = Instr (Builtin (Alt a b)) Return
 
-instance MonadFail (StagedMockChain am) where
+instance MonadFail StagedMockChain where
   fail msg = Instr (Builtin (Fail msg)) Return
 
 -- * 'InterpLtl' instance
 
-instance {-# OVERLAPS #-} Monad am => Semigroup (Attack am) where
-  -- This means that @a <> b@ is the attack that applies @b@ first and then @a@
-  f <> g = g >=> f
-
-instance {-# OVERLAPS #-} MonadPlus am => Monoid (Attack am) where
-  mempty = const mzero
+instance {-# OVERLAPS #-} Semigroup UntypedAttack where
+  -- The right attack is applied first
+  UntypedAttack f <> UntypedAttack g = UntypedAttack $ g >> f
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
-instance MonadPlus am => InterpLtl (Attack am) (MockChainBuiltin am) InterpMockChain where
+instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
         . map (uncurry interpretAndTell)
         . nowLaterList
     where
-      interpretAndTell :: Attack am -> [Ltl (Attack am)] -> StateT [Ltl (Attack am)] InterpMockChain Pl.CardanoTx
-      interpretAndTell now later = undefined
-  -- do
-  -- mockSt <- lift get
-  -- msum $
-  --   map
-  --     ( \skel' -> do
-  --         signers <- askSigners
-  --         lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-  --         tx <- validateTxSkel skel'
-  --         put later
-  --         return tx
-  --     )
-  --     (now mockSt skel)
+      interpretAndTell ::
+        Maybe UntypedAttack ->
+        [Ltl UntypedAttack] ->
+        StateT [Ltl UntypedAttack] InterpMockChain Pl.CardanoTx
+      interpretAndTell Nothing later = do
+        signers <- askSigners
+        lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel
+        tx <- validateTxSkel skel
+        put later
+        return tx
+      interpretAndTell (Just (UntypedAttack (Attack now))) later = do
+        mcst <- lift get
+        case now mcst skel of
+          Nothing -> mzero
+          Just (skel', _) -> do
+            signers <- askSigners
+            lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+            tx <- validateTxSkel skel'
+            put later
+            return tx
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
@@ -163,14 +164,14 @@ instance MonadPlus am => InterpLtl (Attack am) (MockChainBuiltin am) InterpMockC
 -- ** Modalities
 
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
-type MonadModalMockChain am m = (MonadMockChain m, MonadModal m, Modification m ~ Attack am)
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedAttack)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
-instance MonadBlockChain (StagedMockChain am) where
+instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
   utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
   txOutByRef = singletonBuiltin . TxOutByRef
@@ -180,7 +181,7 @@ instance MonadBlockChain (StagedMockChain am) where
   awaitSlot = singletonBuiltin . AwaitSlot
   awaitTime = singletonBuiltin . AwaitTime
 
-instance MonadMockChain (StagedMockChain am) where
+instance MonadMockChain StagedMockChain where
   signingWith ws act = singletonBuiltin (SigningWith ws act)
   askSigners = singletonBuiltin AskSigners
   params = singletonBuiltin GetParams
@@ -190,7 +191,7 @@ instance MonadMockChain (StagedMockChain am) where
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp m a -> TraceDescr
+prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
 prettyMockChainOp signers (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $
