@@ -1,59 +1,103 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Cooked.Attack.DupToken where
 
 import Cooked.Attack.Common
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import Data.Maybe
 import qualified Ledger as L
 import Optics.Core
 import qualified PlutusTx.Numeric as Pl
 
--- | A token duplication attack which modifies every 'Mints'-constraint of a
--- 'TxSkel' that satisfies some conditions. This adds a 'DupTokenLbl' to the
--- labels of the transaction using 'addLabel'.
+-- | Change some values in a 'TxSkel'. Returns a list of the increments by which
+-- all of the focused values were changed.
+changeValueAttack ::
+  Is k A_Traversal =>
+  Optic' k is TxSkel L.Value ->
+  -- | A function describing how a focused value should change. Return the
+  -- modified value.
+  (L.Value -> L.Value) ->
+  Attack [L.Value]
+changeValueAttack optic change =
+  mkAccumLAttack
+    optic
+    ( \_mcst acc oldValue ->
+        let newValue = change oldValue
+         in (newValue, acc ++ [newValue <> Pl.negate oldValue])
+    )
+    []
+
+-- | Add a 'paysPK' constraint to a transaction. The additional constraint will
+-- be added to the end of the list of output constraints.
+addPaysPKAttack ::
+  L.PubKeyHash ->
+  L.Value ->
+  Attack ()
+addPaysPKAttack h v = Attack $ \_mcst skel ->
+  Just (over outConstraintsL (++ [paysPK h v]) skel, ())
+
+-- | Test a boolean condition, leaving the 'TxSkel' unmodified if the condition
+-- holds, returning @Nothing@ otherwise.
+guardAttack ::
+  Bool ->
+  Attack ()
+guardAttack True = Attack (\_ skel -> Just (skel, ()))
+guardAttack False = Attack (\_ _ -> Nothing)
+
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabelAttack :: LabelConstrs x => x -> Attack ()
+addLabelAttack newlabel = Attack $ \_mcst skel ->
+  Just
+    ( over
+        txLabelL
+        ( \case
+            TxLabel Nothing -> TxLabel $ Just newlabel
+            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+        )
+        skel,
+      ()
+    )
+
+-- | A token duplication attack increases values in 'Mints'-constraints of a
+-- 'TxSkel' according to some conditions, and pays the extra minted value to a
+-- given recipient wallet. This adds a 'DupTokenLbl' to the labels of the
+-- transaction using 'addLabel'. Returns the 'Value' by which the minted value
+-- was increased.
 dupTokenAttack ::
   -- | A function describing how the amount of minted tokens of an asset class
-  -- should be changed by the attack. The given function @f@ should probably satisfy
-  -- > f ac i == Just j -> i < j
-  -- for all @ac@ and @i@, i.e. it should increase in the minted amount.
-  -- If it does *not* increase the minted amount, or if @f ac i == Nothing@, the
-  -- minted amount will be left unchanged.
-  (L.AssetClass -> Integer -> Maybe Integer) ->
+  -- should be changed by the attack. The given function @f@ should probably
+  -- satisfy @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the
+  -- minted amount. If it does *not* increase the minted amount, it will be left
+  -- unchanged.
+  (L.AssetClass -> Integer -> Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  Attack
-dupTokenAttack change attacker mcst skel =
-  addLabel DupTokenLbl . paySurplusTo attacker skel
-    <$> mkAttack (mintsConstraintsT % valueL) increaseValue mcst skel
+  Attack L.Value
+dupTokenAttack change attacker = do
+  increments <- changeValueAttack (mintsConstraintsT % valueL) increaseValue
+  guardAttack (any (/= mempty) increments)
+  let totalIncrement = mconcat increments
+  addPaysPKAttack (walletPKHash attacker) totalIncrement
+  addLabelAttack DupTokenLbl
+  return totalIncrement
   where
-    increaseValue :: L.Value -> Maybe L.Value
-    increaseValue v =
-      case someJust
-        ( \(ac, i) -> case change ac i of
-            Nothing -> Nothing
-            Just j -> if i < j then Just (ac, j) else Nothing
+    increaseValue :: L.Value -> L.Value
+    increaseValue =
+      over
+        flattenValueI
+        ( map
+            ( \(ac, i) ->
+                let j = change ac i
+                 in if j > i
+                      then (ac, j)
+                      else (ac, i)
+            )
         )
-        (view flattenValueI v) of
-        Just l -> Just $ review flattenValueI l
-        Nothing -> Nothing
-
-    paySurplusTo :: Wallet -> TxSkel -> TxSkel -> TxSkel
-    paySurplusTo w skelOld skelNew = over outConstraintsL (++ [paysPK (walletPKHash w) surplus]) skelNew
-      where
-        txSkelMintValue s = foldOf (mintsConstraintsT % valueL) s
-        surplus = txSkelMintValue skelNew <> Pl.negate (txSkelMintValue skelOld)
-
-    -- Try to use the given function to modify the elements of the given list. If
-    -- at least one modification is successful, return 'Just' the modified list,
-    -- otherwise fail returning 'Nothing'.
-    someJust :: (a -> Maybe a) -> [a] -> Maybe [a]
-    someJust _ [] = Nothing
-    someJust f (x : xs) = case f x of
-      Just y -> Just $ y : map (\a -> fromMaybe a (f a)) xs
-      Nothing -> (x :) <$> someJust f xs
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show)

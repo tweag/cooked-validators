@@ -44,38 +44,6 @@ instance Monad Attack where
       Just (skel', x) -> case h x of
         Attack f -> f mcst skel'
 
--- mkAttack ::
---   Applicative m =>
---   Is k A_Traversal =>
---   -- | Optic focussing potentially interesting points to modify.
---   Optic' k is TxSkel a ->
---   -- | The modification to apply; return @Nothing@ if you want to leave the
---   -- given focus as it is.
---   (a -> m a) ->
---   Attack m
--- mkAttack = traverseOf
-
--- foo :: Integer -> StateT Integer Identity Integer
--- foo i = do j <- get
---            put i
---            return $ i + j
-
--- data AtLeastOne a = NoChange a | Change a
---   deriving (Eq, Show)
-
--- instance Functor AtLeastOne where
---   fmap f (NoChange x) = NoChange $ f x
---   fmap f (Change x) = Change $ f x
-
--- instance Applicative AtLeastOne where
---   pure x = NoChange x
---   (<*>) = ap
---   -- f <*> NoChange x = Change $ f x
---   -- f <*> Change x = Change $ f x
-
--- instance Monad AtLeastOne where
---   x >>= f = undefined
-
 -- -- * Constructing 'Attack's that return at most one modified transaction
 
 -- -- | The simplest way to make an attack from an optic: Try to apply a given
@@ -252,70 +220,64 @@ instance Monad Attack where
 --     tailSafe [] = []
 --     tailSafe (_ : xs) = xs
 
--- data SplitStrategy = OneChange | AllCombinations
+data SplitStrategy = OneChange | AllCombinations
 
--- -- | A very general attack: Traverse all foci of the optic from the left to the
--- -- right, collecting an accumulator while also (optionally) modifying the
--- -- 'TxSkel'. At the end, look at the modified 'TxSkel' and the accumulator to
--- -- decide whether the traversal was a success, or whether we should return @[]@.
--- mkAccumLAttack ::
---   Is k A_Traversal =>
---   -- | Optic focussing potentially interesting points to modify
---   Optic' k is TxSkel a ->
---   -- | function that describes the modification of the accumulator and the
---   -- current focus.
---   (acc -> a -> (a, acc)) ->
---   -- | initial accumulator
---   acc ->
---   -- | function to decide whether the traversal modified the 'TxSkel' in the
---   -- desired way. This will typically look like this:
---   -- > \state skel acc -> if someTest state skel acc
---   -- >                    then computeFinalModifications state skel acc
---   -- >                    else []
---   (MockChainSt -> TxSkel -> acc -> [TxSkel]) ->
---   Attack
--- mkAccumLAttack optic f initAcc test mcst skel =
---   let (skel', acc) = mapAccumLOf optic f initAcc skel
---    in test mcst skel' acc
+-- | A very general attack: Traverse all foci of the optic from the left to the
+-- right, collecting an accumulator while also modifying the foci.
+--
+-- This attack never fails, i.e. always returns 'Just' the modified 'TxSkel',
+-- even if no modifications were made.
+mkAccumLAttack ::
+  Is k A_Traversal =>
+  -- | Optic focussing potentially interesting points to modify
+  Optic' k is TxSkel a ->
+  -- | function that describes the modification of the accumulator and the
+  -- current focus.
+  (MockChainSt -> acc -> a -> (a, acc)) ->
+  -- | initial accumulator
+  acc ->
+  Attack acc
+mkAccumLAttack optic f initAcc = Attack $ \mcst skel ->
+  Just $ mapAccumLOf optic (f mcst) initAcc skel
 
--- -- * Helpers to interact with 'MockChainSt'
+-- * Helpers to interact with 'MockChainSt'
 
--- -- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument
--- utxosSuchThatMcst ::
---   (Pl.FromData a) =>
---   MockChainSt ->
---   L.Address ->
---   UtxoPredicate a ->
---   [(SpendableOut, Maybe a)]
--- utxosSuchThatMcst mcst addr select =
---   case runMockChainRaw def mcst (utxosSuchThat addr select) of
---     Left _ -> []
---     Right (utxos, _) -> utxos
+-- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument
+utxosSuchThatMcst ::
+  (Pl.FromData a) =>
+  MockChainSt ->
+  L.Address ->
+  UtxoPredicate a ->
+  [(SpendableOut, Maybe a)]
+utxosSuchThatMcst mcst addr select =
+  case runMockChainRaw def mcst (utxosSuchThat addr select) of
+    Left _ -> []
+    Right (utxos, _) -> utxos
 
--- -- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
--- -- argument
--- scriptUtxosSuchThatMcst ::
---   (Pl.FromData (L.DatumType a)) =>
---   MockChainSt ->
---   L.TypedValidator a ->
---   (L.DatumType a -> L.Value -> Bool) ->
---   [(SpendableOut, L.DatumType a)]
--- scriptUtxosSuchThatMcst mcst val select =
---   map (second fromJust) $
---     utxosSuchThatMcst
---       mcst
---       (L.validatorAddress val)
---       (maybe (const False) select)
+-- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
+-- argument
+scriptUtxosSuchThatMcst ::
+  (Pl.FromData (L.DatumType a)) =>
+  MockChainSt ->
+  L.TypedValidator a ->
+  (L.DatumType a -> L.Value -> Bool) ->
+  [(SpendableOut, L.DatumType a)]
+scriptUtxosSuchThatMcst mcst val select =
+  map (second fromJust) $
+    utxosSuchThatMcst
+      mcst
+      (L.validatorAddress val)
+      (maybe (const False) select)
 
--- -- * General helpers
+-- * General helpers
 
--- -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- -- given label will be added, forming a pair @(newlabel, oldlabel)@.
--- addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
--- addLabel newlabel =
---   over
---     txLabelL
---     ( \case
---         TxLabel Nothing -> TxLabel $ Just newlabel
---         TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
---     )
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
+addLabel newlabel =
+  over
+    txLabelL
+    ( \case
+        TxLabel Nothing -> TxLabel $ Just newlabel
+        TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+    )
