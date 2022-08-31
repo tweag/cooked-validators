@@ -15,3 +15,6 @@ assertSameTxSkels expected actual =
   where
     sameSet a b = subset a b && subset b a
     subset a b = all (`elem` b) a
+
+instance Show TxSkel where
+  show = show . prettyTxSkel []
