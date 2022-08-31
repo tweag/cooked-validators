@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -12,10 +13,31 @@ import Cooked.Attack.Common
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
+import Data.List
+import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
+import Optics.Core
 import qualified PlutusTx as Pl
 import Type.Reflection
+
+removeOutConstraintsAttack ::
+  (OutConstraint -> Bool) ->
+  Attack [OutConstraint]
+removeOutConstraintsAttack removePred = Attack $
+  \_mcst skel ->
+    Just $
+      let ocs = view outConstraintsL skel
+          (removed, kept) = partition removePred ocs
+       in ( set outConstraintsL kept skel,
+            removed
+          )
+
+addOutConstraintAttack ::
+  OutConstraint ->
+  Attack ()
+addOutConstraintAttack oc = Attack $
+  \_mcst skel -> Just (over outConstraintsL (++ [oc]) skel, ())
 
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
 -- different recipient on 'PaysScript' constraints, but leaves the datum as it
@@ -28,33 +50,44 @@ import Type.Reflection
 -- labels of the 'TxSkel' using 'addLabel'.
 datumHijackingAttack ::
   forall a.
-  ( Typeable a,
-    Pl.UnsafeFromData (L.DatumType a),
-    Pl.UnsafeFromData (L.RedeemerType a)
-  ) =>
+  PaysScriptConstrs a =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
   (L.TypedValidator a -> L.DatumType a -> L.Value -> Bool) ->
   -- | If the selection predicate matches more than one output, select the n-th
   -- output(s) with this predicate.
   (Integer -> Bool) ->
-  Attack
-datumHijackingAttack change select mcst skel =
+  Attack ()
+datumHijackingAttack change select =
   let thief = datumHijackingTarget @a
+   in do
+        removedOuts <-
+          removeOutConstraintsAttack
+            ( \case
+                PaysScript val dat money ->
+                  case val ~*~? thief of
+                    Just HRefl -> change val dat money
+                    Nothing -> False
+                _ -> False
+            )
+        atLeastOneSuccessAttack
+          ( zipWith
+              ( \psc i ->
+                  if select i
+                    then -- We know that @removedOuts@ contains only
+                    -- 'PaysScript' constraints to a validator of type @a@, so
+                    -- the following call to @fromJust@ can never fail.
 
-      changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
-      changeRecipient (PaysScriptConstraint val dat money) =
-        -- checks whether val _is of the same type as_ the thief, they're obviously different scripts.
-        case val ~*~? thief of
-          Just HRefl ->
-            if change val dat money
-              then Just $ PaysScriptConstraint thief dat money
-              else Nothing
-          Nothing -> Nothing
-   in addLabel (DatumHijackingLbl $ L.validatorAddress thief)
-        <$> mkSelectAttack paysScriptConstraintsT changeRecipient select mcst skel
+                      let (_, dat, money) = fromJust (preview (paysScriptConstraintP % paysScriptConstraintTypeP @a) psc)
+                       in addOutConstraintAttack $ PaysScript thief dat money
+                    else failingAttack
+              )
+              removedOuts
+              [0 ..]
+          )
+        addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
 
-newtype DatumHijackingLbl = DatumHijackingLbl L.Address
+newtype DatumHijakingLbl = DatumHijackingLbl L.Address
   deriving (Show, Eq)
 
 -- | The trivial validator that always succeds; this is a sufficient target for

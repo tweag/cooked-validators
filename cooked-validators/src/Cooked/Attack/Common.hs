@@ -8,14 +8,11 @@ module Cooked.Attack.Common where
 
 import Control.Arrow
 import Control.Monad
-import Control.Monad.Identity
-import Control.Monad.State
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
-import Data.Bifunctor hiding (first, second)
 import Data.Default
 import Data.Maybe
 import qualified Ledger as L
@@ -43,6 +40,63 @@ instance Monad Attack where
       Nothing -> Nothing
       Just (skel', x) -> case h x of
         Attack f -> f mcst skel'
+
+-- * Some frequently used methods to combine attacks
+
+-- | The never-applicable attack.
+failingAttack :: Attack a
+failingAttack = Attack $ \_ _ -> Nothing
+
+-- | The attack that always applies and leaves the transaction unchanged.
+doNothingAttack :: Attack ()
+doNothingAttack = Attack (\_ skel -> Just (skel, ()))
+
+-- | Test a boolean condition, leaving the 'TxSkel' unmodified if the condition
+-- holds, returning @Nothing@ otherwise.
+guardAttack :: Bool -> Attack ()
+guardAttack True = doNothingAttack
+guardAttack False = failingAttack
+
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabelAttack :: LabelConstrs x => x -> Attack ()
+addLabelAttack newlabel = Attack $ \_mcst skel ->
+  Just
+    ( over
+        txLabelL
+        ( \case
+            TxLabel Nothing -> TxLabel $ Just newlabel
+            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+        )
+        skel,
+      ()
+    )
+
+-- | Turn a potentially failing attack into an attack that always returns
+-- @Just@. In cases where the original attack would have not been applicable
+-- (i.e. returned @Nothing@), return the pair @(unmodified 'TxSkel', Nothing)@.
+skipFailure :: Attack a -> Attack (Maybe a)
+skipFailure (Attack f) = Attack $
+  \mcst skel -> Just $ maybe (skel, Nothing) (second Just) (f mcst skel)
+
+-- | Apply all the attacks in the given list, one after the other, and succeed
+-- if at least one of the attacks succeeded. Returns the value returned by the
+-- last successful of the given attacks. This will be equivalent to
+-- 'failingAttack' for an empty input list of attacks.
+atLeastOneSuccessAttack ::
+  [Attack a] -> Attack a
+atLeastOneSuccessAttack attacks = do
+  returnValues <- mapM skipFailure attacks
+  maybe failingAttack return (lastJust returnValues)
+  where
+    -- return the last entry in the list that is a @Just@, or @Nothing@, if all
+    -- entries are @Nothing@.
+    lastJust :: [Maybe a] -> Maybe a
+    lastJust [] = Nothing
+    lastJust (Just x : xs) = case lastJust xs of
+      Just y -> Just y
+      Nothing -> Just x
+    lastJust (Nothing : xs) = lastJust xs
 
 -- -- * Constructing 'Attack's that return at most one modified transaction
 

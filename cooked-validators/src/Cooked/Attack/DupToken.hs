@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
 
 module Cooked.Attack.DupToken where
 
@@ -38,29 +37,6 @@ addPaysPKAttack ::
 addPaysPKAttack h v = Attack $ \_mcst skel ->
   Just (over outConstraintsL (++ [paysPK h v]) skel, ())
 
--- | Test a boolean condition, leaving the 'TxSkel' unmodified if the condition
--- holds, returning @Nothing@ otherwise.
-guardAttack ::
-  Bool ->
-  Attack ()
-guardAttack True = Attack (\_ skel -> Just (skel, ()))
-guardAttack False = Attack (\_ _ -> Nothing)
-
--- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- given label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabelAttack :: LabelConstrs x => x -> Attack ()
-addLabelAttack newlabel = Attack $ \_mcst skel ->
-  Just
-    ( over
-        txLabelL
-        ( \case
-            TxLabel Nothing -> TxLabel $ Just newlabel
-            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
-        )
-        skel,
-      ()
-    )
-
 -- | A token duplication attack increases values in 'Mints'-constraints of a
 -- 'TxSkel' according to some conditions, and pays the extra minted value to a
 -- given recipient wallet. This adds a 'DupTokenLbl' to the labels of the
@@ -68,10 +44,9 @@ addLabelAttack newlabel = Attack $ \_mcst skel ->
 -- was increased.
 dupTokenAttack ::
   -- | A function describing how the amount of minted tokens of an asset class
-  -- should be changed by the attack. The given function @f@ should probably
-  -- satisfy @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the
-  -- minted amount. If it does *not* increase the minted amount, it will be left
-  -- unchanged.
+  -- should be changed. The given function @f@ should satisfy @f ac i > i@ for
+  -- all @ac@ and @i@, i.e. it should increase the minted amount. If it does
+  -- *not* increase the minted amount, it will be left unchanged.
   (L.AssetClass -> Integer -> Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
