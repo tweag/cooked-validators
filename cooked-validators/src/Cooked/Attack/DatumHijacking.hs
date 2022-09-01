@@ -10,6 +10,7 @@
 
 module Cooked.Attack.DatumHijacking where
 
+import Control.Monad
 import Cooked.Attack.Common
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
@@ -73,9 +74,13 @@ redirectScriptOutputAttack optic change =
 -- places where something like 'getContinuingOutputs' should be used. If this
 -- attack goes through, however, a "proper" datum hijacking attack that modifies
 -- the datum in a way that the (relevant part of) the
--- 'toBuiltinData'-translation stays the same will also work. A
--- 'DatumHijackingLbl' with the hash of the "thief" validator is added to the
+-- 'toBuiltinData'-translation stays the same will also work.
+--
+-- A 'DatumHijackingLbl' with the hash of the "thief" validator is added to the
 -- labels of the 'TxSkel' using 'addLabel'.
+--
+-- This attack returns the list of outputs it redirected, in the order in which
+-- they occurred on the original transaction.
 datumHijackingAttack ::
   forall a.
   PaysScriptConstrs a =>
@@ -95,6 +100,7 @@ datumHijackingAttack change select =
             (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
             (\val dat money -> if change val dat money then Just thief else Nothing)
             select
+        guard $ not $ null redirected
         addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected
 

@@ -164,7 +164,7 @@ mkSelectAttack optic change select = do
             Nothing -> (oldFocus, (index, acc))
       )
       (0, [])
-  guard (not $ null modified)
+  guard (not $ null modified) -- TODO why does this guard statement do nothing?
   return $ reverse $ snd modified
 
 -- -- -- * Constructing 'Attack's that return zero or more modified transactions

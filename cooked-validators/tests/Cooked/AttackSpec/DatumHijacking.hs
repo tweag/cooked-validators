@@ -10,7 +10,8 @@
 module Cooked.AttackSpec.DatumHijacking (tests) where
 
 import Control.Monad
-import Cooked.Attack
+import Cooked.Attack.Common
+import Cooked.Attack.DatumHijacking
 import Cooked.AttackSpec.Util
 import Cooked.Ltl
 import Cooked.MockChain
@@ -34,7 +35,7 @@ import Test.Tasty.HUnit
 -- datum hijacking attack should target the second transaction, and substitute a
 -- different recipient.
 
-data MockDatum = FirstLock | SecondLock deriving (Show)
+data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}
@@ -162,13 +163,15 @@ tests =
                   PaysScript val1 SecondLock x2
                 ]
             skelOut select =
-              datumHijackingAttack @MockContract
-                ( \v d x ->
-                    L.validatorHash val1 == L.validatorHash v
-                      && SecondLock Pl.== d
-                      && x2 `L.geq` x
+              getAttack
+                ( datumHijackingAttack @MockContract
+                    ( \v d x ->
+                        L.validatorHash val1 == L.validatorHash v
+                          && SecondLock Pl.== d
+                          && x2 `L.geq` x
+                    )
+                    select
                 )
-                select
                 def
                 skelIn
             skelExpected a b =
@@ -180,9 +183,26 @@ tests =
                   PaysScript val1 FirstLock x2,
                   PaysScript b SecondLock x2
                 ]
-         in assertSameTxSkels [skelExpected thief val1] (skelOut (0 ==))
-              .&&. assertSameTxSkels [skelExpected val1 thief] (skelOut (1 ==))
-              .&&. assertSameTxSkels [skelExpected thief thief] (skelOut (const True)),
+         in ( [ ( skelExpected thief val1,
+                  [(val1, SecondLock, x3)]
+                )
+              ]
+                @=? skelOut (0 ==)
+            )
+              .&&. ( [ ( skelExpected val1 thief,
+                         [(val1, SecondLock, x2)]
+                       )
+                     ]
+                       @=? skelOut (1 ==)
+                   )
+              .&&. ( [ ( skelExpected thief thief,
+                         [ (val1, SecondLock, x3),
+                           (val1, SecondLock, x2)
+                         ]
+                       )
+                     ]
+                       @=? skelOut (const True)
+                   ),
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
