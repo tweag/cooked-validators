@@ -25,18 +25,18 @@ removeOutConstraintsAttack ::
   Attack [OutConstraint]
 removeOutConstraintsAttack removePred = Attack $
   \_mcst skel ->
-    Just $
-      let ocs = view outConstraintsL skel
+    [ let ocs = view outConstraintsL skel
           (removed, kept) = partition removePred ocs
        in ( set outConstraintsL kept skel,
             removed
           )
+    ]
 
 addOutConstraintAttack ::
   OutConstraint ->
   Attack ()
 addOutConstraintAttack oc = Attack $
-  \_mcst skel -> Just (over outConstraintsL (++ [oc]) skel, ())
+  \_mcst skel -> [(over outConstraintsL (++ [oc]) skel, ())]
 
 -- | Redirect 'PaysScript's from one validator to another validator of the same
 -- type. Returns the list of outputs it redirected (as they were before the

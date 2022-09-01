@@ -89,8 +89,7 @@ tests =
               case dupTokenAttack select attacker of
                 Attack f -> f def skelIn
             skelExpected v1 v2 v3 v4 =
-              Just
-                ( txSkelLbl
+              [ ( txSkelLbl
                     DupTokenLbl
                     ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 v1 <> L.assetClassValue ac2 v2),
                         Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
@@ -105,8 +104,9 @@ tests =
                     ),
                   L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 -1) + (v3 -3))
                 )
+              ]
          in (skelExpected 2 2 4 8 @=? skelOut (\_ n -> n + 1))
-              .&&. (Nothing @=? skelOut (\_ n -> n))
+              .&&. ([] @=? skelOut (\_ n -> n))
               .&&. (skelExpected 6 1 3 12 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)),
       testCase "careful minting policy" $
         let tName = L.tokenName "MockToken"
@@ -139,8 +139,7 @@ tests =
                          ]
                 )
             skelExpected =
-              Just
-                ( txSkelLbl
+              [ ( txSkelLbl
                     DupTokenLbl
                     ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 2)]
                         :=>: [ paysPK
@@ -153,6 +152,7 @@ tests =
                     ),
                   L.assetClassValue ac1 1
                 )
+              ]
             skelOut =
               case dupTokenAttack (\_ i -> i + 1) attacker of
                 Attack f -> f def skelIn

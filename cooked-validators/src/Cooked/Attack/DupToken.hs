@@ -2,6 +2,7 @@
 
 module Cooked.Attack.DupToken where
 
+import Control.Monad
 import Cooked.Attack.Common
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
@@ -35,7 +36,7 @@ addPaysPKAttack ::
   L.Value ->
   Attack ()
 addPaysPKAttack h v = Attack $ \_mcst skel ->
-  Just (over outConstraintsL (++ [paysPK h v]) skel, ())
+  [(over outConstraintsL (++ [paysPK h v]) skel, ())]
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a
 -- 'TxSkel' according to some conditions, and pays the extra minted value to a
@@ -55,7 +56,7 @@ dupTokenAttack ::
   Attack L.Value
 dupTokenAttack change attacker = do
   increments <- changeValueAttack (mintsConstraintsT % valueL) increaseValue
-  guardAttack (any (/= mempty) increments)
+  guard (any (/= mempty) increments)
   let totalIncrement = mconcat increments
   addPaysPKAttack (walletPKHash attacker) totalIncrement
   addLabelAttack DupTokenLbl

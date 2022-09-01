@@ -108,9 +108,12 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance {-# OVERLAPS #-} Semigroup UntypedAttack where
+instance Semigroup UntypedAttack where
   -- The right attack is applied first
   UntypedAttack f <> UntypedAttack g = UntypedAttack $ g >> f
+
+instance Monoid UntypedAttack where
+  mempty = UntypedAttack doNothingAttack
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
@@ -124,25 +127,21 @@ instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
         . nowLaterList
     where
       interpretAndTell ::
-        Maybe UntypedAttack ->
+        UntypedAttack ->
         [Ltl UntypedAttack] ->
         StateT [Ltl UntypedAttack] InterpMockChain Pl.CardanoTx
-      interpretAndTell Nothing later = do
-        signers <- askSigners
-        lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel
-        tx <- validateTxSkel skel
-        put later
-        return tx
-      interpretAndTell (Just (UntypedAttack (Attack now))) later = do
+      interpretAndTell (UntypedAttack (Attack now)) later = do
         mcst <- lift get
-        case now mcst skel of
-          Nothing -> mzero
-          Just (skel', _) -> do
-            signers <- askSigners
-            lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-            tx <- validateTxSkel skel'
-            put later
-            return tx
+        msum $
+          map
+            ( \(skel', _) -> do
+                signers <- askSigners
+                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+                tx <- validateTxSkel skel'
+                put later
+                return tx
+            )
+            (now mcst skel)
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
