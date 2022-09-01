@@ -50,7 +50,7 @@ instance Alternative Attack where
 
 instance MonadPlus Attack
 
--- * Some frequently used methods to combine attacks
+-- * Simple attacks
 
 -- | The never-applicable attack.
 failingAttack :: Attack a
@@ -74,6 +74,8 @@ addLabelAttack newlabel = Attack $ \_mcst skel ->
       ()
     )
   ]
+
+-- * Composing attacks
 
 -- | Turn a potentially failing attack into an attack that always returns
 -- @Just@. In cases where the original attack would have not been applicable
@@ -103,40 +105,47 @@ skipFailure (Attack f) = Attack $
 --       Nothing -> Just x
 --     lastJust (Nothing : xs) = lastJust xs
 
--- -- -- * Constructing 'Attack's that return at most one modified transaction
+-- * Constructing Attacks from Optics
 
--- -- -- | The simplest way to make an attack from an optic: Try to apply a given
--- -- -- function of type @a -> Maybe a@ to all foci of an optic, modifying all foci
--- -- -- that return @Just@. This attack returns a singleton list of the modified
--- -- -- 'TxSkel' if at least one modification was successful, i.e. if at least one of
--- -- -- the foci evaluates to @Just@; otherwise it returns @[]@.
--- -- mkAttack ::
--- --   Is k A_Traversal =>
--- --   -- | Optic focussing potentially interesting points to modify.
--- --   Optic' k is TxSkel a ->
--- --   -- | The modification to apply; return @Nothing@ if you want to leave the
--- --   -- given focus as it is.
--- --   (a -> Maybe a) ->
--- --   Attack []
--- -- mkAttack optic f =
--- --   mkAccumLAttack
--- --     optic
--- --     ( \flag x -> case f x of
--- --         Just y -> (y, True)
--- --         Nothing -> (x, flag)
--- --     )
--- --     False
--- --     (\_ skel flag -> [skel | flag])
-
--- | Traverse all foci of the given optic from the left to the right, while
--- counting the foci to which the modification successfully applies, and modify
--- only those modifiable foci whose index satisfies a given predicate. (This is
--- useful for example if you have many identical outputs on a transaction but
--- you only want to modify a few of them.) Returns a list of the modified foci,
--- as they were before the modification, and in the order in which they occurred
--- on the original transaction.
+-- | Probably the most common way to make an attack from an optic: Try to apply
+-- a given function of type @MockChainSt -> a -> Maybe a@ to all foci of an
+-- optic, modifying all foci that return @Just ...@.
 --
--- If no foci were modified, this attack fails.
+-- If at least one focus was modified, this attack returns a singleton list
+-- containing a pair of the modified 'TxSkel' together with list of the foci
+-- that were modified, in the order in which they occured on the original
+-- transaction (and with no modification applied to them). If no focus was
+-- modified, this attack returns the empty list.
+mkAttack ::
+  (Is k A_Traversal) =>
+  -- | Optic focussing potentially interesting points to modify.
+  Optic' k is TxSkel a ->
+  -- | The modification to apply; return @Nothing@ if you want to leave the
+  -- given focus as it is.
+  (MockChainSt -> a -> Maybe a) ->
+  Attack [a]
+mkAttack optic change = do
+  unmodified <-
+    mkAccumLAttack
+      optic
+      ( \mcst acc oldFocus -> case change mcst oldFocus of
+          Just newFocus -> (newFocus, oldFocus : acc)
+          Nothing -> (oldFocus, acc)
+      )
+      []
+  guard $ not $ null unmodified
+  return $ reverse unmodified
+
+-- | Sometimes 'mkAttack' modifies too many foci. For example, there might be
+-- many identical outputs on a transaction but you only want to modify a few of
+-- them.
+--
+-- This is the problem solved by this attack. It traverses all foci of the given
+-- optic from the left to the right, while counting the foci to which the
+-- modification successfully applies, but modifies the i-th modifiable focus if
+-- i satisfies a given predicate.
+--
+-- The return value of this attack is similar to the one of 'mkAttack'.
 mkSelectAttack ::
   (Is k A_Traversal) =>
   -- | Optic focussing potentially interesting points to modify.
@@ -146,13 +155,13 @@ mkSelectAttack ::
   (MockChainSt -> a -> Maybe a) ->
   -- | Maybe more than one of the foci is modifiable (i.e. the modification
   -- returns @Just@). Use this predicate to selectively apply the modification
-  -- only to some of the modifiable foci: This attack conts the modifiable foci
+  -- only to some of the modifiable foci: This attack counts the modifiable foci
   -- (in the order of the traversal, starting with 0) and only applies the
   -- modification to the @i@-th modifiable focus if @i@ satisfies the predicate.
   (Integer -> Bool) ->
   Attack [a]
 mkSelectAttack optic change select = do
-  (_, modified) <-
+  (_, unmodified) <-
     mkAccumLAttack
       optic
       ( \mcst (index, acc) oldFocus ->
@@ -164,8 +173,29 @@ mkSelectAttack optic change select = do
             Nothing -> (oldFocus, (index, acc))
       )
       (0, [])
-  guard (not $ null modified)
-  return $ reverse modified
+  guard $ not $ null unmodified
+  return $ reverse unmodified
+
+-- | A very simple, but flexibla way to build an attack from an optic: Traverse
+-- all foci of the optic from the left to the right, collecting an accumulator
+-- while also modifying the foci.
+--
+-- This attack never fails, i.e. always returns the singleton list containing
+-- the a pair of the possibly modified 'TxSkel' together with the accumulator,
+-- even if no modifications were made to the 'TxSkel'. So, it's up to the caller
+-- of this function to look at the accumulator and decide how to proceed.
+mkAccumLAttack ::
+  Is k A_Traversal =>
+  -- | Optic focussing potentially interesting points to modify
+  Optic' k is TxSkel a ->
+  -- | function that describes the modification of the accumulator and the
+  -- current focus.
+  (MockChainSt -> acc -> a -> (a, acc)) ->
+  -- | Initial accumulator.
+  acc ->
+  Attack acc
+mkAccumLAttack optic f initAcc = Attack $ \mcst skel ->
+  [mapAccumLOf optic (f mcst) initAcc skel]
 
 -- -- -- * Constructing 'Attack's that return zero or more modified transactions
 
@@ -286,24 +316,6 @@ mkSelectAttack optic change select = do
 -- --     tailSafe (_ : xs) = xs
 
 -- data SplitStrategy = OneChange | AllCombinations
-
--- | Traverse all foci of the optic from the left to the right, collecting an
--- accumulator while also modifying the foci. The accumulator is returned.
---
--- This attack never fails, i.e. always returns the singleton list containing
--- the possibly modified 'TxSkel', even if no modifications were made.
-mkAccumLAttack ::
-  Is k A_Traversal =>
-  -- | Optic focussing potentially interesting points to modify
-  Optic' k is TxSkel a ->
-  -- | function that describes the modification of the accumulator and the
-  -- current focus.
-  (MockChainSt -> acc -> a -> (a, acc)) ->
-  -- | initial accumulator
-  acc ->
-  Attack acc
-mkAccumLAttack optic f initAcc = Attack $ \mcst skel ->
-  [mapAccumLOf optic (f mcst) initAcc skel]
 
 -- -- * Helpers to interact with 'MockChainSt'
 

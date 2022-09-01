@@ -10,7 +10,6 @@
 
 module Cooked.Attack.DatumHijacking where
 
-import Control.Monad
 import Cooked.Attack.Common
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
