@@ -17,6 +17,7 @@ library
       Cooked.Attack.Common
       Cooked.Attack.DupToken
       Cooked.Attack.DatumHijacking
+      Cooked.Attack.OutPermutations
       Cooked.Attack.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
@@ -94,6 +95,7 @@ test-suite spec
       Cooked.AttackSpec.DupToken
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.Common
+      Cooked.AttackSpec.OutPermutations
       Cooked.AttackSpec.Util
       Cooked.TestUtils
       Paths_cooked_validators

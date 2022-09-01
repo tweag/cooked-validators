@@ -60,6 +60,14 @@ failingAttack = empty
 doNothingAttack :: Attack ()
 doNothingAttack = return ()
 
+-- | The "attack" that obtains some value from the 'TxSkel'
+viewAttack :: Is k A_Getter => Optic' k is TxSkel a -> Attack a
+viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
+
+-- | The attack that sets a certain value in the 'TxSkel'.
+setAttack :: Is k A_Setter => Optic' k is TxSkel a -> a -> Attack ()
+setAttack optic newValue = Attack $ \_mcst skel -> [(set optic newValue skel, ())]
+
 -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
 -- given label will be added, forming a pair @(newlabel, oldlabel)@.
 addLabelAttack :: LabelConstrs x => x -> Attack ()
@@ -77,9 +85,13 @@ addLabelAttack newlabel = Attack $ \_mcst skel ->
 
 -- * Composing attacks
 
--- | Turn a potentially failing attack into an attack that always returns
--- @Just@. In cases where the original attack would have not been applicable
--- (i.e. returned @Nothing@), return the pair @([unmodified 'TxSkel'], Nothing)@.
+-- | Turn a potentially failing attack into an always successful attack, that
+-- just leaves the 'TxSkel' unmodified if the original attack would have failed.
+--
+-- In cases where the original attack would have failed (i.e. would have
+-- returned @[]@), return the pair @([unmodified 'TxSkel'], Nothing)@. If the
+-- original attack would have been applicable, this is signalled by wrapping the
+-- extra datum returned with the modified 'TxSkel's in a @Just@.
 skipFailure :: Attack a -> Attack (Maybe a)
 skipFailure (Attack f) = Attack $
   \mcst skel -> case f mcst skel of
@@ -142,8 +154,8 @@ mkAttack optic change = do
 --
 -- This is the problem solved by this attack. It traverses all foci of the given
 -- optic from the left to the right, while counting the foci to which the
--- modification successfully applies, but modifies the i-th modifiable focus if
--- i satisfies a given predicate.
+-- modification successfully applies, but modifies the i-th modifiable focus
+-- only if i satisfies a given predicate.
 --
 -- The return value of this attack is similar to the one of 'mkAttack'.
 mkSelectAttack ::
@@ -176,7 +188,7 @@ mkSelectAttack optic change select = do
   guard $ not $ null unmodified
   return $ reverse unmodified
 
--- | A very simple, but flexibla way to build an attack from an optic: Traverse
+-- | A very simple, but flexible way to build an attack from an optic: Traverse
 -- all foci of the optic from the left to the right, collecting an accumulator
 -- while also modifying the foci.
 --
@@ -317,44 +329,44 @@ mkAccumLAttack optic f initAcc = Attack $ \mcst skel ->
 
 -- data SplitStrategy = OneChange | AllCombinations
 
--- -- * Helpers to interact with 'MockChainSt'
+-- * Helpers to interact with 'MockChainSt'
 
--- -- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument
--- utxosSuchThatMcst ::
---   (Pl.FromData a) =>
---   MockChainSt ->
---   L.Address ->
---   UtxoPredicate a ->
---   [(SpendableOut, Maybe a)]
--- utxosSuchThatMcst mcst addr select =
---   case runMockChainRaw def mcst (utxosSuchThat addr select) of
---     Left _ -> []
---     Right (utxos, _) -> utxos
+-- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument
+utxosSuchThatMcst ::
+  (Pl.FromData a) =>
+  MockChainSt ->
+  L.Address ->
+  UtxoPredicate a ->
+  [(SpendableOut, Maybe a)]
+utxosSuchThatMcst mcst addr select =
+  case runMockChainRaw def mcst (utxosSuchThat addr select) of
+    Left _ -> []
+    Right (utxos, _) -> utxos
 
--- -- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
--- -- argument
--- scriptUtxosSuchThatMcst ::
---   (Pl.FromData (L.DatumType a)) =>
---   MockChainSt ->
---   L.TypedValidator a ->
---   (L.DatumType a -> L.Value -> Bool) ->
---   [(SpendableOut, L.DatumType a)]
--- scriptUtxosSuchThatMcst mcst val select =
---   map (second fromJust) $
---     utxosSuchThatMcst
---       mcst
---       (L.validatorAddress val)
---       (maybe (const False) select)
+-- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
+-- argument
+scriptUtxosSuchThatMcst ::
+  (Pl.FromData (L.DatumType a)) =>
+  MockChainSt ->
+  L.TypedValidator a ->
+  (L.DatumType a -> L.Value -> Bool) ->
+  [(SpendableOut, L.DatumType a)]
+scriptUtxosSuchThatMcst mcst val select =
+  map (second fromJust) $
+    utxosSuchThatMcst
+      mcst
+      (L.validatorAddress val)
+      (maybe (const False) select)
 
--- -- * General helpers
+-- * General helpers
 
--- -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- -- given label will be added, forming a pair @(newlabel, oldlabel)@.
--- addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
--- addLabel newlabel =
---   over
---     txLabelL
---     ( \case
---         TxLabel Nothing -> TxLabel $ Just newlabel
---         TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
---     )
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
+addLabel newlabel =
+  over
+    txLabelL
+    ( \case
+        TxLabel Nothing -> TxLabel $ Just newlabel
+        TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+    )

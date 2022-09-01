@@ -1,8 +1,8 @@
 module Cooked.Attack.OutPermutations where
 
+import Control.Monad
 import Cooked.Attack.Common
 import Cooked.Tx.Constraints.Optics
-import Optics.Core
 
 data PermutOutAttackMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 
@@ -23,26 +23,21 @@ data PermutOutAttackMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 --   outputs are permuted. Use this with care; there might be a lot of
 --   permutations!
 --
--- (In particular, this is clever enough to only generate distinct permutations)
-permutOutAttack :: PermutOutAttackMode -> Attack
-permutOutAttack mode _ skel =
-  map (\os -> set outConstraintsL os skel) $
-    perms $
-      view outConstraintsL skel
+-- (In particular, this is clever enough to generate only the distinct
+-- permutations, even if some outputs are identical.)
+permutOutAttack :: PermutOutAttackMode -> Attack ()
+permutOutAttack mode = do
+  oldOut <- viewAttack outConstraintsL
+  msum $
+    map
+      (setAttack outConstraintsL)
+      (perms oldOut)
   where
     perms = case mode of
       KeepIdentity (Just n) -> \l -> map (++ drop n l) $ distinctPermutations (take n l)
       KeepIdentity Nothing -> distinctPermutations
       OmitIdentity (Just n) -> \l -> map (++ drop n l) $ nonIdentityPermutations (take n l)
       OmitIdentity Nothing -> nonIdentityPermutations
-
--- | For each modified 'TxSkel' returned by the given attack, try all 'TxSkel's
--- obtained by permuting the output constraints. The optional integer argument
--- is a bound on how long the prefix of the list of outputs to be permuted
--- should be (use 'Nothing' with care!).
-tryOutPermutations :: Maybe Int -> Attack -> Attack
-tryOutPermutations bound att mcst skel =
-  concatMap (permutOutAttack (KeepIdentity bound) mcst) (att mcst skel)
 
 -- This is implemented so that duplicate entries in the input list don't give
 -- rise to duplicate permutations.
