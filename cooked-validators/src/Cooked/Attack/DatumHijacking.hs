@@ -5,6 +5,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.Attack.DatumHijacking where
@@ -14,12 +15,10 @@ import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.List
-import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
-import Type.Reflection
 
 removeOutConstraintsAttack ::
   (OutConstraint -> Bool) ->
@@ -39,6 +38,35 @@ addOutConstraintAttack ::
 addOutConstraintAttack oc = Attack $
   \_mcst skel -> Just (over outConstraintsL (++ [oc]) skel, ())
 
+-- | Redirect 'PaysScript's from one validator to another validator of the same
+-- type. Returns the list of outputs it redirected (as they were before the
+-- modification), in the order in which they occurred on the original
+-- transaction.
+--
+-- It might be necessary to use something like 'paysScriptCoinstraintTypeP' to
+-- construct the optics used by this attack.
+redirectScriptOutputAttack ::
+  Is k A_Traversal =>
+  Optic' k is TxSkel (L.TypedValidator a, L.DatumType a, L.Value) ->
+  -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
+  -- output unchanged.
+  (L.TypedValidator a -> L.DatumType a -> L.Value -> Maybe (L.TypedValidator a)) ->
+  -- | The redirection described by the previous argument might apply to more
+  -- than one of the script outputs of the transaction. Use this predicate to
+  -- select which of the redirectable script outputs to actually redirect. We
+  -- count the redirectable script outputs from the left to the right, starting
+  -- with zero.
+  (Integer -> Bool) ->
+  Attack [(L.TypedValidator a, L.DatumType a, L.Value)]
+redirectScriptOutputAttack optic change =
+  mkSelectAttack
+    optic
+    ( \_mcst (oldVal, dat, money) ->
+        case change oldVal dat money of
+          Nothing -> Nothing
+          Just newVal -> Just (newVal, dat, money)
+    )
+
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
 -- different recipient on 'PaysScript' constraints, but leaves the datum as it
 -- is. That is, it tests for careless uses of something like 'txInfoOutputs' in
@@ -54,40 +82,23 @@ datumHijackingAttack ::
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
   (L.TypedValidator a -> L.DatumType a -> L.Value -> Bool) ->
-  -- | If the selection predicate matches more than one output, select the n-th
-  -- output(s) with this predicate.
+  -- | The selection predicate may match more than one output, restrict to the
+  -- i-th of the output(s) (counting from the left, starting at zero) chosen by
+  -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  Attack ()
+  Attack [(L.TypedValidator a, L.DatumType a, L.Value)]
 datumHijackingAttack change select =
   let thief = datumHijackingTarget @a
    in do
-        removedOuts <-
-          removeOutConstraintsAttack
-            ( \case
-                PaysScript val dat money ->
-                  case val ~*~? thief of
-                    Just HRefl -> change val dat money
-                    Nothing -> False
-                _ -> False
-            )
-        atLeastOneSuccessAttack
-          ( zipWith
-              ( \psc i ->
-                  if select i
-                    then -- We know that @removedOuts@ contains only
-                    -- 'PaysScript' constraints to a validator of type @a@, so
-                    -- the following call to @fromJust@ can never fail.
-
-                      let (_, dat, money) = fromJust (preview (paysScriptConstraintP % paysScriptConstraintTypeP @a) psc)
-                       in addOutConstraintAttack $ PaysScript thief dat money
-                    else failingAttack
-              )
-              removedOuts
-              [0 ..]
-          )
+        redirected <-
+          redirectScriptOutputAttack
+            (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
+            (\val dat money -> if change val dat money then Just thief else Nothing)
+            select
         addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
+        return redirected
 
-newtype DatumHijakingLbl = DatumHijackingLbl L.Address
+newtype DatumHijackingLbl = DatumHijackingLbl L.Address
   deriving (Show, Eq)
 
 -- | The trivial validator that always succeds; this is a sufficient target for

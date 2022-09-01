@@ -123,38 +123,44 @@ atLeastOneSuccessAttack attacks = do
 --     False
 --     (\_ skel flag -> [skel | flag])
 
--- -- | Traverse all foci of the given optic from the left to the right, while
--- -- counting the foci to which the modification successfully applies, and modify
--- -- only those modifiable foci whose index satisfies a given predicate. (This is
--- -- useful for example if you have many identical outputs on a transaction but
--- -- you only want to modify a few of them.) This attack returns a singleton list
--- -- of the modified 'TxSkel' if at least one modification was successful, i.e. if
--- -- at least one focus was modified; otherwise it returns @[]@.
--- mkSelectAttack ::
---   Is k A_Traversal =>
---   -- | Optic focussing potentially interesting points to modify.
---   Optic' k is TxSkel a ->
---   -- | The modification to apply; return @Nothing@ if you want to leave the
---   -- given focus as it is.
---   (a -> Maybe a) ->
---   -- | Maybe the modification applies to (i.e. returns @Just@ on) more than one
---   -- focus. Use this function to select the foci to modify by the order in which
---   -- they are traversed. If you set this function to @const True@, you should
---   -- probably use 'mkAttack', because that the semantic of that function.
---   (Integer -> Bool) ->
---   Attack
--- mkSelectAttack optic f select =
---   mkAccumLAttack
---     optic
---     ( \(flag, index) x -> case f x of
---         Just y ->
---           if select index
---             then (y, (True, index + 1))
---             else (x, (flag, index + 1))
---         Nothing -> (x, (flag, index))
---     )
---     (False, 0)
---     (\_ skel (flag, _) -> [skel | flag])
+-- | Traverse all foci of the given optic from the left to the right, while
+-- counting the foci to which the modification successfully applies, and modify
+-- only those modifiable foci whose index satisfies a given predicate. (This is
+-- useful for example if you have many identical outputs on a transaction but
+-- you only want to modify a few of them.) Returns a list of the modified foci,
+-- as they were before the modification, and in the order in which they occurred
+-- on the original transaction.
+--
+-- If no foci were modified, this attack fails.
+mkSelectAttack ::
+  (Is k A_Traversal) =>
+  -- | Optic focussing potentially interesting points to modify.
+  Optic' k is TxSkel a ->
+  -- | The modification to apply; return @Nothing@ if you want to leave the
+  -- given focus as it is.
+  (MockChainSt -> a -> Maybe a) ->
+  -- | Maybe more than one of the foci is modifiable (i.e. the modification
+  -- returns @Just@). Use this predicate to selectively apply the modification
+  -- only to some of the modifiable foci: This attack conts the modifiable foci
+  -- (in the order of the traversal, starting with 0) and only applies the
+  -- modification to the @i@-th modifiable focus if @i@ satisfies the predicate.
+  (Integer -> Bool) ->
+  Attack [a]
+mkSelectAttack optic change select = do
+  modified <-
+    mkAccumLAttack
+      optic
+      ( \mcst (index, acc) oldFocus ->
+          case change mcst oldFocus of
+            Just newFocus ->
+              if select index
+                then (newFocus, (index + 1, oldFocus : acc))
+                else (oldFocus, (index + 1, acc))
+            Nothing -> (oldFocus, (index, acc))
+      )
+      (0, [])
+  guardAttack (not $ null modified)
+  return $ reverse $ snd modified
 
 -- -- * Constructing 'Attack's that return zero or more modified transactions
 
