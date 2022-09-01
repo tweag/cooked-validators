@@ -85,9 +85,7 @@ tests =
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-            skelOut select =
-              case dupTokenAttack select attacker of
-                Attack f -> f def skelIn
+            skelOut select = getAttack (dupTokenAttack select attacker) def skelIn
             skelExpected v1 v2 v3 v4 =
               [ ( txSkelLbl
                     DupTokenLbl
@@ -115,7 +113,7 @@ tests =
               isCekEvaluationFailure
               def
               ( somewhere
-                  (UntypedAttack $ dupTokenAttack (\_ n -> n + 1) (wallet 6))
+                  (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                   (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
@@ -123,7 +121,7 @@ tests =
             pol = carelessPolicy
          in testSucceeds $
               somewhere
-                (UntypedAttack $ dupTokenAttack (\_ n -> n + 1) (wallet 6))
+                (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
@@ -153,8 +151,6 @@ tests =
                   L.assetClassValue ac1 1
                 )
               ]
-            skelOut =
-              case dupTokenAttack (\_ i -> i + 1) attacker of
-                Attack f -> f def skelIn
+            skelOut = getAttack (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn
          in skelExpected @=? skelOut
     ]

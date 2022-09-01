@@ -165,6 +165,16 @@ instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
 type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedAttack)
 
+-- | Apply an 'Attack' to some transaction in the given Trace. The attack must
+-- apply at least once.
+somewhere :: MonadModalMockChain m => Attack b -> m a -> m a
+somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedAttack x))
+
+-- | Apply an 'Attack' to every transaction in a given trace. This is also
+-- successful if there are no transactions at all.
+everywhere :: MonadModalMockChain m => Attack b -> m a -> m a
+everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedAttack x))
+
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
