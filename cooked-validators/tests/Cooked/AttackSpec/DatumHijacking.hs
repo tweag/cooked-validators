@@ -162,13 +162,13 @@ tests =
                   PaysScript val1 FirstLock x2,
                   PaysScript val1 SecondLock x2
                 ]
-            skelOut select =
+            skelOut bound select =
               getAttack
                 ( datumHijackingAttack @MockContract
                     ( \v d x ->
                         L.validatorHash val1 == L.validatorHash v
                           && SecondLock Pl.== d
-                          && x2 `L.geq` x
+                          && bound `L.geq` x
                     )
                     select
                 )
@@ -183,17 +183,18 @@ tests =
                   PaysScript val1 FirstLock x2,
                   PaysScript b SecondLock x2
                 ]
-         in ( [ ( skelExpected thief val1,
-                  [(val1, SecondLock, x3)]
-                )
-              ]
-                @=? skelOut (0 ==)
-            )
+         in ([] @=? skelOut mempty (const True))
+              .&&. ( [ ( skelExpected thief val1,
+                         [(val1, SecondLock, x3)]
+                       )
+                     ]
+                       @=? skelOut x2 (0 ==)
+                   )
               .&&. ( [ ( skelExpected val1 thief,
                          [(val1, SecondLock, x2)]
                        )
                      ]
-                       @=? skelOut (1 ==)
+                       @=? skelOut x2 (1 ==)
                    )
               .&&. ( [ ( skelExpected thief thief,
                          [ (val1, SecondLock, x3),
@@ -201,7 +202,7 @@ tests =
                          ]
                        )
                      ]
-                       @=? skelOut (const True)
+                       @=? skelOut x2 (const True)
                    ),
       testCase "careful validator" $
         testFailsFrom'

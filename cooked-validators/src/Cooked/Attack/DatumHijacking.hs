@@ -44,8 +44,10 @@ addOutConstraintAttack oc = Attack $
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
--- It might be necessary to use something like 'paysScriptCoinstraintTypeP' to
--- construct the optics used by this attack.
+-- If no output is redirected, this attack fails.
+--
+-- Something like 'paysScriptCoinstraintTypeP' might be useful to construct the
+-- optics used by this attack.
 redirectScriptOutputAttack ::
   Is k A_Traversal =>
   Optic' k is TxSkel (L.TypedValidator a, L.DatumType a, L.Value) ->
@@ -80,7 +82,8 @@ redirectScriptOutputAttack optic change =
 -- labels of the 'TxSkel' using 'addLabel'.
 --
 -- This attack returns the list of outputs it redirected, in the order in which
--- they occurred on the original transaction.
+-- they occurred on the original transaction. If no output is redirected, this
+-- attack fails.
 datumHijackingAttack ::
   forall a.
   PaysScriptConstrs a =>
@@ -100,7 +103,6 @@ datumHijackingAttack change select =
             (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
             (\val dat money -> if change val dat money then Just thief else Nothing)
             select
-        guard $ not $ null redirected
         addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected
 

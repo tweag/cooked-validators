@@ -92,6 +92,7 @@ test-suite spec
       Cooked.AttackSpec
       Cooked.AttackSpec.DupToken
       Cooked.AttackSpec.DatumHijacking
+      Cooked.AttackSpec.Common
       Cooked.AttackSpec.Util
       Cooked.TestUtils
       Paths_cooked_validators

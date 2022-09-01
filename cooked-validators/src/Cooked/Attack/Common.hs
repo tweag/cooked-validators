@@ -152,7 +152,7 @@ mkSelectAttack ::
   (Integer -> Bool) ->
   Attack [a]
 mkSelectAttack optic change select = do
-  modified <-
+  (_, modified) <-
     mkAccumLAttack
       optic
       ( \mcst (index, acc) oldFocus ->
@@ -164,8 +164,8 @@ mkSelectAttack optic change select = do
             Nothing -> (oldFocus, (index, acc))
       )
       (0, [])
-  guard (not $ null modified) -- TODO why does this guard statement do nothing?
-  return $ reverse $ snd modified
+  guard (not $ null modified)
+  return $ reverse modified
 
 -- -- -- * Constructing 'Attack's that return zero or more modified transactions
 

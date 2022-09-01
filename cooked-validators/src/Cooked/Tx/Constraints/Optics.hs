@@ -233,6 +233,12 @@ instance HasValue MintsConstraint where
 instance HasValue SpendsScriptConstraint where
   valueL = spendableOutL % valueL
 
+instance HasValue PaysPKWithDatumConstraint where
+  valueL =
+    lens
+      (\(PaysPKWithDatumConstraint _ _ _ x) -> x)
+      (\(PaysPKWithDatumConstraint h msh d _) x -> PaysPKWithDatumConstraint h msh d x)
+
 valueAT :: AffineTraversal' MiscConstraint L.Value
 valueAT =
   (spendsScriptConstraintP % valueL)
