@@ -60,6 +60,10 @@ failingAttack = empty
 doNothingAttack :: Attack ()
 doNothingAttack = return ()
 
+-- | The "attack" that returns the current 'MockChainSt'
+mcstAttack :: Attack MockChainSt
+mcstAttack = Attack $ \mcst skel -> [(skel, mcst)]
+
 -- | The "attack" that obtains some value from the 'TxSkel'
 viewAttack :: Is k A_Getter => Optic' k is TxSkel a -> Attack a
 viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
@@ -67,6 +71,11 @@ viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
 -- | The attack that sets a certain value in the 'TxSkel'.
 setAttack :: Is k A_Setter => Optic' k is TxSkel a -> a -> Attack ()
 setAttack optic newValue = Attack $ \_mcst skel -> [(set optic newValue skel, ())]
+
+-- | The atack that modifies a certain value in the 'TxSkel' and returns the old
+-- value.
+overAttack :: Is k A_Setter => Optic' k is TxSkel a -> (a -> a) -> Attack ()
+overAttack optic change = Attack $ \_mcst skel -> [(over optic change skel, ())]
 
 -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
 -- given label will be added, forming a pair @(newlabel, oldlabel)@.

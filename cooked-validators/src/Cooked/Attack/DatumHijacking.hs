@@ -20,17 +20,12 @@ import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
 
-removeOutConstraintsAttack ::
-  (OutConstraint -> Bool) ->
-  Attack [OutConstraint]
-removeOutConstraintsAttack removePred = Attack $
-  \_mcst skel ->
-    [ let ocs = view outConstraintsL skel
-          (removed, kept) = partition removePred ocs
-       in ( set outConstraintsL kept skel,
-            removed
-          )
-    ]
+removeOutConstraintsAttack :: (OutConstraint -> Bool) -> Attack [OutConstraint]
+removeOutConstraintsAttack removePred = do
+  ocs <- viewAttack outConstraintsL
+  let (removed, kept) = partition removePred ocs
+  setAttack outConstraintsL kept
+  return removed
 
 addOutConstraintAttack ::
   OutConstraint ->
