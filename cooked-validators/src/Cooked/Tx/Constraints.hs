@@ -107,13 +107,15 @@ instance ToLedgerConstraint OutConstraint where
         Pl.singleton
           ( Pl.MustPayToOtherScript
               (Pl.validatorHash $ Pl.validatorScript v)
-              (getStakeValidatorHash msc)
+              (msc >>= getStakeValidatorHash)
               (Pl.Datum $ Pl.toBuiltinData datum)
               value
           )
           <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
-      getStakeValidatorHash :: Maybe Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
-      getStakeValidatorHash (Just (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh)))) =
+      -- Retrieve StakeValidatorHash from StakingCredential. This is similar to what plutus-apps does.
+      -- See lines 141-146 in plutus-apps/plutus-ledger-constraints/test/Spec.hs (commit hash 02ae267)
+      getStakeValidatorHash :: Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
+      getStakeValidatorHash (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh))) =
         Just $ Pl.StakeValidatorHash svh
       getStakeValidatorHash _ = Nothing
 
