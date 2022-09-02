@@ -42,37 +42,89 @@ add
 - a 'SpendsScript', depending on a 'PaysScript' on the original transaction,
 - ...
 -}
-data DSSplitMode = Combine | OneOutputPerFocus
 
+-- | How to combine extra constraints added for different reasons in the
+-- 'doubleSatAttack'. See the comments there.
+data DSSplitMode = TryCombinations | AllSeparate
+
+-- | Double satisfacion attack. See the comment above. This attack consists in
+-- adding some extra constraints to a transaction, and hoping that the
+-- additional checks triggered by these inputs are fooled by what's already
+-- present on the transaction. Any extra value contained in the added
+-- constraints is then paid to the attacker.
 doubleSatAttack ::
   Is k A_Traversal =>
+  -- | Each focus of this optic is a potential reason to add some extra
+  -- constraints.
+  --
+  -- As an example, one could go through the 'PaysScript' constraints for
+  -- validators of type @t@ with the following traversal:
+  --
+  -- > paysScriptConstraintsT % pausScriptConstraintTypeP @t
   Optic' k is TxSkel a ->
-  (MockChainSt -> a -> Constraints) ->
+  -- | Which constraints to add, for each of the foci. There might be different
+  -- options.
+  --
+  -- Coninuing the example, for each of the focused 'PaysScript' constraints,
+  -- you might want to try adding some 'SpendsScript' constraints to the
+  -- transaction. Since it might be interesting to try different redeemers on
+  -- these extra 'SpendsScript' constraints, the return value is a list of all
+  -- the options you want to try adding for a given 'PaysScript'.
+  (MockChainSt -> a -> [Constraints]) ->
+  -- | The wallet of the attacker, where any surplus is paid to.
+  --
+  -- In the example, the extra value in the added 'SpendsScript' constraints
+  -- will be paid to the attacker.
   Wallet ->
+  -- | Since there are potentially many options for each of the foci, the
+  -- question is whether (and how) to combine additions that were triggered by
+  -- different foci.
+  --
+  -- In the example: Let's say that the unmodified transaction had three focused
+  -- 'PaysScript' constraints, and that you want to try 2, 3, and 5 options for
+  -- additional 'SpendsScript' constraints for each of them, respectively.
+  --
+  -- - If you want to try each additional 'SpendsScript' on its own modified
+  --   transaction, use 'AllSeparate'. Thus, there'll be 2+3+5=10 modified
+  --   transactions.
+  --
+  -- - If you want to try combining all options from one focus with all options
+  --   from all of the other foci, use 'TryCombinations'. Then, there'll be
+  --   (2+1)*(3+1)*(5+1)=72 possible combinations, if you include all of the
+  --   combinations where /at most/ three (one for each focus) extra constraints
+  --   are added. One of these combinations is of course the one where nothing
+  --   is added, and that one is omitted, which brings the grand total down to
+  --   71 options.
+  --
+  -- So you see that this attack can branch quite wildly. Use with caution!
   DSSplitMode ->
   Attack ()
-doubleSatAttack optic extraConstrs attacker mode = do
-  foci <- viewAttack (partsOf optic)
+doubleSatAttack optic extra attacker mode = do
   mcst <- mcstAttack
-  let cs = map (extraConstrs mcst) foci
+  extraConstrs <- map (extra mcst) <$> viewAttack (partsOf optic)
   case mode of
-    OneOutputPerFocus ->
+    AllSeparate ->
       msum $
         map
           ( \c -> do
-              additionalConstraints <- addConstraintsAttack c
-              let addedValue = constraintBalance additionalConstraints
-               in if addedValue `L.geq` mempty
-                    then addPaysPKAttack (walletPKHash attacker) addedValue
-                    else failingAttack
+              added <- addConstraintsAttack c
+              let addedValue = constraintBalance added
+              if addedValue `L.geq` mempty
+                then addPaysPKAttack (walletPKHash attacker) addedValue
+                else failingAttack
           )
-          cs
-    Combine -> do
-      additionalConstraints <- mapM addConstraintsAttack cs
-      let addedValue = foldr ((<>) . constraintBalance) mempty additionalConstraints
-       in if addedValue `L.geq` mempty
-            then addPaysPKAttack (walletPKHash attacker) addedValue
-            else failingAttack
+          (concat extraConstrs)
+    TryCombinations ->
+      msum $
+        map
+          ( \cs -> do
+              added <- mapM addConstraintsAttack cs
+              let addedValue = foldr ((<>) . constraintBalance) mempty added
+              if addedValue `L.geq` mempty
+                then addPaysPKAttack (walletPKHash attacker) addedValue
+                else failingAttack
+          )
+          (tail $ allCombinations $ map (mempty :) extraConstrs)
   addLabelAttack DoubleSatLbl
   where
     constraintBalance :: Constraints -> L.Value
@@ -80,6 +132,10 @@ doubleSatAttack optic extraConstrs attacker mode = do
       where
         inValue = foldOf (traversed % valueAT) is
         outValue = foldOf (traversed % valueL) os
+
+    allCombinations :: [[x]] -> [[x]]
+    allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
+    allCombinations [] = [[]]
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)
