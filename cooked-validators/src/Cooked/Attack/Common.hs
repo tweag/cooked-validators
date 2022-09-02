@@ -20,16 +20,29 @@ import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
+import qualified PlutusTx.Numeric as Pl
 
 -- * The type of attacks
 
 -- | An attack is a function that, depending on the 'MockChainSt'ate, looks at a
--- transaction and returns a list of modified transactions, together with some
--- additional value that somehow describes what it did to the transaction in
--- each of the cases. Returning an empty list means that the attack did not
--- apply to the transaction.
+-- transaction and computes a list of modified transactions, together with some
+-- additional values.
+--
+-- Our intuition (and also the language of the comments in this module and its
+-- submodules) is that an attack
+--
+-- - /fails/ if if returns @[]@
+--
+-- - /modifies a transaction/, where the /unmodified transaction/ is the name we
+--   give to the input 'TxSkel' and each of the 'TxSkel's in the output list is
+--   a /modified transaction/
+--
+-- - /returns/ the value(s) in the 'snd' component of the pairs in the output
+--   list. This is reflected by the 'Monad' instance for 'Attack's.
 newtype Attack a = Attack {getAttack :: MockChainSt -> TxSkel -> [(TxSkel, a)]}
 
+-- | Internal wrapper type fpr compatibility with the LTL modalities. You'll
+-- probably never work with this type if you want to build and use attacks.
 data UntypedAttack where
   UntypedAttack :: Attack a -> UntypedAttack
 
@@ -64,7 +77,7 @@ doNothingAttack = return ()
 mcstAttack :: Attack MockChainSt
 mcstAttack = Attack $ \mcst skel -> [(skel, mcst)]
 
--- | The "attack" that obtains some value from the 'TxSkel'
+-- | The "attack" that obtains some value from the 'TxSkel'.
 viewAttack :: Is k A_Getter => Optic' k is TxSkel a -> Attack a
 viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
 
@@ -72,59 +85,23 @@ viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
 setAttack :: Is k A_Setter => Optic' k is TxSkel a -> a -> Attack ()
 setAttack optic newValue = Attack $ \_mcst skel -> [(set optic newValue skel, ())]
 
--- | The atack that modifies a certain value in the 'TxSkel' and returns the old
--- value.
+-- | The atack that modifies a certain value in the 'TxSkel'.
 overAttack :: Is k A_Setter => Optic' k is TxSkel a -> (a -> a) -> Attack ()
 overAttack optic change = Attack $ \_mcst skel -> [(over optic change skel, ())]
-
--- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- given label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabelAttack :: LabelConstrs x => x -> Attack ()
-addLabelAttack newlabel = Attack $ \_mcst skel ->
-  [ ( over
-        txLabelL
-        ( \case
-            TxLabel Nothing -> TxLabel $ Just newlabel
-            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
-        )
-        skel,
-      ()
-    )
-  ]
 
 -- * Composing attacks
 
 -- | Turn a potentially failing attack into an always successful attack, that
 -- just leaves the 'TxSkel' unmodified if the original attack would have failed.
 --
--- In cases where the original attack would have failed (i.e. would have
--- returned @[]@), return the pair @([unmodified 'TxSkel'], Nothing)@. If the
--- original attack would have been applicable, this is signalled by wrapping the
--- extra datum returned with the modified 'TxSkel's in a @Just@.
+-- In cases where the original attack would have failed, this returns
+-- @Nothing@. If the original attack would have been applicable, this is
+-- signalled by wrapping the original attack's return value in a @Just@.
 skipFailure :: Attack a -> Attack (Maybe a)
 skipFailure (Attack f) = Attack $
   \mcst skel -> case f mcst skel of
     [] -> [(skel, Nothing)]
     l -> second Just <$> l
-
--- -- | Apply all the attacks in the given list, one after the other, and succeed
--- -- if at least one of the attacks succeeded. Returns the value returned by the
--- -- last successful of the given attacks. This will be equivalent to
--- -- 'failingAttack' for an empty input list of attacks.
--- atLeastOneSuccessAttack ::
---   [Attack a] -> Attack a
--- atLeastOneSuccessAttack attacks = do
---   returnValues <- mapM skipFailure attacks
---   maybe failingAttack return (lastJust returnValues)
---   where
---     -- return the last entry in the list that is a @Just@, or @Nothing@, if all
---     -- entries are @Nothing@.
---     lastJust :: [Maybe a] -> Maybe a
---     lastJust [] = Nothing
---     lastJust (Just x : xs) = case lastJust xs of
---       Just y -> Just y
---       Nothing -> Just x
---     lastJust (Nothing : xs) = lastJust xs
 
 -- * Constructing Attacks from Optics
 
@@ -132,11 +109,11 @@ skipFailure (Attack f) = Attack $
 -- a given function of type @MockChainSt -> a -> Maybe a@ to all foci of an
 -- optic, modifying all foci that return @Just ...@.
 --
--- If at least one focus was modified, this attack returns a singleton list
--- containing a pair of the modified 'TxSkel' together with list of the foci
+-- If at least one focus was modified, this attack returns a list of the foci
 -- that were modified, in the order in which they occured on the original
--- transaction (and with no modification applied to them). If no focus was
--- modified, this attack returns the empty list.
+-- transaction (and with no modification applied to them).
+--
+-- If no focus was modified, or if nothing was in focus, the attack fails.
 mkAttack ::
   (Is k A_Traversal) =>
   -- | Optic focussing potentially interesting points to modify.
@@ -166,7 +143,9 @@ mkAttack optic change = do
 -- modification successfully applies, but modifies the i-th modifiable focus
 -- only if i satisfies a given predicate.
 --
--- The return value of this attack is similar to the one of 'mkAttack'.
+-- The return value and failure behaviour of this attack is similar to the one
+-- of 'mkAttack': It returns a list of the modified foci, as they were before
+-- the modification, and fails if nothing was modified.
 mkSelectAttack ::
   (Is k A_Traversal) =>
   -- | Optic focussing potentially interesting points to modify.
@@ -177,7 +156,7 @@ mkSelectAttack ::
   -- | Maybe more than one of the foci is modifiable (i.e. the modification
   -- returns @Just@). Use this predicate to selectively apply the modification
   -- only to some of the modifiable foci: This attack counts the modifiable foci
-  -- (in the order of the traversal, starting with 0) and only applies the
+  -- in the order of the traversal, starting with 0, and only applies the
   -- modification to the @i@-th modifiable focus if @i@ satisfies the predicate.
   (Integer -> Bool) ->
   Attack [a]
@@ -201,10 +180,9 @@ mkSelectAttack optic change select = do
 -- all foci of the optic from the left to the right, collecting an accumulator
 -- while also modifying the foci.
 --
--- This attack never fails, i.e. always returns the singleton list containing
--- the a pair of the possibly modified 'TxSkel' together with the accumulator,
--- even if no modifications were made to the 'TxSkel'. So, it's up to the caller
--- of this function to look at the accumulator and decide how to proceed.
+-- This attack never fails, and returns the accumulator, even if no
+-- modifications were made to the 'TxSkel'. So, it's up to the caller of this
+-- function to look at the accumulator and decide how to proceed.
 mkAccumLAttack ::
   Is k A_Traversal =>
   -- | Optic focussing potentially interesting points to modify
@@ -379,3 +357,40 @@ addLabel newlabel =
         TxLabel Nothing -> TxLabel $ Just newlabel
         TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
     )
+
+-- * Some more simple attacks
+
+-- | Change some 'Value's in a 'TxSkel'. Returns a list of the increments by
+-- which all of the focused values were changed.
+--
+-- This attack never fails.
+changeValueAttack ::
+  Is k A_Traversal =>
+  Optic' k is TxSkel L.Value ->
+  -- | A function describing how a focused value should change. Return the
+  -- modified value.
+  (L.Value -> L.Value) ->
+  Attack [L.Value]
+changeValueAttack optic change =
+  mkAccumLAttack
+    optic
+    ( \_mcst acc oldValue ->
+        let newValue = change oldValue
+         in (newValue, acc ++ [newValue <> Pl.negate oldValue])
+    )
+    []
+
+-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
+-- given label will be added, forming a pair @(newlabel, oldlabel)@.
+addLabelAttack :: LabelConstrs x => x -> Attack ()
+addLabelAttack newlabel = Attack $ \_mcst skel ->
+  [ ( over
+        txLabelL
+        ( \case
+            TxLabel Nothing -> TxLabel $ Just newlabel
+            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
+        )
+        skel,
+      ()
+    )
+  ]
