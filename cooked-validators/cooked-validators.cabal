@@ -15,8 +15,9 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.Common
-      Cooked.Attack.DupToken
       Cooked.Attack.DatumHijacking
+      Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
       Cooked.Attack.OutPermutations
       Cooked.Attack.TamperDatum
       Cooked.Currencies
@@ -92,11 +93,18 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
-      Cooked.AttackSpec.DupToken
-      Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.Common
+      Cooked.AttackSpec.DatumHijacking
+      Cooked.AttackSpec.DupToken
       Cooked.AttackSpec.OutPermutations
       Cooked.AttackSpec.Util
+      Cooked.BalanceSpec
+      Cooked.LtlSpec
+      Cooked.MockChain.Monad.StagedSpec
+      Cooked.MockChain.UtxoStateSpec
+      Cooked.MockChain.WalletSpec
+      Cooked.OutputReorderingSpec
+      Cooked.QuickValueSpec
       Cooked.TestUtils
       Paths_cooked_validators
   autogen-modules:

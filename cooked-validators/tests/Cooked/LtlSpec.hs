@@ -32,6 +32,12 @@ instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer
         . map (\(now, later) -> tell [now i] <* put later)
         . nowLaterList
 
+somewhere :: MonadModal m => Modification m -> m a -> m a
+somewhere x = modifyLtl $ LtlTruth `LtlUntil` LtlAtom x
+
+everywhere :: MonadModal m => Modification m -> m a -> m a
+everywhere x = modifyLtl $ LtlFalsity `LtlRelease` LtlAtom x
+
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()
 emitInteger i = Instr (Builtin (EmitInteger i)) Return
 
