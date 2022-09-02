@@ -1,5 +1,7 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -14,6 +16,7 @@ import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Optics
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
@@ -154,6 +157,7 @@ tryDupTokens =
     )
     (noBids <|> oneBid <|> twoBids)
 
+-- | Datum hijacking attack: Try to steal outputs from a validator.
 tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
   somewhere
@@ -163,6 +167,51 @@ tryDatumHijack =
             _ -> False
         )
         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
+    )
+    (noBids <|> oneBid <|> twoBids)
+
+-- | Double satisfaction attack
+tryDoubleSat :: MonadModalMockChain m => m ()
+tryDoubleSat = do
+  t0 <- currentTime
+  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
+  somewhere
+    ( doubleSatAttack
+        ( dsAddOneSscToSsc
+            (A.auctionValidator p)
+            ( \_ _ ->
+                A.Hammer :
+                map
+                  (A.Bid . uncurry A.BidderInfo)
+                  [ (5, walletPKHash $ wallet 1),
+                    (5, walletPKHash $ wallet 6),
+                    (4, walletPKHash $ wallet 1),
+                    (4, walletPKHash $ wallet 6),
+                    (3, walletPKHash $ wallet 1),
+                    (3, walletPKHash $ wallet 6)
+                  ]
+            )
+            (wallet 6)
+        )
+    )
+    ( do
+        A.txBid p 3 `as` wallet 2
+        A.txBid p 4 `as` wallet 3
+        awaitTime (A.bidDeadline p + 1)
+        A.txHammer p q
+    )
+
+-- | datum tampering attack that tries to change the bidder to wallet 6 on the
+-- 'Bidding' datum
+tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
+tryTamperDatum =
+  somewhere
+    ( tamperDatumAttack @A.Auction
+        ( \case
+            A.Bidding (A.BidderInfo x _) ->
+              Just $ A.Bidding (A.BidderInfo x (walletPKHash $ wallet 6))
+            _ -> Nothing
+        )
     )
     (noBids <|> oneBid <|> twoBids)
 
@@ -182,7 +231,17 @@ attacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryDatumHijack
+          tryDatumHijack,
+      testCase "double satisfaction" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDoubleSat,
+      testCase "datum tampering" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryTamperDatum
     ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
@@ -216,7 +275,7 @@ bidderAlternative =
 miscTests :: TestTree
 miscTests =
   testGroup
-    "Miscellaneuos tests"
+    "Miscellaneous tests"
     [bidderAlternative]
 
 tests :: TestTree

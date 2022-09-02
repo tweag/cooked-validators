@@ -2,6 +2,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | Various Optics on 'TxSkels', constraints, and all the other types defined
 -- in 'Cooked.Tx.Constraints.Type'.
@@ -14,6 +17,9 @@ import qualified Ledger.Credential as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
 import Optics.Core
+import qualified PlutusTx as Pl
+import qualified PlutusTx.Prelude as Pl
+import Type.Reflection
 
 -- A few remarks:
 
@@ -101,6 +107,9 @@ spendsScriptConstraintP =
         _ -> Nothing
     )
 
+spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
+spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraintP
+
 spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
 spendableOutL =
   lens
@@ -144,6 +153,42 @@ paysScriptConstraintP =
 
 paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
 paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
+
+paysScriptConstraintTypeP ::
+  forall a.
+  (Typeable a, PaysScriptConstrs a) =>
+  Prism' PaysScriptConstraint (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)
+paysScriptConstraintTypeP =
+  prism'
+    (\(v, sc, d, x) -> PaysScriptConstraint v sc d x)
+    ( \(PaysScriptConstraint v sc d x) ->
+        case typeOf v `eqTypeRep` typeRep @(L.TypedValidator a) of
+          Just HRefl -> Just (v, sc, d, x)
+          Nothing -> Nothing
+    )
+
+data PaysPKWithDatumConstraint where
+  PaysPKWithDatumConstraint ::
+    (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
+    L.PubKeyHash ->
+    Maybe L.StakePubKeyHash ->
+    Maybe a ->
+    L.Value ->
+    PaysPKWithDatumConstraint
+
+paysPKWithDatumConstraintP :: Prism' OutConstraint PaysPKWithDatumConstraint
+paysPKWithDatumConstraintP =
+  prism'
+    ( \case
+        PaysPKWithDatumConstraint h sh d x -> PaysPKWithDatum h sh d x
+    )
+    ( \case
+        PaysPKWithDatum h sh d x -> Just $ PaysPKWithDatumConstraint h sh d x
+        _ -> Nothing
+    )
+
+paysPKWithDatumConstraintsT :: Traversal' TxSkel PaysPKWithDatumConstraint
+paysPKWithDatumConstraintsT = outConstraintsL % traversed % paysPKWithDatumConstraintP
 
 -- * Extracting 'L.Value's from different types
 

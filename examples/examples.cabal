@@ -42,6 +42,8 @@ library
     , hspec
     , lens
     , mtl
+    , pirouette >=2.0.0
+    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core
@@ -77,6 +79,7 @@ test-suite spec
       Paths_examples
   hs-source-dirs:
       tests
+  ghc-options: -threaded
   build-depends:
       QuickCheck
     , aeson
@@ -95,6 +98,8 @@ test-suite spec
     , hspec
     , lens
     , mtl
+    , pirouette >=2.0.0
+    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core

@@ -1,0 +1,59 @@
+verbatim:
+  cabal-version: 2.4
+
+name: pirouette-plutusir
+version: 0.0.0
+extra-source-files:
+  - README.md
+
+dependencies:
+  - base >= 4.9 && < 5
+  - mtl >= 2.2.2
+  - data-default
+  - bytestring
+  - base64-bytestring
+  - containers
+  - extra
+  - text
+  - prettyprinter
+  - gitrev
+  - optparse-applicative
+  - megaparsec
+  - parser-combinators
+  - uniplate
+  - hspec
+  - QuickCheck
+  - interpolate
+  - deriving-compat
+  - template-haskell
+  - tasty
+  - tagged
+  - tasty-hunit
+  - tasty-hspec
+  - tasty-quickcheck
+  - tasty-expected-failure
+  - haskell-stack-trace-plugin
+  ## Plutus deps: to be moved to cooked together with Language.Pirouette.PlutusIR?
+  - flat >= 0.4.5
+  - plutus-core
+  - plutus-ledger
+  - plutus-tx
+  - pirouette >= 2.0.0
+
+library:
+  source-dirs: src
+  ghc-options:
+    -Wall
+    -Wno-orphans
+    -fplugin=StackTrace.Plugin
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - tests
+    dependencies:
+      - pirouette
+      - pirouette-plutusir
+    ghc-options:
+      -threaded

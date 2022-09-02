@@ -122,7 +122,7 @@ run_cabal_test() {
   return $cabal_res
 }
 
-projects=("cooked-validators" "examples")
+projects=("cooked-validators" "examples" "pirouette-plutusir")
 overall_ok=true
 
 for p in ${projects[*]}; do

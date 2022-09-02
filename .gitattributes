@@ -1,0 +1,4 @@
+# The *.pir files are not parrot intermediate representation, as the linguist
+# thought, but plutus intermetidate representation, and they should be ignored
+# on the languages pane. This also hides diffs over *.pir files.
+*.pir linguist-generated
