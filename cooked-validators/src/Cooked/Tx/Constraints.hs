@@ -15,6 +15,7 @@ where
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Function (on)
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
@@ -173,15 +174,7 @@ outConstraintToTxOut (PaysScript validator msc datum value) =
 orderTxOutputs :: [OutConstraint] -> [Pl.TxOut] -> [Pl.TxOut]
 orderTxOutputs expected given =
   let res = map outConstraintToTxOut expected
-   in -- Need to have a custom equality, filtering out anything that pays to a script
-      -- as well, even if Nothing is the sc.
-      -- That is, PaysScript val Nothing datum value == PaysScript val (Just _) datum value
-      -- NB: this is a huge hack, should *NOT* be merged to main. We must just use actual
-      -- equality, instead of this filtering with eraseStakingCredential
-      res ++ (given List.\\ map eraseStakingCredential res)
-  where
-    eraseStakingCredential txOut =
-      txOut {Pl.txOutAddress = (Pl.txOutAddress txOut) {Pl.addressStakingCredential = Nothing}}
+   in res ++ List.deleteFirstsBy ((==) `on` Pl.addressCredential . Pl.txOutAddress) given res
 
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> MiscConstraint
