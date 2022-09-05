@@ -28,7 +28,7 @@ import qualified PlutusTx.Prelude as Pl
 -- 'OutConstraint's are always added at the end of the list of output
 -- constraints, because some contracts rely on the ordering of the (intial
 -- segment of) the list of transaction outputs. If that's not to your need, you
--- might be interested in 'permutOuAttack'.
+-- might be interested in 'permutOutAttack'.
 --
 -- The returned 'Constraints' will be the constraints that were *actually* added
 -- to the transaction, which might differ from your specified constraints (but
@@ -228,10 +228,37 @@ addSignedByAttack signers = do
 
 -- * Adding and Removing 'OutConstraint's
 
+-- | Add an 'OutConstraint' to a transaction. The additional constraint will be
+-- added to the end of the list of output constraints. This is because some
+-- contracts rely on the shape of (the initial segment of) the list of
+-- transaction outputs. Try 'permutOutAttack' if you want to change the ordering
+-- of output constraints.
+addOutConstraintAttack :: OutConstraint -> Attack ()
+addOutConstraintAttack oc = overAttack outConstraintsL (++ [oc])
+
 -- | Add a 'paysPK' constraint to a transaction. The additional constraint will
 -- be added to the end of the list of output constraints.
 addPaysPKAttack ::
   L.PubKeyHash ->
   L.Value ->
   Attack ()
-addPaysPKAttack h v = overAttack outConstraintsL (++ [paysPK h v])
+addPaysPKAttack h v = addOutConstraintAttack $ paysPK h v
+
+-- | Add a 'PaysScript' to a transaction. The additional constraint will be
+-- added to the end of the list of output constraints.
+addPaysScriptAttack ::
+  PaysScriptConstrs a =>
+  L.TypedValidator a ->
+  L.DatumType a ->
+  L.Value ->
+  Attack ()
+addPaysScriptAttack v d x = addOutConstraintAttack $ PaysScript v d x
+
+-- | This attack removes some 'OutConstraint's from a transaction. It returns a
+-- list of the removed constraints.
+removeOutConstraintsAttack :: (OutConstraint -> Bool) -> Attack [OutConstraint]
+removeOutConstraintsAttack removePred = do
+  mcs <- viewAttack outConstraintsL
+  let (removed, kept) = partition removePred mcs
+  setAttack outConstraintsL kept
+  return removed
