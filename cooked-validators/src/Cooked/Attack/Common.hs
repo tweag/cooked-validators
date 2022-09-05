@@ -34,7 +34,7 @@ import qualified PlutusTx.Numeric as Pl
 -- - /fails/ if if returns @[]@
 --
 -- - /modifies a transaction/, where the /unmodified transaction/ is the name we
---   give to the input 'TxSkel' and each of the 'TxSkel's in the output list is
+--   give to the input 'TxSkel', and each of the 'TxSkel's in the output list is
 --   a /modified transaction/
 --
 -- - /returns/ the value(s) in the 'snd' component of the pairs in the output

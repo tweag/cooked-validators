@@ -47,11 +47,13 @@ add
 -- 'doubleSatAttack'. See the comments there.
 data DSSplitMode = TryCombinations | AllSeparate
 
--- | Double satisfacion attack. See the comment above. This attack consists in
--- adding some extra constraints to a transaction, and hoping that the
--- additional checks triggered by these inputs are fooled by what's already
--- present on the transaction. Any extra value contained in the added
--- constraints is then paid to the attacker.
+-- | Double satisfacion attack. See the comment above for what such an attack is
+-- about conceptually.
+--
+-- This attack consists in adding some extra constraints to a transaction, and
+-- hoping that the additional checks triggered by the extra inputs are fooled by
+-- what's already present on the transaction. Any extra value contained in the
+-- added constraints is then paid to the attacker.
 doubleSatAttack ::
   Is k A_Traversal =>
   -- | Each focus of this optic is a potential reason to add some extra
@@ -60,16 +62,17 @@ doubleSatAttack ::
   -- As an example, one could go through the 'PaysScript' constraints for
   -- validators of type @t@ with the following traversal:
   --
-  -- > paysScriptConstraintsT % pausScriptConstraintTypeP @t
+  -- > paysScriptConstraintsT % paysScriptConstraintTypeP @t
   Optic' k is TxSkel a ->
   -- | Which constraints to add, for each of the foci. There might be different
-  -- options.
+  -- options for each focus, that's why the return value is a list.
   --
   -- Coninuing the example, for each of the focused 'PaysScript' constraints,
   -- you might want to try adding some 'SpendsScript' constraints to the
   -- transaction. Since it might be interesting to try different redeemers on
-  -- these extra 'SpendsScript' constraints, the return value is a list of all
-  -- the options you want to try adding for a given 'PaysScript'.
+  -- these extra 'SpendsScript' constraints, you can just provide a list of all
+  -- the options you want to try adding for a given 'PaysScript' that's already
+  -- on the transaction.
   (MockChainSt -> a -> [Constraints]) ->
   -- | The wallet of the attacker, where any surplus is paid to.
   --
