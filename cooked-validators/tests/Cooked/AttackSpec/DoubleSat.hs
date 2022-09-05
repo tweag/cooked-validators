@@ -22,6 +22,7 @@ import qualified Ledger.Ada as L
 import Ledger.Typed.Scripts
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
+import Optics.Core
 import qualified Plutus.Script.Utils.V1.Scripts as L
 import qualified Plutus.V1.Ledger.Contexts as L
 import qualified Plutus.V1.Ledger.Interval as Pl
@@ -155,86 +156,80 @@ tests =
        in [ testCase "the two test validators have different addresses" $
               assertBool "the addresses are the same" $
                 L.validatorAddress aValidator /= L.validatorAddress bValidator,
-            testGroup
-              "smart constructors for 'DoubleSatParams'"
-              [], -- TODO
-            testGroup
-              "unit tests for 'addConstraints'"
-              [ testCase "'OutConstraints' are always added" $
-                  let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-                   in assertSameConstraints (addConstraints oneOut oneOut) (oneOut <> oneOut),
-                testCase "redundant time constraints are omitted" $
-                  let smallInterval = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
-                      bigInterval = toConstraints $ Before 11_000
-                   in assertSameConstraints (addConstraints bigInterval smallInterval) smallInterval,
-                testCase "in case of a conflicting 'SpendsScript', nothing is added" $
-                  let c1 = toConstraints $ SpendsScript bValidator BRedeemer1 bUtxo1
-                      c2 =
-                        [SpendsScript bValidator BRedeemer2 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo1]
-                   in assertSameConstraints (addConstraints c2 c1) c1,
-                testCase "non-conflicting 'SpendsScript' is added" $
-                  let c1 =
-                        [SpendsScript bValidator BRedeemer1 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1]
-                      c2 =
-                        [SpendsScript bValidator BRedeemer2 bUtxo2]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2]
-                   in assertSameConstraints (addConstraints c2 c1) $
-                        [ SpendsScript bValidator BRedeemer1 bUtxo1,
-                          SpendsScript bValidator BRedeemer2 bUtxo2
-                        ]
-                          :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1,
-                                 paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2
-                               ]
-              ],
+            -- testGroup -- TODO turn these into tests for the attacks that add constraints
+            --   "unit tests for 'addConstraints'"
+            --   [ testCase "'OutConstraints' are always added" $
+            --       let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
+            --        in assertSameConstraints (addConstraints oneOut oneOut) (oneOut <> oneOut),
+            --     testCase "redundant time constraints are omitted" $
+            --       let smallInterval = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
+            --           bigInterval = toConstraints $ Before 11_000
+            --        in assertSameConstraints (addConstraints bigInterval smallInterval) smallInterval,
+            --     testCase "in case of a conflicting 'SpendsScript', nothing is added" $
+            --       let c1 = toConstraints $ SpendsScript bValidator BRedeemer1 bUtxo1
+            --           c2 =
+            --             [SpendsScript bValidator BRedeemer2 bUtxo1]
+            --               :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo1]
+            --        in assertSameConstraints (addConstraints c2 c1) c1,
+            --     testCase "non-conflicting 'SpendsScript' is added" $
+            --       let c1 =
+            --             [SpendsScript bValidator BRedeemer1 bUtxo1]
+            --               :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1]
+            --           c2 =
+            --             [SpendsScript bValidator BRedeemer2 bUtxo2]
+            --               :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2]
+            --        in assertSameConstraints (addConstraints c2 c1) $
+            --             [ SpendsScript bValidator BRedeemer1 bUtxo1,
+            --               SpendsScript bValidator BRedeemer2 bUtxo2
+            --             ]
+            --               :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1,
+            --                      paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2
+            --                    ]
+            --   ],
             testCase "unit test on a 'TxSkel'" $
-              let params =
-                    -- These parameters could easily be constructed with
-                    -- 'dsAddOneSsctoSsc', but let's build them by hand here, to
-                    -- not depend on that function.
-                    DoubleSatParams
-                      { dsOptic = spendsScriptConstraintsT,
-                        dsExtraConstraints = \mcst ssc ->
-                          let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
-                           in case ssc of
-                                SpendsScriptConstraint _ _ (aOut, _) ->
-                                  let aValue = sOutValue aOut
-                                   in if
-                                          | aValue == L.lovelaceValueOf 2_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
-                                              | (bOut, bDatum) <- bUtxos,
-                                                sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                            ]
-                                          | aValue == L.lovelaceValueOf 3_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
-                                              | (bOut, bDatum) <- bUtxos,
-                                                sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
-                                            ]
-                                          | aValue == L.lovelaceValueOf 4_000_000 ->
-                                            concatMap
-                                              ( \(bOut, bDatum) ->
-                                                  let bValue = sOutValue bOut
-                                                   in if
-                                                          | bValue == L.lovelaceValueOf 6_000_000 ->
-                                                            [toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)]
-                                                          | bValue == L.lovelaceValueOf 7_000_000 ->
-                                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum),
-                                                              toConstraints $ SpendsScript bValidator BRedeemer2 (bOut, bDatum)
-                                                            ]
-                                                          | otherwise -> []
-                                              )
-                                              bUtxos
-                                          | otherwise -> [],
-                        dsAttacker = wallet 6,
-                        dsSplitStrategy = OneChange
-                      }
-                  skelIn aUtxos =
+              let skelIn aUtxos =
                     txSkel $
                       map (SpendsScript aValidator ARedeemer) aUtxos
                         :=>: [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
-                  skelOut aUtxos = doubleSatAttack params dsTestMockChainSt $ skelIn aUtxos
-
+                  skelOut aUtxos =
+                    getAttack
+                      ( doubleSatAttack
+                          (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
+                          ( \mcst (_, _, (aOut, _)) ->
+                              let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
+                                  aValue = sOutValue aOut
+                               in if
+                                      | aValue == L.lovelaceValueOf 2_000_000 ->
+                                        [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                          | (bOut, bDatum) <- bUtxos,
+                                            sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        ]
+                                      | aValue == L.lovelaceValueOf 3_000_000 ->
+                                        [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                          | (bOut, bDatum) <- bUtxos,
+                                            sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                        ]
+                                      | aValue == L.lovelaceValueOf 4_000_000 ->
+                                        concatMap
+                                          ( \(bOut, bDatum) ->
+                                              let bValue = sOutValue bOut
+                                               in if
+                                                      | bValue == L.lovelaceValueOf 6_000_000 ->
+                                                        [toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)]
+                                                      | bValue == L.lovelaceValueOf 7_000_000 ->
+                                                        [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum),
+                                                          toConstraints $ SpendsScript bValidator BRedeemer2 (bOut, bDatum)
+                                                        ]
+                                                      | otherwise -> []
+                                          )
+                                          bUtxos
+                                      | otherwise -> []
+                          )
+                          (wallet 6)
+                          AllSeparate
+                      )
+                      dsTestMockChainSt
+                      (skelIn aUtxos)
                   skelExpected aUtxos bUtxos =
                     map
                       ( \((bOut, bDat), bRed) ->
@@ -249,7 +244,7 @@ tests =
                       bUtxos
                in testConjoin $
                     map
-                      (\(aUtxos, bUtxos) -> assertSameTxSkels (skelExpected aUtxos bUtxos) (skelOut aUtxos))
+                      (\(aUtxos, bUtxos) -> assertSameTxSkels (skelExpected aUtxos bUtxos) (fst <$> skelOut aUtxos))
                       [ ([aUtxo1], []),
                         ([aUtxo2], [(bUtxo1, BRedeemer1)]),
                         ([aUtxo3], [(bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]),
