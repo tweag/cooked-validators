@@ -1,7 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -23,6 +22,7 @@ import qualified Data.Map.Strict as M
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
+import Optics.Core
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -152,7 +152,7 @@ tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
   somewhere
     ( dupTokenAttack
-        (\_ n -> Just $ n + 1) -- the modification of the minted value
+        (\_ n -> n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
     )
     (noBids <|> oneBid <|> twoBids)
@@ -177,22 +177,45 @@ tryDoubleSat = do
   (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
   somewhere
     ( doubleSatAttack
-        ( dsAddOneSscToSsc
-            (A.auctionValidator p)
-            ( \_ _ ->
-                A.Hammer :
-                map
-                  (A.Bid . uncurry A.BidderInfo)
-                  [ (5, walletPKHash $ wallet 1),
-                    (5, walletPKHash $ wallet 6),
-                    (4, walletPKHash $ wallet 1),
-                    (4, walletPKHash $ wallet 6),
-                    (3, walletPKHash $ wallet 1),
-                    (3, walletPKHash $ wallet 6)
-                  ]
-            )
-            (wallet 6)
+        -- look at all 'SpendsScript' constraints going to a validator of type
+        -- 'A.Auction'.
+        (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
+        -- If the constraint uses the 'A.Hammer' redeemer, try consuming an
+        -- additional UTxO from the same validator with one of six different
+        -- 'A.Bid' redeemers.
+        ( \mcst (val, r, _) ->
+            let utxos =
+                  scriptUtxosSuchThatMcst
+                    mcst
+                    val
+                    (\_ _ -> True)
+             in case r of
+                  A.Hammer ->
+                    concatMap
+                      ( \utxo ->
+                          map
+                            ( \(amount, bidder) ->
+                                toConstraints $
+                                  SpendsScript
+                                    val
+                                    (A.Bid $ A.BidderInfo amount bidder)
+                                    utxo
+                            )
+                            [ (5, walletPKHash $ wallet 1),
+                              (5, walletPKHash $ wallet 6),
+                              (4, walletPKHash $ wallet 1),
+                              (4, walletPKHash $ wallet 6),
+                              (3, walletPKHash $ wallet 1),
+                              (3, walletPKHash $ wallet 6)
+                            ]
+                      )
+                      utxos
+                  _ -> []
         )
+        -- pay the surplus to wallet 6
+        (wallet 6)
+        -- try each extra redeemer on a different modified transaction
+        AllSeparate
     )
     ( do
         A.txBid p 3 `as` wallet 2

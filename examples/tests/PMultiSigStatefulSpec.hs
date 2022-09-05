@@ -5,6 +5,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
 module PMultiSigStatefulSpec where
@@ -240,7 +241,7 @@ sampleGroup1 =
                 allowBigTransactions $ do
                   i <- propose p
                   w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                  somewhere (\_ sk -> maybeToList $ dupTokenAttack (head w3utxos) i sk) (execute p i)
+                  somewhere (Cooked.Attack $ \_ sk -> maybeToList $ (,()) <$> dupTokenAttack (head w3utxos) i sk) (execute p i)
             )
       ]
 
