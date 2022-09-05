@@ -69,8 +69,9 @@ addConstraintsAttack (is :=>: os) = do
 --
 -- The returned 'MiscConstraint' is either @Just@ the constraint that was added
 -- to the transaction (which might be different from the one you specified in
--- case of time constraints), or @Nothing@, if your constraint was already
--- present on the unmodiified transaction.
+-- case of time constraints, in which case the returned constraint holds the new
+-- validity time range of the transaction), or @Nothing@, if your constraint was
+-- already present on the unmodiified transaction.
 addMiscConstraintAttack :: MiscConstraint -> Attack (Maybe MiscConstraint)
 addMiscConstraintAttack (SpendsScript v r (o, d)) =
   do
@@ -88,11 +89,11 @@ addMiscConstraintAttack (Mints r ps x) =
   addMintsAttack r ps x
     >> return (Just $ Mints r ps x)
 addMiscConstraintAttack (Before b) =
-  let leftUnbounded = Pl.to $ b - 1 -- is this correct, i.e. should the end time be excluded?
+  let leftUnbounded = Pl.to b -- is this correct, i.e. should the end time be excluded?
    in addValidateInAttack leftUnbounded
         >>= return . Just . ValidateIn . Pl.intersection leftUnbounded
 addMiscConstraintAttack (After a) =
-  let rightUnbounded = Pl.from $ a + 1 -- is this correct, i.e. should the start time be excluded?
+  let rightUnbounded = Pl.from a -- is this correct, i.e. should the start time be excluded?
    in addValidateInAttack rightUnbounded
         >>= return . Just . ValidateIn . Pl.intersection rightUnbounded
 addMiscConstraintAttack (ValidateIn range) =
@@ -181,11 +182,11 @@ removeTimeConstraintsAttack = do
   return $
     foldr
       ( \case
-          -- I don't know if 'Before' and 'After' should
-          -- include the endpoint or not. I decided against the
-          -- inclusion. TODO
-          Before b -> Pl.intersection (Pl.to (b - 1))
-          After a -> Pl.intersection (Pl.from (a + 1))
+          -- I don't know if 'Before' and 'After' should include the endpoint or
+          -- not. Since the current implementation of the 'Before' and 'After'
+          -- constraints includes the endpoints, I will do so here as well.
+          Before b -> Pl.intersection (Pl.to b)
+          After a -> Pl.intersection (Pl.from a)
           ValidateIn i -> Pl.intersection i
           _ -> id
       )

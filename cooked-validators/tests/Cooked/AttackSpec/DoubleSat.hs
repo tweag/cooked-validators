@@ -156,36 +156,6 @@ tests =
        in [ testCase "the two test validators have different addresses" $
               assertBool "the addresses are the same" $
                 L.validatorAddress aValidator /= L.validatorAddress bValidator,
-            -- testGroup -- TODO turn these into tests for the attacks that add constraints
-            --   "unit tests for 'addConstraints'"
-            --   [ testCase "'OutConstraints' are always added" $
-            --       let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-            --        in assertSameConstraints (addConstraints oneOut oneOut) (oneOut <> oneOut),
-            --     testCase "redundant time constraints are omitted" $
-            --       let smallInterval = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
-            --           bigInterval = toConstraints $ Before 11_000
-            --        in assertSameConstraints (addConstraints bigInterval smallInterval) smallInterval,
-            --     testCase "in case of a conflicting 'SpendsScript', nothing is added" $
-            --       let c1 = toConstraints $ SpendsScript bValidator BRedeemer1 bUtxo1
-            --           c2 =
-            --             [SpendsScript bValidator BRedeemer2 bUtxo1]
-            --               :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo1]
-            --        in assertSameConstraints (addConstraints c2 c1) c1,
-            --     testCase "non-conflicting 'SpendsScript' is added" $
-            --       let c1 =
-            --             [SpendsScript bValidator BRedeemer1 bUtxo1]
-            --               :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1]
-            --           c2 =
-            --             [SpendsScript bValidator BRedeemer2 bUtxo2]
-            --               :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2]
-            --        in assertSameConstraints (addConstraints c2 c1) $
-            --             [ SpendsScript bValidator BRedeemer1 bUtxo1,
-            --               SpendsScript bValidator BRedeemer2 bUtxo2
-            --             ]
-            --               :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1,
-            --                      paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2
-            --                    ]
-            --   ],
             testCase "unit test on a 'TxSkel'" $
               let skelIn aUtxos =
                     txSkel $

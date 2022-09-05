@@ -94,6 +94,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
+      Cooked.AttackSpec.AddConstraints
       Cooked.AttackSpec.Common
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.DoubleSat
