@@ -1,18 +1,9 @@
-module Cooked.Attack
-  ( module Cooked.Attack.AddConstraints,
-    module Cooked.Attack.Common,
-    module Cooked.Attack.DatumHijacking,
-    module Cooked.Attack.DoubleSat,
-    module Cooked.Attack.DupToken,
-    module Cooked.Attack.OutPermutations,
-    module Cooked.Attack.TamperDatum,
-  )
-where
+module Cooked.Attack (module X) where
 
-import Cooked.Attack.AddConstraints
-import Cooked.Attack.Common
-import Cooked.Attack.DatumHijacking
-import Cooked.Attack.DoubleSat
-import Cooked.Attack.DupToken
-import Cooked.Attack.OutPermutations
-import Cooked.Attack.TamperDatum
+import Cooked.Attack.AddConstraints as X
+import Cooked.Attack.Common as X
+import Cooked.Attack.DatumHijacking as X
+import Cooked.Attack.DoubleSat as X
+import Cooked.Attack.DupToken as X
+import Cooked.Attack.OutPermutations as X
+import Cooked.Attack.TamperDatum as X

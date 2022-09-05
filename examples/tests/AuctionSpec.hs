@@ -10,12 +10,8 @@ import qualified Auction as A
 import qualified Auction.Offchain as A
 import Control.Applicative
 import Control.Arrow
+import Cooked
 import Cooked.Attack
-import Cooked.Currencies
-import Cooked.Ltl
-import Cooked.MockChain
-import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Optics
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M

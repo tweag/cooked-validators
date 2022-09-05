@@ -20,19 +20,6 @@ import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
 
-removeOutConstraintsAttack :: (OutConstraint -> Bool) -> Attack [OutConstraint]
-removeOutConstraintsAttack removePred = do
-  ocs <- viewAttack outConstraintsL
-  let (removed, kept) = partition removePred ocs
-  setAttack outConstraintsL kept
-  return removed
-
-addOutConstraintAttack ::
-  OutConstraint ->
-  Attack ()
-addOutConstraintAttack oc = Attack $
-  \_mcst skel -> [(over outConstraintsL (++ [oc]) skel, ())]
-
 -- | Redirect 'PaysScript's from one validator to another validator of the same
 -- type. Returns the list of outputs it redirected (as they were before the
 -- modification), in the order in which they occurred on the original
