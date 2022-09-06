@@ -55,6 +55,7 @@ sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
 type SpendsConstrs a =
   ( Pl.ToData (Pl.DatumType a),
     Pl.ToData (Pl.RedeemerType a),
+    Pl.UnsafeFromData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
     Pl.Eq (Pl.DatumType a),
@@ -96,13 +97,12 @@ instance Monoid Constraints where
 data MiscConstraint where
   -- | Ensure that the given 'Pl.TypedValidator' spends a specific UTxO (which
   -- must belong to the validator). That is: Unlock the UTxO described by the
-  -- given pair of 'SpendableOut' and 'Pl.DatumType', passing the given redeemer
-  -- to the validator script.
+  -- given 'SpendableOut', passing the given redeemer to the validator script.
   SpendsScript ::
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
-    (SpendableOut, Pl.DatumType a) ->
+    SpendableOut ->
     MiscConstraint
   -- | Ensure that a 'Pl.PubKeyHash' spends a specific UTxO. The hash is not an
   -- argument since it can be read off the given 'SpendableOut'.
@@ -136,9 +136,9 @@ data MiscConstraint where
 _ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
 
 instance Eq MiscConstraint where
-  SpendsScript s1 r1 (so1, d1) == SpendsScript s2 r2 (so2, d2) =
+  SpendsScript s1 r1 so1 == SpendsScript s2 r2 so2 =
     case s1 ~*~? s2 of
-      Just HRefl -> (s1, so1) == (s2, so2) && (r1, d1) Pl.== (r2, d2)
+      Just HRefl -> (s1, so1) == (s2, so2) && r1 Pl.== r2
       Nothing -> False
   SpendsPK so1 == SpendsPK so2 = so1 == so2
   Mints d1 p1 v1 == Mints d2 p2 v2 =
