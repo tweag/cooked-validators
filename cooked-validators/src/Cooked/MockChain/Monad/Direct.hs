@@ -237,6 +237,13 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   utxosSuchThat = utxosSuchThat'
 
+  datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
+  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
+  -- datum is always present in the nominal case, guaranteed by chain-index
+  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = do
+    MockChainSt {mcstDatums} <- get
+    return $ M.lookup dh mcstDatums
+
   currentSlot = gets mcstCurrentSlot
 
   currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot

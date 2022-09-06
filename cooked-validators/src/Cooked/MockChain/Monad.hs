@@ -25,6 +25,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import qualified PlutusTx as Pl (FromData)
@@ -61,6 +62,9 @@ class (MonadFail m) => MonadBlockChain m where
     Pl.Address ->
     UtxoPredicate a ->
     m [(SpendableOut, Maybe a)]
+
+  -- | Returns the datum contained in a utxo or "Nothing" if there is none
+  datumFromTxOut :: Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
@@ -104,6 +108,41 @@ spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
   return (txORef, fromJust (Pl.fromTxOut txOut))
+
+-- | Some values of type "SpendableOut" have no explicit datum in their
+-- "ChainIndexTxOut" but the datum hash instead. When used in cooked
+-- constraints, this results in a runtime error. This function modifies the
+-- value to replace the datum hash by the datum by looking it up in the state
+-- of the block chain.
+spOutResolveDatum ::
+  MonadBlockChain m =>
+  SpendableOut ->
+  m SpendableOut
+spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left _) _)) = do
+  mDatum <- datumFromTxOut chainIndexTxOut
+  case mDatum of
+    Nothing -> fail "datum hash not found in block chain state"
+    Just datum ->
+      return
+        (txOutRef, chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
+spOutResolveDatum spOut = return spOut
+
+-- | Retrieve the ordered list of "SpendableOutput" corresponding to each
+-- output of the given "CardanoTx". These "SpendableOutput" are processed to
+-- remove unresolved datum hashes with "spOutResolveDatum" so that they can be
+-- used in spending constraints.
+--
+-- This is useful when writing endpoints and/or traces to fetch utxos of
+-- interest right from the start and avoid querying the chain for them
+-- afterwards using "utxosSuchThat" functions.
+spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
+spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) go
+  where
+    go :: MonadBlockChain m => (Pl.TxOut, Pl.TxOutRef) -> m SpendableOut
+    go (txOut, txOutRef) =
+      case Pl.fromTxOut txOut of
+        Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
+        Nothing -> fail "could not extract ChainIndexTxOut"
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
@@ -244,6 +283,7 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
+  datumFromTxOut = lift . datumFromTxOut
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot
