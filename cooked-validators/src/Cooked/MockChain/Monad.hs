@@ -136,13 +136,11 @@ spOutResolveDatum spOut = return spOut
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using "utxosSuchThat" functions.
 spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
-spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) go
-  where
-    go :: MonadBlockChain m => (Pl.TxOut, Pl.TxOutRef) -> m SpendableOut
-    go (txOut, txOutRef) =
-      case Pl.fromTxOut txOut of
-        Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
-        Nothing -> fail "could not extract ChainIndexTxOut"
+spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
+  \(txOut, txOutRef) ->
+    case Pl.fromTxOut txOut of
+      Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
+      Nothing -> fail "could not extract ChainIndexTxOut"
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
