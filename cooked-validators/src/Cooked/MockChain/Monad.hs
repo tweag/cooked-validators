@@ -114,6 +114,14 @@ spendableRef txORef = do
 -- constraints, this results in a runtime error. This function modifies the
 -- value to replace the datum hash by the datum by looking it up in the state
 -- of the block chain.
+--
+-- Outputs obtained from a "CardanoTx" (using "getCardanoTxOutRefs") have datum
+-- hashes instead of datums. If you want to use them in spend constraints, you
+-- first have to preprocess them with this function.
+--
+-- As a user though, when writing endpoints and traces, you will prefer to use
+-- the "spOutsFromCardanoTx" helper if you need to extract a "SpendableOut"
+-- from a "CardanoTx" to use it in a spend constraint.
 spOutResolveDatum ::
   MonadBlockChain m =>
   SpendableOut ->
