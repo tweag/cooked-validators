@@ -102,6 +102,15 @@ data MiscConstraint where
     (SpendsConstrs a) =>
     Pl.TypedValidator a ->
     Pl.RedeemerType a ->
+    -- | Utxo to spend.
+    -- WARNING: A "SpendableOut" contains a "ChainIndexTxOut" that contains
+    -- either a datum or its hash. Spending a script "SpendableOut" which does
+    -- not contain the datum explicitly causes the generated transaction to
+    -- fail (datum not found).
+    --
+    -- This does not occur in practice when spending UTxOs obtained by
+    -- searching through the chain with "scriptUtxosSuchThat", or those
+    -- extracted from "CardanoTx" by using "spOutsFromCardanoTx".
     SpendableOut ->
     MiscConstraint
   -- | Ensure that a 'Pl.PubKeyHash' spends a specific UTxO. The hash is not an
