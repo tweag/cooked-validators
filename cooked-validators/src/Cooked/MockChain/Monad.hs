@@ -148,6 +148,7 @@ scriptUtxosSuchThat v predicate =
       (Pl.validatorAddress v)
       (maybe (const False) predicate)
 
+-- | Same as above, but ignoring the StakingCredential in the address after filtering.
 scriptUtxosSuchThatIgnoringSCred ::
   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
