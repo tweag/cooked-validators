@@ -49,7 +49,7 @@ isARecipient pkh datum _ = pkh `elem` [Split.recipient1 datum, Split.recipient2 
 txUnlock :: (MonadBlockChain m) => Pl.TypedValidator Split -> m ()
 txUnlock script = do
   pkh <- ownPaymentPubKeyHash
-  (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
+  (output, Split.SplitDatum r1 r2 amount) : _ <-
     scriptUtxosSuchThat script (isARecipient pkh)
   let half = div amount 2
   let share1 = half

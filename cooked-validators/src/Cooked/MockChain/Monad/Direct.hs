@@ -461,7 +461,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange bPol w (Pl.UnbalancedTx (Left _) reqSigs0 uindex slotRange) =
+setFeeAndValidRange _ _ (Pl.UnbalancedTx (Left _) _ _ _) =
   error "Impossible: we have a CardanoBuildTx"
 setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)
