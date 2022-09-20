@@ -174,7 +174,10 @@ outConstraintToTxOut (PaysScript validator msc datum value) =
 orderTxOutputs :: [OutConstraint] -> [Pl.TxOut] -> [Pl.TxOut]
 orderTxOutputs expected given =
   let res = map outConstraintToTxOut expected
-   in res ++ List.deleteFirstsBy ((==) `on` Pl.addressCredential . Pl.txOutAddress) given res
+   in -- TODO: this should just be `res ++ (given List.\\ res)`. However, there is a bug
+      -- in plutus-apps where the StakingCredential is erased. Thus, we need to do this
+      -- custom subtraction.
+      res ++ List.deleteFirstsBy ((==) `on` Pl.addressCredential . Pl.txOutAddress) given res
 
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> MiscConstraint
