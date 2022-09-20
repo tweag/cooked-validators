@@ -24,6 +24,7 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
+import qualified Ledger.Scripts as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -74,6 +75,7 @@ data MockChainBuiltin a where
     Pl.Address ->
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainBuiltin [(SpendableOut, Maybe a)]
+  DatumFromTxOut :: Pl.ChainIndexTxOut -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   -- the following are only available in MonadMockChain, not MonadBlockChain:
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
@@ -145,6 +147,7 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
   interpBuiltin GetCurrentTime = currentTime
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
+  interpBuiltin (DatumFromTxOut o) = datumFromTxOut o
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetParams = params
@@ -169,6 +172,7 @@ singletonBuiltin b = Instr (Builtin b) Return
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
   utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
+  datumFromTxOut = singletonBuiltin . DatumFromTxOut
   txOutByRef = singletonBuiltin . TxOutByRef
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot

@@ -92,7 +92,7 @@ data SpendsScriptConstraint where
     (SpendsConstrs a) =>
     L.TypedValidator a ->
     L.RedeemerType a ->
-    (SpendableOut, L.DatumType a) ->
+    SpendableOut ->
     SpendsScriptConstraint
 
 spendsScriptConstraintP :: Prism' MiscConstraint SpendsScriptConstraint
@@ -113,10 +113,10 @@ spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
 spendableOutL =
   lens
     ( \case
-        SpendsScriptConstraint _ _ (o, _) -> o
+        SpendsScriptConstraint _ _ o -> o
     )
     ( \c o -> case c of
-        SpendsScriptConstraint v r (_, d) -> SpendsScriptConstraint v r (o, d)
+        SpendsScriptConstraint v r _ -> SpendsScriptConstraint v r o
     )
 
 spendsPKConstraintP :: Prism' MiscConstraint SpendableOut

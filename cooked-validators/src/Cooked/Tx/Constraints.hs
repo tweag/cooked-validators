@@ -53,11 +53,11 @@ class ToLedgerConstraint constraint where
   toLedgerConstraint :: constraint -> LedgerConstraint a
 
 instance ToLedgerConstraint MiscConstraint where
-  extractDatumStr (SpendsScript _validator _redeemer (_out, datum)) =
+  extractDatumStr (SpendsScript _ _ (_, Pl.ScriptChainIndexTxOut _ _ (Right datum) _)) =
     M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
   extractDatumStr _ = M.empty
 
-  toLedgerConstraint (SpendsScript v r ((oref, o), _a)) = (lkups, constr)
+  toLedgerConstraint (SpendsScript v r (oref, o)) = (lkups, constr)
     where
       lkups =
         Pl.otherScript (Pl.validatorScript v)
