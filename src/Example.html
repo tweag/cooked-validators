@@ -24,7 +24,7 @@
 </span><span id="line-24"></span><span class="hs-comment">-- Its validator succeeds when redeeming with &quot;ARedeemer1&quot; and fails with</span><span>
 </span><span id="line-25"></span><span class="hs-comment">-- &quot;ARedeemer2&quot;.</span><span>
 </span><span id="line-26"></span><span>
-</span><span id="line-27"></span><span class="hs-keyword">data</span><span> </span><span id="ADatum"><span class="annot"><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ADatum"><span class="annot"><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679560207"><span id="local-6989586621679560209"><span id="local-6989586621679560211"><span class="annot"><span class="annottext">Int -&gt; ADatum -&gt; ShowS
+</span><span id="line-27"></span><span class="hs-keyword">data</span><span> </span><span id="ADatum"><span class="annot"><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ADatum"><span class="annot"><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679564453"><span id="local-6989586621679564455"><span id="local-6989586621679564457"><span class="annot"><span class="annottext">Int -&gt; ADatum -&gt; ShowS
 [ADatum] -&gt; ShowS
 ADatum -&gt; String
 (Int -&gt; ADatum -&gt; ShowS)
@@ -41,15 +41,15 @@ $cshowsPrec :: Int -&gt; ADatum -&gt; ShowS
 </span><span id="line-28"></span><span>
 </span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Eq</span></span><span> </span><span class="annot"><a href="Example.html#ADatum"><span class="hs-identifier hs-type">ADatum</span></a></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-30"></span><span>  </span><span class="annot"><span class="annottext">ADatum
-</span><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span><span> </span><span id="local-6989586621679560203"><span class="annot"><span class="annottext">== :: ADatum -&gt; ADatum -&gt; Bool
+</span><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span><span> </span><span id="local-6989586621679564449"><span class="annot"><span class="annottext">== :: ADatum -&gt; ADatum -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><span class="annottext">ADatum
 </span><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
 </span><span id="line-31"></span><span>
-</span><span id="line-32"></span><span id="local-6989586621679560198"><span id="local-6989586621679560200"><span class="hs-identifier">Pl.makeLift</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ADatum</span></span></span><span>
-</span><span id="line-33"></span><span id="local-6989586621679560188"><span id="local-6989586621679560190"><span id="local-6989586621679560192"><span class="hs-identifier">Pl.unstableMakeIsData</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ADatum</span></span></span></span><span>
+</span><span id="line-32"></span><span id="local-6989586621679564444"><span id="local-6989586621679564446"><span class="hs-identifier">Pl.makeLift</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ADatum</span></span></span><span>
+</span><span id="line-33"></span><span id="local-6989586621679564434"><span id="local-6989586621679564436"><span id="local-6989586621679564438"><span class="hs-identifier">Pl.unstableMakeIsData</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ADatum</span></span></span></span><span>
 </span><span id="line-34"></span><span>
-</span><span id="line-35"></span><span class="hs-keyword">data</span><span> </span><span id="ARedeemer"><span class="annot"><a href="Example.html#ARedeemer"><span class="hs-identifier hs-var">ARedeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ARedeemer1"><span class="annot"><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="ARedeemer2"><span class="annot"><a href="Example.html#ARedeemer2"><span class="hs-identifier hs-var">ARedeemer2</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679560174"><span id="local-6989586621679560176"><span id="local-6989586621679560178"><span class="annot"><span class="annottext">Int -&gt; ARedeemer -&gt; ShowS
+</span><span id="line-35"></span><span class="hs-keyword">data</span><span> </span><span id="ARedeemer"><span class="annot"><a href="Example.html#ARedeemer"><span class="hs-identifier hs-var">ARedeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ARedeemer1"><span class="annot"><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="ARedeemer2"><span class="annot"><a href="Example.html#ARedeemer2"><span class="hs-identifier hs-var">ARedeemer2</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679564420"><span id="local-6989586621679564422"><span id="local-6989586621679564424"><span class="annot"><span class="annottext">Int -&gt; ARedeemer -&gt; ShowS
 [ARedeemer] -&gt; ShowS
 ARedeemer -&gt; String
 (Int -&gt; ARedeemer -&gt; ShowS)
@@ -68,8 +68,8 @@ $cshowsPrec :: Int -&gt; ARedeemer -&gt; ShowS
 </span><span id="line-36"></span><span>
 </span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Eq</span></span><span> </span><span class="annot"><a href="Example.html#ARedeemer"><span class="hs-identifier hs-type">ARedeemer</span></a></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">ARedeemer
-</span><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span><span> </span><span id="local-6989586621679560172"><span class="annot"><span class="annottext">== :: ARedeemer -&gt; ARedeemer -&gt; Bool
-</span><a href="#local-6989586621679560172"><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></a></span></span><span> </span><span class="annot"><span class="annottext">ARedeemer
+</span><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span><span> </span><span id="local-6989586621679564418"><span class="annot"><span class="annottext">== :: ARedeemer -&gt; ARedeemer -&gt; Bool
+</span><a href="#local-6989586621679564418"><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></a></span></span><span> </span><span class="annot"><span class="annottext">ARedeemer
 </span><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">True</span></span><span>
 </span><span id="line-39"></span><span>  </span><span class="annot"><span class="annottext">ARedeemer
@@ -81,8 +81,8 @@ $cshowsPrec :: Int -&gt; ARedeemer -&gt; ShowS
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
 </span><span id="line-41"></span><span>
-</span><span id="line-42"></span><span id="local-6989586621679560168"><span id="local-6989586621679560170"><span class="hs-identifier">Pl.makeLift</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ARedeemer</span></span></span><span>
-</span><span id="line-43"></span><span id="local-6989586621679560162"><span id="local-6989586621679560164"><span id="local-6989586621679560166"><span class="hs-identifier">Pl.unstableMakeIsData</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ARedeemer</span></span></span></span><span>
+</span><span id="line-42"></span><span id="local-6989586621679564414"><span id="local-6989586621679564416"><span class="hs-identifier">Pl.makeLift</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ARedeemer</span></span></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679564408"><span id="local-6989586621679564410"><span id="local-6989586621679564412"><span class="hs-identifier">Pl.unstableMakeIsData</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">ARedeemer</span></span></span></span><span>
 </span><span id="line-44"></span><span>
 </span><span id="line-45"></span><span class="hs-keyword">data</span><span> </span><span id="AContract"><span class="annot"><a href="Example.html#AContract"><span class="hs-identifier hs-var">AContract</span></a></span></span><span>
 </span><span id="line-46"></span><span>
@@ -118,8 +118,8 @@ CompiledCode (ValidatorType a)
 </span><span id="line-59"></span><span>    </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">Pl.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">mkAValidator</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
 </span><span id="line-60"></span><span>    </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">Pl.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">wrap</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
 </span><span id="line-61"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-62"></span><span>    </span><span id="local-6989586621679560154"><span class="annot"><span class="annottext">wrap :: (ADatum -&gt; ARedeemer -&gt; ScriptContext -&gt; Bool) -&gt; UntypedValidator
-</span><a href="#local-6989586621679560154"><span class="hs-identifier hs-var hs-var">wrap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UnsafeFromData ADatum, UnsafeFromData ARedeemer) =&gt;
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679564400"><span class="annot"><span class="annottext">wrap :: (ADatum -&gt; ARedeemer -&gt; ScriptContext -&gt; Bool) -&gt; UntypedValidator
+</span><a href="#local-6989586621679564400"><span class="hs-identifier hs-var hs-var">wrap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(UnsafeFromData ADatum, UnsafeFromData ARedeemer) =&gt;
 (ADatum -&gt; ARedeemer -&gt; ScriptContext -&gt; Bool) -&gt; UntypedValidator
 forall d r.
 (UnsafeFromData d, UnsafeFromData r) =&gt;
@@ -128,13 +128,13 @@ forall d r.
 </span><span id="line-63"></span><span>
 </span><span id="line-64"></span><span class="hs-comment">-- Example endpoints</span><span>
 </span><span id="line-65"></span><span>
-</span><span id="line-66"></span><span id="local-6989586621679560224"><span class="annot"><a href="Example.html#payEndpoint"><span class="hs-identifier hs-type">payEndpoint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679560224"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679560224"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span></span><span>
+</span><span id="line-66"></span><span id="local-6989586621679564470"><span class="annot"><a href="Example.html#payEndpoint"><span class="hs-identifier hs-type">payEndpoint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679564470"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679564470"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span></span><span>
 </span><span id="line-67"></span><span id="payEndpoint"><span class="annot"><span class="annottext">payEndpoint :: Integer -&gt; Integer -&gt; m SpendableOut
-</span><a href="Example.html#payEndpoint"><span class="hs-identifier hs-var hs-var">payEndpoint</span></a></span></span><span> </span><span id="local-6989586621679560151"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679560151"><span class="hs-identifier hs-var">amountToPk</span></a></span></span><span> </span><span id="local-6989586621679560150"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679560150"><span class="hs-identifier hs-var">amountToScript</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-68"></span><span>  </span><span id="local-6989586621679560149"><span class="annot"><span class="annottext">CardanoTx
-</span><a href="#local-6989586621679560149"><span class="hs-identifier hs-var">cardanoTx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="Example.html#payEndpoint"><span class="hs-identifier hs-var hs-var">payEndpoint</span></a></span></span><span> </span><span id="local-6989586621679564397"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679564397"><span class="hs-identifier hs-var">amountToPk</span></a></span></span><span> </span><span id="local-6989586621679564396"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679564396"><span class="hs-identifier hs-var">amountToScript</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679564395"><span class="annot"><span class="annottext">CardanoTx
+</span><a href="#local-6989586621679564395"><span class="hs-identifier hs-var">cardanoTx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-69"></span><span>    </span><span class="annot"><span class="annottext">TxSkel -&gt; m CardanoTx
 forall (m :: * -&gt; *). MonadBlockChain m =&gt; TxSkel -&gt; m CardanoTx
 </span><a href="Cooked.MockChain.Monad.html#validateTxSkel"><span class="hs-identifier hs-var">validateTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; m CardanoTx) -&gt; TxSkel -&gt; m CardanoTx
@@ -153,41 +153,41 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="Cooked.MockChain.Wallet.html#wallet"><span class="hs-identifier hs-var">wallet</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679560151"><span class="hs-identifier hs-var">amountToPk</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679564397"><span class="hs-identifier hs-var">amountToPk</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-72"></span><span>          </span><span class="annot"><span class="annottext">TypedValidator AContract
 -&gt; DatumType AContract -&gt; Value -&gt; OutConstraint
 forall a.
 PaysScriptConstrs a =&gt;
 TypedValidator a -&gt; DatumType a -&gt; Value -&gt; OutConstraint
-</span><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-var">PaysScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator AContract
+</span><a href="Cooked.Tx.Constraints.Type.html#paysScript"><span class="hs-identifier hs-var">paysScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator AContract
 </span><a href="Example.html#aValidator"><span class="hs-identifier hs-var">aValidator</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType AContract
 ADatum
 </span><a href="Example.html#ADatum"><span class="hs-identifier hs-var">ADatum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679560150"><span class="hs-identifier hs-var">amountToScript</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679564396"><span class="hs-identifier hs-var">amountToScript</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-73"></span><span>        </span><span class="hs-special">]</span><span>
-</span><span id="line-74"></span><span>  </span><span id="local-6989586621679560141"><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679560141"><span class="hs-identifier hs-var">spOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; m [SpendableOut]
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621679564387"><span class="annot"><span class="annottext">[SpendableOut]
+</span><a href="#local-6989586621679564387"><span class="hs-identifier hs-var">spOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; m [SpendableOut]
 forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 CardanoTx -&gt; m [SpendableOut]
 </span><a href="Cooked.MockChain.Monad.html#spOutsFromCardanoTx"><span class="hs-identifier hs-var">spOutsFromCardanoTx</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoTx
-</span><a href="#local-6989586621679560149"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span>
+</span><a href="#local-6989586621679564395"><span class="hs-identifier hs-var">cardanoTx</span></a></span><span>
 </span><span id="line-75"></span><span>  </span><span class="hs-comment">-- We return the second (index 1) utxo from the transaction outputs:</span><span>
 </span><span id="line-76"></span><span>  </span><span class="hs-comment">-- the script output</span><span>
 </span><span id="line-77"></span><span>  </span><span class="annot"><span class="annottext">SpendableOut -&gt; m SpendableOut
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679560141"><span class="hs-identifier hs-var">spOuts</span></a></span><span> </span><span class="annot"><span class="annottext">[SpendableOut] -&gt; Int -&gt; SpendableOut
+</span><a href="#local-6989586621679564387"><span class="hs-identifier hs-var">spOuts</span></a></span><span> </span><span class="annot"><span class="annottext">[SpendableOut] -&gt; Int -&gt; SpendableOut
 forall a. [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
 </span><span id="line-78"></span><span>
-</span><span id="line-79"></span><span id="local-6989586621679560223"><span class="annot"><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-type">spendEndpoint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679560223"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Example.html#ARedeemer"><span class="hs-identifier hs-type">ARedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679560223"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-79"></span><span id="local-6989586621679564469"><span class="annot"><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-type">spendEndpoint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679564469"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Example.html#ARedeemer"><span class="hs-identifier hs-type">ARedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679564469"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-80"></span><span id="spendEndpoint"><span class="annot"><span class="annottext">spendEndpoint :: SpendableOut -&gt; ARedeemer -&gt; m ()
-</span><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-var hs-var">spendEndpoint</span></a></span></span><span> </span><span id="local-6989586621679560137"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560137"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span id="local-6989586621679560136"><span class="annot"><span class="annottext">ARedeemer
-</span><a href="#local-6989586621679560136"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-var hs-var">spendEndpoint</span></a></span></span><span> </span><span id="local-6989586621679564383"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679564383"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span id="local-6989586621679564382"><span class="annot"><span class="annottext">ARedeemer
+</span><a href="#local-6989586621679564382"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-81"></span><span>  </span><span class="annot"><span class="annottext">m CardanoTx -&gt; m ()
 forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
 </span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(m CardanoTx -&gt; m ()) -&gt; m CardanoTx -&gt; m ()
@@ -212,16 +212,16 @@ TypedValidator a
 </span><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-var">SpendsScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator AContract
 </span><a href="Example.html#aValidator"><span class="hs-identifier hs-var">aValidator</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType AContract
 ARedeemer
-</span><a href="#local-6989586621679560136"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560137"><span class="hs-identifier hs-var">spOut</span></a></span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679564382"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679564383"><span class="hs-identifier hs-var">spOut</span></a></span><span class="hs-special">]</span><span>
 </span><span id="line-85"></span><span>
 </span><span id="line-86"></span><span class="hs-comment">-- Example traces, one success, one failure</span><span>
 </span><span id="line-87"></span><span>
-</span><span id="line-88"></span><span id="local-6989586621679560215"><span class="annot"><a href="Example.html#example1"><span class="hs-identifier hs-type">example1</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679560215"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679560215"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-88"></span><span id="local-6989586621679564461"><span class="annot"><a href="Example.html#example1"><span class="hs-identifier hs-type">example1</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679564461"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679564461"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-89"></span><span id="example1"><span class="annot"><span class="annottext">example1 :: m ()
 </span><a href="Example.html#example1"><span class="hs-identifier hs-var hs-var">example1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-90"></span><span>  </span><span id="local-6989586621679560132"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560132"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m SpendableOut
+</span><span id="line-90"></span><span>  </span><span id="local-6989586621679564378"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679564378"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m SpendableOut
 forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 Integer -&gt; Integer -&gt; m SpendableOut
@@ -233,14 +233,14 @@ forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 SpendableOut -&gt; ARedeemer -&gt; m ()
 </span><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-var">spendEndpoint</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560132"><span class="hs-identifier hs-var">spOut</span></a></span><span> </span><span class="annot"><span class="annottext">ARedeemer
+</span><a href="#local-6989586621679564378"><span class="hs-identifier hs-var">spOut</span></a></span><span> </span><span class="annot"><span class="annottext">ARedeemer
 </span><a href="Example.html#ARedeemer1"><span class="hs-identifier hs-var">ARedeemer1</span></a></span><span>
 </span><span id="line-92"></span><span>
-</span><span id="line-93"></span><span id="local-6989586621679560131"><span class="annot"><a href="Example.html#example2"><span class="hs-identifier hs-type">example2</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679560131"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679560131"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-93"></span><span id="local-6989586621679564377"><span class="annot"><a href="Example.html#example2"><span class="hs-identifier hs-type">example2</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.html#MonadMockChain"><span class="hs-identifier hs-type">MonadMockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679564377"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679564377"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
 </span><span id="line-94"></span><span id="example2"><span class="annot"><span class="annottext">example2 :: m ()
 </span><a href="Example.html#example2"><span class="hs-identifier hs-var hs-var">example2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-95"></span><span>  </span><span id="local-6989586621679560129"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560129"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m SpendableOut
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679564375"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679564375"><span class="hs-identifier hs-var">spOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; m SpendableOut
 forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 Integer -&gt; Integer -&gt; m SpendableOut
@@ -252,7 +252,7 @@ forall (m :: * -&gt; *).
 MonadBlockChain m =&gt;
 SpendableOut -&gt; ARedeemer -&gt; m ()
 </span><a href="Example.html#spendEndpoint"><span class="hs-identifier hs-var">spendEndpoint</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679560129"><span class="hs-identifier hs-var">spOut</span></a></span><span> </span><span class="annot"><span class="annottext">ARedeemer
+</span><a href="#local-6989586621679564375"><span class="hs-identifier hs-var">spOut</span></a></span><span> </span><span class="annot"><span class="annottext">ARedeemer
 </span><a href="Example.html#ARedeemer2"><span class="hs-identifier hs-var">ARedeemer2</span></a></span><span>
 </span><span id="line-97"></span><span>
 </span><span id="line-98"></span><span class="hs-comment">-- Test suite including a failing test to showcase pretty printing of</span><span>
