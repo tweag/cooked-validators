@@ -127,7 +127,7 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let [[aUtxo1], [aUtxo2], [aUtxo3], [aUtxo4]] =
+    $ let [[(aUtxo1, _)], [(aUtxo2, _)], [(aUtxo3, _)], [(aUtxo4, _)]] =
             map
               ( \n ->
                   scriptUtxosSuchThatMcst
@@ -140,7 +140,7 @@ tests =
                 4_000_000,
                 5_000_000
               ]
-          [[bUtxo1], [bUtxo2], [bUtxo3]] =
+          [[(bUtxo1, _)], [(bUtxo2, _)], [(bUtxo3, _)]] =
             map
               ( \n ->
                   scriptUtxosSuchThatMcst
@@ -171,21 +171,21 @@ tests =
                   let c1 = toConstraints $ SpendsScript bValidator BRedeemer1 bUtxo1
                       c2 =
                         [SpendsScript bValidator BRedeemer2 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo1]
+                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo1]
                    in assertSameConstraints (addConstraints c2 c1) c1,
                 testCase "non-conflicting 'SpendsScript' is added" $
                   let c1 =
                         [SpendsScript bValidator BRedeemer1 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1]
+                          :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue bUtxo1]
                       c2 =
                         [SpendsScript bValidator BRedeemer2 bUtxo2]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2]
+                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo2]
                    in assertSameConstraints (addConstraints c2 c1) $
                         [ SpendsScript bValidator BRedeemer1 bUtxo1,
                           SpendsScript bValidator BRedeemer2 bUtxo2
                         ]
-                          :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst bUtxo1,
-                                 paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst bUtxo2
+                          :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue bUtxo1,
+                                 paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo2
                                ]
               ],
             testCase "unit test on a 'TxSkel'" $
@@ -198,16 +198,16 @@ tests =
                         dsExtraConstraints = \mcst ssc ->
                           let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
                            in case ssc of
-                                SpendsScriptConstraint _ _ (aOut, _) ->
+                                SpendsScriptConstraint _ _ aOut ->
                                   let aValue = sOutValue aOut
                                    in if
                                           | aValue == L.lovelaceValueOf 2_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
                                               | (bOut, bDatum) <- bUtxos,
                                                 sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                             ]
                                           | aValue == L.lovelaceValueOf 3_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
+                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
                                               | (bOut, bDatum) <- bUtxos,
                                                 sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
                                             ]
@@ -217,10 +217,10 @@ tests =
                                                   let bValue = sOutValue bOut
                                                    in if
                                                           | bValue == L.lovelaceValueOf 6_000_000 ->
-                                                            [toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)]
+                                                            [toConstraints $ SpendsScript bValidator BRedeemer1 bOut]
                                                           | bValue == L.lovelaceValueOf 7_000_000 ->
-                                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum),
-                                                              toConstraints $ SpendsScript bValidator BRedeemer2 (bOut, bDatum)
+                                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut,
+                                                              toConstraints $ SpendsScript bValidator BRedeemer2 bOut
                                                             ]
                                                           | otherwise -> []
                                               )
@@ -237,9 +237,9 @@ tests =
 
                   skelExpected aUtxos bUtxos =
                     map
-                      ( \((bOut, bDat), bRed) ->
+                      ( \(bOut, bRed) ->
                           txSkelLbl DoubleSatLbl $
-                            ( SpendsScript bValidator bRed (bOut, bDat) :
+                            ( SpendsScript bValidator bRed bOut :
                               map (SpendsScript aValidator ARedeemer) aUtxos
                             )
                               :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),

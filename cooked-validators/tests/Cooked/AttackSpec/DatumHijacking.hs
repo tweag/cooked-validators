@@ -72,7 +72,7 @@ relockTxSkel :: L.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
   txSkelOpts
     (def {adjustUnbalTx = True})
-    ( [SpendsScript v () (o, FirstLock)]
+    ( [SpendsScript v () o]
         :=>: [paysScript v SecondLock lockValue]
     )
 

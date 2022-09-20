@@ -57,7 +57,7 @@ txUnlock script = do
   void $
     validateTxConstrLbl
       TxUnlock
-      ( [SpendsScript script () (output, datum)]
+      ( [SpendsScript script () output]
           :=>: [ paysPK r1 (Pl.lovelaceValueOf share1),
                  paysPK r2 (Pl.lovelaceValueOf share2)
                ]

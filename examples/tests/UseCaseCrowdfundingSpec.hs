@@ -90,7 +90,7 @@ retrieveFunds t c owner = do
     signs owner $
       validateTxConstrOpts
         (def {autoSlotIncrease = False})
-        ( (ValidateIn (collectionRange c) : map (SpendsScript (typedValidator c) Collect) funds)
+        ( (ValidateIn (collectionRange c) : map (SpendsScript (typedValidator c) Collect) (fst <$> funds))
             :=>: [paysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds)]
         )
 

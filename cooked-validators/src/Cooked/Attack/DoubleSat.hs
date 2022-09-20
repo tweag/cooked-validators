@@ -122,7 +122,7 @@ dsAddOneSscFromOwner ::
   -- | For all 'a's of the original transaction, decide whether to add an extra
   -- UTxO currently belonging to the @extraInputOwner@, and if so, which
   -- redeemers to try. Each redeemer is tried on a separate output transaction.
-  (a -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  (a -> SpendableOut -> [L.RedeemerType b]) ->
   -- Wallet of the attacker. Any value contained in the extra UTxO consumed by
   -- the modified transaction is psid to this wallet.
   Wallet ->
@@ -131,7 +131,7 @@ dsAddOneSscFromOwner optic extraInputOwner extraInputRedeemers attacker =
   dsAddSsc
     optic
     ( \mcst a ->
-        let extraUtxos = scriptUtxosSuchThatMcst mcst extraInputOwner (\_ _ -> True)
+        let extraUtxos = fst <$> scriptUtxosSuchThatMcst mcst extraInputOwner (\_ _ -> True)
          in concatMap
               ( \utxo ->
                   map
@@ -154,7 +154,7 @@ dsAddOneSscToPsc ::
     Pl.FromData (L.DatumType b)
   ) =>
   L.TypedValidator b ->
-  (PaysScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  (PaysScriptConstraint -> SpendableOut -> [L.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams PaysScriptConstraint
 dsAddOneSscToPsc = dsAddOneSscFromOwner paysScriptConstraintsT
@@ -170,7 +170,7 @@ dsAddOneSscToSsc ::
     Pl.FromData (L.DatumType b)
   ) =>
   L.TypedValidator b ->
-  (SpendsScriptConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  (SpendsScriptConstraint -> SpendableOut -> [L.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams SpendsScriptConstraint
 dsAddOneSscToSsc = dsAddOneSscFromOwner spendsScriptConstraintsT
@@ -186,7 +186,7 @@ dsAddOneSscToMc ::
     Pl.FromData (L.DatumType b)
   ) =>
   L.TypedValidator b ->
-  (MintsConstraint -> (SpendableOut, L.DatumType b) -> [L.RedeemerType b]) ->
+  (MintsConstraint -> SpendableOut -> [L.RedeemerType b]) ->
   Wallet ->
   DoubleSatParams MintsConstraint
 dsAddOneSscToMc = dsAddOneSscFromOwner mintsConstraintsT
@@ -384,7 +384,7 @@ checkMiscExtend mc mcs =
       if mc `elem` mcs
         then AlreadyThere
         else case mc of
-          SpendsScript _ _ (o, _) -> if any (spends o) mcs then Incompatible else CompatibleExtension
+          SpendsScript _ _ o -> if any (spends o) mcs then Incompatible else CompatibleExtension
           SpendsPK o -> if any (spends o) mcs then Incompatible else CompatibleExtension
           Before t ->
             let oldRange = validRange mcs
@@ -409,7 +409,7 @@ checkMiscExtend mc mcs =
           _ -> CompatibleExtension -- This case will never be reached
   where
     spends :: SpendableOut -> MiscConstraint -> Bool
-    spends o (SpendsScript _ _ (o', _)) = o == o'
+    spends o (SpendsScript _ _ o') = o == o'
     spends o (SpendsPK o') = o == o'
     spends _ _ = False
 
