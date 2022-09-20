@@ -92,7 +92,7 @@ mkProposal reqSigs pmt = do
                      -- We don't have SpendsPK or PaysPK wrt the wallet `w`
                      -- because the balancing mechanism chooses the same (first) output
                      -- we're working on.
-                     PaysScript
+                     paysScript
                        (pmultisig params)
                        (Accumulator pmt [])
                        (minAda <> paymentValue pmt <> threadToken)
@@ -114,7 +114,7 @@ mkSign params pmt sk = do
   void $
     validateTxConstrOpts
       (def {adjustUnbalTx = True})
-      [PaysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost]
+      [paysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost]
   where
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
@@ -135,7 +135,7 @@ mkCollect thePayment params = signs (wallet 1) $ do
       ( SpendsScript (pmultisig params) () initialProp :
         (SpendsScript (pmultisig params) () <$> (fst <$> signatures))
       )
-        :=>: [ PaysScript
+        :=>: [ paysScript
                  (pmultisig params)
                  (Accumulator thePayment (signPk . snd <$> signatures))
                  (paymentValue thePayment <> sOutValue initialProp <> signatureValues)
@@ -350,7 +350,7 @@ mkFakeCollect thePayment params = do
       ( SpendsScript (pmultisig params) () initialProp :
         (SpendsScript (pmultisig params) () <$> (fst <$> signatures))
       )
-        :=>: [ PaysScript
+        :=>: [ paysScript
                  fakeValidator
                  (HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures))
                  (paymentValue thePayment <> sOutValue initialProp <> signatureValues)

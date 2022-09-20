@@ -115,13 +115,13 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
 
 tests :: TestTree
 tests =

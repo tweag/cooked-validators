@@ -15,6 +15,7 @@ where
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Function (on)
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
@@ -85,7 +86,7 @@ instance ToLedgerConstraint MiscConstraint where
   toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
 
 instance ToLedgerConstraint OutConstraint where
-  extractDatumStr (PaysScript _validator datum _value) =
+  extractDatumStr (PaysScript _validator _ datum _value) =
     M.singleton (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum) (show datum)
   extractDatumStr (PaysPKWithDatum _pk _stak mdat _v) =
     maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
@@ -100,14 +101,24 @@ instance ToLedgerConstraint OutConstraint where
           -- a different 'WithOwnStakePubKeyHash' constraint?
           <> maybe mempty Pl.ownStakePubKeyHash stak
       constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
-  toLedgerConstraint (PaysScript v datum value) = (lkups, constr)
+  toLedgerConstraint (PaysScript v msc datum value) = (lkups, constr)
     where
       lkups = Pl.otherScript (Pl.validatorScript v)
       constr =
-        Pl.mustPayToOtherScript
-          (Pl.validatorHash $ Pl.validatorScript v)
-          (Pl.Datum $ Pl.toBuiltinData datum)
-          value
+        Pl.singleton
+          ( Pl.MustPayToOtherScript
+              (Pl.validatorHash $ Pl.validatorScript v)
+              (msc >>= getStakeValidatorHash)
+              (Pl.Datum $ Pl.toBuiltinData datum)
+              value
+          )
+          <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
+      -- Retrieve StakeValidatorHash from StakingCredential. This is similar to what plutus-apps does.
+      -- See lines 141-146 in plutus-apps/plutus-ledger-constraints/test/Spec.hs (commit hash 02ae267)
+      getStakeValidatorHash :: Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
+      getStakeValidatorHash (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh))) =
+        Just $ Pl.StakeValidatorHash svh
+      getStakeValidatorHash _ = Nothing
 
 instance ToLedgerConstraint Constraints where
   extractDatumStr (miscConstraints :=>: outConstraints) =
@@ -135,12 +146,17 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
       Pl.txOutValue = value,
       Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
     }
-outConstraintToTxOut (PaysScript validator datum value) =
-  Pl.TxOut
-    { Pl.txOutAddress = Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator,
-      Pl.txOutValue = value,
-      Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-    }
+outConstraintToTxOut (PaysScript validator msc datum value) =
+  let outAddr = appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator
+   in Pl.TxOut
+        { Pl.txOutAddress = outAddr,
+          Pl.txOutValue = value,
+          Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+        }
+  where
+    appendStakingCredential :: Maybe Pl.StakingCredential -> Pl.Address -> Pl.Address
+    appendStakingCredential Nothing addr = addr
+    appendStakingCredential (Just sc) addr = addr {Pl.addressStakingCredential = Just sc}
 
 -- | Reorders the outputs of a transaction according to the ordered list of
 -- output constraints that generate them. Fails in case of mismatch. The
@@ -158,7 +174,10 @@ outConstraintToTxOut (PaysScript validator datum value) =
 orderTxOutputs :: [OutConstraint] -> [Pl.TxOut] -> [Pl.TxOut]
 orderTxOutputs expected given =
   let res = map outConstraintToTxOut expected
-   in res ++ (given List.\\ res)
+   in -- TODO: this should just be `res ++ (given List.\\ res)`. However, there is a bug
+      -- in plutus-apps where the StakingCredential is erased. Thus, we need to do this
+      -- custom subtraction.
+      res ++ List.deleteFirstsBy ((==) `on` Pl.addressCredential . Pl.txOutAddress) given res
 
 -- | @signedByWallets ws == SignedBy $ map walletPKHash ws@
 signedByWallets :: [Wallet] -> MiscConstraint

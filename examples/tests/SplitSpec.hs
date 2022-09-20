@@ -42,7 +42,7 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
                ]
       remainder = amount - share1 - share2
       remainderConstraint =
-        PaysScript
+        paysScript
           Split.splitValidator
           (Split.SplitDatum r1 r2 remainder)
           (Pl.lovelaceValueOf remainder)

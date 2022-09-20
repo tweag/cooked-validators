@@ -43,12 +43,12 @@ datumHijackingAttack change select mcst skel =
   let thief = datumHijackingTarget @a
 
       changeRecipient :: PaysScriptConstraint -> Maybe PaysScriptConstraint
-      changeRecipient (PaysScriptConstraint val dat money) =
+      changeRecipient (PaysScriptConstraint val sc dat money) =
         -- checks whether val _is of the same type as_ the thief, they're obviously different scripts.
         case val ~*~? thief of
           Just HRefl ->
             if change val dat money
-              then Just $ PaysScriptConstraint thief dat money
+              then Just $ PaysScriptConstraint thief sc dat money
               else Nothing
           Nothing -> Nothing
    in addLabel (DatumHijackingLbl $ L.validatorAddress thief)

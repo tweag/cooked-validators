@@ -237,6 +237,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   utxosSuchThat = utxosSuchThat'
 
+  utxosSuchThisAndThat = utxosSuchThisAndThat'
+
   datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
   datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
   -- datum is always present in the nominal case, guaranteed by chain-index
@@ -345,16 +347,15 @@ validateTx' reqSigs tx = do
         )
       return $ Pl.txId tx
 
--- | Check 'utxosSuchThat' for details
-utxosSuchThat' ::
+utxosSuchThisAndThat' ::
   forall a m.
   (Monad m, Pl.FromData a) =>
-  Pl.Address ->
+  (Pl.Address -> Bool) ->
   (Maybe a -> Pl.Value -> Bool) ->
   MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThat' addr datumPred = do
+utxosSuchThisAndThat' addrPred datumPred = do
   ix <- gets (Pl.getIndex . mcstIndex)
-  let ix' = M.filter ((== addr) . Pl.txOutAddress) ix
+  let ix' = M.filter (addrPred . Pl.txOutAddress) ix
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
@@ -385,6 +386,15 @@ utxosSuchThat' addr datumPred = do
           if datumPred (Just a) val
             then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
             else return Nothing
+
+-- | Check 'utxosSuchThat' for details
+utxosSuchThat' ::
+  forall a m.
+  (Monad m, Pl.FromData a) =>
+  Pl.Address ->
+  (Maybe a -> Pl.Value -> Bool) ->
+  MockChainT m [(SpendableOut, Maybe a)]
+utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
 -- | Generates an unbalanced transaction from a skeleton; A
 --  transaction is unbalanced whenever @inputs + mints != outputs + fees@.
@@ -451,7 +461,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange bPol w (Pl.UnbalancedTx (Left _) reqSigs0 uindex slotRange) =
+setFeeAndValidRange _ _ (Pl.UnbalancedTx (Left _) _ _ _) =
   error "Impossible: we have a CardanoBuildTx"
 setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRange) = do
   utxos <- pkUtxos' (walletPKHash w)

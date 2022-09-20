@@ -11,7 +11,6 @@ import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
-import Type.Reflection
 
 -- | An attack that tries to change the datum on 'PaysScript' constraints with a
 -- prescribed tampering function, that only applies to datums of a certain type.
@@ -26,6 +25,6 @@ tamperDatumAttack ::
   Attack
 tamperDatumAttack change mcst skel =
   addLabel TamperDatumLbl
-    <$> mkAttack (paysScriptConstraintsT % paysScriptConstraintTypeP @a % _2) change mcst skel
+    <$> mkAttack (paysScriptConstraintsT % paysScriptConstraintTypeP @a % _3) change mcst skel
 
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq)
