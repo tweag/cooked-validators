@@ -56,18 +56,7 @@ data ValParams = ValParams
   { staticValParams :: StaticValParams,
     -- | address of the seller
     seller :: Pl.PubKeyHash,
-    -- | The asset class of the thread token. It's is needed here to
-    -- break a circular dependency between the vaildator and the
-    -- minting policy: The minting policy needs to know the (hash of
-    -- the) validator, in order to ensure that the thread token is
-    -- locked by the validator after the initial transaction. The
-    -- validator needs to know the AssetClass of the thread token, so
-    -- that it can ensure the token is correctly passed on. In
-    -- principle, the validator could compute this AssetClass, if it
-    -- knows the minting policy and the TokenName (using
-    -- 'Pl.scriptCurrencySymbol' and 'Value.assetClass'). This would
-    -- make the minting policy a parameter of the validator, so that
-    -- each would depend on the other. This is a way out.
+    -- | the asset class of the thread token
     threadTokenAssetClass :: Value.AssetClass
   }
   deriving (Haskell.Show)
@@ -90,9 +79,7 @@ data PolicyParams = PolicyParams
   { -- | TokenName of the thread token
     pThreadTokenName :: Value.TokenName,
     -- | outref of the utxo the seller spent the lot from
-    pLotOutRef :: Pl.TxOutRef,
-    -- | lot of the auction
-    pLot :: Pl.Value
+    pLotOutRef :: Pl.TxOutRef
   }
 
 PlutusTx.makeLift ''PolicyParams
@@ -115,7 +102,10 @@ instance Eq BidderInfo where
 
 -- | The state of the auction. This will be the 'DatumType'.
 data AuctionState
-  = -- | state of an auction that has not yet had any bids
+  = -- | state of an auction where an offer has already been made (but the offer
+    -- UTxO has not yet been checked, the thread NFT has not yet been minted)
+    Offer
+  | -- | state of an auction that has not yet had any bids
     NoBids
   | -- | state of an auction that has had at least one bid
     Bidding BidderInfo
@@ -126,13 +116,16 @@ PlutusTx.unstableMakeIsData ''AuctionState
 
 instance Eq AuctionState where
   {-# INLINEABLE (==) #-}
+  Offer == Offer = True
   NoBids == NoBids = True
   Bidding a == Bidding x = a == x
   _ == _ = False
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
 data Action
-  = -- | redeemer to make a bid (before the 'bidDeadline')
+  = -- |
+    CheckOffer
+  | -- | redeemer to make a bid (before the 'bidDeadline')
     Bid BidderInfo
   | -- | redeemer to close the auction (after the 'bidDeadline')
     Hammer
@@ -140,6 +133,7 @@ data Action
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
+  CheckOffer == CheckOffer = True
   Bid bi1 == Bid bi2 = bi1 == bi2
   Hammer == Hammer = True
   _ == _ = False
@@ -149,44 +143,44 @@ PlutusTx.unstableMakeIsData ''Action
 
 -- * The minting policy of the thread token
 
--- | This minting policy controls the thread token of an auction. This
--- token belongs to the validator of the auction, and must be minted
--- in the first transaction, for which this policy ensures that
--- * exactly one thread token is minted, by forcing an UTxO to be consumed
--- * after the transaction:
---     * the validator locks the thread token and the lot of the auction
---     * the validator is in 'NoBids' state
--- The final "hammer" transaction of the auction is the one that burns
--- the thread token. This transaction has its own validator
--- 'validHammer', so that this minting policy only checks that at
--- exactly one token is burned.
+-- | This minting policy controls the thread token of the auction. The token
+-- will belong auction validator, and must be minted in the second trancation
+-- (which consumes an "unchecked" UTxO with the 'Offer' datum and pays a
+-- 'NoBids' Utxo is back to the auction validator). The minting policy only
+-- checks that this transaction mints exactly one thread token, by forcing an
+-- UTxO to be consumed. The rest of the necessary checks are performed by
+-- 'validCheckOffer'.
+--
+-- The final 'Hammer' transaction of the auction burns the thread token. This
+-- transaction has its own validator 'validHammer', so that this minting policy
+-- only checks that at exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> Pl.Address -> Pl.ScriptContext -> Bool
-mkPolicy (PolicyParams tName lotOref lot) validator ctx
+mkPolicy :: PolicyParams -> () -> Pl.ScriptContext -> Bool
+mkPolicy (PolicyParams tName lotOref) _ ctx
   | amnt == Just 1 =
     traceIfFalse
       "Lot UTxO not consumed"
       (any (\i -> Pl.txInInfoOutRef i == lotOref) $ Pl.txInfoInputs txi)
-      && case filter
-        (\o -> Pl.txOutAddress o == validator)
-        (Pl.txInfoOutputs txi) of
-        [o] ->
-          traceIfFalse
-            "Validator does not receive the lot and the thread token of freshly opened auction"
-            (Pl.txOutValue o `Value.geq` (lot <> token))
-            && traceIfFalse
-              "Validator not in 'NoBids'-state on freshly opened auction"
-              (outputAuctionState txi o == Just NoBids)
-        _ -> trace "There must be exactly one output to the validator on a fresh auction" False
+  -- no further checks here; 'validCheckOffer' checks the remaining condition
+  -- (that the auction validator sends a checked UTxO in 'NoBids' state back
+  -- to itself)
+
+  -- && case filter
+  --   (\o -> Pl.txOutAddress o == validator)
+  --   (Pl.txInfoOutputs txi) of
+  --   [o] ->
+  --     traceIfFalse
+  --       "Validator does not receive the lot and the thread token of freshly opened auction"
+  --       (Pl.txOutValue o `Value.geq` (lot <> token))
+  --       && traceIfFalse
+  --         "Validator not in 'NoBids'-state on freshly opened auction"
+  --         (outputAuctionState txi o == Just NoBids)
+  --   _ -> trace "There must be exactly one output to the validator on a fresh auction" False
   | amnt == Just (-1) =
     True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
     txi = Pl.scriptContextTxInfo ctx
-    Pl.Minting me = Pl.scriptContextPurpose ctx
-
-    token :: Pl.Value
-    token = Value.singleton me tName 1
 
     amnt :: Maybe Integer
     amnt = case Value.flattenValue (Pl.txInfoMint txi) of
@@ -203,10 +197,10 @@ threadTokenPolicy pars =
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
-threadTokenAssetClassFromOrefAndLot :: Pl.TxOutRef -> Pl.Value -> Value.AssetClass
-threadTokenAssetClassFromOrefAndLot lotOutRef lot =
+threadTokenAssetClassFromOref :: Pl.TxOutRef -> Value.AssetClass
+threadTokenAssetClassFromOref lotOutRef =
   Value.assetClass
-    (Pl.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef lot)
+    (Pl.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef)
     threadTokenName
 
 -- * The validator and its helpers
@@ -232,6 +226,18 @@ outputAuctionState txi o = do
 {-# INLINEABLE receivesFrom #-}
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
 receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
+
+validCheckOffer :: ValParams -> AuctionState -> Pl.ScriptContext -> Bool
+validCheckOffer _auction datum ctx =
+  case datum of
+    Offer ->
+      let Just (Pl.TxInInfo _ consumed) = Pl.findOwnInput ctx
+       in traceIfFalse "there must be at least one continuing output in 'NoBids' state" $
+            any
+              ((`Value.geq` Pl.txOutValue consumed) . Pl.txOutValue)
+              (Pl.getContinuingOutputs ctx)
+    NoBids -> trace "Cannot re-check in 'NoBids' state" False
+    Bidding _ -> trace "Cannot re-check in 'Bidding' state" False
 
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
@@ -293,6 +299,7 @@ validHammer auction datum ctx =
           "Hammer does not burn exactly one thread token"
           (Pl.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass auction) (-1))
         && case datum of
+          Offer -> trace "Cannot hammer on an unchecked offer" False
           NoBids ->
             traceIfFalse
               "Seller does not get locked lot back"
@@ -308,6 +315,7 @@ validHammer auction datum ctx =
 {-# INLINEABLE validate #-}
 validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
 validate auction datum redeemer ctx = case redeemer of
+  CheckOffer -> validCheckOffer auction datum ctx
   Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
   Hammer -> validHammer auction datum ctx
 
