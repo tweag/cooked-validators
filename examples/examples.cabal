@@ -11,7 +11,6 @@ build-type:     Simple
 library
   exposed-modules:
       Auction
-      Auction.Offchain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
@@ -34,62 +33,6 @@ library
     , cooked-validators
     , data-default
     , either
-    , flat
-    , foldl
-    , freer-extras
-    , freer-simple
-    , heredoc
-    , hspec
-    , lens
-    , mtl
-    , pirouette >=2.0.0
-    , pirouette-plutusir
-    , playground-common
-    , plutus-contract
-    , plutus-core
-    , plutus-ledger
-    , plutus-ledger-api
-    , plutus-pab
-    , plutus-script-utils
-    , plutus-tx
-    , plutus-tx-plugin
-    , plutus-use-cases
-    , scientific
-    , serialise >=0.2.3.0
-    , streaming
-    , tasty
-    , tasty-expected-failure
-    , tasty-hunit
-    , tasty-quickcheck
-    , text
-    , transformers
-  default-language: Haskell2010
-
-test-suite spec
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      AuctionSpec
-      PMultiSigStatefulSpec
-      SplitSpec
-      SplitUPLCSpec
-      UseCaseCrowdfundingSpec
-      Paths_examples
-  autogen-modules:
-      Paths_examples
-  hs-source-dirs:
-      tests
-  ghc-options: -threaded
-  build-depends:
-      QuickCheck
-    , aeson
-    , base >=4.9 && <5
-    , bytestring
-    , containers
-    , cooked-validators
-    , data-default
-    , either
-    , examples
     , flat
     , foldl
     , freer-extras
