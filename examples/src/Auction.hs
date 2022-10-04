@@ -26,13 +26,21 @@ import qualified Ledger.Interval as Interval
 import Ledger.Scripts as Pl
 import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
-import Plutus.Script.Utils.V1.Scripts (scriptHash)
+import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
 -- * Data types
+
+-- | Parameters for the validator. Currently, the only information is is
+-- parameterised by is the currency symbol of the thread token. This can
+-- unfortunately not be computed on-chain.
+newtype ValParams = ValParams Pl.CurrencySymbol
+
+PlutusTx.makeLift ''ValParams
+PlutusTx.unstableMakeIsData ''ValParams
 
 -- | Information on the last bidder and their bid.
 data BidderInfo = BidderInfo
@@ -135,55 +143,49 @@ mkPolicy offerOref ctx
     -- the amount of minted tokens whose token name is the hash of the
     -- 'offerOref'
     amnt :: Integer
-    amnt = 1
-
--- foldr
---   ( \(cs, tn, a) n ->
---       if cs == Pl.ownCurrencySymbol ctx && tn == tokenNameFromTxOutRef offerOref
---         then n + a
---         else n
---   )
---   0
---   $ Value.flattenValue (Pl.txInfoMint txi)
+    amnt =
+      foldr
+        ( \(cs, tn, a) n ->
+            if cs == Pl.ownCurrencySymbol ctx && tn == tokenNameFromTxOutRef offerOref
+              then n + a
+              else n
+        )
+        0
+        $ Value.flattenValue (Pl.txInfoMint txi)
 
 threadTokenPolicy :: Scripts.MintingPolicy
 threadTokenPolicy =
   Pl.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPolicy||])
 
-{- Remark, because I spent quite some time digging for this information: Why do we
-  directly use the constructors for 'CurrencySymbol' and 'TokenName' in the
-  definition of 'threadTokenAssetClassFromOref' and 'tokenNameFromTxOutref'? --
-  The point is that we want to use these functions on-chain, and that
-  'tokenName' and 'currencySymbol' (note the lower-case initial letters!) expect
-  *Haskell* byte strings. See this issue on plutus-apps for some background:
-
-  https://github.com/input-output-hk/plutus-apps/issues/498
-
-  This is also why we can't use 'scriptCurrencySymbol' in the definition of
-  'threadTokenAssetClassFromOref'.
--}
-
 -- | Compute the thread token of the auction that sells the lot that was
 -- originally paid to the auction validator with the given 'TxOutRef'. TODO Explain this better
-{-# INLINEABLE threadToken #-}
 threadToken :: Pl.TxOutRef -> Pl.Value
 threadToken offerOref = Value.assetClassValue (threadTokenAssetClassFromOref offerOref) 1
 
-{-# INLINEABLE threadTokenAssetClassFromOref #-}
 threadTokenAssetClassFromOref :: Pl.TxOutRef -> Value.AssetClass
 threadTokenAssetClassFromOref offerOref =
-  Value.AssetClass
-    ( Value.CurrencySymbol $ getScriptHash $ scriptHash $ getMintingPolicy threadTokenPolicy,
-      tokenNameFromTxOutRef offerOref
-    )
+  Value.assetClass
+    threadCurrencySymbol
+    (tokenNameFromTxOutRef offerOref)
+
+threadCurrencySymbol :: Pl.CurrencySymbol
+threadCurrencySymbol = Pl.scriptCurrencySymbol threadTokenPolicy
 
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: Pl.TxOutRef -> Pl.TokenName
 tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
-  (fromBuiltin $ appendByteString tid $ appendByteString "-" $ encodeInteger i)
+  -- Remark, because I spent quite some time digging for this information: Why
+  -- do we directly use the constructor 'TokenName' here? -- The point is that
+  -- we want to use this function on-chain, and that the library function
+  -- 'tokenName' (note the lower-case initial letter!) expects *Haskell* byte
+  -- strings. See this issue on plutus-apps for some background:
+  --
+  -- https://github.com/input-output-hk/plutus-apps/issues/498
+  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
   where
-    -- we know that the numbers we're working with here are non-negative.
+    -- we know that the numbers (indices of transaction outputs) we're working
+    -- with here are non-negative.
     encodeInteger :: Integer -> BuiltinByteString
     encodeInteger n
       | n `quotient` 10 == 0 = encodeDigit n
@@ -192,6 +194,12 @@ tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
         encodeDigit :: Integer -> BuiltinByteString
         -- 48 is the ASCII code for '0'
         encodeDigit d = consByteString (d + 48) emptyByteString
+
+-- | Compute the thread token of an auction from the currency symbol and the
+-- original offer oref. This is for on-chain TODO explain
+{-# INLINEABLE threadTokenOnChain #-}
+threadTokenOnChain :: Pl.CurrencySymbol -> Pl.TxOutRef -> Pl.Value
+threadTokenOnChain threadCS offerOref = Value.assetClassValue (Value.AssetClass (threadCS, tokenNameFromTxOutRef offerOref)) 1
 
 -- * The validator and its helpers
 
@@ -215,8 +223,8 @@ receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 --   add the thread token
 -- * sign the transaction as the seller
 {-# INLINEABLE validSetDeadline #-}
-validSetDeadline :: AuctionState -> Pl.ScriptContext -> Bool
-validSetDeadline datum ctx =
+validSetDeadline :: Pl.CurrencySymbol -> AuctionState -> Pl.ScriptContext -> Bool
+validSetDeadline threadCS datum ctx =
   let txi = Pl.scriptContextTxInfo ctx
    in case datum of
         Offer seller minbid ->
@@ -229,7 +237,7 @@ validSetDeadline datum ctx =
                   ( any
                       ( \o ->
                           Pl.txOutValue o
-                            `Value.geq` (threadToken offerOref <> Pl.txOutValue offerOut)
+                            `Value.geq` (threadTokenOnChain threadCS offerOref <> Pl.txOutValue offerOut)
                             && case outputAuctionState txi o of
                               Just (NoBids seller' minbid' _deadline) ->
                                 (seller, minbid) == (seller', minbid')
@@ -302,12 +310,13 @@ validBid datum bid bidder ctx =
 -- * afer the transaction, if there have been no bids:
 --    * the seller gets the lot
 {-# INLINEABLE validHammer #-}
-validHammer :: AuctionState -> Pl.TxOutRef -> Pl.ScriptContext -> Bool
-validHammer datum offerOref ctx =
+validHammer :: Pl.CurrencySymbol -> AuctionState -> Pl.TxOutRef -> Pl.ScriptContext -> Bool
+validHammer threadCS datum offerOref ctx =
   let txi = Pl.scriptContextTxInfo ctx
       receives = receivesFrom txi
+      theNFT = threadTokenOnChain threadCS offerOref
       Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = lockedValue}) = Pl.findOwnInput ctx
-      threadTokenIsBurned = Pl.txInfoMint txi == Pl.negate (threadToken offerOref)
+      threadTokenIsBurned = Pl.txInfoMint txi == Pl.negate theNFT
    in case datum of
         Offer seller _minbid ->
           traceIfFalse "Seller must get the offer back" $
@@ -321,7 +330,7 @@ validHammer datum offerOref ctx =
               threadTokenIsBurned
             && traceIfFalse
               "Seller must get the offer back"
-              (seller `receives` (lockedValue <> Pl.negate (threadToken offerOref)))
+              (seller `receives` (lockedValue <> Pl.negate theNFT))
         Bidding seller deadline (BidderInfo lastBid lastBidder) ->
           traceIfFalse
             "Hammer before the deadline is not permitted"
@@ -332,7 +341,7 @@ validHammer datum offerOref ctx =
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
-                  `receives` ( lockedValue <> Pl.negate (threadToken offerOref)
+                  `receives` ( lockedValue <> Pl.negate theNFT
                                  <> Pl.negate (Ada.lovelaceValueOf lastBid)
                              )
               )
@@ -341,13 +350,11 @@ validHammer datum offerOref ctx =
               (seller `receives` Ada.lovelaceValueOf lastBid)
 
 {-# INLINEABLE validate #-}
-validate :: AuctionState -> Action -> Pl.ScriptContext -> Bool
-validate datum redeemer ctx = case redeemer of
-  SetDeadline -> validSetDeadline datum ctx
-  _ -> True
-
--- Bid (BidderInfo bid bidder) -> validBid datum bid bidder ctx
--- Hammer offerOref -> validHammer datum offerOref ctx
+validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
+validate (ValParams threadCS) datum redeemer ctx = case redeemer of
+  SetDeadline -> validSetDeadline threadCS datum ctx
+  Bid (BidderInfo bid bidder) -> validBid datum bid bidder ctx
+  Hammer offerOref -> validHammer threadCS datum offerOref ctx
 
 -- Plutus boilerplate to compile the validator
 
@@ -357,9 +364,9 @@ instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
   type DatumType Auction = AuctionState
 
-auctionValidator :: Scripts.TypedValidator Auction
+auctionValidator :: ValParams -> Scripts.TypedValidator Auction
 auctionValidator =
-  Scripts.mkTypedValidator @Auction
+  Scripts.mkTypedValidatorParam @Auction
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
