@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -29,7 +30,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
-import qualified PlutusTx as Pl (FromData)
+import qualified PlutusTx as Pl (FromData, fromBuiltinData)
 
 -- * BlockChain Monad
 
@@ -156,6 +157,16 @@ spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
     case Pl.fromTxOut txOut of
       Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
       Nothing -> fail "could not extract ChainIndexTxOut"
+
+-- | Retrieve a typed datum from a 'SpendableOut'. This function is useful if you
+-- know the type of datum you expect on a 'SpendableOut' and you want to extract
+-- the datum directly to the correct 'DatumType' for your validator.
+--
+-- This function has an ambiguous type, so it is probably necessary to
+-- type-apply it to the type of your validator.
+spOutGetDatum :: Pl.FromData (Pl.DatumType a) => SpendableOut -> Maybe (Pl.DatumType a)
+spOutGetDatum (_, Pl.ScriptChainIndexTxOut _ _ (Right (Pl.Datum datum)) _) = Pl.fromBuiltinData datum
+spOutGetDatum _ = Nothing
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
