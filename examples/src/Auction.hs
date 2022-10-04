@@ -32,13 +32,101 @@ import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
+{-
+
+Brief overview of the contract
+------------------------------
+
+There are four transactions involved in this contract:
+
+1. Making an offer (off-chain implemented by 'txOffer'). Anyone who wishes to
+   sell something can just pay it to the 'auctionValidator' with the 'Offer'
+   datum specifiying the seller's address (which is the address that will at the
+   end of the auction be paid the winning bid, or, if there have been no bids,
+   receive the offer back) and the minimum bid. No checks are involved in this
+   transaction.
+
+The UTxO at the 'auctionValidator' that contains this initial offer
+parameterises the rest of the auction. We shall call it the _offer UTxO_ of the
+auction.
+
+2. Setting the deadline of the auction (off-chain implemented by
+   'txSetDeadline'). This transaction consumes the offer UTxO and returns an
+   UTxO to the 'auctionValidator' with the 'NoBids' datum, which contains
+
+   - the value originally offered, and
+
+   - the thread NFT. This NFT ensures the authenticity of the auction from that
+     point onwards, and its token name is uniquely derived from the offer UTxO
+     (it is computed by 'tokenNameFromTxOutRef').
+
+3. Bidding on the auction (off-chain implemented by 'txBid'). This transaction
+   consumes an UTxO at the 'auctionValidator' with either 'NoBids' or 'Bidding'
+   datum, and returns an UTxO with strictly greater value to the validator (in
+   particular, it has to return the thread NFT) with a 'Bidding' datum recording
+   the new highest bid and bidder. If there was a previous bidder, they are paid
+   back their bid.
+
+4. Hammer to end the auction (off-chain implemented by 'txHammer'). This
+   transaction pays the Ada amount correspondig to the highest bid to the
+   seller, and the value originally offered to the highest bidder. If there were
+   no bids, the offer is returned to the seller.
+
+Further details of these transactions are explained at the relevant places in
+the code.
+
+Remark on the design of the first two transactions
+--------------------------------------------------
+
+The following discussion is rather technical and not specific to this
+contract. Rather, it describes a general design problem for smart contracts on
+Cardano, so feel free to skip this if you merely want to get to know the
+contract.
+
+On a previous version of this contract, there was only one transaction to make
+the offer and set the deadline. That version of the contract had the following
+problem, which we think is fundamentally unsolve with only one transaction: If
+we want to use only one transaction to mint some tokens with a policy P and make
+sure that they end up at the correct validator V,
+
+- the minting policy P has to know the address of V, which is the hash of V's
+  (compiled and normalised) source code. In particular, there is no way to
+  compute this address on-chain, which means that this can only be accomplished
+  by parameterising the P the address of V.
+
+- Conversely, the V needs to know the 'CurrencySymbol' of the thread token,
+  which is the hash of the (compiled and normalised) code P.
+
+So, each of the two scripts P and V has to have the other's hash as a parameter,
+and have it known at compile time. This is is patently an impossible cycle.
+
+The only generic solution that we know of is to turn any initial payment of
+freshly minted tokens to the validator into a two-transaction process: The first
+transaction does not involve any checks at all, does not mint any tokens that
+should be locked in the validator script, and creates "unchecked" UTxOs (Here,
+these are the UTxOs with the 'Offer' datum). The second transaction consumes
+unchecked UTxOs (with an additional redeemer, here, that is 'SetDeadline'),
+mints the required tokens, and pays a checked UTxOs back to the same validator,
+which contains the newly minted tokens as a proof of their soundness, and a
+datum signalling that they have been checked (here, that datum is
+'NoBids'). Since the second transaction uses a redeemer, it can make whatever
+checks are needed to ensure the tokens are minted correctly and paid to the
+correct script.
+
+This solves the issue because the validator knows its own address and can thus
+ensure that the minted tokens are given to itself and cannot be redirected to
+any other address by an attacker.
+
+-}
+
 -- * Data types
 
 -- | Parameters for the validator. Currently, the only information it is
 -- parameterised by is the currency symbol of the thread token, and that's only
--- a trick to get that currency symbol into the validator. It is constant, and
--- if you look at the very bottom of this file, you will find 'auctionValidator'
--- defined with a constant currency symbol.
+-- a trick to get that currency symbol into the validator, because it can not be
+-- computed on-chain. It is constant, and if you look at the very bottom of this
+-- file, you will find 'auctionValidator' defined with the constant currency
+-- symbol derived from the 'threadTokenPolicy'.
 newtype ValParams = ValParams Pl.CurrencySymbol
 
 PlutusTx.makeLift ''ValParams
@@ -117,15 +205,17 @@ PlutusTx.unstableMakeIsData ''Action
 -- * The minting policy of the thread token
 
 -- | This minting policy controls the thread token of the auction. From the
--- transaction that sets the deadline onwrads, this NFT will belong to the
--- auction validator; its presence proves the authenticity of the auction. Here,
--- we only check that exactly one thread token is minted, enforcing that the
--- appropriate offer utxo, whose hash must be the token name, is consumed. The
--- rest of the necessary checks are performed by 'validSetDeadline'.
+-- transaction that sets the deadline onwards, this NFT will belong to the
+-- 'auctionValidator'; its presence proves the authenticity of the
+-- auction. Here, we only check that exactly one thread token is minted,
+-- enforcing that the appropriate offer utxo, whose hash as computed by
+-- 'tokenNameFromTxOutRef' must be the token name of the minted token, is
+-- consumed. The rest of the necessary checks are performed by
+-- 'validSetDeadline'.
 --
 -- The final 'Hammer' transaction of the auction burns the thread token. This
--- transaction is checked by 'validHammer', so that this minting policy only
--- checks that at exactly one token is burned.
+-- transaction is checked by 'validHammer', so that this minting policy only has
+-- to check that at exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
 mkPolicy :: Pl.TxOutRef -> Pl.ScriptContext -> Bool
 mkPolicy offerOref ctx
@@ -158,8 +248,7 @@ threadTokenPolicy =
   Pl.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPolicy||])
 
--- | Compute the thread token of the auction that sells the lot that was
--- originally paid to the auction validator with the given 'TxOutRef'. TODO Explain this better
+-- | Compute the thread token of the auction with the given offer UTxO.
 threadToken :: Pl.TxOutRef -> Pl.Value
 threadToken offerOref = Value.assetClassValue (threadTokenAssetClassFromOref offerOref) 1
 
@@ -172,6 +261,7 @@ threadTokenAssetClassFromOref offerOref =
 threadCurrencySymbol :: Pl.CurrencySymbol
 threadCurrencySymbol = Pl.scriptCurrencySymbol threadTokenPolicy
 
+-- | Compute the token name of the thread token of an auction from its offer Utxo.
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: Pl.TxOutRef -> Pl.TokenName
 tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
@@ -196,7 +286,8 @@ tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
         encodeDigit d = consByteString (d + 48) emptyByteString
 
 -- | Compute the thread token of an auction from the currency symbol and the
--- original offer oref. This is for on-chain TODO explain
+-- original offer UTxO. This is for on-chain computations of the thread token,
+-- where the currency symbol is known as a parameter.
 {-# INLINEABLE threadTokenOnChain #-}
 threadTokenOnChain :: Pl.CurrencySymbol -> Pl.TxOutRef -> Pl.Value
 threadTokenOnChain threadCS offerOref = Value.assetClassValue (Value.AssetClass (threadCS, tokenNameFromTxOutRef offerOref)) 1
