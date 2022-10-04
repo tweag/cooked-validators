@@ -27,8 +27,9 @@ txOffer lot minBid = do
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
         paysScript A.auctionValidator (A.Offer seller minBid) lot
-  [offerUtxo] <- spOutsFromCardanoTx tx -- the transaction created exactly one output, so this match will never fail
-  return offerUtxo
+  outputs <- spOutsFromCardanoTx tx
+  -- the transaction created exactly one script output, so the call to head never fail
+  return $ head $ filter (isJust . sBelongsToScript) outputs
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
