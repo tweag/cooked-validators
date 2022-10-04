@@ -73,17 +73,15 @@ data AuctionState
     Bidding Pl.PubKeyHash Pl.POSIXTime BidderInfo
   deriving (Haskell.Show)
 
--- {-# INLINEABLE seller #-}
--- seller :: AuctionState -> Pl.PubKeyHash
--- seller (Offer s _) = s
--- seller (NoBids s _ _) = s
--- seller (Bidding s _ _) = s
+getSeller :: AuctionState -> Pl.PubKeyHash
+getSeller (Offer s _) = s
+getSeller (NoBids s _ _) = s
+getSeller (Bidding s _ _) = s
 
-{-# INLINEABLE bidDeadline #-}
-bidDeadline :: AuctionState -> Maybe Pl.POSIXTime
-bidDeadline (Offer _ _) = Nothing
-bidDeadline (NoBids _ _ t) = Just t
-bidDeadline (Bidding _ t _) = Just t
+getBidDeadline :: AuctionState -> Maybe Pl.POSIXTime
+getBidDeadline (Offer _ _) = Nothing
+getBidDeadline (NoBids _ _ t) = Just t
+getBidDeadline (Bidding _ t _) = Just t
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
