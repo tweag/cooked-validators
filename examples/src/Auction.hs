@@ -34,9 +34,11 @@ import qualified Prelude as Haskell
 
 -- * Data types
 
--- | Parameters for the validator. Currently, the only information is is
--- parameterised by is the currency symbol of the thread token. This can
--- unfortunately not be computed on-chain.
+-- | Parameters for the validator. Currently, the only information it is
+-- parameterised by is the currency symbol of the thread token, and that's only
+-- a trick to get that currency symbol into the validator. It is constant, and
+-- if you look at the very bottom of this file, you will find 'auctionValidator'
+-- defined with a constant currency symbol.
 newtype ValParams = ValParams Pl.CurrencySymbol
 
 PlutusTx.makeLift ''ValParams
@@ -77,11 +79,11 @@ data AuctionState
 -- seller (NoBids s _ _) = s
 -- seller (Bidding s _ _) = s
 
--- {-# INLINEABLE bidDeadline #-}
--- bidDeadline :: AuctionState -> Maybe Pl.POSIXTime
--- bidDeadline (Offer _ _) = Nothing
--- bidDeadline (NoBids _ _ t) = Just t
--- bidDeadline (Bidding _ t _) = Just t
+{-# INLINEABLE bidDeadline #-}
+bidDeadline :: AuctionState -> Maybe Pl.POSIXTime
+bidDeadline (Offer _ _) = Nothing
+bidDeadline (NoBids _ _ t) = Just t
+bidDeadline (Bidding _ t _) = Just t
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
@@ -364,10 +366,13 @@ instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
   type DatumType Auction = AuctionState
 
-auctionValidator :: ValParams -> Scripts.TypedValidator Auction
-auctionValidator =
+auctionValidator' :: ValParams -> Scripts.TypedValidator Auction
+auctionValidator' =
   Scripts.mkTypedValidatorParam @Auction
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.mkUntypedValidator @AuctionState @Action
+
+auctionValidator :: Scripts.TypedValidator Auction
+auctionValidator = auctionValidator' $ ValParams $ Pl.scriptCurrencySymbol threadTokenPolicy

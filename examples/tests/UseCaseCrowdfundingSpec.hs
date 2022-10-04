@@ -80,7 +80,7 @@ paysCampaign c w val =
     signs w $
       validateTxConstrOpts
         (def {autoSlotIncrease = False})
-        [PaysScript (typedValidator c) (Ledger.PaymentPubKeyHash (walletPKHash w)) val]
+        [paysScript (typedValidator c) (Ledger.PaymentPubKeyHash (walletPKHash w)) val]
 
 -- | Retrieve funds as being the owner
 retrieveFunds :: (MonadMockChain m) => Ledger.POSIXTime -> Campaign -> Wallet -> m ()
@@ -90,7 +90,7 @@ retrieveFunds t c owner = do
     signs owner $
       validateTxConstrOpts
         (def {autoSlotIncrease = False})
-        ( (ValidateIn (collectionRange c) : map (SpendsScript (typedValidator c) Collect) funds)
+        ( (ValidateIn (collectionRange c) : map (SpendsScript (typedValidator c) Collect) (fst <$> funds))
             :=>: [paysPK (walletPKHash owner) (mconcat $ map (sOutValue . fst) funds)]
         )
 

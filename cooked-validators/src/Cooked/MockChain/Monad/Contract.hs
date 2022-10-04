@@ -41,6 +41,8 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
           else Nothing
     pure $ catMaybes maybeUtxosWithDatums
 
+  utxosSuchThisAndThat _ _ = error "Contract does not support retrieving the UTxOs without a specified address"
+
   txOutByRef ref = fmap Pl.toTxOut <$> C.unspentTxOutFromRef ref
 
   ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownFirstPaymentPubKeyHash
@@ -50,8 +52,7 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   awaitSlot = C.awaitSlot
   awaitTime = C.awaitTime
 
-datumFromTxOut :: (C.AsContractError e) => Pl.ChainIndexTxOut -> C.Contract w s e (Maybe Pl.Datum)
-datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
-datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
--- datum is always present in the nominal case, guaranteed by chain-index
-datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh
+  datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
+  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
+  -- datum is always present in the nominal case, guaranteed by chain-index
+  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh
