@@ -16,6 +16,7 @@ import Cooked.Tx.Constraints
 import qualified Crowdfunding as Cf
 import qualified Crowdfunding.Offchain as Cf
 import Data.Default
+import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Ledger as L
@@ -260,11 +261,11 @@ successfulSingle =
       testCase "multiple contributions with one refund, project is funded" $
         testSucceedsFrom testInit multipleContributionsOneRefunded,
       testCase "many contributors, project funded" $
-        testSucceedsFrom testInit manyContributorsFund,
+        testSucceedsFrom testInit (allowBigTransactions manyContributorsFund),
       testCase "many contributors, owner refunds" $
         testSucceedsFrom testInit manyContributorsOwnerRefunds,
       testCase "many contributors, some refund, project funded" $
-        testSucceedsFrom testInit manyContributorsSomeRefundsFund,
+        testSucceedsFrom testInit (allowBigTransactions manyContributorsSomeRefundsFund),
       testCase "one contribution not exceeding minimum, refunded" $
         testSucceedsFrom testInit oneContributionRefundBelowMinimum,
       testCase "owner refunds, one contribution not exceeding minimum" $
@@ -382,7 +383,7 @@ tryDupTokens =
         (\_ n -> Just $ n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
     )
-    (oneContributionFund <|> twoContributionsFund <|> manyContributorsFund)
+    (oneContributionFund <|> twoContributionsFund <|> allowBigTransactions manyContributorsFund)
 
 tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
@@ -394,7 +395,7 @@ tryDatumHijack =
         )
         (0 ==) -- if there is more than one 'Funding' output, try stealing only the first
     )
-    (oneContributionFund <|> twoContributionsFund <|> manyContributorsFund)
+    (oneContributionFund <|> twoContributionsFund <|> allowBigTransactions manyContributorsFund)
 
 -- Produce two outcomes, which differ only by who the (only) contributor in
 -- the auction was. Then test that the owner and contributors in both
@@ -441,7 +442,9 @@ attacks =
     "Attacks"
     [ testCase "token duplication" $
         testFailsFrom'
-          isCekEvaluationFailure
+          ( isCekEvaluationFailureWithMsg
+              (\msg -> "not minting the right amount" `isPrefixOf` msg)
+          )
           testInit
           tryDupTokens,
       testCase "datum hijacking" $

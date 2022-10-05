@@ -22,8 +22,11 @@ module Crowdfunding where
 
 import qualified Ledger as L
 import qualified Ledger.Interval as Interval
+import Ledger.Scripts as Pl
 import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
+import qualified Plutus.Script.Utils.V1.Scripts as Pl (scriptCurrencySymbol)
+import qualified Plutus.V1.Ledger.Api as Api
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as L
 import PlutusTx.Prelude
@@ -85,43 +88,43 @@ instance Eq FundingParams where
 
 -- | Datum type. Either project proposal with policy params
 -- or funding with funding params
-data Datum
+data CfDatum
   = Proposal ValParams
   | Funding FundingParams
   deriving (Haskell.Show)
 
-PlutusTx.makeLift ''Datum
-PlutusTx.unstableMakeIsData ''Datum
+PlutusTx.makeLift ''CfDatum
+PlutusTx.unstableMakeIsData ''CfDatum
 
-instance Eq Datum where
+instance Eq CfDatum where
   {-# INLINEABLE (==) #-}
   Proposal vp == Proposal vp' = vp == vp'
   Funding fp == Funding fp' = fp == fp'
   _ == _ = False
 
 {-# INLINEABLE getOwner #-}
-getOwner :: Datum -> L.PubKeyHash
+getOwner :: CfDatum -> L.PubKeyHash
 getOwner (Proposal vp) = fundingTarget vp
 getOwner (Funding fp) = to fp
 
 {-# INLINEABLE getFunder #-}
-getFunder :: Datum -> Maybe L.PubKeyHash
+getFunder :: CfDatum -> Maybe L.PubKeyHash
 getFunder (Funding fp) = Just (from fp)
 getFunder _ = Nothing
 
 {-# INLINEABLE getValParams #-}
-getValParams :: Datum -> Maybe ValParams
+getValParams :: CfDatum -> Maybe ValParams
 getValParams (Proposal vp) = Just vp
 getValParams _ = Nothing
 
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
 {-# INLINEABLE getFunderOwner #-}
-getFunderOwner :: Datum -> L.PubKeyHash
+getFunderOwner :: CfDatum -> L.PubKeyHash
 getFunderOwner (Proposal vp) = fundingTarget vp
 getFunderOwner (Funding fp) = from fp
 
 {-# INLINEABLE getValue #-}
-getValue :: Datum -> Maybe L.Value
+getValue :: CfDatum -> Maybe L.Value
 getValue (Funding fp) = Just (val fp)
 getValue _ = Nothing
 
@@ -196,14 +199,14 @@ rewardTokenName (L.PubKeyHash bs) = Value.TokenName bs
 -- | Parameterized minting policy
 rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
 rewardTokenPolicy pars =
-  L.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||Scripts.wrapMintingPolicy . mkPolicy||])
+  Api.mkMintingPolicyScript $
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
 getRewardTokenAssetClass :: L.PubKeyHash -> Value.AssetClass
 getRewardTokenAssetClass ft =
   Value.assetClass
-    (L.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName ft)
+    (Pl.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName ft)
     (rewardTokenName ft)
 
 {-# INLINEABLE crowdfundTimeRange #-}
@@ -212,10 +215,10 @@ crowdfundTimeRange a = Interval.to (projectDeadline a)
 
 -- | Extract a datum state from an output (if it has one)
 {-# INLINEABLE outputDatumState #-}
-outputDatumState :: L.TxInfo -> L.TxOut -> Maybe Datum
+outputDatumState :: L.TxInfo -> L.TxOut -> Maybe CfDatum
 outputDatumState txi o = do
   h <- L.txOutDatum o
-  L.Datum d <- L.findDatum h txi
+  Pl.Datum d <- L.findDatum h txi
   PlutusTx.fromBuiltinData d
 
 -- | Test that the value paid to the given public key address is at
@@ -226,7 +229,7 @@ receivesFrom txi who what = L.valuePaidTo txi who `Value.geq` what
 
 -- | Get list of all datums consumed by a transaction
 {-# INLINEABLE getAllDatums #-}
-getAllDatums :: L.TxInfo -> [Datum]
+getAllDatums :: L.TxInfo -> [CfDatum]
 getAllDatums txi =
   mapMaybe (outputDatumState txi) (map L.txInInfoResolved $ L.txInfoInputs txi)
 
@@ -237,7 +240,7 @@ getUniqueContributors txi = nub $ mapMaybe getFunder $ getAllDatums txi
 
 -- | Get total value contributed from a list of datums
 {-# INLINEABLE getTotalValue #-}
-getTotalValue :: [Datum] -> L.Value
+getTotalValue :: [CfDatum] -> L.Value
 getTotalValue = sum . mapMaybe getValue
 
 -- | Check if the refunding of a particular address at least some amount is valid.
@@ -350,7 +353,7 @@ validFund _ to _ ctx =
         (txi `L.txSignedBy` to)
 
 {-# INLINEABLE validate #-}
-validate :: Datum -> Action -> L.ScriptContext -> Bool
+validate :: CfDatum -> Action -> L.ScriptContext -> Bool
 validate (Funding fp) Launch ctx =
   validFund (from fp) (to fp) (val fp) ctx
 validate (Proposal cf) Launch ctx
@@ -370,7 +373,7 @@ data Crowdfunding
 
 instance Scripts.ValidatorTypes Crowdfunding where
   type RedeemerType Crowdfunding = Action
-  type DatumType Crowdfunding = Datum
+  type DatumType Crowdfunding = CfDatum
 
 crowdfundingValidator :: Scripts.TypedValidator Crowdfunding
 crowdfundingValidator =
@@ -378,4 +381,4 @@ crowdfundingValidator =
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.wrapValidator @Datum @Action
+    wrap = Scripts.mkUntypedValidator @CfDatum @Action

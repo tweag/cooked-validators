@@ -4,6 +4,7 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import qualified Crowdfunding as Cf
+import Data.Default
 import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as Scripts
@@ -17,7 +18,7 @@ txOpen p = do
   void $
     validateTxSkel $
       txSkel
-        [PaysScript Cf.crowdfundingValidator datum minAda]
+        [paysScript Cf.crowdfundingValidator datum minAda]
 
 -- | Individual can contribute a fund
 txIndividualFund :: MonadBlockChain m => Cf.ValParams -> L.Value -> m ()
@@ -28,7 +29,7 @@ txIndividualFund p fund = do
   void $
     validateTxSkel $
       txSkel
-        [PaysScript Cf.crowdfundingValidator datum (fund <> minAda)]
+        [paysScript Cf.crowdfundingValidator datum (fund <> minAda)]
 
 -- | Individual can request a refund
 txRefund :: MonadBlockChain m => m ()
@@ -39,7 +40,7 @@ txRefund = do
   void $
     validateTxSkel $
       txSkel $
-        map (SpendsScript Cf.crowdfundingValidator Cf.IndividualRefund) utxos
+        map (SpendsScript Cf.crowdfundingValidator Cf.IndividualRefund . fst) utxos
           :=>: [paysPK funder (PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos)]
 
 -- | Owner can fund the project before the deadline. When funding, mint n reward tokens,
@@ -55,13 +56,13 @@ txProjectFund p = do
       token num = Value.assetClassValue (Cf.rewardTokenAssetClass p) num
   void $
     validateTxSkel $
-      txSkel $
+      txSkelOpts (def {adjustUnbalTx = True}) $
         ( Before (Cf.projectDeadline p) :
           Mints
             (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
             [Cf.rewardTokenPolicy q]
             (token $ fromIntegral $ length uniqueAddrs) :
-          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch . fst) utxos
         )
           :=>: ( paysPK fundingTarget (datumTotal <> minAda) :
                  map (`paysPK` (token 1 <> minAda)) uniqueAddrs
@@ -71,7 +72,7 @@ txProjectFund p = do
                )
 
 -- | Get total contributions from a specific address given all utxos
-getContributionsAddr :: [(SpendableOut, Cf.Datum)] -> L.PubKeyHash -> L.Value
+getContributionsAddr :: [(SpendableOut, Cf.CfDatum)] -> L.PubKeyHash -> L.Value
 getContributionsAddr utxos addr =
   let addrUtxos = filter (\utxo -> Cf.getFunder (snd utxo) == Just addr) utxos
    in PlutusTx.Prelude.sum $ map (sOutValue . fst) addrUtxos
@@ -91,7 +92,7 @@ txRefundAll p = do
     validateTxSkel $
       txSkel $
         ( After (Cf.projectDeadline p) :
-          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch . fst) utxos
         )
           :=>: zipWith paysPK uniqueAddrs contributions
 
@@ -111,6 +112,6 @@ txRefundAllVulnerability p = do
     validateTxSkel $
       txSkel $
         ( After (Cf.projectDeadline p) :
-          map (SpendsScript Cf.crowdfundingValidator Cf.Launch) utxos
+          map (SpendsScript Cf.crowdfundingValidator Cf.Launch . fst) utxos
         )
           :=>: [paysPK fundingTarget totalContributions]
