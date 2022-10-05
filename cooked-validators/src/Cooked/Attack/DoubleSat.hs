@@ -10,6 +10,8 @@ import Cooked.Attack.Common
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
+import Data.Default
+import Data.List
 import qualified Ledger as L
 import qualified Ledger.Value as L
 import Optics.Core
@@ -135,29 +137,22 @@ doubleSatAttack ::
 doubleSatAttack optic extra attacker mode = do
   mcst <- mcstAttack
   extraConstrs <- map (extra mcst) <$> viewAttack (partsOf optic)
-  case mode of
-    AllSeparate ->
-      msum $
-        map
-          ( \c -> do
-              added <- addConstraintsAttack c
-              let addedValue = constraintBalance added
-              if addedValue `L.geq` mempty
-                then addOutConstraintAttack $ paysPK (walletPKHash attacker) addedValue
-                else failingAttack
-          )
-          (concat extraConstrs)
-    TryCombinations ->
-      msum $
-        map
-          ( \cs -> do
-              added <- mapM addConstraintsAttack cs
-              let addedValue = foldr ((<>) . constraintBalance) mempty added
-              if addedValue `L.geq` mempty
-                then addOutConstraintAttack $ paysPK (walletPKHash attacker) addedValue
-                else failingAttack
-          )
-          (tail $ allCombinations $ map (mempty :) extraConstrs)
+  msum $
+    map
+      ( \c -> do
+          added <- addConstraintsAttack c
+          let addedValue = constraintBalance added
+          if addedValue `L.geq` mempty
+            then addOutConstraintAttack $ paysPK (walletPKHash attacker) addedValue
+            else failingAttack
+      )
+      ( case mode of
+          AllSeparate -> nubBy sameConstraints $ concat extraConstrs
+          TryCombinations ->
+            nubBy sameConstraints $
+              map joinConstraints $
+                tail $ allCombinations $ map (mempty :) extraConstrs
+      )
   addLabelAttack DoubleSatLbl
   where
     constraintBalance :: Constraints -> L.Value
@@ -165,6 +160,19 @@ doubleSatAttack optic extra attacker mode = do
       where
         inValue = foldOf (traversed % valueAT) is
         outValue = foldOf (traversed % valueL) os
+
+    -- this function uses 'addConstraintsAttack' to join a list of 'Constraints'
+    -- into one 'Constraints' that specifies eveything that is contained in the
+    -- input.
+    joinConstraints :: [Constraints] -> Constraints
+    joinConstraints cs =
+      txConstraints $
+        fst $
+          head $
+            getAttack
+              (mapM_ addConstraintsAttack cs)
+              def
+              (txSkel $ [] :=>: [])
 
     allCombinations :: [[x]] -> [[x]]
     allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l

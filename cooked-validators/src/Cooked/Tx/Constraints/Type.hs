@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -91,6 +92,42 @@ instance Semigroup Constraints where
 
 instance Monoid Constraints where
   mempty = [] :=>: []
+
+-- | Check whether two constraints are the same, up to reordering of inputs, and
+-- substitutions of time constraints ('After', 'Before', 'ValidateIn') that
+-- preserve the validity interval of the transaction.
+--
+-- This relation is coarser than equality as defined on 'Constraint', and more
+-- closely reflects the notion of "these constraints specify the same
+-- transaction".
+sameConstraints :: Constraints -> Constraints -> Bool
+sameConstraints (is :=>: os) (is' :=>: os') =
+  sameSets (filter isNoTimeConstraint is) (filter isNoTimeConstraint is')
+    && (os == os')
+    && (validityRange is == validityRange is')
+  where
+    sameSets :: Eq a => [a] -> [a] -> Bool
+    sameSets l r = length l == length r && subset l r && subset r l
+
+    subset :: Eq a => [a] -> [a] -> Bool
+    subset l r = all (`elem` r) l
+
+    isNoTimeConstraint :: MiscConstraint -> Bool
+    isNoTimeConstraint (Before _) = False
+    isNoTimeConstraint (After _) = False
+    isNoTimeConstraint (ValidateIn _) = False
+    isNoTimeConstraint _ = True
+
+    validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
+    validityRange =
+      foldr
+        ( \case
+            Before b -> Pl.intersection (Pl.to b)
+            After a -> Pl.intersection (Pl.from a)
+            ValidateIn i -> Pl.intersection i
+            _ -> id
+        )
+        Pl.always
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where

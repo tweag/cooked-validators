@@ -51,8 +51,8 @@ validator =
   where
     wrap = L.mkUntypedValidator @() @Redeemer
 
--- | In the initial state of the Mockchain, the A and B validators each own
--- a few UTxOs, with different values
+-- | In the initial state of the Mockchain, validator owns a few UTxOs, with
+-- different values
 testMockChainSt :: MockChainSt
 testMockChainSt = case runMockChainRaw def def setup of
   Left _ -> def -- this branch will not be reached

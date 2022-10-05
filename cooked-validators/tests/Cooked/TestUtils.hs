@@ -44,6 +44,10 @@ instance Show TxSkel where
 -- | Assert that two constraints are the same, up to reordering of inputs, and
 -- substitutions of time constraints ('After', 'Before', 'ValidateIn') that
 -- preserve the validity interval of the transaction.
+--
+-- This is an almost literal re-implementation of 'sameConstraints', so that the
+-- error message is more informative than a message provided through
+-- 'assertBool'.
 assertSameConstraints :: Constraints -> Constraints -> Assertion
 assertSameConstraints (is :=>: os) (is' :=>: os') =
   assertSameSets (filter isNoTimeConstraint is) (filter isNoTimeConstraint is')
