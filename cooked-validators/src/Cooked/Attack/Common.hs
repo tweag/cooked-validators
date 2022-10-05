@@ -13,7 +13,6 @@ import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
 import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Optics
 import Data.Default
 import Data.Maybe
 import qualified Ledger as L
@@ -31,7 +30,7 @@ import qualified PlutusTx.Numeric as Pl
 -- Our intuition (and also the language of the comments in this module and its
 -- submodules) is that an attack
 --
--- - /fails/ if if returns @[]@
+-- - /fails/ if it returns @[]@
 --
 -- - /modifies a transaction/, where the /unmodified transaction/ is the name we
 --   give to the input 'TxSkel', and each of the 'TxSkel's in the output list is
@@ -41,7 +40,7 @@ import qualified PlutusTx.Numeric as Pl
 --   list. This is reflected by the 'Monad' instance for 'Attack's.
 newtype Attack a = Attack {getAttack :: MockChainSt -> TxSkel -> [(TxSkel, a)]}
 
--- | Internal wrapper type fpr compatibility with the LTL modalities. You'll
+-- | Internal wrapper type for compatibility with the LTL modalities. You'll
 -- probably never work with this type if you want to build and use attacks.
 data UntypedAttack where
   UntypedAttack :: Attack a -> UntypedAttack
@@ -97,8 +96,8 @@ overAttack optic change = Attack $ \_mcst skel -> [(over optic change skel, ())]
 -- In cases where the original attack would have failed, this returns
 -- @Nothing@. If the original attack would have been applicable, this is
 -- signalled by wrapping the original attack's return value in a @Just@.
-skipFailure :: Attack a -> Attack (Maybe a)
-skipFailure (Attack f) = Attack $
+tryAttack :: Attack a -> Attack (Maybe a)
+tryAttack (Attack f) = Attack $
   \mcst skel -> case f mcst skel of
     [] -> [(skel, Nothing)]
     l -> second Just <$> l

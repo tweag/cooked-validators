@@ -121,9 +121,11 @@ data MiscConstraint where
     [Pl.MintingPolicy] ->
     Pl.Value ->
     MiscConstraint
-  -- | Ensure that the transaction happens before the given time.
+  -- | Ensure that the transaction happens no later than the given time (the end
+  -- time is included in the allowed range).
   Before :: Pl.POSIXTime -> MiscConstraint
-  -- | Ensure that the transaction happens after the given time.
+  -- | Ensure that the transaction happens no earlier than the given time (the
+  -- start time is included in the allowed range).
   After :: Pl.POSIXTime -> MiscConstraint
   -- | Ensure that the transaction happens in the given time range.
   ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint

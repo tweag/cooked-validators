@@ -62,8 +62,6 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
--- is the monad attacks live in, a the return type of the reified operation
-
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)

@@ -13,8 +13,6 @@ module Cooked.Attack.DatumHijacking where
 import Cooked.Attack.Common
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Optics
-import Data.List
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
@@ -56,7 +54,7 @@ redirectScriptOutputAttack optic change =
 -- is. That is, it tests for careless uses of something like 'txInfoOutputs' in
 -- places where something like 'getContinuingOutputs' should be used. If this
 -- attack goes through, however, a "proper" datum hijacking attack that modifies
--- the datum in a way that the (relevant part of) the
+-- the datum in a way that (the relevant part of) the
 -- 'toBuiltinData'-translation stays the same will also work.
 --
 -- A 'DatumHijackingLbl' with the hash of the "thief" validator is added to the

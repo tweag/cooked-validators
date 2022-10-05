@@ -68,10 +68,8 @@ addConstraintsAttack (is :=>: os) = do
 --   signers.
 --
 -- The returned 'MiscConstraint' is either @Just@ the constraint that was added
--- to the transaction (which might be different from the one you specified in
--- case of time constraints, in which case the returned constraint holds the new
--- validity time range of the transaction), or @Nothing@, if your constraint was
--- already present on the unmodiified transaction.
+-- to the transaction, or @Nothing@, if your constraint was already present on
+-- the unmodiified transaction.
 addMiscConstraintAttack :: MiscConstraint -> Attack (Maybe MiscConstraint)
 addMiscConstraintAttack (SpendsScript v r (o, d)) =
   do
@@ -101,16 +99,32 @@ addMiscConstraintAttack (ValidateIn range) =
     >>= return . Just . ValidateIn . Pl.intersection range
 addMiscConstraintAttack (SignedBy s) = addSignedByAttack s >>= return . Just . SignedBy
 
--- | This attack removes some 'MiscConstraint's from a transaction. It returns a
--- list of the removed constraints.
-removeMiscConstraintsAttack :: (MiscConstraint -> Bool) -> Attack [MiscConstraint]
+-- | This attack removes some 'MiscConstraint's from a transaction. Exactly
+-- those constraints that return @Just@ something are removed from the
+-- transaction.
+--
+-- The attack returns a list of all the @Just@ values that were returned by the
+-- removed constraints.
+removeMiscConstraintsAttack :: (MiscConstraint -> Maybe a) -> Attack [a]
 removeMiscConstraintsAttack removePred = do
   mcs <- viewAttack miscConstraintsL
-  let (removed, kept) = partition removePred mcs
+  let (removed, kept) = partitionMaybe removePred mcs
   setAttack miscConstraintsL kept
   return removed
 
--- | This attack ensures that a certain 'SpendsScript' constraint is present on
+-- | Partition a list into two lists, where the first output list contains all
+-- values that were returned by @Just@, and the second records all elements of
+-- the input list that returned @Nothing@. The order of elements is preserved in
+-- both output lists.
+partitionMaybe :: (a -> Maybe b) -> [a] -> ([b], [a])
+partitionMaybe p l = accumulate l [] []
+  where
+    accumulate [] j n = (reverse j, reverse n)
+    accumulate (x : xs) j n = case p x of
+      Just y -> accumulate xs (y : j) n
+      Nothing -> accumulate xs j (x : n)
+
+-- | this attack ensures that a certain 'SpendsScript' constraint is present on
 -- a transaction.
 --
 -- Adding a 'SpendsScript' for an UTxO that is already consumed by the
@@ -171,27 +185,14 @@ addMintsAttack r ps x = overAttack miscConstraintsL (Mints r ps x :)
 -- Returns the validity time range of the unmodified transaction.
 removeTimeConstraintsAttack :: Attack L.POSIXTimeRange
 removeTimeConstraintsAttack = do
-  timeConstraints <-
-    removeMiscConstraintsAttack
-      ( \case
-          Before _ -> True
-          After _ -> True
-          ValidateIn _ -> True
-          _ -> False
-      )
-  return $
-    foldr
-      ( \case
-          -- I don't know if 'Before' and 'After' should include the endpoint or
-          -- not. Since the current implementation of the 'Before' and 'After'
-          -- constraints includes the endpoints, I will do so here as well.
-          Before b -> Pl.intersection (Pl.to b)
-          After a -> Pl.intersection (Pl.from a)
-          ValidateIn i -> Pl.intersection i
-          _ -> id
-      )
-      Pl.always
-      timeConstraints
+  timeRanges <- removeMiscConstraintsAttack toTimeRange
+  return $ foldr Pl.intersection Pl.always timeRanges
+  where
+    toTimeRange = \case
+      Before b -> Just $ Pl.to b
+      After a -> Just $ Pl.from a
+      ValidateIn i -> Just i
+      _ -> Nothing
 
 -- | This attack restricts the validity time range of a transaction to the
 -- intersection of the given range and its current validity time range.
@@ -211,8 +212,8 @@ addValidateInAttack range = do
 -- returns a list of the signers it removed.
 removeSignedByAttack :: Attack [L.PubKeyHash]
 removeSignedByAttack = do
-  removed <- removeMiscConstraintsAttack (\case SignedBy _ -> True; _ -> False)
-  return $ concatMap (\case SignedBy s -> s; _ -> []) removed
+  signers <- removeMiscConstraintsAttack (\case SignedBy s -> Just s; _ -> Nothing)
+  return $ concat signers
 
 -- | This attack adds signers to a transaction. It also combines all 'SignedBy'
 -- constraints of the transaction into one.
@@ -222,7 +223,7 @@ removeSignedByAttack = do
 addSignedByAttack :: [L.PubKeyHash] -> Attack [L.PubKeyHash]
 addSignedByAttack signers = do
   oldSigners <- removeSignedByAttack
-  let newSigners = filter (`notElem` oldSigners) signers
+  let newSigners = signers \\ oldSigners
   overAttack miscConstraintsL (SignedBy (newSigners ++ oldSigners) :)
   return newSigners
 
@@ -236,29 +237,14 @@ addSignedByAttack signers = do
 addOutConstraintAttack :: OutConstraint -> Attack ()
 addOutConstraintAttack oc = overAttack outConstraintsL (++ [oc])
 
--- | Add a 'paysPK' constraint to a transaction. The additional constraint will
--- be added to the end of the list of output constraints.
-addPaysPKAttack ::
-  L.PubKeyHash ->
-  L.Value ->
-  Attack ()
-addPaysPKAttack h v = addOutConstraintAttack $ paysPK h v
-
--- | Add a 'PaysScript' to a transaction. The additional constraint will be
--- added to the end of the list of output constraints.
-addPaysScriptAttack ::
-  PaysScriptConstrs a =>
-  L.TypedValidator a ->
-  L.DatumType a ->
-  L.Value ->
-  Attack ()
-addPaysScriptAttack v d x = addOutConstraintAttack $ PaysScript v d x
-
--- | This attack removes some 'OutConstraint's from a transaction. It returns a
--- list of the removed constraints.
-removeOutConstraintsAttack :: (OutConstraint -> Bool) -> Attack [OutConstraint]
+-- | This attack removes some 'OutConstraint's from a transaction. Exactly those
+-- constraints that return @Just@ something are removed from the transaction.
+--
+-- The attack returns a list of all the @Just@ values that were returned by the
+-- removed constraints.
+removeOutConstraintsAttack :: (OutConstraint -> Maybe a) -> Attack [a]
 removeOutConstraintsAttack removePred = do
   mcs <- viewAttack outConstraintsL
-  let (removed, kept) = partition removePred mcs
+  let (removed, kept) = partitionMaybe removePred mcs
   setAttack outConstraintsL kept
   return removed
