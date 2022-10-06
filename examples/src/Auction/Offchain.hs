@@ -101,7 +101,10 @@ txHammer offerUtxo =
         [(utxo, datum)] <-
           scriptUtxosSuchThat
             A.auctionValidator
-            (\_ x -> x `Value.geq` theNft)
+            ( \d x -> case d of
+                A.Offer {} -> x `Value.geq` sOutValue offerUtxo
+                _ -> x `Value.geq` theNft
+            )
         let Just deadline = A.getBidDeadline datum
         void $
           validateTxSkel $
@@ -116,15 +119,17 @@ txHammer offerUtxo =
                   [A.threadTokenPolicy]
                   (Pl.negate theNft)
               ]
-                :=>: case previousBidder datum of
-                  Nothing ->
-                    let lot = sOutValue utxo <> Pl.negate theNft
-                     in [paysPK (A.getSeller datum) lot]
-                  Just (lastBid, lastBidder) ->
-                    let lot =
-                          sOutValue utxo
-                            <> Pl.negate (Ada.lovelaceValueOf lastBid)
-                            <> Pl.negate theNft
-                     in [ paysPK lastBidder lot,
-                          paysPK (A.getSeller datum) (Ada.lovelaceValueOf lastBid)
-                        ]
+                :=>: case datum of
+                  A.Offer seller _ -> [paysPK seller (sOutValue utxo)]
+                  _ -> case previousBidder datum of
+                    Nothing ->
+                      let lot = sOutValue utxo <> Pl.negate theNft
+                       in [paysPK (A.getSeller datum) lot]
+                    Just (lastBid, lastBidder) ->
+                      let lot =
+                            sOutValue utxo
+                              <> Pl.negate (Ada.lovelaceValueOf lastBid)
+                              <> Pl.negate theNft
+                       in [ paysPK lastBidder lot,
+                            paysPK (A.getSeller datum) (Ada.lovelaceValueOf lastBid)
+                          ]

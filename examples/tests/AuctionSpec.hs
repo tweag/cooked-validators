@@ -42,21 +42,19 @@ banana = Value.assetClassValue bananaAssetClass
 bananasIn :: Value.Value -> Integer
 bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
--- | initial distribution s.t. the first wallet owns five bananas
+-- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit =
-  InitialDistribution $
-    M.insert
-      (wallet 1)
-      (Ada.lovelaceValueOf 100_000_000 <> banana 5 : (standard M.! wallet 1))
-      standard
-  where
-    InitialDistribution standard = def
+testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
 -- These runs use the transactions from Auction.Offchain as they are meant to be
 -- used.
+
+hammerToWithdraw :: MonadMockChain m => m ()
+hammerToWithdraw = do
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  A.txHammer offerUtxo `as` wallet 1
 
 noBids :: MonadMockChain m => m ()
 noBids = do
@@ -117,18 +115,19 @@ successfulSingle =
   testGroup
     "Successful single-trace runs"
     [ testCase "zero bids" $ testSucceedsFrom testInit noBids,
+      testCase "hammer to withdraw" $ testSucceedsFrom testInit hammerToWithdraw,
       testCase "one bid" $ testSucceedsFrom testInit oneBid,
       testCase "two bids on the same auction" $
         testSucceedsFrom'
-          (\_ s -> testBool $ 2 == bananasIn (holdingInState s (wallet 3)))
+          (\_ s -> testBool $ 7 == bananasIn (holdingInState s (wallet 3)))
           testInit
           twoBids,
       testCase
         "two concurrent auctions"
         $ testSucceedsFrom'
           ( \_ s ->
-              testBool (2 == bananasIn (holdingInState s (wallet 2)))
-                .&&. testBool (3 == bananasIn (holdingInState s (wallet 4)))
+              testBool (7 == bananasIn (holdingInState s (wallet 2)))
+                .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
           )
           testInit
           twoAuctions
@@ -139,7 +138,12 @@ successfulSingle =
 failingOffer :: MonadMockChain m => m ()
 failingOffer =
   void $
-    A.txOffer (banana 1) 20_000_000 `as` wallet 2
+    A.txOffer (banana 100) 20_000_000 `as` wallet 2
+
+forbiddenHammerToWithdraw :: MonadMockChain m => m ()
+forbiddenHammerToWithdraw = do
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  A.txHammer offerUtxo `as` wallet 2
 
 failingTwoBids :: MonadMockChain m => m ()
 failingTwoBids = do
@@ -156,8 +160,13 @@ failingSingle :: TestTree
 failingSingle =
   testGroup
     "Single-trace runs that are expected to fail"
-    [ testCase "opening banana auction while owning no bananas" $
+    [ testCase "opening banana auction while owning too few bananas" $
         testFailsFrom testInit failingOffer,
+      testCase "wrong user hammers to withdraw" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          forbiddenHammerToWithdraw,
       testCase "second bid not higher than first" $
         testFailsFrom'
           isCekEvaluationFailure
@@ -187,8 +196,13 @@ tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
   somewhere
     ( datumHijackingAttack @A.Auction
-        ( \_ d _ -> case d of -- try to steal all outputs that have the 'Bidding' datum, no matter their validator or value
+        ( \_ d _ -> case d of
+            -- try to steal all outputs that have the 'Bidding' datum, no matter
+            -- their validator or value.
             A.Bidding {} -> True
+            -- try to steal during the 'SetDeadline' transaction. This
+            -- vulnerability existed before PR #161.
+            A.NoBids {} -> True
             _ -> False
         )
         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
@@ -203,7 +217,7 @@ tryDoubleSat = do
   let deadline1 = t0 + 60_000
       deadline2 = t0 + 90_000
   offerUtxo1 <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
-  offerUtxo2 <- A.txOffer (banana 3) 50_000_000 `as` wallet 1
+  offerUtxo2 <- A.txOffer (banana 3) 50_000_000 `as` wallet 2
   somewhere
     ( doubleSatAttack
         ( dsAddOneSscToSsc
@@ -213,12 +227,9 @@ tryDoubleSat = do
                 A.Hammer (fst offerUtxo2) :
                 map
                   (A.Bid . uncurry A.BidderInfo)
-                  [ (5, walletPKHash $ wallet 1),
-                    (5, walletPKHash $ wallet 6),
-                    (4, walletPKHash $ wallet 1),
-                    (4, walletPKHash $ wallet 6),
-                    (3, walletPKHash $ wallet 1),
-                    (3, walletPKHash $ wallet 6)
+                  [ (50_000_000, walletPKHash $ wallet 1),
+                    (50_000_000, walletPKHash $ wallet 2),
+                    (50_000_000, walletPKHash $ wallet 6)
                   ]
             )
             (wallet 6)
@@ -227,24 +238,26 @@ tryDoubleSat = do
     ( do
         A.txSetDeadline offerUtxo1 deadline1
         A.txSetDeadline offerUtxo2 deadline2
-        A.txBid offerUtxo1 30_000_000 `as` wallet 2
-        A.txBid offerUtxo2 50_000_000 `as` wallet 3
-        A.txBid offerUtxo2 60_000_000 `as` wallet 4
-        awaitTime (deadline1 + 1)
-        A.txHammer offerUtxo1
+        A.txBid offerUtxo1 30_000_000 `as` wallet 3
+        A.txBid offerUtxo2 50_000_000 `as` wallet 4
+        A.txBid offerUtxo2 60_000_000 `as` wallet 5
         awaitTime (deadline2 + 1)
+        A.txHammer offerUtxo1
         A.txHammer offerUtxo2
     )
 
--- | datum tampering attack that tries to change the bidder to wallet 6 on the
--- 'Bidding' datum
+-- | datum tampering attack that tries to change the seller to wallet 6 on every
+-- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
+-- there are actual checks happening).
 tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
 tryTamperDatum =
   somewhere
     ( tamperDatumAttack @A.Auction
         ( \case
-            A.Bidding seller deadline (A.BidderInfo x _) ->
-              Just $ A.Bidding seller deadline (A.BidderInfo x (walletPKHash $ wallet 6))
+            A.NoBids seller minBid deadline ->
+              Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline
+            A.Bidding seller deadline bidderInfo ->
+              Just $ A.Bidding (walletPKHash $ wallet 6) deadline bidderInfo
             _ -> Nothing
         )
     )

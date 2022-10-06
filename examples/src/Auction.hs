@@ -95,8 +95,8 @@ sure that they end up at the correct validator V,
   compute this address on-chain, which means that this can only be accomplished
   by parameterising the P the address of V.
 
-- Conversely, the V needs to know the 'CurrencySymbol' of the thread token,
-  which is the hash of the (compiled and normalised) code P.
+- Conversely, the validator V needs to know the 'CurrencySymbol' of the thread
+  token, which is the hash of the (compiled and normalised) code of P.
 
 So, each of the two scripts P and V has to have the other's hash as a parameter,
 and have it known at compile time. This is is patently an impossible cycle.
@@ -352,42 +352,37 @@ validSetDeadline threadCS datum ctx =
 validBid :: AuctionState -> Integer -> Pl.PubKeyHash -> Pl.ScriptContext -> Bool
 validBid datum bid bidder ctx =
   let txi = Pl.scriptContextTxInfo ctx
-      Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = lockedValue}) = Pl.findOwnInput ctx
+      Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = originalLockedValue}) = Pl.findOwnInput ctx
+      checkDeadlineAndSignature deadline =
+        traceIfFalse
+          "Bidding past the deadline is not permitted"
+          (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
+          && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
+      checkLocked seller deadline v =
+        traceIfFalse
+          "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
+          ( any
+              ( \o ->
+                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o `Value.geq` v
+              )
+              (Pl.getContinuingOutputs ctx)
+          )
    in case datum of
         Offer {} -> trace "Cannot bid on an auction that hasn't yet got a deadline" False
         NoBids seller minBid deadline ->
-          traceIfFalse
-            "Bidding past the deadline is not permitted"
-            (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
-            && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
+          checkDeadlineAndSignature deadline
             && traceIfFalse "Cannot bid less than the minimum bid" (minBid <= bid)
-            && traceIfFalse
-              "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
-              ( any
-                  ( \o ->
-                      outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                        && Pl.txOutValue o `Value.geq` (lockedValue <> Ada.lovelaceValueOf bid)
-                  )
-                  (Pl.getContinuingOutputs ctx)
-              )
+            && checkLocked seller deadline (originalLockedValue <> Ada.lovelaceValueOf bid)
         Bidding seller deadline (BidderInfo prevBid prevBidder) ->
-          traceIfFalse
-            "Bidding past the deadline is not permitted"
-            (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
-            && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
+          checkDeadlineAndSignature deadline
             && traceIfFalse "Must bid strictly more than the previous bid" (prevBid < bid)
-            && traceIfFalse
-              "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
-              ( any
-                  ( \o ->
-                      outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                        && Pl.txOutValue o
-                          `Value.geq` ( lockedValue
-                                          <> Pl.negate (Ada.lovelaceValueOf prevBid)
-                                          <> Ada.lovelaceValueOf bid
-                                      )
-                  )
-                  (Pl.getContinuingOutputs ctx)
+            && checkLocked
+              seller
+              deadline
+              ( originalLockedValue
+                  <> Pl.negate (Ada.lovelaceValueOf prevBid)
+                  <> Ada.lovelaceValueOf bid
               )
             && traceIfFalse
               "Previous bidder must get their money back"
@@ -409,27 +404,24 @@ validHammer threadCS datum offerOref ctx =
       theNFT = threadTokenOnChain threadCS offerOref
       Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = lockedValue}) = Pl.findOwnInput ctx
       threadTokenIsBurned = Pl.txInfoMint txi == Pl.negate theNFT
+      checkDeadlineAndBurn deadline =
+        traceIfFalse
+          "Hammer before the deadline is not permitted"
+          (Pl.from deadline `Interval.contains` Pl.txInfoValidRange txi)
+          && traceIfFalse
+            "Hammer does not burn exactly one thread token"
+            threadTokenIsBurned
    in case datum of
         Offer seller _minbid ->
           traceIfFalse "Seller must sign the hammer to withdraw the offer" (txi `Pl.txSignedBy` seller)
             && traceIfFalse "Seller must get the offer back" (seller `receives` lockedValue)
         NoBids seller _minbid deadline ->
-          traceIfFalse
-            "Hammer before the deadline is not permitted"
-            (Pl.from deadline `Interval.contains` Pl.txInfoValidRange txi)
-            && traceIfFalse
-              "Hammer does not burn exactly one thread token"
-              threadTokenIsBurned
+          checkDeadlineAndBurn deadline
             && traceIfFalse
               "Seller must get the offer back"
               (seller `receives` (lockedValue <> Pl.negate theNFT))
         Bidding seller deadline (BidderInfo lastBid lastBidder) ->
-          traceIfFalse
-            "Hammer before the deadline is not permitted"
-            (Pl.from deadline `Interval.contains` Pl.txInfoValidRange txi)
-            && traceIfFalse
-              "Hammer does not burn exactly one thread token"
-              threadTokenIsBurned
+          checkDeadlineAndBurn deadline
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
