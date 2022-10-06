@@ -36,13 +36,13 @@ txUnlock' mRecipient1 mRecipient2 mAmountChanger issuer = do
       share1 = fromMaybe id mAmountChanger half
       share2 = fromMaybe id mAmountChanger (amount - half)
       constraints =
-        [SpendsScript Split.splitValidator () (output, datum)]
+        [SpendsScript Split.splitValidator () output]
           :=>: [ paysPK (maybe r1 walletPKHash mRecipient1) (Pl.lovelaceValueOf share1),
                  paysPK (maybe r2 walletPKHash mRecipient2) (Pl.lovelaceValueOf share2)
                ]
       remainder = amount - share1 - share2
       remainderConstraint =
-        PaysScript
+        paysScript
           Split.splitValidator
           (Split.SplitDatum r1 r2 remainder)
           (Pl.lovelaceValueOf remainder)
@@ -69,8 +69,8 @@ txUnlockAttack issuer = do
   let half1 = Pl.lovelaceValueOf (amount1 `div` 2)
       half2 = Pl.lovelaceValueOf (amount2 `div` 2)
       constraints =
-        [ SpendsScript Split.splitValidator () (output1, datum1),
-          SpendsScript Split.splitValidator () (output2, datum2)
+        [ SpendsScript Split.splitValidator () output1,
+          SpendsScript Split.splitValidator () output2
         ]
           :=>: [ paysPK r11 half1,
                  paysPK r12 (if amount1 > amount2 then half1 else half2),

@@ -195,7 +195,7 @@ tryDoubleSat = do
                                   SpendsScript
                                     val
                                     (A.Bid $ A.BidderInfo amount bidder)
-                                    utxo
+                                    (fst utxo)
                             )
                             [ (5, walletPKHash $ wallet 1),
                               (5, walletPKHash $ wallet 6),

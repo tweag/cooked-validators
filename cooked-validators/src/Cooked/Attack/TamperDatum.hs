@@ -14,6 +14,9 @@ import Optics.Core
 
 -- | An attack that tries to change the datum on 'PaysScript' constraints with a
 -- prescribed tampering function, that only applies to datums of a certain type.
+--
+-- The attack returns a list of the modified datums, as they were *before* the
+-- modification was applied to them.
 tamperDatumAttack ::
   forall a.
   (PaysScriptConstrs a) =>
@@ -26,7 +29,7 @@ tamperDatumAttack ::
 tamperDatumAttack change = do
   unmodified <-
     mkAttack
-      (paysScriptConstraintsT % paysScriptConstraintTypeP @a % _2)
+      (paysScriptConstraintsT % paysScriptConstraintTypeP @a % _3)
       (const change)
   addLabelAttack TamperDatumLbl
   return unmodified

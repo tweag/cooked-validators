@@ -45,7 +45,7 @@ txOpen p = do
             token,
           SpendsPK utxo
         ]
-          :=>: [ PaysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
+          :=>: [ paysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
                ]
   return (p', q)
 
@@ -60,7 +60,7 @@ txBid ::
   m ()
 txBid p bid = do
   bidder <- ownPaymentPubKeyHash
-  [utxo] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
+  [(utxo, datum)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
@@ -71,10 +71,10 @@ txBid p bid = do
             (A.Bid (A.BidderInfo bid bidder))
             utxo
         ]
-          :=>: ( [ PaysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
+          :=>: ( [ paysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
                      A.lot p <> Ada.lovelaceValueOf bid <> Value.assetClassValue (A.threadTokenAssetClass p) 1
                  ]
-                   <> case previousBidder (snd utxo) of
+                   <> case previousBidder datum of
                      Nothing -> []
                      Just (prevBid, prevBidder) ->
                        [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
@@ -86,7 +86,7 @@ txHammer ::
   A.PolicyParams ->
   m ()
 txHammer p q = do
-  [utxo] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
+  [(utxo, datum)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
@@ -100,7 +100,7 @@ txHammer p q = do
             [A.threadTokenPolicy q]
             (Value.assetClassValue (A.threadTokenAssetClass p) (-1))
         ]
-          :=>: case previousBidder (snd utxo) of
+          :=>: case previousBidder datum of
             Nothing ->
               [paysPK (A.seller p) (A.lot p)]
             Just (lastBid, lastBidder) ->

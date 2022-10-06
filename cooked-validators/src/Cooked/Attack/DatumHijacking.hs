@@ -16,6 +16,7 @@ import Cooked.Tx.Constraints
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
+import qualified Plutus.V1.Ledger.Credential as L
 import qualified PlutusTx as Pl
 
 -- | Redirect 'PaysScript's from one validator to another validator of the same
@@ -29,24 +30,24 @@ import qualified PlutusTx as Pl
 -- optics used by this attack.
 redirectScriptOutputAttack ::
   Is k A_Traversal =>
-  Optic' k is TxSkel (L.TypedValidator a, L.DatumType a, L.Value) ->
+  Optic' k is TxSkel (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (L.TypedValidator a -> L.DatumType a -> L.Value -> Maybe (L.TypedValidator a)) ->
+  (L.TypedValidator a -> Maybe L.StakingCredential -> L.DatumType a -> L.Value -> Maybe (L.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  Attack [(L.TypedValidator a, L.DatumType a, L.Value)]
+  Attack [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
 redirectScriptOutputAttack optic change =
   mkSelectAttack
     optic
-    ( \_mcst (oldVal, dat, money) ->
-        case change oldVal dat money of
+    ( \_mcst (oldVal, mStakingCred, dat, money) ->
+        case change oldVal mStakingCred dat money of
           Nothing -> Nothing
-          Just newVal -> Just (newVal, dat, money)
+          Just newVal -> Just (newVal, mStakingCred, dat, money)
     )
 
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
@@ -73,14 +74,14 @@ datumHijackingAttack ::
   -- i-th of the output(s) (counting from the left, starting at zero) chosen by
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  Attack [(L.TypedValidator a, L.DatumType a, L.Value)]
+  Attack [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
 datumHijackingAttack change select =
   let thief = datumHijackingTarget @a
    in do
         redirected <-
           redirectScriptOutputAttack
             (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
-            (\val dat money -> if change val dat money then Just thief else Nothing)
+            (\val _mStakingCred dat money -> if change val dat money then Just thief else Nothing)
             select
         addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected

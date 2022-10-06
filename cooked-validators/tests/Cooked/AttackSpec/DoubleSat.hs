@@ -116,19 +116,19 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
-      validateTxSkel $ txSkel [PaysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
-      validateTxSkel $ txSkel [PaysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
+      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
+      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
 
 tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let [[aUtxo1], [aUtxo2], [aUtxo3], [aUtxo4]] =
+    $ let [[(aUtxo1, _)], [(aUtxo2, _)], [(aUtxo3, _)], [(aUtxo4, _)]] =
             map
               ( \n ->
                   scriptUtxosSuchThatMcst
@@ -141,7 +141,7 @@ tests =
                 4_000_000,
                 5_000_000
               ]
-          [[bUtxo1], [bUtxo2], [bUtxo3]] =
+          [[(bUtxo1, _)], [(bUtxo2, _)], [(bUtxo3, _)]] =
             map
               ( \n ->
                   scriptUtxosSuchThatMcst
@@ -164,7 +164,7 @@ tests =
               -- the output 'TxSkel's. Both 'DSSplitMode's are tested.
               let -- generate an input skeleton from some 'aValidator' UTxOs to
                   -- be spent.
-                  skelIn :: [(SpendableOut, ADatum)] -> TxSkel
+                  skelIn :: [SpendableOut] -> TxSkel
                   skelIn aUtxos =
                     txSkel $
                       map (SpendsScript aValidator ARedeemer) aUtxos
@@ -175,36 +175,36 @@ tests =
                   -- statement is what decides which UTxOs belonging to the
                   -- 'bValidator' to add, depending on the focused input
                   -- 'aValidator' UTxO.
-                  skelsOut :: DSSplitMode -> [(SpendableOut, ADatum)] -> [TxSkel]
+                  skelsOut :: DSSplitMode -> [SpendableOut] -> [TxSkel]
                   skelsOut splitMode aUtxos =
                     fst
                       <$> getAttack
                         ( doubleSatAttack
                             (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
-                            ( \mcst (_, _, (aOut, _)) ->
-                                let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
+                            ( \mcst (_, _, aOut) ->
+                                let bUtxos = fst <$> scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
                                     aValue = sOutValue aOut
                                  in if
                                         | aValue == L.lovelaceValueOf 2_000_000 ->
-                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
-                                            | (bOut, bDatum) <- bUtxos,
+                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                            | bOut <- bUtxos,
                                               sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                           ]
                                         | aValue == L.lovelaceValueOf 3_000_000 ->
-                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)
-                                            | (bOut, bDatum) <- bUtxos,
+                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                            | bOut <- bUtxos,
                                               sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
                                           ]
                                         | aValue == L.lovelaceValueOf 4_000_000 ->
                                           concatMap
-                                            ( \(bOut, bDatum) ->
+                                            ( \bOut ->
                                                 let bValue = sOutValue bOut
                                                  in if
                                                         | bValue == L.lovelaceValueOf 6_000_000 ->
-                                                          [toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum)]
+                                                          [toConstraints $ SpendsScript bValidator BRedeemer1 bOut]
                                                         | bValue == L.lovelaceValueOf 7_000_000 ->
-                                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 (bOut, bDatum),
-                                                            toConstraints $ SpendsScript bValidator BRedeemer2 (bOut, bDatum)
+                                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut,
+                                                            toConstraints $ SpendsScript bValidator BRedeemer2 bOut
                                                           ]
                                                         | otherwise -> []
                                             )
@@ -220,17 +220,17 @@ tests =
                   -- generate a transaction that spends the given 'aValidator'
                   -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
                   -- with the specified redeemers.
-                  skelExpected :: [(SpendableOut, ADatum)] -> [(BRedeemer, (SpendableOut, BDatum))] -> TxSkel
+                  skelExpected :: [SpendableOut] -> [(BRedeemer, SpendableOut)] -> TxSkel
                   skelExpected aUtxos bUtxos =
                     txSkelLbl DoubleSatLbl $
                       ( map (uncurry $ SpendsScript bValidator) bUtxos
                           ++ map (SpendsScript aValidator ARedeemer) aUtxos
                       )
                         :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                               paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . fst . snd) bUtxos)
+                               paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . snd) bUtxos)
                              ]
                in [ testGroup "with 'AllSeparate'" $
-                      let thePredicate :: [(SpendableOut, ADatum)] -> [[(BRedeemer, (SpendableOut, BDatum))]] -> Assertion
+                      let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
                           thePredicate aUtxos bUtxos =
                             assertSameTxSkels
                               (skelExpected aUtxos <$> bUtxos)
@@ -259,7 +259,7 @@ tests =
                                 [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
                           ],
                     testGroup "with 'TryCombinations'" $
-                      let thePredicate :: [(SpendableOut, ADatum)] -> [[(BRedeemer, (SpendableOut, BDatum))]] -> Assertion
+                      let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
                           thePredicate aUtxos bUtxos =
                             assertSameTxSkels
                               (skelExpected aUtxos <$> bUtxos)

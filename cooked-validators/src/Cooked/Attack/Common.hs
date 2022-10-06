@@ -113,6 +113,14 @@ saveHereAttack = Attack $ \_mcst skel -> [(skel, skel)]
 restoreHereAttack :: TxSkel -> Attack ()
 restoreHereAttack skel = Attack $ \_ _ -> [(skel, ())]
 
+-- * Applying 'Attack's to 'Constraints'
+
+-- | Most attacks do something interesting only to the 'Constraints' of a
+-- transaction. This function extracts that action on 'Constraints' from an
+-- attack.
+applyToConstraints :: Attack a -> MockChainSt -> Constraints -> [Constraints]
+applyToConstraints attack mcst cs = txConstraints . fst <$> getAttack attack mcst (txSkel cs)
+
 -- * Constructing Attacks from Optics
 
 -- | Probably the most common way to make an attack from an optic: Try to apply

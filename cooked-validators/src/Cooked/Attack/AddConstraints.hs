@@ -71,7 +71,7 @@ addConstraintsAttack (is :=>: os) = do
 -- to the transaction, or @Nothing@, if your constraint was already present on
 -- the unmodified transaction.
 addMiscConstraintAttack :: MiscConstraint -> Attack (Maybe MiscConstraint)
-addMiscConstraintAttack (SpendsScript v r (o, d)) = addSpendsScriptAttack v r (o, d)
+addMiscConstraintAttack (SpendsScript v r o) = addSpendsScriptAttack v r o
 addMiscConstraintAttack (SpendsPK o) = addSpendsPKAttack o
 addMiscConstraintAttack (Mints r ps x) = addMintsAttack r ps x
 addMiscConstraintAttack (Before b) =
@@ -124,19 +124,19 @@ addSpendsScriptAttack ::
   SpendsConstrs a =>
   L.TypedValidator a ->
   L.RedeemerType a ->
-  (SpendableOut, L.DatumType a) ->
+  SpendableOut ->
   Attack (Maybe MiscConstraint)
-addSpendsScriptAttack v r (o, d) = do
+addSpendsScriptAttack v r o = do
   present <- viewAttack (partsOf $ spendsScriptConstraintsT % spendsScriptConstraintTypeP @a)
-  let clashing = filter (\(_, _, (o', _)) -> o == o') present
+  let clashing = filter (\(_, _, o') -> o == o') present
   case clashing of
     [] ->
-      let newConstraint = SpendsScript v r (o, d)
+      let newConstraint = SpendsScript v r o
        in do
             overAttack miscConstraintsL (newConstraint :)
             return $ Just newConstraint
-    [(v', r', (_, d'))] ->
-      if v' == v && r' Pl.== r && d' Pl.== d
+    [(v', r', _)] ->
+      if v' == v && r' Pl.== r
         then return Nothing
         else failingAttack
     _ -> return Nothing -- Something's already wrong with the unmodified

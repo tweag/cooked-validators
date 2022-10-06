@@ -93,7 +93,7 @@ mkProposal reqSigs pmt = do
                      -- We don't have SpendsPK or PaysPK wrt the wallet `w`
                      -- because the balancing mechanism chooses the same (first) output
                      -- we're working on.
-                     PaysScript
+                     paysScript
                        (pmultisig params)
                        (Accumulator pmt [])
                        (minAda <> paymentValue pmt <> threadToken)
@@ -115,7 +115,7 @@ mkSign params pmt sk = do
   void $
     validateTxConstrOpts
       (def {adjustUnbalTx = True})
-      [PaysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost]
+      [paysScript (pmultisig params) (Sign pkh sig) mkSignLockedCost]
   where
     sig = Pl.sign (Pl.sha2_256 $ packPayment pmt) sk ""
 
@@ -128,23 +128,23 @@ mkSign params pmt sk = do
 
 mkCollect :: MonadMockChain m => Payment -> Params -> m ()
 mkCollect thePayment params = signs (wallet 1) $ do
-  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
+  [(initialProp, _)] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
       ( SpendsScript (pmultisig params) () initialProp :
-        (SpendsScript (pmultisig params) () <$> signatures)
+        (SpendsScript (pmultisig params) () <$> (fst <$> signatures))
       )
-        :=>: [ PaysScript
+        :=>: [ paysScript
                  (pmultisig params)
                  (Accumulator thePayment (signPk . snd <$> signatures))
-                 (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
+                 (paymentValue thePayment <> sOutValue initialProp <> signatureValues)
              ]
 
 mkPay :: MonadMockChain m => Payment -> Params -> Pl.TxOutRef -> m ()
 mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
-  [accumulated] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
+  [(accumulated, _)] <- scriptUtxosSuchThat (pmultisig params) isAccumulator
   void $
     validateTxConstr $
       -- We payout all the gathered funds to the receiver of the payment, including the minimum ada
@@ -152,7 +152,7 @@ mkPay thePayment params tokenOutRef = signs (wallet 1) $ do
       [ SpendsScript (pmultisig params) () accumulated,
         mints [threadTokenPolicy tokenOutRef threadTokenName] $ Pl.negate $ paramsToken params
       ]
-        :=>: [paysPK (paymentRecipient thePayment) (sOutValue (fst accumulated) <> Pl.negate (paramsToken params))]
+        :=>: [paysPK (paymentRecipient thePayment) (sOutValue accumulated <> Pl.negate (paramsToken params))]
 
 -- *** Auxiliary Functions
 
@@ -343,18 +343,18 @@ trPayment (Payment val dest) = HJ.Payment val dest
 
 mkFakeCollect :: MonadBlockChain m => Payment -> Params -> m ()
 mkFakeCollect thePayment params = do
-  [initialProp] <- scriptUtxosSuchThat (pmultisig params) isProposal
+  [(initialProp, _)] <- scriptUtxosSuchThat (pmultisig params) isProposal
   signatures <- nubBy ((==) `on` snd) <$> scriptUtxosSuchThat (pmultisig params) isSign
   let signatureValues = mconcat $ map (sOutValue . fst) signatures
   void $
     validateTxConstr $
       ( SpendsScript (pmultisig params) () initialProp :
-        (SpendsScript (pmultisig params) () <$> signatures)
+        (SpendsScript (pmultisig params) () <$> (fst <$> signatures))
       )
-        :=>: [ PaysScript
+        :=>: [ paysScript
                  fakeValidator
                  (HJ.Accumulator (trPayment thePayment) (signPk . snd <$> signatures))
-                 (paymentValue thePayment <> sOutValue (fst initialProp) <> signatureValues)
+                 (paymentValue thePayment <> sOutValue initialProp <> signatureValues)
              ]
 
 -- * Datum Hijacking Attack from 'Cooked.Attack'

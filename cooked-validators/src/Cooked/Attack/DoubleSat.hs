@@ -165,14 +165,7 @@ doubleSatAttack optic extra attacker mode = do
     -- into one 'Constraints' that specifies eveything that is contained in the
     -- input.
     joinConstraints :: [Constraints] -> Constraints
-    joinConstraints cs =
-      txConstraints $
-        fst $
-          head $
-            getAttack
-              (mapM_ addConstraintsAttack cs)
-              def
-              (txSkel $ [] :=>: [])
+    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsAttack cs) def $ [] :=>: []
 
     allCombinations :: [[x]] -> [[x]]
     allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l

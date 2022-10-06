@@ -13,6 +13,7 @@ module Cooked.Tx.Constraints.Optics where
 import Cooked.Tx.Constraints.Type
 import qualified Ledger as L
 import qualified Ledger.Ada as L
+import qualified Ledger.Credential as L
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
 import Optics.Core
@@ -98,7 +99,7 @@ data SpendsScriptConstraint where
     (SpendsConstrs a) =>
     L.TypedValidator a ->
     L.RedeemerType a ->
-    (SpendableOut, L.DatumType a) ->
+    SpendableOut ->
     SpendsScriptConstraint
 
 spendsScriptConstraintP :: Prism' MiscConstraint SpendsScriptConstraint
@@ -116,13 +117,13 @@ spendsScriptConstraintP =
 spendsScriptConstraintTypeP ::
   forall a.
   SpendsConstrs a =>
-  Prism' SpendsScriptConstraint (L.TypedValidator a, L.RedeemerType a, (SpendableOut, L.DatumType a))
+  Prism' SpendsScriptConstraint (L.TypedValidator a, L.RedeemerType a, SpendableOut)
 spendsScriptConstraintTypeP =
   prism'
-    (\(v, r, (o, d)) -> SpendsScriptConstraint v r (o, d))
-    ( \(SpendsScriptConstraint v r (o, d)) ->
+    (\(v, r, o) -> SpendsScriptConstraint v r o)
+    ( \(SpendsScriptConstraint v r o) ->
         case typeOf v `eqTypeRep` typeRep @(L.TypedValidator a) of
-          Just HRefl -> Just (v, r, (o, d))
+          Just HRefl -> Just (v, r, o)
           Nothing -> Nothing
     )
 
@@ -133,10 +134,10 @@ spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
 spendableOutL =
   lens
     ( \case
-        SpendsScriptConstraint _ _ (o, _) -> o
+        SpendsScriptConstraint _ _ o -> o
     )
     ( \c o -> case c of
-        SpendsScriptConstraint v r (_, d) -> SpendsScriptConstraint v r (o, d)
+        SpendsScriptConstraint v r _ -> SpendsScriptConstraint v r o
     )
 
 spendsPKConstraintP :: Prism' MiscConstraint SpendableOut
@@ -190,6 +191,7 @@ data PaysScriptConstraint where
   PaysScriptConstraint ::
     PaysScriptConstrs a =>
     L.TypedValidator a ->
+    Maybe L.StakingCredential ->
     L.DatumType a ->
     L.Value ->
     PaysScriptConstraint
@@ -198,10 +200,10 @@ paysScriptConstraintP :: Prism' OutConstraint PaysScriptConstraint
 paysScriptConstraintP =
   prism'
     ( \case
-        PaysScriptConstraint v d x -> PaysScript v d x
+        PaysScriptConstraint v sc d x -> PaysScript v sc d x
     )
     ( \case
-        PaysScript v d x -> Just $ PaysScriptConstraint v d x
+        PaysScript v sc d x -> Just $ PaysScriptConstraint v sc d x
         _ -> Nothing
     )
 
@@ -212,13 +214,13 @@ paysScriptConstraintsT = outConstraintT % paysScriptConstraintP
 paysScriptConstraintTypeP ::
   forall a.
   PaysScriptConstrs a =>
-  Prism' PaysScriptConstraint (L.TypedValidator a, L.DatumType a, L.Value)
+  Prism' PaysScriptConstraint (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)
 paysScriptConstraintTypeP =
   prism'
-    (\(v, d, x) -> PaysScriptConstraint v d x)
-    ( \(PaysScriptConstraint v d x) ->
+    (\(v, sc, d, x) -> PaysScriptConstraint v sc d x)
+    ( \(PaysScriptConstraint v sc d x) ->
         case typeOf v `eqTypeRep` typeRep @(L.TypedValidator a) of
-          Just HRefl -> Just (v, d, x)
+          Just HRefl -> Just (v, sc, d, x)
           Nothing -> Nothing
     )
 
@@ -269,11 +271,11 @@ instance HasValue OutConstraint where
   valueL =
     lens
       ( \case
-          PaysScript _ _ v -> v
+          PaysScript _ _ _ v -> v
           PaysPKWithDatum _ _ _ v -> v
       )
       ( \c x -> case c of
-          PaysScript v d _ -> PaysScript v d x
+          PaysScript v sc d _ -> PaysScript v sc d x
           PaysPKWithDatum h sh d _ -> PaysPKWithDatum h sh d x
       )
 

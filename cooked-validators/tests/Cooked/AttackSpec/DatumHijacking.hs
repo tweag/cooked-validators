@@ -61,7 +61,7 @@ lockTxSkel :: SpendableOut -> L.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
   txSkelOpts
     (def {adjustUnbalTx = True})
-    ([SpendsPK o] :=>: [PaysScript v FirstLock lockValue])
+    ([SpendsPK o] :=>: [paysScript v FirstLock lockValue])
 
 txLock :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
 txLock v = do
@@ -73,8 +73,8 @@ relockTxSkel :: L.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
   txSkelOpts
     (def {adjustUnbalTx = True})
-    ( [SpendsScript v () (o, FirstLock)]
-        :=>: [PaysScript v SecondLock lockValue]
+    ( [SpendsScript v () o]
+        :=>: [paysScript v SecondLock lockValue]
     )
 
 txRelock ::
@@ -156,11 +156,11 @@ tests =
             x3 = L.lovelaceValueOf 9999
             skelIn =
               txSkel
-                [ PaysScript val1 SecondLock x1,
-                  PaysScript val1 SecondLock x3,
-                  PaysScript val2 SecondLock x1,
-                  PaysScript val1 FirstLock x2,
-                  PaysScript val1 SecondLock x2
+                [ paysScript val1 SecondLock x1,
+                  paysScript val1 SecondLock x3,
+                  paysScript val2 SecondLock x1,
+                  paysScript val1 FirstLock x2,
+                  paysScript val1 SecondLock x2
                 ]
             skelOut bound select =
               getAttack
@@ -177,30 +177,30 @@ tests =
             skelExpected a b =
               txSkelLbl
                 (DatumHijackingLbl $ L.validatorAddress thief)
-                [ PaysScript val1 SecondLock x1,
-                  PaysScript a SecondLock x3,
-                  PaysScript val2 SecondLock x1,
-                  PaysScript val1 FirstLock x2,
-                  PaysScript b SecondLock x2
+                [ paysScript val1 SecondLock x1,
+                  paysScript a SecondLock x3,
+                  paysScript val2 SecondLock x1,
+                  paysScript val1 FirstLock x2,
+                  paysScript b SecondLock x2
                 ]
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ ( skelExpected thief val1,
-                    [(val1, SecondLock, x3)]
+                    [(val1, Nothing, SecondLock, x3)]
                   )
                 ]
                   @=? skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ ( skelExpected thief thief,
-                    [ (val1, SecondLock, x3),
-                      (val1, SecondLock, x2)
+                    [ (val1, Nothing, SecondLock, x3),
+                      (val1, Nothing, SecondLock, x2)
                     ]
                   )
                 ]
                   @=? skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ ( skelExpected val1 thief,
-                    [(val1, SecondLock, x2)]
+                    [(val1, Nothing, SecondLock, x2)]
                   )
                 ]
                   @=? skelOut x2 (1 ==)

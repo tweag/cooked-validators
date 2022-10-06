@@ -59,8 +59,8 @@ testMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkel [PaysScript validator () (L.lovelaceValueOf 2_000_000)]
-      validateTxSkel $ txSkel [PaysScript validator () (L.lovelaceValueOf 3_000_000)]
+      validateTxSkel $ txSkel [paysScript validator () (L.lovelaceValueOf 2_000_000)]
+      validateTxSkel $ txSkel [paysScript validator () (L.lovelaceValueOf 3_000_000)]
 
 assertTxSameConstraints :: TxSkel -> TxSkel -> Assertion
 assertTxSameConstraints (TxSkel _ _ actual) (TxSkel _ _ expected) =
@@ -86,16 +86,16 @@ tests =
                   _ -> assertFailure "not the right number of attack outputs",
           testCase "conflicting 'SpendsScript'" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
-                c1 = toConstraints $ SpendsScript validator Redeemer1 utxo1
+                c1 = toConstraints $ SpendsScript validator Redeemer1 $ fst utxo1
                 c2 =
-                  [SpendsScript validator Redeemer2 utxo1]
+                  [SpendsScript validator Redeemer2 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
              in getAttack (addConstraintsAttack c2) def (txSkel c1) @?= [],
           testCase "non-conflicting 'SpendsScript', which is already present" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
-                c1 = toConstraints $ SpendsScript validator Redeemer1 utxo1
+                c1 = toConstraints $ SpendsScript validator Redeemer1 $ fst utxo1
                 c2 =
-                  [SpendsScript validator Redeemer1 utxo1]
+                  [SpendsScript validator Redeemer1 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
              in case getAttack (addConstraintsAttack c2) def (txSkel c1) of
                   [(skelOut, x)] ->
@@ -105,10 +105,10 @@ tests =
           testCase "non-conflicting 'SpendsScript', which is new" $
             let utxo1 : utxo2 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
                 c1 =
-                  [SpendsScript validator Redeemer1 utxo1]
+                  [SpendsScript validator Redeemer1 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue $ fst utxo1]
                 c2 =
-                  [SpendsScript validator Redeemer1 utxo2]
+                  [SpendsScript validator Redeemer1 $ fst utxo2]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo2]
              in case getAttack (addConstraintsAttack c2) def (txSkel c1) of
                   [(skelOut, x)] ->
