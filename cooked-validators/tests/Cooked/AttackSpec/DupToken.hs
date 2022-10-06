@@ -67,7 +67,7 @@ tests :: TestTree
 tests =
   testGroup
     "token duplication attack"
-    [ testCase "unit test on a 'TxSkel'" $
+    [ testGroup "unit tests on a 'TxSkel'" $
         let attacker = wallet 6
             tName1 = L.tokenName "MockToken1"
             tName2 = L.tokenName "MockToken2"
@@ -103,9 +103,10 @@ tests =
                   L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 -1) + (v3 -3))
                 )
               ]
-         in (skelExpected 2 2 4 8 @=? skelOut (\_ n -> n + 1))
-              .&&. ([] @=? skelOut (\_ n -> n))
-              .&&. (skelExpected 6 1 3 12 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)),
+         in [ testCase "add one token in every asset class" $ skelExpected 2 2 4 8 @=? skelOut (\_ n -> n + 1),
+              testCase "no modified transaction if no increase in value specified" $ [] @=? skelOut (\_ n -> n),
+              testCase "add tokens depending on the asset class" $ skelExpected 6 1 3 12 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)
+            ],
       testCase "careful minting policy" $
         let tName = L.tokenName "MockToken"
             pol = carefulPolicy tName 1

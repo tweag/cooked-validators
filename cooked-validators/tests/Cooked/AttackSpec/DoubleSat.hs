@@ -229,64 +229,75 @@ tests =
                         :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
                                paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . fst . snd) bUtxos)
                              ]
-               in [ testCase "with 'AllSeparate'" $
-                      testConjoin $
-                        map
-                          ( \(aUtxos, bUtxos) ->
-                              assertSameTxSkels
-                                (skelExpected aUtxos <$> bUtxos)
-                                (skelsOut AllSeparate aUtxos)
-                          )
-                          [ ([aUtxo1], []),
-                            ([aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                            ([aUtxo3], [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]),
-                            ([aUtxo4], []),
-                            ([aUtxo1, aUtxo4], []),
-                            ([aUtxo4, aUtxo1], []),
-                            ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                            ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
-                            ( [aUtxo2, aUtxo3],
-                              [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
-                            ),
-                            ( [aUtxo1, aUtxo2, aUtxo3, aUtxo4],
-                              [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
-                            )
+               in [ testGroup "with 'AllSeparate'" $
+                      let thePredicate :: [(SpendableOut, ADatum)] -> [[(BRedeemer, (SpendableOut, BDatum))]] -> Assertion
+                          thePredicate aUtxos bUtxos =
+                            assertSameTxSkels
+                              (skelExpected aUtxos <$> bUtxos)
+                              (skelsOut AllSeparate aUtxos)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
+                            testCase "three modified transactions from 1+2 redeemers" $
+                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
+                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
+                            testCase "with two foci, the correct combinations are returned" $
+                              testConjoin $
+                                map
+                                  (uncurry thePredicate)
+                                  [ ([aUtxo1, aUtxo4], []),
+                                    ([aUtxo4, aUtxo1], []),
+                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
+                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
+                                    ( [aUtxo2, aUtxo3],
+                                      [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
+                                    )
+                                  ],
+                            testCase "with all possible foci, no additional transactions are generated" $
+                              thePredicate
+                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
+                                -- the same list as in the last example
+                                [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
                           ],
-                    testCase "with 'TryCombinations'" $
-                      testConjoin $
-                        map
-                          ( \(aUtxos, bUtxos) ->
-                              assertSameTxSkels
-                                (skelExpected aUtxos <$> bUtxos)
-                                (skelsOut TryCombinations aUtxos)
-                          )
-                          [ ([aUtxo1], []),
-                            ([aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                            ([aUtxo3], [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]),
-                            ([aUtxo4], []),
-                            ([aUtxo1, aUtxo4], []),
-                            ([aUtxo4, aUtxo1], []),
-                            ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                            ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
-                            ( [aUtxo2, aUtxo3],
-                              [ -- one extra input
-                                [(BRedeemer1, bUtxo1)],
-                                [(BRedeemer1, bUtxo2)],
-                                [(BRedeemer2, bUtxo2)],
-                                -- two extra inputs
-                                [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
-                                [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
-                              ]
-                            ),
-                            ( [aUtxo1, aUtxo2, aUtxo3, aUtxo4],
-                              -- Same list as for the last example.
-                              [ [(BRedeemer1, bUtxo1)],
-                                [(BRedeemer1, bUtxo2)],
-                                [(BRedeemer2, bUtxo2)],
-                                [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
-                                [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
-                              ]
-                            )
+                    testGroup "with 'TryCombinations'" $
+                      let thePredicate :: [(SpendableOut, ADatum)] -> [[(BRedeemer, (SpendableOut, BDatum))]] -> Assertion
+                          thePredicate aUtxos bUtxos =
+                            assertSameTxSkels
+                              (skelExpected aUtxos <$> bUtxos)
+                              (skelsOut TryCombinations aUtxos)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
+                            testCase "three modified transactions from 1+2 redeemers" $
+                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
+                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
+                            testCase "with two foci, the correct combinations are returned" $
+                              testConjoin $
+                                map
+                                  (uncurry thePredicate)
+                                  [ ([aUtxo1, aUtxo4], []),
+                                    ([aUtxo4, aUtxo1], []),
+                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
+                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
+                                    ( [aUtxo2, aUtxo3],
+                                      [ -- one extra input
+                                        [(BRedeemer1, bUtxo1)],
+                                        [(BRedeemer1, bUtxo2)],
+                                        [(BRedeemer2, bUtxo2)],
+                                        -- two extra inputs
+                                        [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
+                                        [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                      ]
+                                    )
+                                  ],
+                            testCase "with all possible foci, no additional transactions are generated" $
+                              thePredicate
+                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
+                                -- the same list  as in the last example
+                                [ [(BRedeemer1, bUtxo1)],
+                                  [(BRedeemer1, bUtxo2)],
+                                  [(BRedeemer2, bUtxo2)],
+                                  [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
+                                  [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                ]
                           ]
                   ]
           ]

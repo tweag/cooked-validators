@@ -147,7 +147,7 @@ tests :: TestTree
 tests =
   testGroup
     "datum hijacking attack"
-    [ testCase "unit test on a 'TxSkel'" $
+    [ testGroup "unit tests on a 'TxSkel'" $
         let val1 = carelessValidator
             val2 = carefulValidator
             thief = datumHijackingTarget @MockContract
@@ -183,27 +183,28 @@ tests =
                   PaysScript val1 FirstLock x2,
                   PaysScript b SecondLock x2
                 ]
-         in ([] @=? skelOut mempty (const True))
-              .&&. ( [ ( skelExpected thief val1,
-                         [(val1, SecondLock, x3)]
-                       )
-                     ]
-                       @=? skelOut x2 (0 ==)
-                   )
-              .&&. ( [ ( skelExpected val1 thief,
-                         [(val1, SecondLock, x2)]
-                       )
-                     ]
-                       @=? skelOut x2 (1 ==)
-                   )
-              .&&. ( [ ( skelExpected thief thief,
-                         [ (val1, SecondLock, x3),
-                           (val1, SecondLock, x2)
-                         ]
-                       )
-                     ]
-                       @=? skelOut x2 (const True)
-                   ),
+         in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
+              testCase "one modified transaction for one interesting output" $
+                [ ( skelExpected thief val1,
+                    [(val1, SecondLock, x3)]
+                  )
+                ]
+                  @=? skelOut x2 (0 ==),
+              testCase "two modified transactions for two interesting outputs" $
+                [ ( skelExpected thief thief,
+                    [ (val1, SecondLock, x3),
+                      (val1, SecondLock, x2)
+                    ]
+                  )
+                ]
+                  @=? skelOut x2 (const True),
+              testCase "select second interesting output to get one modified transaction" $
+                [ ( skelExpected val1 thief,
+                    [(val1, SecondLock, x2)]
+                  )
+                ]
+                  @=? skelOut x2 (1 ==)
+            ],
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure
