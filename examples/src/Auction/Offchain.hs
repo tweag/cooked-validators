@@ -109,7 +109,7 @@ txHammer offerUtxo =
               [ After deadline,
                 SpendsScript
                   A.auctionValidator
-                  (A.Hammer $fst offerUtxo)
+                  (A.Hammer $ fst offerUtxo)
                   utxo,
                 Mints
                   (Just $ fst offerUtxo)
