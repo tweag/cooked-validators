@@ -21,6 +21,7 @@ import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Value as Value
+import qualified Plutus.V1.Ledger.Ada as Ada
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -47,8 +48,7 @@ bananaParams t =
     { Cf.projectDeadline = t + 60_000,
       Cf.threshold = banana 5,
       Cf.minContribution = banana 2,
-      Cf.fundingTarget = walletPKHash (wallet 2),
-      Cf.rewardTokenAssetClass = Cf.getRewardTokenAssetClass $ walletPKHash (wallet 2)
+      Cf.fundingTarget = walletPKHash (wallet 2)
     }
 
 nothing :: MonadMockChain m => m ()
@@ -389,12 +389,24 @@ tryDupTokens =
 -- the auction was. Then test that the owner and contributors in both
 -- "worlds" have paid the same amounts.
 
--- | helper function to compute what the given wallet owns in the
--- given state
-holdingInState :: UtxoState -> Wallet -> L.Value
-holdingInState (UtxoState m) w
-  | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
+-- | helper function to compute what the given wallet owns in ada in the
+-- current state
+adaInState :: UtxoState -> Wallet -> L.Ada
+adaInState (UtxoState m) w
+  | Just vs <- M.lookup (walletAddress w) m = Ada.fromValue $ utxoValueSetTotal vs
   | otherwise = mempty
+
+-- | Helper function to compute how many tokens of each asset class the wallet
+-- owns in the current state. Note the token names will be different in the
+-- different alternatives as they are computed as the hash of a UTxO, so we
+-- only test for equal amounts here.
+tokensInState :: UtxoState -> Wallet -> [Integer]
+tokensInState (UtxoState m) w
+  | Just vs <- M.lookup (walletAddress w) m =
+    map third $ Value.flattenValue $ utxoValueSetTotal vs
+  | otherwise = []
+  where
+    third (_, _, x) = x
 
 oneContributionFundAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
 oneContributionFundAlternativeTrace = do
@@ -410,8 +422,10 @@ oneContributionFundAlternative =
     testBinaryRelatedBy
       ( \a b ->
           testBool $
-            holdingInState a (wallet 2) == holdingInState b (wallet 2)
-              && holdingInState a (wallet 9) == holdingInState b (wallet 10)
+            adaInState a (wallet 2) == adaInState b (wallet 2)
+              && tokensInState a (wallet 2) == tokensInState b (wallet 2)
+              && adaInState a (wallet 9) == adaInState b (wallet 10)
+              && tokensInState a (wallet 9) == tokensInState b (wallet 10)
       )
       testInit
       oneContributionFundAlternativeTrace

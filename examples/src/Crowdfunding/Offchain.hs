@@ -50,10 +50,11 @@ txProjectFund p = do
   fundingTarget <- ownPaymentPubKeyHash
   utxos <-
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
-  let datumTotal = PlutusTx.Prelude.sum $ mapMaybe (Cf.getValue . snd) utxos
-      q = Cf.PolicyParams {Cf.pRewardTokenName = Cf.rewardTokenName fundingTarget}
+  let tokenTxOutRef = fst $ fst $ head utxos
+      datumTotal = PlutusTx.Prelude.sum $ mapMaybe (Cf.getValue . snd) utxos
+      q = Cf.PolicyParams {Cf.pRewardTokenName = Cf.rewardTokenName tokenTxOutRef}
       uniqueAddrs = nub $ mapMaybe (Cf.getFunder . snd) utxos
-      token num = Value.assetClassValue (Cf.rewardTokenAssetClass p) num
+      token = Value.assetClassValue (Cf.getRewardTokenAssetClass tokenTxOutRef)
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $

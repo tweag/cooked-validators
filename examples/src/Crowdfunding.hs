@@ -43,9 +43,7 @@ data ValParams = ValParams
     -- | minimum contribution that can be made
     minContribution :: L.Value,
     -- | address to be paid to if threshold is reached by deadline
-    fundingTarget :: L.PubKeyHash,
-    -- | asset class of the reward tokens
-    rewardTokenAssetClass :: Value.AssetClass
+    fundingTarget :: L.PubKeyHash
   }
   deriving (Haskell.Show)
 
@@ -54,8 +52,8 @@ PlutusTx.unstableMakeIsData ''ValParams
 
 instance Eq ValParams where
   {-# INLINEABLE (==) #-}
-  ValParams pd t mc ft ac == ValParams pd' t' mc' ft' ac' =
-    pd == pd' && t == t' && mc == mc' && ft == ft' && ac == ac'
+  ValParams pd t mc ft == ValParams pd' t' mc' ft' =
+    pd == pd' && t == t' && mc == mc' && ft == ft'
 
 -- | All data the minting policy of the reward token needs to
 -- know. These are known after the project funding transaction
@@ -192,9 +190,22 @@ mkPolicy (PolicyParams tName) _ ctx
           datumTotal = getTotalValue funderDatums
        in addr `receives` (token <> inputsTotal <> L.negate datumTotal)
 
+-- | Copied from the Auction contract
 {-# INLINEABLE rewardTokenName #-}
-rewardTokenName :: L.PubKeyHash -> Value.TokenName
-rewardTokenName (L.PubKeyHash bs) = Value.TokenName bs
+rewardTokenName :: L.TxOutRef -> Value.TokenName
+rewardTokenName (L.TxOutRef (L.TxId tid) i) =
+  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
+  where
+    -- we know that the numbers (indices of transaction outputs) we're working
+    -- with here are non-negative.
+    encodeInteger :: Integer -> BuiltinByteString
+    encodeInteger n
+      | n `quotient` 10 == 0 = encodeDigit n
+      | otherwise = encodeInteger (n `quotient` 10) <> encodeDigit (n `remainder` 10)
+      where
+        encodeDigit :: Integer -> BuiltinByteString
+        -- 48 is the ASCII code for '0'
+        encodeDigit d = consByteString (d + 48) emptyByteString
 
 -- | Parameterized minting policy
 rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
@@ -203,11 +214,11 @@ rewardTokenPolicy pars =
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
       `PlutusTx.applyCode` PlutusTx.liftCode pars
 
-getRewardTokenAssetClass :: L.PubKeyHash -> Value.AssetClass
-getRewardTokenAssetClass ft =
+getRewardTokenAssetClass :: L.TxOutRef -> Value.AssetClass
+getRewardTokenAssetClass txOut =
   Value.assetClass
-    (Pl.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName ft)
-    (rewardTokenName ft)
+    (Pl.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName txOut)
+    (rewardTokenName txOut)
 
 {-# INLINEABLE crowdfundTimeRange #-}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
