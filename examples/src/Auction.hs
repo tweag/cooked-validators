@@ -68,9 +68,10 @@ auction.
    back their bid.
 
 4. Hammer to end the auction (off-chain implemented by 'txHammer'). This
-   transaction pays the Ada amount correspondig to the highest bid to the
-   seller, and the value originally offered to the highest bidder. If there were
-   no bids, the offer is returned to the seller.
+   transaction consumes an UTxO at the 'auctionValidator', and pays the Ada
+   amount correspondig to the highest bid to the seller, and the value
+   originally offered to the highest bidder. If there were no bids, the offer is
+   returned to the seller.
 
 Further details of these transactions are explained at the relevant places in
 the code.
@@ -410,8 +411,8 @@ validHammer threadCS datum offerOref ctx =
       threadTokenIsBurned = Pl.txInfoMint txi == Pl.negate theNFT
    in case datum of
         Offer seller _minbid ->
-          traceIfFalse "Seller must get the offer back" $
-            seller `receives` lockedValue
+          traceIfFalse "Seller must sign the hammer to withdraw the offer" (txi `Pl.txSignedBy` seller)
+            && traceIfFalse "Seller must get the offer back" (seller `receives` lockedValue)
         NoBids seller _minbid deadline ->
           traceIfFalse
             "Hammer before the deadline is not permitted"
