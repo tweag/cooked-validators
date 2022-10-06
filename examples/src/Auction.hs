@@ -69,7 +69,7 @@ auction.
 
 4. Hammer to end the auction (off-chain implemented by 'txHammer'). This
    transaction consumes an UTxO at the 'auctionValidator', and pays the Ada
-   amount correspondig to the highest bid to the seller, and the value
+   amount corresponding to the highest bid to the seller, and the value
    originally offered to the highest bidder. If there were no bids, the offer is
    returned to the seller.
 
@@ -86,7 +86,7 @@ contract.
 
 On a previous version of this contract, there was only one transaction to make
 the offer and set the deadline. That version of the contract had the following
-problem, which we think is fundamentally unsolve with only one transaction: If
+problem, which we think is fundamentally unsolvable with only one transaction: If
 we want to use only one transaction to mint some tokens with a policy P and make
 sure that they end up at the correct validator V,
 
@@ -107,7 +107,7 @@ transaction does not involve any checks at all, does not mint any tokens that
 should be locked in the validator script, and creates "unchecked" UTxOs (Here,
 these are the UTxOs with the 'Offer' datum). The second transaction consumes
 unchecked UTxOs (with an additional redeemer, here, that is 'SetDeadline'),
-mints the required tokens, and pays a checked UTxOs back to the same validator,
+mints the required tokens, and pays a checked UTxO back to the same validator,
 which contains the newly minted tokens as a proof of their soundness, and a
 datum signalling that they have been checked (here, that datum is
 'NoBids'). Since the second transaction uses a redeemer, it can make whatever
@@ -303,7 +303,7 @@ outputAuctionState txi o = do
   Pl.Datum d <- Pl.findDatum h txi
   PlutusTx.fromBuiltinData d
 
--- | Test that the value paid to the paid public key address is at least the
+-- | Test that the value paid to the public key address is at least the
 -- given value
 {-# INLINEABLE receivesFrom #-}
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
@@ -343,7 +343,7 @@ validSetDeadline threadCS datum ctx =
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
 -- * it has been signed by the bidder
--- * it is greater than the last bid (or the minium bid, if it's the first one)
+-- * it is greater than the last bid (or at least the minimum bid, if it's the first one)
 -- * after the transaction:
 --    * the state of the auction is 'Bidding' with the new bid and bidder
 --    * the validator locks the lot, the new bid, and the thread token with that datum
