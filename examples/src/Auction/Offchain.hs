@@ -105,31 +105,34 @@ txHammer offerUtxo =
                 A.Offer {} -> x `Value.geq` sOutValue offerUtxo
                 _ -> x `Value.geq` theNft
             )
-        let Just deadline = A.getBidDeadline datum
         void $
           validateTxSkel $
             txSkelOpts (def {adjustUnbalTx = True}) $
-              [ After deadline,
-                SpendsScript
-                  A.auctionValidator
-                  (A.Hammer $ fst offerUtxo)
-                  utxo,
-                Mints
-                  (Just $ fst offerUtxo)
-                  [A.threadTokenPolicy]
-                  (Pl.negate theNft)
-              ]
-                :=>: case datum of
-                  A.Offer seller _ -> [paysPK seller (sOutValue utxo)]
-                  _ -> case previousBidder datum of
-                    Nothing ->
-                      let lot = sOutValue utxo <> Pl.negate theNft
-                       in [paysPK (A.getSeller datum) lot]
-                    Just (lastBid, lastBidder) ->
-                      let lot =
-                            sOutValue utxo
-                              <> Pl.negate (Ada.lovelaceValueOf lastBid)
-                              <> Pl.negate theNft
-                       in [ paysPK lastBidder lot,
-                            paysPK (A.getSeller datum) (Ada.lovelaceValueOf lastBid)
-                          ]
+              case datum of
+                A.Offer seller _ ->
+                  [SpendsScript A.auctionValidator (A.Hammer $ fst offerUtxo) utxo]
+                    :=>: [paysPK seller (sOutValue utxo)]
+                _ ->
+                  let Just deadline = A.getBidDeadline datum
+                   in [ After deadline,
+                        SpendsScript
+                          A.auctionValidator
+                          (A.Hammer $ fst offerUtxo)
+                          utxo,
+                        Mints
+                          (Just $ fst offerUtxo)
+                          [A.threadTokenPolicy]
+                          (Pl.negate theNft)
+                      ]
+                        :=>: case previousBidder datum of
+                          Nothing ->
+                            let lot = sOutValue utxo <> Pl.negate theNft
+                             in [paysPK (A.getSeller datum) lot]
+                          Just (lastBid, lastBidder) ->
+                            let lot =
+                                  sOutValue utxo
+                                    <> Pl.negate (Ada.lovelaceValueOf lastBid)
+                                    <> Pl.negate theNft
+                             in [ paysPK lastBidder lot,
+                                  paysPK (A.getSeller datum) (Ada.lovelaceValueOf lastBid)
+                                ]

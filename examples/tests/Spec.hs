@@ -12,9 +12,9 @@ main = do
   defaultMain $
     testGroup
       "main"
-      [ -- PMultiSigStatefulSpec.tests,
-        -- UseCaseCrowdfundingSpec.tests,
-        -- SplitSpec.tests,
-        -- SplitUPLCSpec.tests,
+      [ PMultiSigStatefulSpec.tests,
+        UseCaseCrowdfundingSpec.tests,
+        SplitSpec.tests,
+        SplitUPLCSpec.tests,
         AuctionSpec.tests
       ]
