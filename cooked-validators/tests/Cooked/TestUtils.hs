@@ -61,16 +61,10 @@ assertSameConstraints (is :=>: os) (is' :=>: os') =
     isNoTimeConstraint _ = True
 
     validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
-    validityRange =
-      foldr
-        ( \case
-            -- I don't know if 'Before' and 'After' should include the endpoint
-            -- or not. Since the current implementation of the 'Before' and
-            -- 'After' constraints includes the endpoints, I will do so here as
-            -- well.
-            Before b -> Pl.intersection (Pl.to b)
-            After a -> Pl.intersection (Pl.from a)
-            ValidateIn i -> Pl.intersection i
-            _ -> id
-        )
-        Pl.always
+    validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
+      where
+        toTimeRange = \case
+          Before b -> Pl.to b
+          After a -> Pl.from a
+          ValidateIn i -> i
+          _ -> Pl.always

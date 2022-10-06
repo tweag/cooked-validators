@@ -32,6 +32,29 @@ instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer
         . map (\(now, later) -> tell [now i] <* put later)
         . nowLaterList
 
+{- Remark: Why are we re-defining 'somewhere' and 'everywhere' here?
+
+In some sense, the following two definitions of 'somewhere' and 'everywhere' are
+the correct ones, because they work in an arbitrary 'MonadModal'. The
+definitions in "Cooked.MockChain.Monad.Staged" are necessary because we want
+functions with those names that we can directly apply to 'Attack's: Since the
+'Modification's of any 'MonadModal' (including 'MonadModalMockChain') have to be
+a constant type, but 'Attack' isn't, we use the definitions there to hide the
+'UntypedAttack' wrapper from the user.
+
+With the definitions below, one would have to write
+
+> somewhere (UntypedAttack a) trace
+
+instead of
+
+> somewhere a trace
+
+in the only use-case outside of tests. This justifies the re-definition here, in
+my opinion.
+
+-}
+
 somewhere :: MonadModal m => Modification m -> m a -> m a
 somewhere x = modifyLtl $ LtlTruth `LtlUntil` LtlAtom x
 

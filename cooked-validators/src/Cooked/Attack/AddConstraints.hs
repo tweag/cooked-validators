@@ -69,35 +69,19 @@ addConstraintsAttack (is :=>: os) = do
 --
 -- The returned 'MiscConstraint' is either @Just@ the constraint that was added
 -- to the transaction, or @Nothing@, if your constraint was already present on
--- the unmodiified transaction.
+-- the unmodified transaction.
 addMiscConstraintAttack :: MiscConstraint -> Attack (Maybe MiscConstraint)
-addMiscConstraintAttack (SpendsScript v r (o, d)) =
-  do
-    added <- addSpendsScriptAttack v r (o, d)
-    if added
-      then return $ Just $ SpendsScript v r (o, d)
-      else return Nothing
-addMiscConstraintAttack (SpendsPK o) =
-  do
-    added <- addSpendsPKAttack o
-    if added
-      then return $ Just $ SpendsPK o
-      else return Nothing
-addMiscConstraintAttack (Mints r ps x) =
-  addMintsAttack r ps x
-    >> return (Just $ Mints r ps x)
+addMiscConstraintAttack (SpendsScript v r (o, d)) = addSpendsScriptAttack v r (o, d)
+addMiscConstraintAttack (SpendsPK o) = addSpendsPKAttack o
+addMiscConstraintAttack (Mints r ps x) = addMintsAttack r ps x
 addMiscConstraintAttack (Before b) =
-  let leftUnbounded = Pl.to b -- is this correct, i.e. should the end time be excluded?
+  let leftUnbounded = Pl.to b
    in addValidateInAttack leftUnbounded
-        >>= return . Just . ValidateIn . Pl.intersection leftUnbounded
 addMiscConstraintAttack (After a) =
-  let rightUnbounded = Pl.from a -- is this correct, i.e. should the start time be excluded?
+  let rightUnbounded = Pl.from a
    in addValidateInAttack rightUnbounded
-        >>= return . Just . ValidateIn . Pl.intersection rightUnbounded
-addMiscConstraintAttack (ValidateIn range) =
-  addValidateInAttack range
-    >>= return . Just . ValidateIn . Pl.intersection range
-addMiscConstraintAttack (SignedBy s) = addSignedByAttack s >>= return . Just . SignedBy
+addMiscConstraintAttack (ValidateIn range) = addValidateInAttack range
+addMiscConstraintAttack (SignedBy s) = addSignedByAttack s
 
 -- | This attack removes some 'MiscConstraint's from a transaction. Exactly
 -- those constraints that return @Just@ something are removed from the
@@ -133,51 +117,65 @@ partitionMaybe p l = accumulate l [] []
 -- redeemer, and datum. In that case, the attack will leave the transaction
 -- unmodified.
 --
--- This attack returns @True@ iff the transaction was modified.
+-- This attack returns @Just@ the added constraint iff the transaction was
+-- modified.
 addSpendsScriptAttack ::
   forall a.
   SpendsConstrs a =>
   L.TypedValidator a ->
   L.RedeemerType a ->
   (SpendableOut, L.DatumType a) ->
-  Attack Bool
+  Attack (Maybe MiscConstraint)
 addSpendsScriptAttack v r (o, d) = do
   present <- viewAttack (partsOf $ spendsScriptConstraintsT % spendsScriptConstraintTypeP @a)
   let clashing = filter (\(_, _, (o', _)) -> o == o') present
   case clashing of
-    [] -> do
-      overAttack miscConstraintsL (SpendsScript v r (o, d) :)
-      return True
+    [] ->
+      let newConstraint = SpendsScript v r (o, d)
+       in do
+            overAttack miscConstraintsL (newConstraint :)
+            return $ Just newConstraint
     [(v', r', (_, d'))] ->
       if v' == v && r' Pl.== r && d' Pl.== d
-        then return False
+        then return Nothing
         else failingAttack
-    _ -> return False -- Something's already wrong with the unmodified
-    -- transaction, since it spends the same UTxO at least twice. Let's not fail
-    -- nonetheless, maybe there's a reason for the madness.
+    _ -> return Nothing -- Something's already wrong with the unmodified
+    -- transaction, since it spends the same UTxO at least
+    -- twice. Let's not fail nonetheless, maybe there's a
+    -- reason for the madness.
 
 -- | This attack ensures that a certain 'SpendsPK' constraint is present on a
 -- transaction.
 --
--- Returns @True@ iff the transaction was changed. (In particular, this attack
--- never fails.)
-addSpendsPKAttack :: SpendableOut -> Attack Bool
+-- This attack returns @Just@ the added constraint iff the transaction was
+-- modified.
+addSpendsPKAttack :: SpendableOut -> Attack (Maybe MiscConstraint)
 addSpendsPKAttack extraUtxo = do
   consumed <- viewAttack (partsOf $ miscConstraintT % spendsPKConstraintP)
   if extraUtxo `elem` consumed
-    then return False
-    else do
-      overAttack miscConstraintsL (SpendsPK extraUtxo :)
-      return True
+    then return Nothing
+    else
+      let newConstraint = SpendsPK extraUtxo
+       in do
+            overAttack miscConstraintsL (newConstraint :)
+            return $ Just newConstraint
 
 -- | This attack adds a 'Mints' constraint.
+--
+-- This attack always returns @Just@ the added constraint. Its return type is in
+-- 'Maybe' in order to be homogeneous with 'addSpendsScriptAttack',
+-- 'addSpendsPKAttack', 'addValidateInAttack', and 'addSignedByAttack'.
 addMintsAttack ::
   MintsConstrs a =>
   Maybe a ->
   [L.MintingPolicy] ->
   L.Value ->
-  Attack ()
-addMintsAttack r ps x = overAttack miscConstraintsL (Mints r ps x :)
+  Attack (Maybe MiscConstraint)
+addMintsAttack r ps x =
+  let newConstraint = Mints r ps x
+   in do
+        overAttack miscConstraintsL (newConstraint :)
+        return $ Just newConstraint
 
 -- | This attack removes all time constraints (i.e. 'Before', 'After', and
 -- 'ValidateIn') from a transaction.
@@ -197,16 +195,26 @@ removeTimeConstraintsAttack = do
 -- | This attack restricts the validity time range of a transaction to the
 -- intersection of the given range and its current validity time range.
 --
--- It also "cleans up" the time constraints (i.e. 'Before', 'After', and
--- 'ValidateIn'), so that the resulting transaction has only one 'ValidateIn'
--- constraint.
+-- If this attack performs any change at all, it also "cleans up" the time
+-- constraints (i.e. 'Before', 'After', and 'ValidateIn'), so that the resulting
+-- transaction has only one 'ValidateIn' constraint.
 --
--- Returns the validity time range of the unmodified transaction.
-addValidateInAttack :: L.POSIXTimeRange -> Attack L.POSIXTimeRange
+-- This attack returns @Just@ the added constraint iff the transaction was
+-- modified.
+addValidateInAttack :: L.POSIXTimeRange -> Attack (Maybe MiscConstraint)
 addValidateInAttack range = do
+  unmodifiedSkel <- saveHereAttack
   oldRange <- removeTimeConstraintsAttack
-  overAttack miscConstraintsL (ValidateIn (range `Pl.intersection` oldRange) :)
-  return oldRange
+  let newRange = range `Pl.intersection` oldRange
+  if newRange == oldRange
+    then do
+      restoreHereAttack unmodifiedSkel
+      return Nothing
+    else
+      let newConstraint = ValidateIn newRange
+       in do
+            overAttack miscConstraintsL (newConstraint :)
+            return $ Just newConstraint
 
 -- | This attack removes all 'SignedBy' constraints from a transaction. It
 -- returns a list of the signers it removed.
@@ -216,16 +224,24 @@ removeSignedByAttack = do
   return $ concat signers
 
 -- | This attack adds signers to a transaction. It also combines all 'SignedBy'
--- constraints of the transaction into one.
+-- constraints of the transaction into one, if it performs any change at all.
 --
--- Returns a list of all signers that were added (i.e. that were not already
--- present on the unmodified transaction).
-addSignedByAttack :: [L.PubKeyHash] -> Attack [L.PubKeyHash]
+-- This attack returns @Just@ the added constraint iff the transaction was
+-- modified.
+addSignedByAttack :: [L.PubKeyHash] -> Attack (Maybe MiscConstraint)
 addSignedByAttack signers = do
+  unmodifiedSkel <- saveHereAttack
   oldSigners <- removeSignedByAttack
   let newSigners = signers \\ oldSigners
-  overAttack miscConstraintsL (SignedBy (newSigners ++ oldSigners) :)
-  return newSigners
+  if null newSigners
+    then do
+      restoreHereAttack unmodifiedSkel
+      return Nothing
+    else
+      let newConstraint = SignedBy $ newSigners ++ oldSigners
+       in do
+            overAttack miscConstraintsL (newConstraint :)
+            return $ Just newConstraint
 
 -- * Adding and Removing 'OutConstraint's
 

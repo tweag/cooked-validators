@@ -84,7 +84,7 @@ viewAttack optic = Attack $ \_mcst skel -> [(skel, view optic skel)]
 setAttack :: Is k A_Setter => Optic' k is TxSkel a -> a -> Attack ()
 setAttack optic newValue = Attack $ \_mcst skel -> [(set optic newValue skel, ())]
 
--- | The atack that modifies a certain value in the 'TxSkel'.
+-- | The attack that modifies a certain value in the 'TxSkel'.
 overAttack :: Is k A_Setter => Optic' k is TxSkel a -> (a -> a) -> Attack ()
 overAttack optic change = Attack $ \_mcst skel -> [(over optic change skel, ())]
 
@@ -101,6 +101,17 @@ tryAttack (Attack f) = Attack $
   \mcst skel -> case f mcst skel of
     [] -> [(skel, Nothing)]
     l -> second Just <$> l
+
+-- | This attack returns the transaction as it has been modified by now. Use
+-- this as a kind of savepoint, if you want execute some sequence of attacks of
+-- which you're not sure that they will lead to the right result. You can
+-- restore the savepoint after that sequence with 'restoreHereAttack'.
+saveHereAttack :: Attack TxSkel
+saveHereAttack = Attack $ \_mcst skel -> [(skel, skel)]
+
+-- | See the comment at 'saveHereAttack'.
+restoreHereAttack :: TxSkel -> Attack ()
+restoreHereAttack skel = Attack $ \_ _ -> [(skel, ())]
 
 -- * Constructing Attacks from Optics
 
@@ -224,19 +235,6 @@ scriptUtxosSuchThatMcst mcst val select =
       (L.validatorAddress val)
       (maybe (const False) select)
 
--- * General helpers
-
--- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- given label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabel :: LabelConstrs x => x -> TxSkel -> TxSkel
-addLabel newlabel =
-  over
-    txLabelL
-    ( \case
-        TxLabel Nothing -> TxLabel $ Just newlabel
-        TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
-    )
-
 -- * Some more simple attacks
 
 -- | Change some 'Value's in a 'TxSkel'. Returns a list of the increments by
@@ -262,14 +260,10 @@ changeValueAttack optic change =
 -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
 -- given label will be added, forming a pair @(newlabel, oldlabel)@.
 addLabelAttack :: LabelConstrs x => x -> Attack ()
-addLabelAttack newlabel = Attack $ \_mcst skel ->
-  [ ( over
-        txLabelL
-        ( \case
-            TxLabel Nothing -> TxLabel $ Just newlabel
-            TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
-        )
-        skel,
-      ()
+addLabelAttack newlabel =
+  overAttack
+    txLabelL
+    ( \case
+        TxLabel Nothing -> TxLabel $ Just newlabel
+        TxLabel (Just oldlabel) -> TxLabel $ Just (newlabel, oldlabel)
     )
-  ]

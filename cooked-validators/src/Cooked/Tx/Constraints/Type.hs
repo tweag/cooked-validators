@@ -119,15 +119,13 @@ sameConstraints (is :=>: os) (is' :=>: os') =
     isNoTimeConstraint _ = True
 
     validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
-    validityRange =
-      foldr
-        ( \case
-            Before b -> Pl.intersection (Pl.to b)
-            After a -> Pl.intersection (Pl.from a)
-            ValidateIn i -> Pl.intersection i
-            _ -> id
-        )
-        Pl.always
+    validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
+      where
+        toTimeRange = \case
+          Before b -> Pl.to b
+          After a -> Pl.from a
+          ValidateIn i -> i
+          _ -> Pl.always
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
