@@ -385,18 +385,6 @@ tryDupTokens =
     )
     (oneContributionFund <|> twoContributionsFund <|> allowBigTransactions manyContributorsFund)
 
-tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
-tryDatumHijack =
-  somewhere
-    ( datumHijackingAttack @Cf.Crowdfunding
-        ( \_ d _ -> case d of -- try to steal all outputs that have the 'Funding' datum, no matter their validator or value
-            Cf.Funding {} -> True
-            _ -> False
-        )
-        (0 ==) -- if there is more than one 'Funding' output, try stealing only the first
-    )
-    (oneContributionFund <|> twoContributionsFund <|> allowBigTransactions manyContributorsFund)
-
 -- Produce two outcomes, which differ only by who the (only) contributor in
 -- the auction was. Then test that the owner and contributors in both
 -- "worlds" have paid the same amounts.
@@ -446,12 +434,7 @@ attacks =
               (\msg -> "not minting the right amount" `isPrefixOf` msg)
           )
           testInit
-          tryDupTokens,
-      testCase "datum hijacking" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDatumHijack
+          tryDupTokens
     ]
 
 tests :: TestTree
