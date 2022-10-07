@@ -98,21 +98,26 @@ txHammer :: MonadBlockChain m => SpendableOut -> m ()
 txHammer offerUtxo =
   let theNft = A.threadToken $ fst offerUtxo
    in do
-        [(utxo, datum)] <-
+        utxos <-
           scriptUtxosSuchThat
             A.auctionValidator
-            ( \d x -> case d of
-                A.Offer {} -> x `Value.geq` sOutValue offerUtxo
-                _ -> x `Value.geq` theNft
-            )
+            (\_ x -> x `Value.geq` theNft)
         void $
           validateTxSkel $
             txSkelOpts (def {adjustUnbalTx = True}) $
-              case datum of
-                A.Offer seller _ ->
-                  [SpendsScript A.auctionValidator (A.Hammer $ fst offerUtxo) utxo]
-                    :=>: [paysPK seller (sOutValue utxo)]
-                _ ->
+              case utxos of
+                [] ->
+                  -- There's no thread token, so the auction is still in 'Offer'
+                  -- state
+                  [SpendsScript A.auctionValidator (A.Hammer $ fst offerUtxo) offerUtxo]
+                    :=>: [ paysPK
+                             (A.getSeller $ fromJust $ spOutGetDatum @A.Auction offerUtxo)
+                             (sOutValue offerUtxo)
+                         ]
+                (utxo, datum) : _ ->
+                  -- There is a thread token, so the auction is in 'NoBids' or
+                  -- 'Bidding' state, which means that the following pattern
+                  -- match can not fail:
                   let Just deadline = A.getBidDeadline datum
                    in [ After deadline,
                         SpendsScript
