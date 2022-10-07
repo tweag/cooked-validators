@@ -41,14 +41,7 @@ dupTokenAttack change attacker = do
     increaseValue =
       over
         flattenValueI
-        ( map
-            ( \(ac, i) ->
-                let j = change ac i
-                 in if j > i
-                      then (ac, j)
-                      else (ac, i)
-            )
-        )
+        $ map (\(ac, i) -> (ac, max i (change ac i)))
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show)

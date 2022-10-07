@@ -203,12 +203,12 @@ removeTimeConstraintsAttack = do
 -- modified.
 addValidateInAttack :: L.POSIXTimeRange -> Attack (Maybe MiscConstraint)
 addValidateInAttack range = do
-  unmodifiedSkel <- saveHereAttack
+  unmodifiedSkel <- getTxSkel
   oldRange <- removeTimeConstraintsAttack
   let newRange = range `Pl.intersection` oldRange
   if newRange == oldRange
     then do
-      restoreHereAttack unmodifiedSkel
+      setTxSkel unmodifiedSkel
       return Nothing
     else
       let newConstraint = ValidateIn newRange
@@ -230,12 +230,12 @@ removeSignedByAttack = do
 -- modified.
 addSignedByAttack :: [L.PubKeyHash] -> Attack (Maybe MiscConstraint)
 addSignedByAttack signers = do
-  unmodifiedSkel <- saveHereAttack
+  unmodifiedSkel <- getTxSkel
   oldSigners <- removeSignedByAttack
   let newSigners = signers \\ oldSigners
   if null newSigners
     then do
-      restoreHereAttack unmodifiedSkel
+      setTxSkel unmodifiedSkel
       return Nothing
     else
       let newConstraint = SignedBy $ newSigners ++ oldSigners

@@ -12,12 +12,14 @@ module Cooked.Tx.Constraints.Type where
 
 import Control.Lens
 import Data.Default
+import Data.List
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
+import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Eq as Pl
 import Type.Reflection
@@ -94,18 +96,26 @@ instance Semigroup Constraints where
 instance Monoid Constraints where
   mempty = [] :=>: []
 
--- | Check whether two constraints are the same, up to reordering of inputs, and
--- substitutions of time constraints ('After', 'Before', 'ValidateIn') that
--- preserve the validity interval of the transaction.
+-- | Check whether two constraints are the same, up to
+--
+-- - reordering of inputs,
+--
+-- - substitutions of time constraints ('After', 'Before', 'ValidateIn') that
+--   preserve the validity interval, and
+--
+-- - differences in 'Mints' constraints that leave the specified value that
+--   should be minted for each redeemer the same.
 --
 -- This relation is coarser than equality as defined on 'Constraint', and more
 -- closely reflects the notion of "these constraints specify the same
 -- transaction".
 sameConstraints :: Constraints -> Constraints -> Bool
 sameConstraints (is :=>: os) (is' :=>: os') =
-  sameSets (filter isNoTimeConstraint is) (filter isNoTimeConstraint is')
+  sameSets (filter isSpendsScriptOrSpendsPK is) (filter isSpendsScriptOrSpendsPK is')
     && (os == os')
     && (validityRange is == validityRange is')
+    && (sort (signers is) == sort (signers is'))
+    && sameMintedValuesWithRedeemers is is'
   where
     sameSets :: Eq a => [a] -> [a] -> Bool
     sameSets l r = length l == length r && subset l r && subset r l
@@ -113,11 +123,10 @@ sameConstraints (is :=>: os) (is' :=>: os') =
     subset :: Eq a => [a] -> [a] -> Bool
     subset l r = all (`elem` r) l
 
-    isNoTimeConstraint :: MiscConstraint -> Bool
-    isNoTimeConstraint (Before _) = False
-    isNoTimeConstraint (After _) = False
-    isNoTimeConstraint (ValidateIn _) = False
-    isNoTimeConstraint _ = True
+    isSpendsScriptOrSpendsPK :: MiscConstraint -> Bool
+    isSpendsScriptOrSpendsPK SpendsScript {} = True
+    isSpendsScriptOrSpendsPK SpendsPK {} = True
+    isSpendsScriptOrSpendsPK _ = False
 
     validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
     validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
@@ -127,6 +136,30 @@ sameConstraints (is :=>: os) (is' :=>: os') =
           After a -> Pl.from a
           ValidateIn i -> i
           _ -> Pl.always
+
+    signers :: [MiscConstraint] -> [Pl.PubKeyHash]
+    signers = foldr (union . toSignerList) []
+      where
+        toSignerList (SignedBy s) = s
+        toSignerList _ = []
+
+    sameMintedValuesWithRedeemers :: [MiscConstraint] -> [MiscConstraint] -> Bool
+    sameMintedValuesWithRedeemers cs cs' =
+      all (\case Mints r _pols v -> mintedWithRedeemer r ms' `Pl.geq` v; _ -> True) ms
+        && all (\case Mints r _pols v -> mintedWithRedeemer r ms `Pl.geq` v; _ -> True) ms'
+      where
+        isMintsConstraint = \case Mints {} -> True; _ -> False
+        ms = filter isMintsConstraint cs
+        ms' = filter isMintsConstraint cs'
+
+        mintedWithRedeemer :: MintsConstrs a => Maybe a -> [MiscConstraint] -> Pl.Value
+        mintedWithRedeemer r = foldr ((<>) . toMintedValueIfCorrectRedeemer) mempty
+          where
+            toMintedValueIfCorrectRedeemer (Mints r' _pols v) =
+              case r ~*~? r' of
+                Just HRefl -> if r Pl.== r' then v else mempty
+                Nothing -> mempty
+            toMintedValueIfCorrectRedeemer _ = mempty
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where

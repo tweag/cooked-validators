@@ -62,6 +62,9 @@ instance Alternative Attack where
 
 instance MonadPlus Attack
 
+instance MonadFail Attack where
+  fail _ = empty
+
 -- * Simple attacks
 
 -- | The never-applicable attack.
@@ -106,12 +109,12 @@ tryAttack (Attack f) = Attack $
 -- this as a kind of savepoint, if you want execute some sequence of attacks of
 -- which you're not sure that they will lead to the right result. You can
 -- restore the savepoint after that sequence with 'restoreHereAttack'.
-saveHereAttack :: Attack TxSkel
-saveHereAttack = Attack $ \_mcst skel -> [(skel, skel)]
+getTxSkel :: Attack TxSkel
+getTxSkel = Attack $ \_mcst skel -> [(skel, skel)]
 
 -- | See the comment at 'saveHereAttack'.
-restoreHereAttack :: TxSkel -> Attack ()
-restoreHereAttack skel = Attack $ \_ _ -> [(skel, ())]
+setTxSkel :: TxSkel -> Attack ()
+setTxSkel skel = Attack $ \_ _ -> [(skel, ())]
 
 -- * Applying 'Attack's to 'Constraints'
 

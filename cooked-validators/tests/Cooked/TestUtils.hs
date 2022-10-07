@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- | Some utilities to write tests for cooked-validators. The error reporting
@@ -7,9 +8,14 @@ module Cooked.TestUtils where
 import Cooked.MockChain.Testing
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.List
+import qualified Ledger as Pl
+import qualified Ledger.Value as Pl
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V1.Ledger.Time as Pl
+import qualified PlutusTx.Prelude as Pl
 import Test.Tasty.HUnit
+import Type.Reflection
 
 assertSubset :: (Show a, Eq a) => [a] -> [a] -> Assertion
 assertSubset l r =
@@ -41,24 +47,21 @@ instance Show Constraints where
 instance Show TxSkel where
   show = show . prettyTxSkel []
 
--- | Assert that two constraints are the same, up to reordering of inputs, and
--- substitutions of time constraints ('After', 'Before', 'ValidateIn') that
--- preserve the validity interval of the transaction.
---
--- This is an almost literal re-implementation of 'sameConstraints', so that the
--- error message is more informative than a message provided through
--- 'assertBool'.
+-- | Assert that two 'Constraints' are semantically the same. This is almost a
+-- literal copy of 'sameConstraints' from "Cooked.Tx.Constraints.Type", only
+-- adapted to yield more informative failure messages.
 assertSameConstraints :: Constraints -> Constraints -> Assertion
 assertSameConstraints (is :=>: os) (is' :=>: os') =
-  assertSameSets (filter isNoTimeConstraint is) (filter isNoTimeConstraint is')
-    .&&. (os @?= os')
-    .&&. (validityRange is @?= validityRange is')
+  assertSameSets (filter isSpendsScriptOrSpendsPK is) (filter isSpendsScriptOrSpendsPK is')
+    .&&. (os @=? os')
+    .&&. (validityRange is @=? validityRange is')
+    .&&. (sort (signers is) @=? sort (signers is'))
+    .&&. assertBool "the minted values per redeemer differ" (sameMintedValuesWithRedeemers is is')
   where
-    isNoTimeConstraint :: MiscConstraint -> Bool
-    isNoTimeConstraint (Before _) = False
-    isNoTimeConstraint (After _) = False
-    isNoTimeConstraint (ValidateIn _) = False
-    isNoTimeConstraint _ = True
+    isSpendsScriptOrSpendsPK :: MiscConstraint -> Bool
+    isSpendsScriptOrSpendsPK SpendsScript {} = True
+    isSpendsScriptOrSpendsPK SpendsPK {} = True
+    isSpendsScriptOrSpendsPK _ = False
 
     validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
     validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
@@ -68,3 +71,27 @@ assertSameConstraints (is :=>: os) (is' :=>: os') =
           After a -> Pl.from a
           ValidateIn i -> i
           _ -> Pl.always
+
+    signers :: [MiscConstraint] -> [Pl.PubKeyHash]
+    signers = foldr (union . toSignerList) []
+      where
+        toSignerList (SignedBy s) = s
+        toSignerList _ = []
+
+    sameMintedValuesWithRedeemers :: [MiscConstraint] -> [MiscConstraint] -> Bool
+    sameMintedValuesWithRedeemers cs cs' =
+      all (\case Mints r _pols v -> mintedWithRedeemer r ms' `Pl.geq` v; _ -> True) ms
+        && all (\case Mints r _pols v -> mintedWithRedeemer r ms `Pl.geq` v; _ -> True) ms'
+      where
+        isMintsConstraint = \case Mints {} -> True; _ -> False
+        ms = filter isMintsConstraint cs
+        ms' = filter isMintsConstraint cs'
+
+        mintedWithRedeemer :: MintsConstrs a => Maybe a -> [MiscConstraint] -> Pl.Value
+        mintedWithRedeemer r = foldr ((<>) . toMintedValueIfCorrectRedeemer) mempty
+          where
+            toMintedValueIfCorrectRedeemer (Mints r' _pols v) =
+              case r ~*~? r' of
+                Just HRefl -> if r Pl.== r' then v else mempty
+                Nothing -> mempty
+            toMintedValueIfCorrectRedeemer _ = mempty
