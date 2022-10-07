@@ -32,10 +32,9 @@ import qualified PlutusTx.Prelude as Pl
 --
 -- The returned 'Constraints' will be the constraints that were *actually* added
 -- to the transaction, which might differ from your specified constraints (but
--- only in 'MiscConstraint's, so on the left-hand side of ':=>:'). In every case, this
-``
--- attack ensures that every constraint you specified will be included in the
--- constraints of the modified transaction.
+-- only in 'MiscConstraint's, so on the left-hand side of ':=>:'). In every
+-- case, this attack ensures that every constraint you specified will be
+-- included in the constraints of the modified transaction.
 addConstraintsAttack :: Constraints -> Attack Constraints
 addConstraintsAttack (is :=>: os) = do
   addedMiscConstraints <- mapM addMiscConstraintAttack is
