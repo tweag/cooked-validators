@@ -39,7 +39,7 @@ txSetDeadline :: MonadBlockChain m => SpendableOut -> L.POSIXTime -> m ()
 txSetDeadline offerUtxo deadline = do
   let lot = sOutValue offerUtxo
       theNft = A.threadToken $ fst offerUtxo
-      Just (A.Offer seller minBid) = spOutGetDatum @A.Auction offerUtxo
+  (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
   void $
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
@@ -102,6 +102,7 @@ txHammer offerUtxo =
           scriptUtxosSuchThat
             A.auctionValidator
             (\_ x -> x `Value.geq` theNft)
+        (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
         void $
           validateTxSkel $
             txSkelOpts (def {adjustUnbalTx = True}) $
@@ -111,7 +112,7 @@ txHammer offerUtxo =
                   -- state
                   [SpendsScript A.auctionValidator (A.Hammer $ fst offerUtxo) offerUtxo]
                     :=>: [ paysPK
-                             (A.getSeller $ fromJust $ spOutGetDatum @A.Auction offerUtxo)
+                             seller
                              (sOutValue offerUtxo)
                          ]
                 (utxo, datum) : _ ->
@@ -132,12 +133,12 @@ txHammer offerUtxo =
                         :=>: case previousBidder datum of
                           Nothing ->
                             let lot = sOutValue utxo <> Pl.negate theNft
-                             in [paysPK (A.getSeller datum) lot]
+                             in [paysPK seller lot]
                           Just (lastBid, lastBidder) ->
                             let lot =
                                   sOutValue utxo
                                     <> Pl.negate (Ada.lovelaceValueOf lastBid)
                                     <> Pl.negate theNft
                              in [ paysPK lastBidder lot,
-                                  paysPK (A.getSeller datum) (Ada.lovelaceValueOf lastBid)
+                                  paysPK seller (Ada.lovelaceValueOf lastBid)
                                 ]
