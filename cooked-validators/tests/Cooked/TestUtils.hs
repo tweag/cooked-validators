@@ -1,5 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 
 -- | Some utilities to write tests for cooked-validators. The error reporting
 -- could be better.
@@ -47,51 +46,13 @@ instance Show Constraints where
 instance Show TxSkel where
   show = show . prettyTxSkel []
 
--- | Assert that two 'Constraints' are semantically the same. This is almost a
--- literal copy of 'sameConstraints' from "Cooked.Tx.Constraints.Type", only
--- adapted to yield more informative failure messages.
+-- | Assert that two 'Constraints' are semantically the same.
 assertSameConstraints :: Constraints -> Constraints -> Assertion
-assertSameConstraints (is :=>: os) (is' :=>: os') =
-  assertSameSets (filter isSpendsScriptOrSpendsPK is) (filter isSpendsScriptOrSpendsPK is')
-    .&&. (os @=? os')
-    .&&. (validityRange is @=? validityRange is')
-    .&&. (sort (signers is) @=? sort (signers is'))
-    .&&. assertBool "the minted values per redeemer differ" (sameMintedValuesWithRedeemers is is')
-  where
-    isSpendsScriptOrSpendsPK :: MiscConstraint -> Bool
-    isSpendsScriptOrSpendsPK SpendsScript {} = True
-    isSpendsScriptOrSpendsPK SpendsPK {} = True
-    isSpendsScriptOrSpendsPK _ = False
-
-    validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
-    validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
-      where
-        toTimeRange = \case
-          Before b -> Pl.to b
-          After a -> Pl.from a
-          ValidateIn i -> i
-          _ -> Pl.always
-
-    signers :: [MiscConstraint] -> [Pl.PubKeyHash]
-    signers = foldr (union . toSignerList) []
-      where
-        toSignerList (SignedBy s) = s
-        toSignerList _ = []
-
-    sameMintedValuesWithRedeemers :: [MiscConstraint] -> [MiscConstraint] -> Bool
-    sameMintedValuesWithRedeemers cs cs' =
-      all (\case Mints r _pols v -> mintedWithRedeemer r ms' `Pl.geq` v; _ -> True) ms
-        && all (\case Mints r _pols v -> mintedWithRedeemer r ms `Pl.geq` v; _ -> True) ms'
-      where
-        isMintsConstraint = \case Mints {} -> True; _ -> False
-        ms = filter isMintsConstraint cs
-        ms' = filter isMintsConstraint cs'
-
-        mintedWithRedeemer :: MintsConstrs a => Maybe a -> [MiscConstraint] -> Pl.Value
-        mintedWithRedeemer r = foldr ((<>) . toMintedValueIfCorrectRedeemer) mempty
-          where
-            toMintedValueIfCorrectRedeemer (Mints r' _pols v) =
-              case r ~*~? r' of
-                Just HRefl -> if r Pl.== r' then v else mempty
-                Nothing -> mempty
-            toMintedValueIfCorrectRedeemer _ = mempty
+assertSameConstraints expected actual =
+  assertBool
+    ( "constraints not semantically equal:\n\nexpected:\n"
+        ++ show expected
+        ++ "\n\nactual:\n"
+        ++ show actual
+    )
+    $ sameConstraints expected actual

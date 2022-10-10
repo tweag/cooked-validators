@@ -7,12 +7,17 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use section" #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import Control.Lens
 import Data.Default
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as M
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -21,7 +26,7 @@ import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified Ledger.Value as Pl
 import qualified PlutusTx as Pl
-import qualified PlutusTx.Eq as Pl
+import qualified PlutusTx.Prelude as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
@@ -144,22 +149,27 @@ sameConstraints (is :=>: os) (is' :=>: os') =
         toSignerList _ = []
 
     sameMintedValuesWithRedeemers :: [MiscConstraint] -> [MiscConstraint] -> Bool
-    sameMintedValuesWithRedeemers cs cs' =
-      all (\case Mints r _pols v -> mintedWithRedeemer r ms' `Pl.geq` v; _ -> True) ms
-        && all (\case Mints r _pols v -> mintedWithRedeemer r ms `Pl.geq` v; _ -> True) ms'
+    sameMintedValuesWithRedeemers cs cs' = mintedWithRedeemer cs == mintedWithRedeemer cs'
       where
-        isMintsConstraint = \case Mints {} -> True; _ -> False
-        ms = filter isMintsConstraint cs
-        ms' = filter isMintsConstraint cs'
-
-        mintedWithRedeemer :: MintsConstrs a => Maybe a -> [MiscConstraint] -> Pl.Value
-        mintedWithRedeemer r = foldr ((<>) . toMintedValueIfCorrectRedeemer) mempty
+        mintedWithRedeemer :: [MiscConstraint] -> Map MintsRedeemer Pl.Value
+        mintedWithRedeemer = foldr extendWithValue M.empty
           where
-            toMintedValueIfCorrectRedeemer (Mints r' _pols v) =
-              case r ~*~? r' of
-                Just HRefl -> if r Pl.== r' then v else mempty
-                Nothing -> mempty
-            toMintedValueIfCorrectRedeemer _ = mempty
+            extendWithValue :: MiscConstraint -> Map MintsRedeemer Pl.Value -> Map MintsRedeemer Pl.Value
+            extendWithValue (Mints r _ v) m = M.insertWith (<>) (MintsRedeemer r) v m
+            extendWithValue _ m = m
+
+-- | Helper type for 'sameConstraints', used to wrap the redeemers in 'Mints'
+-- constraints.
+data MintsRedeemer where
+  MintsRedeemer :: MintsConstrs a => Maybe a -> MintsRedeemer
+
+instance Eq MintsRedeemer where
+  MintsRedeemer a == MintsRedeemer x = case typeOf a `eqTypeRep` typeOf x of
+    Just HRefl -> a Pl.== x
+    Nothing -> False
+
+instance Ord MintsRedeemer where
+  MintsRedeemer a <= MintsRedeemer x = Pl.toData a <= Pl.toData x
 
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
