@@ -164,7 +164,7 @@ spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
 --
 -- This function has an ambiguous type, so it is probably necessary to
 -- type-apply it to the type of your validator.
-spOutGetDatum :: (MonadBlockChain m, Pl.FromData (Pl.DatumType a)) => SpendableOut -> m (Pl.DatumType a)
+spOutGetDatum :: (Pl.FromData (Pl.DatumType a), MonadBlockChain m) => SpendableOut -> m (Pl.DatumType a)
 spOutGetDatum (_, txOut) = do
   Just (Pl.Datum datum) <- datumFromTxOut txOut
   case Pl.fromBuiltinData datum of
