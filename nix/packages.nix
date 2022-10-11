@@ -21,9 +21,9 @@ let
     (iohkpkgs.haskell-nix.hackage-package {
       compiler-nix-name = "ghc810420210212";
       name = "haskell-language-server";
-      version = "1.7.0.0";
+      version = "1.8.0.0";
       modules = [{
-        packages.ghcide.patches = [ patches/ghcide_partial_iface.patch ];
+        # packages.ghcide.patches = [ patches/ghcide_partial_iface.patch ];
         packages.ghcide.flags.ghc-patched-unboxed-bytecode = true;
       }];
     }).components.exes;
@@ -35,7 +35,7 @@ in {
   build-deps = with rawpkgs; [
         # libs required to build plutus
         libsodium
-        lzma
+        xz
         zlib
 
         # required to build in a pure nix shell
