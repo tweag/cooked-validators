@@ -1,6 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module CrowdfundingSpec where
@@ -16,7 +15,7 @@ import Cooked.Tx.Constraints
 import qualified Crowdfunding as Cf
 import qualified Crowdfunding.Offchain as Cf
 import Data.Default
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, (\\))
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Ledger as L
@@ -26,7 +25,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 -- Just so we have something to fund that's not Ada:
--- Have a banana
+-- Have a banana and an apple
 
 bananaAssetClass :: Value.AssetClass
 bananaAssetClass = permanentAssetClass "Banana"
@@ -34,10 +33,6 @@ bananaAssetClass = permanentAssetClass "Banana"
 -- | Value representing a number of bananas
 banana :: Integer -> Value.Value
 banana = Value.assetClassValue bananaAssetClass
-
--- | initial distribution s.t. all wallets own 5 bananas
-testInit :: InitialDistribution
-testInit = initialDistribution' [(wallet i, [minAda <> banana 5]) | i <- [1 .. 10]]
 
 -- | Parameters of a crowdfund that is attempting to fund 5 bananas to wallet 2,
 -- with a deadline in 60 seconds from the given time, and minimum contribution of
@@ -50,6 +45,29 @@ bananaParams t =
       Cf.minContribution = banana 2,
       Cf.fundingTarget = walletPKHash (wallet 2)
     }
+
+-- appleAssetClass :: Value.AssetClass
+-- appleAssetClass = permanentAssetClass "Apple"
+
+-- -- | Value representing a number of apples
+-- apple :: Integer -> Value.Value
+-- apple = Value.assetClassValue appleAssetClass
+
+-- -- | Parameters of a crowdfund that is attempting to fund 5 apples to wallet 2,
+-- -- with a deadline in 60 seconds from the given time, and minimum contribution of
+-- -- 2 apples.
+-- appleParams :: L.POSIXTime -> Cf.ValParams
+-- appleParams t =
+--   Cf.ValParams
+--     { Cf.projectDeadline = t + 120_000,
+--       Cf.threshold = apple 4,
+--       Cf.minContribution = apple 2,
+--       Cf.fundingTarget = walletPKHash (wallet 2)
+--     }
+
+-- | initial distribution s.t. all wallets own 5 bananas and 5 apples
+testInit :: InitialDistribution
+testInit = initialDistribution' [(wallet i, [minAda <> banana 5]) | i <- [1 .. 10]]
 
 nothing :: MonadMockChain m => m ()
 nothing = return ()
@@ -238,6 +256,21 @@ ownerRefundsBelowMinimum = do
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) `as` wallet 2
 
+{-
+-- | wallet 2 opens two crowdfunds at the same time
+twoCrowdfunds :: MonadMockChain m => m ()
+twoCrowdfunds = do
+  t0 <- currentTime
+  Cf.txOpen (bananaParams t0) `as` wallet 2
+  Cf.txOpen (appleParams t0) `as` wallet 2
+  Cf.txIndividualFund (bananaParams t0) (banana 3) `as` wallet 1
+  Cf.txIndividualFund (bananaParams t0) (banana 2) `as` wallet 3
+  --Cf.txIndividualFund (appleParams t0) (apple 2) `as` wallet 1
+  --Cf.txIndividualFund (appleParams t0) (apple 2) `as` wallet 4
+  Cf.txProjectFund (bananaParams t0) `as` wallet 2
+  --Cf.txProjectFund (appleParams t0) `as` wallet 2
+-}
+
 successfulSingle :: TestTree
 successfulSingle =
   testGroup
@@ -270,6 +303,8 @@ successfulSingle =
         testSucceedsFrom testInit oneContributionRefundBelowMinimum,
       testCase "owner refunds, one contribution not exceeding minimum" $
         testSucceedsFrom testInit ownerRefundsBelowMinimum
+        -- testCase "two crowdfunds at the same time" $
+        --   testSucceedsFrom testInit (allowBigTransactions twoCrowdfunds)
     ]
 
 -- | one contribution, refund error: wallet 1 attempts to refund without contributing
@@ -423,12 +458,14 @@ oneContributionFundAlternative =
       ( \a b ->
           testBool $
             adaInState a (wallet 2) == adaInState b (wallet 2)
-              && tokensInState a (wallet 2) == tokensInState b (wallet 2)
+              && tokensInState a (wallet 2) `setEquals` tokensInState b (wallet 2)
               && adaInState a (wallet 9) == adaInState b (wallet 10)
-              && tokensInState a (wallet 9) == tokensInState b (wallet 10)
+              && tokensInState a (wallet 9) `setEquals` tokensInState b (wallet 10)
       )
       testInit
       oneContributionFundAlternativeTrace
+  where
+    setEquals xs ys = null (xs \\ ys) && null (ys \\ xs)
 
 -- * Collecting all the tests in this module
 

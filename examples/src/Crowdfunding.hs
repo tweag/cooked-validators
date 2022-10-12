@@ -55,16 +55,6 @@ instance Eq ValParams where
   ValParams pd t mc ft == ValParams pd' t' mc' ft' =
     pd == pd' && t == t' && mc == mc' && ft == ft'
 
--- | All data the minting policy of the reward token needs to
--- know. These are known after the project funding transaction
-newtype PolicyParams = PolicyParams
-  { -- | TokenName of the reward token
-    pRewardTokenName :: Value.TokenName
-  }
-
-PlutusTx.makeLift ''PolicyParams
-PlutusTx.unstableMakeIsData ''PolicyParams
-
 -- | All data associated with an individual fund
 data FundingParams = FundingParams
   { -- | public key that is contributing
@@ -151,11 +141,10 @@ instance Eq Action where
 -- * the transaction has at least one input
 -- * all contributors receive one token + amount contributed - amount in funding datum
 --   + note: this result must be at least 2 ada. if not, transaction will fail earlier
--- TODO: add check that owner signs the transaction
 -- * this should throw an error in traces where funds were locked in the script
-{-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> () -> L.ScriptContext -> Bool
-mkPolicy (PolicyParams tName) _ ctx
+{-# INLINEABLE mkRewardTokenPolicy #-}
+mkRewardTokenPolicy :: L.TxOutRef -> () -> L.ScriptContext -> Bool
+mkRewardTokenPolicy txOut _ ctx
   | amnt == Just (length contributors) =
     traceIfFalse
       "Transaction does not have at least one input"
@@ -168,6 +157,7 @@ mkPolicy (PolicyParams tName) _ ctx
     txi = L.scriptContextTxInfo ctx
     contributors = getUniqueContributors txi
     L.Minting me = L.scriptContextPurpose ctx
+    tName = tokenNameFromTxOutRef txOut
     token :: L.Value
     token = Value.singleton me tName 1
 
@@ -208,17 +198,36 @@ rewardTokenName (L.TxOutRef (L.TxId tid) i) =
         encodeDigit d = consByteString (d + 48) emptyByteString
 
 -- | Parameterized minting policy
-rewardTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
-rewardTokenPolicy pars =
+rewardTokenPolicy :: L.TxOutRef -> Scripts.MintingPolicy
+rewardTokenPolicy txOut =
   Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
-      `PlutusTx.applyCode` PlutusTx.liftCode pars
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkRewardTokenPolicy||])
+      `PlutusTx.applyCode` PlutusTx.liftCode txOut
 
 getRewardTokenAssetClass :: L.TxOutRef -> Value.AssetClass
 getRewardTokenAssetClass txOut =
   Value.assetClass
-    (Pl.scriptCurrencySymbol $ rewardTokenPolicy $ PolicyParams $ rewardTokenName txOut)
+    (Pl.scriptCurrencySymbol $ rewardTokenPolicy txOut)
     (rewardTokenName txOut)
+
+-- | Compute the token name of the thread token of an auction from its offer Utxo.
+-- Copied from Carl's Auction contract.
+{-# INLINEABLE tokenNameFromTxOutRef #-}
+tokenNameFromTxOutRef :: L.TxOutRef -> L.TokenName
+tokenNameFromTxOutRef (L.TxOutRef (L.TxId tid) i) =
+  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
+  where
+    -- we know that the numbers (indices of transaction outputs) we're working
+    -- with here are non-negative.
+    encodeInteger :: Integer -> BuiltinByteString
+    encodeInteger n
+      | n `quotient` 10 == 0 = encodeDigit n
+      | otherwise = encodeInteger (n `quotient` 10) <> encodeDigit (n `remainder` 10)
+      where
+        encodeDigit :: Integer -> BuiltinByteString
+        -- 48 is the ASCII code for '0'
+        encodeDigit d = consByteString (d + 48) emptyByteString
+
 
 {-# INLINEABLE crowdfundTimeRange #-}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange

@@ -52,7 +52,6 @@ txProjectFund p = do
     scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getOwner d == fundingTarget)
   let tokenTxOutRef = fst $ fst $ head utxos
       datumTotal = PlutusTx.Prelude.sum $ mapMaybe (Cf.getValue . snd) utxos
-      q = Cf.PolicyParams {Cf.pRewardTokenName = Cf.rewardTokenName tokenTxOutRef}
       uniqueAddrs = nub $ mapMaybe (Cf.getFunder . snd) utxos
       token = Value.assetClassValue (Cf.getRewardTokenAssetClass tokenTxOutRef)
   void $
@@ -61,7 +60,7 @@ txProjectFund p = do
         ( Before (Cf.projectDeadline p) :
           Mints
             (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
-            [Cf.rewardTokenPolicy q]
+            [Cf.rewardTokenPolicy tokenTxOutRef]
             (token $ fromIntegral $ length uniqueAddrs) :
           map (SpendsScript Cf.crowdfundingValidator Cf.Launch . fst) utxos
         )
