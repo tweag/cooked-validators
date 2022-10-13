@@ -15,19 +15,19 @@
 </span><span id="line-15"></span><span class="hs-comment">-- | An attack that tries to change the datum on 'PaysScript' constraints with a</span><span>
 </span><span id="line-16"></span><span class="hs-comment">-- prescribed tampering function, that only applies to datums of a certain type.</span><span>
 </span><span id="line-17"></span><span class="annot"><a href="Cooked.Attack.TamperDatum.html#tamperDatumAttack"><span class="hs-identifier hs-type">tamperDatumAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-18"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679563600"><span class="annot"><a href="#local-6989586621679563600"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679563600"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679564151"><span class="annot"><a href="#local-6989586621679564151"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679564151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-20"></span><span>  </span><span class="hs-comment">-- | Use this function to return 'Just' the changed datum, if you want to</span><span>
 </span><span id="line-21"></span><span>  </span><span class="hs-comment">-- perform a change, and 'Nothing', if you want to leave it as-is. All datums</span><span>
 </span><span id="line-22"></span><span>  </span><span class="hs-comment">-- on 'PaysScript' constraints not paying to a validator of type @a@ are never</span><span>
 </span><span id="line-23"></span><span>  </span><span class="hs-comment">-- touched.</span><span>
-</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679563600"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679563600"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679564151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679564151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-25"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Common.html#Attack"><span class="hs-identifier hs-type">Attack</span></a></span><span>
 </span><span id="line-26"></span><span id="tamperDatumAttack"><span class="annot"><span class="annottext">tamperDatumAttack :: (DatumType a -&gt; Maybe (DatumType a)) -&gt; Attack
-</span><a href="Cooked.Attack.TamperDatum.html#tamperDatumAttack"><span class="hs-identifier hs-var hs-var">tamperDatumAttack</span></a></span></span><span> </span><span id="local-6989586621679563599"><span class="annot"><span class="annottext">DatumType a -&gt; Maybe (DatumType a)
-</span><a href="#local-6989586621679563599"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679563598"><span class="annot"><span class="annottext">MockChainSt
-</span><a href="#local-6989586621679563598"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679563597"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679563597"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Attack.TamperDatum.html#tamperDatumAttack"><span class="hs-identifier hs-var hs-var">tamperDatumAttack</span></a></span></span><span> </span><span id="local-6989586621679564150"><span class="annot"><span class="annottext">DatumType a -&gt; Maybe (DatumType a)
+</span><a href="#local-6989586621679564150"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679564149"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679564149"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679564148"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679564148"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-27"></span><span>  </span><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TxSkel -&gt; TxSkel
 forall x. LabelConstrs x =&gt; x -&gt; TxSkel -&gt; TxSkel
 </span><a href="Cooked.Attack.Common.html#addLabel"><span class="hs-identifier hs-var">addLabel</span></a></span><span> </span><span class="annot"><span class="annottext">TamperDatumLbl
@@ -72,7 +72,7 @@ forall a.
 Prism'
   PaysScriptConstraint
   (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-var">paysScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679563600"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-var">paysScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679564151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
   A_Traversal
   '[]
   TxSkel
@@ -100,11 +100,11 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   (DatumType a)
 forall s t a b. Field3 s t a b =&gt; Lens s t a b
 </span><span class="hs-identifier hs-var">_3</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DatumType a -&gt; Maybe (DatumType a)
-</span><a href="#local-6989586621679563599"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
-</span><a href="#local-6989586621679563598"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679563597"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><a href="#local-6989586621679564150"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679564149"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679564148"><span class="hs-identifier hs-var">skel</span></a></span><span>
 </span><span id="line-29"></span><span>
-</span><span id="line-30"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679563583"><span id="local-6989586621679563585"><span id="local-6989586621679563587"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
+</span><span id="line-30"></span><span class="hs-keyword">data</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="TamperDatumLbl"><span class="annot"><a href="Cooked.Attack.TamperDatum.html#TamperDatumLbl"><span class="hs-identifier hs-var">TamperDatumLbl</span></a></span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679564134"><span id="local-6989586621679564136"><span id="local-6989586621679564138"><span class="annot"><span class="annottext">Int -&gt; TamperDatumLbl -&gt; ShowS
 [TamperDatumLbl] -&gt; ShowS
 TamperDatumLbl -&gt; String
 (Int -&gt; TamperDatumLbl -&gt; ShowS)
@@ -119,7 +119,7 @@ show :: TamperDatumLbl -&gt; String
 $cshow :: TamperDatumLbl -&gt; String
 showsPrec :: Int -&gt; TamperDatumLbl -&gt; ShowS
 $cshowsPrec :: Int -&gt; TamperDatumLbl -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679563578"><span id="local-6989586621679563580"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679564129"><span id="local-6989586621679564131"><span class="annot"><span class="annottext">TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool
 (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool)
 -&gt; (TamperDatumLbl -&gt; TamperDatumLbl -&gt; Bool) -&gt; Eq TamperDatumLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
