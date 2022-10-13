@@ -28,7 +28,7 @@ import qualified Ledger.Value as Value
 import qualified Plutus.Script.Utils.V1.Scripts as Pl (scriptCurrencySymbol)
 import qualified Plutus.V1.Ledger.Api as Api
 import qualified PlutusTx
-import qualified PlutusTx.Numeric as L
+import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
@@ -43,7 +43,9 @@ data ValParams = ValParams
     -- | minimum contribution that can be made
     minContribution :: L.Value,
     -- | address to be paid to if threshold is reached by deadline
-    fundingTarget :: L.PubKeyHash
+    fundingTarget :: L.PubKeyHash,
+    -- | currency symbol of the thread token
+    threadCS :: L.CurrencySymbol
   }
   deriving (Haskell.Show)
 
@@ -52,8 +54,8 @@ PlutusTx.unstableMakeIsData ''ValParams
 
 instance Eq ValParams where
   {-# INLINEABLE (==) #-}
-  ValParams pd t mc ft == ValParams pd' t' mc' ft' =
-    pd == pd' && t == t' && mc == mc' && ft == ft'
+  ValParams pd t mc ft cs == ValParams pd' t' mc' ft' cs' =
+    pd == pd' && t == t' && mc == mc' && ft == ft' && cs == cs'
 
 -- | All data associated with an individual fund
 data FundingParams = FundingParams
@@ -62,7 +64,9 @@ data FundingParams = FundingParams
     -- | public key representing project funder is contributing to
     to :: L.PubKeyHash,
     -- | value funder is contributing
-    val :: L.Value
+    val :: L.Value,
+    -- | utxo representing the crowdfund
+    txOut :: L.TxOutRef
   }
   deriving (Haskell.Show)
 
@@ -71,13 +75,14 @@ PlutusTx.unstableMakeIsData ''FundingParams
 
 instance Eq FundingParams where
   {-# INLINEABLE (==) #-}
-  FundingParams from to val == FundingParams from' to' val' =
-    from == from' && to == to' && val == val'
+  FundingParams from to val txOut == FundingParams from' to' val' txOut' =
+    from == from' && to == to' && val == val' && txOut == txOut'
 
 -- | Datum type. Either project proposal with policy params
 -- or funding with funding params
 data CfDatum
-  = Proposal ValParams
+  = PreProposal ValParams
+  | Proposal ValParams
   | Funding FundingParams
   deriving (Haskell.Show)
 
@@ -92,6 +97,7 @@ instance Eq CfDatum where
 
 {-# INLINEABLE getOwner #-}
 getOwner :: CfDatum -> L.PubKeyHash
+getOwner (PreProposal vp) = fundingTarget vp
 getOwner (Proposal vp) = fundingTarget vp
 getOwner (Funding fp) = to fp
 
@@ -99,6 +105,11 @@ getOwner (Funding fp) = to fp
 getFunder :: CfDatum -> Maybe L.PubKeyHash
 getFunder (Funding fp) = Just (from fp)
 getFunder _ = Nothing
+
+{-# INLINEABLE getUtxoDatum #-}
+getUtxoDatum :: CfDatum -> Maybe L.TxOutRef
+getUtxoDatum (Funding fp) = Just (txOut fp)
+getUtxoDatum _ = Nothing
 
 {-# INLINEABLE getValParams #-}
 getValParams :: CfDatum -> Maybe ValParams
@@ -108,6 +119,7 @@ getValParams _ = Nothing
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
 {-# INLINEABLE getFunderOwner #-}
 getFunderOwner :: CfDatum -> L.PubKeyHash
+getFunderOwner (PreProposal vp) = fundingTarget vp
 getFunderOwner (Proposal vp) = fundingTarget vp
 getFunderOwner (Funding fp) = from fp
 
@@ -119,7 +131,9 @@ getValue _ = Nothing
 -- | Actions to be taken in the crowdfund. This will be the 'RedeemerType'
 data Action
   = -- | Pay funds to owner and reward contributors or (if after deadline) refund everyone
-    Launch
+    Launch L.TxOutRef
+  | -- | Minting thread token
+    Minting
   | -- | Refund contributors
     IndividualRefund
   deriving (Haskell.Show)
@@ -129,9 +143,58 @@ PlutusTx.unstableMakeIsData ''Action
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
-  Launch == Launch = True
+  Launch txOut == Launch txOut' = txOut == txOut'
   IndividualRefund == IndividualRefund = True
   _ == _ = False
+
+-- * The minting policy of the thread token
+
+-- | This minting policy controls the thread token of the
+-- crowdfund. This NFT will belong to the 'crowdfundingValidator'; its
+-- presence proves the authenticity of the crowdfund. Here, we check
+-- that exactly one thread token is minted, enforcing that the
+-- appropriate offer utxo, whose hash as computed by
+-- 'tokenNameFromTxOutRef' must be the token name of the minted token,
+-- is consumed.
+{-# INLINEABLE mkThreadTokenPolicy #-}
+mkThreadTokenPolicy :: L.TxOutRef -> L.ScriptContext -> Bool
+mkThreadTokenPolicy txOut ctx
+  | amnt == 1 =
+    traceIfFalse
+      "Proposal UTxO not consumed"
+      (any (\i -> L.txInInfoOutRef i == txOut) $ L.txInfoInputs txi)
+  | amnt == -1 = True
+  | otherwise = trace "Not minting or burning the right amount" False
+  where
+    txi = L.scriptContextTxInfo ctx
+    L.Minting me = L.scriptContextPurpose ctx
+    tName = tokenNameFromTxOutRef txOut
+    amnt = getMintedAmount txi me tName
+
+-- | Parameterized minting policy of thread token
+threadTokenPolicy :: Scripts.MintingPolicy
+threadTokenPolicy =
+  Api.mkMintingPolicyScript
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkThreadTokenPolicy||])
+
+getThreadTokenAssetClass :: L.TxOutRef -> Value.AssetClass
+getThreadTokenAssetClass txOut =
+  Value.assetClass
+    (Pl.scriptCurrencySymbol threadTokenPolicy)
+    (tokenNameFromTxOutRef txOut)
+
+threadToken :: L.TxOutRef -> L.Value
+threadToken txOut = Value.assetClassValue (getThreadTokenAssetClass txOut) 1
+
+-- | Compute the thread token of a crowdfund from the currency symbol and proposal UTxO.
+{-# INLINEABLE threadTokenOnChain #-}
+threadTokenOnChain :: L.CurrencySymbol -> L.TxOutRef -> L.Value
+threadTokenOnChain threadCS txOut =
+  Value.assetClassValue (Value.AssetClass (threadCS, tokenNameFromTxOutRef txOut)) 1
+
+-- | Compute the thread token of the auction with the givven proposal UTxO
+-- threadToken :: L.TxOutRef -> L.Value
+-- threadToken txOut = Value.assetClassValue (threadTokenAssetClas
 
 -- * The minting policy of the reward token
 
@@ -145,26 +208,21 @@ instance Eq Action where
 {-# INLINEABLE mkRewardTokenPolicy #-}
 mkRewardTokenPolicy :: L.TxOutRef -> () -> L.ScriptContext -> Bool
 mkRewardTokenPolicy txOut _ ctx
-  | amnt == Just (length contributors) =
+  | amnt == length contributors =
     traceIfFalse
       "Transaction does not have at least one input"
       (length (L.txInfoInputs txi) > 0)
       && traceIfFalse
         "Not all contributors receive token + leftover value"
         (all validContribution contributors)
-  | otherwise = trace "not minting the right amount" False
+  | otherwise = trace "Not minting the right amount" False
   where
     txi = L.scriptContextTxInfo ctx
     contributors = getUniqueContributors txi
     L.Minting me = L.scriptContextPurpose ctx
     tName = tokenNameFromTxOutRef txOut
-    token :: L.Value
     token = Value.singleton me tName 1
-
-    amnt :: Maybe Integer
-    amnt = case Value.flattenValue (L.txInfoMint txi) of
-      [(cs, tn, a)] | cs == me && tn == tName -> Just a
-      _ -> Nothing
+    amnt = getMintedAmount txi me tName
 
     validContribution :: L.PubKeyHash -> Bool
     validContribution addr =
@@ -178,7 +236,34 @@ mkRewardTokenPolicy txOut _ ctx
           datums = getAllDatums txi
           funderDatums = filter (\x -> getFunder x == Just addr) datums
           datumTotal = getTotalValue funderDatums
-       in addr `receives` (token <> inputsTotal <> L.negate datumTotal)
+       in addr `receives` (token <> inputsTotal <> Pl.negate datumTotal)
+
+-- | Parameterized minting policy of reward token
+rewardTokenPolicy :: L.TxOutRef -> Scripts.MintingPolicy
+rewardTokenPolicy txOut =
+  Api.mkMintingPolicyScript $
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkRewardTokenPolicy||])
+      `PlutusTx.applyCode` PlutusTx.liftCode txOut
+
+getRewardTokenAssetClass :: L.TxOutRef -> Value.AssetClass
+getRewardTokenAssetClass txOut =
+  Value.assetClass
+    (Pl.scriptCurrencySymbol $ rewardTokenPolicy txOut)
+    (rewardTokenName txOut)
+
+rewardToken :: L.TxOutRef -> Integer -> L.Value
+rewardToken txOut = Value.assetClassValue (getRewardTokenAssetClass txOut)
+
+-- | Get the amount of minted tokens of a specific TokenName
+{-# INLINEABLE getMintedAmount #-}
+getMintedAmount :: L.TxInfo -> L.CurrencySymbol -> L.TokenName -> Integer
+getMintedAmount txi me tName =
+  foldr
+    ( \(cs, tn, a) n ->
+        if cs == me && tn == tName then n + a else n
+    )
+    0
+    $ Value.flattenValue (L.txInfoMint txi)
 
 -- | Copied from the Auction contract
 {-# INLINEABLE rewardTokenName #-}
@@ -197,21 +282,8 @@ rewardTokenName (L.TxOutRef (L.TxId tid) i) =
         -- 48 is the ASCII code for '0'
         encodeDigit d = consByteString (d + 48) emptyByteString
 
--- | Parameterized minting policy
-rewardTokenPolicy :: L.TxOutRef -> Scripts.MintingPolicy
-rewardTokenPolicy txOut =
-  Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkRewardTokenPolicy||])
-      `PlutusTx.applyCode` PlutusTx.liftCode txOut
-
-getRewardTokenAssetClass :: L.TxOutRef -> Value.AssetClass
-getRewardTokenAssetClass txOut =
-  Value.assetClass
-    (Pl.scriptCurrencySymbol $ rewardTokenPolicy txOut)
-    (rewardTokenName txOut)
-
--- | Compute the token name of the thread token of an auction from its offer Utxo.
--- Copied from Carl's Auction contract.
+-- | Compute the token name of the thread token of an auction from its proposal UTxO.
+-- Copied from the Auction contract.
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: L.TxOutRef -> L.TokenName
 tokenNameFromTxOutRef (L.TxOutRef (L.TxId tid) i) =
@@ -227,7 +299,6 @@ tokenNameFromTxOutRef (L.TxOutRef (L.TxId tid) i) =
         encodeDigit :: Integer -> BuiltinByteString
         -- 48 is the ASCII code for '0'
         encodeDigit d = consByteString (d + 48) emptyByteString
-
 
 {-# INLINEABLE crowdfundTimeRange #-}
 crowdfundTimeRange :: ValParams -> L.POSIXTimeRange
@@ -312,17 +383,21 @@ validAllRefund cf ctx =
 -- * the owner signs the transaction
 -- * all contributors are refunded what they contributed
 {-# INLINEABLE validAllRefund #-}
-validAllRefund :: ValParams -> L.ScriptContext -> Bool
-validAllRefund cf ctx =
+validAllRefund :: ValParams -> L.TxOutRef -> L.ScriptContext -> Bool
+validAllRefund cf txOut ctx =
   traceIfFalse
     "Transaction not signed by owner"
     (txi `L.txSignedBy` fundingTarget cf)
     && traceIfFalse
       "Contributor is not refunded correct amount"
       (all validAllRefundAddress contributors)
+    && traceIfFalse
+      "Not burning thread token"
+      (L.txInfoMint txi == Pl.negate token)
   where
     txi = L.scriptContextTxInfo ctx
     contributors = getUniqueContributors txi
+    token = threadTokenOnChain (threadCS cf) txOut
 
     validAllRefundAddress :: L.PubKeyHash -> Bool
     validAllRefundAddress addr =
@@ -336,8 +411,8 @@ validAllRefund cf ctx =
 -- * the total sum of all contributions is greater than the threshold
 -- * the funding target is paid the funds
 {-# INLINEABLE validLaunch #-}
-validLaunch :: ValParams -> L.ScriptContext -> Bool
-validLaunch cf ctx =
+validLaunch :: ValParams -> L.TxOutRef -> L.ScriptContext -> Bool
+validLaunch cf txOut ctx =
   let txi = L.scriptContextTxInfo ctx
       receives = receivesFrom txi
       datums = getAllDatums txi
@@ -345,6 +420,7 @@ validLaunch cf ctx =
       funderDatums =
         filter (\d -> isJust (getFunder d) && getOwner d == fundingTarget cf) datums
       vals = mapMaybe getValue funderDatums
+      token = threadTokenOnChain (threadCS cf) txOut
    in traceIfFalse
         "Transaction not signed by owner"
         (txi `L.txSignedBy` fundingTarget cf)
@@ -360,6 +436,9 @@ validLaunch cf ctx =
         && traceIfFalse
           "Contribution is not at least the minimum value"
           (all (`Value.geq` minContribution cf) vals)
+        && traceIfFalse
+          "Not burning thread token"
+          (fst (Value.split $ L.txInfoMint txi) == token)
 
 -- | An individual contributing during launch is valid if
 -- * the owner signs the transaction
@@ -372,18 +451,42 @@ validFund _ to _ ctx =
         "Transaction not signed by owner"
         (txi `L.txSignedBy` to)
 
+-- | Minting thread token is valid if it consumes the correct proposal utxo
+{-# INLINEABLE validMinting #-}
+validMinting :: ValParams -> L.ScriptContext -> Bool
+validMinting vp@(ValParams _ _ _ ft threadCS) ctx =
+  let txi = L.scriptContextTxInfo ctx
+      Just (L.TxInInfo txOut _) = L.findOwnInput ctx
+   in traceIfFalse
+        "Transaction not signed by owner"
+        (txi `L.txSignedBy` ft)
+        && traceIfFalse
+          "There must be a 'Proposal' output identical to the input containing the thread token"
+          ( any
+              ( \o ->
+                  L.txOutValue o `Value.geq` threadTokenOnChain threadCS txOut
+                    && case outputDatumState txi o of
+                      Just (Proposal vp') -> vp == vp'
+                      _ -> False
+              )
+              (L.getContinuingOutputs ctx)
+          )
+
 {-# INLINEABLE validate #-}
 validate :: CfDatum -> Action -> L.ScriptContext -> Bool
-validate (Funding fp) Launch ctx =
+validate (Funding fp) (Launch _) ctx =
   validFund (from fp) (to fp) (val fp) ctx
-validate (Proposal cf) Launch ctx
-  | validRange = validLaunch cf ctx
-  | otherwise = validAllRefund cf ctx
+validate (Proposal cf) (Launch txOut) ctx
+  | validRange = validLaunch cf txOut ctx
+  | otherwise = validAllRefund cf txOut ctx
   where
     txi = L.scriptContextTxInfo ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
 validate (Funding fp) IndividualRefund ctx =
   validIndividualRefund (from fp) ctx
+validate (PreProposal cf) Minting ctx = validMinting cf ctx
+validate (PreProposal _) _ _ = trace "Only 'Minting' allowed in 'PreProposal' state" False
+validate _ Minting _ = trace "'Minting' only allowed in 'PreProposal' state" False
 validate (Proposal _) IndividualRefund _ =
   -- disallowed, though this could be allowing the owner to cancel the project
   -- before the deadline, which is currently impossible
