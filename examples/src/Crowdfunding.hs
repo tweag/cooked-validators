@@ -78,8 +78,10 @@ instance Eq FundingParams where
   FundingParams from to val txOut == FundingParams from' to' val' txOut' =
     from == from' && to == to' && val == val' && txOut == txOut'
 
--- | Datum type. Either project proposal with policy params
--- or funding with funding params
+-- | Datum type. Either a pre-proposal, a project proposal with policy params,
+-- or funding with funding params. The pre-proposal is used in a two-step transaction
+-- process in order to avoid allowing an attacker to redirect the thread token.
+-- For more information, see the Auction contract.
 data CfDatum
   = PreProposal ValParams
   | Proposal ValParams
