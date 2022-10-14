@@ -4,8 +4,7 @@
 
 module Cooked.AttackSpec.OutPermutations (tests) where
 
-import Cooked.Attack.Common
-import Cooked.Attack.OutPermutations
+import Cooked.Attack
 import Cooked.MockChain
 import Cooked.MockChain.Testing
 import Cooked.TestUtils
@@ -18,7 +17,7 @@ import Test.Tasty.HUnit
 tests :: TestTree
 tests =
   testGroup
-    "output permutation attack"
+    "output permutation tweak"
     [ testCase
         "tests for 'distinctPermutations'"
         $ let assertPermutEq actual expected =
@@ -66,7 +65,7 @@ tests =
                       ]
                     )
                   ],
-      testGroup "tests for PermutOutAttackMode" $
+      testGroup "tests for PermutOutTweakMode" $
         let a = paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
             b = paysPK (walletPKHash $ wallet 2) $ L.lovelaceValueOf 123
             c = paysPK (walletPKHash $ wallet 3) $ L.lovelaceValueOf 123
@@ -74,18 +73,18 @@ tests =
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   (map (,()) [skel a b c, skel b a c])
-                  (getAttack (permutOutAttack $ KeepIdentity $ Just 2) def $ skel a b c),
+                  (getTweak (permutOutTweak $ KeepIdentity $ Just 2) def $ skel a b c),
               testCase "KeepIdentity Nothing" $
                 assertSameSets
                   (map (,()) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (getAttack (permutOutAttack $ KeepIdentity Nothing) def $ skel a b c),
+                  (getTweak (permutOutTweak $ KeepIdentity Nothing) def $ skel a b c),
               testCase "OmitIdentity (Just 2)" $
                 assertSameSets
                   (map (,()) [skel b a c])
-                  (getAttack (permutOutAttack $ OmitIdentity $ Just 2) def $ skel a b c),
+                  (getTweak (permutOutTweak $ OmitIdentity $ Just 2) def $ skel a b c),
               testCase "OmitIdentity Nothing" $
                 assertSameSets
                   (map (,()) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (getAttack (permutOutAttack $ OmitIdentity Nothing) def $ skel a b c)
+                  (getTweak (permutOutTweak $ OmitIdentity Nothing) def $ skel a b c)
             ]
     ]

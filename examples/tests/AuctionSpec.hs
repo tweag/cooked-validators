@@ -225,7 +225,7 @@ tryDoubleSat = do
 tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
 tryTamperDatum =
   somewhere
-    ( tamperDatumAttack @A.Auction
+    ( tamperDatumTweak @A.Auction
         ( \case
             A.Bidding (A.BidderInfo x _) ->
               Just $ A.Bidding (A.BidderInfo x (walletPKHash $ wallet 6))

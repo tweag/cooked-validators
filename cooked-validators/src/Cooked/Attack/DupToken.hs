@@ -3,8 +3,7 @@
 module Cooked.Attack.DupToken where
 
 import Control.Monad
-import Cooked.Attack.AddConstraints
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
@@ -28,13 +27,13 @@ dupTokenAttack ::
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  Attack L.Value
+  Tweak L.Value
 dupTokenAttack change attacker = do
-  increments <- changeValueAttack (mintsConstraintsT % valueL) increaseValue
+  increments <- changeValueTweak (mintsConstraintsT % valueL) increaseValue
   guard (any (/= mempty) increments)
   let totalIncrement = mconcat increments
-  addOutConstraintAttack $ paysPK (walletPKHash attacker) totalIncrement
-  addLabelAttack DupTokenLbl
+  addOutConstraintTweak $ paysPK (walletPKHash attacker) totalIncrement
+  addLabelTweak DupTokenLbl
   return totalIncrement
   where
     increaseValue :: L.Value -> L.Value

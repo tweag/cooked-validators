@@ -14,13 +14,14 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
-      Cooked.Attack.AddConstraints
-      Cooked.Attack.Common
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Attack.OutPermutations
-      Cooked.Attack.TamperDatum
+      Cooked.Attack.Tweak
+      Cooked.Attack.Tweak.AddConstraints
+      Cooked.Attack.Tweak.Common
+      Cooked.Attack.Tweak.OutPermutations
+      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain

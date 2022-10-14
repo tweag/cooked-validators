@@ -1,13 +1,13 @@
-module Cooked.Attack.OutPermutations where
+module Cooked.Attack.Tweak.OutPermutations where
 
 import Control.Monad
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak.Common
 import Cooked.Tx.Constraints.Optics
 
-data PermutOutAttackMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
+data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 
 -- | Modify transactions by changing the ordering of output constraints. If the
--- 'PermutAttackMode' is
+-- 'PermutTweakMode' is
 --
 -- - @KeepIdentity (Just n)@, the unmodified transaction is included in the list
 --   of modified transactions and only the first n outputs are permuted,
@@ -25,12 +25,12 @@ data PermutOutAttackMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 --
 -- (In particular, this is clever enough to generate only the distinct
 -- permutations, even if some outputs are identical.)
-permutOutAttack :: PermutOutAttackMode -> Attack ()
-permutOutAttack mode = do
-  oldOut <- viewAttack outConstraintsL
+permutOutTweak :: PermutOutTweakMode -> Tweak ()
+permutOutTweak mode = do
+  oldOut <- viewTweak outConstraintsL
   msum $
     map
-      (setAttack outConstraintsL)
+      (setTweak outConstraintsL)
       (perms oldOut)
   where
     perms = case mode of

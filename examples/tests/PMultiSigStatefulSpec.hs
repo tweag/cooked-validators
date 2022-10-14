@@ -241,7 +241,7 @@ sampleGroup1 =
                 allowBigTransactions $ do
                   i <- propose p
                   w3utxos <- pkUtxos (walletPKHash $ wallet 9)
-                  somewhere (Cooked.Attack $ \_ sk -> maybeToList $ (,()) <$> dupTokenAttack (head w3utxos) i sk) (execute p i)
+                  somewhere (Cooked.Tweak $ \_ sk -> maybeToList $ (,()) <$> dupTokenAttack (head w3utxos) i sk) (execute p i)
             )
       ]
 

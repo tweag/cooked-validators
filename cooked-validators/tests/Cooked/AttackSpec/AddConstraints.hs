@@ -8,8 +8,8 @@
 
 module Cooked.AttackSpec.AddConstraints (tests) where
 
-import Cooked.Attack.AddConstraints
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak.AddConstraints
+import Cooked.Attack.Tweak.Common
 import Cooked.MockChain
 import Cooked.TestUtils
 import Cooked.Tx.Constraints
@@ -71,37 +71,37 @@ tests =
   testGroup
     "adding and removing constraints"
     [ testGroup
-        "addConstraintsAttack"
+        "addConstraintsTweak"
         [ testCase "'OutConstraints' are always added" $
             let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-             in case getAttack (addConstraintsAttack oneOut) def (txSkel oneOut) of
+             in case getTweak (addConstraintsTweak oneOut) def (txSkel oneOut) of
                   [(skelOut, x)] -> assertTxSameConstraints skelOut (txSkel $ oneOut <> oneOut) .&&. (x @?= oneOut)
-                  _ -> assertFailure "not the right number of attack outputs",
+                  _ -> assertFailure "not the right number of tweak outputs",
           testCase "time constraints are simplified" $
             let overlyComplicated = toConstraints [Before 10_000, After 1_000]
                 interval = toConstraints $ ValidateIn $ Pl.interval 5_000 20_000
                 combined = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
-             in case getAttack (addConstraintsAttack interval) def (txSkel overlyComplicated) of
+             in case getTweak (addConstraintsTweak interval) def (txSkel overlyComplicated) of
                   [(skelOut, x)] -> (skelOut @?= txSkel combined) .&&. (x @?= combined)
-                  _ -> assertFailure "not the right number of attack outputs",
+                  _ -> assertFailure "not the right number of tweak outputs",
           testCase "conflicting 'SpendsScript'" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
                 c1 = toConstraints $ SpendsScript validator Redeemer1 $ fst utxo1
                 c2 =
                   [SpendsScript validator Redeemer2 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
-             in getAttack (addConstraintsAttack c2) def (txSkel c1) @?= [],
+             in getTweak (addConstraintsTweak c2) def (txSkel c1) @?= [],
           testCase "non-conflicting 'SpendsScript', which is already present" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
                 c1 = toConstraints $ SpendsScript validator Redeemer1 $ fst utxo1
                 c2 =
                   [SpendsScript validator Redeemer1 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
-             in case getAttack (addConstraintsAttack c2) def (txSkel c1) of
+             in case getTweak (addConstraintsTweak c2) def (txSkel c1) of
                   [(skelOut, x)] ->
                     assertTxSameConstraints skelOut (txSkel c2)
                       .&&. (x @?= toConstraints (paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1))
-                  _ -> assertFailure "not the right number of attack outputs",
+                  _ -> assertFailure "not the right number of tweak outputs",
           testCase "non-conflicting 'SpendsScript', which is new" $
             let utxo1 : utxo2 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
                 c1 =
@@ -110,10 +110,10 @@ tests =
                 c2 =
                   [SpendsScript validator Redeemer1 $ fst utxo2]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo2]
-             in case getAttack (addConstraintsAttack c2) def (txSkel c1) of
+             in case getTweak (addConstraintsTweak c2) def (txSkel c1) of
                   [(skelOut, x)] ->
                     assertTxSameConstraints skelOut (txSkel $ c1 <> c2)
                       .&&. (x @?= c2)
-                  _ -> assertFailure "not the right number of attack outputs"
+                  _ -> assertFailure "not the right number of tweak outputs"
         ]
     ]

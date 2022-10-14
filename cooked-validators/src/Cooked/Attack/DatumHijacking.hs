@@ -10,7 +10,7 @@
 
 module Cooked.Attack.DatumHijacking where
 
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints
 import qualified Ledger as L
@@ -24,11 +24,11 @@ import qualified PlutusTx as Pl
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
--- If no output is redirected, this attack fails.
+-- If no output is redirected, this tweak fails.
 --
 -- Something like 'paysScriptCoinstraintTypeP' might be useful to construct the
--- optics used by this attack.
-redirectScriptOutputAttack ::
+-- optics used by this tweak.
+redirectScriptOutputTweak ::
   Is k A_Traversal =>
   Optic' k is TxSkel (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
@@ -40,9 +40,9 @@ redirectScriptOutputAttack ::
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  Attack [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
-redirectScriptOutputAttack optic change =
-  mkSelectAttack
+  Tweak [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
+redirectScriptOutputTweak optic change =
+  mkSelectTweak
     optic
     ( \_mcst (oldVal, mStakingCred, dat, money) ->
         case change oldVal mStakingCred dat money of
@@ -74,16 +74,16 @@ datumHijackingAttack ::
   -- i-th of the output(s) (counting from the left, starting at zero) chosen by
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  Attack [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
+  Tweak [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
 datumHijackingAttack change select =
   let thief = datumHijackingTarget @a
    in do
         redirected <-
-          redirectScriptOutputAttack
+          redirectScriptOutputTweak
             (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
             (\val _mStakingCred dat money -> if change val dat money then Just thief else Nothing)
             select
-        addLabelAttack $ DatumHijackingLbl $ L.validatorAddress thief
+        addLabelTweak $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected
 
 newtype DatumHijackingLbl = DatumHijackingLbl L.Address

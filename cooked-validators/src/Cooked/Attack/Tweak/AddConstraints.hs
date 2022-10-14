@@ -8,9 +8,9 @@
 
 -- | Some attacks that add constraints to or remove constraints from
 -- transactions.
-module Cooked.Attack.AddConstraints where
+module Cooked.Attack.Tweak.AddConstraints where
 
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak.Common
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import Data.List
@@ -21,29 +21,32 @@ import Optics.Core
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified PlutusTx.Prelude as Pl
 
--- | Add constraints to a transaction. This attack uses
--- 'addMiscConstraintsAttack' to add 'MiscConstraint's in a conflict-avoiding
+-- | Add constraints to a transaction. This tweak uses
+-- 'addMiscConstraintsTweak' to add 'MiscConstraint's in a conflict-avoiding
 -- and minimal manner, so read also the comment at that function.
+--
+-- If there are contradictions between the constraints that are already present
+-- and the additional constraints, this tweak fails.
 --
 -- 'OutConstraint's are always added at the end of the list of output
 -- constraints, because some contracts rely on the ordering of the (intial
 -- segment of) the list of transaction outputs. If that's not to your need, you
--- might be interested in 'permutOutAttack'.
+-- might be interested in 'permutOutTweak'.
 --
 -- The returned 'Constraints' will be the constraints that were *actually* added
 -- to the transaction, which might differ from your specified constraints (but
 -- only in 'MiscConstraint's, so on the left-hand side of ':=>:'). In every
--- case, this attack ensures that every constraint you specified will be
+-- case, this tweak ensures that every constraint you specified will be
 -- included in the constraints of the modified transaction.
-addConstraintsAttack :: Constraints -> Attack Constraints
-addConstraintsAttack (is :=>: os) = do
-  addedMiscConstraints <- mapM addMiscConstraintAttack is
-  overAttack outConstraintsL (++ os) -- appended at the end
+addConstraintsTweak :: Constraints -> Tweak Constraints
+addConstraintsTweak (is :=>: os) = do
+  addedMiscConstraints <- mapM addMiscConstraintTweak is
+  overTweak outConstraintsL (++ os) -- appended at the end
   return (catMaybes addedMiscConstraints :=>: os)
 
 -- * Adding and removing 'MiscConstraint's from transactions
 
--- | This attack adds 'MiscConstraint's to a transaction, in a way that avoids
+-- | This tweak adds 'MiscConstraint's to a transaction, in a way that avoids
 -- conflicts and also potentially simplifies the constraints. In particular:
 --
 -- - Adding a 'SpendsPK' for an UTxO which is already consumed by the unmodified
@@ -52,7 +55,7 @@ addConstraintsAttack (is :=>: os) = do
 -- - Adding a 'SpendsScript' for an UTxO that is already consumed by the
 --   unmodified transaction will lead to failure, unless the 'SpendsScript'
 --   constraint on the unmodified transaction uses exactly the same validator,
---   redeemer, and datum. In that case, the attack will leave the transaction
+--   redeemer, and datum. In that case, the tweak will leave the transaction
 --   unmodified.
 --
 -- - 'Mints' constraints are added without any additional checks.
@@ -70,30 +73,30 @@ addConstraintsAttack (is :=>: os) = do
 -- The returned 'MiscConstraint' is either @Just@ the constraint that was added
 -- to the transaction, or @Nothing@, if your constraint was already present on
 -- the unmodified transaction.
-addMiscConstraintAttack :: MiscConstraint -> Attack (Maybe MiscConstraint)
-addMiscConstraintAttack (SpendsScript v r o) = addSpendsScriptAttack v r o
-addMiscConstraintAttack (SpendsPK o) = addSpendsPKAttack o
-addMiscConstraintAttack (Mints r ps x) = addMintsAttack r ps x
-addMiscConstraintAttack (Before b) =
+addMiscConstraintTweak :: MiscConstraint -> Tweak (Maybe MiscConstraint)
+addMiscConstraintTweak (SpendsScript v r o) = addSpendsScriptTweak v r o
+addMiscConstraintTweak (SpendsPK o) = addSpendsPKTweak o
+addMiscConstraintTweak (Mints r ps x) = addMintsTweak r ps x
+addMiscConstraintTweak (Before b) =
   let leftUnbounded = Pl.to b
-   in addValidateInAttack leftUnbounded
-addMiscConstraintAttack (After a) =
+   in addValidateInTweak leftUnbounded
+addMiscConstraintTweak (After a) =
   let rightUnbounded = Pl.from a
-   in addValidateInAttack rightUnbounded
-addMiscConstraintAttack (ValidateIn range) = addValidateInAttack range
-addMiscConstraintAttack (SignedBy s) = addSignedByAttack s
+   in addValidateInTweak rightUnbounded
+addMiscConstraintTweak (ValidateIn range) = addValidateInTweak range
+addMiscConstraintTweak (SignedBy s) = addSignedByTweak s
 
--- | This attack removes some 'MiscConstraint's from a transaction. Exactly
+-- | This tweak removes some 'MiscConstraint's from a transaction. Exactly
 -- those constraints that return @Just@ something are removed from the
 -- transaction.
 --
--- The attack returns a list of all the @Just@ values that were returned by the
+-- The tweak returns a list of all the @Just@ values that were returned by the
 -- removed constraints.
-removeMiscConstraintsAttack :: (MiscConstraint -> Maybe a) -> Attack [a]
-removeMiscConstraintsAttack removePred = do
-  mcs <- viewAttack miscConstraintsL
+removeMiscConstraintsTweak :: (MiscConstraint -> Maybe a) -> Tweak [a]
+removeMiscConstraintsTweak removePred = do
+  mcs <- viewTweak miscConstraintsL
   let (removed, kept) = partitionMaybe removePred mcs
-  setAttack miscConstraintsL kept
+  setTweak miscConstraintsL kept
   return removed
 
 -- | Partition a list into two lists, where the first output list contains all
@@ -108,82 +111,82 @@ partitionMaybe p l = accumulate l [] []
       Just y -> accumulate xs (y : j) n
       Nothing -> accumulate xs j (x : n)
 
--- | this attack ensures that a certain 'SpendsScript' constraint is present on
+-- | this tweak ensures that a certain 'SpendsScript' constraint is present on
 -- a transaction.
 --
 -- Adding a 'SpendsScript' for an UTxO that is already consumed by the
 -- unmodified transaction will lead to failure, unless the 'SpendsScript'
 -- constraint on the unmodified transaction uses exactly the same validator,
--- redeemer, and datum. In that case, the attack will leave the transaction
+-- redeemer, and datum. In that case, the tweak will leave the transaction
 -- unmodified.
 --
--- This attack returns @Just@ the added constraint iff the transaction was
+-- This tweak returns @Just@ the added constraint iff the transaction was
 -- modified.
-addSpendsScriptAttack ::
+addSpendsScriptTweak ::
   forall a.
   SpendsConstrs a =>
   L.TypedValidator a ->
   L.RedeemerType a ->
   SpendableOut ->
-  Attack (Maybe MiscConstraint)
-addSpendsScriptAttack v r o = do
-  present <- viewAttack (partsOf $ spendsScriptConstraintsT % spendsScriptConstraintTypeP @a)
+  Tweak (Maybe MiscConstraint)
+addSpendsScriptTweak v r o = do
+  present <- viewTweak (partsOf $ spendsScriptConstraintsT % spendsScriptConstraintTypeP @a)
   let clashing = filter (\(_, _, o') -> o == o') present
   case clashing of
     [] ->
       let newConstraint = SpendsScript v r o
        in do
-            overAttack miscConstraintsL (newConstraint :)
+            overTweak miscConstraintsL (newConstraint :)
             return $ Just newConstraint
     [(v', r', _)] ->
       if v' == v && r' Pl.== r
         then return Nothing
-        else failingAttack
+        else failingTweak
     _ -> return Nothing -- Something's already wrong with the unmodified
     -- transaction, since it spends the same UTxO at least
     -- twice. Let's not fail nonetheless, maybe there's a
     -- reason for the madness.
 
--- | This attack ensures that a certain 'SpendsPK' constraint is present on a
+-- | This tweak ensures that a certain 'SpendsPK' constraint is present on a
 -- transaction.
 --
--- This attack returns @Just@ the added constraint iff the transaction was
+-- This tweak returns @Just@ the added constraint iff the transaction was
 -- modified.
-addSpendsPKAttack :: SpendableOut -> Attack (Maybe MiscConstraint)
-addSpendsPKAttack extraUtxo = do
-  consumed <- viewAttack (partsOf $ miscConstraintT % spendsPKConstraintP)
+addSpendsPKTweak :: SpendableOut -> Tweak (Maybe MiscConstraint)
+addSpendsPKTweak extraUtxo = do
+  consumed <- viewTweak (partsOf $ miscConstraintT % spendsPKConstraintP)
   if extraUtxo `elem` consumed
     then return Nothing
     else
       let newConstraint = SpendsPK extraUtxo
        in do
-            overAttack miscConstraintsL (newConstraint :)
+            overTweak miscConstraintsL (newConstraint :)
             return $ Just newConstraint
 
--- | This attack adds a 'Mints' constraint.
+-- | This tweak adds a 'Mints' constraint.
 --
--- This attack always returns @Just@ the added constraint. Its return type is in
--- 'Maybe' in order to be homogeneous with 'addSpendsScriptAttack',
--- 'addSpendsPKAttack', 'addValidateInAttack', and 'addSignedByAttack'.
-addMintsAttack ::
+-- This tweak always returns @Just@ the added constraint. Its return type is in
+-- 'Maybe' in order to be homogeneous with 'addSpendsScriptTweak',
+-- 'addSpendsPKTweak', 'addValidateInTweak', and 'addSignedByTweak'.
+addMintsTweak ::
   MintsConstrs a =>
   Maybe a ->
   [L.MintingPolicy] ->
   L.Value ->
-  Attack (Maybe MiscConstraint)
-addMintsAttack r ps x =
+  Tweak (Maybe MiscConstraint)
+addMintsTweak r ps x =
   let newConstraint = Mints r ps x
    in do
-        overAttack miscConstraintsL (newConstraint :)
+        overTweak miscConstraintsL (newConstraint :)
         return $ Just newConstraint
 
--- | This attack removes all time constraints (i.e. 'Before', 'After', and
+-- | This tweak removes all time constraints (i.e. 'Before', 'After', and
 -- 'ValidateIn') from a transaction.
 --
 -- Returns the validity time range of the unmodified transaction.
-removeTimeConstraintsAttack :: Attack L.POSIXTimeRange
-removeTimeConstraintsAttack = do
-  timeRanges <- removeMiscConstraintsAttack toTimeRange
+removeTimeConstraintsTweak :: Tweak L.POSIXTimeRange
+removeTimeConstraintsTweak = do
+  timeRanges <- removeMiscConstraintsTweak toTimeRange
   return $ foldr Pl.intersection Pl.always timeRanges
   where
     toTimeRange = \case
@@ -192,19 +195,19 @@ removeTimeConstraintsAttack = do
       ValidateIn i -> Just i
       _ -> Nothing
 
--- | This attack restricts the validity time range of a transaction to the
+-- | This tweak restricts the validity time range of a transaction to the
 -- intersection of the given range and its current validity time range.
 --
--- If this attack performs any change at all, it also "cleans up" the time
+-- If this tweak performs any change at all, it also "cleans up" the time
 -- constraints (i.e. 'Before', 'After', and 'ValidateIn'), so that the resulting
 -- transaction has only one 'ValidateIn' constraint.
 --
--- This attack returns @Just@ the added constraint iff the transaction was
+-- This tweak returns @Just@ the added constraint iff the transaction was
 -- modified.
-addValidateInAttack :: L.POSIXTimeRange -> Attack (Maybe MiscConstraint)
-addValidateInAttack range = do
+addValidateInTweak :: L.POSIXTimeRange -> Tweak (Maybe MiscConstraint)
+addValidateInTweak range = do
   unmodifiedSkel <- getTxSkel
-  oldRange <- removeTimeConstraintsAttack
+  oldRange <- removeTimeConstraintsTweak
   let newRange = range `Pl.intersection` oldRange
   if newRange == oldRange
     then do
@@ -213,25 +216,25 @@ addValidateInAttack range = do
     else
       let newConstraint = ValidateIn newRange
        in do
-            overAttack miscConstraintsL (newConstraint :)
+            overTweak miscConstraintsL (newConstraint :)
             return $ Just newConstraint
 
--- | This attack removes all 'SignedBy' constraints from a transaction. It
+-- | This tweak removes all 'SignedBy' constraints from a transaction. It
 -- returns a list of the signers it removed.
-removeSignedByAttack :: Attack [L.PubKeyHash]
-removeSignedByAttack = do
-  signers <- removeMiscConstraintsAttack (\case SignedBy s -> Just s; _ -> Nothing)
+removeSignedByTweak :: Tweak [L.PubKeyHash]
+removeSignedByTweak = do
+  signers <- removeMiscConstraintsTweak (\case SignedBy s -> Just s; _ -> Nothing)
   return $ concat signers
 
--- | This attack adds signers to a transaction. It also combines all 'SignedBy'
+-- | This tweak adds signers to a transaction. It also combines all 'SignedBy'
 -- constraints of the transaction into one, if it performs any change at all.
 --
--- This attack returns @Just@ the added constraint iff the transaction was
+-- This tweak returns @Just@ the added constraint iff the transaction was
 -- modified.
-addSignedByAttack :: [L.PubKeyHash] -> Attack (Maybe MiscConstraint)
-addSignedByAttack signers = do
+addSignedByTweak :: [L.PubKeyHash] -> Tweak (Maybe MiscConstraint)
+addSignedByTweak signers = do
   unmodifiedSkel <- getTxSkel
-  oldSigners <- removeSignedByAttack
+  oldSigners <- removeSignedByTweak
   let newSigners = signers \\ oldSigners
   if null newSigners
     then do
@@ -240,7 +243,7 @@ addSignedByAttack signers = do
     else
       let newConstraint = SignedBy $ newSigners ++ oldSigners
        in do
-            overAttack miscConstraintsL (newConstraint :)
+            overTweak miscConstraintsL (newConstraint :)
             return $ Just newConstraint
 
 -- * Adding and Removing 'OutConstraint's
@@ -248,19 +251,19 @@ addSignedByAttack signers = do
 -- | Add an 'OutConstraint' to a transaction. The additional constraint will be
 -- added to the end of the list of output constraints. This is because some
 -- contracts rely on the shape of (the initial segment of) the list of
--- transaction outputs. Try 'permutOutAttack' if you want to change the ordering
+-- transaction outputs. Try 'permutOutTweak' if you want to change the ordering
 -- of output constraints.
-addOutConstraintAttack :: OutConstraint -> Attack ()
-addOutConstraintAttack oc = overAttack outConstraintsL (++ [oc])
+addOutConstraintTweak :: OutConstraint -> Tweak ()
+addOutConstraintTweak oc = overTweak outConstraintsL (++ [oc])
 
--- | This attack removes some 'OutConstraint's from a transaction. Exactly those
+-- | This tweak removes some 'OutConstraint's from a transaction. Exactly those
 -- constraints that return @Just@ something are removed from the transaction.
 --
--- The attack returns a list of all the @Just@ values that were returned by the
+-- The tweak returns a list of all the @Just@ values that were returned by the
 -- removed constraints.
-removeOutConstraintsAttack :: (OutConstraint -> Maybe a) -> Attack [a]
-removeOutConstraintsAttack removePred = do
-  mcs <- viewAttack outConstraintsL
+removeOutConstraintsTweak :: (OutConstraint -> Maybe a) -> Tweak [a]
+removeOutConstraintsTweak removePred = do
+  mcs <- viewTweak outConstraintsL
   let (removed, kept) = partitionMaybe removePred mcs
-  setAttack outConstraintsL kept
+  setTweak outConstraintsL kept
   return removed

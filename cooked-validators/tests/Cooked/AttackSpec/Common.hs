@@ -1,6 +1,6 @@
 module Cooked.AttackSpec.Common (tests) where
 
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak.Common
 import Cooked.MockChain
 import Cooked.MockChain.Testing
 import Cooked.TestUtils
@@ -16,8 +16,8 @@ import Test.Tasty.HUnit
 tests :: TestTree
 tests =
   testGroup
-    "building blocks for attacks"
-    [ testGroup "mkSelectAttack" $
+    "building blocks for tweaks"
+    [ testGroup "mkSelectTweak" $
         let skel =
               txSkel
                 [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 123),
@@ -26,8 +26,8 @@ tests =
                 ]
          in [ testCase "fail if no applicable modifications" $ -- this one is a regression test
                 []
-                  @=? getAttack
-                    ( mkSelectAttack
+                  @=? getTweak
+                    ( mkSelectTweak
                         (paysPKWithDatumConstraintsT % valueL)
                         (\_mcst _value -> Nothing)
                         (const True)
@@ -43,8 +43,8 @@ tests =
                     [L.lovelaceValueOf 345]
                   )
                 ]
-                  @=? getAttack
-                    ( mkSelectAttack
+                  @=? getTweak
+                    ( mkSelectTweak
                         (paysPKWithDatumConstraintsT % valueL)
                         ( \_mcst value ->
                             if value `L.geq` L.lovelaceValueOf 200
@@ -66,8 +66,8 @@ tests =
                     ]
                   )
                 ]
-                  @=? getAttack
-                    ( mkSelectAttack
+                  @=? getTweak
+                    ( mkSelectTweak
                         (paysPKWithDatumConstraintsT % valueL)
                         (\_mcst _value -> Just $ L.lovelaceValueOf 789)
                         (`elem` [0, 2])

@@ -10,8 +10,7 @@
 module Cooked.AttackSpec.DatumHijacking (tests) where
 
 import Control.Monad
-import Cooked.Attack.Common
-import Cooked.Attack.DatumHijacking
+import Cooked.Attack
 import Cooked.AttackSpec.Util
 import Cooked.Ltl
 import Cooked.MockChain
@@ -163,7 +162,7 @@ tests =
                   paysScript val1 SecondLock x2
                 ]
             skelOut bound select =
-              getAttack
+              getTweak
                 ( datumHijackingAttack @MockContract
                     ( \v d x ->
                         L.validatorHash val1 == L.validatorHash v

@@ -6,8 +6,7 @@
 module Cooked.AttackSpec.DupToken (tests) where
 
 import Control.Monad
-import Cooked.Attack.Common
-import Cooked.Attack.DupToken
+import Cooked.Attack
 import Cooked.AttackSpec.Util
 import Cooked.Currencies
 import Cooked.Ltl
@@ -85,7 +84,7 @@ tests =
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-            skelOut select = getAttack (dupTokenAttack select attacker) def skelIn
+            skelOut select = getTweak (dupTokenAttack select attacker) def skelIn
             skelExpected v1 v2 v3 v4 =
               [ ( txSkelLbl
                     DupTokenLbl
@@ -152,6 +151,6 @@ tests =
                   L.assetClassValue ac1 1
                 )
               ]
-            skelOut = getAttack (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn
+            skelOut = getTweak (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn
          in skelExpected @=? skelOut
     ]

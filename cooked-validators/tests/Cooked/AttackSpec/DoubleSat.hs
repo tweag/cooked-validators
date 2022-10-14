@@ -178,7 +178,7 @@ tests =
                   skelsOut :: DSSplitMode -> [SpendableOut] -> [TxSkel]
                   skelsOut splitMode aUtxos =
                     fst
-                      <$> getAttack
+                      <$> getTweak
                         ( doubleSatAttack
                             (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
                             ( \mcst (_, _, aOut) ->

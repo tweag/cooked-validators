@@ -15,7 +15,7 @@ import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
-import Cooked.Attack
+import Cooked.Attack.Tweak.Common
 import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
@@ -100,7 +100,7 @@ data MockChainBuiltin a where
   -- | The failing operation
   Fail :: String -> MockChainBuiltin a
 
-type MockChainOp = LtlOp UntypedAttack MockChainBuiltin
+type MockChainOp = LtlOp UntypedTweak MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
@@ -113,18 +113,18 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance Semigroup UntypedAttack where
-  -- The right attack is applied first
-  UntypedAttack f <> UntypedAttack g = UntypedAttack $ g >> f
+instance Semigroup UntypedTweak where
+  -- The right tweak is applied first
+  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
 
-instance Monoid UntypedAttack where
-  mempty = UntypedAttack doNothingAttack
+instance Monoid UntypedTweak where
+  mempty = UntypedTweak doNothingTweak
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
-instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
+instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -132,10 +132,10 @@ instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
         . nowLaterList
     where
       interpretAndTell ::
-        UntypedAttack ->
-        [Ltl UntypedAttack] ->
-        StateT [Ltl UntypedAttack] InterpMockChain Pl.CardanoTx
-      interpretAndTell (UntypedAttack (Attack now)) later = do
+        UntypedTweak ->
+        [Ltl UntypedTweak] ->
+        StateT [Ltl UntypedTweak] InterpMockChain Pl.CardanoTx
+      interpretAndTell (UntypedTweak (Tweak now)) later = do
         mcst <- lift get
         msum $
           map
@@ -169,18 +169,18 @@ instance InterpLtl UntypedAttack MockChainBuiltin InterpMockChain where
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedAttack)
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedTweak)
 
--- | Apply an 'Attack' to some transaction in the given Trace. The attack must
+-- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
-somewhere :: MonadModalMockChain m => Attack b -> m a -> m a
-somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedAttack x))
+somewhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
--- | Apply an 'Attack' to every transaction in a given trace. This is also
+-- | Apply an 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
-everywhere :: MonadModalMockChain m => Attack b -> m a -> m a
-everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedAttack x))
+everywhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 

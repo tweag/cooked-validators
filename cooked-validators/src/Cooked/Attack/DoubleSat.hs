@@ -5,8 +5,7 @@
 module Cooked.Attack.DoubleSat where
 
 import Control.Monad
-import Cooked.Attack.AddConstraints
-import Cooked.Attack.Common
+import Cooked.Attack.Tweak
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
@@ -133,18 +132,18 @@ doubleSatAttack ::
   --
   -- So you see that this attack can branch quite wildly. Use with caution!
   DSSplitMode ->
-  Attack ()
+  Tweak ()
 doubleSatAttack optic extra attacker mode = do
-  mcst <- mcstAttack
-  extraConstrs <- map (extra mcst) <$> viewAttack (partsOf optic)
+  mcst <- mcstTweak
+  extraConstrs <- map (extra mcst) <$> viewTweak (partsOf optic)
   msum $
     map
       ( \c -> do
-          added <- addConstraintsAttack c
+          added <- addConstraintsTweak c
           let addedValue = constraintBalance added
           if addedValue `L.geq` mempty
-            then addOutConstraintAttack $ paysPK (walletPKHash attacker) addedValue
-            else failingAttack
+            then addOutConstraintTweak $ paysPK (walletPKHash attacker) addedValue
+            else failingTweak
       )
       ( case mode of
           AllSeparate -> nubBy sameConstraints $ concat extraConstrs
@@ -153,7 +152,7 @@ doubleSatAttack optic extra attacker mode = do
               map joinConstraints $
                 tail $ allCombinations $ map (mempty :) extraConstrs
       )
-  addLabelAttack DoubleSatLbl
+  addLabelTweak DoubleSatLbl
   where
     constraintBalance :: Constraints -> L.Value
     constraintBalance (is :=>: os) = inValue <> Pl.negate outValue
@@ -161,11 +160,11 @@ doubleSatAttack optic extra attacker mode = do
         inValue = foldOf (traversed % valueAT) is
         outValue = foldOf (traversed % valueL) os
 
-    -- this function uses 'addConstraintsAttack' to join a list of 'Constraints'
+    -- this function uses 'addConstraintsTweak' to join a list of 'Constraints'
     -- into one 'Constraints' that specifies eveything that is contained in the
     -- input.
     joinConstraints :: [Constraints] -> Constraints
-    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsAttack cs) def $ [] :=>: []
+    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsTweak cs) def $ [] :=>: []
 
     allCombinations :: [[x]] -> [[x]]
     allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
