@@ -16,41 +16,41 @@
 </span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(+)</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(+)</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="BalancableOut"><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-var">BalancableOut</span></a></span></span><span> </span><span id="local-6989586621679559892"><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="BalancableOut"><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-var">BalancableOut</span></a></span></span><span> </span><span id="local-6989586621679566002"><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-20"></span><span>  </span><span class="hs-comment">-- | The 'BOutRef's are only used to keep track of what outputs were used during balancing.</span><span>
 </span><span id="line-21"></span><span>  </span><span class="hs-comment">-- They might as well be identity (type) functions if 'out' is cheap and comparable.</span><span>
-</span><span id="line-22"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="BOutRef"><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-var">BOutRef</span></a></span></span><span> </span><span id="local-6989586621679559892"><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679559836"><span class="annot"><a href="#local-6989586621679559836"><span class="hs-identifier hs-type">result</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Type</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="#local-6989586621679559836"><span class="hs-identifier hs-type">result</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="BOutRef"><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-var">BOutRef</span></a></span></span><span> </span><span id="local-6989586621679566002"><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679565946"><span class="annot"><a href="#local-6989586621679565946"><span class="hs-identifier hs-type">result</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Type</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="#local-6989586621679565946"><span class="hs-identifier hs-type">result</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span>
 </span><span id="line-23"></span><span>
-</span><span id="line-24"></span><span>  </span><span id="outValue"><span class="annot"><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-type">outValue</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
-</span><span id="line-25"></span><span>  </span><span id="outRef"><span class="annot"><a href="Cooked.Tx.Balance.html#outRef"><span class="hs-identifier hs-type">outRef</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559892"><span class="hs-identifier hs-type">out</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span id="outValue"><span class="annot"><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-type">outValue</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
+</span><span id="line-25"></span><span>  </span><span id="outRef"><span class="annot"><a href="Cooked.Tx.Balance.html#outRef"><span class="hs-identifier hs-type">outRef</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679566002"><span class="hs-identifier hs-type">out</span></a></span><span>
 </span><span id="line-26"></span><span>
 </span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-28"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="BOutRef"><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-var">BOutRef</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span>
 </span><span id="line-29"></span><span>
-</span><span id="line-30"></span><span>  </span><span id="local-6989586621679559827"><span class="annot"><span class="annottext">outValue :: (TxOutRef, TxOut) -&gt; Value
-</span><a href="#local-6989586621679559827"><span class="hs-identifier hs-var hs-var hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Value
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679565937"><span class="annot"><span class="annottext">outValue :: (TxOutRef, TxOut) -&gt; Value
+</span><a href="#local-6989586621679565937"><span class="hs-identifier hs-var hs-var hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Value
 </span><span class="hs-identifier hs-var hs-var">Pl.txOutValue</span></span><span> </span><span class="annot"><span class="annottext">(TxOut -&gt; Value)
 -&gt; ((TxOutRef, TxOut) -&gt; TxOut) -&gt; (TxOutRef, TxOut) -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOut) -&gt; TxOut
 forall a b. (a, b) -&gt; b
 </span><span class="hs-identifier hs-var">snd</span></span><span>
-</span><span id="line-31"></span><span>  </span><span id="local-6989586621679559824"><span class="annot"><span class="annottext">outRef :: (TxOutRef, TxOut) -&gt; BOutRef (TxOutRef, TxOut)
-</span><a href="#local-6989586621679559824"><span class="hs-identifier hs-var hs-var hs-var hs-var">outRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOut) -&gt; BOutRef (TxOutRef, TxOut)
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679565934"><span class="annot"><span class="annottext">outRef :: (TxOutRef, TxOut) -&gt; BOutRef (TxOutRef, TxOut)
+</span><a href="#local-6989586621679565934"><span class="hs-identifier hs-var hs-var hs-var hs-var">outRef</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOut) -&gt; BOutRef (TxOutRef, TxOut)
 forall a b. (a, b) -&gt; a
 </span><span class="hs-identifier hs-var">fst</span></span><span>
 </span><span id="line-32"></span><span>
 </span><span id="line-33"></span><span class="hs-comment">-- | This function will try to select a selection of outputs from the set of available</span><span>
 </span><span id="line-34"></span><span class="hs-comment">--  outputs given to it in order to have enough to balance out the given value.</span><span>
 </span><span id="line-35"></span><span class="annot"><a href="Cooked.Tx.Balance.html#balanceWithUTxOs"><span class="hs-identifier hs-type">balanceWithUTxOs</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-36"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679559822"><span class="annot"><a href="#local-6989586621679559822"><span class="hs-identifier hs-type">out</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559822"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679565932"><span class="annot"><a href="#local-6989586621679565932"><span class="hs-identifier hs-type">out</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565932"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-39"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679559822"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559822"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679565932"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565932"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-41"></span><span id="balanceWithUTxOs"><span class="annot"><span class="annottext">balanceWithUTxOs :: Value -&gt; [out] -&gt; ([BOutRef out], Value, Value)
-</span><a href="Cooked.Tx.Balance.html#balanceWithUTxOs"><span class="hs-identifier hs-var hs-var">balanceWithUTxOs</span></a></span></span><span> </span><span id="local-6989586621679559820"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559820"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Tx.Balance.html#balanceWithUTxOs"><span class="hs-identifier hs-var hs-var">balanceWithUTxOs</span></a></span></span><span> </span><span id="local-6989586621679565930"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565930"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-42"></span><span>  </span><span class="hs-comment">-- HACK: We'll order outputs and try to use those with the most ada first;</span><span>
 </span><span id="line-43"></span><span>  </span><span class="hs-comment">-- should hopefully help with: https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041</span><span>
 </span><span id="line-44"></span><span>  </span><span class="hs-comment">-- Nevertheless, we might eventually need a better solution</span><span>
@@ -59,7 +59,7 @@ forall out.
 BalancableOut out =&gt;
 Value -&gt; [out] -&gt; ([BOutRef out], Value, Value)
 </span><a href="Cooked.Tx.Balance.html#spendValueFrom"><span class="hs-identifier hs-var">spendValueFrom</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559820"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">([out] -&gt; ([BOutRef out], Value, Value))
+</span><a href="#local-6989586621679565930"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">([out] -&gt; ([BOutRef out], Value, Value))
 -&gt; ([out] -&gt; [out]) -&gt; [out] -&gt; ([BOutRef out], Value, Value)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(out -&gt; out -&gt; Ordering) -&gt; [out] -&gt; [out]
@@ -72,14 +72,14 @@ forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 -&gt; (out -&gt; Integer) -&gt; out -&gt; out -&gt; Ordering
 forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value -&gt; Integer
-</span><a href="#local-6989586621679559816"><span class="hs-identifier hs-var">adaValueOf</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Integer) -&gt; (out -&gt; Value) -&gt; out -&gt; Integer
+</span><a href="#local-6989586621679565926"><span class="hs-identifier hs-var">adaValueOf</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Integer) -&gt; (out -&gt; Value) -&gt; out -&gt; Integer
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-46"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>    </span><span id="local-6989586621679559816"><span class="annot"><span class="annottext">adaValueOf :: Value -&gt; Integer
-</span><a href="#local-6989586621679559816"><span class="hs-identifier hs-var hs-var">adaValueOf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ada -&gt; Integer
+</span><span id="line-47"></span><span>    </span><span id="local-6989586621679565926"><span class="annot"><span class="annottext">adaValueOf :: Value -&gt; Integer
+</span><a href="#local-6989586621679565926"><span class="hs-identifier hs-var hs-var">adaValueOf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ada -&gt; Integer
 </span><span class="hs-identifier hs-var hs-var">Pl.getLovelace</span></span><span> </span><span class="annot"><span class="annottext">(Ada -&gt; Integer) -&gt; (Value -&gt; Ada) -&gt; Value -&gt; Integer
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Ada
@@ -101,15 +101,15 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-62"></span><span class="hs-comment">-- (in case some UTXOs had more output than we actually need to balance the transaction)</span><span>
 </span><span id="line-63"></span><span class="hs-comment">-- and the excess value which needs to be routed somewhere.</span><span>
 </span><span id="line-64"></span><span class="annot"><a href="Cooked.Tx.Balance.html#spendValueFrom"><span class="hs-identifier hs-type">spendValueFrom</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-65"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679559883"><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679565993"><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-67"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-68"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-69"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-70"></span><span id="spendValueFrom"><span class="annot"><span class="annottext">spendValueFrom :: Value -&gt; [out] -&gt; ([BOutRef out], Value, Value)
-</span><a href="Cooked.Tx.Balance.html#spendValueFrom"><span class="hs-identifier hs-var hs-var">spendValueFrom</span></a></span></span><span> </span><span id="local-6989586621679559813"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559813"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679559812"><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559812"><span class="hs-identifier hs-var">utxos</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Tx.Balance.html#spendValueFrom"><span class="hs-identifier hs-var hs-var">spendValueFrom</span></a></span></span><span> </span><span id="local-6989586621679565923"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565923"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679565922"><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565922"><span class="hs-identifier hs-var">utxos</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-71"></span><span>  </span><span class="hs-comment">-- We then go through the output value and investigate for each token</span><span>
 </span><span id="line-72"></span><span>  </span><span class="hs-comment">-- if there is a way to balance it.</span><span>
 </span><span id="line-73"></span><span>  </span><span class="annot"><span class="annottext">(([BOutRef out], Value, Value)
@@ -122,20 +122,20 @@ forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
 </span><span class="hs-identifier hs-var">foldl'</span></span><span>
-</span><span id="line-74"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679559811"><span class="annot"><span class="annottext">([BOutRef out], Value, Value)
-</span><a href="#local-6989586621679559811"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679559810"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559810"><span class="hs-identifier hs-var">sym</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679559809"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559809"><span class="hs-identifier hs-var">tok</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679559808"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559808"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><span id="line-74"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679565921"><span class="annot"><span class="annottext">([BOutRef out], Value, Value)
+</span><a href="#local-6989586621679565921"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679565920"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565920"><span class="hs-identifier hs-var">sym</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679565919"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565919"><span class="hs-identifier hs-var">tok</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679565918"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565918"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; TokenName
 -&gt; Integer
 -&gt; ([BOutRef out], Value, Value)
 -&gt; ([BOutRef out], Value, Value)
-</span><a href="#local-6989586621679559807"><span class="hs-identifier hs-var">addInputToBalance</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559810"><span class="hs-identifier hs-var">sym</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559809"><span class="hs-identifier hs-var">tok</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559808"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">([BOutRef out], Value, Value)
-</span><a href="#local-6989586621679559811"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565917"><span class="hs-identifier hs-var">addInputToBalance</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565920"><span class="hs-identifier hs-var">sym</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565919"><span class="hs-identifier hs-var">tok</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565918"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">([BOutRef out], Value, Value)
+</span><a href="#local-6989586621679565921"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-75"></span><span>    </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
@@ -143,28 +143,28 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
 </span><span id="line-76"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
 </span><span class="hs-identifier hs-var">Pl.flattenValue</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559813"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565923"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-77"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679559807"><span class="hs-identifier hs-type">addInputToBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><a href="#local-6989586621679565917"><span class="hs-identifier hs-type">addInputToBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-79"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Pl.CurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-80"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-81"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-82"></span><span>      </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-83"></span><span>      </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559883"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-84"></span><span>    </span><span id="local-6989586621679559807"><span class="annot"><span class="annottext">addInputToBalance :: CurrencySymbol
+</span><span id="line-82"></span><span>      </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565993"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Balance.html#ExcessiveValue"><span class="hs-identifier hs-type">ExcessiveValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>    </span><span id="local-6989586621679565917"><span class="annot"><span class="annottext">addInputToBalance :: CurrencySymbol
 -&gt; TokenName
 -&gt; Integer
 -&gt; ([BOutRef out], Value, Value)
 -&gt; ([BOutRef out], Value, Value)
-</span><a href="#local-6989586621679559807"><span class="hs-identifier hs-var hs-var">addInputToBalance</span></a></span></span><span> </span><span id="local-6989586621679559806"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span></span><span> </span><span id="local-6989586621679559805"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span id="local-6989586621679559804"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679559803"><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559803"><span class="hs-identifier hs-var">usedUTxO</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679559802"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559802"><span class="hs-identifier hs-var">leftOver</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679559801"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559801"><span class="hs-identifier hs-var">excess</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679565917"><span class="hs-identifier hs-var hs-var">addInputToBalance</span></a></span></span><span> </span><span id="local-6989586621679565916"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span></span><span> </span><span id="local-6989586621679565915"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span id="local-6989586621679565914"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679565913"><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565913"><span class="hs-identifier hs-var">usedUTxO</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679565912"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565912"><span class="hs-identifier hs-var">leftOver</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679565911"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565911"><span class="hs-identifier hs-var">excess</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-85"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span>
@@ -173,49 +173,49 @@ forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span id="line-88"></span><span>        </span><span class="hs-comment">-- excess value separate from the leftover and let the user decide what to</span><span>
 </span><span id="line-89"></span><span>        </span><span class="hs-comment">-- do with it later.</span><span>
 </span><span id="line-90"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559803"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559802"><span class="hs-identifier hs-var">leftOver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559801"><span class="hs-identifier hs-var">excess</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565913"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565912"><span class="hs-identifier hs-var">leftOver</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565911"><span class="hs-identifier hs-var">excess</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var">singletonValue</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">negate</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-91"></span><span>        </span><span class="hs-keyword">else</span><span>
-</span><span id="line-92"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679559798"><span class="annot"><span class="annottext">thisTokLeftOver :: Integer
-</span><a href="#local-6989586621679559798"><span class="hs-identifier hs-var hs-var">thisTokLeftOver</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; CurrencySymbol -&gt; TokenName -&gt; Integer
+</span><span id="line-92"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679565908"><span class="annot"><span class="annottext">thisTokLeftOver :: Integer
+</span><a href="#local-6989586621679565908"><span class="hs-identifier hs-var hs-var">thisTokLeftOver</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; CurrencySymbol -&gt; TokenName -&gt; Integer
 </span><span class="hs-identifier hs-var">Pl.valueOf</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559802"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><a href="#local-6989586621679565912"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span><span>
 </span><span id="line-93"></span><span>           </span><span class="hs-keyword">in</span><span> </span><span class="hs-comment">-- Here, the output of the transaction is bigger in i units of the (curr,token) asset class.</span><span>
 </span><span id="line-94"></span><span>              </span><span class="hs-comment">-- The first thing we check is if the leftOver happens to have enough of the needed token,</span><span>
 </span><span id="line-95"></span><span>              </span><span class="hs-comment">-- which can happen by pure accident.</span><span>
 </span><span id="line-96"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559798"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span>
+</span><a href="#local-6989586621679565908"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span>
 </span><span id="line-97"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559803"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559802"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565913"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565912"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var">singletonValue</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559801"><span class="hs-identifier hs-var">excess</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565911"><span class="hs-identifier hs-var">excess</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-98"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="hs-comment">-- The leftover does not have enough tokens. We need to select some utxos from the</span><span>
 </span><span id="line-99"></span><span>                </span><span class="hs-comment">-- pool of available utxos; the 'necessaryUtxosFor' makes sure to never select</span><span>
 </span><span id="line-100"></span><span>                </span><span class="hs-comment">-- a repeated utxo for us.</span><span>
 </span><span id="line-101"></span><span>
-</span><span id="line-102"></span><span>                  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679559796"><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559796"><span class="hs-identifier hs-var">newUsedUTxOs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679559795"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559795"><span class="hs-identifier hs-var">additionalLeftover</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-102"></span><span>                  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679565906"><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565906"><span class="hs-identifier hs-var">newUsedUTxOs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679565905"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565905"><span class="hs-identifier hs-var">additionalLeftover</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-103"></span><span>                        </span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; TokenName
 -&gt; Integer
@@ -231,34 +231,34 @@ CurrencySymbol
 -&gt; [BOutRef out]
 -&gt; ([BOutRef out], Value)
 </span><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559804"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565914"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559798"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559812"><span class="hs-identifier hs-var">utxos</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559803"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
+</span><a href="#local-6989586621679565908"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565922"><span class="hs-identifier hs-var">utxos</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565913"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
 </span><span id="line-104"></span><span>                   </span><span class="hs-keyword">in</span><span> </span><span class="hs-comment">-- The part taken form the leftover, is not in the previous leftover anymore.</span><span>
-</span><span id="line-105"></span><span>                      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679559793"><span class="annot"><span class="annottext">prevLeftOver :: Value
-</span><a href="#local-6989586621679559793"><span class="hs-identifier hs-var hs-var">prevLeftOver</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559802"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><span id="line-105"></span><span>                      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679565903"><span class="annot"><span class="annottext">prevLeftOver :: Value
+</span><a href="#local-6989586621679565903"><span class="hs-identifier hs-var hs-var">prevLeftOver</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565912"><span class="hs-identifier hs-var">leftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var">singletonValue</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559806"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559805"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559798"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span>
+</span><a href="#local-6989586621679565916"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565915"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565908"><span class="hs-identifier hs-var">thisTokLeftOver</span></a></span><span>
 </span><span id="line-106"></span><span>                       </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559803"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out] -&gt; [BOutRef out] -&gt; [BOutRef out]
+</span><a href="#local-6989586621679565913"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out] -&gt; [BOutRef out] -&gt; [BOutRef out]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559796"><span class="hs-identifier hs-var">newUsedUTxOs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559793"><span class="hs-identifier hs-var">prevLeftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565906"><span class="hs-identifier hs-var">newUsedUTxOs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565903"><span class="hs-identifier hs-var">prevLeftOver</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559795"><span class="hs-identifier hs-var">additionalLeftover</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559801"><span class="hs-identifier hs-var">excess</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565905"><span class="hs-identifier hs-var">additionalLeftover</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565911"><span class="hs-identifier hs-var">excess</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-107"></span><span>
 </span><span id="line-108"></span><span class="hs-comment">-- Given an asset name (both currency and token),</span><span>
 </span><span id="line-109"></span><span class="hs-comment">-- an integer n, a list of UTxOs and the subset of those which are already used,</span><span>
@@ -271,14 +271,14 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span id="line-116"></span><span class="hs-comment">-- &gt; necessaryUtxosFor a t 100 [(o1, 50, dh1), (o2, 30, dh2), (o3, 30, dh3), (o4, 120, dh4)] []</span><span>
 </span><span id="line-117"></span><span class="hs-comment">-- &gt;    == ([o1, o2, o3], 10)</span><span>
 </span><span id="line-118"></span><span class="hs-comment">--</span><span>
-</span><span id="line-119"></span><span id="local-6989586621679559861"><span class="annot"><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-type">necessaryUtxosFor</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-120"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559861"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-119"></span><span id="local-6989586621679565971"><span class="annot"><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-type">necessaryUtxosFor</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-120"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Balance.html#BalancableOut"><span class="hs-identifier hs-type">BalancableOut</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565971"><span class="hs-identifier hs-type">out</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-121"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Pl.CurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-122"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-123"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-124"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679559861"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-125"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559861"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-126"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679559861"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679565971"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565971"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Balance.html#BOutRef"><span class="hs-identifier hs-type">BOutRef</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679565971"><span class="hs-identifier hs-type">out</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">)</span></span><span>
 </span><span id="line-127"></span><span id="necessaryUtxosFor"><span class="annot"><span class="annottext">necessaryUtxosFor :: CurrencySymbol
 -&gt; TokenName
 -&gt; Integer
@@ -293,20 +293,20 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
-</span><span id="line-128"></span><span class="annot"><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span id="local-6989586621679559792"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span></span><span> </span><span id="local-6989586621679559791"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span id="local-6989586621679559790"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679559789"><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679559788"><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559788"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679559787"><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559787"><span class="hs-identifier hs-var">usedUTxO</span></a></span></span><span>
+</span><span id="line-128"></span><span class="annot"><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span id="local-6989586621679565902"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span></span><span> </span><span id="local-6989586621679565901"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span id="local-6989586621679565900"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679565899"><span class="annot"><span class="annottext">out
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679565898"><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565898"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679565897"><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565897"><span class="hs-identifier hs-var">usedUTxO</span></a></span></span><span>
 </span><span id="line-129"></span><span>  </span><span class="hs-comment">-- If an output has already been added to the transaction previously,</span><span>
 </span><span id="line-130"></span><span>  </span><span class="hs-comment">-- it is considered in the leftover, which had been taken into account earlier in the process.</span><span>
 </span><span id="line-131"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">BOutRef out
-</span><a href="#local-6989586621679559786"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">BOutRef out -&gt; [BOutRef out] -&gt; Bool
+</span><a href="#local-6989586621679565896"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">BOutRef out -&gt; [BOutRef out] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559787"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565897"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; TokenName
 -&gt; Integer
 -&gt; [out]
@@ -321,38 +321,38 @@ CurrencySymbol
 -&gt; [BOutRef out]
 -&gt; ([BOutRef out], Value)
 </span><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559788"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559787"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565898"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565897"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
 </span><span id="line-132"></span><span>  </span><span class="hs-comment">-- If the output has more than required, we add it to the transaction</span><span>
 </span><span id="line-133"></span><span>  </span><span class="hs-comment">-- and update the leftover accordingly.</span><span>
 </span><span id="line-134"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Integer
-</span><a href="#local-6989586621679559784"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
+</span><a href="#local-6989586621679565894"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="annottext">BOutRef out
-</span><a href="#local-6989586621679559786"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">out -&gt; Value
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="annottext">BOutRef out
+</span><a href="#local-6989586621679565896"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var">singletonValue</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-135"></span><span>  </span><span class="hs-comment">-- If the output does not contain the token we are looking for at all,</span><span>
 </span><span id="line-136"></span><span>  </span><span class="hs-comment">-- then it is pointless to add it in the transaction.</span><span>
 </span><span id="line-137"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Integer
-</span><a href="#local-6989586621679559784"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
+</span><a href="#local-6989586621679565894"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
@@ -370,34 +370,34 @@ CurrencySymbol
 -&gt; [BOutRef out]
 -&gt; ([BOutRef out], Value)
 </span><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559788"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559787"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565898"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565897"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span>
 </span><span id="line-138"></span><span>  </span><span class="hs-comment">-- If the output partially fulfill our expectation, we grab it into the transaction,</span><span>
 </span><span id="line-139"></span><span>  </span><span class="hs-comment">-- and continue our investigation.</span><span>
 </span><span id="line-140"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-141"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679559782"><span class="annot"><span class="annottext">foundAmount :: Integer
-</span><a href="#local-6989586621679559782"><span class="hs-identifier hs-var hs-var">foundAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Integer
-</span><a href="#local-6989586621679559784"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
+</span><span id="line-141"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679565892"><span class="annot"><span class="annottext">foundAmount :: Integer
+</span><a href="#local-6989586621679565892"><span class="hs-identifier hs-var hs-var">foundAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Integer
+</span><a href="#local-6989586621679565894"><span class="hs-identifier hs-var">valOf</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-142"></span><span>        </span><span id="local-6989586621679559781"><span class="annot"><span class="annottext">valLeftover :: Value
-</span><a href="#local-6989586621679559781"><span class="hs-identifier hs-var hs-var">valLeftover</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">out -&gt; Value
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>        </span><span id="local-6989586621679565891"><span class="annot"><span class="annottext">valLeftover :: Value
+</span><a href="#local-6989586621679565891"><span class="hs-identifier hs-var hs-var">valLeftover</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">out -&gt; Value
 forall out. BalancableOut out =&gt; out -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#outValue"><span class="hs-identifier hs-var">outValue</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
 </span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var">singletonValue</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559782"><span class="hs-identifier hs-var">foundAmount</span></a></span><span>
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565892"><span class="hs-identifier hs-var">foundAmount</span></a></span><span>
 </span><span id="line-143"></span><span>     </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">BOutRef out
-</span><a href="#local-6989586621679559786"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">BOutRef out -&gt; [BOutRef out] -&gt; [BOutRef out]
+</span><a href="#local-6989586621679565896"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">BOutRef out -&gt; [BOutRef out] -&gt; [BOutRef out]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([BOutRef out] -&gt; [BOutRef out])
 -&gt; (Value -&gt; Value)
@@ -407,7 +407,7 @@ forall (a :: * -&gt; * -&gt; *) b c b' c'.
 Arrow a =&gt;
 a b c -&gt; a b' c' -&gt; a (b, b') (c, c')
 </span><span class="hs-operator hs-var">***</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559781"><span class="hs-identifier hs-var">valLeftover</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="#local-6989586621679565891"><span class="hs-identifier hs-var">valLeftover</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. AdditiveSemigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-144"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol
@@ -425,27 +425,27 @@ CurrencySymbol
 -&gt; [BOutRef out]
 -&gt; ([BOutRef out], Value)
 </span><a href="Cooked.Tx.Balance.html#necessaryUtxosFor"><span class="hs-identifier hs-var">necessaryUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559790"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565900"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. AdditiveGroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559782"><span class="hs-identifier hs-var">foundAmount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[out]
-</span><a href="#local-6989586621679559788"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
-</span><a href="#local-6989586621679559787"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565892"><span class="hs-identifier hs-var">foundAmount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[out]
+</span><a href="#local-6989586621679565898"><span class="hs-identifier hs-var">os</span></a></span><span> </span><span class="annot"><span class="annottext">[BOutRef out]
+</span><a href="#local-6989586621679565897"><span class="hs-identifier hs-var">usedUTxO</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-145"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-146"></span><span>    </span><span id="local-6989586621679559784"><span class="annot"><span class="annottext">valOf :: Value -&gt; Integer
-</span><a href="#local-6989586621679559784"><span class="hs-identifier hs-var hs-var">valOf</span></a></span></span><span> </span><span id="local-6989586621679559780"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559780"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; CurrencySymbol -&gt; TokenName -&gt; Integer
+</span><span id="line-146"></span><span>    </span><span id="local-6989586621679565894"><span class="annot"><span class="annottext">valOf :: Value -&gt; Integer
+</span><a href="#local-6989586621679565894"><span class="hs-identifier hs-var hs-var">valOf</span></a></span></span><span> </span><span id="local-6989586621679565890"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679565890"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; CurrencySymbol -&gt; TokenName -&gt; Integer
 </span><span class="hs-identifier hs-var">Pl.valueOf</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679559780"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559792"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559791"><span class="hs-identifier hs-var">token</span></a></span><span>
-</span><span id="line-147"></span><span>    </span><span id="local-6989586621679559786"><span class="annot"><span class="annottext">oref :: BOutRef out
-</span><a href="#local-6989586621679559786"><span class="hs-identifier hs-var hs-var">oref</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">out -&gt; BOutRef out
+</span><a href="#local-6989586621679565890"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565902"><span class="hs-identifier hs-var">curr</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565901"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-147"></span><span>    </span><span id="local-6989586621679565896"><span class="annot"><span class="annottext">oref :: BOutRef out
+</span><a href="#local-6989586621679565896"><span class="hs-identifier hs-var hs-var">oref</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">out -&gt; BOutRef out
 forall out. BalancableOut out =&gt; out -&gt; BOutRef out
 </span><a href="Cooked.Tx.Balance.html#outRef"><span class="hs-identifier hs-var">outRef</span></a></span><span> </span><span class="annot"><span class="annottext">out
-</span><a href="#local-6989586621679559789"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><a href="#local-6989586621679565899"><span class="hs-identifier hs-var">o</span></a></span><span>
 </span><span id="line-148"></span><span class="hs-comment">-- If there is not enough funds, the transaction will fail.</span><span>
 </span><span id="line-149"></span><span class="hs-comment">-- Even if we are already aware of it at this point,</span><span>
 </span><span id="line-150"></span><span class="hs-comment">-- we do not want to interfere with the error generated by the contract,</span><span>
@@ -460,18 +460,18 @@ forall a. Monoid a =&gt; a
 </span><span id="line-153"></span><span>
 </span><span id="line-154"></span><span class="annot"><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-type">singletonValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.CurrencySymbol</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
 </span><span id="line-155"></span><span id="singletonValue"><span class="annot"><span class="annottext">singletonValue :: CurrencySymbol -&gt; TokenName -&gt; Integer -&gt; Value
-</span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var hs-var">singletonValue</span></a></span></span><span> </span><span id="local-6989586621679559779"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559779"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679559778"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559778"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679559777"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559777"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
+</span><a href="Cooked.Tx.Balance.html#singletonValue"><span class="hs-identifier hs-var hs-var">singletonValue</span></a></span></span><span> </span><span id="local-6989586621679565889"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679565889"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679565888"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679565888"><span class="hs-identifier hs-var">tn</span></a></span></span><span> </span><span id="local-6989586621679565887"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565887"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map CurrencySymbol (Map TokenName Integer) -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol
 -&gt; Map TokenName Integer
 -&gt; Map CurrencySymbol (Map TokenName Integer)
 forall k v. k -&gt; v -&gt; Map k v
 </span><span class="hs-identifier hs-var">Map.singleton</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679559779"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
+</span><a href="#local-6989586621679565889"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TokenName -&gt; Integer -&gt; Map TokenName Integer
 forall k v. k -&gt; v -&gt; Map k v
 </span><span class="hs-identifier hs-var">Map.singleton</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679559778"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679559777"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679565888"><span class="hs-identifier hs-var">tn</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679565887"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-156"></span></pre></body></html>
