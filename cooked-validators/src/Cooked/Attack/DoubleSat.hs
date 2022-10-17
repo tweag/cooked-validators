@@ -1,23 +1,19 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 
 module Cooked.Attack.DoubleSat where
 
-import Cooked.Attack.Common
+import Control.Monad
+import Cooked.Attack.Tweak
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Optics
-import qualified Ledger.Typed.Scripts as L
+import Data.Default
+import Data.List
+import qualified Ledger as L
 import qualified Ledger.Value as L
 import Optics.Core
-import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V1.Ledger.Time as Pl
-import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
 
 {- Note: What is a double satisfaction attack?
@@ -37,388 +33,142 @@ auditors arrive, you show them your books, containing the payment to the tax
 office. They both leave satisfied."
 
 The double satisfaction attack 'doubleSatAttack' provided by this module works
-by adding some extra 'Constraints' depending on some 'a's on the transaction
-under modification, and on the current 'MockChainSt'ate. This very general
-concept allows the implementation of common double satisfaction patterns as
-special cases, which will correspond to smart constructors for the
-'DoubleSatParams' type. In particular, we can add
+by going through the foci of some optic on the 'TxSkel' representing the
+transaction from the left to the right, and adding some extra 'Constraints'
+depending on each focus and the current 'MockChainSt'ate. For example, we can
+add
 
-- a 'SpendsScript', depending on a 'SpendsScript' on the original transaction,
-- one or more 'Mints', depending on a 'SpendsScript' on the original transaction,
-- a 'SpendsScript', depending on a 'PaysScript' on the original transaction,
+- one or more 'SpendsScript's, depending on 'SpendsScript' constraints on the original transaction,
+- one or more 'Mints's, depending on a 'SpendsScript' on the original transaction,
+- one or more 'SpendsScript's, depending on 'PaysScript' constraints on the original transaction,
 - ...
-
-A few scenarios like these are implemented below as smart constructors for
-'DoubleSatParams'.
-
 -}
 
--- | Parameters for a double satisfaction attack. You probably don't want to
--- initialise these by hand; better use one of the smart constructors defined
--- below.
-data DoubleSatParams a = DoubleSatParams
-  { -- | Each focus of this traversal is one potential reason to add extra
-    -- 'Constraint's.
-    dsOptic :: Traversal' TxSkel a,
-    -- | For every 'a' in the transaction under modification, calculate a list
-    -- of extra 'Constraints' to add to the transaction in order to try a double
-    -- satisfaction attack.
-    --
-    -- Extra 'Constraints' are added to pre-existing 'Constraints' with the
-    -- function 'addConstraints', which makes sure that no additional constraint
-    -- tries spending an UTxO that's already being spent and other such
-    -- checks. See the documentation comments for that function below.
-    --
-    -- We add 'OutConstraint's at the end of the list of transaction outputs,
-    -- because some contracts rely on the ordering of (the first few)
-    -- outputs. If you want to try permutations of transaction outputs, look at
-    -- the function 'tryOutPermutations', which is an attack-agnostic way to
-    -- accomplish that.
-    dsExtraConstraints :: MockChainSt -> a -> [Constraints],
-    -- | The wallet to which any surplus will be paid.
-    dsAttacker :: Wallet,
-    -- | How to combine extra 'Constraint's:
-    --
-    -- There are at the moment the following two strategies for how to combine
-    -- additional 'Constraints' belonging to _different_ 'SpendsScript'
-    -- constraints of the original transaction.
-    --
-    -- - With @dsSplitStrategy = OneChange@, each extra 'Constraints' is added
-    --   onto a separate modified 'TxSkel': Each of the output modified
-    --   'TxSkel's will receive exactly one of the extra 'Constraints'.
-    --
-    -- - With @dsSplitStrategy = AllCombinations@, al 'TxSkels' obtained by
-    --   adding _at least one_ extra 'Constraints' belonging to an original 'a'
-    --   are tried: If there are n 'a's in the original transaction, the
-    --   modified transactions will incorporate up to n extra 'Constraints'. For
-    --   a given 'a' on the original transaction, each of its extra
-    --   'Constraints' is tried together with all options for all other
-    --   'a's. This means that all cases that the 'OneChange'-case checks are
-    --   also explored here, plus some (potentially very many) more.
-    --
-    -- If there is a conflict between some of the 'Constraints' that are to be
-    -- added to an output transaction (for example, two 'Constraints' might
-    -- require the same UTxO to be spent with different redeemers), that
-    -- combination is not tried.
-    --
-    -- See the comments for 'mkSplittingAttack' for more explanation on
-    -- 'SplitStrategy'.
-    dsSplitStrategy :: SplitStrategy
-  }
+-- | How to combine extra constraints added for different reasons in the
+-- 'doubleSatAttack'. See the comments there.
+data DSSplitMode = TryCombinations | AllSeparate
 
--- * Smart constructors for 'DoubleSatParams'
-
--- | Parameters for a double satisfaction attack that adds one
--- 'SpendsScriptConstraint' for a UTxO belonging to a given validator. Each of
--- the modified transactions will contain exactly one extra 'SpendsScript'
--- constraint.
-dsAddOneSscFromOwner ::
-  ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
-  ) =>
-  Traversal' TxSkel a ->
-  -- | The validator to take extra inputs from.
-  L.TypedValidator b ->
-  -- | For all 'a's of the original transaction, decide whether to add an extra
-  -- UTxO currently belonging to the @extraInputOwner@, and if so, which
-  -- redeemers to try. Each redeemer is tried on a separate output transaction.
-  (a -> SpendableOut -> [L.RedeemerType b]) ->
-  -- Wallet of the attacker. Any value contained in the extra UTxO consumed by
-  -- the modified transaction is psid to this wallet.
-  Wallet ->
-  DoubleSatParams a
-dsAddOneSscFromOwner optic extraInputOwner extraInputRedeemers attacker =
-  dsAddSsc
-    optic
-    ( \mcst a ->
-        let extraUtxos = fst <$> scriptUtxosSuchThatMcst mcst extraInputOwner (\_ _ -> True)
-         in concatMap
-              ( \utxo ->
-                  map
-                    (\r -> SpendsScriptConstraint extraInputOwner r utxo)
-                    (extraInputRedeemers a utxo)
-              )
-              extraUtxos
-    )
-    attacker
-    OneChange
-
--- | Parameters for a double satisfaction attack that adds one extra
--- 'SpendsScript' constraint for a Utxo belonging to a given validator to
--- transactions, depending on 'PaysScript' constraints already present on the
--- transaction.  Each of the modified transactions will contain exactly one
--- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
--- for explanation of the arguments.
-dsAddOneSscToPsc ::
-  ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
-  ) =>
-  L.TypedValidator b ->
-  (PaysScriptConstraint -> SpendableOut -> [L.RedeemerType b]) ->
-  Wallet ->
-  DoubleSatParams PaysScriptConstraint
-dsAddOneSscToPsc = dsAddOneSscFromOwner paysScriptConstraintsT
-
--- | Parameters for a double satisfaction attack that adds one extra
--- 'SpendsScript' constraint for a Utxo belonging to a given validator to
--- transactions, depending on 'SpendsScript' constraints already present on the
--- transaction.  Each of the modified transactions will contain exactly one
--- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
--- for explanation of the arguments.
-dsAddOneSscToSsc ::
-  ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
-  ) =>
-  L.TypedValidator b ->
-  (SpendsScriptConstraint -> SpendableOut -> [L.RedeemerType b]) ->
-  Wallet ->
-  DoubleSatParams SpendsScriptConstraint
-dsAddOneSscToSsc = dsAddOneSscFromOwner spendsScriptConstraintsT
-
--- | Parameters for a double satisfaction attack that adds one extra
--- 'SpendsScript' constraint for a Utxo belonging to a given validator to
--- transactions, depending on 'Mints' constraints already present on the
--- transaction.  Each of the modified transactions will contain exactly one
--- extra 'SpendsScript' constraint. See the comments at 'dsAddOneSscFromOwner'
--- for explanation of the arguments.
-dsAddOneSscToMc ::
-  ( SpendsConstrs b,
-    Pl.FromData (L.DatumType b)
-  ) =>
-  L.TypedValidator b ->
-  (MintsConstraint -> SpendableOut -> [L.RedeemerType b]) ->
-  Wallet ->
-  DoubleSatParams MintsConstraint
-dsAddOneSscToMc = dsAddOneSscFromOwner mintsConstraintsT
-
--- | Parameters for a double satisfaction attack that adds one or more extra
--- 'Mints' constraints to transactions, depending on 'SpendsScript' constraints
--- already present on the transaction.  Each of the modified transactions will
--- contain at least one extra 'Mints' constraint.
-dsAddMcToSsc ::
-  MintsConstrs a =>
-  -- | For all 'SpendsScript' constraints of the original transaction, decide
-  -- whether to mint some extra value, and which redeemer and minting policies
-  -- to use to do so.
-  (SpendsScriptConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
-  -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
-  Wallet ->
-  DoubleSatParams SpendsScriptConstraint
-dsAddMcToSsc extraMints attacker =
-  dsAddMc
-    spendsScriptConstraintsT
-    (\_ ssc -> map (\(r, ps, x) -> MintsConstraint r ps x) $ extraMints ssc)
-    attacker
-    AllCombinations
-
--- | Parameters for a double satisfaction attack that adds one or more extra
--- 'Mints' constraints to transactions, depending on 'Mints' constraints
--- already present on the transaction.  Each of the modified transactions will
--- contain at least one extra 'Mints' constraint.
+-- | Double satisfacion attack. See the comment above for what such an attack is
+-- about conceptually.
 --
--- Note that this is more general than just a token duplication attack as
--- implemented by 'dupTokenAttack': That attack is used to make _one_ minting
--- policy mint more tokens, with this attack, more than one minting policy may
--- be involved.
-dsAddMcToMc ::
-  MintsConstrs a =>
-  -- | For all 'Mints' constraints of the original transaction, decide
-  -- whether to mint some extra value, and which redeemer and minting policies
-  -- to use to do so.
-  (MintsConstraint -> [(Maybe a, [L.MintingPolicy], L.Value)]) ->
-  -- | Wallet of the attacker. Any extra minted values are paid to this wallet.
-  Wallet ->
-  DoubleSatParams MintsConstraint
-dsAddMcToMc extraMints attacker =
-  dsAddMc
-    mintsConstraintsT
-    (\_ mc -> map (\(r, ps, x) -> MintsConstraint r ps x) $ extraMints mc)
-    attacker
-    AllCombinations
-
--- | Parameters for a double satisfaction attack that adds 'SpendsScript'
--- constraints.
-dsAddSsc ::
-  Traversal' TxSkel a ->
-  (MockChainSt -> a -> [SpendsScriptConstraint]) ->
-  Wallet ->
-  SplitStrategy ->
-  DoubleSatParams a
-dsAddSsc optic extraSsc attacker splitStrategy =
-  DoubleSatParams
-    { dsOptic = optic,
-      dsExtraConstraints = \mcst a ->
-        map
-          ( toConstraints
-              . review spendsScriptConstraintP
-          )
-          $ extraSsc mcst a,
-      dsAttacker = attacker,
-      dsSplitStrategy = splitStrategy
-    }
-
--- | Parameters for a doubleSatisfactionAttack that adds 'Mints' constraints.
-dsAddMc ::
-  Traversal' TxSkel a ->
-  (MockChainSt -> a -> [MintsConstraint]) ->
-  Wallet ->
-  SplitStrategy ->
-  DoubleSatParams a
-dsAddMc optic extraMc attacker splitStrategy =
-  DoubleSatParams
-    { dsOptic = optic,
-      dsExtraConstraints = \mcst a ->
-        map
-          ( toConstraints
-              . review mintsConstraintP
-          )
-          $ extraMc mcst a,
-      dsAttacker = attacker,
-      dsSplitStrategy = splitStrategy
-    }
-
--- * The double satisfaction attack
-
--- | Double satisfaction attack. See the comments for 'DoubleSatParams' and its
--- smart constructors for explanation.
+-- This attack consists in adding some extra constraints to a transaction, and
+-- hoping that the additional minting policies or validator scripts thereby
+-- involved are fooled by what's already present on the transaction. Any extra
+-- value contained in new inputs to the transaction is then paid to the
+-- attacker.
 doubleSatAttack ::
-  DoubleSatParams a ->
-  Attack
-doubleSatAttack DoubleSatParams {..} =
-  mkSplittingAttack
-    dsSplitStrategy
-    dsOptic
-    ( \mcst ssc ->
-        map
-          (ssc,)
-          (dsExtraConstraints mcst ssc)
-    )
-    ( \extraConstrList skelOld ->
-        let extraConstrs = accConstraints extraConstrList ([] :=>: [])
-            extraInValue = foldOf (constraintPairI % _1 % traversed % valueAT) extraConstrs
-            extraOutValue = foldOf (constraintPairI % _2 % traversed % valueL) extraConstrs
-            surplus = extraInValue <> Pl.negate extraOutValue
-         in [ addLabel DoubleSatLbl $
-                payTo dsAttacker surplus $
-                  over txConstraintsL (extraConstrs `addConstraints`) skelOld
-              | extraConstrs `strictlyExtendsConstraints` txConstraints skelOld
-            ]
-    )
+  Is k A_Traversal =>
+  -- | Each focus of this optic is a potential reason to add some extra
+  -- constraints.
+  --
+  -- As an example, one could go through the 'PaysScript' constraints for
+  -- validators of type @t@ with the following traversal:
+  --
+  -- > paysScriptConstraintsT % paysScriptConstraintTypeP @t
+  Optic' k is TxSkel a ->
+  -- | Which constraints to add, for each of the foci. There might be different
+  -- options for each focus, that's why the return value is a list.
+  --
+  -- Continuing the example, for each of the focused 'PaysScript' constraints,
+  -- you might want to try adding some 'SpendsScript' constraints to the
+  -- transaction. Since it might be interesting to try different redeemers on
+  -- these extra 'SpendsScript' constraints, you can just provide a list of all
+  -- the options you want to try adding for a given 'PaysScript' that's already
+  -- on the transaction.
+  (MockChainSt -> a -> [Constraints]) ->
+  -- | The wallet of the attacker, where any surplus is paid to.
+  --
+  -- In the example, the extra value in the added 'SpendsScript' constraints
+  -- will be paid to the attacker.
+  Wallet ->
+  -- | Since there are potentially multiple 'Constraints' produced for each of
+  -- the foci, the question is whether (and how) to combine additions that were
+  -- triggered by different foci.
+  --
+  -- In the example: Let's say that the unmodified transaction had three focused
+  -- 'PaysScript' constraints (let's denote them by a, b, and c), and that you
+  -- want to try 2, 3, and 5 additional 'SpendsScript' constraints for each of
+  -- them, respectively (let's call those a1, a2, and b1, b2, b3, and c1, c2,
+  -- c3, c4, c5).
+  --
+  -- - If you want to try each additional 'SpendsScript' on its own modified
+  --   transaction, use 'AllSeparate'. Thus, there'll be 2+3+5=10 modified
+  --   transactions. Namely, for each element of the list
+  --
+  -- > [a1, a2, b1, b2, b3, c1, c2, c3, c4, c5]  ,
+  --
+  --   you'll get one modified transaction that includes that constraint.
+  --
+  -- - If you want to try combining all options from one focus with all options
+  --   from all of the other foci, use 'TryCombinations'. Then, there'll be
+  --   (2+1)*(3+1)*(5+1)=72 possible combinations, if you include all of the
+  --   combinations where /at most/ three (one for each focus) extra constraints
+  --   are added. One of these combinations is of course the one where nothing
+  --   is added, and that one is omitted, which brings the grand total down to
+  --   71 modified transactions, the additional 'SpendsScript' constraints of
+  --   which are given by the following list:
+  --
+  -- > [ -- one additional constraint (the 10 cases from above)
+  -- >   [a1],
+  -- >   [a2],
+  -- >   ...
+  -- >   [c4],
+  -- >   [c5],
+  -- >
+  -- >   -- two additional constraints, from different foci (2*3 + 2*5 + 3*5 = 31 cases)
+  -- >   [a1, b1],
+  -- >   [a1, b2],
+  -- >   ...
+  -- >   [b3, c4],
+  -- >   [b3, c5],
+  -- >
+  -- >   -- three additional constraints, one from each focus (2*3*5 = 30 cases)
+  -- >   [a1, b1, c1],
+  -- >   [a1, b1, c2],
+  -- >   ...
+  -- >   [a1, b3, c4],
+  -- >   [a1, b3, c5]
+  -- > ]
+  --
+  -- So you see that this attack can branch quite wildly. Use with caution!
+  DSSplitMode ->
+  Tweak ()
+doubleSatAttack optic extra attacker mode = do
+  mcst <- mcstTweak
+  extraConstrs <- map (extra mcst) <$> viewTweak (partsOf optic)
+  msum $
+    map
+      ( \c -> do
+          added <- addConstraintsTweak c
+          let addedValue = constraintBalance added
+          if addedValue `L.geq` mempty
+            then addOutConstraintTweak $ paysPK (walletPKHash attacker) addedValue
+            else failingTweak
+      )
+      ( case mode of
+          AllSeparate -> nubBy sameConstraints $ concat extraConstrs
+          TryCombinations ->
+            nubBy sameConstraints $
+              map joinConstraints $
+                tail $ allCombinations $ map (mempty :) extraConstrs
+      )
+  addLabelTweak DoubleSatLbl
   where
-    payTo :: Wallet -> L.Value -> TxSkel -> TxSkel
-    payTo w v = over outConstraintsL (++ [paysPK (walletPKHash w) v])
+    constraintBalance :: Constraints -> L.Value
+    constraintBalance (is :=>: os) = inValue <> Pl.negate outValue
+      where
+        inValue = foldOf (traversed % valueAT) is
+        outValue = foldOf (traversed % valueL) os
 
-    -- Accumulate a list of 'Constraints' into a single 'Constraints', in such a
-    -- way that extra 'MiscConstraint's are added in the front (the order should
-    -- not matter), and extra 'OutConstraint's are added in the back (here, the
-    -- order might matter).
-    --
-    -- Note: This combines the list of extra constraints into a
-    accConstraints :: [Constraints] -> Constraints -> Constraints
-    accConstraints [] acc = acc
-    accConstraints (c : cs) acc = c `addConstraints` accConstraints cs acc
+    -- this function uses 'addConstraintsTweak' to join a list of 'Constraints'
+    -- into one 'Constraints' that specifies eveything that is contained in the
+    -- input.
+    joinConstraints :: [Constraints] -> Constraints
+    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsTweak cs) def $ [] :=>: []
 
--- * Extending 'Constraints'
-
--- | Extend the constraints in the second argument with the ones from the first
--- argument, but only if there are no conflicts:
---
--- - No 'SpendsScript' or 'SpendsPK' constraints trying to spend the same UTxO
---
--- - No incompatible time ranges
-addConstraints :: Constraints -> Constraints -> Constraints
-addConstraints (extraIs :=>: extraOs) r@(is :=>: os) =
-  case miscListExtend extraIs is of
-    Nothing -> r
-    Just is' -> is' :=>: (os ++ extraOs)
-  where
-    miscListExtend :: [MiscConstraint] -> [MiscConstraint] -> Maybe [MiscConstraint]
-    miscListExtend [] rs = Just rs
-    miscListExtend (m : ls) rs = case miscListExtend ls rs of
-      Nothing -> Nothing
-      Just ms -> case checkMiscExtend m ms of
-        Incompatible -> Nothing
-        AlreadyThere -> Just ms
-        CompatibleExtension -> Just $ m : ms
-
--- | Return @True@ iff the constraints in the first argument can be added
--- without conflict to the ones in the second argument, and they are not alreay
--- covered by the constraints in the second argument.
-strictlyExtendsConstraints :: Constraints -> Constraints -> Bool
-strictlyExtendsConstraints (is :=>: os) (is' :=>: os') =
-  case checkMiscListExtend is is' of
-    Incompatible -> False
-    AlreadyThere -> not (all (`elem` os') os)
-    CompatibleExtension -> True
-  where
-    -- check that all constraints from the first list can be added one after
-    -- the other to the second list.
-    checkMiscListExtend :: [MiscConstraint] -> [MiscConstraint] -> CheckMiscExtend
-    checkMiscListExtend [] _ = AlreadyThere
-    checkMiscListExtend (l : ls) rs = case checkMiscExtend l rs of
-      Incompatible -> Incompatible
-      CompatibleExtension -> case checkMiscListExtend ls (l : rs) of
-        Incompatible -> Incompatible
-        _ -> CompatibleExtension
-      AlreadyThere -> checkMiscListExtend ls (l : rs)
-
-data CheckMiscExtend = Incompatible | AlreadyThere | CompatibleExtension
-
--- | Check how a given 'MiscConstraint' relates to a set of other
--- 'MiscConstraint's:
---
--- - If the set of constraints already includes the given constraint (either
---   directly or as a consequence), return 'AlreadyThere'
---
--- - If the given constraint can be added to the set without conflict, return 'CompatibleExtension'
---
--- - Otherwise, return 'Incompatible'
-checkMiscExtend :: MiscConstraint -> [MiscConstraint] -> CheckMiscExtend
-checkMiscExtend _ [] = CompatibleExtension
-checkMiscExtend mc mcs =
-  case mc of
-    -- 'Mints' and 'SignedBy' Constraints can always be added
-    Mints {} -> CompatibleExtension
-    SignedBy _ -> CompatibleExtension
-    _ ->
-      if mc `elem` mcs
-        then AlreadyThere
-        else case mc of
-          SpendsScript _ _ o -> if any (spends o) mcs then Incompatible else CompatibleExtension
-          SpendsPK o -> if any (spends o) mcs then Incompatible else CompatibleExtension
-          Before t ->
-            let oldRange = validRange mcs
-                newRange = Pl.to t
-             in if
-                    | newRange `Pl.contains` oldRange -> AlreadyThere
-                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                    | otherwise -> Incompatible
-          After t ->
-            let oldRange = validRange mcs
-                newRange = Pl.from t
-             in if
-                    | newRange `Pl.contains` oldRange -> AlreadyThere
-                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                    | otherwise -> Incompatible
-          ValidateIn newRange ->
-            let oldRange = validRange mcs
-             in if
-                    | newRange `Pl.contains` oldRange -> AlreadyThere
-                    | newRange `Pl.overlaps` oldRange -> CompatibleExtension
-                    | otherwise -> Incompatible
-          _ -> CompatibleExtension -- This case will never be reached
-  where
-    spends :: SpendableOut -> MiscConstraint -> Bool
-    spends o (SpendsScript _ _ o') = o == o'
-    spends o (SpendsPK o') = o == o'
-    spends _ _ = False
-
-    validRange :: [MiscConstraint] -> Pl.POSIXTimeRange
-    validRange [] = Pl.always
-    validRange (Before t : ms) = Pl.to t `Pl.intersection` validRange ms
-    validRange (After t : ms) = Pl.from t `Pl.intersection` validRange ms
-    validRange (ValidateIn range : ms) = range `Pl.intersection` validRange ms
-    validRange (_ : ms) = validRange ms
+    allCombinations :: [[x]] -> [[x]]
+    allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
+    allCombinations [] = [[]]
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)

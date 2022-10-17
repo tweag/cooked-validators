@@ -34,7 +34,7 @@ import Test.Tasty.HUnit
 -- datum hijacking attack should target the second transaction, and substitute a
 -- different recipient.
 
-data MockDatum = FirstLock | SecondLock deriving (Show)
+data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}
@@ -146,7 +146,7 @@ tests :: TestTree
 tests =
   testGroup
     "datum hijacking attack"
-    [ testCase "unit test on a 'TxSkel'" $
+    [ testGroup "unit tests on a 'TxSkel'" $
         let val1 = carelessValidator
             val2 = carefulValidator
             thief = datumHijackingTarget @MockContract
@@ -161,14 +161,16 @@ tests =
                   paysScript val1 FirstLock x2,
                   paysScript val1 SecondLock x2
                 ]
-            skelOut select =
-              datumHijackingAttack @MockContract
-                ( \v d x ->
-                    L.validatorHash val1 == L.validatorHash v
-                      && SecondLock Pl.== d
-                      && x2 `L.geq` x
+            skelOut bound select =
+              getTweak
+                ( datumHijackingAttack @MockContract
+                    ( \v d x ->
+                        L.validatorHash val1 == L.validatorHash v
+                          && SecondLock Pl.== d
+                          && bound `L.geq` x
+                    )
+                    select
                 )
-                select
                 def
                 skelIn
             skelExpected a b =
@@ -180,9 +182,28 @@ tests =
                   paysScript val1 FirstLock x2,
                   paysScript b SecondLock x2
                 ]
-         in assertSameTxSkels [skelExpected thief val1] (skelOut (0 ==))
-              .&&. assertSameTxSkels [skelExpected val1 thief] (skelOut (1 ==))
-              .&&. assertSameTxSkels [skelExpected thief thief] (skelOut (const True)),
+         in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
+              testCase "one modified transaction for one interesting output" $
+                [ ( skelExpected thief val1,
+                    [(val1, Nothing, SecondLock, x3)]
+                  )
+                ]
+                  @=? skelOut x2 (0 ==),
+              testCase "two modified transactions for two interesting outputs" $
+                [ ( skelExpected thief thief,
+                    [ (val1, Nothing, SecondLock, x3),
+                      (val1, Nothing, SecondLock, x2)
+                    ]
+                  )
+                ]
+                  @=? skelOut x2 (const True),
+              testCase "select second interesting output to get one modified transaction" $
+                [ ( skelExpected val1 thief,
+                    [(val1, Nothing, SecondLock, x2)]
+                  )
+                ]
+                  @=? skelOut x2 (1 ==)
+            ],
       testCase "careful validator" $
         testFailsFrom'
           isCekEvaluationFailure

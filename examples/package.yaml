@@ -46,13 +46,14 @@ dependencies:
   - streaming
   - text
   - transformers
+  - optics-core
 
 library:
   source-dirs: src
   ghc-options:
-    -Wall 
-    -fobject-code 
-    -fno-ignore-interface-pragmas 
+    -Wall
+    -fobject-code
+    -fno-ignore-interface-pragmas
     -fno-omit-interface-pragmas
 
 tests:

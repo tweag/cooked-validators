@@ -15,7 +15,7 @@ import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
-import Cooked.Attack
+import Cooked.Attack.Tweak.Common
 import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
@@ -100,7 +100,7 @@ data MockChainBuiltin a where
   -- | The failing operation
   Fail :: String -> MockChainBuiltin a
 
-type MockChainOp = LtlOp Attack MockChainBuiltin
+type MockChainOp = LtlOp UntypedTweak MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
@@ -113,38 +113,40 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance {-# OVERLAPS #-} Semigroup Attack where
-  -- TODO: should we try to make the entries of the returned list unique (up to
-  -- reordering of MiscConstraints)?
-  f <> g = \mcst skel -> concatMap (f mcst) $ g mcst skel
+instance Semigroup UntypedTweak where
+  -- The right tweak is applied first
+  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
 
-instance {-# OVERLAPS #-} Monoid Attack where
-  mempty = \_ skel -> [skel]
+instance Monoid UntypedTweak where
+  mempty = UntypedTweak doNothingTweak
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
-instance InterpLtl Attack MockChainBuiltin InterpMockChain where
+instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
         . map (uncurry interpretAndTell)
         . nowLaterList
     where
-      interpretAndTell :: Attack -> [Ltl Attack] -> StateT [Ltl Attack] InterpMockChain Pl.CardanoTx
-      interpretAndTell now later = do
-        mockSt <- lift get
+      interpretAndTell ::
+        UntypedTweak ->
+        [Ltl UntypedTweak] ->
+        StateT [Ltl UntypedTweak] InterpMockChain Pl.CardanoTx
+      interpretAndTell (UntypedTweak (Tweak now)) later = do
+        mcst <- lift get
         msum $
           map
-            ( \skel' -> do
+            ( \(skel', _) -> do
                 signers <- askSigners
                 lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
                 tx <- validateTxSkel skel'
                 put later
                 return tx
             )
-            (now mockSt skel)
+            (now mcst skel)
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
@@ -167,8 +169,18 @@ instance InterpLtl Attack MockChainBuiltin InterpMockChain where
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Attack's
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ Attack)
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
+type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedTweak)
+
+-- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
+-- apply at least once.
+somewhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
+
+-- | Apply an 'Tweak' to every transaction in a given trace. This is also
+-- successful if there are no transactions at all.
+everywhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 -- | Some utilities to write tests for cooked-validators. The error reporting
 -- could be better.
 module Cooked.TestUtils where
@@ -5,7 +7,14 @@ module Cooked.TestUtils where
 import Cooked.MockChain.Testing
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.List
+import qualified Ledger as Pl
+import qualified Ledger.Value as Pl
+import qualified Plutus.V1.Ledger.Interval as Pl
+import qualified Plutus.V1.Ledger.Time as Pl
+import qualified PlutusTx.Prelude as Pl
 import Test.Tasty.HUnit
+import Type.Reflection
 
 assertSubset :: (Show a, Eq a) => [a] -> [a] -> Assertion
 assertSubset l r =
@@ -31,12 +40,19 @@ instance Show MiscConstraint where
 instance Show OutConstraint where
   show = show . prettyOutConstraint
 
+instance Show Constraints where
+  show (is :=>: os) = show is ++ " :=>: " ++ show os
+
 instance Show TxSkel where
   show = show . prettyTxSkel []
 
--- | assert that two constraints are the same, up to reordering of inputs.
---
--- TODO, maybe: Test for logical equality.
+-- | Assert that two 'Constraints' are semantically the same.
 assertSameConstraints :: Constraints -> Constraints -> Assertion
-assertSameConstraints (is :=>: os) (is' :=>: os') =
-  assertSameSets is is' .&&. (os @?= os')
+assertSameConstraints expected actual =
+  assertBool
+    ( "constraints not semantically equal:\n\nexpected:\n"
+        ++ show expected
+        ++ "\n\nactual:\n"
+        ++ show actual
+    )
+    $ sameConstraints expected actual
