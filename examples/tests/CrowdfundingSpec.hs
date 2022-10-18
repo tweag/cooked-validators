@@ -458,8 +458,8 @@ tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
 tryDatumHijack =
   somewhere
     ( datumHijackingAttack @Cf.Crowdfunding
-        ( \_ d _ -> case d of
-            Cf.Proposal {} -> True
+        ( \_ d val -> case d of
+            Cf.Proposal {} -> L.noAdaValue val /= mempty
             _ -> False
         )
         (0 ==)

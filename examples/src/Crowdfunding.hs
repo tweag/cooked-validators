@@ -83,8 +83,7 @@ instance Eq FundingParams where
 -- process in order to avoid allowing an attacker to redirect the thread token.
 -- For more information, see the Auction contract.
 data CfDatum
-  = PreProposal ValParams
-  | Proposal ValParams
+  = Proposal ValParams
   | Funding FundingParams
   deriving (Haskell.Show)
 
@@ -99,7 +98,6 @@ instance Eq CfDatum where
 
 {-# INLINEABLE getOwner #-}
 getOwner :: CfDatum -> L.PubKeyHash
-getOwner (PreProposal vp) = fundingTarget vp
 getOwner (Proposal vp) = fundingTarget vp
 getOwner (Funding fp) = to fp
 
@@ -121,7 +119,6 @@ getValParams _ = Nothing
 -- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
 {-# INLINEABLE getFunderOwner #-}
 getFunderOwner :: CfDatum -> L.PubKeyHash
-getFunderOwner (PreProposal vp) = fundingTarget vp
 getFunderOwner (Proposal vp) = fundingTarget vp
 getFunderOwner (Funding fp) = from fp
 
@@ -486,13 +483,9 @@ validate (Proposal cf) (Launch txOut) ctx
     validRange = crowdfundTimeRange cf `Interval.contains` L.txInfoValidRange txi
 validate (Funding fp) IndividualRefund ctx =
   validIndividualRefund (from fp) ctx
-validate (PreProposal cf) Minting ctx = validMinting cf ctx
-validate (PreProposal _) _ _ = trace "Only 'Minting' allowed in 'PreProposal' state" False
-validate _ Minting _ = trace "'Minting' only allowed in 'PreProposal' state" False
-validate (Proposal _) IndividualRefund _ =
-  -- disallowed, though this could be allowing the owner to cancel the project
-  -- before the deadline, which is currently impossible
-  traceIfFalse "Proposal datum with individual refund action not allowed" False
+validate (Proposal cf) Minting ctx = validMinting cf ctx
+validate (Proposal _) _ _ = trace "Only 'Launch' or 'Minting' allowed in 'Proposal' state" False
+validate _ Minting _ = trace "'Minting' only allowed in 'Proposal' state" False
 
 data Crowdfunding
 

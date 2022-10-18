@@ -15,7 +15,7 @@ import PlutusTx.Prelude (nub, sum)
 -- | Open the crowdfund
 txOpen :: MonadBlockChain m => Cf.ValParams -> m SpendableOut
 txOpen p = do
-  let datum = Cf.PreProposal p
+  let datum = Cf.Proposal p
   tx <-
     validateTxSkel $
       txSkel
