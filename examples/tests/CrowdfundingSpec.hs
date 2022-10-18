@@ -27,15 +27,25 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 -- adding names to wallets
+
 alice = wallet 1
+
 bob = wallet 2
+
 charlie = wallet 3
+
 dylan = wallet 4
+
 eve = wallet 5
+
 fred = wallet 6
+
 greta = wallet 7
+
 hank = wallet 8
+
 iris = wallet 9
+
 james = wallet 10
 
 -- Just so we have something to fund that's not Ada:

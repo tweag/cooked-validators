@@ -51,7 +51,8 @@ txIndividualFund p fund sOut = do
   let datum = Cf.Funding fp
   void $
     validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True})
+      txSkelOpts
+        (def {adjustUnbalTx = True})
         [paysScript Cf.crowdfundingValidator datum fund]
 
 -- | Individual can request a refund
