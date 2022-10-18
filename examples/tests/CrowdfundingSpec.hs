@@ -26,6 +26,18 @@ import qualified Plutus.V1.Ledger.Ada as Ada
 import Test.Tasty
 import Test.Tasty.HUnit
 
+-- adding names to wallets
+alice = wallet 1
+bob = wallet 2
+charlie = wallet 3
+dylan = wallet 4
+eve = wallet 5
+fred = wallet 6
+greta = wallet 7
+hank = wallet 8
+iris = wallet 9
+james = wallet 10
+
 -- Just so we have something to fund that's not Ada:
 -- Have a banana and an apple
 
@@ -36,7 +48,7 @@ bananaAssetClass = permanentAssetClass "Banana"
 banana :: Integer -> Value.Value
 banana = Value.assetClassValue bananaAssetClass
 
--- | Parameters of a crowdfund that is attempting to fund 5 bananas to wallet 2,
+-- | Parameters of a crowdfund that is attempting to fund 5 bananas to bob,
 -- with a deadline in 60 seconds from the given time, and minimum contribution of
 -- 2 bananas.
 bananaParams :: L.POSIXTime -> Cf.ValParams
@@ -45,7 +57,7 @@ bananaParams t =
     { Cf.projectDeadline = t + 60_000,
       Cf.threshold = banana 5,
       Cf.minContribution = banana 2,
-      Cf.fundingTarget = walletPKHash (wallet 2),
+      Cf.fundingTarget = walletPKHash bob,
       Cf.threadCS = Pl.scriptCurrencySymbol Cf.threadTokenPolicy
     }
 
@@ -56,7 +68,7 @@ appleAssetClass = permanentAssetClass "Apple"
 apple :: Integer -> Value.Value
 apple = Value.assetClassValue appleAssetClass
 
--- | Parameters of a crowdfund that is attempting to fund 5 apples to wallet 2,
+-- | Parameters of a crowdfund that is attempting to fund 5 apples to bob,
 -- with a deadline in 60 seconds from the given time, and minimum contribution of
 -- 2 apples.
 appleParams :: L.POSIXTime -> Cf.ValParams
@@ -65,7 +77,7 @@ appleParams t =
     { Cf.projectDeadline = t + 120_000,
       Cf.threshold = apple 4,
       Cf.minContribution = apple 2,
-      Cf.fundingTarget = walletPKHash (wallet 2),
+      Cf.fundingTarget = walletPKHash bob,
       Cf.threadCS = Pl.scriptCurrencySymbol Cf.threadTokenPolicy
     }
 
@@ -85,210 +97,210 @@ nothing = return ()
 oneContribution :: MonadMockChain m => m ()
 oneContribution = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 3
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
 
 -- | one contribution, refunded
 oneContributionRefund :: MonadMockChain m => m ()
 oneContributionRefund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 3
-  Cf.txRefund `as` wallet 3
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txRefund `as` charlie
 
 -- | one contribution, project funded
 oneContributionFund :: MonadMockChain m => m ()
 oneContributionFund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | one contributer, multiple contributions, refunded
 oneContributorRefund :: MonadMockChain m => m ()
 oneContributorRefund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txRefund `as` wallet 3
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txRefund `as` charlie
 
 -- | one contributor, multiple contributions, project is funded
 oneContributorFund :: MonadMockChain m => m ()
 oneContributorFund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 1
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner contributes, project is funded
 ownerContributes :: MonadMockChain m => m ()
 ownerContributes = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 2
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` bob
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner refunds all contributors
 ownerRefunds :: MonadMockChain m => m ()
 ownerRefunds = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 4
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 2
+  Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
 -- | owner refunds all contributors
 ownerRefundsSameContributor :: MonadMockChain m => m ()
 ownerRefundsSameContributor = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 2
+  Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
 -- | two contributions, refunded
 twoContributionsRefund :: MonadMockChain m => m ()
 twoContributionsRefund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txRefund `as` wallet 1
-  Cf.txRefund `as` wallet 3
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txRefund `as` alice
+  Cf.txRefund `as` charlie
 
 -- | two contributions, funded
 twoContributionsFund :: MonadMockChain m => m ()
 twoContributionsFund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | multiple contributions, one refunded before project is funded
 multipleContributionsOneRefunded :: MonadMockChain m => m ()
 multipleContributionsOneRefunded = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 4
-  Cf.txRefund `as` wallet 3
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` dylan
+  Cf.txRefund `as` charlie
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | many contributors, including some with multiple contributions. project is funded
 manyContributorsFund :: MonadMockChain m => m ()
 manyContributorsFund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 6
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 7
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 8
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | many contributors, including some with multiple contributions. owner refunds all
 manyContributorsOwnerRefunds :: MonadMockChain m => m ()
 manyContributorsOwnerRefunds = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 6
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 7
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 8
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 2
+  Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
 -- | many contributors, including some with multiple contributions. some individual
 -- refunds. project is ultimately funded
 manyContributorsSomeRefundsFund :: MonadMockChain m => m ()
 manyContributorsSomeRefundsFund = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 4
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 5
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 6
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 7
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 8
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` wallet 1
-  Cf.txRefund `as` wallet 3
-  Cf.txRefund `as` wallet 4
-  Cf.txRefund `as` wallet 8
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txRefund `as` charlie
+  Cf.txRefund `as` dylan
+  Cf.txRefund `as` hank
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | one contribution, refunding when contribution does not exceed minimum
 oneContributionRefundBelowMinimum :: MonadMockChain m => m ()
 oneContributionRefundBelowMinimum = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` wallet 3
-  Cf.txRefund `as` wallet 3
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` charlie
+  Cf.txRefund `as` charlie
 
 -- | owner refunds all contributors when one contribution does not
 -- exceed the minimum contribution
 ownerRefundsBelowMinimum :: MonadMockChain m => m ()
 ownerRefundsBelowMinimum = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 4
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 2
+  Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
--- | wallet 2 opens two crowdfunds at the same time
+-- | bob opens two crowdfunds at the same time
 twoCrowdfunds :: MonadMockChain m => m ()
 twoCrowdfunds = do
   t0 <- currentTime
-  sOutB <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  sOutA <- Cf.txOpen (appleParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOutB `as` wallet 2
-  Cf.txMintThreadToken (appleParams t0) sOutA `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOutB `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOutB `as` wallet 3
-  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` wallet 1
-  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` wallet 4
-  Cf.txProjectFund (bananaParams t0) sOutB `as` wallet 2
-  Cf.txProjectFund (appleParams t0) sOutA `as` wallet 2
+  sOutB <- Cf.txOpen (bananaParams t0) `as` bob
+  sOutA <- Cf.txOpen (appleParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOutB `as` bob
+  Cf.txMintThreadToken (appleParams t0) sOutA `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOutB `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 2) sOutB `as` charlie
+  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` alice
+  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` dylan
+  Cf.txProjectFund (bananaParams t0) sOutB `as` bob
+  Cf.txProjectFund (appleParams t0) sOutA `as` bob
 
 successfulSingle :: TestTree
 successfulSingle =
@@ -327,69 +339,69 @@ successfulSingle =
         testSucceedsFrom testInit (allowBigTransactions twoCrowdfunds)
     ]
 
--- | one contribution, refund error: wallet 1 attempts to refund without contributing
+-- | one contribution, refund error: alice attempts to refund without contributing
 oneContributionRefundError :: MonadMockChain m => m ()
 oneContributionRefundError = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 3
-  Cf.txRefund `as` wallet 1
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txRefund `as` alice
 
 -- | one contribution, project funding error: attempting to fund the project
 -- when the threshold is not reached
 oneContributionFundErrorAmount :: MonadMockChain m => m ()
 oneContributionFundErrorAmount = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 1
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | one contribution, project funding error: attempting to fund the project
 -- after the deadline
 oneContributionFundErrorDeadline :: MonadMockChain m => m ()
 oneContributionFundErrorDeadline = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | attempting to refund all contributors before the deadline
 ownerRefundsErrorDeadline :: MonadMockChain m => m ()
 ownerRefundsErrorDeadline = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 4
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
 -- | two contributions, error: one contribution does not exceed minimum
 twoContributionsFundErrorMinimum :: MonadMockChain m => m ()
 twoContributionsFundErrorMinimum = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner attempts to pay self all funds after the deadline, with no tokens
 -- minted for the contributors
 ownerRefundsVulnerability :: MonadMockChain m => m ()
 ownerRefundsVulnerability = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 4
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAllVulnerability (bananaParams t0) sOut `as` wallet 2
+  Cf.txRefundAllVulnerability (bananaParams t0) sOut `as` bob
 
 failingSingle :: TestTree
 failingSingle =
@@ -409,29 +421,29 @@ failingSingle =
         testFailsFrom testInit ownerRefundsVulnerability
     ]
 
--- | one contribution, project funding error: wallet 1 attempts to fund project
--- when wallet 2 is the funding target. Funds stay locked in the script
+-- | one contribution, project funding error: alice attempts to fund project
+-- when bob is the funding target. Funds stay locked in the script
 -- TODO: make this throw an error
 oneContributionFundErrorOwner :: MonadMockChain m => m ()
 oneContributionFundErrorOwner = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 1
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` alice
 
--- | wallet 1 attempts to refund all contributors with wallet 2 as owner
+-- | alice attempts to refund all contributors with bob as owner
 -- funds are locked in the script
 -- TODO: make this throw an error
 ownerRefundsErrorOwner :: MonadMockChain m => m ()
 ownerRefundsErrorOwner = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 1
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` wallet 3
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` wallet 4
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` wallet 1
+  Cf.txRefundAll (bananaParams t0) sOut `as` alice
 
 -- * (hopefully) failing attacks
 
@@ -449,7 +461,7 @@ tryDupTokens =
   somewhere
     ( dupTokenAttack
         (\_ n -> Just $ n + 1) -- the modification of the minted value
-        (wallet 6) -- the attacker's wallet
+        fred -- the attacker's wallet
     )
     simpleTraces
 
@@ -492,11 +504,11 @@ tokensInState (UtxoState m) w
 oneContributionFundAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
 oneContributionFundAlternativeTrace = do
   t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` wallet 2
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` wallet 2
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 9
-    <|> Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` wallet 10
-  Cf.txProjectFund (bananaParams t0) sOut `as` wallet 2
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` iris
+    <|> Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` james
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 oneContributionFundAlternative :: TestTree
 oneContributionFundAlternative =
@@ -504,10 +516,10 @@ oneContributionFundAlternative =
     testBinaryRelatedBy
       ( \a b ->
           testBool $
-            adaInState a (wallet 2) == adaInState b (wallet 2)
-              && tokensInState a (wallet 2) `setEquals` tokensInState b (wallet 2)
-              && adaInState a (wallet 9) == adaInState b (wallet 10)
-              && tokensInState a (wallet 9) `setEquals` tokensInState b (wallet 10)
+            adaInState a bob == adaInState b bob
+              && tokensInState a bob `setEquals` tokensInState b bob
+              && adaInState a iris == adaInState b james
+              && tokensInState a iris `setEquals` tokensInState b james
       )
       testInit
       (allowBigTransactions oneContributionFundAlternativeTrace)
