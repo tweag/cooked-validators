@@ -51,8 +51,8 @@ txIndividualFund p fund sOut = do
   let datum = Cf.Funding fp
   void $
     validateTxSkel $
-      txSkel
-        [paysScript Cf.crowdfundingValidator datum (fund <> minAda)]
+      txSkelOpts (def {adjustUnbalTx = True})
+        [paysScript Cf.crowdfundingValidator datum fund]
 
 -- | Individual can request a refund
 txRefund :: MonadBlockChain m => m ()
@@ -96,8 +96,8 @@ txProjectFund p sOut = do
             (SpendsScript Cf.crowdfundingValidator (Cf.Launch txOut) . fst)
             (proposalUtxo : fundingUtxos)
         )
-          :=>: ( paysPK fundingTarget (datumTotal <> minAda) :
-                 map (`paysPK` (rewardToken 1 <> minAda)) uniqueAddrs
+          :=>: ( paysPK fundingTarget datumTotal :
+                 map (`paysPK` rewardToken 1) uniqueAddrs
                  -- uncomment below (and comment above) to attempt to introduce a
                  -- vulnerability where the owner receives all tokens
                  -- map (\_ -> paysPK fundingTarget token) uniqueAddrs
