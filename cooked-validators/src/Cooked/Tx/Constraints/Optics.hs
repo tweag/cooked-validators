@@ -61,8 +61,14 @@ constraintPairI = iso (\(i :=>: o) -> (i, o)) (uncurry (:=>:))
 outConstraintsL :: Lens' TxSkel [OutConstraint]
 outConstraintsL = txConstraintsL % constraintPairI % _2
 
+outConstraintT :: Traversal' TxSkel OutConstraint
+outConstraintT = outConstraintsL % traversed
+
 miscConstraintsL :: Lens' TxSkel [MiscConstraint]
 miscConstraintsL = txConstraintsL % constraintPairI % _1
+
+miscConstraintT :: Traversal' TxSkel MiscConstraint
+miscConstraintT = miscConstraintsL % traversed
 
 -- * Picking apart 'MiscConstraint's
 
@@ -86,7 +92,7 @@ mintsConstraintP =
     )
 
 mintsConstraintsT :: Traversal' TxSkel MintsConstraint
-mintsConstraintsT = miscConstraintsL % traversed % mintsConstraintP
+mintsConstraintsT = miscConstraintT % mintsConstraintP
 
 data SpendsScriptConstraint where
   SpendsScriptConstraint ::
@@ -107,8 +113,22 @@ spendsScriptConstraintP =
         _ -> Nothing
     )
 
+-- | This prism only has a focus on 'SpendsScriptConstraint's of a given type.
+spendsScriptConstraintTypeP ::
+  forall a.
+  SpendsConstrs a =>
+  Prism' SpendsScriptConstraint (L.TypedValidator a, L.RedeemerType a, SpendableOut)
+spendsScriptConstraintTypeP =
+  prism'
+    (\(v, r, o) -> SpendsScriptConstraint v r o)
+    ( \(SpendsScriptConstraint v r o) ->
+        case typeOf v `eqTypeRep` typeRep @(L.TypedValidator a) of
+          Just HRefl -> Just (v, r, o)
+          Nothing -> Nothing
+    )
+
 spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
-spendsScriptConstraintsT = miscConstraintsL % traversed % spendsScriptConstraintP
+spendsScriptConstraintsT = miscConstraintT % spendsScriptConstraintP
 
 spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
 spendableOutL =
@@ -126,6 +146,42 @@ spendsPKConstraintP =
     SpendsPK
     ( \case
         SpendsPK o -> Just o
+        _ -> Nothing
+    )
+
+signedByP :: Prism' MiscConstraint [L.PubKeyHash]
+signedByP =
+  prism'
+    SignedBy
+    ( \case
+        SignedBy signers -> Just signers
+        _ -> Nothing
+    )
+
+beforeP :: Prism' MiscConstraint L.POSIXTime
+beforeP =
+  prism'
+    Before
+    ( \case
+        Before b -> Just b
+        _ -> Nothing
+    )
+
+afterP :: Prism' MiscConstraint L.POSIXTime
+afterP =
+  prism'
+    After
+    ( \case
+        After b -> Just b
+        _ -> Nothing
+    )
+
+validateInP :: Prism' MiscConstraint L.POSIXTimeRange
+validateInP =
+  prism'
+    ValidateIn
+    ( \case
+        ValidateIn r -> Just r
         _ -> Nothing
     )
 
@@ -152,11 +208,12 @@ paysScriptConstraintP =
     )
 
 paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
-paysScriptConstraintsT = outConstraintsL % traversed % paysScriptConstraintP
+paysScriptConstraintsT = outConstraintT % paysScriptConstraintP
 
+-- | This prism only has a focus on 'PaysScriptConstraint's of a given type.
 paysScriptConstraintTypeP ::
   forall a.
-  (Typeable a, PaysScriptConstrs a) =>
+  PaysScriptConstrs a =>
   Prism' PaysScriptConstraint (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)
 paysScriptConstraintTypeP =
   prism'
@@ -188,7 +245,7 @@ paysPKWithDatumConstraintP =
     )
 
 paysPKWithDatumConstraintsT :: Traversal' TxSkel PaysPKWithDatumConstraint
-paysPKWithDatumConstraintsT = outConstraintsL % traversed % paysPKWithDatumConstraintP
+paysPKWithDatumConstraintsT = outConstraintT % paysPKWithDatumConstraintP
 
 -- * Extracting 'L.Value's from different types
 
@@ -235,6 +292,12 @@ instance HasValue MintsConstraint where
 instance HasValue SpendsScriptConstraint where
   valueL = spendableOutL % valueL
 
+instance HasValue PaysPKWithDatumConstraint where
+  valueL =
+    lens
+      (\(PaysPKWithDatumConstraint _ _ _ x) -> x)
+      (\(PaysPKWithDatumConstraint h msh d _) x -> PaysPKWithDatumConstraint h msh d x)
+
 valueAT :: AffineTraversal' MiscConstraint L.Value
 valueAT =
   (spendsScriptConstraintP % valueL)
@@ -264,11 +327,11 @@ valueAT =
 
 -- | The combined value contained in all 'MiscConstraints' of a 'TxSkel'.
 txSkelInValue :: TxSkel -> L.Value
-txSkelInValue = foldOf (miscConstraintsL % traversed % valueAT)
+txSkelInValue = foldOf (miscConstraintT % valueAT)
 
 -- | The combined value contained in all 'OutConstraints' of a 'TxSkel'.
 txSkelOutValue :: TxSkel -> L.Value
-txSkelOutValue = foldOf (outConstraintsL % traversed % valueL)
+txSkelOutValue = foldOf (outConstraintT % valueL)
 
 -- * Picking apart 'Value's
 

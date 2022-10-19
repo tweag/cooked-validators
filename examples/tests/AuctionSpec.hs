@@ -11,18 +11,14 @@ import qualified Auction.Offchain as A
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
-import Cooked.Attack
-import Cooked.Currencies
-import Cooked.Ltl
-import Cooked.MockChain
-import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Optics
+import Cooked
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
+import Optics.Core
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -186,7 +182,7 @@ tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
   somewhere
     ( dupTokenAttack
-        (\_ n -> Just $ n + 1) -- the modification of the minted value
+        (\_ n -> n + 1) -- the modification of the minted value
         (wallet 6) -- the attacker's wallet
     )
     simpleTraces
@@ -220,20 +216,41 @@ tryDoubleSat = do
   offerUtxo2 <- A.txOffer (banana 3) 50_000_000 `as` wallet 2
   somewhere
     ( doubleSatAttack
-        ( dsAddOneSscToSsc
-            A.auctionValidator
-            ( \_ _ ->
-                A.Hammer (fst offerUtxo1) :
-                A.Hammer (fst offerUtxo2) :
-                map
-                  (A.Bid . uncurry A.BidderInfo)
-                  [ (50_000_000, walletPKHash $ wallet 1),
-                    (50_000_000, walletPKHash $ wallet 2),
-                    (50_000_000, walletPKHash $ wallet 6)
-                  ]
-            )
-            (wallet 6)
+        -- look at all 'SpendsScript' constraints going to a validator of type
+        -- 'A.Auction'.
+        (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
+        -- try consuming an additional UTxO from the same validator with one of
+        -- five different reddemers.
+        ( \mcst (val, _, _) ->
+            concatMap
+              ( \utxo ->
+                  map
+                    toConstraints
+                    ( SpendsScript val (A.Hammer (fst offerUtxo1)) (fst utxo) :
+                      SpendsScript val (A.Hammer (fst offerUtxo2)) (fst utxo) :
+                      map
+                        ( \(amount, bidder) ->
+                            SpendsScript
+                              val
+                              (A.Bid $ A.BidderInfo amount bidder)
+                              (fst utxo)
+                        )
+                        [ (50_000_000, walletPKHash $ wallet 1),
+                          (50_000_000, walletPKHash $ wallet 2),
+                          (50_000_000, walletPKHash $ wallet 6)
+                        ]
+                    )
+              )
+              ( scriptUtxosSuchThatMcst
+                  mcst
+                  val
+                  (\_ _ -> True)
+              )
         )
+        -- pay the surplus to wallet 6
+        (wallet 6)
+        -- try each extra redeemer on a different modified transaction
+        AllSeparate
     )
     ( do
         A.txSetDeadline offerUtxo1 deadline1
@@ -252,7 +269,7 @@ tryDoubleSat = do
 tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
 tryTamperDatum =
   somewhere
-    ( tamperDatumAttack @A.Auction
+    ( tamperDatumTweak @A.Auction
         ( \case
             A.NoBids seller minBid deadline ->
               Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline

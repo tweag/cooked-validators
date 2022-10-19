@@ -293,13 +293,3 @@ class Monad m => MonadModal m where
 instance MonadModal (Staged (LtlOp modification builtin)) where
   type Modification (Staged (LtlOp modification builtin)) = modification
   modifyLtl x tr = Instr (StartLtl x) Return >> tr >>= \res -> Instr StopLtl Return >> return res
-
--- | Apply a modification somewhere in the given computation. The modification
--- must apply at least once.
-somewhere :: MonadModal m => Modification m -> m a -> m a
-somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom x)
-
--- | Apply a modification everywhere in the given computation. This is also
--- successful if there are no modifiable time steps.
-everywhere :: MonadModal m => Modification m -> m a -> m a
-everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom x)
