@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -17,8 +18,10 @@ import Data.List (isPrefixOf)
 import qualified Data.Map.Strict as M
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
+import qualified Ledger.Value as Pl
 import qualified Ledger.Value as Value
 import Optics.Core
+import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -280,6 +283,75 @@ tryTamperDatum =
     )
     simpleTraces
 
+-- | This attack adds extra tokens, depending on the minting policy. It goes
+-- through all 'Mints' constraints on the transaction, looking at all the
+-- policies involved.
+--
+-- This attack adds an 'AddTokenLbl' with the token name of the additional
+-- minted token(s). It returns additional value minted.
+addTokenAttack ::
+  -- | For each policy that occurs in some 'Mints' constraint, return a list of
+  -- token names together with how many tokens with that name be minted, using
+  -- the same redeemer as on the original transaction. For each of the elements
+  -- of the returned list, one modified transaction will be tried.
+  (Pl.MintingPolicy -> [(Pl.TokenName, Integer)]) ->
+  -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
+  Wallet ->
+  Tweak Pl.Value
+addTokenAttack extraTokens attacker = do
+  mints <- viewTweak $ partsOf mintsConstraintsT
+  msum $
+    map
+      ( \(MintsConstraint redeemer pols _value) ->
+          msum $
+            map
+              ( \pol ->
+                  msum $
+                    map
+                      ( \(extraTn, amount) ->
+                          let extraValue = Pl.assetClassValue (Pl.assetClass (Pl.scriptCurrencySymbol pol) extraTn) amount
+                           in do
+                                addMiscConstraintTweak $ Mints redeemer [pol] extraValue
+                                addLabelTweak $ AddTokenLbl extraTn
+                                addOutConstraintTweak $ paysPK (walletPKHash attacker) extraValue
+                                return extraValue
+                      )
+                      $ extraTokens pol
+              )
+              pols
+      )
+      mints
+
+newtype AddTokenLbl = AddTokenLbl Pl.TokenName deriving (Show, Eq)
+
+tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
+tryAddToken =
+  do
+    t0 <- currentTime
+    let deadline1 = t0 + 60_000
+        deadline2 = t0 + 90_000
+    offerUtxo1 <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+    offerUtxo2 <- A.txOffer (banana 3) 50_000_000 `as` wallet 1
+    somewhere
+      ( addTokenAttack
+          ( const
+              [ (A.tokenNameFromTxOutRef (fst offerUtxo1), 1),
+                (A.tokenNameFromTxOutRef (fst offerUtxo2), 1)
+              ]
+          )
+          (wallet 6)
+      )
+      ( do
+          A.txSetDeadline offerUtxo1 deadline1
+          A.txSetDeadline offerUtxo2 deadline2
+          A.txBid offerUtxo1 30_000_000 `as` wallet 2
+          A.txBid offerUtxo2 50_000_000 `as` wallet 3
+          A.txBid offerUtxo2 60_000_000 `as` wallet 4
+          awaitTime (deadline2 + 1)
+          A.txHammer offerUtxo1
+          A.txHammer offerUtxo2
+      )
+
 attacks :: TestTree
 attacks =
   testGroup
@@ -306,7 +378,12 @@ attacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryTamperDatum
+          tryTamperDatum,
+      testCase "adding extra tokens" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryAddToken
     ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
