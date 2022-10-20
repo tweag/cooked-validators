@@ -58,7 +58,7 @@ previousBidder _ = Nothing
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
-txBid :: MonadBlockChain m => SpendableOut -> Integer -> m ()
+txBid :: MonadBlockChain m => SpendableOut -> Integer -> m L.CardanoTx
 txBid offerUtxo bid =
   let theNft = A.threadToken $ fst offerUtxo
    in do
@@ -71,24 +71,23 @@ txBid offerUtxo bid =
         -- we're at least in 'NoBids' state.
         let deadline = fromJust $ A.getBidDeadline datum
             seller = A.getSeller datum
-        void $
-          validateTxSkel $
-            txSkelOpts (def {adjustUnbalTx = True}) $
-              [ Before deadline,
-                SpendsScript
-                  A.auctionValidator
-                  (A.Bid (A.BidderInfo bid bidder))
-                  utxo
-              ]
-                :=>: ( paysScript
-                         A.auctionValidator
-                         (A.Bidding seller deadline (A.BidderInfo bid bidder))
-                         (sOutValue utxo <> Ada.lovelaceValueOf bid) :
-                       case previousBidder datum of
-                         Nothing -> []
-                         Just (prevBid, prevBidder) ->
-                           [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
-                     )
+        validateTxSkel $
+          txSkelOpts (def {adjustUnbalTx = True}) $
+            [ Before deadline,
+              SpendsScript
+                A.auctionValidator
+                (A.Bid (A.BidderInfo bid bidder))
+                utxo
+            ]
+              :=>: ( paysScript
+                       A.auctionValidator
+                       (A.Bidding seller deadline (A.BidderInfo bid bidder))
+                       (sOutValue utxo <> Ada.lovelaceValueOf bid) :
+                     case previousBidder datum of
+                       Nothing -> []
+                       Just (prevBid, prevBidder) ->
+                         [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
+                   )
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
 -- will pay the lot to the last bidder and the last bid to the
