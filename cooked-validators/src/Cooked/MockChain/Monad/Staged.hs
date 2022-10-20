@@ -177,10 +177,24 @@ type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ U
 somewhere :: MonadModalMockChain m => Tweak b -> m a -> m a
 somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
--- | Apply an 'Tweak' to every transaction in a given trace. This is also
+-- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
 everywhere :: MonadModalMockChain m => Tweak b -> m a -> m a
 everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
+
+-- | Apply a 'Tweak' to the next transaction in the given trace. The order of
+-- arguments is reversed compared to 'somewhere' and 'everywhere', because that
+-- enables an idiom like
+--
+-- > do ...
+-- >    endpoint arguments `withTweak` someModification
+-- >    ...
+--
+-- where @endpoint@ builds and validates a single transaction depending on the
+-- given @arguments@. Then `withTweak` says "I want to modify the transaction
+-- returned by this endpoint in the following way".
+withTweak :: MonadModalMockChain m => m x -> Tweak a -> m x
+withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
