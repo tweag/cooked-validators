@@ -232,7 +232,16 @@ mkPolicy offerOref ctx
     txi = Pl.scriptContextTxInfo ctx
 
     -- the amount of minted tokens whose token name is the hash of the
-    -- 'offerOref'
+    -- 'offerOref'.
+    --
+    -- ############################################################
+    -- # This introduces a KNOWN VULNERABILITY into the contract: Since we do not
+    -- # check that no tokens of other token names are minted, it'll be possible
+    -- # to forge the thread NFT of one auction while seting the deadline of
+    -- # another auction, for example. See the "known vulnerabilities and
+    -- # exploits" section in "tests/AuctionSpec.hs" for a worked-out exploit.
+    -- ############################################################
+    --
     amnt :: Integer
     amnt =
       foldr

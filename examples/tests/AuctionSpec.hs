@@ -24,6 +24,7 @@ import Optics.Core
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- * Parameters and initial distributions
@@ -174,7 +175,7 @@ failingSingle =
           failingTwoBids
     ]
 
--- * (hopefully) failing attacks
+-- * failing attacks
 
 simpleTraces :: (Alternative m, MonadMockChain m) => m ()
 simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
@@ -284,6 +285,37 @@ tryTamperDatum =
     )
     simpleTraces
 
+failingAttacks :: TestTree
+failingAttacks =
+  testGroup
+    "failing attacks"
+    [ testCase "token duplication" $
+        testFailsFrom'
+          -- Ensure that the trace fails and gives back an error message satisfying a specific condition
+          ( isCekEvaluationFailureWithMsg
+              (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
+          )
+          testInit
+          tryDupTokens,
+      testCase "datum hijacking" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDatumHijack,
+      testCase "double satisfaction" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDoubleSat,
+      testCase "datum tampering" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryTamperDatum
+    ]
+
+-- * Known successful attacks and exploits
+
 -- | This attack adds extra tokens, depending on the minting policy. It goes
 -- through all 'Mints' constraints on the transaction, looking at all the
 -- policies involved.
@@ -325,6 +357,12 @@ addTokenAttack extraTokens attacker = do
 
 newtype AddTokenLbl = AddTokenLbl Pl.TokenName deriving (Show, Eq)
 
+-- | Apply the given tweak to the first tranaction in de given trace.
+withTweak :: MonadModalMockChain m => m x -> Tweak a -> m x
+withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
+
+-- | Try to mint an additional token of the token name "exampleTokenName"
+-- whenever anything is minted.
 tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
 tryAddToken =
   somewhere
@@ -334,103 +372,21 @@ tryAddToken =
     )
     simpleTraces
 
-{-
-
-The preceding 'tryAddToken' is successful. Inspecting the traces, we see that it
-is possible to mint extra tokens on the 'SetDeadline' transaction. This means
-that the thread token of auctions is not necessarily unique anymore; Eve could
-just mint a thread token (or several) for Alice's auction while setting her own
-auction's deadline. Let's see what the implications are:
-
-1. Our offchain code searches for UTxOs belonging to an auction after the
-   'SetDeadline' transaction by looking for the thread token. The assumption that
-   there's only one such token is pervasive, so:
-
-   a. I expect there will be many failing pattern matches if there's more than
-      one UTxO at the 'auctionValidator' that has the token.
-
-   b. It might also be possible to fool someone who uses our offchain code into
-      thinking they are bidding on a legitimate auction while they are not.
-
-For now, I don't want to go deeper into possible exploits that depend on the
-offchain code. Let's try if we can steal something:
-
-2. Let's say Alice has an auction, and that Eve owns a forged thread token for
-   Alice's auction and wants to steal something from Alice's auction. that
-   auction. This means that Eve will have to use some redeemer to get the
-   'auctionValidator' to spend an UTxO from Alice's auction and then use her
-   thread token in a clever way to satisfy the demands from that redeemer. There
-   are only three redeemers, and I will now go through them (It might be useful
-   to read the following while also looking at the code of the
-   'auctionValdiator', as it is basically me summarising its requirements):
-
-   a. 'SetDeadline' -- impossible, because Alice would have to sign.
-
-   b. 'Bid' -- Depending on the datum on Alice's auction's UTxO:
-
-      - 'Offer' -- impossible, because you can not bid before the deadline was
-        set.
-
-      - 'NoBids' -- Now Eve will have to spend at least the minimum bid, and
-        there has to be a continuing output locking the previous value plus
-        Eve's bid. The datum on that _very same_ continuing output must also
-        record Alice as the seller and Eve as the Bidder.
-
-      - 'Bidding' -- the same requirements as for 'NoBids', and the previous
-        bidder must be paid back.
-
-      I would say that in all of these three cases, Eve can not profit from the
-      fact that she owns a thread token.
-
-   c. 'Hammer' -- Depending on the datum:
-
-      - 'Offer' -- impossible, because Alice would have to sign.
-
-      - 'NoBids' -- This requires that Alice gets the currently locked value
-        minus the thread token, and that the thread token is burned. Eve could
-        provide her thread token to satisfy the latter requirement, but will not
-        immediately gain anything from that: She would spend one thread token to
-        gain one thread token.
-
-      - 'Bidding' -- The same logic as for the 'NoBids' datum applies here, the
-        additional requirement for the last bidder does not change anything
-        substantially for Eve.
-
-      So, also for this last redeemer, I think that there's no way for Eve to
-      steal something.
-
-So, it seems pretty unlikely that Eve'll be able to steal anything from an
-ongoing auction belonging to Alice. That leaves us with the question what she
-can to _after or before_ Alice's auction:
-
-3. Eve could direcly pay a worthless 'NoBids' or 'Bidding' UTxO to the
-   'auctionValidator', recording herself as the seller. Users who don't inspect
-   the UTxO carfully (because they use the token name of the thread token as
-   their identifier) might think they are actually bidding on something
-   valuable from Alice's auction.
-
-4. ...?
-
--}
-
--- | Apply the given tweak to the first tranaction in de given trace.
-withTweak :: MonadModalMockChain m => m x -> Tweak a -> m x
-withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
-
--- | As it turns out (see 'tryAddToken'), it is possible to add extra tokens on
--- the 'SetDeadline' transaction. This trace exploits this in order to steal a
--- bid.
+-- | This trace exploits the fact, discovered with the 'addTokenAttack' above,
+-- that one can mint extra tokens on the 'SetDeadline' transaction, in order to
+-- steal a bid from one auction with a separate auction.
 exploitAddToken :: MonadModalMockChain m => m ()
 exploitAddToken = do
   -- Alice makes an offer (for a big amount of bananas).
-  aliceOffer <- A.txOffer (banana 5) 30_000_000 `as` alice
+  aliceOffer <- A.txOffer (banana 5) 50_000_000 `as` alice
   let aliceNft = A.threadToken $ fst aliceOffer
   -- Eve sees alices offer and quickly makes an offer, for which she immediately
   -- sets the deadline. (As you can see, eve can be very cheap, her offer
-  -- contains nothing at all!) On the 'setDeadline' transaction, she uses the
-  -- fact that one can mint extra tokens in order to mint an extra token of
-  -- alice's auction's thread token asset class.
-  eveOffer <- A.txOffer mempty 30_000_000 `as` eve
+  -- contains nothing at all, and the minimum bid is 1 Lovelace!) On the
+  -- 'setDeadline' transaction, she uses the fact that one can mint extra tokens
+  -- in order to mint an extra token of alice's auction's thread token asset
+  -- class.
+  eveOffer <- A.txOffer mempty 1 `as` eve
   t0 <- currentTime
   let eveDeadline = t0 + 60_000
   A.txSetDeadline eveOffer eveDeadline `as` eve
@@ -439,52 +395,46 @@ exploitAddToken = do
           :=>: [paysPK (walletPKHash eve) aliceNft]
       )
 
-  -- Eve now owns a thread token for Alice's auction. WHAT'S HER NEXT MOVE?
+  -- Eve bids on her own offer, and also pays her forged NFT for Alice's auction
+  -- on the same UTxO. This means that now there is a UTxO at the
+  -- 'auctionValidator' which is identified by two NFTs: one for Alice's
+  -- auction, and one for Eve's.
+  A.txBid eveOffer 1 `as` eve
+    `withTweak` overTweak
+      (singular paysScriptConstraintsT)
+      ( \(PaysScriptConstraint validator staking datum value) ->
+          PaysScriptConstraint validator staking datum (value <> aliceNft)
+      )
 
-  return ()
+  -- Bob thinks he's bidding for Alice's auction (which is not even opened
+  -- yet!). In fact, his money is put into Eve's auction.
+  A.txBid aliceOffer 40_000_000 `as` bob
+
+  -- After the deadline of Eve's auction, anyone can hammer it, and this will
+  -- pay Bob's money to Eve, while Bob will only get the forged NFT in exchange.
+  awaitTime eveDeadline
+  A.txHammer eveOffer
   where
     alice = wallet 1
     bob = wallet 2
     eve = wallet 6
 
-attacks :: TestTree
-attacks =
-  testGroup
-    "Attacks"
-    [ testCase "token duplication" $
-        testFailsFrom'
-          -- Ensure that the trace fails and gives back an error message satisfying a specific condition
-          ( isCekEvaluationFailureWithMsg
-              (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
-          )
-          testInit
-          tryDupTokens,
-      testCase "datum hijacking" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDatumHijack,
-      testCase "double satisfaction" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDoubleSat,
-      testCase "datum tampering" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryTamperDatum,
-      testCase "adding extra tokens" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryAddToken,
-      testCase "exploit extra tokens" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          exploitAddToken
-    ]
+successfulAttacks :: TestTree
+successfulAttacks =
+  testGroup "successful attacks and exploits" $
+    map
+      expectFail
+      [ testCase "adding extra tokens" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            tryAddToken,
+        testCase "exploit extra tokens" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            exploitAddToken
+      ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
 
@@ -526,9 +476,9 @@ tests :: TestTree
 tests =
   testGroup
     "AuctionSpec"
-    [ attacks
-    -- successfulSingle,
-    -- failingSingle,
-    -- attacks,
-    -- miscTests
+    [ successfulSingle,
+      failingSingle,
+      failingAttacks,
+      miscTests,
+      successfulAttacks
     ]
