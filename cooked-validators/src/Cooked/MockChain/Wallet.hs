@@ -20,6 +20,9 @@ import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Validation as Validation
 import qualified Ledger.Value as Pl
 import Unsafe.Coerce
+import qualified Cardano.Api as Api
+import qualified Cardano.Api.Shelley as Api
+import qualified Cardano.Api.Byron as Api
 
 -- * MockChain Wallets
 
@@ -98,8 +101,8 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
 txAddSignature w = Pl.addSignature' (walletSK w)
 
-txAddSignatureAPI :: Wallet -> C.Tx C.AlonzoEra -> C.Tx C.AlonzoEra
-txAddSignatureAPI w = Validation.addSignature (walletSK w)
+--txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+--txAddSignatureAPI w = Validation.addSignature (walletSK w)
 
 -- * Initial distribution of funds
 
@@ -180,7 +183,13 @@ initialTxFor initDist
         Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
       }
   where
-    initUtxosFor w v = Pl.TxOut (walletAddress w) v Nothing
+    --initUtxosFor w v = Pl.TxOut (walletAddress w) v Nothing
+    initUtxosFor :: Wallet -> Pl.Value -> Pl.TxOut
+    initUtxosFor w v = Pl.TxOut $ Api.TxOut addr (Api.TxOutValue Api.MultiAssetInBabbageEra val) Api.TxOutDatumNone Api.ReferenceScriptNone
+      where
+        addr = Api.AddressInEra (Api.ShelleyAddressInEra Api.ShelleyBasedEraBabbage) (Api.ShelleyAddress _ _ _)
+        val = Api.valueFromList _
+        -- addr = Api.AddressInEra Api.ByronAddressInAnyEra (Api.ByronAddress Api.Address {addrRoot = _w52, addrAttributes = _w53, addrType = _w54}) -- (Api.ShelleyAddress _ _ _)
 
     initDist' = M.toList $ distribution initDist
 
