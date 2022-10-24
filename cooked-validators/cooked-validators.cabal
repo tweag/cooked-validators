@@ -26,6 +26,7 @@ library
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Constraints
+      Cooked.MockChain.Misc
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
