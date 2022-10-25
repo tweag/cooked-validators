@@ -14,15 +14,15 @@
 module Cooked.Tx.Constraints.Type where
 
 import Control.Lens
+import Cooked.MockChain.Misc
 import Data.Default
+import Data.Either
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -34,18 +34,19 @@ type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
 
 -- | Accesses the 'Pl.Value' within a 'SpendableOut'
 sOutValue :: SpendableOut -> Pl.Value
-sOutValue = Pl.txOutValue . Pl.toTxOut . snd
+sOutValue = Pl.txOutValue . fromRight undefined . Pl.toTxOut theNetworkId . snd -- TODO PORT shall this be in Either?
 
+{- PORT This doesn't seem to be used anywhere
 -- | Accesses the 'Pl.Address' within a 'SpendableOut'
 sOutAddress :: SpendableOut -> Pl.Address
-sOutAddress = Pl.txOutAddress . Pl.toTxOut . snd
+sOutAddress = Pl.txOutAddress . fromRight undefined . Pl.toTxOut theNetworkId . snd
 
 -- | Accesses a potential 'Pl.DatumHash' within a 'SpendableOut'; note that
 --  the existence (or not) of a datum hash /DOES NOT/ indicate the 'SpendableOut'
 --  belongs to a script or a public key; you must pattern match on the result of
 --  'sOutAddress' or use one of 'sBelongsToPubKey' or 'sBelongsToScript' to distinguish that.
 sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
-sOutDatumHash = Pl.txOutDatum . Pl.toTxOut . snd
+sOutDatumHash = Pl.txOutDatum . fromRight undefined . Pl.toTxOut theNetworkId . snd
 
 -- | If a 'SpendableOut' belongs to a public key, return its hash.
 sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
@@ -58,6 +59,7 @@ sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
 sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
+-}
 
 type SpendsConstrs a =
   ( Pl.ToData (Pl.DatumType a),
