@@ -17,7 +17,7 @@ import Optics.Core
 -- was increased.
 dupTokenAttack ::
   -- | A function describing how the amount of tokens specified by a 'Mints'
-  -- constraint should be changed, dependin on the asset class and the amount
+  -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
   -- amount. If it does *not* increase the minted amount, the amount will be
