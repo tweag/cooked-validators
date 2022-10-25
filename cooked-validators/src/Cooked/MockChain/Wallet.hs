@@ -20,9 +20,12 @@ import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Validation as Validation
 import qualified Ledger.Value as Pl
 import Unsafe.Coerce
+--import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified Cardano.Api as Api
 import qualified Cardano.Api.Shelley as Api
 import qualified Cardano.Api.Byron as Api
+
+import Cooked.MockChain.Misc
 
 -- * MockChain Wallets
 
@@ -187,9 +190,18 @@ initialTxFor initDist
     initUtxosFor :: Wallet -> Pl.Value -> Pl.TxOut
     initUtxosFor w v = Pl.TxOut $ Api.TxOut addr (Api.TxOutValue Api.MultiAssetInBabbageEra val) Api.TxOutDatumNone Api.ReferenceScriptNone
       where
-        addr = Api.AddressInEra (Api.ShelleyAddressInEra Api.ShelleyBasedEraBabbage) (Api.ShelleyAddress _ _ _)
-        val = Api.valueFromList _
-        -- addr = Api.AddressInEra Api.ByronAddressInAnyEra (Api.ByronAddress Api.Address {addrRoot = _w52, addrAttributes = _w53, addrType = _w54}) -- (Api.ShelleyAddress _ _ _)
+        {-
+        addr = Api.AddressInEra
+                  (Api.ShelleyAddressInEra Api.ShelleyBasedEraBabbage)
+                  (Api.makeShelleyAddress
+                    networkId
+                    (Api.PaymentCredentialByKey (Api.PaymentKeyHash _w9G))
+                    Api.NoStakeAddress) -- TODO PORT shall this really be `No`?
+                    -}
+        val = Api.valueFromList undefined
+        addr = Api.AddressInEra
+                  Api.ByronAddressInAnyEra
+                  (Api.makeByronAddress theNetworkId undefined)
 
     initDist' = M.toList $ distribution initDist
 
