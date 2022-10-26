@@ -11,9 +11,11 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
+import Data.Either
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Ledger as Pl hiding (unspentOutputs, validatorHash)
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript, validatorAddress, validatorHash)
+import qualified Ledger as Pl hiding (unspentOutputs, validatorHash, mintingPolicyHash)
+import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress, validatorHash)
+import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
 import qualified PlutusTx.IsData.Class as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
