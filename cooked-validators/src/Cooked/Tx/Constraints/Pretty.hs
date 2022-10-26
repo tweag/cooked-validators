@@ -62,7 +62,7 @@ prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
 
 prettyMiscConstraint :: MiscConstraint -> Doc ann
 prettyMiscConstraint (SpendsPK out) =
-  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId $ snd out -- TODO port either
+  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId $ snd out -- TODO PORT Either?
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
 prettyMiscConstraint (Mints mr policies val) =
   prettyEnum "Mints" "-" $
@@ -94,7 +94,7 @@ prettyScriptOutputDatum ::
   SpendableOut ->
   Doc ann
 prettyScriptOutputDatum _ (_, chainIndexTxOut) =
-  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId chainIndexTxOut -- TODO handle Either
+  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId chainIndexTxOut -- TODO PORT Either?
    in PP.align $
         PP.vsep $
           catMaybes
