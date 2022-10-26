@@ -100,16 +100,18 @@ instance ToLedgerConstraint OutConstraint where
           -- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
           -- a different 'WithOwnStakePubKeyHash' constraint?
           <> maybe mempty Pl.ownStakePubKeyHash stak
-      constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
+      -- TODO PORT expose ScriptHash as a field in cooked's Constraints?
+      constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak (Pl.TxOutDatumHash <$> mData) Nothing v
   toLedgerConstraint (PaysScript v msc datum value) = (lkups, constr)
     where
-      lkups = Pl.otherScript (Pl.validatorScript v)
+      lkups = Pl.plutusV2OtherScript (Pl.validatorScript v)
       constr =
         Pl.singleton
           ( Pl.MustPayToOtherScript
               (Pl.validatorHash v)
               (msc >>= getStakeValidatorHash)
-              (Pl.Datum $ Pl.toBuiltinData datum)
+              (Pl.TxOutDatumHash $ Pl.Datum $ Pl.toBuiltinData datum)
+              Nothing   -- TODO PORT expose ScriptHash?
               value
           )
           <> Pl.singleton (Pl.MustIncludeDatumInTx $ Pl.Datum $ Pl.toBuiltinData datum)
