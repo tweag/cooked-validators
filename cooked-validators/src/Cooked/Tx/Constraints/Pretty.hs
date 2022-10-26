@@ -18,6 +18,8 @@ import qualified PlutusTx.IsData.Class as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 
+import Cooked.MockChain.Misc
+
 prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
@@ -58,7 +60,7 @@ prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
 
 prettyMiscConstraint :: MiscConstraint -> Doc ann
 prettyMiscConstraint (SpendsPK out) =
-  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ snd out
+  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId $ snd out -- TODO port either
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
 prettyMiscConstraint (Mints mr policies val) =
   prettyEnum "Mints" "-" $
@@ -90,7 +92,7 @@ prettyScriptOutputDatum ::
   SpendableOut ->
   Doc ann
 prettyScriptOutputDatum _ (_, chainIndexTxOut) =
-  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut chainIndexTxOut
+  let (ppAddr, mppVal) = prettyTxOut $ fromRight undefined $ Pl.toTxOut theNetworkId chainIndexTxOut -- TODO handle Either
    in PP.align $
         PP.vsep $
           catMaybes
