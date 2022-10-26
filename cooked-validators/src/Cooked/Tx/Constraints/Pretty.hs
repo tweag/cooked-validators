@@ -12,10 +12,8 @@ import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Ledger as Pl hiding (unspentOutputs)
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript, validatorAddress)
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Ledger as Pl hiding (unspentOutputs, validatorHash)
+import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorScript, validatorAddress, validatorHash)
 import qualified PlutusTx.IsData.Class as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -46,7 +44,7 @@ prettyOutConstraint :: OutConstraint -> Doc ann
 prettyOutConstraint (PaysScript val msc datum value) =
   prettyEnum ("PaysScript" <+> prettyAddressTypeAndHash addr) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
   where
-    addr = (Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript val) {Pl.addressStakingCredential = msc}
+    addr = (Pl.scriptHashAddress $ Pl.validatorHash val) {Pl.addressStakingCredential = msc}
 prettyOutConstraint (PaysPKWithDatum pkh stak dat val) =
   prettyEnum
     ("PaysPK" <+> prettyWallet pkh)
