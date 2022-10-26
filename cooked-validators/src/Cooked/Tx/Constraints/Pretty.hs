@@ -99,12 +99,12 @@ prettyScriptOutputDatum _ (_, chainIndexTxOut) =
             [ Just $ "Output" <+> "at" <+> ppAddr,
               mppVal,
               case chainIndexTxOut of
-                Pl.ScriptChainIndexTxOut _ _ (Right datum) _ ->
-                  let typedDatum :: Pl.DatumType a
-                      typedDatum = Pl.unsafeFromBuiltinData (Pl.getDatum datum)
-                   in Just $ "Datum:" <+> prettyDatum typedDatum
-                Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _ ->
-                  Just $ "Datum hash:" <+> prettyHash datumHash
+                Pl.ScriptChainIndexTxOut _ _ (datumHash, maybeDatum) _ _ ->
+                  case maybeDatum of
+                    Nothing -> Just $ "Datum hash:" <+> prettyHash datumHash
+                    Just datum -> let typedDatum :: Pl.DatumType a
+                                      typedDatum = Pl.unsafeFromBuiltinData (Pl.getDatum datum)
+                                   in Just $ "Datum:" <+> prettyDatum typedDatum
                 _ -> error "Not a script output"
             ]
 
