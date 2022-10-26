@@ -54,7 +54,7 @@ class ToLedgerConstraint constraint where
   toLedgerConstraint :: constraint -> LedgerConstraint a
 
 instance ToLedgerConstraint MiscConstraint where
-  extractDatumStr (SpendsScript _ _ (_, Pl.ScriptChainIndexTxOut _ _ (Right datum) _)) =
+  extractDatumStr (SpendsScript _ _ (_, Pl.ScriptChainIndexTxOut _ _ (_, Just datum) _ _)) =
     M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
   extractDatumStr _ = M.empty
 
@@ -107,12 +107,12 @@ instance ToLedgerConstraint OutConstraint where
       constr =
         Pl.singleton
           ( Pl.MustPayToOtherScript
-              (Pl.validatorHash $ Pl.validatorScript v)
+              (Pl.validatorHash v)
               (msc >>= getStakeValidatorHash)
               (Pl.Datum $ Pl.toBuiltinData datum)
               value
           )
-          <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
+          <> Pl.singleton (Pl.MustIncludeDatumInTx $ Pl.Datum $ Pl.toBuiltinData datum)
       -- Retrieve StakeValidatorHash from StakingCredential. This is similar to what plutus-apps does.
       -- See lines 141-146 in plutus-apps/plutus-ledger-constraints/test/Spec.hs (commit hash 02ae267)
       getStakeValidatorHash :: Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
@@ -147,7 +147,7 @@ outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
       Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
     }
 outConstraintToTxOut (PaysScript validator msc datum value) =
-  let outAddr = appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash $ Pl.validatorScript validator
+  let outAddr = appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash validator
    in Pl.TxOut
         { Pl.txOutAddress = outAddr,
           Pl.txOutValue = value,
