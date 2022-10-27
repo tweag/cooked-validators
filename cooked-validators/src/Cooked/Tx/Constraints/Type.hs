@@ -36,11 +36,11 @@ type SpendableOut = (Pl.TxOutRef, Pl.ChainIndexTxOut)
 sOutValue :: SpendableOut -> Pl.Value
 sOutValue = Pl.txOutValue . fromRight undefined . Pl.toTxOut theNetworkId . snd -- TODO PORT shall this be in Either?
 
-{- PORT This doesn't seem to be used anywhere
 -- | Accesses the 'Pl.Address' within a 'SpendableOut'
 sOutAddress :: SpendableOut -> Pl.Address
 sOutAddress = Pl.txOutAddress . fromRight undefined . Pl.toTxOut theNetworkId . snd
 
+{- PORT This doesn't seem to be used anywhere
 -- | Accesses a potential 'Pl.DatumHash' within a 'SpendableOut'; note that
 --  the existence (or not) of a datum hash /DOES NOT/ indicate the 'SpendableOut'
 --  belongs to a script or a public key; you must pattern match on the result of
