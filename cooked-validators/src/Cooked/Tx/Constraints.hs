@@ -61,7 +61,7 @@ instance ToLedgerConstraint MiscConstraint where
   toLedgerConstraint (SpendsScript v r (oref, o)) = (lkups, constr)
     where
       lkups =
-        Pl.otherScript (Pl.validatorScript v)
+        Pl.plutusV2OtherScript (Pl.validatorScript v)   -- TODO port what to do with versions?
           <> Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
   toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
@@ -70,11 +70,11 @@ instance ToLedgerConstraint MiscConstraint where
       constr = Pl.mustSpendPubKeyOutput oref
   toLedgerConstraint (Mints Nothing pols v) = (lkups, constr)
     where
-      lkups = foldMap Pl.mintingPolicy pols
+      lkups = foldMap Pl.plutusV2MintingPolicy pols     -- TODO PORT what to do with versions?
       constr = Pl.mustMintValue v
   toLedgerConstraint (Mints (Just r) pols v) = (lkups, constr)
     where
-      lkups = foldMap Pl.mintingPolicy pols
+      lkups = foldMap Pl.plutusV2MintingPolicy pols     -- TODO PORT what to do with versions?
       constr = Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData r)) v
   toLedgerConstraint (Before t) = (mempty, constr)
     where
