@@ -56,8 +56,8 @@ add
 </span><span id="line-56"></span><span class="hs-comment">-- involved are fooled by what's already present on the transaction. Any extra</span><span>
 </span><span id="line-57"></span><span class="hs-comment">-- value contained in new inputs to the transaction is then paid to the</span><span>
 </span><span id="line-58"></span><span class="hs-comment">-- attacker.</span><span>
-</span><span id="line-59"></span><span id="local-6989586621679571381"><span id="local-6989586621679571382"><span id="local-6989586621679571383"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-type">doubleSatAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-60"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-59"></span><span id="local-6989586621679573128"><span id="local-6989586621679573129"><span id="local-6989586621679573130"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-type">doubleSatAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679573130"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
 </span><span id="line-61"></span><span>  </span><span class="hs-comment">-- | Each focus of this optic is a potential reason to add some extra</span><span>
 </span><span id="line-62"></span><span>  </span><span class="hs-comment">-- constraints.</span><span>
 </span><span id="line-63"></span><span>  </span><span class="hs-comment">--</span><span>
@@ -65,7 +65,7 @@ add
 </span><span id="line-65"></span><span>  </span><span class="hs-comment">-- validators of type @t@ with the following traversal:</span><span>
 </span><span id="line-66"></span><span>  </span><span class="hs-comment">--</span><span>
 </span><span id="line-67"></span><span>  </span><span class="hs-comment">-- &gt; paysScriptConstraintsT % paysScriptConstraintTypeP @t</span><span>
-</span><span id="line-68"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571382"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571381"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679573130"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573129"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573128"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-69"></span><span>  </span><span class="hs-comment">-- | Which constraints to add, for each of the foci. There might be different</span><span>
 </span><span id="line-70"></span><span>  </span><span class="hs-comment">-- options for each focus, that's why the return value is a list.</span><span>
 </span><span id="line-71"></span><span>  </span><span class="hs-comment">--</span><span>
@@ -75,7 +75,7 @@ add
 </span><span id="line-75"></span><span>  </span><span class="hs-comment">-- these extra 'SpendsScript' constraints, you can just provide a list of all</span><span>
 </span><span id="line-76"></span><span>  </span><span class="hs-comment">-- the options you want to try adding for a given 'PaysScript' that's already</span><span>
 </span><span id="line-77"></span><span>  </span><span class="hs-comment">-- on the transaction.</span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571381"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679573128"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-79"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker, where any surplus is paid to.</span><span>
 </span><span id="line-80"></span><span>  </span><span class="hs-comment">--</span><span>
 </span><span id="line-81"></span><span>  </span><span class="hs-comment">-- In the example, the extra value in the added 'SpendsScript' constraints</span><span>
@@ -138,20 +138,20 @@ add
 -&gt; Wallet
 -&gt; DSSplitMode
 -&gt; Tweak ()
-</span><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-var hs-var">doubleSatAttack</span></a></span></span><span> </span><span id="local-6989586621679571379"><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679571379"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571378"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [Constraints]
-</span><a href="#local-6989586621679571378"><span class="hs-identifier hs-var">extra</span></a></span></span><span> </span><span id="local-6989586621679571377"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679571377"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span id="local-6989586621679571376"><span class="annot"><span class="annottext">DSSplitMode
-</span><a href="#local-6989586621679571376"><span class="hs-identifier hs-var">mode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-137"></span><span>  </span><span id="local-6989586621679571375"><span class="annot"><span class="annottext">MockChainSt
-</span><a href="#local-6989586621679571375"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak MockChainSt
+</span><a href="Cooked.Attack.DoubleSat.html#doubleSatAttack"><span class="hs-identifier hs-var hs-var">doubleSatAttack</span></a></span></span><span> </span><span id="local-6989586621679573126"><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><a href="#local-6989586621679573126"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679573125"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [Constraints]
+</span><a href="#local-6989586621679573125"><span class="hs-identifier hs-var">extra</span></a></span></span><span> </span><span id="local-6989586621679573124"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679573124"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span id="local-6989586621679573123"><span class="annot"><span class="annottext">DSSplitMode
+</span><a href="#local-6989586621679573123"><span class="hs-identifier hs-var">mode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-137"></span><span>  </span><span id="local-6989586621679573122"><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679573122"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak MockChainSt
 </span><a href="Cooked.Attack.Tweak.Common.html#mcstTweak"><span class="hs-identifier hs-var">mcstTweak</span></a></span><span>
-</span><span id="line-138"></span><span>  </span><span id="local-6989586621679571373"><span class="annot"><span class="annottext">[[Constraints]]
-</span><a href="#local-6989586621679571373"><span class="hs-identifier hs-var">extraConstrs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; [Constraints]) -&gt; [a] -&gt; [[Constraints]]
+</span><span id="line-138"></span><span>  </span><span id="local-6989586621679573120"><span class="annot"><span class="annottext">[[Constraints]]
+</span><a href="#local-6989586621679573120"><span class="hs-identifier hs-var">extraConstrs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(a -&gt; [Constraints]) -&gt; [a] -&gt; [[Constraints]]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; [Constraints]
-</span><a href="#local-6989586621679571378"><span class="hs-identifier hs-var">extra</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
-</span><a href="#local-6989586621679571375"><span class="hs-identifier hs-var">mcst</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [[Constraints]]) -&gt; Tweak [a] -&gt; Tweak [[Constraints]]
+</span><a href="#local-6989586621679573125"><span class="hs-identifier hs-var">extra</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679573122"><span class="hs-identifier hs-var">mcst</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [[Constraints]]) -&gt; Tweak [a] -&gt; Tweak [[Constraints]]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [a] -&gt; Tweak [a]
 forall k (is :: IxList) a.
@@ -162,7 +162,7 @@ forall k (is :: IxList) s t a.
 Is k A_Traversal =&gt;
 Optic k is s t a a -&gt; Lens s t [a] [a]
 </span><span class="hs-identifier hs-var">partsOf</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
-</span><a href="#local-6989586621679571379"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679573126"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-139"></span><span>  </span><span class="annot"><span class="annottext">[Tweak ()] -&gt; Tweak ()
 forall (t :: * -&gt; *) (m :: * -&gt; *) a.
 (Foldable t, MonadPlus m) =&gt;
@@ -173,18 +173,18 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-140"></span><span>    </span><span class="annot"><span class="annottext">(Constraints -&gt; Tweak ()) -&gt; [Constraints] -&gt; [Tweak ()]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span>
-</span><span id="line-141"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571368"><span class="annot"><span class="annottext">Constraints
-</span><a href="#local-6989586621679571368"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-142"></span><span>          </span><span id="local-6989586621679571367"><span class="annot"><span class="annottext">Constraints
-</span><a href="#local-6989586621679571367"><span class="hs-identifier hs-var">added</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Tweak Constraints
+</span><span id="line-141"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679573115"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679573115"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-142"></span><span>          </span><span id="local-6989586621679573114"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679573114"><span class="hs-identifier hs-var">added</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Tweak Constraints
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addConstraintsTweak"><span class="hs-identifier hs-var">addConstraintsTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
-</span><a href="#local-6989586621679571368"><span class="hs-identifier hs-var">c</span></a></span><span>
-</span><span id="line-143"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571365"><span class="annot"><span class="annottext">addedValue :: Value
-</span><a href="#local-6989586621679571365"><span class="hs-identifier hs-var hs-var">addedValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Value
-</span><a href="#local-6989586621679571364"><span class="hs-identifier hs-var">constraintBalance</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
-</span><a href="#local-6989586621679571367"><span class="hs-identifier hs-var">added</span></a></span><span>
+</span><a href="#local-6989586621679573115"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-143"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573112"><span class="annot"><span class="annottext">addedValue :: Value
+</span><a href="#local-6989586621679573112"><span class="hs-identifier hs-var hs-var">addedValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Value
+</span><a href="#local-6989586621679573111"><span class="hs-identifier hs-var">constraintBalance</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679573114"><span class="hs-identifier hs-var">added</span></a></span><span>
 </span><span id="line-144"></span><span>          </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571365"><span class="hs-identifier hs-var">addedValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
+</span><a href="#local-6989586621679573112"><span class="hs-identifier hs-var">addedValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Bool
 </span><span class="hs-operator hs-var">`L.geq`</span></span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
@@ -194,14 +194,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679571377"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571365"><span class="hs-identifier hs-var">addedValue</span></a></span><span>
+</span><a href="#local-6989586621679573124"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573112"><span class="hs-identifier hs-var">addedValue</span></a></span><span>
 </span><span id="line-146"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Tweak ()
 forall a. Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#failingTweak"><span class="hs-identifier hs-var">failingTweak</span></a></span><span>
 </span><span id="line-147"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-148"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">DSSplitMode
-</span><a href="#local-6989586621679571376"><span class="hs-identifier hs-var">mode</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679573123"><span class="hs-identifier hs-var">mode</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-149"></span><span>          </span><span class="annot"><span class="annottext">DSSplitMode
 </span><a href="Cooked.Attack.DoubleSat.html#AllSeparate"><span class="hs-identifier hs-var">AllSeparate</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Constraints -&gt; Constraints -&gt; Bool)
 -&gt; [Constraints] -&gt; [Constraints]
@@ -212,7 +212,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[Constraints]] -&gt; [Constraints]
 forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="annot"><span class="annottext">[[Constraints]]
-</span><a href="#local-6989586621679571373"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
+</span><a href="#local-6989586621679573120"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
 </span><span id="line-150"></span><span>          </span><span class="annot"><span class="annottext">DSSplitMode
 </span><a href="Cooked.Attack.DoubleSat.html#TryCombinations"><span class="hs-identifier hs-var">TryCombinations</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-151"></span><span>            </span><span class="annot"><span class="annottext">(Constraints -&gt; Constraints -&gt; Bool)
@@ -225,7 +225,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-152"></span><span>              </span><span class="annot"><span class="annottext">([Constraints] -&gt; Constraints) -&gt; [[Constraints]] -&gt; [Constraints]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">[Constraints] -&gt; Constraints
-</span><a href="#local-6989586621679571355"><span class="hs-identifier hs-var">joinConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">([[Constraints]] -&gt; [Constraints])
+</span><a href="#local-6989586621679573102"><span class="hs-identifier hs-var">joinConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">([[Constraints]] -&gt; [Constraints])
 -&gt; [[Constraints]] -&gt; [Constraints]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
@@ -236,7 +236,7 @@ forall a. [a] -&gt; [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[Constraints]] -&gt; [[Constraints]]
 forall x. [[x]] -&gt; [[x]]
-</span><a href="#local-6989586621679571353"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">([[Constraints]] -&gt; [[Constraints]])
+</span><a href="#local-6989586621679573100"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">([[Constraints]] -&gt; [[Constraints]])
 -&gt; [[Constraints]] -&gt; [[Constraints]]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">([Constraints] -&gt; [Constraints])
@@ -247,27 +247,27 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; [Constraints] -&gt; [Constraints]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[[Constraints]]
-</span><a href="#local-6989586621679571373"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
+</span><a href="#local-6989586621679573120"><span class="hs-identifier hs-var">extraConstrs</span></a></span><span>
 </span><span id="line-154"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-155"></span><span>  </span><span class="annot"><span class="annottext">DoubleSatLbl -&gt; Tweak ()
 forall x. LabelConstrs x =&gt; x -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DoubleSatLbl
 </span><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span><span>
 </span><span id="line-156"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-157"></span><span>    </span><span class="annot"><a href="#local-6989586621679571364"><span class="hs-identifier hs-type">constraintBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
-</span><span id="line-158"></span><span>    </span><span id="local-6989586621679571364"><span class="annot"><span class="annottext">constraintBalance :: Constraints -&gt; Value
-</span><a href="#local-6989586621679571364"><span class="hs-identifier hs-var hs-var">constraintBalance</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571350"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571350"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679571348"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571348"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571347"><span class="hs-identifier hs-var">inValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><span id="line-157"></span><span>    </span><span class="annot"><a href="#local-6989586621679573111"><span class="hs-identifier hs-type">constraintBalance</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-158"></span><span>    </span><span id="local-6989586621679573111"><span class="annot"><span class="annottext">constraintBalance :: Constraints -&gt; Value
+</span><a href="#local-6989586621679573111"><span class="hs-identifier hs-var hs-var">constraintBalance</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573097"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679573097"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679573095"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679573095"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573094"><span class="hs-identifier hs-var">inValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">Pl.negate</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571345"><span class="hs-identifier hs-var">outValue</span></a></span><span>
+</span><a href="#local-6989586621679573092"><span class="hs-identifier hs-var">outValue</span></a></span><span>
 </span><span id="line-159"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-160"></span><span>        </span><span id="local-6989586621679571347"><span class="annot"><span class="annottext">inValue :: Value
-</span><a href="#local-6989586621679571347"><span class="hs-identifier hs-var hs-var">inValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx [MiscConstraint] Value
+</span><span id="line-160"></span><span>        </span><span id="local-6989586621679573094"><span class="annot"><span class="annottext">inValue :: Value
+</span><a href="#local-6989586621679573094"><span class="hs-identifier hs-var hs-var">inValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx [MiscConstraint] Value
 -&gt; [MiscConstraint] -&gt; Value
 forall k a (is :: IxList) s.
 (Is k A_Fold, Monoid a) =&gt;
@@ -289,9 +289,9 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
   An_AffineTraversal NoIx MiscConstraint MiscConstraint Value Value
 </span><a href="Cooked.Tx.Constraints.Optics.html#valueAT"><span class="hs-identifier hs-var">valueAT</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571350"><span class="hs-identifier hs-var">is</span></a></span><span>
-</span><span id="line-161"></span><span>        </span><span id="local-6989586621679571345"><span class="annot"><span class="annottext">outValue :: Value
-</span><a href="#local-6989586621679571345"><span class="hs-identifier hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx [OutConstraint] Value
+</span><a href="#local-6989586621679573097"><span class="hs-identifier hs-var">is</span></a></span><span>
+</span><span id="line-161"></span><span>        </span><span id="local-6989586621679573092"><span class="annot"><span class="annottext">outValue :: Value
+</span><a href="#local-6989586621679573092"><span class="hs-identifier hs-var hs-var">outValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx [OutConstraint] Value
 -&gt; [OutConstraint] -&gt; Value
 forall k a (is :: IxList) s.
 (Is k A_Fold, Monoid a) =&gt;
@@ -312,15 +312,15 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens NoIx OutConstraint OutConstraint Value Value
 forall a. HasValue a =&gt; Lens' a Value
 </span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571348"><span class="hs-identifier hs-var">os</span></a></span><span>
+</span><a href="#local-6989586621679573095"><span class="hs-identifier hs-var">os</span></a></span><span>
 </span><span id="line-162"></span><span>
 </span><span id="line-163"></span><span>    </span><span class="hs-comment">-- this function uses 'addConstraintsTweak' to join a list of 'Constraints'</span><span>
 </span><span id="line-164"></span><span>    </span><span class="hs-comment">-- into one 'Constraints' that specifies eveything that is contained in the</span><span>
 </span><span id="line-165"></span><span>    </span><span class="hs-comment">-- input.</span><span>
-</span><span id="line-166"></span><span>    </span><span class="annot"><a href="#local-6989586621679571355"><span class="hs-identifier hs-type">joinConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
-</span><span id="line-167"></span><span>    </span><span id="local-6989586621679571355"><span class="annot"><span class="annottext">joinConstraints :: [Constraints] -&gt; Constraints
-</span><a href="#local-6989586621679571355"><span class="hs-identifier hs-var hs-var">joinConstraints</span></a></span></span><span> </span><span id="local-6989586621679571339"><span class="annot"><span class="annottext">[Constraints]
-</span><a href="#local-6989586621679571339"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Constraints] -&gt; Constraints
+</span><span id="line-166"></span><span>    </span><span class="annot"><a href="#local-6989586621679573102"><span class="hs-identifier hs-type">joinConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
+</span><span id="line-167"></span><span>    </span><span id="local-6989586621679573102"><span class="annot"><span class="annottext">joinConstraints :: [Constraints] -&gt; Constraints
+</span><a href="#local-6989586621679573102"><span class="hs-identifier hs-var hs-var">joinConstraints</span></a></span></span><span> </span><span id="local-6989586621679573086"><span class="annot"><span class="annottext">[Constraints]
+</span><a href="#local-6989586621679573086"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Constraints] -&gt; Constraints
 forall a. [a] -&gt; a
 </span><span class="hs-identifier hs-var">head</span></span><span> </span><span class="annot"><span class="annottext">([Constraints] -&gt; Constraints) -&gt; [Constraints] -&gt; Constraints
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -332,36 +332,36 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (a -&gt; m b) -&gt; t a -&gt; m ()
 </span><span class="hs-identifier hs-var">mapM_</span></span><span> </span><span class="annot"><span class="annottext">Constraints -&gt; Tweak Constraints
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addConstraintsTweak"><span class="hs-identifier hs-var">addConstraintsTweak</span></a></span><span> </span><span class="annot"><span class="annottext">[Constraints]
-</span><a href="#local-6989586621679571339"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MockChainSt
+</span><a href="#local-6989586621679573086"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MockChainSt
 forall a. Default a =&gt; a
 </span><span class="hs-identifier hs-var">def</span></span><span> </span><span class="annot"><span class="annottext">(Constraints -&gt; [Constraints]) -&gt; Constraints -&gt; [Constraints]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
 </span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">:=&gt;:</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><span id="line-168"></span><span>
-</span><span id="line-169"></span><span>    </span><span id="local-6989586621679571437"><span class="annot"><a href="#local-6989586621679571353"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571437"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571437"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
-</span><span id="line-170"></span><span>    </span><span id="local-6989586621679571353"><span class="annot"><span class="annottext">allCombinations :: [[x]] -&gt; [[x]]
-</span><a href="#local-6989586621679571353"><span class="hs-identifier hs-var hs-var">allCombinations</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571334"><span class="annot"><span class="annottext">[x]
-</span><a href="#local-6989586621679571334"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679571333"><span class="annot"><span class="annottext">[[x]]
-</span><a href="#local-6989586621679571333"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571332"><span class="annot"><span class="annottext">cs :: [[x]]
-</span><a href="#local-6989586621679571332"><span class="hs-identifier hs-var hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[x]] -&gt; [[x]]
+</span><span id="line-169"></span><span>    </span><span id="local-6989586621679573184"><span class="annot"><a href="#local-6989586621679573100"><span class="hs-identifier hs-type">allCombinations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679573184"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679573184"><span class="hs-identifier hs-type">x</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
+</span><span id="line-170"></span><span>    </span><span id="local-6989586621679573100"><span class="annot"><span class="annottext">allCombinations :: [[x]] -&gt; [[x]]
+</span><a href="#local-6989586621679573100"><span class="hs-identifier hs-var hs-var">allCombinations</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573081"><span class="annot"><span class="annottext">[x]
+</span><a href="#local-6989586621679573081"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679573080"><span class="annot"><span class="annottext">[[x]]
+</span><a href="#local-6989586621679573080"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573079"><span class="annot"><span class="annottext">cs :: [[x]]
+</span><a href="#local-6989586621679573079"><span class="hs-identifier hs-var hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[x]] -&gt; [[x]]
 forall x. [[x]] -&gt; [[x]]
-</span><a href="#local-6989586621679571353"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[x]]
-</span><a href="#local-6989586621679571333"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">(x -&gt; [[x]]) -&gt; [x] -&gt; [[x]]
+</span><a href="#local-6989586621679573100"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="annot"><span class="annottext">[[x]]
+</span><a href="#local-6989586621679573080"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">(x -&gt; [[x]]) -&gt; [x] -&gt; [[x]]
 forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
-</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679571330"><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679571330"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x
-</span><a href="#local-6989586621679571330"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">x -&gt; [x] -&gt; [x]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679573077"><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679573077"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x
+</span><a href="#local-6989586621679573077"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">x -&gt; [x] -&gt; [x]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([x] -&gt; [x]) -&gt; [[x]] -&gt; [[x]]
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[[x]]
-</span><a href="#local-6989586621679571332"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[x]
-</span><a href="#local-6989586621679571334"><span class="hs-identifier hs-var">l</span></a></span><span>
-</span><span id="line-171"></span><span>    </span><span class="annot"><a href="#local-6989586621679571353"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679573079"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[x]
+</span><a href="#local-6989586621679573081"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-171"></span><span>    </span><span class="annot"><a href="#local-6989586621679573100"><span class="hs-identifier hs-var">allCombinations</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
 </span><span id="line-172"></span><span>
 </span><span id="line-173"></span><span class="hs-keyword">data</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DoubleSatLbl"><span class="annot"><a href="Cooked.Attack.DoubleSat.html#DoubleSatLbl"><span class="hs-identifier hs-var">DoubleSatLbl</span></a></span></span><span>
-</span><span id="line-174"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571326"><span id="local-6989586621679571328"><span class="annot"><span class="annottext">DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
+</span><span id="line-174"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573073"><span id="local-6989586621679573075"><span class="annot"><span class="annottext">DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool)
 -&gt; (DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool) -&gt; Eq DoubleSatLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -369,7 +369,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 == :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
 $c== :: DoubleSatLbl -&gt; DoubleSatLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571319"><span id="local-6989586621679571321"><span id="local-6989586621679571323"><span class="annot"><span class="annottext">Int -&gt; DoubleSatLbl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573066"><span id="local-6989586621679573068"><span id="local-6989586621679573070"><span class="annot"><span class="annottext">Int -&gt; DoubleSatLbl -&gt; ShowS
 [DoubleSatLbl] -&gt; ShowS
 DoubleSatLbl -&gt; String
 (Int -&gt; DoubleSatLbl -&gt; ShowS)

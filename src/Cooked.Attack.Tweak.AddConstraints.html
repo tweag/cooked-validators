@@ -40,18 +40,18 @@
 </span><span id="line-40"></span><span class="hs-comment">-- included in the constraints of the modified transaction.</span><span>
 </span><span id="line-41"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addConstraintsTweak"><span class="hs-identifier hs-type">addConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
 </span><span id="line-42"></span><span id="addConstraintsTweak"><span class="annot"><span class="annottext">addConstraintsTweak :: Constraints -&gt; Tweak Constraints
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addConstraintsTweak"><span class="hs-identifier hs-var hs-var">addConstraintsTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571213"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571213"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679571211"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571211"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-43"></span><span>  </span><span id="local-6989586621679571210"><span class="annot"><span class="annottext">[Maybe MiscConstraint]
-</span><a href="#local-6989586621679571210"><span class="hs-identifier hs-var">addedMiscConstraints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Tweak (Maybe MiscConstraint))
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addConstraintsTweak"><span class="hs-identifier hs-var hs-var">addConstraintsTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679572960"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679572960"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679572958"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679572958"><span class="hs-identifier hs-var">os</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679572957"><span class="annot"><span class="annottext">[Maybe MiscConstraint]
+</span><a href="#local-6989586621679572957"><span class="hs-identifier hs-var">addedMiscConstraints</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Tweak (Maybe MiscConstraint))
 -&gt; [MiscConstraint] -&gt; Tweak [Maybe MiscConstraint]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571213"><span class="hs-identifier hs-var">is</span></a></span><span>
+</span><a href="#local-6989586621679572960"><span class="hs-identifier hs-var">is</span></a></span><span>
 </span><span id="line-44"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
 -&gt; ([OutConstraint] -&gt; [OutConstraint]) -&gt; Tweak ()
 forall k (is :: IxList) a.
@@ -61,15 +61,15 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[OutConstraint] -&gt; [OutConstraint] -&gt; [OutConstraint]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571211"><span class="hs-identifier hs-var">os</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- appended at the end</span><span>
+</span><a href="#local-6989586621679572958"><span class="hs-identifier hs-var">os</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- appended at the end</span><span>
 </span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Constraints -&gt; Tweak Constraints
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Maybe MiscConstraint] -&gt; [MiscConstraint]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span> </span><span class="annot"><span class="annottext">[Maybe MiscConstraint]
-</span><a href="#local-6989586621679571210"><span class="hs-identifier hs-var">addedMiscConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
+</span><a href="#local-6989586621679572957"><span class="hs-identifier hs-var">addedMiscConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
 </span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">:=&gt;:</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571211"><span class="hs-identifier hs-var">os</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679572958"><span class="hs-identifier hs-var">os</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-46"></span><span>
 </span><span id="line-47"></span><span class="hs-comment">-- * Adding and removing 'MiscConstraint's from transactions</span><span>
 </span><span id="line-48"></span><span>
@@ -102,62 +102,62 @@ forall a. [Maybe a] -&gt; [a]
 </span><span id="line-75"></span><span class="hs-comment">-- the unmodified transaction.</span><span>
 </span><span id="line-76"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-type">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-77"></span><span id="addMiscConstraintTweak"><span class="annot"><span class="annottext">addMiscConstraintTweak :: MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var hs-var">addMiscConstraintTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679571203"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571203"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679571202"><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571202"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679571201"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571201"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var hs-var">addMiscConstraintTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679572950"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679572950"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679572949"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679572949"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679572948"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572948"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
 -&gt; RedeemerType a -&gt; SpendableOut -&gt; Tweak (Maybe MiscConstraint)
 forall a.
 SpendsConstrs a =&gt;
 TypedValidator a
 -&gt; RedeemerType a -&gt; SpendableOut -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsScriptTweak"><span class="hs-identifier hs-var">addSpendsScriptTweak</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571203"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571202"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571201"><span class="hs-identifier hs-var">o</span></a></span><span>
-</span><span id="line-78"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span id="local-6989586621679571198"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571198"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; Tweak (Maybe MiscConstraint)
+</span><a href="#local-6989586621679572950"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679572949"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572948"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span id="local-6989586621679572945"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572945"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsPKTweak"><span class="hs-identifier hs-var">addSpendsPKTweak</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571198"><span class="hs-identifier hs-var">o</span></a></span><span>
-</span><span id="line-79"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span id="local-6989586621679571195"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679571195"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679571194"><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679571194"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679571193"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571193"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; Tweak (Maybe MiscConstraint)
+</span><a href="#local-6989586621679572945"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-79"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span id="local-6989586621679572942"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679572942"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679572941"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679572941"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679572940"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679572940"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; Tweak (Maybe MiscConstraint)
 forall a.
 MintsConstrs a =&gt;
 Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMintsTweak"><span class="hs-identifier hs-var">addMintsTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679571195"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679571194"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571193"><span class="hs-identifier hs-var">x</span></a></span><span>
-</span><span id="line-80"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679571190"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571190"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-81"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571189"><span class="annot"><span class="annottext">leftUnbounded :: Interval POSIXTime
-</span><a href="#local-6989586621679571189"><span class="hs-identifier hs-var hs-var">leftUnbounded</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
+</span><a href="#local-6989586621679572942"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679572941"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679572940"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679572937"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679572937"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572936"><span class="annot"><span class="annottext">leftUnbounded :: Interval POSIXTime
+</span><a href="#local-6989586621679572936"><span class="hs-identifier hs-var hs-var">leftUnbounded</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.to</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571190"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><a href="#local-6989586621679572937"><span class="hs-identifier hs-var">b</span></a></span><span>
 </span><span id="line-82"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-var">addValidateInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571189"><span class="hs-identifier hs-var">leftUnbounded</span></a></span><span>
-</span><span id="line-83"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679571185"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571185"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-84"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571184"><span class="annot"><span class="annottext">rightUnbounded :: Interval POSIXTime
-</span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var hs-var">rightUnbounded</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
+</span><a href="#local-6989586621679572936"><span class="hs-identifier hs-var">leftUnbounded</span></a></span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679572932"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679572932"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572931"><span class="annot"><span class="annottext">rightUnbounded :: Interval POSIXTime
+</span><a href="#local-6989586621679572931"><span class="hs-identifier hs-var hs-var">rightUnbounded</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.from</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571185"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><a href="#local-6989586621679572932"><span class="hs-identifier hs-var">a</span></a></span><span>
 </span><span id="line-85"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-var">addValidateInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var">rightUnbounded</span></a></span><span>
-</span><span id="line-86"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679571181"><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571181"><span class="hs-identifier hs-var">range</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Tweak (Maybe MiscConstraint)
+</span><a href="#local-6989586621679572931"><span class="hs-identifier hs-var">rightUnbounded</span></a></span><span>
+</span><span id="line-86"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679572928"><span class="annot"><span class="annottext">Interval POSIXTime
+</span><a href="#local-6989586621679572928"><span class="hs-identifier hs-var">range</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-var">addValidateInTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571181"><span class="hs-identifier hs-var">range</span></a></span><span>
-</span><span id="line-87"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679571179"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571179"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Tweak (Maybe MiscConstraint)
+</span><a href="#local-6989586621679572928"><span class="hs-identifier hs-var">range</span></a></span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMiscConstraintTweak"><span class="hs-identifier hs-var">addMiscConstraintTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679572926"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679572926"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Tweak (Maybe MiscConstraint)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSignedByTweak"><span class="hs-identifier hs-var">addSignedByTweak</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571179"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><a href="#local-6989586621679572926"><span class="hs-identifier hs-var">s</span></a></span><span>
 </span><span id="line-88"></span><span>
 </span><span id="line-89"></span><span class="hs-comment">-- | This tweak removes some 'MiscConstraint's from a transaction. Exactly</span><span>
 </span><span id="line-90"></span><span class="hs-comment">-- those constraints that return @Just@ something are removed from the</span><span>
@@ -165,26 +165,26 @@ forall a. a -&gt; Interval a
 </span><span id="line-92"></span><span class="hs-comment">--</span><span>
 </span><span id="line-93"></span><span class="hs-comment">-- The tweak returns a list of all the @Just@ values that were returned by the</span><span>
 </span><span id="line-94"></span><span class="hs-comment">-- removed constraints.</span><span>
-</span><span id="line-95"></span><span id="local-6989586621679571225"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-type">removeMiscConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571225"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571225"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-95"></span><span id="local-6989586621679572972"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-type">removeMiscConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679572972"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679572972"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
 </span><span id="line-96"></span><span id="removeMiscConstraintsTweak"><span class="annot"><span class="annottext">removeMiscConstraintsTweak :: (MiscConstraint -&gt; Maybe a) -&gt; Tweak [a]
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-var hs-var">removeMiscConstraintsTweak</span></a></span></span><span> </span><span id="local-6989586621679571176"><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe a
-</span><a href="#local-6989586621679571176"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-97"></span><span>  </span><span id="local-6989586621679571175"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571175"><span class="hs-identifier hs-var">mcs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-var hs-var">removeMiscConstraintsTweak</span></a></span></span><span> </span><span id="local-6989586621679572923"><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe a
+</span><a href="#local-6989586621679572923"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-97"></span><span>  </span><span id="local-6989586621679572922"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679572922"><span class="hs-identifier hs-var">mcs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; Tweak [MiscConstraint]
 forall k (is :: IxList) a.
 Is k A_Getter =&gt;
 Optic' k is TxSkel a -&gt; Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span>
-</span><span id="line-98"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571172"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571172"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571171"><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571171"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe a)
+</span><span id="line-98"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679572919"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572919"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679572918"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679572918"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe a)
 -&gt; [MiscConstraint] -&gt; ([a], [MiscConstraint])
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; ([b], [a])
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-var">partitionMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe a
-</span><a href="#local-6989586621679571176"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571175"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><a href="#local-6989586621679572923"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679572922"><span class="hs-identifier hs-var">mcs</span></a></span><span>
 </span><span id="line-99"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; [MiscConstraint] -&gt; Tweak ()
 forall k (is :: IxList) a.
@@ -192,59 +192,59 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint]
-</span><a href="#local-6989586621679571171"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679572918"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-100"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571172"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679572919"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-101"></span><span>
 </span><span id="line-102"></span><span class="hs-comment">-- | Partition a list into two lists, where the first output list contains all</span><span>
 </span><span id="line-103"></span><span class="hs-comment">-- values that were returned by @Just@, and the second records all elements of</span><span>
 </span><span id="line-104"></span><span class="hs-comment">-- the input list that returned @Nothing@. The order of elements is preserved in</span><span>
 </span><span id="line-105"></span><span class="hs-comment">-- both output lists.</span><span>
-</span><span id="line-106"></span><span id="local-6989586621679571274"><span id="local-6989586621679571275"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-type">partitionMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679571275"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571274"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571275"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571274"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571275"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-106"></span><span id="local-6989586621679573021"><span id="local-6989586621679573022"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-type">partitionMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679573022"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679573021"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679573022"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679573021"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679573022"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span></span></span><span>
 </span><span id="line-107"></span><span id="partitionMaybe"><span class="annot"><span class="annottext">partitionMaybe :: (a -&gt; Maybe b) -&gt; [a] -&gt; ([b], [a])
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-var hs-var">partitionMaybe</span></a></span></span><span> </span><span id="local-6989586621679571168"><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679571167"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571167"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
-</span><a href="#local-6989586621679571166"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571167"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-var hs-var">partitionMaybe</span></a></span></span><span> </span><span id="local-6989586621679572915"><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679572915"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679572914"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572914"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
+</span><a href="#local-6989586621679572913"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572914"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><span id="line-108"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-109"></span><span>    </span><span id="local-6989586621679571166"><span class="annot"><span class="annottext">accumulate :: [a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
-</span><a href="#local-6989586621679571166"><span class="hs-identifier hs-var hs-var">accumulate</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679571165"><span class="annot"><span class="annottext">[b]
-</span><a href="#local-6989586621679571165"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679571164"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571164"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[b] -&gt; [b]
+</span><span id="line-109"></span><span>    </span><span id="local-6989586621679572913"><span class="annot"><span class="annottext">accumulate :: [a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
+</span><a href="#local-6989586621679572913"><span class="hs-identifier hs-var hs-var">accumulate</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span id="local-6989586621679572912"><span class="annot"><span class="annottext">[b]
+</span><a href="#local-6989586621679572912"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679572911"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572911"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[b] -&gt; [b]
 forall a. [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">[b]
-</span><a href="#local-6989586621679571165"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
+</span><a href="#local-6989586621679572912"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
 forall a. [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571164"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-110"></span><span>    </span><span class="annot"><a href="#local-6989586621679571166"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571162"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679571162"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679571161"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571161"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679571160"><span class="annot"><span class="annottext">[b]
-</span><a href="#local-6989586621679571160"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679571159"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571159"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679571162"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-111"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571158"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679571158"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
-</span><a href="#local-6989586621679571166"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571161"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679571158"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">b -&gt; [b] -&gt; [b]
+</span><a href="#local-6989586621679572911"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>    </span><span class="annot"><a href="#local-6989586621679572913"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679572909"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679572909"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679572908"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572908"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679572907"><span class="annot"><span class="annottext">[b]
+</span><a href="#local-6989586621679572907"><span class="hs-identifier hs-var">j</span></a></span></span><span> </span><span id="local-6989586621679572906"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572906"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679572915"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679572909"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-111"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679572905"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679572905"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
+</span><a href="#local-6989586621679572913"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572908"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679572905"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">b -&gt; [b] -&gt; [b]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[b]
-</span><a href="#local-6989586621679571160"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571159"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><a href="#local-6989586621679572907"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572906"><span class="hs-identifier hs-var">n</span></a></span><span>
 </span><span id="line-112"></span><span>      </span><span class="annot"><span class="annottext">Maybe b
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [b] -&gt; [a] -&gt; ([b], [a])
-</span><a href="#local-6989586621679571166"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571161"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">[b]
-</span><a href="#local-6989586621679571160"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679571162"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679572913"><span class="hs-identifier hs-var">accumulate</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572908"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">[b]
+</span><a href="#local-6989586621679572907"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679572909"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571159"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679572906"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-113"></span><span>
 </span><span id="line-114"></span><span class="hs-comment">-- | this tweak ensures that a certain 'SpendsScript' constraint is present on</span><span>
 </span><span id="line-115"></span><span class="hs-comment">-- a transaction.</span><span>
@@ -258,20 +258,20 @@ forall a. a -&gt; [a] -&gt; [a]
 </span><span id="line-123"></span><span class="hs-comment">-- This tweak returns @Just@ the added constraint iff the transaction was</span><span>
 </span><span id="line-124"></span><span class="hs-comment">-- modified.</span><span>
 </span><span id="line-125"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsScriptTweak"><span class="hs-identifier hs-type">addSpendsScriptTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-126"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679571291"><span class="annot"><a href="#local-6989586621679571291"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-127"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571291"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-128"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679571291"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-129"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571291"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679573038"><span class="annot"><a href="#local-6989586621679573038"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573038"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-128"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573038"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-129"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573038"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-130"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-131"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-132"></span><span id="addSpendsScriptTweak"><span class="annot"><span class="annottext">addSpendsScriptTweak :: TypedValidator a
 -&gt; RedeemerType a -&gt; SpendableOut -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsScriptTweak"><span class="hs-identifier hs-var hs-var">addSpendsScriptTweak</span></a></span></span><span> </span><span id="local-6989586621679571157"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571157"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679571156"><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571156"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679571155"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571155"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-133"></span><span>  </span><span id="local-6989586621679571154"><span class="annot"><span class="annottext">[(TypedValidator a, RedeemerType a, SpendableOut)]
-</span><a href="#local-6989586621679571154"><span class="hs-identifier hs-var">present</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic'
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsScriptTweak"><span class="hs-identifier hs-var hs-var">addSpendsScriptTweak</span></a></span></span><span> </span><span id="local-6989586621679572904"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679572904"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679572903"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679572903"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679572902"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572902"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-133"></span><span>  </span><span id="local-6989586621679572901"><span class="annot"><span class="annottext">[(TypedValidator a, RedeemerType a, SpendableOut)]
+</span><a href="#local-6989586621679572901"><span class="hs-identifier hs-var">present</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic'
   A_Lens
   NoIx
   TxSkel
@@ -353,35 +353,35 @@ SpendsConstrs a =&gt;
 Prism'
   SpendsScriptConstraint
   (TypedValidator a, RedeemerType a, SpendableOut)
-</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintTypeP"><span class="hs-identifier hs-var">spendsScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679571291"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-134"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571149"><span class="annot"><span class="annottext">clashing :: [(TypedValidator a, RedeemerType a, SpendableOut)]
-</span><a href="#local-6989586621679571149"><span class="hs-identifier hs-var hs-var">clashing</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((TypedValidator a, RedeemerType a, SpendableOut) -&gt; Bool)
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintTypeP"><span class="hs-identifier hs-var">spendsScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679573038"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572896"><span class="annot"><span class="annottext">clashing :: [(TypedValidator a, RedeemerType a, SpendableOut)]
+</span><a href="#local-6989586621679572896"><span class="hs-identifier hs-var hs-var">clashing</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((TypedValidator a, RedeemerType a, SpendableOut) -&gt; Bool)
 -&gt; [(TypedValidator a, RedeemerType a, SpendableOut)]
 -&gt; [(TypedValidator a, RedeemerType a, SpendableOut)]
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a
 </span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571148"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571148"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571155"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; SpendableOut -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679572895"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572895"><span class="hs-identifier hs-var">o'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572902"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; SpendableOut -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571148"><span class="hs-identifier hs-var">o'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(TypedValidator a, RedeemerType a, SpendableOut)]
-</span><a href="#local-6989586621679571154"><span class="hs-identifier hs-var">present</span></a></span><span>
+</span><a href="#local-6989586621679572895"><span class="hs-identifier hs-var">o'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(TypedValidator a, RedeemerType a, SpendableOut)]
+</span><a href="#local-6989586621679572901"><span class="hs-identifier hs-var">present</span></a></span><span>
 </span><span id="line-135"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[(TypedValidator a, RedeemerType a, SpendableOut)]
-</span><a href="#local-6989586621679571149"><span class="hs-identifier hs-var">clashing</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679572896"><span class="hs-identifier hs-var">clashing</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-136"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-137"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571147"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
-</span><a href="#local-6989586621679571147"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><span id="line-137"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572894"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
+</span><a href="#local-6989586621679572894"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
 -&gt; RedeemerType a -&gt; SpendableOut -&gt; MiscConstraint
 forall a.
 SpendsConstrs a =&gt;
 TypedValidator a
 -&gt; RedeemerType a -&gt; SpendableOut -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-var">SpendsScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571157"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571156"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571155"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><a href="#local-6989586621679572904"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679572903"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572902"><span class="hs-identifier hs-var">o</span></a></span><span>
 </span><span id="line-138"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-139"></span><span>            </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; ([MiscConstraint] -&gt; [MiscConstraint]) -&gt; Tweak ()
@@ -390,7 +390,7 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571147"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+</span><a href="#local-6989586621679572894"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-140"></span><span>            </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -401,21 +401,21 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe MiscConstraint
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571147"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
-</span><span id="line-141"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679571146"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571146"><span class="hs-identifier hs-var">v'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571145"><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571145"><span class="hs-identifier hs-var">r'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572894"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679572893"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679572893"><span class="hs-identifier hs-var">v'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679572892"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679572892"><span class="hs-identifier hs-var">r'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SpendableOut
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-142"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571146"><span class="hs-identifier hs-var">v'</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; TypedValidator a -&gt; Bool
+</span><a href="#local-6989586621679572893"><span class="hs-identifier hs-var">v'</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; TypedValidator a -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679571157"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><a href="#local-6989586621679572904"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571145"><span class="hs-identifier hs-var">r'</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a -&gt; RedeemerType a -&gt; Bool
+</span><a href="#local-6989586621679572892"><span class="hs-identifier hs-var">r'</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a -&gt; RedeemerType a -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">Pl.==</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
-</span><a href="#local-6989586621679571156"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><a href="#local-6989586621679572903"><span class="hs-identifier hs-var">r</span></a></span><span>
 </span><span id="line-143"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint
@@ -441,10 +441,10 @@ forall a. Maybe a
 </span><span id="line-154"></span><span class="hs-comment">-- modified.</span><span>
 </span><span id="line-155"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsPKTweak"><span class="hs-identifier hs-type">addSpendsPKTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-156"></span><span id="addSpendsPKTweak"><span class="annot"><span class="annottext">addSpendsPKTweak :: SpendableOut -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsPKTweak"><span class="hs-identifier hs-var hs-var">addSpendsPKTweak</span></a></span></span><span> </span><span id="local-6989586621679571141"><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571141"><span class="hs-identifier hs-var">extraUtxo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-157"></span><span>  </span><span id="local-6989586621679571140"><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679571140"><span class="hs-identifier hs-var">consumed</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [SpendableOut] -&gt; Tweak [SpendableOut]
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSpendsPKTweak"><span class="hs-identifier hs-var hs-var">addSpendsPKTweak</span></a></span></span><span> </span><span id="local-6989586621679572888"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679572888"><span class="hs-identifier hs-var">extraUtxo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-157"></span><span>  </span><span id="local-6989586621679572887"><span class="annot"><span class="annottext">[SpendableOut]
+</span><a href="#local-6989586621679572887"><span class="hs-identifier hs-var">consumed</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [SpendableOut] -&gt; Tweak [SpendableOut]
 forall k (is :: IxList) a.
 Is k A_Getter =&gt;
 Optic' k is TxSkel a -&gt; Tweak a
@@ -481,20 +481,20 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
   SpendableOut
 </span><a href="Cooked.Tx.Constraints.Optics.html#spendsPKConstraintP"><span class="hs-identifier hs-var">spendsPKConstraintP</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-158"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571141"><span class="hs-identifier hs-var">extraUtxo</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; [SpendableOut] -&gt; Bool
+</span><a href="#local-6989586621679572888"><span class="hs-identifier hs-var">extraUtxo</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; [SpendableOut] -&gt; Bool
 forall (t :: * -&gt; *) a. (Foldable t, Eq a) =&gt; a -&gt; t a -&gt; Bool
 </span><span class="hs-operator hs-var">`elem`</span></span><span> </span><span class="annot"><span class="annottext">[SpendableOut]
-</span><a href="#local-6989586621679571140"><span class="hs-identifier hs-var">consumed</span></a></span><span>
+</span><a href="#local-6989586621679572887"><span class="hs-identifier hs-var">consumed</span></a></span><span>
 </span><span id="line-159"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-160"></span><span>    </span><span class="hs-keyword">else</span><span>
-</span><span id="line-161"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571136"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
-</span><a href="#local-6989586621679571136"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; MiscConstraint
+</span><span id="line-161"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572883"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
+</span><a href="#local-6989586621679572883"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-var">SpendsPK</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
-</span><a href="#local-6989586621679571141"><span class="hs-identifier hs-var">extraUtxo</span></a></span><span>
+</span><a href="#local-6989586621679572888"><span class="hs-identifier hs-var">extraUtxo</span></a></span><span>
 </span><span id="line-162"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-163"></span><span>            </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; ([MiscConstraint] -&gt; [MiscConstraint]) -&gt; Tweak ()
@@ -503,7 +503,7 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571136"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+</span><a href="#local-6989586621679572883"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-164"></span><span>            </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -514,33 +514,33 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe MiscConstraint
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571136"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
+</span><a href="#local-6989586621679572883"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
 </span><span id="line-165"></span><span>
 </span><span id="line-166"></span><span class="hs-comment">-- | This tweak adds a 'Mints' constraint.</span><span>
 </span><span id="line-167"></span><span class="hs-comment">--</span><span>
 </span><span id="line-168"></span><span class="hs-comment">-- This tweak always returns @Just@ the added constraint. Its return type is in</span><span>
 </span><span id="line-169"></span><span class="hs-comment">-- 'Maybe' in order to be homogeneous with 'addSpendsScriptTweak',</span><span>
 </span><span id="line-170"></span><span class="hs-comment">-- 'addSpendsPKTweak', 'addValidateInTweak', and 'addSignedByTweak'.</span><span>
-</span><span id="line-171"></span><span id="local-6989586621679571286"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMintsTweak"><span class="hs-identifier hs-type">addMintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-172"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MintsConstrs"><span class="hs-identifier hs-type">MintsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571286"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-173"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571286"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-171"></span><span id="local-6989586621679573033"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addMintsTweak"><span class="hs-identifier hs-type">addMintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-172"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MintsConstrs"><span class="hs-identifier hs-type">MintsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573033"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-173"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679573033"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-174"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.MintingPolicy</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-175"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-176"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span></span><span>
 </span><span id="line-177"></span><span id="addMintsTweak"><span class="annot"><span class="annottext">addMintsTweak :: Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMintsTweak"><span class="hs-identifier hs-var hs-var">addMintsTweak</span></a></span></span><span> </span><span id="local-6989586621679571135"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679571135"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679571134"><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679571134"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679571133"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571133"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-178"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571132"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
-</span><a href="#local-6989586621679571132"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addMintsTweak"><span class="hs-identifier hs-var hs-var">addMintsTweak</span></a></span></span><span> </span><span id="local-6989586621679572882"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679572882"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679572881"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679572881"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679572880"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679572880"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572879"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
+</span><a href="#local-6989586621679572879"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
 forall a.
 MintsConstrs a =&gt;
 Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-var">Mints</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679571135"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679571134"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679571133"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><a href="#local-6989586621679572882"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679572881"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679572880"><span class="hs-identifier hs-var">x</span></a></span><span>
 </span><span id="line-179"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-180"></span><span>        </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; ([MiscConstraint] -&gt; [MiscConstraint]) -&gt; Tweak ()
@@ -549,7 +549,7 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571132"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+</span><a href="#local-6989586621679572879"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-181"></span><span>        </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -560,7 +560,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe MiscConstraint
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571132"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
+</span><a href="#local-6989586621679572879"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
 </span><span id="line-182"></span><span>
 </span><span id="line-183"></span><span class="hs-comment">-- | This tweak removes all time constraints (i.e. 'Before', 'After', and</span><span>
 </span><span id="line-184"></span><span class="hs-comment">-- 'ValidateIn') from a transaction.</span><span>
@@ -569,12 +569,12 @@ forall a. a -&gt; Maybe a
 </span><span id="line-187"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeTimeConstraintsTweak"><span class="hs-identifier hs-type">removeTimeConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.POSIXTimeRange</span></span><span>
 </span><span id="line-188"></span><span id="removeTimeConstraintsTweak"><span class="annot"><span class="annottext">removeTimeConstraintsTweak :: Tweak (Interval POSIXTime)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeTimeConstraintsTweak"><span class="hs-identifier hs-var hs-var">removeTimeConstraintsTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-189"></span><span>  </span><span id="local-6989586621679571129"><span class="annot"><span class="annottext">[Interval POSIXTime]
-</span><a href="#local-6989586621679571129"><span class="hs-identifier hs-var">timeRanges</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe (Interval POSIXTime))
+</span><span id="line-189"></span><span>  </span><span id="local-6989586621679572876"><span class="annot"><span class="annottext">[Interval POSIXTime]
+</span><a href="#local-6989586621679572876"><span class="hs-identifier hs-var">timeRanges</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe (Interval POSIXTime))
 -&gt; Tweak [Interval POSIXTime]
 forall a. (MiscConstraint -&gt; Maybe a) -&gt; Tweak [a]
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-var">removeMiscConstraintsTweak</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe (Interval POSIXTime)
-</span><a href="#local-6989586621679571128"><span class="hs-identifier hs-var">toTimeRange</span></a></span><span>
+</span><a href="#local-6989586621679572875"><span class="hs-identifier hs-var">toTimeRange</span></a></span><span>
 </span><span id="line-190"></span><span>  </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Tweak (Interval POSIXTime)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Interval POSIXTime -&gt; Tweak (Interval POSIXTime))
@@ -590,12 +590,12 @@ forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.intersection</span></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
 forall a. Interval a
 </span><span class="hs-identifier hs-var">Pl.always</span></span><span> </span><span class="annot"><span class="annottext">[Interval POSIXTime]
-</span><a href="#local-6989586621679571129"><span class="hs-identifier hs-var">timeRanges</span></a></span><span>
+</span><a href="#local-6989586621679572876"><span class="hs-identifier hs-var">timeRanges</span></a></span><span>
 </span><span id="line-191"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-192"></span><span>    </span><span id="local-6989586621679571128"><span class="annot"><span class="annottext">toTimeRange :: MiscConstraint -&gt; Maybe (Interval POSIXTime)
-</span><a href="#local-6989586621679571128"><span class="hs-identifier hs-var hs-var">toTimeRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-193"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679571124"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571124"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
+</span><span id="line-192"></span><span>    </span><span id="local-6989586621679572875"><span class="annot"><span class="annottext">toTimeRange :: MiscConstraint -&gt; Maybe (Interval POSIXTime)
+</span><a href="#local-6989586621679572875"><span class="hs-identifier hs-var hs-var">toTimeRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-193"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679572871"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679572871"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Interval POSIXTime -&gt; Maybe (Interval POSIXTime))
 -&gt; Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
@@ -603,9 +603,9 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.to</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571124"><span class="hs-identifier hs-var">b</span></a></span><span>
-</span><span id="line-194"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679571123"><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571123"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
+</span><a href="#local-6989586621679572871"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-194"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679572870"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679572870"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Interval POSIXTime -&gt; Maybe (Interval POSIXTime))
 -&gt; Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
@@ -613,12 +613,12 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Interval POSIXTime
 forall a. a -&gt; Interval a
 </span><span class="hs-identifier hs-var">Pl.from</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
-</span><a href="#local-6989586621679571123"><span class="hs-identifier hs-var">a</span></a></span><span>
-</span><span id="line-195"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679571122"><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571122"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
+</span><a href="#local-6989586621679572870"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-195"></span><span>      </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679572869"><span class="annot"><span class="annottext">Interval POSIXTime
+</span><a href="#local-6989586621679572869"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Maybe (Interval POSIXTime)
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571122"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679572869"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-196"></span><span>      </span><span class="annot"><span class="annottext">MiscConstraint
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (Interval POSIXTime)
 forall a. Maybe a
@@ -635,39 +635,39 @@ forall a. Maybe a
 </span><span id="line-206"></span><span class="hs-comment">-- modified.</span><span>
 </span><span id="line-207"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-type">addValidateInTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.POSIXTimeRange</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-208"></span><span id="addValidateInTweak"><span class="annot"><span class="annottext">addValidateInTweak :: Interval POSIXTime -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-var hs-var">addValidateInTweak</span></a></span></span><span> </span><span id="local-6989586621679571121"><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571121"><span class="hs-identifier hs-var">range</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-209"></span><span>  </span><span id="local-6989586621679571120"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679571120"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak TxSkel
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addValidateInTweak"><span class="hs-identifier hs-var hs-var">addValidateInTweak</span></a></span></span><span> </span><span id="local-6989586621679572868"><span class="annot"><span class="annottext">Interval POSIXTime
+</span><a href="#local-6989586621679572868"><span class="hs-identifier hs-var">range</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-209"></span><span>  </span><span id="local-6989586621679572867"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679572867"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak TxSkel
 </span><a href="Cooked.Attack.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span>
-</span><span id="line-210"></span><span>  </span><span id="local-6989586621679571118"><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571118"><span class="hs-identifier hs-var">oldRange</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak (Interval POSIXTime)
+</span><span id="line-210"></span><span>  </span><span id="local-6989586621679572865"><span class="annot"><span class="annottext">Interval POSIXTime
+</span><a href="#local-6989586621679572865"><span class="hs-identifier hs-var">oldRange</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak (Interval POSIXTime)
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeTimeConstraintsTweak"><span class="hs-identifier hs-var">removeTimeConstraintsTweak</span></a></span><span>
-</span><span id="line-211"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571117"><span class="annot"><span class="annottext">newRange :: Interval POSIXTime
-</span><a href="#local-6989586621679571117"><span class="hs-identifier hs-var hs-var">newRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571121"><span class="hs-identifier hs-var">range</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Interval POSIXTime -&gt; Interval POSIXTime
+</span><span id="line-211"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572864"><span class="annot"><span class="annottext">newRange :: Interval POSIXTime
+</span><a href="#local-6989586621679572864"><span class="hs-identifier hs-var hs-var">newRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
+</span><a href="#local-6989586621679572868"><span class="hs-identifier hs-var">range</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Interval POSIXTime -&gt; Interval POSIXTime
 forall a. Ord a =&gt; Interval a -&gt; Interval a -&gt; Interval a
 </span><span class="hs-operator hs-var">`Pl.intersection`</span></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571118"><span class="hs-identifier hs-var">oldRange</span></a></span><span>
+</span><a href="#local-6989586621679572865"><span class="hs-identifier hs-var">oldRange</span></a></span><span>
 </span><span id="line-212"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571117"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Interval POSIXTime -&gt; Bool
+</span><a href="#local-6989586621679572864"><span class="hs-identifier hs-var">newRange</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; Interval POSIXTime -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571118"><span class="hs-identifier hs-var">oldRange</span></a></span><span>
+</span><a href="#local-6989586621679572865"><span class="hs-identifier hs-var">oldRange</span></a></span><span>
 </span><span id="line-213"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-214"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTxSkel"><span class="hs-identifier hs-var">setTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679571120"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span><span>
+</span><a href="#local-6989586621679572867"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span><span>
 </span><span id="line-215"></span><span>      </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-216"></span><span>    </span><span class="hs-keyword">else</span><span>
-</span><span id="line-217"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571115"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
-</span><a href="#local-6989586621679571115"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; MiscConstraint
+</span><span id="line-217"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572862"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
+</span><a href="#local-6989586621679572862"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-var">ValidateIn</span></a></span><span> </span><span class="annot"><span class="annottext">Interval POSIXTime
-</span><a href="#local-6989586621679571117"><span class="hs-identifier hs-var">newRange</span></a></span><span>
+</span><a href="#local-6989586621679572864"><span class="hs-identifier hs-var">newRange</span></a></span><span>
 </span><span id="line-218"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-219"></span><span>            </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; ([MiscConstraint] -&gt; [MiscConstraint]) -&gt; Tweak ()
@@ -676,7 +676,7 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571115"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+</span><a href="#local-6989586621679572862"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-220"></span><span>            </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -687,21 +687,21 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe MiscConstraint
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571115"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
+</span><a href="#local-6989586621679572862"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
 </span><span id="line-221"></span><span>
 </span><span id="line-222"></span><span class="hs-comment">-- | This tweak removes all 'SignedBy' constraints from a transaction. It</span><span>
 </span><span id="line-223"></span><span class="hs-comment">-- returns a list of the signers it removed.</span><span>
 </span><span id="line-224"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeSignedByTweak"><span class="hs-identifier hs-type">removeSignedByTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.PubKeyHash</span></span><span class="hs-special">]</span><span>
 </span><span id="line-225"></span><span id="removeSignedByTweak"><span class="annot"><span class="annottext">removeSignedByTweak :: Tweak [PubKeyHash]
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeSignedByTweak"><span class="hs-identifier hs-var hs-var">removeSignedByTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-226"></span><span>  </span><span id="local-6989586621679571113"><span class="annot"><span class="annottext">[[PubKeyHash]]
-</span><a href="#local-6989586621679571113"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe [PubKeyHash]) -&gt; Tweak [[PubKeyHash]]
+</span><span id="line-226"></span><span>  </span><span id="local-6989586621679572860"><span class="annot"><span class="annottext">[[PubKeyHash]]
+</span><a href="#local-6989586621679572860"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(MiscConstraint -&gt; Maybe [PubKeyHash]) -&gt; Tweak [[PubKeyHash]]
 forall a. (MiscConstraint -&gt; Maybe a) -&gt; Tweak [a]
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-var">removeMiscConstraintsTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679571112"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571112"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Maybe [PubKeyHash]
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeMiscConstraintsTweak"><span class="hs-identifier hs-var">removeMiscConstraintsTweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679572859"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679572859"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Maybe [PubKeyHash]
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571112"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">;</span><span> </span><span class="annot"><span class="annottext">MiscConstraint
+</span><a href="#local-6989586621679572859"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">;</span><span> </span><span class="annot"><span class="annottext">MiscConstraint
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [PubKeyHash]
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
@@ -713,7 +713,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[[PubKeyHash]] -&gt; [PubKeyHash]
 forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="annot"><span class="annottext">[[PubKeyHash]]
-</span><a href="#local-6989586621679571113"><span class="hs-identifier hs-var">signers</span></a></span><span>
+</span><a href="#local-6989586621679572860"><span class="hs-identifier hs-var">signers</span></a></span><span>
 </span><span id="line-228"></span><span>
 </span><span id="line-229"></span><span class="hs-comment">-- | This tweak adds signers to a transaction. It also combines all 'SignedBy'</span><span>
 </span><span id="line-230"></span><span class="hs-comment">-- constraints of the transaction into one, if it performs any change at all.</span><span>
@@ -722,43 +722,43 @@ forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
 </span><span id="line-233"></span><span class="hs-comment">-- modified.</span><span>
 </span><span id="line-234"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addSignedByTweak"><span class="hs-identifier hs-type">addSignedByTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.PubKeyHash</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-235"></span><span id="addSignedByTweak"><span class="annot"><span class="annottext">addSignedByTweak :: [PubKeyHash] -&gt; Tweak (Maybe MiscConstraint)
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSignedByTweak"><span class="hs-identifier hs-var hs-var">addSignedByTweak</span></a></span></span><span> </span><span id="local-6989586621679571110"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571110"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-236"></span><span>  </span><span id="local-6989586621679571109"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679571109"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak TxSkel
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addSignedByTweak"><span class="hs-identifier hs-var hs-var">addSignedByTweak</span></a></span></span><span> </span><span id="local-6989586621679572857"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679572857"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-236"></span><span>  </span><span id="local-6989586621679572856"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679572856"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak TxSkel
 </span><a href="Cooked.Attack.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var">getTxSkel</span></a></span><span>
-</span><span id="line-237"></span><span>  </span><span id="local-6989586621679571108"><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571108"><span class="hs-identifier hs-var">oldSigners</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak [PubKeyHash]
+</span><span id="line-237"></span><span>  </span><span id="local-6989586621679572855"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679572855"><span class="hs-identifier hs-var">oldSigners</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Tweak [PubKeyHash]
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeSignedByTweak"><span class="hs-identifier hs-var">removeSignedByTweak</span></a></span><span>
-</span><span id="line-238"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571107"><span class="annot"><span class="annottext">newSigners :: [PubKeyHash]
-</span><a href="#local-6989586621679571107"><span class="hs-identifier hs-var hs-var">newSigners</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571110"><span class="hs-identifier hs-var">signers</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; [PubKeyHash] -&gt; [PubKeyHash]
+</span><span id="line-238"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572854"><span class="annot"><span class="annottext">newSigners :: [PubKeyHash]
+</span><a href="#local-6989586621679572854"><span class="hs-identifier hs-var hs-var">newSigners</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679572857"><span class="hs-identifier hs-var">signers</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; [PubKeyHash] -&gt; [PubKeyHash]
 forall a. Eq a =&gt; [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">\\</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571108"><span class="hs-identifier hs-var">oldSigners</span></a></span><span>
+</span><a href="#local-6989586621679572855"><span class="hs-identifier hs-var">oldSigners</span></a></span><span>
 </span><span id="line-239"></span><span>  </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571107"><span class="hs-identifier hs-var">newSigners</span></a></span><span>
+</span><a href="#local-6989586621679572854"><span class="hs-identifier hs-var">newSigners</span></a></span><span>
 </span><span id="line-240"></span><span>    </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-241"></span><span>      </span><span class="annot"><span class="annottext">TxSkel -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTxSkel"><span class="hs-identifier hs-var">setTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679571109"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span><span>
+</span><a href="#local-6989586621679572856"><span class="hs-identifier hs-var">unmodifiedSkel</span></a></span><span>
 </span><span id="line-242"></span><span>      </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe MiscConstraint
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-243"></span><span>    </span><span class="hs-keyword">else</span><span>
-</span><span id="line-244"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571104"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
-</span><a href="#local-6989586621679571104"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; MiscConstraint
+</span><span id="line-244"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679572851"><span class="annot"><span class="annottext">newConstraint :: MiscConstraint
+</span><a href="#local-6989586621679572851"><span class="hs-identifier hs-var hs-var">newConstraint</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-var">SignedBy</span></a></span><span> </span><span class="annot"><span class="annottext">([PubKeyHash] -&gt; MiscConstraint) -&gt; [PubKeyHash] -&gt; MiscConstraint
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571107"><span class="hs-identifier hs-var">newSigners</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; [PubKeyHash] -&gt; [PubKeyHash]
+</span><a href="#local-6989586621679572854"><span class="hs-identifier hs-var">newSigners</span></a></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; [PubKeyHash] -&gt; [PubKeyHash]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
-</span><a href="#local-6989586621679571108"><span class="hs-identifier hs-var">oldSigners</span></a></span><span>
+</span><a href="#local-6989586621679572855"><span class="hs-identifier hs-var">oldSigners</span></a></span><span>
 </span><span id="line-245"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-246"></span><span>            </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 -&gt; ([MiscConstraint] -&gt; [MiscConstraint]) -&gt; Tweak ()
@@ -767,7 +767,7 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MiscConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571104"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
+</span><a href="#local-6989586621679572851"><span class="hs-identifier hs-var">newConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; [MiscConstraint] -&gt; [MiscConstraint]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
 </span><span id="line-247"></span><span>            </span><span class="annot"><span class="annottext">Maybe MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -778,7 +778,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Maybe MiscConstraint
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">MiscConstraint
-</span><a href="#local-6989586621679571104"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
+</span><a href="#local-6989586621679572851"><span class="hs-identifier hs-var">newConstraint</span></a></span><span>
 </span><span id="line-248"></span><span>
 </span><span id="line-249"></span><span class="hs-comment">-- * Adding and Removing 'OutConstraint's</span><span>
 </span><span id="line-250"></span><span>
@@ -789,8 +789,8 @@ forall a. a -&gt; Maybe a
 </span><span id="line-255"></span><span class="hs-comment">-- of output constraints.</span><span>
 </span><span id="line-256"></span><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#addOutConstraintTweak"><span class="hs-identifier hs-type">addOutConstraintTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
 </span><span id="line-257"></span><span id="addOutConstraintTweak"><span class="annot"><span class="annottext">addOutConstraintTweak :: OutConstraint -&gt; Tweak ()
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addOutConstraintTweak"><span class="hs-identifier hs-var hs-var">addOutConstraintTweak</span></a></span></span><span> </span><span id="local-6989586621679571102"><span class="annot"><span class="annottext">OutConstraint
-</span><a href="#local-6989586621679571102"><span class="hs-identifier hs-var">oc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#addOutConstraintTweak"><span class="hs-identifier hs-var hs-var">addOutConstraintTweak</span></a></span></span><span> </span><span id="local-6989586621679572849"><span class="annot"><span class="annottext">OutConstraint
+</span><a href="#local-6989586621679572849"><span class="hs-identifier hs-var">oc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
 -&gt; ([OutConstraint] -&gt; [OutConstraint]) -&gt; Tweak ()
 forall k (is :: IxList) a.
 Is k A_Setter =&gt;
@@ -799,32 +799,32 @@ Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[OutConstraint] -&gt; [OutConstraint] -&gt; [OutConstraint]
 forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">OutConstraint
-</span><a href="#local-6989586621679571102"><span class="hs-identifier hs-var">oc</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679572849"><span class="hs-identifier hs-var">oc</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
 </span><span id="line-258"></span><span>
 </span><span id="line-259"></span><span class="hs-comment">-- | This tweak removes some 'OutConstraint's from a transaction. Exactly those</span><span>
 </span><span id="line-260"></span><span class="hs-comment">-- constraints that return @Just@ something are removed from the transaction.</span><span>
 </span><span id="line-261"></span><span class="hs-comment">--</span><span>
 </span><span id="line-262"></span><span class="hs-comment">-- The tweak returns a list of all the @Just@ values that were returned by the</span><span>
 </span><span id="line-263"></span><span class="hs-comment">-- removed constraints.</span><span>
-</span><span id="line-264"></span><span id="local-6989586621679571101"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeOutConstraintsTweak"><span class="hs-identifier hs-type">removeOutConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571101"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571101"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-264"></span><span id="local-6989586621679572848"><span class="annot"><a href="Cooked.Attack.Tweak.AddConstraints.html#removeOutConstraintsTweak"><span class="hs-identifier hs-type">removeOutConstraintsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679572848"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679572848"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span><span>
 </span><span id="line-265"></span><span id="removeOutConstraintsTweak"><span class="annot"><span class="annottext">removeOutConstraintsTweak :: (OutConstraint -&gt; Maybe a) -&gt; Tweak [a]
-</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeOutConstraintsTweak"><span class="hs-identifier hs-var hs-var">removeOutConstraintsTweak</span></a></span></span><span> </span><span id="local-6989586621679571099"><span class="annot"><span class="annottext">OutConstraint -&gt; Maybe a
-</span><a href="#local-6989586621679571099"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-266"></span><span>  </span><span id="local-6989586621679571098"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571098"><span class="hs-identifier hs-var">mcs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint] -&gt; Tweak [OutConstraint]
+</span><a href="Cooked.Attack.Tweak.AddConstraints.html#removeOutConstraintsTweak"><span class="hs-identifier hs-var hs-var">removeOutConstraintsTweak</span></a></span></span><span> </span><span id="local-6989586621679572846"><span class="annot"><span class="annottext">OutConstraint -&gt; Maybe a
+</span><a href="#local-6989586621679572846"><span class="hs-identifier hs-var">removePred</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-266"></span><span>  </span><span id="local-6989586621679572845"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679572845"><span class="hs-identifier hs-var">mcs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint] -&gt; Tweak [OutConstraint]
 forall k (is :: IxList) a.
 Is k A_Getter =&gt;
 Optic' k is TxSkel a -&gt; Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span>
-</span><span id="line-267"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571097"><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571097"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571096"><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571096"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; Maybe a)
+</span><span id="line-267"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679572844"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679572844"><span class="hs-identifier hs-var">removed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679572843"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679572843"><span class="hs-identifier hs-var">kept</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; Maybe a)
 -&gt; [OutConstraint] -&gt; ([a], [OutConstraint])
 forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; ([b], [a])
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#partitionMaybe"><span class="hs-identifier hs-var">partitionMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">OutConstraint -&gt; Maybe a
-</span><a href="#local-6989586621679571099"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571098"><span class="hs-identifier hs-var">mcs</span></a></span><span>
+</span><a href="#local-6989586621679572846"><span class="hs-identifier hs-var">removePred</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679572845"><span class="hs-identifier hs-var">mcs</span></a></span><span>
 </span><span id="line-268"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
 -&gt; [OutConstraint] -&gt; Tweak ()
 forall k (is :: IxList) a.
@@ -832,9 +832,9 @@ Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [OutConstraint]
 </span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
-</span><a href="#local-6989586621679571096"><span class="hs-identifier hs-var">kept</span></a></span><span>
+</span><a href="#local-6989586621679572843"><span class="hs-identifier hs-var">kept</span></a></span><span>
 </span><span id="line-269"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[a]
-</span><a href="#local-6989586621679571097"><span class="hs-identifier hs-var">removed</span></a></span><span>
+</span><a href="#local-6989586621679572844"><span class="hs-identifier hs-var">removed</span></a></span><span>
 </span><span id="line-270"></span></pre></body></html>
