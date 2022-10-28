@@ -42,13 +42,12 @@
 </span><a href="Cooked.Attack.Tweak.Common.html#getTweak"><span class="hs-identifier hs-var hs-var">getTweak</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679571499"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">}</span><span>
 </span><span id="line-42"></span><span>
 </span><span id="line-43"></span><span class="hs-comment">-- | Internal wrapper type for compatibility with the LTL modalities. You'll</span><span>
-</span><span id="line-44"></span><span class="hs-comment">-- probably never work with this type if you want to build and use tweaks or</span><span>
-</span><span id="line-45"></span><span class="hs-comment">-- peeks.</span><span>
-</span><span id="line-46"></span><span class="hs-keyword">data</span><span> </span><span id="UntypedTweak"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-var">UntypedTweak</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>  </span><span id="local-6989586621679571312"><span id="UntypedTweak"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-var">UntypedTweak</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571312"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-type">UntypedTweak</span></a></span></span><span>
-</span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571308"><span class="annot"><span class="hs-identifier hs-type">Functor</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>  </span><span id="local-6989586621679571306"><span class="annot"><span class="annottext">fmap :: (a -&gt; b) -&gt; Tweak a -&gt; Tweak b
+</span><span id="line-44"></span><span class="hs-comment">-- probably never work with this type if you want to build and use tweaks.</span><span>
+</span><span id="line-45"></span><span class="hs-keyword">data</span><span> </span><span id="UntypedTweak"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-var">UntypedTweak</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679571312"><span id="UntypedTweak"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-var">UntypedTweak</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571312"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#UntypedTweak"><span class="hs-identifier hs-type">UntypedTweak</span></a></span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571308"><span class="annot"><span class="hs-identifier hs-type">Functor</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679571306"><span class="annot"><span class="annottext">fmap :: (a -&gt; b) -&gt; Tweak a -&gt; Tweak b
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">fmap</span></span></span><span> </span><span id="local-6989586621679571305"><span class="annot"><span class="annottext">a -&gt; b
 </span><a href="#local-6989586621679571305"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679571304"><span class="annot"><span class="annottext">Tweak a
 </span><a href="#local-6989586621679571304"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, b)]) -&gt; Tweak b
@@ -71,9 +70,9 @@ forall a. Tweak a -&gt; MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571304"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571303"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571302"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-51"></span><span>
-</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571291"><span id="local-6989586621679571293"><span id="local-6989586621679571295"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-53"></span><span>  </span><span id="local-6989586621679571289"><span class="annot"><span class="annottext">pure :: a -&gt; Tweak a
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571291"><span id="local-6989586621679571293"><span id="local-6989586621679571295"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679571289"><span class="annot"><span class="annottext">pure :: a -&gt; Tweak a
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span id="local-6989586621679571288"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571288"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -85,13 +84,13 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="#local-6989586621679571287"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571287"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571288"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-54"></span><span>  </span><span id="local-6989586621679571286"><span class="annot"><span class="annottext">&lt;*&gt; :: Tweak (a -&gt; b) -&gt; Tweak a -&gt; Tweak b
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679571286"><span class="annot"><span class="annottext">&lt;*&gt; :: Tweak (a -&gt; b) -&gt; Tweak a -&gt; Tweak b
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;*&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Tweak (a -&gt; b) -&gt; Tweak a -&gt; Tweak b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m (a -&gt; b) -&gt; m a -&gt; m b
 </span><span class="hs-identifier hs-var">ap</span></span><span>
-</span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571279"><span id="local-6989586621679571281"><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-57"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571277"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571279"><span id="local-6989586621679571281"><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571277"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571277"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679571276"><span class="annot"><span class="annottext">&gt;&gt;= :: Tweak a -&gt; (a -&gt; Tweak b) -&gt; Tweak b
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;&gt;=</span></span></span><span> </span><span id="local-6989586621679571275"><span class="annot"><span class="annottext">a -&gt; Tweak b
 </span><a href="#local-6989586621679571275"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, b)]) -&gt; Tweak b
@@ -102,7 +101,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571274"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571274"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571273"><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571273"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-58"></span><span>    </span><span class="annot"><span class="annottext">((TxSkel, a) -&gt; [(TxSkel, b)]) -&gt; [(TxSkel, a)] -&gt; [(TxSkel, b)]
+</span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">((TxSkel, a) -&gt; [(TxSkel, b)]) -&gt; [(TxSkel, a)] -&gt; [(TxSkel, b)]
 forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
 </span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679571271"><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571271"><span class="hs-identifier hs-var">skel'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571270"><span class="annot"><span class="annottext">a
@@ -118,9 +117,9 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="#local-6989586621679571277"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571274"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571273"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-59"></span><span>
-</span><span id="line-60"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571263"><span id="local-6989586621679571265"><span class="annot"><span class="hs-identifier hs-type">Alternative</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-61"></span><span>  </span><span id="local-6989586621679571261"><span class="annot"><span class="annottext">empty :: Tweak a
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571263"><span id="local-6989586621679571265"><span class="annot"><span class="hs-identifier hs-type">Alternative</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679571261"><span class="annot"><span class="annottext">empty :: Tweak a
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">empty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-var">Tweak</span></a></span><span> </span><span class="annot"><span class="annottext">((MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a)
@@ -129,7 +128,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">MockChainSt
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-62"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571259"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
+</span><span id="line-61"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571259"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571259"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679571258"><span class="annot"><span class="annottext">&lt;|&gt; :: Tweak a -&gt; Tweak a -&gt; Tweak a
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;|&gt;</span></span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571256"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571256"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -148,36 +147,36 @@ forall a. [a] -&gt; [a] -&gt; [a]
 </span><a href="#local-6989586621679571256"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571255"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571254"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-63"></span><span>
-</span><span id="line-64"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571248"><span id="local-6989586621679571250"><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span>
-</span><span id="line-65"></span><span>
-</span><span id="line-66"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadFail</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-67"></span><span>  </span><span id="local-6989586621679571243"><span class="annot"><span class="annottext">fail :: String -&gt; Tweak a
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679571248"><span id="local-6989586621679571250"><span class="annot"><span class="hs-identifier hs-type">MonadPlus</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span></span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadFail</span></span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>  </span><span id="local-6989586621679571243"><span class="annot"><span class="annottext">fail :: String -&gt; Tweak a
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">fail</span></span></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Tweak a
 forall (f :: * -&gt; *) a. Alternative f =&gt; f a
 </span><span class="hs-identifier hs-var">empty</span></span><span>
-</span><span id="line-68"></span><span>
-</span><span id="line-69"></span><span class="hs-comment">-- * Simple tweaks</span><span>
-</span><span id="line-70"></span><span>
-</span><span id="line-71"></span><span class="hs-comment">-- | The never-applicable tweak.</span><span>
-</span><span id="line-72"></span><span id="local-6989586621679571242"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#failingTweak"><span class="hs-identifier hs-type">failingTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571242"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-73"></span><span id="failingTweak"><span class="annot"><span class="annottext">failingTweak :: Tweak a
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- * Simple tweaks</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | The never-applicable tweak.</span><span>
+</span><span id="line-71"></span><span id="local-6989586621679571242"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#failingTweak"><span class="hs-identifier hs-type">failingTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571242"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-72"></span><span id="failingTweak"><span class="annot"><span class="annottext">failingTweak :: Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#failingTweak"><span class="hs-identifier hs-var hs-var">failingTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Tweak a
 forall (f :: * -&gt; *) a. Alternative f =&gt; f a
 </span><span class="hs-identifier hs-var">empty</span></span><span>
-</span><span id="line-74"></span><span>
-</span><span id="line-75"></span><span class="hs-comment">-- | The tweak that always applies and leaves the transaction unchanged.</span><span>
-</span><span id="line-76"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#doNothingTweak"><span class="hs-identifier hs-type">doNothingTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-77"></span><span id="doNothingTweak"><span class="annot"><span class="annottext">doNothingTweak :: Tweak ()
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | The tweak that always applies and leaves the transaction unchanged.</span><span>
+</span><span id="line-75"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#doNothingTweak"><span class="hs-identifier hs-type">doNothingTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span id="doNothingTweak"><span class="annot"><span class="annottext">doNothingTweak :: Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#doNothingTweak"><span class="hs-identifier hs-var hs-var">doNothingTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; Tweak ()
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-78"></span><span>
-</span><span id="line-79"></span><span class="hs-comment">-- | The &quot;tweak&quot; that returns the current 'MockChainSt'. This does *not* modify</span><span>
-</span><span id="line-80"></span><span class="hs-comment">-- the transaction.</span><span>
-</span><span id="line-81"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mcstTweak"><span class="hs-identifier hs-type">mcstTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span>
-</span><span id="line-82"></span><span id="mcstTweak"><span class="annot"><span class="annottext">mcstTweak :: Tweak MockChainSt
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- | The &quot;tweak&quot; that returns the current 'MockChainSt'. This does *not* modify</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- the transaction.</span><span>
+</span><span id="line-80"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mcstTweak"><span class="hs-identifier hs-type">mcstTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span>
+</span><span id="line-81"></span><span id="mcstTweak"><span class="annot"><span class="annottext">mcstTweak :: Tweak MockChainSt
 </span><a href="Cooked.Attack.Tweak.Common.html#mcstTweak"><span class="hs-identifier hs-var hs-var">mcstTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, MockChainSt)])
 -&gt; Tweak MockChainSt
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -191,11 +190,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="#local-6989586621679571237"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571237"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571238"><span class="hs-identifier hs-var">mcst</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-83"></span><span>
-</span><span id="line-84"></span><span class="hs-comment">-- | The &quot;tweak&quot; that obtains some value from the 'TxSkel'. This does *not*</span><span>
-</span><span id="line-85"></span><span class="hs-comment">-- modify the transaction.</span><span>
-</span><span id="line-86"></span><span id="local-6989586621679571234"><span id="local-6989586621679571235"><span id="local-6989586621679571236"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-type">viewTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571236"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Getter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571236"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571235"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571234"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571234"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
-</span><span id="line-87"></span><span id="viewTweak"><span class="annot"><span class="annottext">viewTweak :: Optic' k is TxSkel a -&gt; Tweak a
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | The &quot;tweak&quot; that obtains some value from the 'TxSkel'. This does *not*</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- modify the transaction.</span><span>
+</span><span id="line-85"></span><span id="local-6989586621679571234"><span id="local-6989586621679571235"><span id="local-6989586621679571236"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-type">viewTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571236"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Getter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571236"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571235"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571234"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571234"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-86"></span><span id="viewTweak"><span class="annot"><span class="annottext">viewTweak :: Optic' k is TxSkel a -&gt; Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var hs-var">viewTweak</span></a></span></span><span> </span><span id="local-6989586621679571232"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571232"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -212,10 +211,10 @@ Optic' k is s a -&gt; s -&gt; a
 </span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571232"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571230"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="hs-comment">-- | The tweak that sets a certain value in the 'TxSkel'.</span><span>
-</span><span id="line-90"></span><span id="local-6989586621679571226"><span id="local-6989586621679571227"><span id="local-6989586621679571228"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#setTweak"><span class="hs-identifier hs-type">setTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571228"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571228"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571227"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571226"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571226"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
-</span><span id="line-91"></span><span id="setTweak"><span class="annot"><span class="annottext">setTweak :: Optic' k is TxSkel a -&gt; a -&gt; Tweak ()
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | The tweak that sets a certain value in the 'TxSkel'.</span><span>
+</span><span id="line-89"></span><span id="local-6989586621679571226"><span id="local-6989586621679571227"><span id="local-6989586621679571228"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#setTweak"><span class="hs-identifier hs-type">setTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571228"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571228"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571227"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571226"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571226"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-90"></span><span id="setTweak"><span class="annot"><span class="annottext">setTweak :: Optic' k is TxSkel a -&gt; a -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var hs-var">setTweak</span></a></span></span><span> </span><span id="local-6989586621679571224"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571224"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571223"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571223"><span class="hs-identifier hs-var">newValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, ())]) -&gt; Tweak ()
@@ -233,10 +232,10 @@ Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="#local-6989586621679571224"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571223"><span class="hs-identifier hs-var">newValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571221"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-92"></span><span>
-</span><span id="line-93"></span><span class="hs-comment">-- | The tweak that modifies a certain value in the 'TxSkel'.</span><span>
-</span><span id="line-94"></span><span id="local-6989586621679571320"><span id="local-6989586621679571321"><span id="local-6989586621679571322"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-type">overTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571322"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571322"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571321"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
-</span><span id="line-95"></span><span id="overTweak"><span class="annot"><span class="annottext">overTweak :: Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- | The tweak that modifies a certain value in the 'TxSkel'.</span><span>
+</span><span id="line-93"></span><span id="local-6989586621679571320"><span id="local-6989586621679571321"><span id="local-6989586621679571322"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-type">overTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571322"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Setter</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571322"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571321"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571320"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-94"></span><span id="overTweak"><span class="annot"><span class="annottext">overTweak :: Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var hs-var">overTweak</span></a></span></span><span> </span><span id="local-6989586621679571218"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571218"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571217"><span class="annot"><span class="annottext">a -&gt; a
 </span><a href="#local-6989586621679571217"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, ())]) -&gt; Tweak ()
@@ -254,17 +253,17 @@ Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 </span><a href="#local-6989586621679571218"><span class="hs-identifier hs-var">optic</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
 </span><a href="#local-6989586621679571217"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571215"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-96"></span><span>
-</span><span id="line-97"></span><span class="hs-comment">-- * Composing tweaks</span><span>
-</span><span id="line-98"></span><span>
-</span><span id="line-99"></span><span class="hs-comment">-- | Turn a potentially failing tweak into an always successful tweak, that</span><span>
-</span><span id="line-100"></span><span class="hs-comment">-- just leaves the 'TxSkel' unmodified if the original tweak would have failed.</span><span>
-</span><span id="line-101"></span><span class="hs-comment">--</span><span>
-</span><span id="line-102"></span><span class="hs-comment">-- In cases where the original tweak would have failed, this returns</span><span>
-</span><span id="line-103"></span><span class="hs-comment">-- @Nothing@. If the original tweak would have been applicable, this is</span><span>
-</span><span id="line-104"></span><span class="hs-comment">-- signalled by wrapping the original tweak's return value in a @Just@.</span><span>
-</span><span id="line-105"></span><span id="local-6989586621679571213"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#tryTweak"><span class="hs-identifier hs-type">tryTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571213"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571213"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
-</span><span id="line-106"></span><span id="tryTweak"><span class="annot"><span class="annottext">tryTweak :: Tweak a -&gt; Tweak (Maybe a)
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- * Composing tweaks</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | Turn a potentially failing tweak into an always successful tweak, that</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- just leaves the 'TxSkel' unmodified if the original tweak would have failed.</span><span>
+</span><span id="line-100"></span><span class="hs-comment">--</span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- In cases where the original tweak would have failed, this returns</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- @Nothing@. If the original tweak would have been applicable, this is</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- signalled by wrapping the original tweak's return value in a @Just@.</span><span>
+</span><span id="line-104"></span><span id="local-6989586621679571213"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#tryTweak"><span class="hs-identifier hs-type">tryTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571213"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571213"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-105"></span><span id="tryTweak"><span class="annot"><span class="annottext">tryTweak :: Tweak a -&gt; Tweak (Maybe a)
 </span><a href="Cooked.Attack.Tweak.Common.html#tryTweak"><span class="hs-identifier hs-var hs-var">tryTweak</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span id="local-6989586621679571211"><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571211"><span class="hs-identifier hs-var">f</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, Maybe a)]) -&gt; Tweak (Maybe a)
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -273,17 +272,17 @@ forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 -&gt; Tweak (Maybe a)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-107"></span><span>  </span><span class="hs-glyph">\</span><span id="local-6989586621679571210"><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-106"></span><span>  </span><span class="hs-glyph">\</span><span id="local-6989586621679571210"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571210"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571209"><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571209"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]
 </span><a href="#local-6989586621679571211"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571210"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571209"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-108"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
+</span><span id="line-107"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571209"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe a
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-109"></span><span>    </span><span id="local-6989586621679571208"><span class="annot"><span class="annottext">[(TxSkel, a)]
+</span><span id="line-108"></span><span>    </span><span id="local-6989586621679571208"><span class="annot"><span class="annottext">[(TxSkel, a)]
 </span><a href="#local-6989586621679571208"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; (TxSkel, a) -&gt; (TxSkel, Maybe a)
 forall (a :: * -&gt; * -&gt; *) b c d.
 Arrow a =&gt;
@@ -295,13 +294,13 @@ forall a. a -&gt; Maybe a
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(TxSkel, a)]
 </span><a href="#local-6989586621679571208"><span class="hs-identifier hs-var">l</span></a></span><span>
-</span><span id="line-110"></span><span>
-</span><span id="line-111"></span><span class="hs-comment">-- | This &quot;tweak&quot; returns the transaction as it has been modified by now. Use</span><span>
-</span><span id="line-112"></span><span class="hs-comment">-- this as a kind of savepoint, if you want execute some sequence of tweaks of</span><span>
-</span><span id="line-113"></span><span class="hs-comment">-- which you're not sure that they will lead to the right result. You can</span><span>
-</span><span id="line-114"></span><span class="hs-comment">-- restore the savepoint after that sequence with 'setTxSkel'.</span><span>
-</span><span id="line-115"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-type">getTxSkel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
-</span><span id="line-116"></span><span id="getTxSkel"><span class="annot"><span class="annottext">getTxSkel :: Tweak TxSkel
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- | This &quot;tweak&quot; returns the transaction as it has been modified by now. Use</span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- this as a kind of savepoint, if you want execute some sequence of tweaks of</span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- which you're not sure that they will lead to the right result. You can</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- restore the savepoint after that sequence with 'setTxSkel'.</span><span>
+</span><span id="line-114"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-type">getTxSkel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span>
+</span><span id="line-115"></span><span id="getTxSkel"><span class="annot"><span class="annottext">getTxSkel :: Tweak TxSkel
 </span><a href="Cooked.Attack.Tweak.Common.html#getTxSkel"><span class="hs-identifier hs-var hs-var">getTxSkel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, TxSkel)]) -&gt; Tweak TxSkel
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
 </span><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-var">Tweak</span></a></span><span> </span><span class="annot"><span class="annottext">((MockChainSt -&gt; TxSkel -&gt; [(TxSkel, TxSkel)]) -&gt; Tweak TxSkel)
@@ -312,10 +311,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="#local-6989586621679571205"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571205"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571205"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-117"></span><span>
-</span><span id="line-118"></span><span class="hs-comment">-- | See the comment at 'getTxSkel'.</span><span>
-</span><span id="line-119"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#setTxSkel"><span class="hs-identifier hs-type">setTxSkel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-120"></span><span id="setTxSkel"><span class="annot"><span class="annottext">setTxSkel :: TxSkel -&gt; Tweak ()
+</span><span id="line-116"></span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- | See the comment at 'getTxSkel'.</span><span>
+</span><span id="line-118"></span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#setTxSkel"><span class="hs-identifier hs-type">setTxSkel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span id="setTxSkel"><span class="annot"><span class="annottext">setTxSkel :: TxSkel -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#setTxSkel"><span class="hs-identifier hs-var hs-var">setTxSkel</span></a></span></span><span> </span><span id="local-6989586621679571203"><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571203"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(MockChainSt -&gt; TxSkel -&gt; [(TxSkel, ())]) -&gt; Tweak ()
 forall a. (MockChainSt -&gt; TxSkel -&gt; [(TxSkel, a)]) -&gt; Tweak a
@@ -326,19 +325,19 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571203"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-121"></span><span>
-</span><span id="line-122"></span><span class="hs-comment">-- * Applying 'Tweak's to 'Constraints'</span><span>
-</span><span id="line-123"></span><span>
-</span><span id="line-124"></span><span class="hs-comment">-- | Most tweaks do something interesting only to the 'Constraints' of a</span><span>
-</span><span id="line-125"></span><span class="hs-comment">-- transaction. This function extracts that action on 'Constraints' from an</span><span>
-</span><span id="line-126"></span><span class="hs-comment">-- tweak.</span><span>
-</span><span id="line-127"></span><span id="local-6989586621679571202"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#applyToConstraints"><span class="hs-identifier hs-type">applyToConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571202"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span></span><span>
-</span><span id="line-128"></span><span id="applyToConstraints"><span class="annot"><span class="annottext">applyToConstraints :: Tweak a -&gt; MockChainSt -&gt; Constraints -&gt; [Constraints]
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- * Applying 'Tweak's to 'Constraints'</span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | Most tweaks do something interesting only to the 'Constraints' of a</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- transaction. This function extracts that action on 'Constraints' from an</span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- tweak.</span><span>
+</span><span id="line-126"></span><span id="local-6989586621679571202"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#applyToConstraints"><span class="hs-identifier hs-type">applyToConstraints</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571202"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-127"></span><span id="applyToConstraints"><span class="annot"><span class="annottext">applyToConstraints :: Tweak a -&gt; MockChainSt -&gt; Constraints -&gt; [Constraints]
 </span><a href="Cooked.Attack.Tweak.Common.html#applyToConstraints"><span class="hs-identifier hs-var hs-var">applyToConstraints</span></a></span></span><span> </span><span id="local-6989586621679571200"><span class="annot"><span class="annottext">Tweak a
 </span><a href="#local-6989586621679571200"><span class="hs-identifier hs-var">tweak</span></a></span></span><span> </span><span id="local-6989586621679571199"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571199"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571198"><span class="annot"><span class="annottext">Constraints
 </span><a href="#local-6989586621679571198"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-129"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; Constraints
+</span><span id="line-128"></span><span>  </span><span class="annot"><span class="annottext">TxSkel -&gt; Constraints
 </span><a href="Cooked.Tx.Constraints.Type.html#txConstraints"><span class="hs-identifier hs-var hs-var">txConstraints</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; Constraints)
 -&gt; ((TxSkel, a) -&gt; TxSkel) -&gt; (TxSkel, a) -&gt; Constraints
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -356,62 +355,62 @@ ConstraintsSpec constraints =&gt;
 constraints -&gt; TxSkel
 </span><a href="Cooked.Tx.Constraints.Type.html#txSkel"><span class="hs-identifier hs-var">txSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
 </span><a href="#local-6989586621679571198"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-130"></span><span>
-</span><span id="line-131"></span><span class="hs-comment">-- * Constructing Tweaks from Optics</span><span>
-</span><span id="line-132"></span><span>
-</span><span id="line-133"></span><span class="hs-comment">-- | Probably the most common way to make an tweak from an optic: Try to apply</span><span>
-</span><span id="line-134"></span><span class="hs-comment">-- a given function of type @MockChainSt -&gt; a -&gt; Maybe a@ to all foci of an</span><span>
-</span><span id="line-135"></span><span class="hs-comment">-- optic, modifying all foci that return @Just ...@.</span><span>
-</span><span id="line-136"></span><span class="hs-comment">--</span><span>
-</span><span id="line-137"></span><span class="hs-comment">-- If at least one focus was modified, this tweak returns a list of the foci</span><span>
-</span><span id="line-138"></span><span class="hs-comment">-- that were modified, in the order in which they occured on the original</span><span>
-</span><span id="line-139"></span><span class="hs-comment">-- transaction (and with no modification applied to them).</span><span>
-</span><span id="line-140"></span><span class="hs-comment">--</span><span>
-</span><span id="line-141"></span><span class="hs-comment">-- If no focus was modified, or if nothing was in focus, the tweak fails.</span><span>
-</span><span id="line-142"></span><span id="local-6989586621679571192"><span id="local-6989586621679571193"><span id="local-6989586621679571194"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkTweak"><span class="hs-identifier hs-type">mkTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-143"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571194"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-144"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
-</span><span id="line-145"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571194"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571193"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-146"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
-</span><span id="line-147"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
-</span><span id="line-148"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-149"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span><span>
-</span><span id="line-150"></span><span id="mkTweak"><span class="annot"><span class="annottext">mkTweak :: Optic' k is TxSkel a -&gt; (MockChainSt -&gt; a -&gt; Maybe a) -&gt; Tweak [a]
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="hs-comment">-- * Constructing Tweaks from Optics</span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- | Probably the most common way to make an tweak from an optic: Try to apply</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- a given function of type @MockChainSt -&gt; a -&gt; Maybe a@ to all foci of an</span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- optic, modifying all foci that return @Just ...@.</span><span>
+</span><span id="line-135"></span><span class="hs-comment">--</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- If at least one focus was modified, this tweak returns a list of the foci</span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- that were modified, in the order in which they occured on the original</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- transaction (and with no modification applied to them).</span><span>
+</span><span id="line-139"></span><span class="hs-comment">--</span><span>
+</span><span id="line-140"></span><span class="hs-comment">-- If no focus was modified, or if nothing was in focus, the tweak fails.</span><span>
+</span><span id="line-141"></span><span id="local-6989586621679571192"><span id="local-6989586621679571193"><span id="local-6989586621679571194"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkTweak"><span class="hs-identifier hs-type">mkTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-142"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571194"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-143"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
+</span><span id="line-144"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571194"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571193"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-145"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
+</span><span id="line-146"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-148"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571192"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span><span>
+</span><span id="line-149"></span><span id="mkTweak"><span class="annot"><span class="annottext">mkTweak :: Optic' k is TxSkel a -&gt; (MockChainSt -&gt; a -&gt; Maybe a) -&gt; Tweak [a]
 </span><a href="Cooked.Attack.Tweak.Common.html#mkTweak"><span class="hs-identifier hs-var hs-var">mkTweak</span></a></span></span><span> </span><span id="local-6989586621679571190"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571190"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571189"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; Maybe a
 </span><a href="#local-6989586621679571189"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-151"></span><span>  </span><span id="local-6989586621679571188"><span class="annot"><span class="annottext">[a]
+</span><span id="line-150"></span><span>  </span><span id="local-6989586621679571188"><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571188"><span class="hs-identifier hs-var">unmodified</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-152"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><span id="line-151"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; [a] -&gt; a -&gt; (a, [a])) -&gt; [a] -&gt; Tweak [a]
 forall k (is :: IxList) a acc.
 Is k A_Traversal =&gt;
 Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; Tweak acc
 </span><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-var">mkAccumLTweak</span></a></span><span>
-</span><span id="line-153"></span><span>      </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><span id="line-152"></span><span>      </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571190"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-154"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571186"><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-153"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571186"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571186"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571185"><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571185"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679571184"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var">oldFocus</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; Maybe a
 </span><a href="#local-6989586621679571189"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571186"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var">oldFocus</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-155"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571183"><span class="annot"><span class="annottext">a
+</span><span id="line-154"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571183"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571183"><span class="hs-identifier hs-var">newFocus</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571183"><span class="hs-identifier hs-var">newFocus</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var">oldFocus</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571185"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-156"></span><span>          </span><span class="annot"><span class="annottext">Maybe a
+</span><span id="line-155"></span><span>          </span><span class="annot"><span class="annottext">Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571184"><span class="hs-identifier hs-var">oldFocus</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571185"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-157"></span><span>      </span><span class="hs-special">)</span><span>
-</span><span id="line-158"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-159"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Tweak ()
+</span><span id="line-156"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-158"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Tweak ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Tweak ()) -&gt; Bool -&gt; Tweak ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -422,7 +421,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571188"><span class="hs-identifier hs-var">unmodified</span></a></span><span>
-</span><span id="line-160"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
+</span><span id="line-159"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; Tweak [a]) -&gt; [a] -&gt; Tweak [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -430,43 +429,43 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571188"><span class="hs-identifier hs-var">unmodified</span></a></span><span>
-</span><span id="line-161"></span><span>
-</span><span id="line-162"></span><span class="hs-comment">-- | Sometimes 'mkTweak' modifies too many foci. For example, there might be</span><span>
-</span><span id="line-163"></span><span class="hs-comment">-- many identical outputs on a transaction but you only want to modify a few of</span><span>
-</span><span id="line-164"></span><span class="hs-comment">-- them.</span><span>
-</span><span id="line-165"></span><span class="hs-comment">--</span><span>
-</span><span id="line-166"></span><span class="hs-comment">-- This is the problem solved by this tweak. It traverses all foci of the given</span><span>
-</span><span id="line-167"></span><span class="hs-comment">-- optic from the left to the right, while counting the foci to which the</span><span>
-</span><span id="line-168"></span><span class="hs-comment">-- modification successfully applies, but modifies the i-th modifiable focus</span><span>
-</span><span id="line-169"></span><span class="hs-comment">-- only if i satisfies a given predicate.</span><span>
-</span><span id="line-170"></span><span class="hs-comment">--</span><span>
-</span><span id="line-171"></span><span class="hs-comment">-- The return value and failure behaviour of this tweak is similar to the one</span><span>
-</span><span id="line-172"></span><span class="hs-comment">-- of 'mkTweak': It returns a list of the modified foci, as they were before</span><span>
-</span><span id="line-173"></span><span class="hs-comment">-- the modification, and fails if nothing was modified.</span><span>
-</span><span id="line-174"></span><span id="local-6989586621679571177"><span id="local-6989586621679571178"><span id="local-6989586621679571179"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkSelectTweak"><span class="hs-identifier hs-type">mkSelectTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-175"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571179"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-176"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
-</span><span id="line-177"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571179"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571178"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-178"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
-</span><span id="line-179"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
-</span><span id="line-180"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-181"></span><span>  </span><span class="hs-comment">-- | Maybe more than one of the foci is modifiable (i.e. the modification</span><span>
-</span><span id="line-182"></span><span>  </span><span class="hs-comment">-- returns @Just@). Use this predicate to selectively apply the modification</span><span>
-</span><span id="line-183"></span><span>  </span><span class="hs-comment">-- only to some of the modifiable foci: This tweak counts the modifiable foci</span><span>
-</span><span id="line-184"></span><span>  </span><span class="hs-comment">-- in the order of the traversal, starting with 0, and only applies the</span><span>
-</span><span id="line-185"></span><span>  </span><span class="hs-comment">-- modification to the @i@-th modifiable focus if @i@ satisfies the predicate.</span><span>
-</span><span id="line-186"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-187"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span><span>
-</span><span id="line-188"></span><span id="mkSelectTweak"><span class="annot"><span class="annottext">mkSelectTweak :: Optic' k is TxSkel a
+</span><span id="line-160"></span><span>
+</span><span id="line-161"></span><span class="hs-comment">-- | Sometimes 'mkTweak' modifies too many foci. For example, there might be</span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- many identical outputs on a transaction but you only want to modify a few of</span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- them.</span><span>
+</span><span id="line-164"></span><span class="hs-comment">--</span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- This is the problem solved by this tweak. It traverses all foci of the given</span><span>
+</span><span id="line-166"></span><span class="hs-comment">-- optic from the left to the right, while counting the foci to which the</span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- modification successfully applies, but modifies the i-th modifiable focus</span><span>
+</span><span id="line-168"></span><span class="hs-comment">-- only if i satisfies a given predicate.</span><span>
+</span><span id="line-169"></span><span class="hs-comment">--</span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- The return value and failure behaviour of this tweak is similar to the one</span><span>
+</span><span id="line-171"></span><span class="hs-comment">-- of 'mkTweak': It returns a list of the modified foci, as they were before</span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- the modification, and fails if nothing was modified.</span><span>
+</span><span id="line-173"></span><span id="local-6989586621679571177"><span id="local-6989586621679571178"><span id="local-6989586621679571179"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkSelectTweak"><span class="hs-identifier hs-type">mkSelectTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-174"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571179"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-175"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify.</span><span>
+</span><span id="line-176"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571179"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571178"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-177"></span><span>  </span><span class="hs-comment">-- | The modification to apply; return @Nothing@ if you want to leave the</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-comment">-- given focus as it is.</span><span>
+</span><span id="line-179"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-180"></span><span>  </span><span class="hs-comment">-- | Maybe more than one of the foci is modifiable (i.e. the modification</span><span>
+</span><span id="line-181"></span><span>  </span><span class="hs-comment">-- returns @Just@). Use this predicate to selectively apply the modification</span><span>
+</span><span id="line-182"></span><span>  </span><span class="hs-comment">-- only to some of the modifiable foci: This tweak counts the modifiable foci</span><span>
+</span><span id="line-183"></span><span>  </span><span class="hs-comment">-- in the order of the traversal, starting with 0, and only applies the</span><span>
+</span><span id="line-184"></span><span>  </span><span class="hs-comment">-- modification to the @i@-th modifiable focus if @i@ satisfies the predicate.</span><span>
+</span><span id="line-185"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-186"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679571177"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span><span>
+</span><span id="line-187"></span><span id="mkSelectTweak"><span class="annot"><span class="annottext">mkSelectTweak :: Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; Tweak [a]
 </span><a href="Cooked.Attack.Tweak.Common.html#mkSelectTweak"><span class="hs-identifier hs-var hs-var">mkSelectTweak</span></a></span></span><span> </span><span id="local-6989586621679571175"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571175"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571174"><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; Maybe a
 </span><a href="#local-6989586621679571174"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679571173"><span class="annot"><span class="annottext">Integer -&gt; Bool
 </span><a href="#local-6989586621679571173"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-189"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><span id="line-188"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571172"><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571172"><span class="hs-identifier hs-var">unmodified</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-190"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><span id="line-189"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; (Integer, [a]) -&gt; a -&gt; (a, (Integer, [a])))
 -&gt; (Integer, [a])
 -&gt; Tweak (Integer, [a])
@@ -475,23 +474,23 @@ Is k A_Traversal =&gt;
 Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; Tweak acc
 </span><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-var">mkAccumLTweak</span></a></span><span>
-</span><span id="line-191"></span><span>      </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><span id="line-190"></span><span>      </span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571175"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-192"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571171"><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-191"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571171"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571171"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571170"><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679571170"><span class="hs-identifier hs-var">index</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679571169"><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571169"><span class="hs-identifier hs-var">acc</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679571168"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">oldFocus</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-193"></span><span>          </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; Maybe a
+</span><span id="line-192"></span><span>          </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainSt -&gt; a -&gt; Maybe a
 </span><a href="#local-6989586621679571174"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571171"><span class="hs-identifier hs-var">mcst</span></a></span><span> </span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">oldFocus</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-194"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571167"><span class="annot"><span class="annottext">a
+</span><span id="line-193"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571167"><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571167"><span class="hs-identifier hs-var">newFocus</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-195"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><span id="line-194"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Bool
 </span><a href="#local-6989586621679571173"><span class="hs-identifier hs-var">select</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679571170"><span class="hs-identifier hs-var">index</span></a></span><span>
-</span><span id="line-196"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span id="line-195"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571167"><span class="hs-identifier hs-var">newFocus</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679571170"><span class="hs-identifier hs-var">index</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
@@ -501,22 +500,22 @@ forall a. Num a =&gt; a -&gt; a -&gt; a
 forall a. a -&gt; [a] -&gt; [a]
 </span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571169"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-197"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span id="line-196"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">oldFocus</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679571170"><span class="hs-identifier hs-var">index</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571169"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-198"></span><span>            </span><span class="annot"><span class="annottext">Maybe a
+</span><span id="line-197"></span><span>            </span><span class="annot"><span class="annottext">Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
 </span><a href="#local-6989586621679571168"><span class="hs-identifier hs-var">oldFocus</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679571170"><span class="hs-identifier hs-var">index</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571169"><span class="hs-identifier hs-var">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-199"></span><span>      </span><span class="hs-special">)</span><span>
-</span><span id="line-200"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><span id="line-198"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-199"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
-</span><span id="line-201"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Tweak ()
+</span><span id="line-200"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Tweak ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Tweak ()) -&gt; Bool -&gt; Tweak ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -527,7 +526,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571172"><span class="hs-identifier hs-var">unmodified</span></a></span><span>
-</span><span id="line-202"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
+</span><span id="line-201"></span><span>  </span><span class="annot"><span class="annottext">[a] -&gt; Tweak [a]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; Tweak [a]) -&gt; [a] -&gt; Tweak [a]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -535,25 +534,25 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. [a] -&gt; [a]
 </span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">[a]
 </span><a href="#local-6989586621679571172"><span class="hs-identifier hs-var">unmodified</span></a></span><span>
-</span><span id="line-203"></span><span>
-</span><span id="line-204"></span><span class="hs-comment">-- | A very simple, but flexible way to build an tweak from an optic: Traverse</span><span>
-</span><span id="line-205"></span><span class="hs-comment">-- all foci of the optic from the left to the right, collecting an accumulator</span><span>
-</span><span id="line-206"></span><span class="hs-comment">-- while also modifying the foci.</span><span>
-</span><span id="line-207"></span><span class="hs-comment">--</span><span>
-</span><span id="line-208"></span><span class="hs-comment">-- This tweak never fails, and returns the accumulator, even if no</span><span>
-</span><span id="line-209"></span><span class="hs-comment">-- modifications were made to the 'TxSkel'. So, it's up to the caller of this</span><span>
-</span><span id="line-210"></span><span class="hs-comment">-- function to look at the accumulator and decide how to proceed.</span><span>
-</span><span id="line-211"></span><span id="local-6989586621679571379"><span id="local-6989586621679571380"><span id="local-6989586621679571381"><span id="local-6989586621679571383"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-type">mkAccumLTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-212"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-213"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify</span><span>
-</span><span id="line-214"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571381"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-215"></span><span>  </span><span class="hs-comment">-- | function that describes the modification of the accumulator and the</span><span>
-</span><span id="line-216"></span><span>  </span><span class="hs-comment">-- current focus.</span><span>
-</span><span id="line-217"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-218"></span><span>  </span><span class="hs-comment">-- | Initial accumulator.</span><span>
-</span><span id="line-219"></span><span>  </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-220"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span></span></span></span></span><span>
-</span><span id="line-221"></span><span id="mkAccumLTweak"><span class="annot"><span class="annottext">mkAccumLTweak :: Optic' k is TxSkel a
+</span><span id="line-202"></span><span>
+</span><span id="line-203"></span><span class="hs-comment">-- | A very simple, but flexible way to build an tweak from an optic: Traverse</span><span>
+</span><span id="line-204"></span><span class="hs-comment">-- all foci of the optic from the left to the right, collecting an accumulator</span><span>
+</span><span id="line-205"></span><span class="hs-comment">-- while also modifying the foci.</span><span>
+</span><span id="line-206"></span><span class="hs-comment">--</span><span>
+</span><span id="line-207"></span><span class="hs-comment">-- This tweak never fails, and returns the accumulator, even if no</span><span>
+</span><span id="line-208"></span><span class="hs-comment">-- modifications were made to the 'TxSkel'. So, it's up to the caller of this</span><span>
+</span><span id="line-209"></span><span class="hs-comment">-- function to look at the accumulator and decide how to proceed.</span><span>
+</span><span id="line-210"></span><span id="local-6989586621679571379"><span id="local-6989586621679571380"><span id="local-6989586621679571381"><span id="local-6989586621679571383"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-type">mkAccumLTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-211"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-212"></span><span>  </span><span class="hs-comment">-- | Optic focussing potentially interesting points to modify</span><span>
+</span><span id="line-213"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571383"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571381"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-214"></span><span>  </span><span class="hs-comment">-- | function that describes the modification of the accumulator and the</span><span>
+</span><span id="line-215"></span><span>  </span><span class="hs-comment">-- current focus.</span><span>
+</span><span id="line-216"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679571380"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-217"></span><span>  </span><span class="hs-comment">-- | Initial accumulator.</span><span>
+</span><span id="line-218"></span><span>  </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-219"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571379"><span class="hs-identifier hs-type">acc</span></a></span></span></span></span></span><span>
+</span><span id="line-220"></span><span id="mkAccumLTweak"><span class="annot"><span class="annottext">mkAccumLTweak :: Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; Tweak acc
 </span><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-var hs-var">mkAccumLTweak</span></a></span></span><span> </span><span id="local-6989586621679571165"><span class="annot"><span class="annottext">Optic' k is TxSkel a
 </span><a href="#local-6989586621679571165"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571164"><span class="annot"><span class="annottext">MockChainSt -&gt; acc -&gt; a -&gt; (a, acc)
@@ -566,7 +565,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571162"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571162"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571161"><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571161"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-222"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Optic' k is TxSkel a
+</span><span id="line-221"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Optic' k is TxSkel a
 -&gt; (acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; TxSkel -&gt; (TxSkel, acc)
 forall k (is :: IxList) s t a b acc.
 Is k A_Traversal =&gt;
@@ -578,23 +577,23 @@ Optic k is s t a b
 </span><a href="#local-6989586621679571162"><span class="hs-identifier hs-var">mcst</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">acc
 </span><a href="#local-6989586621679571163"><span class="hs-identifier hs-var">initAcc</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679571161"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">]</span><span>
-</span><span id="line-223"></span><span>
-</span><span id="line-224"></span><span class="hs-comment">-- * Helpers to interact with 'MockChainSt'</span><span>
-</span><span id="line-225"></span><span>
-</span><span id="line-226"></span><span class="hs-comment">-- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument</span><span>
-</span><span id="line-227"></span><span id="local-6989586621679571337"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#utxosSuchThatMcst"><span class="hs-identifier hs-type">utxosSuchThatMcst</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-228"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-229"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-230"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-231"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.UtxoPredicate.html#UtxoPredicate"><span class="hs-identifier hs-type">UtxoPredicate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-232"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
-</span><span id="line-233"></span><span id="utxosSuchThatMcst"><span class="annot"><span class="annottext">utxosSuchThatMcst :: MockChainSt
+</span><span id="line-222"></span><span>
+</span><span id="line-223"></span><span class="hs-comment">-- * Helpers to interact with 'MockChainSt'</span><span>
+</span><span id="line-224"></span><span>
+</span><span id="line-225"></span><span class="hs-comment">-- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument</span><span>
+</span><span id="line-226"></span><span id="local-6989586621679571337"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#utxosSuchThatMcst"><span class="hs-identifier hs-type">utxosSuchThatMcst</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-227"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-228"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-229"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-230"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.UtxoPredicate.html#UtxoPredicate"><span class="hs-identifier hs-type">UtxoPredicate</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-231"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679571337"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-232"></span><span id="utxosSuchThatMcst"><span class="annot"><span class="annottext">utxosSuchThatMcst :: MockChainSt
 -&gt; Address -&gt; UtxoPredicate a -&gt; [(SpendableOut, Maybe a)]
 </span><a href="Cooked.Attack.Tweak.Common.html#utxosSuchThatMcst"><span class="hs-identifier hs-var hs-var">utxosSuchThatMcst</span></a></span></span><span> </span><span id="local-6989586621679571158"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571158"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571157"><span class="annot"><span class="annottext">Address
 </span><a href="#local-6989586621679571157"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679571156"><span class="annot"><span class="annottext">UtxoPredicate a
 </span><a href="#local-6989586621679571156"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-234"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainEnv
+</span><span id="line-233"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MockChainEnv
 -&gt; MockChainSt
 -&gt; MockChain [(SpendableOut, Maybe a)]
 -&gt; Either MockChainError ([(SpendableOut, Maybe a)], MockChainSt)
@@ -613,22 +612,22 @@ Address -&gt; UtxoPredicate a -&gt; m [(SpendableOut, Maybe a)]
 </span><a href="Cooked.MockChain.Monad.html#utxosSuchThat"><span class="hs-identifier hs-var">utxosSuchThat</span></a></span><span> </span><span class="annot"><span class="annottext">Address
 </span><a href="#local-6989586621679571157"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoPredicate a
 </span><a href="#local-6989586621679571156"><span class="hs-identifier hs-var">select</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-235"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="annot"><span class="annottext">MockChainError
+</span><span id="line-234"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="annot"><span class="annottext">MockChainError
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-236"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571152"><span class="annot"><span class="annottext">[(SpendableOut, Maybe a)]
+</span><span id="line-235"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679571152"><span class="annot"><span class="annottext">[(SpendableOut, Maybe a)]
 </span><a href="#local-6989586621679571152"><span class="hs-identifier hs-var">utxos</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">MockChainSt
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(SpendableOut, Maybe a)]
 </span><a href="#local-6989586621679571152"><span class="hs-identifier hs-var">utxos</span></a></span><span>
-</span><span id="line-237"></span><span>
-</span><span id="line-238"></span><span class="hs-comment">-- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit</span><span>
-</span><span id="line-239"></span><span class="hs-comment">-- argument</span><span>
-</span><span id="line-240"></span><span id="local-6989586621679571151"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#scriptUtxosSuchThatMcst"><span class="hs-identifier hs-type">scriptUtxosSuchThatMcst</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-241"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-242"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-243"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-244"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-245"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
-</span><span id="line-246"></span><span id="scriptUtxosSuchThatMcst"><span class="annot"><span class="annottext">scriptUtxosSuchThatMcst :: MockChainSt
+</span><span id="line-236"></span><span>
+</span><span id="line-237"></span><span class="hs-comment">-- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit</span><span>
+</span><span id="line-238"></span><span class="hs-comment">-- argument</span><span>
+</span><span id="line-239"></span><span id="local-6989586621679571151"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#scriptUtxosSuchThatMcst"><span class="hs-identifier hs-type">scriptUtxosSuchThatMcst</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-240"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.FromData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-241"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Monad.Direct.html#MockChainSt"><span class="hs-identifier hs-type">MockChainSt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-242"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-243"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-244"></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679571151"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-245"></span><span id="scriptUtxosSuchThatMcst"><span class="annot"><span class="annottext">scriptUtxosSuchThatMcst :: MockChainSt
 -&gt; TypedValidator a
 -&gt; (DatumType a -&gt; Value -&gt; Bool)
 -&gt; [(SpendableOut, DatumType a)]
@@ -636,7 +635,7 @@ Address -&gt; UtxoPredicate a -&gt; m [(SpendableOut, Maybe a)]
 </span><a href="#local-6989586621679571149"><span class="hs-identifier hs-var">mcst</span></a></span></span><span> </span><span id="local-6989586621679571148"><span class="annot"><span class="annottext">TypedValidator a
 </span><a href="#local-6989586621679571148"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679571147"><span class="annot"><span class="annottext">DatumType a -&gt; Value -&gt; Bool
 </span><a href="#local-6989586621679571147"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-247"></span><span>  </span><span class="annot"><span class="annottext">((SpendableOut, Maybe (DatumType a))
+</span><span id="line-246"></span><span>  </span><span class="annot"><span class="annottext">((SpendableOut, Maybe (DatumType a))
  -&gt; (SpendableOut, DatumType a))
 -&gt; [(SpendableOut, Maybe (DatumType a))]
 -&gt; [(SpendableOut, DatumType a)]
@@ -655,7 +654,7 @@ forall a. HasCallStack =&gt; Maybe a -&gt; a
 -&gt; [(SpendableOut, DatumType a)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-248"></span><span>    </span><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-247"></span><span>    </span><span class="annot"><span class="annottext">MockChainSt
 -&gt; Address
 -&gt; UtxoPredicate (DatumType a)
 -&gt; [(SpendableOut, Maybe (DatumType a))]
@@ -664,13 +663,13 @@ FromData a =&gt;
 MockChainSt
 -&gt; Address -&gt; UtxoPredicate a -&gt; [(SpendableOut, Maybe a)]
 </span><a href="Cooked.Attack.Tweak.Common.html#utxosSuchThatMcst"><span class="hs-identifier hs-var">utxosSuchThatMcst</span></a></span><span>
-</span><span id="line-249"></span><span>      </span><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-248"></span><span>      </span><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571149"><span class="hs-identifier hs-var">mcst</span></a></span><span>
-</span><span id="line-250"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Address
+</span><span id="line-249"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Address
 forall a. TypedValidator a -&gt; Address
 </span><span class="hs-identifier hs-var">L.validatorAddress</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
 </span><a href="#local-6989586621679571148"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-251"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Bool)
+</span><span id="line-250"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Bool)
 -&gt; (DatumType a -&gt; Value -&gt; Bool) -&gt; UtxoPredicate (DatumType a)
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Value -&gt; Bool
@@ -678,25 +677,25 @@ forall a b. a -&gt; b -&gt; a
 </span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DatumType a -&gt; Value -&gt; Bool
 </span><a href="#local-6989586621679571147"><span class="hs-identifier hs-var">select</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-252"></span><span>
-</span><span id="line-253"></span><span class="hs-comment">-- * Some more simple tweaks</span><span>
-</span><span id="line-254"></span><span>
-</span><span id="line-255"></span><span class="hs-comment">-- | Change some 'Value's in a 'TxSkel'. Returns a list of the increments by</span><span>
-</span><span id="line-256"></span><span class="hs-comment">-- which all of the focused values were changed.</span><span>
-</span><span id="line-257"></span><span class="hs-comment">--</span><span>
-</span><span id="line-258"></span><span class="hs-comment">-- This tweak never fails.</span><span>
-</span><span id="line-259"></span><span id="local-6989586621679571141"><span id="local-6989586621679571142"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#changeValueTweak"><span class="hs-identifier hs-type">changeValueTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-260"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571142"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-261"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571142"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571141"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-262"></span><span>  </span><span class="hs-comment">-- | A function describing how a focused value should change. Return the</span><span>
-</span><span id="line-263"></span><span>  </span><span class="hs-comment">-- modified value.</span><span>
-</span><span id="line-264"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-265"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">]</span></span></span><span>
-</span><span id="line-266"></span><span id="changeValueTweak"><span class="annot"><span class="annottext">changeValueTweak :: Optic' k is TxSkel Value -&gt; (Value -&gt; Value) -&gt; Tweak [Value]
+</span><span id="line-251"></span><span>
+</span><span id="line-252"></span><span class="hs-comment">-- * Some more simple tweaks</span><span>
+</span><span id="line-253"></span><span>
+</span><span id="line-254"></span><span class="hs-comment">-- | Change some 'Value's in a 'TxSkel'. Returns a list of the increments by</span><span>
+</span><span id="line-255"></span><span class="hs-comment">-- which all of the focused values were changed.</span><span>
+</span><span id="line-256"></span><span class="hs-comment">--</span><span>
+</span><span id="line-257"></span><span class="hs-comment">-- This tweak never fails.</span><span>
+</span><span id="line-258"></span><span id="local-6989586621679571141"><span id="local-6989586621679571142"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#changeValueTweak"><span class="hs-identifier hs-type">changeValueTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-259"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679571142"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-260"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679571142"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571141"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-261"></span><span>  </span><span class="hs-comment">-- | A function describing how a focused value should change. Return the</span><span>
+</span><span id="line-262"></span><span>  </span><span class="hs-comment">-- modified value.</span><span>
+</span><span id="line-263"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-264"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-265"></span><span id="changeValueTweak"><span class="annot"><span class="annottext">changeValueTweak :: Optic' k is TxSkel Value -&gt; (Value -&gt; Value) -&gt; Tweak [Value]
 </span><a href="Cooked.Attack.Tweak.Common.html#changeValueTweak"><span class="hs-identifier hs-var hs-var">changeValueTweak</span></a></span></span><span> </span><span id="local-6989586621679571139"><span class="annot"><span class="annottext">Optic' k is TxSkel Value
 </span><a href="#local-6989586621679571139"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679571138"><span class="annot"><span class="annottext">Value -&gt; Value
 </span><a href="#local-6989586621679571138"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-267"></span><span>  </span><span class="annot"><span class="annottext">Optic' k is TxSkel Value
+</span><span id="line-266"></span><span>  </span><span class="annot"><span class="annottext">Optic' k is TxSkel Value
 -&gt; (MockChainSt -&gt; [Value] -&gt; Value -&gt; (Value, [Value]))
 -&gt; [Value]
 -&gt; Tweak [Value]
@@ -705,17 +704,17 @@ Is k A_Traversal =&gt;
 Optic' k is TxSkel a
 -&gt; (MockChainSt -&gt; acc -&gt; a -&gt; (a, acc)) -&gt; acc -&gt; Tweak acc
 </span><a href="Cooked.Attack.Tweak.Common.html#mkAccumLTweak"><span class="hs-identifier hs-var">mkAccumLTweak</span></a></span><span>
-</span><span id="line-268"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel Value
+</span><span id="line-267"></span><span>    </span><span class="annot"><span class="annottext">Optic' k is TxSkel Value
 </span><a href="#local-6989586621679571139"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-269"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571137"><span class="annot"><span class="annottext">MockChainSt
+</span><span id="line-268"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679571137"><span class="annot"><span class="annottext">MockChainSt
 </span><a href="#local-6989586621679571137"><span class="hs-identifier hs-var">_mcst</span></a></span></span><span> </span><span id="local-6989586621679571136"><span class="annot"><span class="annottext">[Value]
 </span><a href="#local-6989586621679571136"><span class="hs-identifier hs-var">acc</span></a></span></span><span> </span><span id="local-6989586621679571135"><span class="annot"><span class="annottext">Value
 </span><a href="#local-6989586621679571135"><span class="hs-identifier hs-var">oldValue</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-270"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571134"><span class="annot"><span class="annottext">newValue :: Value
+</span><span id="line-269"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679571134"><span class="annot"><span class="annottext">newValue :: Value
 </span><a href="#local-6989586621679571134"><span class="hs-identifier hs-var hs-var">newValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 </span><a href="#local-6989586621679571138"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">Value
 </span><a href="#local-6989586621679571135"><span class="hs-identifier hs-var">oldValue</span></a></span><span>
-</span><span id="line-271"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
+</span><span id="line-270"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Value
 </span><a href="#local-6989586621679571134"><span class="hs-identifier hs-var">newValue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Value]
 </span><a href="#local-6989586621679571136"><span class="hs-identifier hs-var">acc</span></a></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; [Value] -&gt; [Value]
 forall a. [a] -&gt; [a] -&gt; [a]
@@ -726,25 +725,25 @@ forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 forall a. AdditiveGroup a =&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">Pl.negate</span></span><span> </span><span class="annot"><span class="annottext">Value
 </span><a href="#local-6989586621679571135"><span class="hs-identifier hs-var">oldValue</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
-</span><span id="line-272"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-273"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
-</span><span id="line-274"></span><span>
-</span><span id="line-275"></span><span class="hs-comment">-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the</span><span>
-</span><span id="line-276"></span><span class="hs-comment">-- given label will be added, forming a pair @(newlabel, oldlabel)@.</span><span>
-</span><span id="line-277"></span><span id="local-6989586621679571132"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-type">addLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571132"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571132"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
-</span><span id="line-278"></span><span id="addLabelTweak"><span class="annot"><span class="annottext">addLabelTweak :: x -&gt; Tweak ()
+</span><span id="line-271"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-272"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-273"></span><span>
+</span><span id="line-274"></span><span class="hs-comment">-- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the</span><span>
+</span><span id="line-275"></span><span class="hs-comment">-- given label will be added, forming a pair @(newlabel, oldlabel)@.</span><span>
+</span><span id="line-276"></span><span id="local-6989586621679571132"><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-type">addLabelTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679571132"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679571132"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-277"></span><span id="addLabelTweak"><span class="annot"><span class="annottext">addLabelTweak :: x -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-var hs-var">addLabelTweak</span></a></span></span><span> </span><span id="local-6989586621679571130"><span class="annot"><span class="annottext">x
 </span><a href="#local-6989586621679571130"><span class="hs-identifier hs-var">newlabel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-279"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxLabel
+</span><span id="line-278"></span><span>  </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxLabel
 -&gt; (TxLabel -&gt; TxLabel) -&gt; Tweak ()
 forall k (is :: IxList) a.
 Is k A_Setter =&gt;
 Optic' k is TxSkel a -&gt; (a -&gt; a) -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#overTweak"><span class="hs-identifier hs-var">overTweak</span></a></span><span>
-</span><span id="line-280"></span><span>    </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxLabel
+</span><span id="line-279"></span><span>    </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel TxLabel
 </span><a href="Cooked.Tx.Constraints.Optics.html#txLabelL"><span class="hs-identifier hs-var">txLabelL</span></a></span><span>
-</span><span id="line-281"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-282"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><span id="line-280"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-281"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxLabel
 forall x. LabelConstrs x =&gt; Maybe x -&gt; TxLabel
 </span><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe x -&gt; TxLabel) -&gt; Maybe x -&gt; TxLabel
@@ -753,7 +752,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">x
 </span><a href="#local-6989586621679571130"><span class="hs-identifier hs-var">newlabel</span></a></span><span>
-</span><span id="line-283"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571127"><span class="annot"><span class="annottext">x
+</span><span id="line-282"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679571127"><span class="annot"><span class="annottext">x
 </span><a href="#local-6989586621679571127"><span class="hs-identifier hs-var">oldlabel</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (x, x) -&gt; TxLabel
 forall x. LabelConstrs x =&gt; Maybe x -&gt; TxLabel
 </span><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe (x, x) -&gt; TxLabel) -&gt; Maybe (x, x) -&gt; TxLabel
@@ -763,5 +762,5 @@ forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">x
 </span><a href="#local-6989586621679571130"><span class="hs-identifier hs-var">newlabel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">x
 </span><a href="#local-6989586621679571127"><span class="hs-identifier hs-var">oldlabel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-284"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-285"></span></pre></body></html>
+</span><span id="line-283"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-284"></span></pre></body></html>
