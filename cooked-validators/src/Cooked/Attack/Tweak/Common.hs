@@ -41,8 +41,7 @@ import qualified PlutusTx.Numeric as Pl
 newtype Tweak a = Tweak {getTweak :: MockChainSt -> TxSkel -> [(TxSkel, a)]}
 
 -- | Internal wrapper type for compatibility with the LTL modalities. You'll
--- probably never work with this type if you want to build and use tweaks or
--- peeks.
+-- probably never work with this type if you want to build and use tweaks.
 data UntypedTweak where
   UntypedTweak :: Tweak a -> UntypedTweak
 
