@@ -5,9 +5,11 @@
 
 module Cooked.MockChain.Wallet where
 
-import qualified Cardano.Api as C
+import qualified Cardano.Api as Api
+import qualified Cardano.Api.Shelley as Api
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
+import Cooked.MockChain.Misc
 import Data.Default
 import Data.Either
 import Data.Function (on)
@@ -19,15 +21,8 @@ import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Crypto
 import qualified Ledger.Tx.CardanoAPI as Api
-import qualified Ledger.Validation as Validation
 import qualified Ledger.Value as Pl
 import Unsafe.Coerce
---import qualified Plutus.V2.Ledger.Tx as Pl
-import qualified Cardano.Api as Api
-import qualified Cardano.Api.Shelley as Api
-import qualified Cardano.Api.Byron as Api
-
-import Cooked.MockChain.Misc
 
 -- * MockChain Wallets
 
