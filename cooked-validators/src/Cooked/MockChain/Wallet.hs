@@ -9,6 +9,7 @@ import qualified Cardano.Api as C
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
 import Data.Default
+import Data.Either
 import Data.Function (on)
 import qualified Data.Map.Strict as M
 import Data.Maybe
@@ -17,6 +18,7 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Crypto
+import qualified Ledger.Tx.CardanoAPI as Api
 import qualified Ledger.Validation as Validation
 import qualified Ledger.Value as Pl
 import Unsafe.Coerce
@@ -190,18 +192,8 @@ initialTxFor initDist
     initUtxosFor :: Wallet -> Pl.Value -> Pl.TxOut
     initUtxosFor w v = Pl.TxOut $ Api.TxOut addr (Api.TxOutValue Api.MultiAssetInBabbageEra val) Api.TxOutDatumNone Api.ReferenceScriptNone
       where
-        {-
-        addr = Api.AddressInEra
-                  (Api.ShelleyAddressInEra Api.ShelleyBasedEraBabbage)
-                  (Api.makeShelleyAddress
-                    networkId
-                    (Api.PaymentCredentialByKey (Api.PaymentKeyHash _w9G))
-                    Api.NoStakeAddress) -- TODO PORT shall this really be `No`?
-                    -}
         val = Api.valueFromList undefined
-        addr = Api.AddressInEra
-                  Api.ByronAddressInAnyEra
-                  (Api.makeByronAddress theNetworkId undefined)
+        addr = fromRight undefined $ Api.toCardanoAddressInEra theNetworkId (walletAddress w) -- TODO PORT either?
 
     initDist' = M.toList $ distribution initDist
 
