@@ -26,7 +26,7 @@ fromTxOut (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))
         , Pl._ciTxOutValidator = (vHash, Nothing)       -- TODO PORT can/shall we recover the full validator?
         , ..
         }
-  | otherwise = Nothing
+  | otherwise = Nothing      -- TODO PORT shall this be a hard error?
   where
     _ciTxOutAddress = Pl.fromCardanoAddressInEra cAddr
     _ciTxOutValue = Pl.fromCardanoTxOutValue cValue
