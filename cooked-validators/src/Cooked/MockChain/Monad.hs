@@ -17,6 +17,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
+import Cooked.MockChain.Misc
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
@@ -29,6 +30,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
+import qualified Ledger.Tx as Pl
 import qualified PlutusTx as Pl (FromData)
 
 -- * BlockChain Monad
@@ -114,7 +116,7 @@ validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
 spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
 spendableRef txORef = do
   Just txOut <- txOutByRef txORef
-  return (txORef, fromJust (Pl.fromTxOut txOut))
+  return (txORef, fromJust (fromTxOut txOut))
 
 -- | Some values of type "SpendableOut" have no explicit datum in their
 -- "ChainIndexTxOut" but the datum hash instead. When used in cooked
@@ -133,13 +135,13 @@ spOutResolveDatum ::
   MonadBlockChain m =>
   SpendableOut ->
   m SpendableOut
-spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left _) _)) = do
+spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (datumHash, Nothing) _ _)) = do
   mDatum <- datumFromTxOut chainIndexTxOut
   case mDatum of
     Nothing -> fail "datum hash not found in block chain state"
     Just datum ->
       return
-        (txOutRef, chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
+        (txOutRef, chainIndexTxOut {Pl._ciTxOutScriptDatum = (datumHash, Just datum)})
 spOutResolveDatum spOut = return spOut
 
 -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
@@ -153,7 +155,7 @@ spOutResolveDatum spOut = return spOut
 spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
 spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
   \(txOut, txOutRef) ->
-    case Pl.fromTxOut txOut of
+    case fromTxOut txOut of
       Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
       Nothing -> fail "could not extract ChainIndexTxOut"
 
@@ -291,7 +293,7 @@ slotConfig = Pl.pSlotConfig <$> params
 -- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
 -- Note that if you need this your Plutus script will probably not validate on Mainnet.
 allowBigTransactions :: (MonadMockChain m) => m a -> m a
-allowBigTransactions = localParams Pl.allowBigTransactions
+allowBigTransactions = localParams Pl.increaseTransactionLimits
 
 -- ** Deriving further 'MonadBlockChain' instances
 
