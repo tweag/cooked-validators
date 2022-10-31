@@ -13,10 +13,14 @@ module Cooked.Tx.Constraints
   )
 where
 
+import qualified Cardano.Api as Api
+import qualified Cardano.Api.Shelley as Api
+import Cooked.MockChain.Misc
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Either
 import Data.Function (on)
 import qualified Data.List as List
 import qualified Data.Map.Strict as M
@@ -24,8 +28,9 @@ import qualified Ledger as Pl hiding (singleton, unspentOutputs, validatorHash)
 import qualified Ledger.Constraints as Pl hiding (mintingPolicy)
 import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator, validatorScript, validatorAddress, validatorHash)
+import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript, validatorHash)
 import qualified PlutusTx as Pl
+import qualified Ledger.Tx.CardanoAPI as Api
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
 
@@ -139,26 +144,25 @@ instance ToLedgerConstraint Constraints where
 -- | Generate the 'Pl.TxOut' transaction output associated to a given output
 -- constraint 'OutConstraint'.
 outConstraintToTxOut :: OutConstraint -> Pl.TxOut
-outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) =
-  Pl.TxOut
-    { Pl.txOutAddress =
-        Pl.Address
-          (Pl.PubKeyCredential pkh)
-          (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStakePkh),
-      Pl.txOutValue = value,
-      Pl.txOutDatumHash = Pl.datumHash . Pl.Datum . Pl.toBuiltinData <$> mDatum
-    }
-outConstraintToTxOut (PaysScript validator msc datum value) =
-  let outAddr = appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash validator
-   in Pl.TxOut
-        { Pl.txOutAddress = outAddr,
-          Pl.txOutValue = value,
-          Pl.txOutDatumHash = Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-        }
+outConstraintToTxOut (PaysPKWithDatum pkh mStakePkh mDatum value) = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
+  where
+    cAddr = fromRight undefined $
+              Api.toCardanoAddressInEra theNetworkId $
+                Pl.Address (Pl.PubKeyCredential pkh) (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStakePkh)
+    cValue = fromRight undefined $ Api.toCardanoTxOutValue value
+    cDatum = maybe
+              Api.TxOutDatumNone
+              Api.toCardanoTxOutDatumHashFromDatum
+              (Pl.Datum . Pl.toBuiltinData <$> mDatum)
+outConstraintToTxOut (PaysScript validator msc datum value) = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
   where
     appendStakingCredential :: Maybe Pl.StakingCredential -> Pl.Address -> Pl.Address
     appendStakingCredential Nothing addr = addr
     appendStakingCredential (Just sc) addr = addr {Pl.addressStakingCredential = Just sc}
+
+    cAddr = fromRight undefined $ Api.toCardanoAddressInEra theNetworkId $ appendStakingCredential msc $ Pl.scriptHashAddress $ Pl.validatorHash validator
+    cValue = fromRight undefined $ Api.toCardanoTxOutValue value
+    cDatum = Api.toCardanoTxOutDatumHashFromDatum $ Pl.Datum $ Pl.toBuiltinData datum
 
 -- | Reorders the outputs of a transaction according to the ordered list of
 -- output constraints that generate them. Fails in case of mismatch. The
