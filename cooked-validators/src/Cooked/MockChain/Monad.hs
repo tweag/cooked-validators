@@ -142,6 +142,7 @@ spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (datu
     Just datum ->
       return
         (txOutRef, chainIndexTxOut {Pl._ciTxOutScriptDatum = (datumHash, Just datum)})
+-- TODO PORT shall this also resolve datums in PublicKeyChainIndexTxOut?
 spOutResolveDatum spOut = return spOut
 
 -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
