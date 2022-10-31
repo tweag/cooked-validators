@@ -183,11 +183,9 @@ initialTxFor initDist
         Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
       }
   where
-    --initUtxosFor w v = Pl.TxOut (walletAddress w) v Nothing
-    initUtxosFor :: Wallet -> Pl.Value -> Pl.TxOut
-    initUtxosFor w v = Pl.TxOut $ Api.TxOut addr (Api.TxOutValue Api.MultiAssetInBabbageEra val) Api.TxOutDatumNone Api.ReferenceScriptNone
+    initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
       where
-        val = Api.valueFromList undefined
+        val = fromRight undefined $ Api.toCardanoTxOutValue v  -- TODO PORT either?
         addr = fromRight undefined $ Api.toCardanoAddressInEra theNetworkId (walletAddress w) -- TODO PORT either?
 
     initDist' = M.toList $ distribution initDist
