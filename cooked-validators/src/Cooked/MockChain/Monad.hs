@@ -27,10 +27,8 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
-import qualified Ledger.Tx as Pl
 import qualified PlutusTx as Pl (FromData)
 
 -- * BlockChain Monad
@@ -226,7 +224,7 @@ pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
 pkUtxos' pkh = map (second go) <$> pkUtxos pkh
   where
-    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
+    go (Pl.PublicKeyChainIndexTxOut a v datum _) = toPlTxOut a v (datum >>= snd)
     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
 
 -- ** Slot and Time Management
