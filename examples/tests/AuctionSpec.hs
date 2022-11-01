@@ -20,6 +20,7 @@ import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
 import Optics.Core
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- * Parameters and initial distributions
@@ -58,6 +59,14 @@ bananaParams t =
     { A.lot' = banana 2,
       A.minBid' = 3,
       A.bidDeadline' = t + 60_000
+    }
+
+otherParams :: L.POSIXTime -> A.StaticValParams
+otherParams t =
+  A.StaticValParams
+    { A.lot' = banana 3,
+      A.minBid' = 5,
+      A.bidDeadline' = t + 90_000
     }
 
 -- * Successful single-trace runs
@@ -263,6 +272,70 @@ attacks =
           tryTamperDatum
     ]
 
+-- * known vulnerabilities
+
+stealBidTwoAuctions :: MonadModalMockChain m => m ()
+stealBidTwoAuctions = do
+  t0 <- currentTime
+  -- Alice opens two auctions (it does not matter that they both belong to her,
+  -- this vulnerability applies to any two auctions)
+  (p, q) <- A.txOpen (bananaParams t0) `as` alice
+  (pOther, qOther) <- A.txOpen (otherParams t0) `as` alice
+  -- People now bid on the auctions until Bob is the highest bidder on both
+  -- auctions.
+  A.txBid p 40_000_000 `as` bob
+  A.txBid pOther 60_000_000 `as` bob
+  -- The UTxO at the first auction that represents the current state:
+  [(theLastBidUtxo, _)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
+  -- Eve now bids on the second auction. Among other things this ensures that
+  -- there's an output containing 60_000_000 Lovelace to Bob on the
+  -- transaction. This means that, if she simultaneously bids on the first
+  -- auction, she can fool the validator of the first auction, which expects an
+  -- output of at least 40_000_000 Lovelace to go to Bob. She can keep this
+  -- money to herself, effectively stealing Bob's bid on the first auction.
+  A.txBid pOther 70_000_000 `as` eve
+    `withTweak` addConstraintsTweak
+      ( [ Before (A.bidDeadline p),
+          SpendsScript
+            (A.auctionValidator p)
+            (A.Bid (A.BidderInfo 50_000_000 (walletPKHash eve)))
+            theLastBidUtxo
+        ]
+          :=>: [ paysScript
+                   (A.auctionValidator p)
+                   (A.Bidding (A.BidderInfo 50_000_000 (walletPKHash eve)))
+                   ( A.lot p
+                       <> Value.assetClassValue (A.threadTokenAssetClass p) 1
+                       <> Ada.lovelaceValueOf 50_000_000
+                   ),
+                 paysPK
+                   (walletPKHash eve)
+                   (Ada.lovelaceValueOf 40_000_000)
+               ]
+      )
+  -- Both auctions are closed normally. Eve is the highest bidder on both of
+  -- them.
+  awaitTime (A.bidDeadline p + 1)
+  A.txHammer p q
+  awaitTime (A.bidDeadline pOther + 1)
+  A.txHammer pOther qOther
+  where
+    alice = wallet 1
+    bob = wallet 3
+    eve = wallet 6
+
+vulns :: TestTree
+vulns =
+  testGroup "known vulnerabilities and exploits" $
+    map
+      expectFail
+      [ testCase "stealing a bind from another auction" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            stealBidTwoAuctions
+      ]
+
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
 
 -- Produce two outcomes, which differ only by who the (only) bidder in
@@ -304,5 +377,6 @@ tests =
     [ successfulSingle,
       failingSingle,
       attacks,
+      vulns,
       miscTests
     ]
