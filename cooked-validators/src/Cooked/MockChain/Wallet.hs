@@ -1,17 +1,15 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Wallet where
 
-import qualified Cardano.Api as Api
-import qualified Cardano.Api.Shelley as Api
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
 import Cooked.MockChain.Misc
 import Data.Default
-import Data.Either
 import Data.Function (on)
 import qualified Data.Map.Strict as M
 import Data.Maybe
@@ -20,7 +18,6 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Crypto
-import qualified Ledger.Tx.CardanoAPI as Api
 import qualified Ledger.Value as Pl
 import Unsafe.Coerce
 
@@ -183,10 +180,8 @@ initialTxFor initDist
         Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
       }
   where
-    initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
-      where
-        val = fromRight undefined $ Api.toCardanoTxOutValue v  -- TODO PORT either?
-        addr = fromRight undefined $ Api.toCardanoAddressInEra theNetworkId (walletAddress w) -- TODO PORT either?
+    -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
+    initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
 
     initDist' = M.toList $ distribution initDist
 
