@@ -61,14 +61,6 @@ bananaParams t =
       A.bidDeadline' = t + 60_000
     }
 
-otherParams :: L.POSIXTime -> A.StaticValParams
-otherParams t =
-  A.StaticValParams
-    { A.lot' = banana 3,
-      A.minBid' = 5,
-      A.bidDeadline' = t + 90_000
-    }
-
 -- * Successful single-trace runs
 
 -- These runs use the transactions from Auction.Offchain as they are
@@ -175,60 +167,6 @@ tryDatumHijack =
     )
     (noBids <|> oneBid <|> twoBids)
 
--- | Double satisfaction attack
-tryDoubleSat :: MonadModalMockChain m => m ()
-tryDoubleSat = do
-  t0 <- currentTime
-  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
-  somewhere
-    ( doubleSatAttack
-        -- look at all 'SpendsScript' constraints going to a validator of type
-        -- 'A.Auction'.
-        (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
-        -- If the constraint uses the 'A.Hammer' redeemer, try consuming an
-        -- additional UTxO from the same validator with one of six different
-        -- 'A.Bid' redeemers.
-        ( \mcst (val, r, _) ->
-            let utxos =
-                  scriptUtxosSuchThatMcst
-                    mcst
-                    val
-                    (\_ _ -> True)
-             in case r of
-                  A.Hammer ->
-                    concatMap
-                      ( \utxo ->
-                          map
-                            ( \(amount, bidder) ->
-                                toConstraints $
-                                  SpendsScript
-                                    val
-                                    (A.Bid $ A.BidderInfo amount bidder)
-                                    (fst utxo)
-                            )
-                            [ (5, walletPKHash $ wallet 1),
-                              (5, walletPKHash $ wallet 6),
-                              (4, walletPKHash $ wallet 1),
-                              (4, walletPKHash $ wallet 6),
-                              (3, walletPKHash $ wallet 1),
-                              (3, walletPKHash $ wallet 6)
-                            ]
-                      )
-                      utxos
-                  _ -> []
-        )
-        -- pay the surplus to wallet 6
-        (wallet 6)
-        -- try each extra redeemer on a different modified transaction
-        AllSeparate
-    )
-    ( do
-        A.txBid p 3 `as` wallet 2
-        A.txBid p 4 `as` wallet 3
-        awaitTime (A.bidDeadline p + 1)
-        A.txHammer p q
-    )
-
 -- | datum tampering attack that tries to change the bidder to wallet 6 on the
 -- 'Bidding' datum
 tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
@@ -260,11 +198,6 @@ attacks =
           isCekEvaluationFailure
           testInit
           tryDatumHijack,
-      testCase "double satisfaction" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDoubleSat,
       testCase "datum tampering" $
         testFailsFrom'
           isCekEvaluationFailure
@@ -274,6 +207,17 @@ attacks =
 
 -- * known vulnerabilities
 
+otherParams :: L.POSIXTime -> A.StaticValParams
+otherParams t =
+  A.StaticValParams
+    { A.lot' = banana 3,
+      A.minBid' = 5,
+      A.bidDeadline' = t + 90_000
+    }
+
+-- | This exploits the double satifsaction vulnerability in 'validBid' to steal
+-- a bid. The idea is to bid on two auctions that currently have the same
+-- highest bidder Bob, but only return one of the two bids to Bob in doing so.
 stealBidTwoAuctions :: MonadModalMockChain m => m ()
 stealBidTwoAuctions = do
   t0 <- currentTime
@@ -329,7 +273,7 @@ vulns =
   testGroup "known vulnerabilities and exploits" $
     map
       expectFail
-      [ testCase "stealing a bind from another auction" $
+      [ testCase "stealing a bid from another auction" $
           testFailsFrom'
             isCekEvaluationFailure
             testInit
