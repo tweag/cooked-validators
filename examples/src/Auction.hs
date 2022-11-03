@@ -56,18 +56,7 @@ data ValParams = ValParams
   { staticValParams :: StaticValParams,
     -- | address of the seller
     seller :: Pl.PubKeyHash,
-    -- | The asset class of the thread token. It's is needed here to
-    -- break a circular dependency between the vaildator and the
-    -- minting policy: The minting policy needs to know the (hash of
-    -- the) validator, in order to ensure that the thread token is
-    -- locked by the validator after the initial transaction. The
-    -- validator needs to know the AssetClass of the thread token, so
-    -- that it can ensure the token is correctly passed on. In
-    -- principle, the validator could compute this AssetClass, if it
-    -- knows the minting policy and the TokenName (using
-    -- 'Pl.scriptCurrencySymbol' and 'Value.assetClass'). This would
-    -- make the minting policy a parameter of the validator, so that
-    -- each would depend on the other. This is a way out.
+    -- | The asset class of the thread token.
     threadTokenAssetClass :: Value.AssetClass
   }
   deriving (Haskell.Show)
@@ -227,7 +216,7 @@ outputAuctionState txi o = do
   Pl.Datum d <- Pl.findDatum h txi
   PlutusTx.fromBuiltinData d
 
--- | Test that the value paid to the giv,en public key address is at
+-- | Test that the value paid to the given public key address is at
 -- least the given value
 {-# INLINEABLE receivesFrom #-}
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
@@ -269,7 +258,25 @@ validBid auction datum bid bidder ctx =
             traceIfFalse "Cannot bid less than the minimum bid" (minBid auction <= bid)
           Bidding (BidderInfo lastBid lastBidder) ->
             traceIfFalse "Must bid more than the last bid" (lastBid < bid)
-              && traceIfFalse
+              &&
+              -- ############################################################
+              --
+              -- This usage of 'receives' introduces a double satisfaction
+              -- vulnerability in the contract. The problem is that the required
+              -- outputs to the last bidder are not identified by anything but
+              -- their value. However, there might be an output containing a
+              -- suffiecient amount of money to the last bidder's address for
+              -- completely unrelated reasons. This output is then taken by this
+              -- validator to satisfy the requirement below.
+              --
+              -- For a completely worked-out exploit of this vulnerability, that
+              -- steals the output being checked here, see the trace
+              -- 'stealBidTwoAuctions' in "AuctionSpec.hs".
+              --
+              -- The 'receives' lines in 'validHammer' suffer of the same problem.
+              --
+              -- ############################################################
+              traceIfFalse
                 "Last bidder is not paid back"
                 (lastBidder `receives` Ada.lovelaceValueOf lastBid)
 
