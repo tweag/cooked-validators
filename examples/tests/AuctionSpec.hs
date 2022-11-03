@@ -369,6 +369,66 @@ exploitAddToken = do
     bob = wallet 2
     eve = wallet 6
 
+-- | This trace exploits the double satifsaction vulnerability in 'validBid' to
+-- steal a bid. The idea is to bid on two auctions that currently have the same
+-- highest bidder Bob, but only return one of the two bids to Bob in doing so.
+exploitDoubleSat :: MonadModalMockChain m => m ()
+exploitDoubleSat = do
+  -- Alice opens two auctions and sets the deadlines (it does not matter that
+  -- they both belong to her, this vulnerability applies to any two auctions)
+  offer1 <- A.txOffer (banana 2) 40_000_000 `as` alice
+  offer2 <- A.txOffer (banana 3) 60_000_000 `as` alice
+  t0 <- currentTime
+  let t1 = t0 + 60_000
+      t2 = t0 + 90_000
+  A.txSetDeadline offer1 t1 `as` alice
+  A.txSetDeadline offer2 t2 `as` alice
+  -- People now bid on the auctions until Bob is the highest bidder on both
+  -- auctions.
+  A.txBid offer1 40_000_000 `as` bob
+  A.txBid offer2 60_000_000 `as` bob
+  -- The UTxO at the first auction that represents the current state:
+  [(theLastBidUtxo, _)] <-
+    scriptUtxosSuchThat
+      A.auctionValidator
+      (\_ v -> v `Pl.geq` A.threadToken (fst offer1))
+  -- Eve now bids on the second auction. Among other things this ensures that
+  -- there's an output containing 40_000_000 Lovelace to Bob on the
+  -- transaction. This means that, if she simultaneously bids on the first
+  -- auction, she can fool the validator of the first auction, which expects an
+  -- output of at least 20_000_000 Lovelace to go to Bob. She can keep this
+  -- money to herself, effectively stealing Bob's bid on the first auction.
+  A.txBid offer2 70_000_000 `as` eve
+    `withTweak` addConstraintsTweak
+      ( [ Before t1,
+          SpendsScript
+            A.auctionValidator
+            (A.Bid (A.BidderInfo 50_000_000 (walletPKHash eve)))
+            theLastBidUtxo
+        ]
+          :=>: [ paysScript
+                   A.auctionValidator
+                   (A.Bidding (walletPKHash alice) t1 (A.BidderInfo 50_000_000 (walletPKHash eve)))
+                   ( sOutValue theLastBidUtxo
+                       <> Pl.negate (Ada.lovelaceValueOf 40_000_000) -- subtract Bob's bid
+                       <> Ada.lovelaceValueOf 50_000_000 -- add Eve's bid
+                   ),
+                 paysPK
+                   (walletPKHash eve)
+                   (Ada.lovelaceValueOf 50_000_000)
+               ]
+      )
+  -- Both auctions are closed normally. Eve is the highest bidder on both of
+  -- them.
+  awaitTime (t1 + 1)
+  A.txHammer offer1
+  awaitTime (t2 + 1)
+  A.txHammer offer2
+  where
+    alice = wallet 1
+    bob = wallet 2
+    eve = wallet 6
+
 successfulAttacks :: TestTree
 successfulAttacks =
   testGroup "successful attacks and exploits" $
@@ -379,11 +439,16 @@ successfulAttacks =
             isCekEvaluationFailure
             testInit
             tryAddToken,
-        testCase "exploit extra tokens" $
+        testCase "exploit extra tokens to steal a bid" $
           testFailsFrom'
             isCekEvaluationFailure
             testInit
-            exploitAddToken
+            exploitAddToken,
+        testCase "exploit double satisfaction to steal a bid" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            exploitDoubleSat
       ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'

@@ -397,23 +397,21 @@ validBid datum bid bidder ctx =
                   <> Ada.lovelaceValueOf bid
               )
             &&
-            -- ############################################################
-            --
-            -- This usage of 'receivesFrom' introduces a double satisfaction
-            -- vulnerability in the contract. The problem is that the required
-            -- outputs to the last bidder are not identified by anything but
-            -- their value. However, there might be an output containing a
-            -- suffiecient amount of money to the last bidder's address for
-            -- completely unrelated reasons. This output is then taken by this
-            -- validator to satisfy the requirement below.
-            --
-            -- For a completely worked-out exploit of this vulnerability, that
-            -- steals the output being checked here, see the trace
-            -- 'stealBidTwoAuctions' in "AuctionSpec.hs".
-            --
-            -- The 'receives' lines in 'validHammer' suffer of the same problem.
-            --
-            -- ############################################################
+            -- #############################################################
+            -- # This usage of 'receivesFrom' introduces a double satisfaction
+            -- # vulnerability in the contract. The problem is that the required
+            -- # outputs to the last bidder are not identified by anything but
+            -- # their value. However, there might be an output containing a
+            -- # suffiecient amount of money to the last bidder's address for
+            -- # completely unrelated reasons. This output is then taken by this
+            -- # validator to satisfy the requirement below.
+            -- #
+            -- # For a completely worked-out exploit of this vulnerability, that
+            -- # steals the output being checked here, see the trace
+            -- # 'exploitDoubleSat' in "AuctionSpec.hs".
+            -- #
+            -- # The 'receives' lines in 'validHammer' suffer of the same problem.
+            -- #############################################################
             traceIfFalse
               "Last bidder is not paid back"
               (receivesFrom txi prevBidder $ Ada.lovelaceValueOf prevBid)
