@@ -312,8 +312,8 @@ outputAuctionState txi o = do
   Pl.Datum d <- Pl.findDatum h txi
   PlutusTx.fromBuiltinData d
 
--- | Test that the value paid to the public key address is at least the
--- given value
+-- | Test that the value paid to the given public key address is at
+-- least the given value
 {-# INLINEABLE receivesFrom #-}
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
 receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
@@ -393,8 +393,26 @@ validBid datum bid bidder ctx =
                   <> Pl.negate (Ada.lovelaceValueOf prevBid)
                   <> Ada.lovelaceValueOf bid
               )
-            && traceIfFalse
-              "Previous bidder must get their money back"
+            &&
+            -- ############################################################
+            --
+            -- This usage of 'receivesFrom' introduces a double satisfaction
+            -- vulnerability in the contract. The problem is that the required
+            -- outputs to the last bidder are not identified by anything but
+            -- their value. However, there might be an output containing a
+            -- suffiecient amount of money to the last bidder's address for
+            -- completely unrelated reasons. This output is then taken by this
+            -- validator to satisfy the requirement below.
+            --
+            -- For a completely worked-out exploit of this vulnerability, that
+            -- steals the output being checked here, see the trace
+            -- 'stealBidTwoAuctions' in "AuctionSpec.hs".
+            --
+            -- The 'receives' lines in 'validHammer' suffer of the same problem.
+            --
+            -- ############################################################
+            traceIfFalse
+              "Last bidder is not paid back"
               (receivesFrom txi prevBidder $ Ada.lovelaceValueOf prevBid)
 
 -- | A hammer ends the auction. It is valid if

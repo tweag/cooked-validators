@@ -302,11 +302,6 @@ failingAttacks =
           isCekEvaluationFailure
           testInit
           tryDatumHijack,
-      testCase "double satisfaction" $
-        testFailsFrom'
-          isCekEvaluationFailure
-          testInit
-          tryDoubleSat,
       testCase "datum tampering" $
         testFailsFrom'
           isCekEvaluationFailure
