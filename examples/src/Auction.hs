@@ -85,10 +85,11 @@ Cardano, so feel free to skip this if you merely want to get to know the
 contract.
 
 On a previous version of this contract, there was only one transaction to make
-the offer and set the deadline. That version of the contract had the following
-problem, which we think is fundamentally unsolvable with only one transaction: If
-we want to use only one transaction to mint some tokens with a policy P and make
-sure that they end up at the correct validator V,
+the offer and set the deadline. This caused the following problem, which we
+think is fundamentally unsolvable: How do you ensure that some freshly minted
+tokens end up at a specific validator, using only one transaction? -- If you want
+to use only one transaction to mint some tokens with a policy P and make sure
+that they end up at the correct validator V,
 
 - the minting policy P has to know the address of V, which is the hash of V's
   (compiled and normalised) source code. In particular, there is no way to
@@ -106,7 +107,7 @@ freshly minted tokens to the validator into a two-transaction process: The first
 transaction does not involve any checks at all, does not mint any tokens that
 should be locked in the validator script, and creates "unchecked" UTxOs (Here,
 these are the UTxOs with the 'Offer' datum). The second transaction consumes
-unchecked UTxOs (with an additional redeemer, here, that is 'SetDeadline'),
+unchecked UTxOs (with an additional redeemer, which here is 'SetDeadline'),
 mints the required tokens, and pays a checked UTxO back to the same validator,
 which contains the newly minted tokens as a proof of their soundness, and a
 datum signalling that they have been checked (here, that datum is
@@ -114,9 +115,11 @@ datum signalling that they have been checked (here, that datum is
 checks are needed to ensure the tokens are minted correctly and paid to the
 correct script.
 
-This solves the issue because the validator knows its own address and can thus
-ensure that the minted tokens are given to itself and cannot be redirected to
-any other address by an attacker.
+This solves the issue: The only thing that P has to enforce is that tokens are
+only minted if a specific (unchecked) UTxO is spent on the same transaction. The
+check that the tokens actually end up in V where they belong can be done by V
+itself, using something like 'getContinuingOutputs' to find an output that has
+the correct tokens.
 
 -}
 
