@@ -60,7 +60,7 @@ f = ... (txSkelLbl (ProposePayment val) ...) ...</pre><p>This way we can (A) mod
  and balanced. This is prefixed with <em>unsafe</em> to draw attention that modifying a transaction at
  that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
  in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.</p><p>One interesting use of this function is to observe a transaction just before it is being
- sent for validation, with <code>unsafeModTx = RawModTx Debug.Trace.traceShowId</code>.</p><p><em>This has NO effect when running in <code><a href="Plutus-Contract.html#v:Contract" title="Plutus.Contract">Contract</a></code></em>.
+ sent for validation, with <code>unsafeModTx = RawModTxAfterBalancing Debug.Trace.traceShowId</code>.</p><p><em>This has NO effect when running in <code><a href="Plutus-Contract.html#v:Contract" title="Plutus.Contract">Contract</a></code></em>.
  By default, this is set to <code><a href="Cooked-Tx-Constraints-Type.html#v:Id" title="Cooked.Tx.Constraints.Type">Id</a></code>.</p></div></li><li><dfn class="src"><a id="v:balance" class="def">balance</a> :: <a href="http://hackage.haskell.org/packages/archive/Cabal/latest/doc/html/Distribution-Compat-Prelude-Internal.html#t:Bool" title="Distribution.Compat.Prelude.Internal">Bool</a></dfn><div class="doc"><p>Whether to balance the transaction or not. Balancing is the process of ensuring that
   <code>input + mint = output + fees</code>, if you decide to set <code>balance = false</code> you will have trouble
  satisfying that equation by hand because <code>fees</code> are variable. You will likely see a <code>ValueNotPreserved</code> error

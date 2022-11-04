@@ -987,7 +987,7 @@ forall a. ConstraintsSpec a =&gt; a -&gt; Constraints
 </span><span id="line-390"></span><span>    </span><span class="hs-comment">-- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.</span><span>
 </span><span id="line-391"></span><span>    </span><span class="hs-comment">--</span><span>
 </span><span id="line-392"></span><span>    </span><span class="hs-comment">-- One interesting use of this function is to observe a transaction just before it is being</span><span>
-</span><span id="line-393"></span><span>    </span><span class="hs-comment">-- sent for validation, with @unsafeModTx = RawModTx Debug.Trace.traceShowId@.</span><span>
+</span><span id="line-393"></span><span>    </span><span class="hs-comment">-- sent for validation, with @unsafeModTx = RawModTxAfterBalancing Debug.Trace.traceShowId@.</span><span>
 </span><span id="line-394"></span><span>    </span><span class="hs-comment">--</span><span>
 </span><span id="line-395"></span><span>    </span><span class="hs-comment">-- /This has NO effect when running in 'Plutus.Contract.Contract'/.</span><span>
 </span><span id="line-396"></span><span>    </span><span class="hs-comment">-- By default, this is set to 'Id'.</span><span>
