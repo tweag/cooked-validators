@@ -142,7 +142,7 @@ doubleSatAttack optic extra attacker mode = do
       ( \c -> do
           added <- addConstraintsTweak c
           let addedValue = constraintBalance added
-          if addedValue `L.gt` mempty
+          if addedValue `reasonableGt` mempty
             then addOutConstraintTweak $ paysPK (walletPKHash attacker) addedValue
             else failingTweak
       )
@@ -170,6 +170,11 @@ doubleSatAttack optic extra attacker mode = do
     allCombinations :: [[x]] -> [[x]]
     allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
     allCombinations [] = [[]]
+
+    -- Since `Pl.gt` is defined component-wise, which means that *every* entry
+    -- has to be strictly greater, this is different.
+    reasonableGt :: L.Value -> L.Value -> Bool
+    reasonableGt a b = a /= b && a `L.geq` b
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show)
