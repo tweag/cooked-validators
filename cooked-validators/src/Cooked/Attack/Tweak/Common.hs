@@ -113,16 +113,17 @@ setSignersTweak :: NE.NonEmpty Wallet -> Tweak ()
 setSignersTweak newSigners = Tweak $ \_mcst skel _signers -> [(skel, newSigners, ())]
 
 -- | Ensure that the given signers are present on the transaction. Returns a
--- list of signers that were added.
+-- list of signers that were added. New signers are added at the end of the list
+-- of signers.
 ensureSignersTweak :: [Wallet] -> Tweak [Wallet]
 ensureSignersTweak additionalSigners = do
   oldSigners <- getSignersTweak
   let newSigners = filter (not . flip elem oldSigners) additionalSigners
-  setSignersTweak $ prependList newSigners oldSigners
+  setSignersTweak $ appendList oldSigners newSigners
   return newSigners
   where
-    prependList :: [a] -> NE.NonEmpty a -> NE.NonEmpty a
-    prependList xs ne = foldr NE.cons ne xs
+    appendList :: NE.NonEmpty a -> [a] -> NE.NonEmpty a
+    appendList (x NE.:| xs) l = x NE.:| (xs ++ l)
 
 -- | Like 'ensureSignersTweak', but fails if no signers are added.
 addSignersTweak :: [Wallet] -> Tweak ()

@@ -98,7 +98,7 @@ twoAuctions = do
   A.txSetDeadline offerUtxo2 deadline2
   A.txBid offerUtxo1 30_000_000 `as` wallet 2
   A.txBid offerUtxo2 50_000_000 `as` wallet 3
-  A.txBid offerUtxo2 60_000_000 `as` wallet 4
+  A.txBid offerUtxo2 60_000_000 `as` wallet 2
   awaitTime (deadline1 + 1)
   A.txHammer offerUtxo1
   awaitTime (deadline2 + 1)
@@ -127,8 +127,7 @@ successfulSingle =
         "two concurrent auctions"
         $ testSucceedsFrom'
           ( \_ s ->
-              testBool (7 == bananasIn (holdingInState s (wallet 2)))
-                .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
+              testBool (10 == bananasIn (holdingInState s (wallet 2)))
           )
           testInit
           twoAuctions
@@ -209,47 +208,6 @@ tryDatumHijack =
         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
     )
     simpleTraces
-
--- | Double satisfaction attack. This attack tries to consume additional inputs
--- with 'Bid' redeemers.
-tryDoubleSat :: (Alternative m, MonadModalMockChain m) => m ()
-tryDoubleSat =
-  let eve = wallet 6
-   in somewhere
-        ( doubleSatAttack
-            (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
-            ( \mcst _ ->
-                let extraUtxos = scriptUtxosSuchThatMcst mcst A.auctionValidator (\_ _ -> True)
-                 in mapMaybe
-                      ( \(out, datum) ->
-                          case datum of
-                            A.Bidding seller deadline (A.BidderInfo prevBid prevBidder) ->
-                              Just
-                                ( [ Before deadline,
-                                    SpendsScript
-                                      A.auctionValidator
-                                      (A.Bid $ A.BidderInfo (prevBid + 10_000_000) (walletPKHash eve))
-                                      out
-                                  ]
-                                    :=>: [ paysScript
-                                             A.auctionValidator
-                                             (A.Bidding seller deadline $ A.BidderInfo (prevBid + 10_000_000) (walletPKHash eve))
-                                             ( nonAdaValue (sOutValue out)
-                                                 <> Ada.lovelaceValueOf (prevBid + 10_000_000)
-                                             )
-                                         ]
-                                )
-                            _ -> Nothing
-                      )
-                      extraUtxos
-            )
-            -- pay the surplus to wallet 6
-            eve
-            -- try each extra redeemer on a different modified transaction
-            AllSeparate
-            >> ensureSignersTweak [eve]
-        )
-        twoAuctions
 
 -- | datum tampering attack that tries to change the seller to wallet 6 on every
 -- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
@@ -352,9 +310,74 @@ exploitAddToken = do
     bob = wallet 2
     eve = wallet 6
 
+-- | Applying the automatic double satisfaction attack. In this attack, Eve
+-- tries to add another 'Bid' input whenever there's already a 'Bid' input on
+-- the transaction.
+--
+-- It goes like this: If we see a 'SpendsScript' with a 'Bid' redeemer, we look
+-- if there are any additional UTxOs at the 'auctionValidator'. Each of these
+-- that carries a 'Bidding' datum, Eve will try to spend, bidding 1 Lovelace
+-- more than the previous bidder. She does not pay the previous bidder's money
+-- back, however, which means that, independently of the previous bid, she will
+-- need to pay only one Lovelace to be the next highest bidder.
+--
+-- This tries the double satisfaction vulnerability described in the comment
+-- in 'validBid'.
+tryDoubleSat :: (Alternative m, MonadModalMockChain m) => m ()
+tryDoubleSat =
+  let eve = wallet 6
+   in somewhere
+        ( doubleSatAttack
+            (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
+            ( \mcst (_, redeemer, _) ->
+                case redeemer of
+                  A.Bid (A.BidderInfo bid bidder) ->
+                    let extraUtxos =
+                          scriptUtxosSuchThatMcst
+                            mcst
+                            A.auctionValidator
+                            (\_ _ -> True)
+                     in mapMaybe
+                          ( \(out, datum) ->
+                              case datum of
+                                A.Bidding seller deadline (A.BidderInfo prevBid prevBidder) ->
+                                  let (eveOut : _) =
+                                        utxosSuchThatMcst @()
+                                          mcst
+                                          (walletAddress eve)
+                                          (\_ v -> v `Pl.geq` Ada.lovelaceValueOf (prevBid + 1))
+                                   in Just $
+                                        [ Before deadline,
+                                          SpendsScript
+                                            A.auctionValidator
+                                            (A.Bid (A.BidderInfo (prevBid + 1) (walletPKHash eve)))
+                                            out,
+                                          SpendsPK $ fst eveOut
+                                        ]
+                                          :=>: [ paysScript
+                                                   A.auctionValidator
+                                                   (A.Bidding seller deadline $ A.BidderInfo (prevBid + 1) (walletPKHash eve))
+                                                   (sOutValue out <> Ada.lovelaceValueOf 1)
+                                               ]
+                                _ -> Nothing
+                          )
+                          extraUtxos
+                  _ -> []
+            )
+            -- pay the surplus to Eve
+            eve
+            -- try each extra redeemer on a different modified transaction
+            AllSeparate
+            -- make sure that Eve signs the transaction (after all, she'll spend something!)
+            >> ensureSignersTweak [eve]
+        )
+        simpleTraces
+
 -- | This trace exploits the double satifsaction vulnerability in 'validBid' to
--- steal a bid. The idea is to bid on two auctions that currently have the same
--- highest bidder Bob, but only return one of the two bids to Bob in doing so.
+-- steal a bid. It is a more hands-on version of the automatic double
+-- satisfaction attack. The idea is to bid on two auctions that currently have
+-- the same highest bidder Bob, but only return one of the two bids to Bob in
+-- doing so.
 exploitDoubleSat :: MonadModalMockChain m => m ()
 exploitDoubleSat = do
   -- Alice opens two auctions and sets the deadlines (it does not matter that
@@ -427,6 +450,11 @@ successfulAttacks =
             isCekEvaluationFailure
             testInit
             exploitAddToken,
+        testCase "double satisfaction" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            tryDoubleSat,
         testCase "exploit double satisfaction to steal a bid" $
           testFailsFrom'
             isCekEvaluationFailure
