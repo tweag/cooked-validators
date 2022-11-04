@@ -10,6 +10,7 @@ import Cooked.MockChain.Testing
 import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Plutus.V1.Ledger.Ada as L
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -70,21 +71,22 @@ tests =
             b = paysPK (walletPKHash $ wallet 2) $ L.lovelaceValueOf 123
             c = paysPK (walletPKHash $ wallet 3) $ L.lovelaceValueOf 123
             skel x y z = txSkel ([] :=>: [x, y, z])
+            singleSigner = (wallet 1 NE.:| [])
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
-                  (map (,()) [skel a b c, skel b a c])
-                  (getTweak (permutOutTweak $ KeepIdentity $ Just 2) def $ skel a b c),
+                  (map (,singleSigner,()) [skel a b c, skel b a c])
+                  (getTweak (permutOutTweak $ KeepIdentity $ Just 2) def (skel a b c) singleSigner),
               testCase "KeepIdentity Nothing" $
                 assertSameSets
-                  (map (,()) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (getTweak (permutOutTweak $ KeepIdentity Nothing) def $ skel a b c),
+                  (map (,singleSigner,()) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
+                  (getTweak (permutOutTweak $ KeepIdentity Nothing) def (skel a b c) singleSigner),
               testCase "OmitIdentity (Just 2)" $
                 assertSameSets
-                  (map (,()) [skel b a c])
-                  (getTweak (permutOutTweak $ OmitIdentity $ Just 2) def $ skel a b c),
+                  (map (,singleSigner,()) [skel b a c])
+                  (getTweak (permutOutTweak $ OmitIdentity $ Just 2) def (skel a b c) singleSigner),
               testCase "OmitIdentity Nothing" $
                 assertSameSets
-                  (map (,()) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (getTweak (permutOutTweak $ OmitIdentity Nothing) def $ skel a b c)
+                  (map (,singleSigner,()) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
+                  (getTweak (permutOutTweak $ OmitIdentity Nothing) def (skel a b c) singleSigner)
             ]
     ]

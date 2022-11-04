@@ -14,6 +14,7 @@ import Cooked.MockChain
 import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger.Typed.Scripts as L
 import qualified Plutus.V1.Ledger.Ada as L
 import qualified Plutus.V1.Ledger.Contexts as L
@@ -74,15 +75,15 @@ tests =
         "addConstraintsTweak"
         [ testCase "'OutConstraints' are always added" $
             let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-             in case getTweak (addConstraintsTweak oneOut) def (txSkel oneOut) of
-                  [(skelOut, x)] -> assertTxSameConstraints skelOut (txSkel $ oneOut <> oneOut) .&&. (x @?= oneOut)
+             in case getTweak (addConstraintsTweak oneOut) def (txSkel oneOut) (wallet 1 NE.:| []) of
+                  [(skelOut, _, x)] -> assertTxSameConstraints skelOut (txSkel $ oneOut <> oneOut) .&&. (x @?= oneOut)
                   _ -> assertFailure "not the right number of tweak outputs",
           testCase "time constraints are simplified" $
             let overlyComplicated = toConstraints [Before 10_000, After 1_000]
                 interval = toConstraints $ ValidateIn $ Pl.interval 5_000 20_000
                 combined = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
-             in case getTweak (addConstraintsTweak interval) def (txSkel overlyComplicated) of
-                  [(skelOut, x)] -> (skelOut @?= txSkel combined) .&&. (x @?= combined)
+             in case getTweak (addConstraintsTweak interval) def (txSkel overlyComplicated) (wallet 1 NE.:| []) of
+                  [(skelOut, _, x)] -> (skelOut @?= txSkel combined) .&&. (x @?= combined)
                   _ -> assertFailure "not the right number of tweak outputs",
           testCase "conflicting 'SpendsScript'" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
@@ -90,15 +91,15 @@ tests =
                 c2 =
                   [SpendsScript validator Redeemer2 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
-             in getTweak (addConstraintsTweak c2) def (txSkel c1) @?= [],
+             in getTweak (addConstraintsTweak c2) def (txSkel c1) (wallet 1 NE.:| []) @?= [],
           testCase "non-conflicting 'SpendsScript', which is already present" $
             let utxo1 : _ = scriptUtxosSuchThatMcst testMockChainSt validator (\_ _ -> True)
                 c1 = toConstraints $ SpendsScript validator Redeemer1 $ fst utxo1
                 c2 =
                   [SpendsScript validator Redeemer1 $ fst utxo1]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1]
-             in case getTweak (addConstraintsTweak c2) def (txSkel c1) of
-                  [(skelOut, x)] ->
+             in case getTweak (addConstraintsTweak c2) def (txSkel c1) (wallet 1 NE.:| []) of
+                  [(skelOut, _, x)] ->
                     assertTxSameConstraints skelOut (txSkel c2)
                       .&&. (x @?= toConstraints (paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo1))
                   _ -> assertFailure "not the right number of tweak outputs",
@@ -110,8 +111,8 @@ tests =
                 c2 =
                   [SpendsScript validator Redeemer1 $ fst utxo2]
                     :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue $ fst utxo2]
-             in case getTweak (addConstraintsTweak c2) def (txSkel c1) of
-                  [(skelOut, x)] ->
+             in case getTweak (addConstraintsTweak c2) def (txSkel c1) (wallet 1 NE.:| []) of
+                  [(skelOut, _, x)] ->
                     assertTxSameConstraints skelOut (txSkel $ c1 <> c2)
                       .&&. (x @?= c2)
                   _ -> assertFailure "not the right number of tweak outputs"

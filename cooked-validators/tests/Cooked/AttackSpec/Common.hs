@@ -7,6 +7,7 @@ import Cooked.TestUtils
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger.Value as L
 import Optics.Core
 import qualified Plutus.V1.Ledger.Ada as L
@@ -33,13 +34,15 @@ tests =
                         (const True)
                     )
                     def
-                    skel,
+                    skel
+                    (wallet 1 NE.:| []),
               testCase "select applied modification by index" $
                 [ ( txSkel
                       [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 123),
                         paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 234),
                         paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 789)
                       ],
+                    wallet 1 NE.:| [],
                     [L.lovelaceValueOf 345]
                   )
                 ]
@@ -54,13 +57,15 @@ tests =
                         (== 1)
                     )
                     def
-                    skel,
+                    skel
+                    (wallet 1 NE.:| []),
               testCase "return unmodified foci in the right order" $
                 [ ( txSkel
                       [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 789),
                         paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 234),
                         paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 789)
                       ],
+                    wallet 1 NE.:| [],
                     [ L.lovelaceValueOf 123,
                       L.lovelaceValueOf 345
                     ]
@@ -74,5 +79,6 @@ tests =
                     )
                     def
                     skel
+                    (wallet 1 NE.:| [])
             ]
     ]

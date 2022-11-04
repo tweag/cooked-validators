@@ -15,6 +15,7 @@ import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.Foldable
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import qualified Ledger.Ada as Pl
 import Test.Tasty
@@ -57,7 +58,7 @@ tests =
                 validateTxSkel $ f $ txSkel [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
                 validateTxSkel (g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4_200_000)]) `as` wallet 2
                 validateTxSkel $ h $ txSkel [paysPK (walletPKHash $ wallet 4) (Pl.lovelaceValueOf 4_200_000)]
-           in somewhere (Tweak $ \_ sk -> [(f sk, ())]) (tr id id id) `smcEq` (tr f id id <|> tr id f id <|> tr id id f),
+           in somewhere (Tweak $ \_ sk ss -> [(f sk, ss, ())]) (tr id id id) `smcEq` (tr f id id <|> tr id f id <|> tr id id f),
         testCase "somewhere (\\case b -> [b']; _ -> []) (a >> b >> c) == [a >> b' >> c]" $
           let paysWallet3 [] = False
               paysWallet3 (PaysPKWithDatum tgt _ _ _ : xs) = tgt == walletPKHash (wallet 3) || paysWallet3 xs
@@ -66,12 +67,17 @@ tests =
                 case toConstraints cs of
                   is :=>: os ->
                     if paysWallet3 os
-                      then [(TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10_000_000) : os)), ())]
+                      then
+                        [ ( TxSkel lbl opts (is :=>: (paysPK (walletPKHash $ wallet 5) (Pl.lovelaceValueOf 10_000_000) : os)),
+                            wallet 1 NE.:| [],
+                            ()
+                          )
+                        ]
                       else []
               tr f g h = void $ do
                 validateTxSkel $ f $ txSkel [paysPK (walletPKHash $ wallet 2) (Pl.lovelaceValueOf 4_200_000)]
                 validateTxSkel $ g $ txSkel [paysPK (walletPKHash $ wallet 3) (Pl.lovelaceValueOf 4_200_000)]
                 validateTxSkel $ h $ txSkel [paysPK (walletPKHash $ wallet 4) (Pl.lovelaceValueOf 4_200_000)]
-           in somewhere (Tweak $ \_ sk -> f sk) (tr id id id) `smcEq` tr id (fst . head . f) id
+           in somewhere (Tweak $ \_ sk _ -> f sk) (tr id id id) `smcEq` tr id ((\(sk', _, _) -> sk') . head . f) id
       ]
   ]

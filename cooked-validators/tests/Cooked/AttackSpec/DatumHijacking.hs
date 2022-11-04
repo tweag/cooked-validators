@@ -16,6 +16,7 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
 import qualified Ledger.Typed.Scripts as L
@@ -162,17 +163,19 @@ tests =
                   paysScript val1 SecondLock x2
                 ]
             skelOut bound select =
-              getTweak
-                ( datumHijackingAttack @MockContract
-                    ( \v d x ->
-                        L.validatorHash val1 == L.validatorHash v
-                          && SecondLock Pl.== d
-                          && bound `L.geq` x
-                    )
-                    select
-                )
-                def
-                skelIn
+              (\(skel', _signers', a) -> (skel', a))
+                <$> getTweak
+                  ( datumHijackingAttack @MockContract
+                      ( \v d x ->
+                          L.validatorHash val1 == L.validatorHash v
+                            && SecondLock Pl.== d
+                            && bound `L.geq` x
+                      )
+                      select
+                  )
+                  def
+                  skelIn
+                  (wallet 1 NE.:| [])
             skelExpected a b =
               txSkelLbl
                 (DatumHijackingLbl $ L.validatorAddress thief)

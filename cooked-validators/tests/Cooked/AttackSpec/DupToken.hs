@@ -13,6 +13,7 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger.Ada as L
 import qualified Ledger.Scripts as L
 import qualified Ledger.Typed.Scripts as L
@@ -84,7 +85,9 @@ tests =
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-            skelOut select = getTweak (dupTokenAttack select attacker) def skelIn
+            skelOut select =
+              (\(skel', _signers', a) -> (skel', a))
+                <$> getTweak (dupTokenAttack select attacker) def skelIn (wallet 1 NE.:| [])
             skelExpected v1 v2 v3 v4 =
               [ ( txSkelLbl
                     DupTokenLbl
@@ -151,6 +154,8 @@ tests =
                   L.assetClassValue ac1 1
                 )
               ]
-            skelOut = getTweak (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn
+            skelOut =
+              (\(skel', _signers', a) -> (skel', a))
+                <$> getTweak (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn (wallet 1 NE.:| [])
          in skelExpected @=? skelOut
     ]

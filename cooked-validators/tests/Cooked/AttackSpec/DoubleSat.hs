@@ -18,6 +18,7 @@ import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
 import Data.Default
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger.Ada as L
 import Ledger.Typed.Scripts
 import qualified Ledger.Typed.Scripts as L
@@ -177,7 +178,7 @@ tests =
                   -- 'aValidator' UTxO.
                   skelsOut :: DSSplitMode -> [SpendableOut] -> [TxSkel]
                   skelsOut splitMode aUtxos =
-                    fst
+                    (\(skel', _, _) -> skel')
                       <$> getTweak
                         ( doubleSatAttack
                             (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
@@ -216,6 +217,7 @@ tests =
                         )
                         dsTestMockChainSt
                         (skelIn aUtxos)
+                        (wallet 1 NE.:| [])
 
                   -- generate a transaction that spends the given 'aValidator'
                   -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
