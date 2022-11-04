@@ -390,7 +390,7 @@ data TxOpts = TxOpts
     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
     --
     -- One interesting use of this function is to observe a transaction just before it is being
-    -- sent for validation, with @unsafeModTx = RawModTx Debug.Trace.traceShowId@.
+    -- sent for validation, with @unsafeModTx = RawModTxAfterBalancing Debug.Trace.traceShowId@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to 'Id'.
