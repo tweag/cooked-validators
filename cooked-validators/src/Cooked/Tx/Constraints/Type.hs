@@ -2,15 +2,22 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use section" #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import Control.Lens
 import Data.Default
+import Data.List
+import Data.Map (Map)
+import qualified Data.Map as M
 import qualified Ledger as Pl hiding (unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -18,7 +25,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, TypedValidator)
 import qualified PlutusTx as Pl
-import qualified PlutusTx.Eq as Pl
+import qualified PlutusTx.Prelude as Pl
 import Type.Reflection
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
@@ -93,6 +100,76 @@ instance Semigroup Constraints where
 instance Monoid Constraints where
   mempty = [] :=>: []
 
+-- | Check whether two constraints are the same, up to
+--
+-- - reordering of inputs,
+--
+-- - substitutions of time constraints ('After', 'Before', 'ValidateIn') that
+--   preserve the validity interval, and
+--
+-- - differences in 'Mints' constraints that leave the specified value that
+--   should be minted for each redeemer the same.
+--
+-- This relation is coarser than equality as defined on 'Constraint', and more
+-- closely reflects the notion of "these constraints specify the same
+-- transaction".
+sameConstraints :: Constraints -> Constraints -> Bool
+sameConstraints (is :=>: os) (is' :=>: os') =
+  sameSets (filter isSpendsScriptOrSpendsPK is) (filter isSpendsScriptOrSpendsPK is')
+    && (os == os')
+    && (validityRange is == validityRange is')
+    && (sort (signers is) == sort (signers is'))
+    && sameMintedValuesWithRedeemers is is'
+  where
+    sameSets :: Eq a => [a] -> [a] -> Bool
+    sameSets l r = length l == length r && subset l r && subset r l
+
+    subset :: Eq a => [a] -> [a] -> Bool
+    subset l r = all (`elem` r) l
+
+    isSpendsScriptOrSpendsPK :: MiscConstraint -> Bool
+    isSpendsScriptOrSpendsPK SpendsScript {} = True
+    isSpendsScriptOrSpendsPK SpendsPK {} = True
+    isSpendsScriptOrSpendsPK _ = False
+
+    validityRange :: [MiscConstraint] -> Pl.POSIXTimeRange
+    validityRange = foldr (Pl.intersection . toTimeRange) Pl.always
+      where
+        toTimeRange = \case
+          Before b -> Pl.to b
+          After a -> Pl.from a
+          ValidateIn i -> i
+          _ -> Pl.always
+
+    signers :: [MiscConstraint] -> [Pl.PubKeyHash]
+    signers = foldr (union . toSignerList) []
+      where
+        toSignerList (SignedBy s) = s
+        toSignerList _ = []
+
+    sameMintedValuesWithRedeemers :: [MiscConstraint] -> [MiscConstraint] -> Bool
+    sameMintedValuesWithRedeemers cs cs' = mintedWithRedeemer cs == mintedWithRedeemer cs'
+      where
+        mintedWithRedeemer :: [MiscConstraint] -> Map MintsRedeemer Pl.Value
+        mintedWithRedeemer = foldr extendWithValue M.empty
+          where
+            extendWithValue :: MiscConstraint -> Map MintsRedeemer Pl.Value -> Map MintsRedeemer Pl.Value
+            extendWithValue (Mints r _ v) m = M.insertWith (<>) (MintsRedeemer r) v m
+            extendWithValue _ m = m
+
+-- | Helper type for 'sameConstraints', used to wrap the redeemers in 'Mints'
+-- constraints.
+data MintsRedeemer where
+  MintsRedeemer :: MintsConstrs a => Maybe a -> MintsRedeemer
+
+instance Eq MintsRedeemer where
+  MintsRedeemer a == MintsRedeemer x = case typeOf a `eqTypeRep` typeOf x of
+    Just HRefl -> a Pl.== x
+    Nothing -> False
+
+instance Ord MintsRedeemer where
+  MintsRedeemer a <= MintsRedeemer x = Pl.toData a <= Pl.toData x
+
 -- | Constraints which do not specify new transaction outputs
 data MiscConstraint where
   -- | Ensure that the given 'Pl.TypedValidator' spends a specific UTxO (which
@@ -130,9 +207,11 @@ data MiscConstraint where
     [Pl.MintingPolicy] ->
     Pl.Value ->
     MiscConstraint
-  -- | Ensure that the transaction happens before the given time.
+  -- | Ensure that the transaction happens no later than the given time (the end
+  -- time is included in the allowed range).
   Before :: Pl.POSIXTime -> MiscConstraint
-  -- | Ensure that the transaction happens after the given time.
+  -- | Ensure that the transaction happens no earlier than the given time (the
+  -- start time is included in the allowed range).
   After :: Pl.POSIXTime -> MiscConstraint
   -- | Ensure that the transaction happens in the given time range.
   ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint

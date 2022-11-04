@@ -3,6 +3,7 @@
 
 module Cooked.Tx.Constraints
   ( module Cooked.Tx.Constraints.Type,
+    module Cooked.Tx.Constraints.Optics,
     module Cooked.Tx.Constraints.Pretty,
     LedgerConstraint,
     extractDatumStr,
@@ -13,6 +14,7 @@ module Cooked.Tx.Constraints
 where
 
 import Cooked.MockChain.Wallet
+import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import Data.Function (on)

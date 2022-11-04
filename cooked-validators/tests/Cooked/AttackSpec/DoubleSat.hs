@@ -22,6 +22,7 @@ import qualified Ledger.Ada as L
 import Ledger.Typed.Scripts
 import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
+import Optics.Core
 import qualified Plutus.Script.Utils.V1.Scripts as L
 import qualified Plutus.V1.Ledger.Contexts as L
 import qualified Plutus.V1.Ledger.Interval as Pl
@@ -155,114 +156,148 @@ tests =
        in [ testCase "the two test validators have different addresses" $
               assertBool "the addresses are the same" $
                 L.validatorAddress aValidator /= L.validatorAddress bValidator,
-            testGroup
-              "smart constructors for 'DoubleSatParams'"
-              [], -- TODO
-            testGroup
-              "unit tests for 'addConstraints'"
-              [ testCase "'OutConstraints' are always added" $
-                  let oneOut = toConstraints $ paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-                   in assertSameConstraints (addConstraints oneOut oneOut) (oneOut <> oneOut),
-                testCase "redundant time constraints are omitted" $
-                  let smallInterval = toConstraints $ ValidateIn $ Pl.interval 5_000 10_000
-                      bigInterval = toConstraints $ Before 11_000
-                   in assertSameConstraints (addConstraints bigInterval smallInterval) smallInterval,
-                testCase "in case of a conflicting 'SpendsScript', nothing is added" $
-                  let c1 = toConstraints $ SpendsScript bValidator BRedeemer1 bUtxo1
-                      c2 =
-                        [SpendsScript bValidator BRedeemer2 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo1]
-                   in assertSameConstraints (addConstraints c2 c1) c1,
-                testCase "non-conflicting 'SpendsScript' is added" $
-                  let c1 =
-                        [SpendsScript bValidator BRedeemer1 bUtxo1]
-                          :=>: [paysPK (walletPKHash $ wallet 1) $ sOutValue bUtxo1]
-                      c2 =
-                        [SpendsScript bValidator BRedeemer2 bUtxo2]
-                          :=>: [paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo2]
-                   in assertSameConstraints (addConstraints c2 c1) $
-                        [ SpendsScript bValidator BRedeemer1 bUtxo1,
-                          SpendsScript bValidator BRedeemer2 bUtxo2
-                        ]
-                          :=>: [ paysPK (walletPKHash $ wallet 1) $ sOutValue bUtxo1,
-                                 paysPK (walletPKHash $ wallet 6) $ sOutValue bUtxo2
-                               ]
-              ],
-            testCase "unit test on a 'TxSkel'" $
-              let params =
-                    -- These parameters could easily be constructed with
-                    -- 'dsAddOneSsctoSsc', but let's build them by hand here, to
-                    -- not depend on that function.
-                    DoubleSatParams
-                      { dsOptic = spendsScriptConstraintsT,
-                        dsExtraConstraints = \mcst ssc ->
-                          let bUtxos = scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
-                           in case ssc of
-                                SpendsScriptConstraint _ _ aOut ->
-                                  let aValue = sOutValue aOut
-                                   in if
-                                          | aValue == L.lovelaceValueOf 2_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
-                                              | (bOut, bDatum) <- bUtxos,
-                                                sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                            ]
-                                          | aValue == L.lovelaceValueOf 3_000_000 ->
-                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
-                                              | (bOut, bDatum) <- bUtxos,
-                                                sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
-                                            ]
-                                          | aValue == L.lovelaceValueOf 4_000_000 ->
-                                            concatMap
-                                              ( \(bOut, bDatum) ->
-                                                  let bValue = sOutValue bOut
-                                                   in if
-                                                          | bValue == L.lovelaceValueOf 6_000_000 ->
-                                                            [toConstraints $ SpendsScript bValidator BRedeemer1 bOut]
-                                                          | bValue == L.lovelaceValueOf 7_000_000 ->
-                                                            [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut,
-                                                              toConstraints $ SpendsScript bValidator BRedeemer2 bOut
-                                                            ]
-                                                          | otherwise -> []
-                                              )
-                                              bUtxos
-                                          | otherwise -> [],
-                        dsAttacker = wallet 6,
-                        dsSplitStrategy = OneChange
-                      }
+            testGroup "unit tests on a 'TxSkel'" $
+              -- The following tests make sure that, depending on some
+              -- 'SpendsScript' constraints for UTxOs belonging to the
+              -- 'aValidator' on the input 'TxSkel', the correct additional
+              -- 'SpendsScript' constraints for UTxOs of the 'bValidator' are on
+              -- the output 'TxSkel's. Both 'DSSplitMode's are tested.
+              let -- generate an input skeleton from some 'aValidator' UTxOs to
+                  -- be spent.
+                  skelIn :: [SpendableOut] -> TxSkel
                   skelIn aUtxos =
                     txSkel $
                       map (SpendsScript aValidator ARedeemer) aUtxos
                         :=>: [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
-                  skelOut aUtxos = doubleSatAttack params dsTestMockChainSt $ skelIn aUtxos
 
-                  skelExpected aUtxos bUtxos =
-                    map
-                      ( \(bOut, bRed) ->
-                          txSkelLbl DoubleSatLbl $
-                            ( SpendsScript bValidator bRed bOut :
-                              map (SpendsScript aValidator ARedeemer) aUtxos
+                  -- apply the 'doubleSatAttack' to the input skeleton to
+                  -- generate a list of output skeleta. The multiway-if
+                  -- statement is what decides which UTxOs belonging to the
+                  -- 'bValidator' to add, depending on the focused input
+                  -- 'aValidator' UTxO.
+                  skelsOut :: DSSplitMode -> [SpendableOut] -> [TxSkel]
+                  skelsOut splitMode aUtxos =
+                    fst
+                      <$> getTweak
+                        ( doubleSatAttack
+                            (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
+                            ( \mcst (_, _, aOut) ->
+                                let bUtxos = fst <$> scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
+                                    aValue = sOutValue aOut
+                                 in if
+                                        | aValue == L.lovelaceValueOf 2_000_000 ->
+                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                            | bOut <- bUtxos,
+                                              sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                          ]
+                                        | aValue == L.lovelaceValueOf 3_000_000 ->
+                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                            | bOut <- bUtxos,
+                                              sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                          ]
+                                        | aValue == L.lovelaceValueOf 4_000_000 ->
+                                          concatMap
+                                            ( \bOut ->
+                                                let bValue = sOutValue bOut
+                                                 in if
+                                                        | bValue == L.lovelaceValueOf 6_000_000 ->
+                                                          [toConstraints $ SpendsScript bValidator BRedeemer1 bOut]
+                                                        | bValue == L.lovelaceValueOf 7_000_000 ->
+                                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut,
+                                                            toConstraints $ SpendsScript bValidator BRedeemer2 bOut
+                                                          ]
+                                                        | otherwise -> []
+                                            )
+                                            bUtxos
+                                        | otherwise -> []
                             )
-                              :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                                     paysPK (walletPKHash (wallet 6)) (sOutValue bOut)
-                                   ]
-                      )
-                      bUtxos
-               in testConjoin $
-                    map
-                      (\(aUtxos, bUtxos) -> assertSameTxSkels (skelExpected aUtxos bUtxos) (skelOut aUtxos))
-                      [ ([aUtxo1], []),
-                        ([aUtxo2], [(bUtxo1, BRedeemer1)]),
-                        ([aUtxo3], [(bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]),
-                        ([aUtxo4], []),
-                        ([aUtxo1, aUtxo4], []),
-                        ([aUtxo4, aUtxo1], []),
-                        ([aUtxo1, aUtxo2], [(bUtxo1, BRedeemer1)]),
-                        ([aUtxo2, aUtxo4], [(bUtxo1, BRedeemer1)]),
-                        ( [aUtxo2, aUtxo3],
-                          [(bUtxo1, BRedeemer1), (bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]
-                        ),
-                        ( [aUtxo1, aUtxo2, aUtxo3, aUtxo4],
-                          [(bUtxo1, BRedeemer1), (bUtxo1, BRedeemer1), (bUtxo2, BRedeemer1), (bUtxo2, BRedeemer2)]
+                            (wallet 6)
+                            splitMode
                         )
-                      ]
+                        dsTestMockChainSt
+                        (skelIn aUtxos)
+
+                  -- generate a transaction that spends the given 'aValidator'
+                  -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
+                  -- with the specified redeemers.
+                  skelExpected :: [SpendableOut] -> [(BRedeemer, SpendableOut)] -> TxSkel
+                  skelExpected aUtxos bUtxos =
+                    txSkelLbl DoubleSatLbl $
+                      ( map (uncurry $ SpendsScript bValidator) bUtxos
+                          ++ map (SpendsScript aValidator ARedeemer) aUtxos
+                      )
+                        :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
+                               paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . snd) bUtxos)
+                             ]
+               in [ testGroup "with 'AllSeparate'" $
+                      let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
+                          thePredicate aUtxos bUtxos =
+                            assertSameTxSkels
+                              (skelExpected aUtxos <$> bUtxos)
+                              (skelsOut AllSeparate aUtxos)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
+                            testCase "three modified transactions from 1+2 redeemers" $
+                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
+                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
+                            testCase "with two foci, the correct combinations are returned" $
+                              testConjoin $
+                                map
+                                  (uncurry thePredicate)
+                                  [ ([aUtxo1, aUtxo4], []),
+                                    ([aUtxo4, aUtxo1], []),
+                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
+                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
+                                    ( [aUtxo2, aUtxo3],
+                                      [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
+                                    )
+                                  ],
+                            testCase "with all possible foci, no additional transactions are generated" $
+                              thePredicate
+                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
+                                -- the same list as in the last example
+                                [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
+                          ],
+                    testGroup "with 'TryCombinations'" $
+                      let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
+                          thePredicate aUtxos bUtxos =
+                            assertSameTxSkels
+                              (skelExpected aUtxos <$> bUtxos)
+                              (skelsOut TryCombinations aUtxos)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
+                            testCase "three modified transactions from 1+2 redeemers" $
+                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
+                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
+                            testCase "with two foci, the correct combinations are returned" $
+                              testConjoin $
+                                map
+                                  (uncurry thePredicate)
+                                  [ ([aUtxo1, aUtxo4], []),
+                                    ([aUtxo4, aUtxo1], []),
+                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
+                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
+                                    ( [aUtxo2, aUtxo3],
+                                      [ -- one extra input
+                                        [(BRedeemer1, bUtxo1)],
+                                        [(BRedeemer1, bUtxo2)],
+                                        [(BRedeemer2, bUtxo2)],
+                                        -- two extra inputs
+                                        [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
+                                        [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                      ]
+                                    )
+                                  ],
+                            testCase "with all possible foci, no additional transactions are generated" $
+                              thePredicate
+                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
+                                -- the same list  as in the last example
+                                [ [(BRedeemer1, bUtxo1)],
+                                  [(BRedeemer1, bUtxo2)],
+                                  [(BRedeemer2, bUtxo2)],
+                                  [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
+                                  [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                ]
+                          ]
+                  ]
           ]

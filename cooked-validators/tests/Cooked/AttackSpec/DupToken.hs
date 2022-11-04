@@ -66,7 +66,7 @@ tests :: TestTree
 tests =
   testGroup
     "token duplication attack"
-    [ testCase "unit test on a 'TxSkel'" $
+    [ testGroup "unit tests on a 'TxSkel'" $
         let attacker = wallet 6
             tName1 = L.tokenName "MockToken1"
             tName2 = L.tokenName "MockToken2"
@@ -84,31 +84,28 @@ tests =
                            paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
                          ]
                 )
-            skelOut select =
-              dupTokenAttack
-                select
-                attacker
-                def
-                skelIn
+            skelOut select = getTweak (dupTokenAttack select attacker) def skelIn
             skelExpected v1 v2 v3 v4 =
-              txSkelLbl
-                DupTokenLbl
-                ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 v1 <> L.assetClassValue ac2 v2),
-                    Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
-                    Mints (Nothing @()) [pol1] (L.assetClassValue ac1 v4)
-                  ]
-                    :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                           paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2),
-                           paysPK
-                             (walletPKHash attacker)
-                             (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
-                         ]
+              [ ( txSkelLbl
+                    DupTokenLbl
+                    ( [ Mints (Nothing @()) [pol1, pol2] (L.assetClassValue ac1 v1 <> L.assetClassValue ac2 v2),
+                        Mints (Nothing @()) [pol2] (L.assetClassValue ac2 v3),
+                        Mints (Nothing @()) [pol1] (L.assetClassValue ac1 v4)
+                      ]
+                        :=>: [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
+                               paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2),
+                               paysPK
+                                 (walletPKHash attacker)
+                                 (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
+                             ]
+                    ),
+                  L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 -1) + (v3 -3))
                 )
-         in assertSameTxSkels [skelExpected 2 2 4 8] (skelOut (\_ n -> Just $ n + 1))
-              .&&. assertSameTxSkels [] (skelOut (\_ n -> Just n))
-              .&&. assertSameTxSkels
-                [skelExpected 6 1 3 12]
-                (skelOut (\ac n -> if ac == ac1 then Just (n + 5) else Nothing)),
+              ]
+         in [ testCase "add one token in every asset class" $ skelExpected 2 2 4 8 @=? skelOut (\_ n -> n + 1),
+              testCase "no modified transaction if no increase in value specified" $ [] @=? skelOut (\_ n -> n),
+              testCase "add tokens depending on the asset class" $ skelExpected 6 1 3 12 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)
+            ],
       testCase "careful minting policy" $
         let tName = L.tokenName "MockToken"
             pol = carefulPolicy tName 1
@@ -116,7 +113,7 @@ tests =
               isCekEvaluationFailure
               def
               ( somewhere
-                  (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                  (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                   (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
@@ -124,7 +121,7 @@ tests =
             pol = carelessPolicy
          in testSucceeds $
               somewhere
-                (dupTokenAttack (\_ n -> Just $ n + 1) (wallet 6))
+                (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
@@ -140,22 +137,20 @@ tests =
                          ]
                 )
             skelExpected =
-              txSkelLbl
-                DupTokenLbl
-                ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 2)]
-                    :=>: [ paysPK
-                             (walletPKHash (wallet 1))
-                             (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2),
-                           paysPK
-                             (walletPKHash attacker)
-                             (L.assetClassValue ac1 1)
-                         ]
+              [ ( txSkelLbl
+                    DupTokenLbl
+                    ( [Mints (Nothing @()) [pol] (L.assetClassValue ac1 2)]
+                        :=>: [ paysPK
+                                 (walletPKHash (wallet 1))
+                                 (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2),
+                               paysPK
+                                 (walletPKHash attacker)
+                                 (L.assetClassValue ac1 1)
+                             ]
+                    ),
+                  L.assetClassValue ac1 1
                 )
-            skelOut =
-              dupTokenAttack
-                (\_ i -> Just $ i + 1)
-                attacker
-                def
-                skelIn
-         in assertSameTxSkels [skelExpected] skelOut
+              ]
+            skelOut = getTweak (dupTokenAttack (\_ i -> i + 1) attacker) def skelIn
+         in skelExpected @=? skelOut
     ]

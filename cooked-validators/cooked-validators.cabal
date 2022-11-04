@@ -14,12 +14,15 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
-      Cooked.Attack.Common
+      Cooked.Attack.AddToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Attack.OutPermutations
-      Cooked.Attack.TamperDatum
+      Cooked.Attack.Tweak
+      Cooked.Attack.Tweak.AddConstraints
+      Cooked.Attack.Tweak.Common
+      Cooked.Attack.Tweak.OutPermutations
+      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
@@ -94,6 +97,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.AttackSpec
+      Cooked.AttackSpec.AddConstraints
       Cooked.AttackSpec.Common
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.DoubleSat

@@ -42,6 +42,7 @@ library
     , hspec
     , lens
     , mtl
+    , optics-core
     , pirouette >=2.0.0
     , pirouette-plutusir
     , playground-common
@@ -98,6 +99,7 @@ test-suite spec
     , hspec
     , lens
     , mtl
+    , optics-core
     , pirouette >=2.0.0
     , pirouette-plutusir
     , playground-common

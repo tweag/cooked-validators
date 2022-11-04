@@ -1,3 +1,7 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Auction.Offchain where
 
 import qualified Auction as A
@@ -5,105 +9,135 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
+import Data.Maybe
 import qualified Ledger as L
 import Ledger.Ada as Ada
-import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
+import qualified PlutusTx.Numeric as Pl
 
-txOpen ::
-  (MonadBlockChain m) =>
-  A.StaticValParams ->
-  m (A.ValParams, A.PolicyParams)
-txOpen p = do
+-- | Make an offer. There are no checks with this transaction. Anyone is allowed
+-- to pay the 'auctionValidator' with something they want to sell, using the
+-- 'Offer' datum to specify the seller of the auction.
+--
+-- This transaction returns the 'SpendableOut' of the 'Offer' UTxO it creates.
+txOffer :: MonadBlockChain m => L.Value -> Integer -> m SpendableOut
+txOffer lot minBid = do
   seller <- ownPaymentPubKeyHash
-  utxo : _ <- pkUtxosSuchThatValue seller (\v -> v `Value.geq` A.lot' p)
-  let p' :: A.ValParams
-      p' =
-        A.ValParams
-          { A.staticValParams = p,
-            A.seller = seller,
-            A.threadTokenAssetClass = A.threadTokenAssetClassFromOrefAndLot (fst utxo) (A.lot' p)
-          }
-
-      q :: A.PolicyParams
-      q =
-        A.PolicyParams
-          { A.pThreadTokenName = A.threadTokenName,
-            A.pLotOutRef = fst utxo,
-            A.pLot = A.lot' p
-          }
-
-      token :: L.Value
-      token = Value.assetClassValue (A.threadTokenAssetClass p') 1
-
-  _ <-
+  tx <-
     validateTxSkel $
       txSkelOpts (def {adjustUnbalTx = True}) $
-        [ Mints
-            (Just (Scripts.validatorAddress (A.auctionValidator p')))
-            [A.threadTokenPolicy q]
-            token,
-          SpendsPK utxo
+        paysScript A.auctionValidator (A.Offer seller minBid) lot
+  outputs <- spOutsFromCardanoTx tx
+  -- the transaction created exactly one script output, so the call to head never fail
+  return $ head $ filter (isJust . sBelongsToScript) outputs
+
+-- | Start an auction by setting the bidding deadline. This transaction consumes
+-- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
+-- validator. It also mints the thread NFT that ensures the authenticity of the
+-- auction from that point on.
+txSetDeadline :: MonadBlockChain m => SpendableOut -> L.POSIXTime -> m ()
+txSetDeadline offerUtxo deadline = do
+  let lot = sOutValue offerUtxo
+      theNft = A.threadToken $ fst offerUtxo
+  (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
+  void $
+    validateTxSkel $
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        [ SpendsScript
+            A.auctionValidator
+            A.SetDeadline
+            offerUtxo,
+          Mints (Just $ fst offerUtxo) [A.threadTokenPolicy] theNft,
+          SignedBy [seller]
         ]
-          :=>: [ paysScript (A.auctionValidator p') A.NoBids (A.lot p' <> token)
-               ]
-  return (p', q)
+          :=>: [paysScript A.auctionValidator (A.NoBids seller minBid deadline) (lot <> theNft)]
 
 previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
-previousBidder (A.Bidding (A.BidderInfo bid bidder)) = Just (bid, bidder)
+previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
 
-txBid ::
-  (MonadBlockChain m) =>
-  A.ValParams ->
-  Integer ->
-  m ()
-txBid p bid = do
-  bidder <- ownPaymentPubKeyHash
-  [(utxo, datum)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
-  void $
-    validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) $
-        [ -- no need to ask for the bidder to sign the transaction, that's automatic
-          Before (A.bidDeadline p),
-          SpendsScript
-            (A.auctionValidator p)
-            (A.Bid (A.BidderInfo bid bidder))
-            utxo
-        ]
-          :=>: ( [ paysScript (A.auctionValidator p) (A.Bidding (A.BidderInfo bid bidder)) $
-                     A.lot p <> Ada.lovelaceValueOf bid <> Value.assetClassValue (A.threadTokenAssetClass p) 1
-                 ]
-                   <> case previousBidder datum of
-                     Nothing -> []
-                     Just (prevBid, prevBidder) ->
-                       [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
-               )
+-- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
+-- UTxO. If there was a previous bidder, they will receive their money back.
+txBid :: MonadBlockChain m => SpendableOut -> Integer -> m L.CardanoTx
+txBid offerUtxo bid =
+  let theNft = A.threadToken $ fst offerUtxo
+   in do
+        bidder <- ownPaymentPubKeyHash
+        [(utxo, datum)] <-
+          scriptUtxosSuchThat
+            A.auctionValidator
+            (\_ x -> x `Value.geq` theNft)
+        -- The call to 'fromJust' can never fail. If there's already a thread token,
+        -- we're at least in 'NoBids' state.
+        let deadline = fromJust $ A.getBidDeadline datum
+            seller = A.getSeller datum
+        validateTxSkel $
+          txSkelOpts (def {adjustUnbalTx = True}) $
+            [ Before deadline,
+              SpendsScript
+                A.auctionValidator
+                (A.Bid (A.BidderInfo bid bidder))
+                utxo
+            ]
+              :=>: ( paysScript
+                       A.auctionValidator
+                       (A.Bidding seller deadline (A.BidderInfo bid bidder))
+                       (sOutValue utxo <> Ada.lovelaceValueOf bid) :
+                     case previousBidder datum of
+                       Nothing -> []
+                       Just (prevBid, prevBidder) ->
+                         [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
+                   )
 
-txHammer ::
-  (MonadBlockChain m) =>
-  A.ValParams ->
-  A.PolicyParams ->
-  m ()
-txHammer p q = do
-  [(utxo, datum)] <- scriptUtxosSuchThat (A.auctionValidator p) (\_ _ -> True)
-  void $
-    validateTxSkel $
-      txSkelOpts (def {adjustUnbalTx = True}) $
-        [ After (A.bidDeadline p),
-          SpendsScript
-            (A.auctionValidator p)
-            A.Hammer
-            utxo,
-          Mints
-            (Just (Scripts.validatorAddress (A.auctionValidator p)))
-            [A.threadTokenPolicy q]
-            (Value.assetClassValue (A.threadTokenAssetClass p) (-1))
-        ]
-          :=>: case previousBidder datum of
-            Nothing ->
-              [paysPK (A.seller p) (A.lot p)]
-            Just (lastBid, lastBidder) ->
-              [ paysPK lastBidder (A.lot p),
-                paysPK (A.seller p) (Ada.lovelaceValueOf lastBid)
-              ]
+-- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
+-- will pay the lot to the last bidder and the last bid to the
+-- seller. Otherwise, the seller will receive the lot back. This transaction
+-- also burns the thread token.
+txHammer :: MonadBlockChain m => SpendableOut -> m ()
+txHammer offerUtxo =
+  let theNft = A.threadToken $ fst offerUtxo
+   in do
+        utxos <-
+          scriptUtxosSuchThat
+            A.auctionValidator
+            (\_ x -> x `Value.geq` theNft)
+        (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
+        void $
+          validateTxSkel $
+            txSkelOpts (def {adjustUnbalTx = True}) $
+              case utxos of
+                [] ->
+                  -- There's no thread token, so the auction is still in 'Offer'
+                  -- state
+                  [SpendsScript A.auctionValidator (A.Hammer $ fst offerUtxo) offerUtxo]
+                    :=>: [ paysPK
+                             seller
+                             (sOutValue offerUtxo)
+                         ]
+                (utxo, datum) : _ ->
+                  -- There is a thread token, so the auction is in 'NoBids' or
+                  -- 'Bidding' state, which means that the following pattern
+                  -- match can not fail:
+                  let Just deadline = A.getBidDeadline datum
+                   in [ After deadline,
+                        SpendsScript
+                          A.auctionValidator
+                          (A.Hammer $ fst offerUtxo)
+                          utxo,
+                        Mints
+                          (Just $ fst offerUtxo)
+                          [A.threadTokenPolicy]
+                          (Pl.negate theNft)
+                      ]
+                        :=>: case previousBidder datum of
+                          Nothing ->
+                            let lot = sOutValue utxo <> Pl.negate theNft
+                             in [paysPK seller lot]
+                          Just (lastBid, lastBidder) ->
+                            let lot =
+                                  sOutValue utxo
+                                    <> Pl.negate (Ada.lovelaceValueOf lastBid)
+                                    <> Pl.negate theNft
+                             in [ paysPK lastBidder lot,
+                                  paysPK seller (Ada.lovelaceValueOf lastBid)
+                                ]
