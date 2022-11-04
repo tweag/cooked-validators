@@ -26,67 +26,117 @@ import qualified Ledger.Interval as Interval
 import Ledger.Scripts as Pl
 import Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
-import qualified Plutus.Script.Utils.V1.Scripts as Pl (scriptCurrencySymbol)
-import qualified Plutus.V1.Ledger.Api as Api
+import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx
+import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
 
+{-
+
+Brief overview of the contract
+------------------------------
+
+There are four transactions involved in this contract:
+
+1. Making an offer (off-chain implemented by 'txOffer'). Anyone who wishes to
+   sell something can just pay it to the 'auctionValidator' with the 'Offer'
+   datum specifiying the seller's address (which is the address that will at the
+   end of the auction be paid the winning bid, or, if there have been no bids,
+   receive the offer back) and the minimum bid. No checks are involved in this
+   transaction.
+
+The UTxO at the 'auctionValidator' that contains this initial offer
+parameterises the rest of the auction. We shall call it the _offer UTxO_ of the
+auction.
+
+2. Setting the deadline of the auction (off-chain implemented by
+   'txSetDeadline'). This transaction consumes the offer UTxO and returns an
+   UTxO to the 'auctionValidator' with the 'NoBids' datum, which contains
+
+   - the value originally offered, and
+
+   - the thread NFT. This NFT ensures the authenticity of the auction from that
+     point onwards, and its token name is uniquely derived from the offer UTxO
+     (it is computed by 'tokenNameFromTxOutRef').
+
+3. Bidding on the auction (off-chain implemented by 'txBid'). This transaction
+   consumes an UTxO at the 'auctionValidator' with either 'NoBids' or 'Bidding'
+   datum, and returns an UTxO with strictly greater value to the validator (in
+   particular, it has to return the thread NFT) with a 'Bidding' datum recording
+   the new highest bid and bidder. If there was a previous bidder, they are paid
+   back their bid.
+
+4. Hammer to end the auction (off-chain implemented by 'txHammer'). This
+   transaction consumes an UTxO at the 'auctionValidator', and pays the Ada
+   amount corresponding to the highest bid to the seller, and the value
+   originally offered to the highest bidder. If there were no bids, the offer is
+   returned to the seller.
+
+Further details of these transactions are explained at the relevant places in
+the code.
+
+Remark on the design of the first two transactions
+--------------------------------------------------
+
+The following discussion is rather technical and not specific to this
+contract. Rather, it describes a general design problem for smart contracts on
+Cardano, so feel free to skip this if you merely want to get to know the
+contract.
+
+On a previous version of this contract, there was only one transaction to make
+the offer and set the deadline. This caused the following problem, which we
+think is fundamentally unsolvable: How do you ensure that some freshly minted
+tokens end up at a specific validator, using only one transaction? -- If you want
+to use only one transaction to mint some tokens with a policy P and make sure
+that they end up at the correct validator V,
+
+- the minting policy P has to know the address of V, which is the hash of V's
+  (compiled and normalised) source code. In particular, there is no way to
+  compute this address on-chain, which means that this can only be accomplished
+  by parameterising the P the address of V.
+
+- Conversely, the validator V needs to know the 'CurrencySymbol' of the thread
+  token, which is the hash of the (compiled and normalised) code of P.
+
+So, each of the two scripts P and V has to have the other's hash as a parameter,
+and have it known at compile time. This is is patently an impossible cycle.
+
+The only generic solution that we know of is to turn any initial payment of
+freshly minted tokens to the validator into a two-transaction process: The first
+transaction does not involve any checks at all, does not mint any tokens that
+should be locked in the validator script, and creates "unchecked" UTxOs (Here,
+these are the UTxOs with the 'Offer' datum). The second transaction consumes
+unchecked UTxOs (with an additional redeemer, which here is 'SetDeadline'),
+mints the required tokens, and pays a checked UTxO back to the same validator,
+which contains the newly minted tokens as a proof of their soundness, and a
+datum signalling that they have been checked (here, that datum is
+'NoBids'). Since the second transaction uses a redeemer, it can make whatever
+checks are needed to ensure the tokens are minted correctly and paid to the
+correct script.
+
+This solves the issue: The only thing that P has to enforce is that tokens are
+only minted if a specific (unchecked) UTxO is spent on the same transaction. The
+check that the tokens actually end up in V where they belong can be done by V
+itself, using something like 'getContinuingOutputs' to find an output that has
+the correct tokens.
+
+-}
+
 -- * Data types
 
--- | All the statically known data associated with an auction that the
--- validator needs to know
-data StaticValParams = StaticValParams
-  { -- | no bids are accepted later than this
-    bidDeadline' :: Pl.POSIXTime,
-    -- | minimum bid in Lovelace
-    minBid' :: Integer,
-    -- | value that is being auctioned
-    lot' :: Pl.Value
-  }
-  deriving (Haskell.Show)
-
--- some Plutus magic to compile the data type
-PlutusTx.makeLift ''StaticValParams
-PlutusTx.unstableMakeIsData ''StaticValParams
-
--- | All data for the validator associated with an auction, including
--- the data only known after the opening transaction
-data ValParams = ValParams
-  { staticValParams :: StaticValParams,
-    -- | address of the seller
-    seller :: Pl.PubKeyHash,
-    -- | The asset class of the thread token.
-    threadTokenAssetClass :: Value.AssetClass
-  }
-  deriving (Haskell.Show)
+-- | Parameters for the validator. Currently, the only information it is
+-- parameterised by is the currency symbol of the thread token, and that's only
+-- a trick to get that currency symbol into the validator, because it can not be
+-- computed on-chain. It is constant, and if you look at the very bottom of this
+-- file, you will find 'auctionValidator' defined with the constant currency
+-- symbol derived from the 'threadTokenPolicy'.
+newtype ValParams = ValParams Pl.CurrencySymbol
 
 PlutusTx.makeLift ''ValParams
 PlutusTx.unstableMakeIsData ''ValParams
 
-bidDeadline :: ValParams -> Pl.POSIXTime
-bidDeadline = bidDeadline' . staticValParams
-
-minBid :: ValParams -> Integer
-minBid = minBid' . staticValParams
-
-lot :: ValParams -> Pl.Value
-lot = lot' . staticValParams
-
--- | All data the minting policy of the thread token needs to
--- know. These are known after the opening transaction
-data PolicyParams = PolicyParams
-  { -- | TokenName of the thread token
-    pThreadTokenName :: Value.TokenName,
-    -- | outref of the utxo the seller spent the lot from
-    pLotOutRef :: Pl.TxOutRef,
-    -- | lot of the auction
-    pLot :: Pl.Value
-  }
-
-PlutusTx.makeLift ''PolicyParams
-PlutusTx.unstableMakeIsData ''PolicyParams
-
+-- | Information on the last bidder and their bid.
 data BidderInfo = BidderInfo
   { -- | the last bidder's offer in Ada
     bid :: Integer,
@@ -104,33 +154,53 @@ instance Eq BidderInfo where
 
 -- | The state of the auction. This will be the 'DatumType'.
 data AuctionState
-  = -- | state of an auction that has not yet had any bids
-    NoBids
-  | -- | state of an auction that has had at least one bid
-    Bidding BidderInfo
+  = -- | state of an auction where an offer has already been made. The address
+    -- is the seller's, the integer is the minimum bid in Lovelaces.
+    Offer Pl.PubKeyHash Integer
+  | -- | state of an auction with a given seller, minimum bid, and deadline that
+    -- has not yet had any bids
+    NoBids Pl.PubKeyHash Integer Pl.POSIXTime
+  | -- | state of an auction with a given seller and deadline that has had at
+    -- least one bid.
+    Bidding Pl.PubKeyHash Pl.POSIXTime BidderInfo
   deriving (Haskell.Show)
+
+getSeller :: AuctionState -> Pl.PubKeyHash
+getSeller (Offer s _) = s
+getSeller (NoBids s _ _) = s
+getSeller (Bidding s _ _) = s
+
+getBidDeadline :: AuctionState -> Maybe Pl.POSIXTime
+getBidDeadline (Offer _ _) = Nothing
+getBidDeadline (NoBids _ _ t) = Just t
+getBidDeadline (Bidding _ t _) = Just t
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
 
 instance Eq AuctionState where
   {-# INLINEABLE (==) #-}
-  NoBids == NoBids = True
-  Bidding a == Bidding x = a == x
+  Offer s m == Offer s' m' = s == s' && m == m'
+  NoBids s m t == NoBids s' m' t' = s == s' && m == m' && t == t'
+  Bidding s t b == Bidding s' t' b' = s == s' && t == t' && b == b'
   _ == _ = False
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
 data Action
-  = -- | redeemer to make a bid (before the 'bidDeadline')
+  = -- | redeemer to set the deadline of the auction
+    SetDeadline
+  | -- | redeemer to make a bid
     Bid BidderInfo
-  | -- | redeemer to close the auction (after the 'bidDeadline')
-    Hammer
+  | -- | redeemer to close the auction. The 'TxOutRef' points to the original
+    --  'Offer' UTxO.
+    Hammer Pl.TxOutRef
   deriving (Haskell.Show)
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
+  SetDeadline == SetDeadline = True
   Bid bi1 == Bid bi2 = bi1 == bi2
-  Hammer == Hammer = True
+  Hammer o1 == Hammer o2 = o1 == o2
   _ == _ = False
 
 PlutusTx.makeLift ''Action
@@ -138,75 +208,104 @@ PlutusTx.unstableMakeIsData ''Action
 
 -- * The minting policy of the thread token
 
--- | This minting policy controls the thread token of an auction. This
--- token belongs to the validator of the auction, and must be minted
--- in the first transaction, for which this policy ensures that
--- * exactly one thread token is minted, by forcing an UTxO to be consumed
--- * after the transaction:
---     * the validator locks the thread token and the lot of the auction
---     * the validator is in 'NoBids' state
--- The final "hammer" transaction of the auction is the one that burns
--- the thread token. This transaction has its own validator
--- 'validHammer', so that this minting policy only checks that at
--- exactly one token is burned.
+-- | This minting policy controls the thread token of the auction. From the
+-- transaction that sets the deadline onwards, this NFT will belong to the
+-- 'auctionValidator'; its presence proves the authenticity of the
+-- auction. Here, we only check that exactly one thread token is minted,
+-- enforcing that the appropriate offer utxo, whose hash as computed by
+-- 'tokenNameFromTxOutRef' must be the token name of the minted token, is
+-- consumed. The rest of the necessary checks are performed by
+-- 'validSetDeadline'.
+--
+-- The final 'Hammer' transaction of the auction burns the thread token. This
+-- transaction is checked by 'validHammer', so that this minting policy only has
+-- to check that at exactly one token is burned.
 {-# INLINEABLE mkPolicy #-}
-mkPolicy :: PolicyParams -> Pl.Address -> Pl.ScriptContext -> Bool
-mkPolicy (PolicyParams tName lotOref lot) validator ctx
-  | amnt == Just 1 =
+mkPolicy :: Pl.TxOutRef -> Pl.ScriptContext -> Bool
+mkPolicy offerOref ctx
+  | amnt == 1 =
     traceIfFalse
-      "Lot UTxO not consumed"
-      (any (\i -> Pl.txInInfoOutRef i == lotOref) $ Pl.txInfoInputs txi)
-      && case filter
-        (\o -> Pl.txOutAddress o == validator)
-        (Pl.txInfoOutputs txi) of
-        [o] ->
-          traceIfFalse
-            "Validator does not receive the lot and the thread token of freshly opened auction"
-            (Pl.txOutValue o `Value.geq` (lot <> token))
-            && traceIfFalse
-              "Validator not in 'NoBids'-state on freshly opened auction"
-              (outputAuctionState txi o == Just NoBids)
-        _ -> trace "There must be exactly one output to the validator on a fresh auction" False
-  | amnt == Just (-1) =
+      "Offer UTxO not consumed"
+      (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
+  -- no further checks here since 'validSetDeadline' checks the remaining conditions
+  | amnt == -1 =
     True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
     txi = Pl.scriptContextTxInfo ctx
-    Pl.Minting me = Pl.scriptContextPurpose ctx
 
-    token :: Pl.Value
-    token = Value.singleton me tName 1
+    -- the amount of minted tokens whose token name is the hash of the
+    -- 'offerOref'.
+    --
+    -- ############################################################
+    -- # This introduces a KNOWN VULNERABILITY into the contract: Since we do not
+    -- # check that no tokens of other token names are minted, it'll be possible
+    -- # to forge the thread NFT of one auction while seting the deadline of
+    -- # another auction, for example. See the "known vulnerabilities and
+    -- # exploits" section in "tests/AuctionSpec.hs" for a worked-out exploit.
+    -- ############################################################
+    --
+    amnt :: Integer
+    amnt =
+      foldr
+        ( \(cs, tn, a) n ->
+            if cs == Pl.ownCurrencySymbol ctx && tn == tokenNameFromTxOutRef offerOref
+              then n + a
+              else n
+        )
+        0
+        $ Value.flattenValue (Pl.txInfoMint txi)
 
-    amnt :: Maybe Integer
-    amnt = case Value.flattenValue (Pl.txInfoMint txi) of
-      [(cs, tn, a)] | cs == Pl.ownCurrencySymbol ctx && tn == tName -> Just a
-      _ -> Nothing
+threadTokenPolicy :: Scripts.MintingPolicy
+threadTokenPolicy =
+  Pl.mkMintingPolicyScript
+    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPolicy||])
 
-{-# INLINEABLE threadTokenName #-}
-threadTokenName :: Value.TokenName
-threadTokenName = Value.tokenName "AuctionToken"
+-- | Compute the thread token of the auction with the given offer UTxO.
+threadToken :: Pl.TxOutRef -> Pl.Value
+threadToken offerOref = Value.assetClassValue (threadTokenAssetClassFromOref offerOref) 1
 
-threadTokenPolicy :: PolicyParams -> Scripts.MintingPolicy
-threadTokenPolicy pars =
-  Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy . mkPolicy||])
-      `PlutusTx.applyCode` PlutusTx.liftCode pars
-
-threadTokenAssetClassFromOrefAndLot :: Pl.TxOutRef -> Pl.Value -> Value.AssetClass
-threadTokenAssetClassFromOrefAndLot lotOutRef lot =
+threadTokenAssetClassFromOref :: Pl.TxOutRef -> Value.AssetClass
+threadTokenAssetClassFromOref offerOref =
   Value.assetClass
-    (Pl.scriptCurrencySymbol $ threadTokenPolicy $ PolicyParams threadTokenName lotOutRef lot)
-    threadTokenName
+    threadCurrencySymbol
+    (tokenNameFromTxOutRef offerOref)
+
+threadCurrencySymbol :: Pl.CurrencySymbol
+threadCurrencySymbol = Pl.scriptCurrencySymbol threadTokenPolicy
+
+-- | Compute the token name of the thread token of an auction from its offer Utxo.
+{-# INLINEABLE tokenNameFromTxOutRef #-}
+tokenNameFromTxOutRef :: Pl.TxOutRef -> Pl.TokenName
+tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
+  -- Remark, because I spent quite some time digging for this information: Why
+  -- do we directly use the constructor 'TokenName' here? -- The point is that
+  -- we want to use this function on-chain, and that the library function
+  -- 'tokenName' (note the lower-case initial letter!) expects *Haskell* byte
+  -- strings. See this issue on plutus-apps for some background:
+  --
+  -- https://github.com/input-output-hk/plutus-apps/issues/498
+  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
+  where
+    -- we know that the numbers (indices of transaction outputs) we're working
+    -- with here are non-negative.
+    encodeInteger :: Integer -> BuiltinByteString
+    encodeInteger n
+      | n `quotient` 10 == 0 = encodeDigit n
+      | otherwise = encodeInteger (n `quotient` 10) <> encodeDigit (n `remainder` 10)
+      where
+        encodeDigit :: Integer -> BuiltinByteString
+        -- 48 is the ASCII code for '0'
+        encodeDigit d = consByteString (d + 48) emptyByteString
+
+-- | Compute the thread token of an auction from the currency symbol and the
+-- original offer UTxO. This is for on-chain computations of the thread token,
+-- where the currency symbol is known as a parameter.
+{-# INLINEABLE threadTokenOnChain #-}
+threadTokenOnChain :: Pl.CurrencySymbol -> Pl.TxOutRef -> Pl.Value
+threadTokenOnChain threadCS offerOref = Value.assetClassValue (Value.AssetClass (threadCS, tokenNameFromTxOutRef offerOref)) 1
 
 -- * The validator and its helpers
-
-{-# INLINEABLE bidTimeRange #-}
-bidTimeRange :: ValParams -> Pl.POSIXTimeRange
-bidTimeRange a = Interval.to (bidDeadline a)
-
-{-# INLINEABLE hammerTimeRange #-}
-hammerTimeRange :: ValParams -> Pl.POSIXTimeRange
-hammerTimeRange a = Interval.from (bidDeadline a)
 
 -- | Extract an auction state from an output (if it has one)
 {-# INLINEABLE outputAuctionState #-}
@@ -222,63 +321,100 @@ outputAuctionState txi o = do
 receivesFrom :: Pl.TxInfo -> Pl.PubKeyHash -> Pl.Value -> Bool
 receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 
+-- | To set the deadline of an auction, you must
+-- * consume an UTxO with the 'Offer' datum
+-- * pay back with the 'NoBids' datum for the same seller and minimum bid, and
+--   add the thread token
+-- * sign the transaction as the seller
+{-# INLINEABLE validSetDeadline #-}
+validSetDeadline :: Pl.CurrencySymbol -> AuctionState -> Pl.ScriptContext -> Bool
+validSetDeadline threadCS datum ctx =
+  let txi = Pl.scriptContextTxInfo ctx
+   in case datum of
+        Offer seller minbid ->
+          let Just (Pl.TxInInfo offerOref offerOut) = Pl.findOwnInput ctx
+           in traceIfFalse
+                "SetDeadline transaction must be signed by seller"
+                (txi `Pl.txSignedBy` seller)
+                && traceIfFalse
+                  "there must be a 'NoBids' output containing the lot and the thread token"
+                  ( any
+                      ( \o ->
+                          Pl.txOutValue o
+                            `Value.geq` (threadTokenOnChain threadCS offerOref <> Pl.txOutValue offerOut)
+                            && case outputAuctionState txi o of
+                              Just (NoBids seller' minbid' _deadline) ->
+                                (seller, minbid) == (seller', minbid')
+                              _ -> False
+                      )
+                      (Pl.getContinuingOutputs ctx)
+                  )
+        NoBids {} -> trace "Cannot re-set the deadline in 'NoBids' state" False
+        Bidding {} -> trace "Cannot re-set the deadline in 'Bidding' state" False
+
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
 -- * it has been signed by the bidder
--- * it is greater than maximum of the lastBid and the minBid
+-- * it is greater than the last bid (or at least the minimum bid, if it's the first one)
 -- * after the transaction:
 --    * the state of the auction is 'Bidding' with the new bid and bidder
---    * the validator locks the lot, the new bid, and the thread token
+--    * the validator locks the lot, the new bid, and the thread token with that datum
 --    * the last bidder has gotten their money back from the validator
 {-# INLINEABLE validBid #-}
-validBid :: ValParams -> AuctionState -> Integer -> Pl.PubKeyHash -> Pl.ScriptContext -> Bool
-validBid auction datum bid bidder ctx =
+validBid :: AuctionState -> Integer -> Pl.PubKeyHash -> Pl.ScriptContext -> Bool
+validBid datum bid bidder ctx =
   let txi = Pl.scriptContextTxInfo ctx
-      selfh = Pl.ownHash ctx
-      receives = receivesFrom txi
-   in traceIfFalse
-        "Bidding past the deadline is not permitted"
-        (bidTimeRange auction `Interval.contains` Pl.txInfoValidRange txi)
-        && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
-        && traceIfFalse
-          "Validator does not lock lot, bid, and thread token"
-          ( Pl.valueLockedBy txi selfh
-              `Value.geq` ( lot auction <> Ada.lovelaceValueOf bid
-                              <> Value.assetClassValue (threadTokenAssetClass auction) 1
-                          )
+      Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = originalLockedValue}) = Pl.findOwnInput ctx
+      checkDeadlineAndSignature deadline =
+        traceIfFalse
+          "Bidding past the deadline is not permitted"
+          (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
+          && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
+      checkLocked seller deadline v =
+        traceIfFalse
+          "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
+          ( any
+              ( \o ->
+                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o `Value.geq` v
+              )
+              (Pl.getContinuingOutputs ctx)
           )
-        && case Pl.getContinuingOutputs ctx of
-          [o] ->
+   in case datum of
+        Offer {} -> trace "Cannot bid on an auction that hasn't yet got a deadline" False
+        NoBids seller minBid deadline ->
+          checkDeadlineAndSignature deadline
+            && traceIfFalse "Cannot bid less than the minimum bid" (minBid <= bid)
+            && checkLocked seller deadline (originalLockedValue <> Ada.lovelaceValueOf bid)
+        Bidding seller deadline (BidderInfo prevBid prevBidder) ->
+          checkDeadlineAndSignature deadline
+            && traceIfFalse "Must bid strictly more than the previous bid" (prevBid < bid)
+            && checkLocked
+              seller
+              deadline
+              ( originalLockedValue
+                  <> Pl.negate (Ada.lovelaceValueOf prevBid)
+                  <> Ada.lovelaceValueOf bid
+              )
+            &&
+            -- #############################################################
+            -- # This usage of 'receivesFrom' introduces a double satisfaction
+            -- # vulnerability in the contract. The problem is that the required
+            -- # outputs to the last bidder are not identified by anything but
+            -- # their value. However, there might be an output containing a
+            -- # suffiecient amount of money to the last bidder's address for
+            -- # completely unrelated reasons. This output is then taken by this
+            -- # validator to satisfy the requirement below.
+            -- #
+            -- # For a completely worked-out exploit of this vulnerability, that
+            -- # steals the output being checked here, see the trace
+            -- # 'exploitDoubleSat' in "AuctionSpec.hs".
+            -- #
+            -- # The 'receives' lines in 'validHammer' suffer of the same problem.
+            -- #############################################################
             traceIfFalse
-              "Not in the correct 'Bidding'-state after bidding"
-              (outputAuctionState txi o == Just (Bidding (BidderInfo bid bidder)))
-          _ -> trace "There has to be exactly one continuing output to the validator itself" False
-        && case datum of
-          NoBids ->
-            traceIfFalse "Cannot bid less than the minimum bid" (minBid auction <= bid)
-          Bidding (BidderInfo lastBid lastBidder) ->
-            traceIfFalse "Must bid more than the last bid" (lastBid < bid)
-              &&
-              -- ############################################################
-              --
-              -- This usage of 'receives' introduces a double satisfaction
-              -- vulnerability in the contract. The problem is that the required
-              -- outputs to the last bidder are not identified by anything but
-              -- their value. However, there might be an output containing a
-              -- suffiecient amount of money to the last bidder's address for
-              -- completely unrelated reasons. This output is then taken by this
-              -- validator to satisfy the requirement below.
-              --
-              -- For a completely worked-out exploit of this vulnerability, that
-              -- steals the output being checked here, see the trace
-              -- 'stealBidTwoAuctions' in "AuctionSpec.hs".
-              --
-              -- The 'receives' lines in 'validHammer' suffer of the same problem.
-              --
-              -- ############################################################
-              traceIfFalse
-                "Last bidder is not paid back"
-                (lastBidder `receives` Ada.lovelaceValueOf lastBid)
+              "Last bidder is not paid back"
+              (receivesFrom txi prevBidder $ Ada.lovelaceValueOf prevBid)
 
 -- | A hammer ends the auction. It is valid if
 -- * it is made after the bidding deadline
@@ -289,46 +425,48 @@ validBid auction datum bid bidder ctx =
 -- * afer the transaction, if there have been no bids:
 --    * the seller gets the lot
 {-# INLINEABLE validHammer #-}
-validHammer :: ValParams -> AuctionState -> Pl.ScriptContext -> Bool
-validHammer auction datum ctx =
+validHammer :: Pl.CurrencySymbol -> AuctionState -> Pl.TxOutRef -> Pl.ScriptContext -> Bool
+validHammer threadCS datum offerOref ctx =
   let txi = Pl.scriptContextTxInfo ctx
       receives = receivesFrom txi
-   in traceIfFalse
-        "Hammer before the deadline is not permitted"
-        (hammerTimeRange auction `Interval.contains` Pl.txInfoValidRange txi)
-        && traceIfFalse
-          "Hammer does not burn exactly one thread token"
-          (Pl.txInfoMint txi == Value.assetClassValue (threadTokenAssetClass auction) (-1))
-        && case datum of
-          NoBids ->
-            traceIfFalse
-              "Seller does not get locked lot back"
-              (seller auction `receives` lot auction)
-          Bidding (BidderInfo lastBid lastBidder) ->
-            traceIfFalse
-              "Last bidder does not receive the lot"
-              (lastBidder `receives` lot auction)
-              && traceIfFalse
-                "Seller does not receive last bid"
-                (seller auction `receives` Ada.lovelaceValueOf lastBid)
+      theNFT = threadTokenOnChain threadCS offerOref
+      Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutValue = lockedValue}) = Pl.findOwnInput ctx
+      threadTokenIsBurned = Pl.txInfoMint txi == Pl.negate theNFT
+      checkDeadlineAndBurn deadline =
+        traceIfFalse
+          "Hammer before the deadline is not permitted"
+          (Pl.from deadline `Interval.contains` Pl.txInfoValidRange txi)
+          && traceIfFalse
+            "Hammer does not burn exactly one thread token"
+            threadTokenIsBurned
+   in case datum of
+        Offer seller _minbid ->
+          traceIfFalse "Seller must sign the hammer to withdraw the offer" (txi `Pl.txSignedBy` seller)
+            && traceIfFalse "Seller must get the offer back" (seller `receives` lockedValue)
+        NoBids seller _minbid deadline ->
+          checkDeadlineAndBurn deadline
+            && traceIfFalse
+              "Seller must get the offer back"
+              (seller `receives` (lockedValue <> Pl.negate theNFT))
+        Bidding seller deadline (BidderInfo lastBid lastBidder) ->
+          checkDeadlineAndBurn deadline
+            && traceIfFalse
+              "last bidder must get the lot"
+              ( lastBidder
+                  `receives` ( lockedValue <> Pl.negate theNFT
+                                 <> Pl.negate (Ada.lovelaceValueOf lastBid)
+                             )
+              )
+            && traceIfFalse
+              "Seller must get the last bid"
+              (seller `receives` Ada.lovelaceValueOf lastBid)
 
 {-# INLINEABLE validate #-}
 validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
-validate auction datum redeemer ctx = case redeemer of
-  Bid (BidderInfo bid bidder) -> validBid auction datum bid bidder ctx
-  Hammer -> validHammer auction datum ctx
-
-{-# INLINEABLE isBid #-}
-isBid :: Action -> Bool
-isBid (Bid _) = True
-isBid _ = False
-
-{-# INLINEABLE receivesToken #-}
-receivesToken :: ValParams -> Pl.ScriptContext -> Bool
-receivesToken auction ctx =
-  let txi = Pl.scriptContextTxInfo ctx
-      selfh = Pl.ownHash ctx
-   in Value.assetClassValueOf (Pl.valueLockedBy txi selfh) (threadTokenAssetClass auction) == 1
+validate (ValParams threadCS) datum redeemer ctx = case redeemer of
+  SetDeadline -> validSetDeadline threadCS datum ctx
+  Bid (BidderInfo bid bidder) -> validBid datum bid bidder ctx
+  Hammer offerOref -> validHammer threadCS datum offerOref ctx
 
 -- Plutus boilerplate to compile the validator
 
@@ -338,13 +476,13 @@ instance Scripts.ValidatorTypes Auction where
   type RedeemerType Auction = Action
   type DatumType Auction = AuctionState
 
-compiledValidate :: PlutusTx.CompiledCode (ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool)
-compiledValidate = $$(PlutusTx.compile [||validate||])
-
-auctionValidator :: ValParams -> Scripts.TypedValidator Auction
-auctionValidator =
+auctionValidator' :: ValParams -> Scripts.TypedValidator Auction
+auctionValidator' =
   Scripts.mkTypedValidatorParam @Auction
-    compiledValidate
+    $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
     wrap = Scripts.mkUntypedValidator @AuctionState @Action
+
+auctionValidator :: Scripts.TypedValidator Auction
+auctionValidator = auctionValidator' $ ValParams $ Pl.scriptCurrencySymbol threadTokenPolicy
