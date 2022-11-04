@@ -141,7 +141,7 @@ doubleSatAttack optic extra attacker mode = do
       ( \c -> do
           added <- addConstraintsTweak c
           let addedValue = constraintBalance added
-          if addedValue `L.geq` mempty
+          if addedValue `L.gt` mempty
             then addOutConstraintTweak $ paysPK (walletPKHash attacker) addedValue
             else failingTweak
       )
