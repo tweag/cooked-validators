@@ -27,11 +27,11 @@
 </span><span id="line-27"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-28"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
 </span><span id="line-29"></span><span id="addTokenAttack"><span class="annot"><span class="annottext">addTokenAttack :: (MintingPolicy -&gt; [(TokenName, Integer)]) -&gt; Wallet -&gt; Tweak Value
-</span><a href="Cooked.Attack.AddToken.html#addTokenAttack"><span class="hs-identifier hs-var hs-var">addTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679573395"><span class="annot"><span class="annottext">MintingPolicy -&gt; [(TokenName, Integer)]
-</span><a href="#local-6989586621679573395"><span class="hs-identifier hs-var">extraTokens</span></a></span></span><span> </span><span id="local-6989586621679573394"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679573394"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-30"></span><span>  </span><span id="local-6989586621679573393"><span class="annot"><span class="annottext">[MintsConstraint]
-</span><a href="#local-6989586621679573393"><span class="hs-identifier hs-var">mintsCs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MintsConstraint]
+</span><a href="Cooked.Attack.AddToken.html#addTokenAttack"><span class="hs-identifier hs-var hs-var">addTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679573661"><span class="annot"><span class="annottext">MintingPolicy -&gt; [(TokenName, Integer)]
+</span><a href="#local-6989586621679573661"><span class="hs-identifier hs-var">extraTokens</span></a></span></span><span> </span><span id="local-6989586621679573660"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679573660"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679573659"><span class="annot"><span class="annottext">[MintsConstraint]
+</span><a href="#local-6989586621679573659"><span class="hs-identifier hs-var">mintsCs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx TxSkel [MintsConstraint]
 -&gt; Tweak [MintsConstraint]
 forall (k :: OpticKind) (is :: IxList) (a :: OpticKind).
 Is k A_Getter =&gt;
@@ -63,10 +63,10 @@ forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; [MintsConstraint] -&gt; [Tweak Value]
 forall (a :: OpticKind) (b :: OpticKind). (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span>
-</span><span id="line-33"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span id="local-6989586621679573387"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679573387"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span id="local-6989586621679573386"><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679573386"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679573385"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573385"><span class="hs-identifier hs-var">_value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-33"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span id="local-6989586621679573653"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679573653"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span id="local-6989586621679573652"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679573652"><span class="hs-identifier hs-var">pols</span></a></span></span><span> </span><span id="local-6989586621679573651"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573651"><span class="hs-identifier hs-var">_value</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-34"></span><span>          </span><span class="annot"><span class="annottext">[Tweak Value] -&gt; Tweak Value
 forall (t :: OpticKind -&gt; OpticKind) (m :: OpticKind -&gt; OpticKind)
        (a :: OpticKind).
@@ -78,8 +78,8 @@ forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-35"></span><span>            </span><span class="annot"><span class="annottext">(MintingPolicy -&gt; Tweak Value) -&gt; [MintingPolicy] -&gt; [Tweak Value]
 forall (a :: OpticKind) (b :: OpticKind). (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span>
-</span><span id="line-36"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679573384"><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679573384"><span class="hs-identifier hs-var">pol</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-36"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679573650"><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679573650"><span class="hs-identifier hs-var">pol</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-37"></span><span>                  </span><span class="annot"><span class="annottext">[Tweak Value] -&gt; Tweak Value
 forall (t :: OpticKind -&gt; OpticKind) (m :: OpticKind -&gt; OpticKind)
        (a :: OpticKind).
@@ -92,20 +92,20 @@ forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; [(TokenName, Integer)] -&gt; [Tweak Value]
 forall (a :: OpticKind) (b :: OpticKind). (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span>
-</span><span id="line-39"></span><span>                      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679573383"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679573383"><span class="hs-identifier hs-var">extraTn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573382"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679573382"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-40"></span><span>                          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573381"><span class="annot"><span class="annottext">extraValue :: Value
-</span><a href="#local-6989586621679573381"><span class="hs-identifier hs-var hs-var">extraValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-39"></span><span>                      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679573649"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679573649"><span class="hs-identifier hs-var">extraTn</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573648"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679573648"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-40"></span><span>                          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573647"><span class="annot"><span class="annottext">extraValue :: Value
+</span><a href="#local-6989586621679573647"><span class="hs-identifier hs-var hs-var">extraValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-41"></span><span>                                </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.assetClassValue</span></span><span>
 </span><span id="line-42"></span><span>                                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><span class="hs-identifier hs-var">Pl.assetClass</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicy -&gt; CurrencySymbol
 </span><span class="hs-identifier hs-var">Pl.scriptCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679573384"><span class="hs-identifier hs-var">pol</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679573383"><span class="hs-identifier hs-var">extraTn</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679573650"><span class="hs-identifier hs-var">pol</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679573649"><span class="hs-identifier hs-var">extraTn</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-43"></span><span>                                  </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679573382"><span class="hs-identifier hs-var">amount</span></a></span><span>
+</span><a href="#local-6989586621679573648"><span class="hs-identifier hs-var">amount</span></a></span><span>
 </span><span id="line-44"></span><span>                           </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-45"></span><span>                                </span><span class="annot"><span class="annottext">Maybe MiscConstraint
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MiscConstraint -&gt; Tweak (Maybe MiscConstraint)
@@ -117,45 +117,45 @@ forall (a :: OpticKind).
 MintsConstrs a =&gt;
 Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-var">Mints</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679573387"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679573384"><span class="hs-identifier hs-var">pol</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573381"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
+</span><a href="#local-6989586621679573653"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679573650"><span class="hs-identifier hs-var">pol</span></a></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573647"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
 </span><span id="line-46"></span><span>                                </span><span class="annot"><span class="annottext">AddTokenLbl -&gt; Tweak ()
 forall (x :: OpticKind). LabelConstrs x =&gt; x -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(AddTokenLbl -&gt; Tweak ()) -&gt; AddTokenLbl -&gt; Tweak ()
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TokenName -&gt; AddTokenLbl
 </span><a href="Cooked.Attack.AddToken.html#AddTokenLbl"><span class="hs-identifier hs-var">AddTokenLbl</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679573383"><span class="hs-identifier hs-var">extraTn</span></a></span><span>
+</span><a href="#local-6989586621679573649"><span class="hs-identifier hs-var">extraTn</span></a></span><span>
 </span><span id="line-47"></span><span>                                </span><span class="annot"><span class="annottext">OutConstraint -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addOutConstraintTweak"><span class="hs-identifier hs-var">addOutConstraintTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; Tweak ()) -&gt; OutConstraint -&gt; Tweak ()
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679573394"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573381"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
+</span><a href="#local-6989586621679573660"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573647"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
 </span><span id="line-48"></span><span>                                </span><span class="annot"><span class="annottext">Value -&gt; Tweak Value
 forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
 Monad m =&gt;
 a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573381"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
+</span><a href="#local-6989586621679573647"><span class="hs-identifier hs-var">extraValue</span></a></span><span>
 </span><span id="line-49"></span><span>                      </span><span class="hs-special">)</span><span>
 </span><span id="line-50"></span><span>                      </span><span class="annot"><span class="annottext">([(TokenName, Integer)] -&gt; [Tweak Value])
 -&gt; [(TokenName, Integer)] -&gt; [Tweak Value]
 forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; [(TokenName, Integer)]
-</span><a href="#local-6989586621679573395"><span class="hs-identifier hs-var">extraTokens</span></a></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679573384"><span class="hs-identifier hs-var">pol</span></a></span><span>
+</span><a href="#local-6989586621679573661"><span class="hs-identifier hs-var">extraTokens</span></a></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679573650"><span class="hs-identifier hs-var">pol</span></a></span><span>
 </span><span id="line-51"></span><span>              </span><span class="hs-special">)</span><span>
 </span><span id="line-52"></span><span>              </span><span class="annot"><span class="annottext">[MintingPolicy]
-</span><a href="#local-6989586621679573386"><span class="hs-identifier hs-var">pols</span></a></span><span>
+</span><a href="#local-6989586621679573652"><span class="hs-identifier hs-var">pols</span></a></span><span>
 </span><span id="line-53"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-54"></span><span>      </span><span class="annot"><span class="annottext">[MintsConstraint]
-</span><a href="#local-6989586621679573393"><span class="hs-identifier hs-var">mintsCs</span></a></span><span>
+</span><a href="#local-6989586621679573659"><span class="hs-identifier hs-var">mintsCs</span></a></span><span>
 </span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span class="hs-keyword">newtype</span><span> </span><span id="AddTokenLbl"><span class="annot"><a href="Cooked.Attack.AddToken.html#AddTokenLbl"><span class="hs-identifier hs-var">AddTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AddTokenLbl"><span class="annot"><a href="Cooked.Attack.AddToken.html#AddTokenLbl"><span class="hs-identifier hs-var">AddTokenLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573365"><span id="local-6989586621679573367"><span id="local-6989586621679573369"><span class="annot"><span class="annottext">Int -&gt; AddTokenLbl -&gt; ShowS
+</span><span id="line-56"></span><span class="hs-keyword">newtype</span><span> </span><span id="AddTokenLbl"><span class="annot"><a href="Cooked.Attack.AddToken.html#AddTokenLbl"><span class="hs-identifier hs-var">AddTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AddTokenLbl"><span class="annot"><a href="Cooked.Attack.AddToken.html#AddTokenLbl"><span class="hs-identifier hs-var">AddTokenLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TokenName</span></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573631"><span id="local-6989586621679573633"><span id="local-6989586621679573635"><span class="annot"><span class="annottext">Int -&gt; AddTokenLbl -&gt; ShowS
 [AddTokenLbl] -&gt; ShowS
 AddTokenLbl -&gt; String
 (Int -&gt; AddTokenLbl -&gt; ShowS)
@@ -170,7 +170,7 @@ show :: AddTokenLbl -&gt; String
 $cshow :: AddTokenLbl -&gt; String
 showsPrec :: Int -&gt; AddTokenLbl -&gt; ShowS
 $cshowsPrec :: Int -&gt; AddTokenLbl -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573360"><span id="local-6989586621679573362"><span class="annot"><span class="annottext">AddTokenLbl -&gt; AddTokenLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573626"><span id="local-6989586621679573628"><span class="annot"><span class="annottext">AddTokenLbl -&gt; AddTokenLbl -&gt; Bool
 (AddTokenLbl -&gt; AddTokenLbl -&gt; Bool)
 -&gt; (AddTokenLbl -&gt; AddTokenLbl -&gt; Bool) -&gt; Eq AddTokenLbl
 forall (a :: OpticKind).

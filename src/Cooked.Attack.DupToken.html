@@ -29,11 +29,11 @@
 </span><span id="line-29"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-30"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
 </span><span id="line-31"></span><span id="dupTokenAttack"><span class="annot"><span class="annottext">dupTokenAttack :: (AssetClass -&gt; Integer -&gt; Integer) -&gt; Wallet -&gt; Tweak Value
-</span><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-var hs-var">dupTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679573480"><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
-</span><a href="#local-6989586621679573480"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679573479"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679573479"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-32"></span><span>  </span><span id="local-6989586621679573478"><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679573478"><span class="hs-identifier hs-var">increments</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel Value
+</span><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-var hs-var">dupTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679573746"><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679573746"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679573745"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679573745"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679573744"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679573744"><span class="hs-identifier hs-var">increments</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal '[] TxSkel Value
 -&gt; (Value -&gt; Value) -&gt; Tweak [Value]
 forall k (is :: IxList).
 Is k A_Traversal =&gt;
@@ -49,7 +49,7 @@ Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
 </span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Lens '[] MintsConstraint MintsConstraint Value Value
 forall a. HasValue a =&gt; Lens' a Value
 </span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
-</span><a href="#local-6989586621679573473"><span class="hs-identifier hs-var">increaseValue</span></a></span><span>
+</span><a href="#local-6989586621679573739"><span class="hs-identifier hs-var">increaseValue</span></a></span><span>
 </span><span id="line-33"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Tweak ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; Bool) -&gt; [Value] -&gt; Bool
@@ -59,20 +59,20 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679573478"><span class="hs-identifier hs-var">increments</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573470"><span class="annot"><span class="annottext">totalIncrement :: Value
-</span><a href="#local-6989586621679573470"><span class="hs-identifier hs-var hs-var">totalIncrement</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; Value
+</span><a href="#local-6989586621679573744"><span class="hs-identifier hs-var">increments</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573736"><span class="annot"><span class="annottext">totalIncrement :: Value
+</span><a href="#local-6989586621679573736"><span class="hs-identifier hs-var hs-var">totalIncrement</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; Value
 forall a. Monoid a =&gt; [a] -&gt; a
 </span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679573478"><span class="hs-identifier hs-var">increments</span></a></span><span>
+</span><a href="#local-6989586621679573744"><span class="hs-identifier hs-var">increments</span></a></span><span>
 </span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">OutConstraint -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.AddConstraints.html#addOutConstraintTweak"><span class="hs-identifier hs-var">addOutConstraintTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(OutConstraint -&gt; Tweak ()) -&gt; OutConstraint -&gt; Tweak ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; OutConstraint
 </span><a href="Cooked.Tx.Constraints.Type.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.MockChain.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679573479"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573470"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><a href="#local-6989586621679573745"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679573736"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
 </span><span id="line-36"></span><span>  </span><span class="annot"><span class="annottext">DupTokenLbl -&gt; Tweak ()
 forall x. LabelConstrs x =&gt; x -&gt; Tweak ()
 </span><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DupTokenLbl
@@ -80,11 +80,11 @@ forall x. LabelConstrs x =&gt; x -&gt; Tweak ()
 </span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">Value -&gt; Tweak Value
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573470"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><a href="#local-6989586621679573736"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
 </span><span id="line-38"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-39"></span><span>    </span><span class="annot"><a href="#local-6989586621679573473"><span class="hs-identifier hs-type">increaseValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
-</span><span id="line-40"></span><span>    </span><span id="local-6989586621679573473"><span class="annot"><span class="annottext">increaseValue :: Value -&gt; Value
-</span><a href="#local-6989586621679573473"><span class="hs-identifier hs-var hs-var">increaseValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><a href="#local-6989586621679573739"><span class="hs-identifier hs-type">increaseValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-40"></span><span>    </span><span id="local-6989586621679573739"><span class="annot"><span class="annottext">increaseValue :: Value -&gt; Value
+</span><a href="#local-6989586621679573739"><span class="hs-identifier hs-var hs-var">increaseValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-41"></span><span>      </span><span class="annot"><span class="annottext">Optic
   An_Iso
   '[]
@@ -116,19 +116,19 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((AssetClass, Integer) -&gt; (AssetClass, Integer))
 -&gt; [(AssetClass, Integer)] -&gt; [(AssetClass, Integer)]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679573462"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679573462"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573461"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679573461"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679573462"><span class="hs-identifier hs-var">ac</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679573728"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679573728"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573727"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679573727"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679573728"><span class="hs-identifier hs-var">ac</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Ord a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679573461"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
-</span><a href="#local-6989586621679573480"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679573462"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679573461"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679573727"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679573746"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679573728"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679573727"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-44"></span><span>
 </span><span id="line-45"></span><span class="hs-keyword">data</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span>
-</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573456"><span id="local-6989586621679573458"><span class="annot"><span class="annottext">DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573722"><span id="local-6989586621679573724"><span class="annot"><span class="annottext">DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
 -&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool) -&gt; Eq DupTokenLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -136,7 +136,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 == :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 $c== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573449"><span id="local-6989586621679573451"><span id="local-6989586621679573453"><span class="annot"><span class="annottext">Int -&gt; DupTokenLbl -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573715"><span id="local-6989586621679573717"><span id="local-6989586621679573719"><span class="annot"><span class="annottext">Int -&gt; DupTokenLbl -&gt; ShowS
 [DupTokenLbl] -&gt; ShowS
 DupTokenLbl -&gt; String
 (Int -&gt; DupTokenLbl -&gt; ShowS)
