@@ -97,8 +97,8 @@ twoAuctions = do
   A.txSetDeadline offerUtxo1 deadline1
   A.txSetDeadline offerUtxo2 deadline2
   A.txBid offerUtxo1 30_000_000 `as` wallet 2
-  A.txBid offerUtxo2 50_000_000 `as` wallet 2
-  A.txBid offerUtxo2 60_000_000 `as` wallet 3
+  A.txBid offerUtxo2 50_000_000 `as` wallet 3
+  A.txBid offerUtxo2 60_000_000 `as` wallet 4
   awaitTime (deadline1 + 1)
   A.txHammer offerUtxo1
   awaitTime (deadline2 + 1)
