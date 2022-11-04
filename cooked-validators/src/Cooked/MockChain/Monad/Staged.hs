@@ -13,6 +13,7 @@ module Cooked.MockChain.Monad.Staged where
 
 import Control.Applicative
 import Control.Monad.Except
+import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Attack.Tweak.Common
@@ -137,16 +138,16 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
         StateT [Ltl UntypedTweak] InterpMockChain Pl.CardanoTx
       interpretAndTell (UntypedTweak (Tweak now)) later = do
         mcst <- lift get
+        signers <- askSigners
         msum $
           map
-            ( \(skel', _) -> do
-                signers <- askSigners
-                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-                tx <- validateTxSkel skel'
+            ( \(skel', signers', _) -> do
+                lift $ lift $ tell $ prettyMockChainOp signers' $ Builtin $ ValidateTxSkel skel'
+                tx <- signingWith signers' $ validateTxSkel skel'
                 put later
                 return tx
             )
-            (now mcst skel)
+            (now mcst skel signers)
   interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot

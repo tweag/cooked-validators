@@ -12,8 +12,11 @@ import Control.Monad
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoPredicate
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
+import Data.List
+import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
@@ -24,8 +27,8 @@ import qualified PlutusTx.Numeric as Pl
 -- * The type of tweaks
 
 -- | A tweak is a function that, depending on the 'MockChainSt'ate, looks at a
--- transaction and computes a list of modified transactions, together with some
--- additional values.
+-- transaction and its signers and computes a list of modified transactions,
+-- together with some additional values.
 --
 -- Our intuition (and also the language of the comments pertaining to tweaks) is
 -- that a tweak
@@ -34,11 +37,13 @@ import qualified PlutusTx.Numeric as Pl
 --
 -- - /modifies a transaction/, where the /unmodified transaction/ is the name we
 --   give to the input 'TxSkel', and each of the 'TxSkel's in the output list is
---   a /modified transaction/
+--   a /modified transaction/,
 --
--- - /returns/ the value(s) in the 'snd' component of the pairs in the output
+-- - /changes the list of signers/, and
+--
+-- - /returns/ the value(s) in the last component of the tuples in the output
 --   list. This is reflected by the 'Monad' instance for 'Tweak's.
-newtype Tweak a = Tweak {getTweak :: MockChainSt -> TxSkel -> [(TxSkel, a)]}
+newtype Tweak a = Tweak {getTweak :: MockChainSt -> TxSkel -> NE.NonEmpty Wallet -> [(TxSkel, NE.NonEmpty Wallet, a)]}
 
 -- | Internal wrapper type for compatibility with the LTL modalities. You'll
 -- probably never work with this type if you want to build and use tweaks.
@@ -46,24 +51,28 @@ data UntypedTweak where
   UntypedTweak :: Tweak a -> UntypedTweak
 
 instance Functor Tweak where
-  fmap f g = Tweak $ \mcst skel -> second f <$> getTweak g mcst skel
+  fmap f g = Tweak $ \mcst skel signers -> third f <$> getTweak g mcst skel signers
 
 instance Applicative Tweak where
-  pure x = Tweak $ \_ skel -> [(skel, x)]
+  pure x = Tweak $ \_ skel signers -> [(skel, signers, x)]
   (<*>) = ap
 
 instance Monad Tweak where
-  Tweak g >>= h = Tweak $ \mcst skel ->
-    concatMap (\(skel', x) -> getTweak (h x) mcst skel') $ g mcst skel
+  Tweak g >>= h = Tweak $ \mcst skel signers ->
+    concatMap (\(skel', signers', x) -> getTweak (h x) mcst skel' signers') $ g mcst skel signers
 
 instance Alternative Tweak where
-  empty = Tweak $ \_ _ -> []
-  Tweak f <|> Tweak g = Tweak $ \mcst skel -> f mcst skel ++ g mcst skel
+  empty = Tweak $ \_ _ _ -> []
+  Tweak f <|> Tweak g = Tweak $ \mcst skel signers -> f mcst skel signers ++ g mcst skel signers
 
 instance MonadPlus Tweak
 
 instance MonadFail Tweak where
   fail _ = empty
+
+-- Helper for the functor instance of 'Tweak' and some other places
+third :: (c -> x) -> (a, b, c) -> (a, b, x)
+third f (a, b, c) = (a, b, f c)
 
 -- * Simple tweaks
 
@@ -78,20 +87,48 @@ doNothingTweak = return ()
 -- | The "tweak" that returns the current 'MockChainSt'. This does *not* modify
 -- the transaction.
 mcstTweak :: Tweak MockChainSt
-mcstTweak = Tweak $ \mcst skel -> [(skel, mcst)]
+mcstTweak = Tweak $ \mcst skel signers -> [(skel, signers, mcst)]
 
 -- | The "tweak" that obtains some value from the 'TxSkel'. This does *not*
 -- modify the transaction.
 viewTweak :: Is k A_Getter => Optic' k is TxSkel a -> Tweak a
-viewTweak optic = Tweak $ \_mcst skel -> [(skel, view optic skel)]
+viewTweak optic = Tweak $ \_mcst skel signers -> [(skel, signers, view optic skel)]
 
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak :: Is k A_Setter => Optic' k is TxSkel a -> a -> Tweak ()
-setTweak optic newValue = Tweak $ \_mcst skel -> [(set optic newValue skel, ())]
+setTweak optic newValue = Tweak $ \_mcst skel signers -> [(set optic newValue skel, signers, ())]
 
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak :: Is k A_Setter => Optic' k is TxSkel a -> (a -> a) -> Tweak ()
-overTweak optic change = Tweak $ \_mcst skel -> [(over optic change skel, ())]
+overTweak optic change = Tweak $ \_mcst skel signers -> [(over optic change skel, signers, ())]
+
+-- * Tweaks that change the list of signers
+
+-- | Find out who's currenly signing the transaction about to be submitted
+getSignersTweak :: Tweak (NE.NonEmpty Wallet)
+getSignersTweak = Tweak $ \_mcst skel signers -> [(skel, signers, signers)]
+
+-- | Change the list of signers
+setSignersTweak :: NE.NonEmpty Wallet -> Tweak ()
+setSignersTweak newSigners = Tweak $ \_mcst skel _signers -> [(skel, newSigners, ())]
+
+-- | Ensure that the given signers are present on the transaction. Returns a
+-- list of signers that were added.
+ensureSignersTweak :: [Wallet] -> Tweak [Wallet]
+ensureSignersTweak additionalSigners = do
+  oldSigners <- getSignersTweak
+  let newSigners = filter (not . flip elem oldSigners) additionalSigners
+  setSignersTweak $ prependList newSigners oldSigners
+  return newSigners
+  where
+    prependList :: [a] -> NE.NonEmpty a -> NE.NonEmpty a
+    prependList xs ne = foldr NE.cons ne xs
+
+-- | Like 'ensureSignersTweak', but fails if no signers are added.
+addSignersTweak :: [Wallet] -> Tweak ()
+addSignersTweak additionalSigners = do
+  newSigners <- ensureSignersTweak additionalSigners
+  guard $ not $ null newSigners
 
 -- * Composing tweaks
 
@@ -103,29 +140,29 @@ overTweak optic change = Tweak $ \_mcst skel -> [(over optic change skel, ())]
 -- signalled by wrapping the original tweak's return value in a @Just@.
 tryTweak :: Tweak a -> Tweak (Maybe a)
 tryTweak (Tweak f) = Tweak $
-  \mcst skel -> case f mcst skel of
-    [] -> [(skel, Nothing)]
-    l -> second Just <$> l
+  \mcst skel signers -> case f mcst skel signers of
+    [] -> [(skel, signers, Nothing)]
+    l -> third Just <$> l
 
 -- | This "tweak" returns the transaction as it has been modified by now. Use
 -- this as a kind of savepoint, if you want execute some sequence of tweaks of
 -- which you're not sure that they will lead to the right result. You can
 -- restore the savepoint after that sequence with 'setTxSkel'.
 getTxSkel :: Tweak TxSkel
-getTxSkel = Tweak $ \_mcst skel -> [(skel, skel)]
+getTxSkel = Tweak $ \_mcst skel signers -> [(skel, signers, skel)]
 
 -- | See the comment at 'getTxSkel'.
 setTxSkel :: TxSkel -> Tweak ()
-setTxSkel skel = Tweak $ \_ _ -> [(skel, ())]
+setTxSkel skel = Tweak $ \_ _ signers -> [(skel, signers, ())]
 
 -- * Applying 'Tweak's to 'Constraints'
 
 -- | Most tweaks do something interesting only to the 'Constraints' of a
--- transaction. This function extracts that action on 'Constraints' from an
+-- transaction. This function extracts that action on 'Constraints' from a
 -- tweak.
-applyToConstraints :: Tweak a -> MockChainSt -> Constraints -> [Constraints]
-applyToConstraints tweak mcst cs =
-  txConstraints . fst <$> getTweak tweak mcst (txSkel cs)
+applyToConstraints :: Tweak a -> MockChainSt -> NE.NonEmpty Wallet -> Constraints -> [Constraints]
+applyToConstraints tweak mcst signers cs =
+  txConstraints . (\(skel, _, _) -> skel) <$> getTweak tweak mcst (txSkel cs) signers
 
 -- * Constructing Tweaks from Optics
 
@@ -217,8 +254,9 @@ mkAccumLTweak ::
   -- | Initial accumulator.
   acc ->
   Tweak acc
-mkAccumLTweak optic f initAcc = Tweak $ \mcst skel ->
-  [mapAccumLOf optic (f mcst) initAcc skel]
+mkAccumLTweak optic f initAcc = Tweak $ \mcst skel signers ->
+  (\(skel', a) -> (skel', signers, a))
+    <$> [mapAccumLOf optic (f mcst) initAcc skel]
 
 -- * Helpers to interact with 'MockChainSt'
 

@@ -11,6 +11,7 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import Data.Default
 import Data.List
+import qualified Data.List.NonEmpty as NE
 import qualified Ledger as L
 import qualified Ledger.Value as L
 import Optics.Core
@@ -164,7 +165,7 @@ doubleSatAttack optic extra attacker mode = do
     -- into one 'Constraints' that specifies eveything that is contained in the
     -- input.
     joinConstraints :: [Constraints] -> Constraints
-    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsTweak cs) def $ [] :=>: []
+    joinConstraints cs = head $ applyToConstraints (mapM_ addConstraintsTweak cs) def (wallet 1 NE.:| []) $ [] :=>: []
 
     allCombinations :: [[x]] -> [[x]]
     allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
