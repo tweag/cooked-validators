@@ -290,17 +290,16 @@ runTransactionValidation ::
   -- | List of signers
   [Wallet] ->
   Pl.Tx ->
-  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
+  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase)
 runTransactionValidation s parms ix reqSigners signers tx =
-  let (e1, evs) =
-        Pl.runValidation
-          (Pl.validateTransaction s tx)
-          (Pl.ValidationCtx ix parms)
-      -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
+  let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex parms ix
       cardanoTx = either (error . show) id $ Pl.fromPlutusTx parms cardanoIndex reqSigners tx
+
+      txn = Pl.EmulatorTx $ Pl.CardanoApiEmulatorEraTx tx
+      e1 = Pl.validateCardanoTx params s cardanoIndex txn
 
       -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
       e2 =
@@ -314,9 +313,9 @@ runTransactionValidation s parms ix reqSigners signers tx =
       e = e1 <|> e2
       idx' = case e of
         Just (Pl.Phase1, _) -> ix
-        Just (Pl.Phase2, _) -> Pl.insertCollateral (Pl.EmulatorTx tx) ix
-        Nothing -> Pl.insert (Pl.EmulatorTx tx) ix
-   in (idx', e, evs)
+        Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
+        Nothing -> Pl.insert txn ix
+   in (idx', e)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
@@ -326,7 +325,7 @@ validateTx' reqSigs tx = do
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status, _evs) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
+  let (ix', status) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
