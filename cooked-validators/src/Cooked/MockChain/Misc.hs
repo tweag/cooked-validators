@@ -15,11 +15,16 @@ theNetworkId :: Api.NetworkId
 theNetworkId = Api.Testnet $ Api.NetworkMagic 42 -- TODO PORT what's magic?
 
 toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
-toPlTxOut addr value datum = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
+toPlTxOut addr value datum = toPlTxOut' addr value datum'
+  where
+    datum' = maybe Pl.NoOutputDatum (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData) datum
+
+toPlTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Pl.TxOut
+toPlTxOut' addr value datum = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
   where
     cAddr = fromRight undefined $ Pl.toCardanoAddressInEra theNetworkId addr
     cValue = fromRight undefined $ Pl.toCardanoTxOutValue value
-    cDatum = maybe Api.TxOutDatumNone (Pl.toCardanoTxOutDatumHashFromDatum . Pl.Datum . Pl.toBuiltinData) datum
+    cDatum = fromRight undefined $ Pl.toCardanoTxOutDatum datum
 
 fromTxOut :: Pl.TxOut -> Maybe Pl.ChainIndexTxOut
 fromTxOut (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))
