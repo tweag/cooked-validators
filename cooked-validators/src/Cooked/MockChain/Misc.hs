@@ -50,3 +50,11 @@ fromTxOut (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))
     _ciTxOutReferenceScript = case cRefScript of
                                    Api.ReferenceScript _ s -> Pl.fromCardanoScriptInAnyLang s
                                    Api.ReferenceScriptNone -> Nothing
+
+isPkCito :: Pl.ChainIndexTxOut -> Bool
+isPkCito Pl.PublicKeyChainIndexTxOut {} = True
+isPkCito _ = False
+
+isScriptCito :: Pl.ChainIndexTxOut -> Bool
+isScriptCito Pl.ScriptChainIndexTxOut {} = True
+isScriptCito _ = False
