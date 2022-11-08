@@ -462,21 +462,19 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
 setFeeAndValidRange _ _ Pl.UnbalancedCardanoTx {} =
   error "Impossible: we have a CardanoBuildTx"
-setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx0 reqSigs0 uindex {- slotRange -}) = do
+setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx reqSigs0 uindex) = do
   utxos <- pkUtxos' (walletPKHash w)
   let requiredSigners = S.toList reqSigs0
   ps <- asks mceParams
   case Pl.fromPlutusIndex ps $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
-      config <- slotConfig
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
       -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = Pl.lovelaceValueOf 3000000
-      let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config _slotRange}
       fee <-
         calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
           `catchError` \case
