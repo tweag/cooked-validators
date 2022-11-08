@@ -31,7 +31,7 @@ import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe, isNothing, fromMaybe)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
@@ -372,36 +372,30 @@ utxosSuchThisAndThat' addrPred datumPred = do
   mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
-    go oref (Pl2.TxOut oaddr@(Pl.Address ocred _) val outputDatum _) = do
-      -- We begin by attempting to lookup the given datum hash in our map of managed datums.
+    go oref out@(Pl.TxOut (Api.TxOut _ _ cDatum _)) = pure (fromTxOut out) >>=
+      \case
+        Nothing -> pure Nothing
+        Just cito -> do
+          mDatum <- extractDatum oref cito $ Pl.fromCardanoTxOutDatumHash cDatum
+          pure $
+            if datumPred mDatum (Pl._ciTxOutValue cito)
+               then Just (cito, mDatum)
+               else Nothing
+
+    extractDatum :: Pl.TxOutRef -> Pl.ChainIndexTxOut -> Maybe Pl.DatumHash -> MockChainT m (Maybe a)
+    extractDatum oref cito Nothing
+      | isScriptCito cito = fail $ "ScriptCredential with no datum hash: " ++ show oref
+      | otherwise = pure Nothing
+    extractDatum oref _ (Just dh) = do
       managedDatums <- gets mcstDatums
-      let mdatum = case outputDatum of
-            Pl.NoOutputDatum -> Nothing
-            Pl.OutputDatumHash dh -> dh `M.lookup` managedDatums
-            Pl.OutputDatum da -> Just da
-      -- Now, depending on whether we're looking at a utxo that belongs to a pk or a script,
-      -- there's a slight difference in treatment:
-      case ocred of
-        -- PubKey outputs are not required to have a datum, hence, we don't care if mdatum is Nothing.
-        Pl.PubKeyCredential _ -> do
-          let ma = mdatum >>= Pl.fromBuiltinData . Pl.getDatum
-          if datumPred ma val
-            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, ma)
-            else return Nothing
-        -- Script addresses, on the other hand, /must/ have a datum present. Hence, we check that mdatum
-        -- is a just. If this happens, it probably means there's a bug in cooked and we lost some datum.
-        -- Therefore, we check a few different things in order to provide a better debugging experience.
-        Pl.ScriptCredential (Pl.ValidatorHash vh) -> do
-          datumH <- maybe (fail $ "ScriptCredential with no datum hash: " ++ show oref) return mdatumH
-          datum <- maybe (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref) return mdatum
-          a <-
-            maybe
-              (fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?")
-              return
-              (Pl.fromBuiltinData (Pl.getDatum datum))
-          if datumPred (Just a) val
-            then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
-            else return Nothing
+      Just <$> case dh `M.lookup` managedDatums of
+           -- TODO PORT previously this was an error only for script datums,
+           -- but I think it should be an error for any datum hash
+           -- that's mentioned but cannot be found in managedDatums.
+           Nothing -> fail $ "Unmanaged datum with hash: " ++ show dh ++ " at: " ++ show oref
+           Just datum -> maybe failBadConvert pure (Pl.fromBuiltinData $ Pl.getDatum datum)
+      where
+        failBadConvert = fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?"
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
