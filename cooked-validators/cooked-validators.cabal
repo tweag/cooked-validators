@@ -40,8 +40,6 @@ library
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
-      Cooked.Tx.Constraints.Optics
-      Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
       Example
   other-modules:
@@ -73,6 +71,7 @@ library
     , monad-control
     , mtl
     , optics-core
+    , optics-th
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -140,6 +139,7 @@ test-suite spec
     , monad-control
     , mtl
     , optics-core
+    , optics-th
     , plutus-contract
     , plutus-core
     , plutus-ledger

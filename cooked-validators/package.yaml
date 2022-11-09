@@ -44,6 +44,7 @@ dependencies:
   - cardano-wallet-core
   - memory
   - optics-core
+  - optics-th
   - hashable
 
 library:
