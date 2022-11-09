@@ -1,9 +1,11 @@
 module Cooked.MockChain.Constraints where
 
 import Control.Arrow (second)
+import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
 import Cooked.Tx.Balance (spendValueFrom)
 import Cooked.Tx.Constraints.Type
+import Data.Either
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.TimeSlot as Pl
 
@@ -15,7 +17,7 @@ spentByPK :: MonadBlockChain m => Pl.PubKeyHash -> Pl.Value -> m Constraints
 spentByPK pkh val = do
   -- TODO: maybe turn spentByPK into a pure function: spentByPK val <$> pkUtxos
   allOuts <- pkUtxos pkh
-  let (toSpend, leftOver, _) = spendValueFrom val $ map (second Pl.toTxOut) allOuts
+  let (toSpend, leftOver, _) = spendValueFrom val $ map (second $ fromRight undefined . Pl.toTxOut theNetworkId) allOuts -- TODO PORT either
   (:=>: [paysPK pkh leftOver]) . map SpendsPK <$> mapM spendableRef toSpend
 
 -- | Enforces the transaction to be vadiated at a precise slot.
