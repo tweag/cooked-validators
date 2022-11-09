@@ -5,8 +5,10 @@
 
 module Cooked.MockChain.Monad.Contract where
 
+import qualified Cardano.Api as Api
 import Control.Lens (review)
 import Control.Monad
+import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
 import Cooked.Tx.Constraints
 import qualified Data.Map as M
@@ -14,7 +16,7 @@ import Data.Maybe
 import qualified Data.Text as T
 import Data.Void
 import qualified Ledger as Pl
-import qualified Ledger.Scripts as Pl
+import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Plutus.Contract as C
 import qualified PlutusTx as Pl
 
@@ -32,7 +34,8 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   utxosSuchThat addr datumPred = do
     allUtxos <- M.toList <$> C.utxosAt addr
     maybeUtxosWithDatums <- forM allUtxos $ \utxo -> do
-      let (Pl.TxOut _ val _) = Pl.toTxOut $ snd utxo
+      Right (Pl.TxOut (Api.TxOut _ cVal _ _)) <- pure $ Pl.toTxOut theNetworkId $ snd utxo
+      let val = Pl.fromCardanoTxOutValue cVal
       datum <- datumFromTxOut $ snd utxo
       let typedDatum = datum >>= Pl.fromBuiltinData . Pl.getDatum
       pure $
@@ -43,7 +46,13 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
 
   utxosSuchThisAndThat _ _ = error "Contract does not support retrieving the UTxOs without a specified address"
 
-  txOutByRef ref = fmap Pl.toTxOut <$> C.unspentTxOutFromRef ref
+  txOutByRef ref = do
+    mcito <- C.unspentTxOutFromRef ref
+    case mcito of
+         Nothing -> pure Nothing
+         Just cito -> case Pl.toTxOut theNetworkId cito of
+                           Left e -> fail $ "Error converting " <> show ref <> " to tx out: " <> show e
+                           Right txOut -> pure $ Just txOut
 
   ownPaymentPubKeyHash = fmap Pl.unPaymentPubKeyHash C.ownFirstPaymentPubKeyHash
 
@@ -53,6 +62,6 @@ instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
   awaitTime = C.awaitTime
 
   datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
   -- datum is always present in the nominal case, guaranteed by chain-index
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) = C.datumFromHash dh
+  -- TODO PORT shall we use the _mdh when it's Just?
+  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (dh, _mdh) _ _) = C.datumFromHash dh
