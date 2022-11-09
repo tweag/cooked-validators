@@ -3,18 +3,16 @@
 
 module Cooked.Tx.Constraints where
 
-import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
-import Data.Function (on)
-import qualified Data.List as List
 import qualified Data.Map.Strict as M
+import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
-import qualified Ledger.Value as Pl
+import qualified Ledger.Value as Pl hiding (singleton)
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx as Pl
 
@@ -66,102 +64,69 @@ instance ToLedgerConstraint InConstraint where
     Nothing -> M.empty
   extractDatumStr SpendsPK {} = M.empty -- is this accurate? There might be a datum on PK outputs! TODO
 
-  toLedgerConstraint (SpendsScript v r (oref, o)) = (lkups, constr)
+  toLedgerConstraint (SpendsScript v r spOut) = (lkups, constr)
     where
+      oref = spOutTxOutRef spOut
+      o = spOutCITxOut spOut
       lkups =
         Pl.otherScript (Pl.validatorScript v)
           <> Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
-  toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
+  toLedgerConstraint (SpendsPK spOut) = (lkups, constr)
     where
+      oref = spOutTxOutRef spOut
+      o = spOutCITxOut spOut
       lkups = Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendPubKeyOutput oref
 
---   toLedgerConstraint (Mints (Just r) pols v) = (lkups, constr)
---     where
---       lkups = foldMap Pl.mintingPolicy pols
---       constr = Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData r)) v
+instance ToLedgerConstraint OutConstraint where
+  extractDatumStr (PaysScript _validator _stak datum _value) =
+    M.singleton (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum) (show datum)
+  extractDatumStr (PaysPK _pk _stak mdat _v) =
+    maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
 
--- instance ToLedgerConstraint MiscConstraint where
---   extractDatumStr (SpendsScript _ _ (_, Pl.ScriptChainIndexTxOut _ _ (Right datum) _)) =
---     M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData datum) (show datum)
---   extractDatumStr _ = M.empty
+  toLedgerConstraint (PaysPK p stak dat v) = (lkups, constr)
+    where
+      mData = fmap (Pl.Datum . Pl.toBuiltinData) dat
 
---   toLedgerConstraint (SpendsScript v r (oref, o)) = (lkups, constr)
---     where
---       lkups =
---         Pl.otherScript (Pl.validatorScript v)
---           <> Pl.unspentOutputs (M.singleton oref o)
---       constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
---   toLedgerConstraint (SpendsPK (oref, o)) = (lkups, constr)
---     where
---       lkups = Pl.unspentOutputs (M.singleton oref o)
---       constr = Pl.mustSpendPubKeyOutput oref
---   toLedgerConstraint (Mints Nothing pols v) = (lkups, constr)
---     where
---       lkups = foldMap Pl.mintingPolicy pols
---       constr = Pl.mustMintValue v
---   toLedgerConstraint (Mints (Just r) pols v) = (lkups, constr)
---     where
---       lkups = foldMap Pl.mintingPolicy pols
---       constr = Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData r)) v
---   toLedgerConstraint (Before t) = (mempty, constr)
---     where
---       constr = Pl.mustValidateIn (Pl.to t)
---   toLedgerConstraint (After t) = (mempty, constr)
---     where
---       constr = Pl.mustValidateIn (Pl.from t)
---   toLedgerConstraint (ValidateIn r) = (mempty, Pl.mustValidateIn r)
---   toLedgerConstraint (SignedBy hashes) = (mempty, foldMap (Pl.mustBeSignedBy . Pl.PaymentPubKeyHash) hashes)
+      lkups =
+        maybe mempty Pl.otherData mData
+          -- TODO: do we want to add ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
+          -- a different 'WithOwnStakePubKeyHash' constraint?
+          <> maybe mempty Pl.ownStakePubKeyHash stak
+      constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
+  toLedgerConstraint (PaysScript v msc datum value) = (lkups, constr)
+    where
+      lkups = Pl.otherScript (Pl.validatorScript v)
+      constr =
+        Pl.singleton
+          ( Pl.MustPayToOtherScript
+              (Pl.validatorHash $ Pl.validatorScript v)
+              (msc >>= getStakeValidatorHash)
+              (Pl.Datum $ Pl.toBuiltinData datum)
+              value
+          )
+          <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
+      -- Retrieve StakeValidatorHash from StakingCredential. This is similar to what plutus-apps does.
+      -- See lines 141-146 in plutus-apps/plutus-ledger-constraints/test/Spec.hs (commit hash 02ae267)
+      getStakeValidatorHash :: Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
+      getStakeValidatorHash (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh))) =
+        Just $ Pl.StakeValidatorHash svh
+      getStakeValidatorHash _ = Nothing
 
--- instance ToLedgerConstraint OutConstraint where
---   extractDatumStr (PaysScript _validator _ datum _value) =
---     M.singleton (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum) (show datum)
---   extractDatumStr (PaysPKWithDatum _pk _stak mdat _v) =
---     maybe M.empty (\d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)) mdat
+instance ToLedgerConstraint TxSkel where
+  extractDatumStr (TxSkel _label _opts _mints _validityRange ins outs) =
+    foldMap extractDatumStr ins <> foldMap extractDatumStr outs
 
---   toLedgerConstraint (PaysPKWithDatum p stak dat v) = (lkups, constr)
---     where
---       mData = fmap (Pl.Datum . Pl.toBuiltinData) dat
-
---       lkups =
---         maybe mempty Pl.otherData mData
---           -- TODO: do we want to akk ownStakePubKeyHash on 'PaysPKWithDatum'? Would we rather have
---           -- a different 'WithOwnStakePubKeyHash' constraint?
---           <> maybe mempty Pl.ownStakePubKeyHash stak
---       constr = Pl.singleton $ Pl.MustPayToPubKeyAddress (Pl.PaymentPubKeyHash p) stak mData v
---   toLedgerConstraint (PaysScript v msc datum value) = (lkups, constr)
---     where
---       lkups = Pl.otherScript (Pl.validatorScript v)
---       constr =
---         Pl.singleton
---           ( Pl.MustPayToOtherScript
---               (Pl.validatorHash $ Pl.validatorScript v)
---               (msc >>= getStakeValidatorHash)
---               (Pl.Datum $ Pl.toBuiltinData datum)
---               value
---           )
---           <> Pl.singleton (Pl.MustIncludeDatum $ Pl.Datum $ Pl.toBuiltinData datum)
---       -- Retrieve StakeValidatorHash from StakingCredential. This is similar to what plutus-apps does.
---       -- See lines 141-146 in plutus-apps/plutus-ledger-constraints/test/Spec.hs (commit hash 02ae267)
---       getStakeValidatorHash :: Pl.StakingCredential -> Maybe Pl.StakeValidatorHash
---       getStakeValidatorHash (Pl.StakingHash (Pl.ScriptCredential (Pl.ValidatorHash svh))) =
---         Just $ Pl.StakeValidatorHash svh
---       getStakeValidatorHash _ = Nothing
-
--- instance ToLedgerConstraint Constraints where
---   extractDatumStr (miscConstraints :=>: outConstraints) =
---     M.union
---       (M.unions (extractDatumStr <$> miscConstraints))
---       (M.unions (extractDatumStr <$> outConstraints))
-
---   toLedgerConstraint (miscConstraints :=>: outConstraints) =
---     (mconcat lkups, mconcat constrs)
---     where
---       (lkups, constrs) =
---         unzip $
---           (toLedgerConstraint <$> miscConstraints)
---             <> (toLedgerConstraint <$> outConstraints)
+  toLedgerConstraint (TxSkel _label _opts mints validityRange ins outs) =
+    (mconcat lkups, mconcat constrs)
+    where
+      (lkups, constrs) =
+        unzip $
+          (toLedgerConstraint <$> Set.toList ins)
+            <> (toLedgerConstraint <$> outs)
+            <> (toLedgerConstraint <$> Set.toList mints)
+            <> [(mempty, Pl.mustValidateIn validityRange)]
 
 -- -- | Generate the 'Pl.TxOut' transaction output associated to a given output
 -- -- constraint 'OutConstraint'.

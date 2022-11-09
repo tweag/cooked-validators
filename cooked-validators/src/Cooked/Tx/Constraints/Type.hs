@@ -26,7 +26,7 @@ import Type.Reflection
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
 --  underlying 'Pl.ChainIndexTxOut'.
 -- data SpendableOut = SpendableOut Pl.TxOutRef Pl.ChainIndexTxOut deriving (Eq, Ord)
-data SpendableOut deriving (Eq, Ord)
+data SpendableOut deriving (Eq, Ord) -- TODO undefined for now
 
 -- -- | Accesses the 'Pl.Value' within a 'SpendableOut'
 -- sOutValue :: SpendableOut -> Pl.Value
@@ -58,6 +58,12 @@ data SpendableOut deriving (Eq, Ord)
 spOutDatum :: SpendableOut -> Maybe Pl.Datum
 spOutDatum = undefined
 
+spOutCITxOut :: SpendableOut -> Pl.ChainIndexTxOut
+spOutCITxOut = undefined
+
+spOutTxOutRef :: SpendableOut -> Pl.TxOutRef
+spOutTxOutRef = undefined
+
 -- * Transaction labels
 
 type LabelConstrs x = (Show x, Typeable x, Eq x, Ord x)
@@ -77,7 +83,7 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
-data TxOpts deriving (Eq)
+data TxOpts deriving (Eq) -- undefined for now
 
 instance Semigroup TxOpts
 
@@ -173,15 +179,15 @@ instance Ord InConstraint where
 -- * Output Constraints
 
 type PaysScriptConstrs a =
-  ( -- Pl.ToData (Pl.DatumType a),
-    -- Show (Pl.DatumType a),
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
     Typeable a
   )
 
 type PaysPKConstrs a =
-  ( -- Pl.ToData (Pl.DatumType a),
-    -- Show (Pl.DatumType a),
+  ( Pl.ToData a,
+    Show a,
     Pl.Eq a,
     Typeable a
   )
