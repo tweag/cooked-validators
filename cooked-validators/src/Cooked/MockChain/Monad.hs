@@ -20,7 +20,7 @@ import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import Data.Function (on)
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
@@ -30,7 +30,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
-import qualified PlutusTx as Pl (FromData, fromBuiltinData)
+import qualified PlutusTx as Pl (FromData)
 
 -- * BlockChain Monad
 
@@ -71,8 +71,8 @@ class (MonadFail m) => MonadBlockChain m where
     UtxoPredicate a ->
     m [(SpendableOut, Maybe a)]
 
-  -- | Returns the datum contained in a utxo or "Nothing" if there is none
-  datumFromTxOut :: Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
+  -- | Returns the datum with the given hash, or 'Nothing' if there is none
+  datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
@@ -100,76 +100,79 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- | Calls 'validateTxSkel' with a skeleton that is set with some specific options.
-validateTxConstrOpts :: (MonadBlockChain m, ConstraintsSpec constraints) => TxOpts -> constraints -> m Pl.CardanoTx
-validateTxConstrOpts opts = validateTxSkel . txSkelOpts opts
+-- spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
+-- spendableRef txORef = do
+--   Just txOut <- txOutByRef txORef
+--   return (txORef, fromJust (Pl.fromTxOut txOut))
 
--- | Calls 'validateTx' with the default set of options and no label.
-validateTxConstr :: (MonadBlockChain m, ConstraintsSpec constraints) => constraints -> m Pl.CardanoTx
-validateTxConstr = validateTxSkel . txSkel
+-- -- | Some values of type "SpendableOut" have no explicit datum in their
+-- -- "ChainIndexTxOut" but the datum hash instead. When used in cooked
+-- -- constraints, this results in a runtime error. This function modifies the
+-- -- value to replace the datum hash by the datum by looking it up in the state
+-- -- of the block chain.
+-- --
+-- -- Outputs obtained from a "CardanoTx" (using "getCardanoTxOutRefs") have datum
+-- -- hashes instead of datums. If you want to use them in spend constraints, you
+-- -- first have to preprocess them with this function.
+-- --
+-- -- As a user though, when writing endpoints and traces, you will prefer to use
+-- -- the "spOutsFromCardanoTx" helper if you need to extract a "SpendableOut"
+-- -- from a "CardanoTx" to use it in a spend constraint.
+-- spOutResolveDatum ::
+--   MonadBlockChain m =>
+--   SpendableOut ->
+--   m SpendableOut
+-- spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _)) = do
+--   mDatum <- datumFromHash datumHash
+--   case mDatum of
+--     Nothing -> fail "datum hash not found in block chain state"
+--     Just datum ->
+--       return
+--         (txOutRef, chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
+-- spOutResolveDatum spOut = return spOut
 
--- | Calls 'validateTxSkel' with the default set of options but passes an arbitrary showable label to it.
-validateTxConstrLbl :: (LabelConstrs lbl, MonadBlockChain m, ConstraintsSpec constraints) => lbl -> constraints -> m Pl.CardanoTx
-validateTxConstrLbl lbl = validateTxSkel . txSkelLbl lbl
+-- -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
+-- -- output of the given "CardanoTx". These "SpendableOutput" are processed to
+-- -- remove unresolved datum hashes with "spOutResolveDatum" so that they can be
+-- -- used in spending constraints.
+-- --
+-- -- This is useful when writing endpoints and/or traces to fetch utxos of
+-- -- interest right from the start and avoid querying the chain for them
+-- -- afterwards using "utxosSuchThat" functions.
+-- spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
+-- spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
+--   \(txOut, txOutRef) ->
+--     case Pl.fromTxOut txOut of
+--       Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
+--       Nothing -> fail "could not extract ChainIndexTxOut"
 
-spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
-spendableRef txORef = do
-  Just txOut <- txOutByRef txORef
-  return (txORef, fromJust (Pl.fromTxOut txOut))
+-- -- | Retrieve a typed datum from a 'SpendableOut'. This function is useful if you
+-- -- know the type of datum you expect on a 'SpendableOut' and you want to extract
+-- -- the datum directly to the correct 'DatumType' for your validator.
+-- --
+-- -- This function has an ambiguous type, so it is probably necessary to
+-- -- type-apply it to the type of your validator.
+-- spOutGetDatum :: (Pl.FromData (Pl.DatumType a), MonadBlockChain m) => SpendableOut -> m (Pl.DatumType a)
+-- spOutGetDatum spOut = do
+--   mDatum <- datumFromSpOut spOut
+--   case mDatum of
+--     Nothing -> fail "there is no datum on this output"
+--     Just datum -> parseDatum datum
+--   where
+--     parseDatum (Pl.Datum builtinData) =
+--       case Pl.fromBuiltinData builtinData of
+--         Just d -> return d
+--         Nothing -> fail "could not parse datum to correct type"
 
--- | Some values of type "SpendableOut" have no explicit datum in their
--- "ChainIndexTxOut" but the datum hash instead. When used in cooked
--- constraints, this results in a runtime error. This function modifies the
--- value to replace the datum hash by the datum by looking it up in the state
--- of the block chain.
---
--- Outputs obtained from a "CardanoTx" (using "getCardanoTxOutRefs") have datum
--- hashes instead of datums. If you want to use them in spend constraints, you
--- first have to preprocess them with this function.
---
--- As a user though, when writing endpoints and traces, you will prefer to use
--- the "spOutsFromCardanoTx" helper if you need to extract a "SpendableOut"
--- from a "CardanoTx" to use it in a spend constraint.
-spOutResolveDatum ::
-  MonadBlockChain m =>
-  SpendableOut ->
-  m SpendableOut
-spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left _) _)) = do
-  mDatum <- datumFromTxOut chainIndexTxOut
-  case mDatum of
-    Nothing -> fail "datum hash not found in block chain state"
-    Just datum ->
-      return
-        (txOutRef, chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
-spOutResolveDatum spOut = return spOut
+-- datumFromSpOut :: MonadBlockChain m => SpendableOut -> m (Maybe Pl.Datum)
+-- datumFromSpOut (_, cito) = datumFromTxOut cito
 
--- | Retrieve the ordered list of "SpendableOutput" corresponding to each
--- output of the given "CardanoTx". These "SpendableOutput" are processed to
--- remove unresolved datum hashes with "spOutResolveDatum" so that they can be
--- used in spending constraints.
---
--- This is useful when writing endpoints and/or traces to fetch utxos of
--- interest right from the start and avoid querying the chain for them
--- afterwards using "utxosSuchThat" functions.
-spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
-spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
-  \(txOut, txOutRef) ->
-    case Pl.fromTxOut txOut of
-      Just chainIndexTxOut -> spOutResolveDatum (txOutRef, chainIndexTxOut)
-      Nothing -> fail "could not extract ChainIndexTxOut"
-
--- | Retrieve a typed datum from a 'SpendableOut'. This function is useful if you
--- know the type of datum you expect on a 'SpendableOut' and you want to extract
--- the datum directly to the correct 'DatumType' for your validator.
---
--- This function has an ambiguous type, so it is probably necessary to
--- type-apply it to the type of your validator.
-spOutGetDatum :: (Pl.FromData (Pl.DatumType a), MonadBlockChain m) => SpendableOut -> m (Pl.DatumType a)
-spOutGetDatum (_, txOut) = do
-  Just (Pl.Datum datum) <- datumFromTxOut txOut
-  case Pl.fromBuiltinData datum of
-    Just d -> return d
-    Nothing -> fail "could not parse datum to correct type"
+-- datumFromTxOut :: MonadBlockChain m => Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
+-- datumFromTxOut Pl.ScriptChainIndexTxOut {Pl._ciTxOutDatum = eDatum} =
+--   case eDatum of
+--     Right datum -> return $ Just datum
+--     Left datumHash -> datumFromHash datumHash
+-- datumFromTxOut _ = return Nothing
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
@@ -232,13 +235,13 @@ outFromOutRef outref = do
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
 pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 
--- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
---  for internal use.
-pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
-pkUtxos' pkh = map (second go) <$> pkUtxos pkh
-  where
-    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
-    go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
+-- -- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
+-- --  for internal use.
+-- pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
+-- pkUtxos' pkh = map (second go) <$> pkUtxos pkh
+--   where
+--     go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
+--     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
 
 -- ** Slot and Time Management
 
@@ -324,7 +327,7 @@ instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
-  datumFromTxOut = lift . datumFromTxOut
+  datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot

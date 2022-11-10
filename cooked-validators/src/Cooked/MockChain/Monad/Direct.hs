@@ -22,7 +22,7 @@ import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
 import Data.Foldable (asum)
@@ -239,11 +239,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   utxosSuchThisAndThat = utxosSuchThisAndThat'
 
-  datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
-  -- datum is always present in the nominal case, guaranteed by chain-index
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) =
-    M.lookup dh <$> gets mcstDatums
+  datumFromHash dh = M.lookup dh <$> gets mcstDatums
 
   currentSlot = gets mcstCurrentSlot
 
@@ -404,8 +400,8 @@ utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 --  See "Cooked.Tx.Balance" for balancing capabilities or stick to
 --  'generateTx', which generates /and/ balances a transaction.
 generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
-generateUnbalTx TxSkel {txConstraints} =
-  let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
+generateUnbalTx txSkel =
+  let (lkups, constrs) = toLedgerConstraint txSkel
    in first MCETxError $ Pl.mkTx lkups constrs
 
 myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
@@ -425,7 +421,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
     Left err -> throwError err
     Right ubtx -> do
       let adjust = if adjustUnbalTx opts then myAdjustUnbalTx parms else id
-      let (_ :=>: outputConstraints) = toConstraints constraintsSpec
+      let outputConstraints = skel ^. txSkelOuts
       let reorderedUbtx =
             if forceOutputOrdering opts
               then applyTxOutConstraintOrder outputConstraints ubtx
@@ -444,10 +440,10 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
-    updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
+    updateDatumStr skel st@MockChainSt {mcstStrDatums} =
       st
         { mcstStrDatums =
-            M.union mcstStrDatums . extractDatumStr . toConstraints $ txConstraints
+            M.union mcstStrDatums . extractDatumStr $ skel
         }
 
     -- Order outputs according to the order of output constraints
