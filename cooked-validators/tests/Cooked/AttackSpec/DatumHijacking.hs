@@ -16,11 +16,12 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
-import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
-import qualified Plutus.V1.Ledger.Scripts as L
+import qualified Plutus.Script.Utils.V2.Scripts as L hiding (validatorHash)
+import qualified Plutus.Script.Utils.V2.Typed.Scripts as L
+import qualified Plutus.V2.Ledger.Api as L
+import qualified Plutus.V2.Ledger.Contexts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -90,7 +91,10 @@ txRelock v = do
 {-# INLINEABLE outputDatum #-}
 outputDatum :: L.TxInfo -> L.TxOut -> Maybe MockDatum
 outputDatum txi o = do
-  h <- L.txOutDatum o
+  h <- case L.txOutDatum o of
+            L.NoOutputDatum -> Nothing
+            L.OutputDatumHash dh -> pure dh
+            L.OutputDatum da -> pure $ L.datumHash da
   L.Datum d <- L.findDatum h txi
   Pl.fromBuiltinData d
 

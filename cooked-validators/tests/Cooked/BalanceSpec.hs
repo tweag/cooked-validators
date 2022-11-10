@@ -26,11 +26,12 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.Crypto as Pl
 import qualified Ledger.Index as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.V1.Ledger.Api as Pl
-import qualified Plutus.V1.Ledger.Crypto as Pl
-import qualified Plutus.V1.Ledger.Tx as Pl
+import qualified Ledger.Tx.Internal as Pl
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified PlutusTx.AssocMap as Map
 import qualified PlutusTx.Builtins.Internal as PlI
+import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
