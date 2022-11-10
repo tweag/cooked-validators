@@ -239,11 +239,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   utxosSuchThisAndThat = utxosSuchThisAndThat'
 
-  datumFromTxOut Pl.PublicKeyChainIndexTxOut {} = pure Nothing
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Right d) _) = pure $ Just d
-  -- datum is always present in the nominal case, guaranteed by chain-index
-  datumFromTxOut (Pl.ScriptChainIndexTxOut _ _ (Left dh) _) =
-    M.lookup dh <$> gets mcstDatums
+  datumFromHash dh = M.lookup dh <$> gets mcstDatums
 
   currentSlot = gets mcstCurrentSlot
 

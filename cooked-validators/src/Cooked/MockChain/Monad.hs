@@ -71,8 +71,8 @@ class (MonadFail m) => MonadBlockChain m where
     UtxoPredicate a ->
     m [(SpendableOut, Maybe a)]
 
-  -- | Returns the datum contained in a utxo or "Nothing" if there is none
-  datumFromTxOut :: Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
+  -- | Returns the datum with the given hash, or 'Nothing' if there is none
+  datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
@@ -134,8 +134,8 @@ spOutResolveDatum ::
   MonadBlockChain m =>
   SpendableOut ->
   m SpendableOut
-spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left _) _)) = do
-  mDatum <- datumFromTxOut chainIndexTxOut
+spOutResolveDatum (txOutRef, chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _)) = do
+  mDatum <- datumFromHash datumHash
   case mDatum of
     Nothing -> fail "datum hash not found in block chain state"
     Just datum ->
@@ -165,11 +165,26 @@ spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
 -- This function has an ambiguous type, so it is probably necessary to
 -- type-apply it to the type of your validator.
 spOutGetDatum :: (Pl.FromData (Pl.DatumType a), MonadBlockChain m) => SpendableOut -> m (Pl.DatumType a)
-spOutGetDatum (_, txOut) = do
-  Just (Pl.Datum datum) <- datumFromTxOut txOut
-  case Pl.fromBuiltinData datum of
-    Just d -> return d
-    Nothing -> fail "could not parse datum to correct type"
+spOutGetDatum spOut = do
+  mDatum <- datumFromSpOut spOut
+  case mDatum of
+    Nothing -> fail "there is no datum on this output"
+    Just datum -> parseDatum datum
+  where
+    parseDatum (Pl.Datum builtinData) =
+      case Pl.fromBuiltinData builtinData of
+        Just d -> return d
+        Nothing -> fail "could not parse datum to correct type"
+
+datumFromSpOut :: MonadBlockChain m => SpendableOut -> m (Maybe Pl.Datum)
+datumFromSpOut (_, cito) = datumFromTxOut cito
+
+datumFromTxOut :: MonadBlockChain m => Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
+datumFromTxOut Pl.ScriptChainIndexTxOut {Pl._ciTxOutDatum = eDatum} =
+  case eDatum of
+    Right datum -> return $ Just datum
+    Left datumHash -> datumFromHash datumHash
+datumFromTxOut _ = return Nothing
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
@@ -324,7 +339,7 @@ instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (
   validateTxSkel = lift . validateTxSkel
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
-  datumFromTxOut = lift . datumFromTxOut
+  datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot
