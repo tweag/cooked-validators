@@ -10,6 +10,7 @@
 module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens ((%~))
+import Data.Default
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl
@@ -97,6 +98,8 @@ data Collateral
     CollateralUtxos [Pl.TxOutRef]
   deriving (Eq, Show)
 
+instance Semigroup Collateral -- TODO can this make any sense?
+
 -- | Whether to adjust existing public key outputs during
 -- transaction balancing.
 data BalanceOutputPolicy
@@ -108,32 +111,36 @@ data BalanceOutputPolicy
     DontAdjustExistingOutput
   deriving (Eq, Ord, Show)
 
+instance Semigroup BalanceOutputPolicy -- TODO can this make any sense?
+
 -- | Wraps a function that can be applied to a transaction right before submitting it.
 --  We have a distinguished datatype to be able to provide a little more info on
 --  the show instance.
 data RawModTx
-  = -- | no effect modifier
-    Id
-  | -- | Apply modification on transaction after balancing is performed
+  = -- | Apply modification on transaction after balancing is performed
     RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
   | -- | Apply modification on transaction before balancing and transaction fee computation
     --   are performed.
     RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
 
-instance Eq RawModTx where --- TODO
+instance Eq RawModTx where
   _ == _ = False
 
+instance Show RawModTx where
+  show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
+  show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
+
 -- | only applies modification for RawModTxAfterBalancing
-applyRawModOnBalancedTx :: RawModTx -> Pl.Tx -> Pl.Tx
-applyRawModOnBalancedTx Id tx = tx
-applyRawModOnBalancedTx (RawModTxAfterBalancing f) tx = f tx
-applyRawModOnBalancedTx (RawModTxBeforeBalancing _) tx = tx
+applyRawModOnBalancedTx :: [RawModTx] -> Pl.Tx -> Pl.Tx
+applyRawModOnBalancedTx [] tx = tx
+applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) tx = applyRawModOnBalancedTx fs . f $ tx
+applyRawModOnBalancedTx (RawModTxBeforeBalancing _ : fs) tx = applyRawModOnBalancedTx fs tx
 
 -- | only applies modification for RawModTxBeforeBalancing
-applyRawModOnUnbalancedTx :: RawModTx -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-applyRawModOnUnbalancedTx Id tx = tx
-applyRawModOnUnbalancedTx (RawModTxAfterBalancing _) tx = tx
-applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f) tx = (Pl.tx Lens.%~ f) tx
+applyRawModOnUnbalancedTx :: [RawModTx] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+applyRawModOnUnbalancedTx [] tx = tx
+applyRawModOnUnbalancedTx (RawModTxAfterBalancing _ : fs) tx = applyRawModOnUnbalancedTx fs tx
+applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnbalancedTx fs . (Pl.tx Lens.%~ f) $ tx
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
@@ -181,7 +188,7 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
     -- default, this is set to 'Id'.
-    unsafeModTx :: RawModTx,
+    unsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
     --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
     -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
@@ -205,9 +212,58 @@ data TxOpts = TxOpts
   }
   deriving (Eq)
 
-instance Semigroup TxOpts
+instance Default TxOpts where
+  def =
+    TxOpts
+      { adjustUnbalTx = False,
+        awaitTxConfirmed = True,
+        autoSlotIncrease = True,
+        forceOutputOrdering = True,
+        unsafeModTx = [],
+        balance = True,
+        collateral = CollateralAuto,
+        balanceOutputPolicy = AdjustExistingOutput
+      }
 
-instance Monoid TxOpts
+-- This instance always takes the non-default value on booleans, if either of
+-- the arguments is non-default. This is a sensible behaviour: If we set
+-- anything non-default, we expect it to remain that way if we set other options
+-- later.
+instance Semigroup TxOpts where
+  ( TxOpts
+      adjustUnbalTx1
+      awaitTxConfirmed1
+      autoSlotIncrease1
+      forceOutputOrdering1
+      unsafeModTx1
+      balance1
+      collateral1
+      balanceOutputPolicy1
+    )
+    <> ( TxOpts
+           adjustUnbalTx2
+           awaitTxConfirmed2
+           autoSlotIncrease2
+           forceOutputOrdering2
+           unsafeModTx2
+           balance2
+           collateral2
+           balanceOutputPolicy2
+         ) =
+      TxOpts
+        (takeNonDefault (adjustUnbalTx def) adjustUnbalTx1 adjustUnbalTx2)
+        (takeNonDefault (awaitTxConfirmed def) awaitTxConfirmed1 awaitTxConfirmed2)
+        (takeNonDefault (autoSlotIncrease def) autoSlotIncrease1 autoSlotIncrease2)
+        (takeNonDefault (forceOutputOrdering def) forceOutputOrdering1 forceOutputOrdering2)
+        (unsafeModTx1 ++ unsafeModTx2) -- this will apply the left modifications first. See the definitions of 'applyRawModOnUnbalancedTx' and 'applyRawModOnBalancedTx'
+        (takeNonDefault (balance def) balance1 balance2)
+        (collateral1 <> collateral2)
+        (balanceOutputPolicy1 <> balanceOutputPolicy2)
+      where
+        takeNonDefault d a b = if any (/= d) [a, b] then not d else d
+
+instance Monoid TxOpts where
+  mempty = def
 
 -- * Minting Constraints
 
@@ -372,12 +428,6 @@ instance Semigroup TxSkel where
 instance Monoid TxSkel where
   mempty = TxSkel Set.empty mempty Set.empty Pl.always Set.empty []
 
--- instance Eq TxSkel where
---   TxSkel l1 o1 c1 == TxSkel l2 o2 c2 =
---     case l1 ~*~? l2 of
---       Just HRefl -> (l1, o1, c1) == (l2, o2, c2)
---       _ -> False
-
 -- -- | Constructs a skeleton without a default label and with default 'TxOpts'
 -- txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
 -- txSkel = txSkelOpts def
@@ -394,22 +444,6 @@ instance Monoid TxSkel where
 -- txSkelLblOpts :: (LabelConstrs x, ConstraintsSpec constraints) => x -> TxOpts -> constraints -> TxSkel
 -- txSkelLblOpts x os cs = TxSkel (Just x) os (toConstraints cs)
 
--- * Constraint Types
-
--- ** Minting Constraints
-
--- type MintsConstraint =
-
--- type SpendsConstrs a =
---   ( Pl.ToData (Pl.DatumType a),
---     Pl.ToData (Pl.RedeemerType a),
---     Pl.UnsafeFromData (Pl.DatumType a),
---     Show (Pl.DatumType a),
---     Show (Pl.RedeemerType a),
---     Pl.Eq (Pl.DatumType a),
---     Pl.Eq (Pl.RedeemerType a),
---     Typeable a
---   )
 -- paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
 -- paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 
@@ -418,25 +452,3 @@ instance Monoid TxSkel where
 
 -- mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 -- mints = Mints @() Nothing
-
--- instance Eq RawModTx where
---   Id == Id = True
---   _ == _ = False
-
--- instance Show RawModTx where
---   show Id = "Id"
---   show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
---   show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
-
--- instance Default TxOpts where
---   def =
---     TxOpts
---       { adjustUnbalTx = False,
---         awaitTxConfirmed = True,
---         autoSlotIncrease = True,
---         forceOutputOrdering = True,
---         unsafeModTx = Id,
---         balance = True,
---         collateral = CollateralAuto,
---         balanceOutputPolicy = AdjustExistingOutput
---       }
