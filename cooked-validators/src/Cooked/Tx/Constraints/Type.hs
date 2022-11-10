@@ -9,9 +9,11 @@
 
 module Cooked.Tx.Constraints.Type where
 
+import qualified Control.Lens as Lens ((%~))
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl
+import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.TH
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -64,6 +66,9 @@ spOutCITxOut = undefined
 spOutTxOutRef :: SpendableOut -> Pl.TxOutRef
 spOutTxOutRef = undefined
 
+spOut :: Pl.TxOutRef -> Pl.ChainIndexTxOut -> SpendableOut
+spOut = undefined
+
 -- * Transaction labels
 
 type LabelConstrs x = (Show x, Typeable x, Eq x, Ord x)
@@ -83,7 +88,122 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
-data TxOpts deriving (Eq) -- undefined for now
+-- | Specifies how to select the collateral input
+data Collateral
+  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
+    CollateralAuto
+  | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
+    --  no collateral will be used whatsoever.
+    CollateralUtxos [Pl.TxOutRef]
+  deriving (Eq, Show)
+
+-- | Whether to adjust existing public key outputs during
+-- transaction balancing.
+data BalanceOutputPolicy
+  = -- | Try to adjust an existing public key output with the change. If no
+    --   suitable output can be found, create a new change output.
+    AdjustExistingOutput
+  | -- | Do not change the existing outputs, always create a new change
+    --   output.
+    DontAdjustExistingOutput
+  deriving (Eq, Ord, Show)
+
+-- | Wraps a function that can be applied to a transaction right before submitting it.
+--  We have a distinguished datatype to be able to provide a little more info on
+--  the show instance.
+data RawModTx
+  = -- | no effect modifier
+    Id
+  | -- | Apply modification on transaction after balancing is performed
+    RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
+  | -- | Apply modification on transaction before balancing and transaction fee computation
+    --   are performed.
+    RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
+
+instance Eq RawModTx where --- TODO
+  _ == _ = False
+
+-- | only applies modification for RawModTxAfterBalancing
+applyRawModOnBalancedTx :: RawModTx -> Pl.Tx -> Pl.Tx
+applyRawModOnBalancedTx Id tx = tx
+applyRawModOnBalancedTx (RawModTxAfterBalancing f) tx = f tx
+applyRawModOnBalancedTx (RawModTxBeforeBalancing _) tx = tx
+
+-- | only applies modification for RawModTxBeforeBalancing
+applyRawModOnUnbalancedTx :: RawModTx -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+applyRawModOnUnbalancedTx Id tx = tx
+applyRawModOnUnbalancedTx (RawModTxAfterBalancing _) tx = tx
+applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f) tx = (Pl.tx Lens.%~ f) tx
+
+-- | Set of options to modify the behavior of generating and validating some transaction. Some of these
+-- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
+-- running in 'MockChainT'. If nothing is explicitely stated, the option has an effect independently of the
+-- running context.
+--
+-- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
+-- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
+data TxOpts = TxOpts
+  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
+    --  has the necessary minimum amount of Ada.
+    --
+    -- By default, this is set to @False@, given this is the default behavior in Plutus:
+    -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
+    adjustUnbalTx :: Bool,
+    -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
+    --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
+    --  If you /do NOT/ wish to do so, please set this to @False@.
+    --
+    --  /This has NO effect when running outside of 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    awaitTxConfirmed :: Bool,
+    -- | Whether to increase the slot counter automatically on this submission.
+    -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
+    -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    autoSlotIncrease :: Bool,
+    -- | Reorders the transaction outputs to fit the ordering of output
+    -- constraints. Those outputs are put at the very beginning of the list.
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    --  By default, this is set to @True@.
+    forceOutputOrdering :: Bool,
+    -- | Applies an arbitrary modification to a transaction after it has been
+    -- potentially adjusted ('adjustUnbalTx') and balanced. This is prefixed
+    -- with /unsafe/ to draw attention to the fact that modifying a transaction
+    -- at that stage might make it invalid. Still, this offers a hook for being
+    -- able to alter a transaction in unforeseen ways. It is mostly used to test
+    -- contracts that have been written for custom PABs.
+    --
+    -- One interesting use of this function is to observe a transaction just
+    -- before it is being sent for validation, with @unsafeModTx =
+    -- RawModTxAfterBalancing Debug.Trace.traceShowId@.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
+    -- default, this is set to 'Id'.
+    unsafeModTx :: RawModTx,
+    -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
+    --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
+    -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
+    -- and should adjust the fees accordingly. For now, there is no option to skip the fee computation because
+    -- without it, validation through "Ledger.Validation" would fail with @InsufficientFees@.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @True@.
+    balance :: Bool,
+    -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
+    -- and can be specified manually, or it can be chosen automatically, if any is available.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @CollateralAuto@.
+    collateral :: Collateral,
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
+    --
+    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
+    -- By default, this is set to @AdjustExistingOutput@.
+    balanceOutputPolicy :: BalanceOutputPolicy
+  }
+  deriving (Eq)
 
 instance Semigroup TxOpts
 
@@ -290,136 +410,6 @@ instance Monoid TxSkel where
 --     Pl.Eq (Pl.RedeemerType a),
 --     Typeable a
 --   )
-
--- -- | Constraints which do not specify new transaction outputs
--- data MiscConstraint where
---   -- | Ensure that the given 'Pl.TypedValidator' spends a specific UTxO (which
---   -- must belong to the validator). That is: Unlock the UTxO described by the
---   -- given 'SpendableOut', passing the given redeemer to the validator script.
---   SpendsScript ::
---     (SpendsConstrs a) =>
---     Pl.TypedValidator a ->
---     Pl.RedeemerType a ->
---     -- | Utxo to spend.
---     -- WARNING: A "SpendableOut" contains a "ChainIndexTxOut" that contains
---     -- either a datum or its hash. Spending a script "SpendableOut" which does
---     -- not contain the datum explicitly causes the generated transaction to
---     -- fail (datum not found).
---     --
---     -- This does not occur in practice when spending UTxOs obtained by
---     -- searching through the chain with "scriptUtxosSuchThat", or those
---     -- extracted from "CardanoTx" by using "spOutsFromCardanoTx".
---     SpendableOut ->
---     MiscConstraint
---   -- | Ensure that a 'Pl.PubKeyHash' spends a specific UTxO. The hash is not an
---   -- argument since it can be read off the given 'SpendableOut'.
---   SpendsPK :: SpendableOut -> MiscConstraint
---   -- | Ensure that the transaction mints the given 'Pl.Value'. For each
---   -- 'Pl.CurrencySymbol' in the value that is to be minted, the given list of
---   -- 'Pl.MintingPolicy's has to include the policy governing that currency
---   -- symbol. The @Maybe a@-argument is the optional redeemer passed to the
---   -- policies: If you pass @Nothing@, the constraint is translated using
---   -- 'Pl.mustMintValue', which uses no redeemer; if you pass @Just r@,
---   -- 'Pl.mustMintValueWithRedeemer' is used to pass @r@ as a redeemer to the
---   -- policies.
---   Mints ::
---     MintsConstrs a =>
---     Maybe a ->
---     [Pl.MintingPolicy] ->
---     Pl.Value ->
---     MiscConstraint
---   -- | Ensure that the transaction happens no later than the given time (the end
---   -- time is included in the allowed range).
---   Before :: Pl.POSIXTime -> MiscConstraint
---   -- | Ensure that the transaction happens no earlier than the given time (the
---   -- start time is included in the allowed range).
---   After :: Pl.POSIXTime -> MiscConstraint
---   -- | Ensure that the transaction happens in the given time range.
---   ValidateIn :: Pl.POSIXTimeRange -> MiscConstraint
---   -- | Ensure that the transaction is signed by the given 'Pl.PubKeyHash'es.
---   SignedBy :: [Pl.PubKeyHash] -> MiscConstraint
-
--- -- NB don't forget to update the Eq instance when adding new constructors
-
--- (~*~?) :: forall ty a1 a2. (Typeable a1, Typeable a2) => ty a1 -> ty a2 -> Maybe (a1 :~~: a2)
--- _ ~*~? _ = typeRep @a1 `eqTypeRep` typeRep @a2
-
--- instance Eq MiscConstraint where
---   SpendsScript s1 r1 so1 == SpendsScript s2 r2 so2 =
---     case s1 ~*~? s2 of
---       Just HRefl -> (s1, so1) == (s2, so2) && r1 Pl.== r2
---       Nothing -> False
---   SpendsPK so1 == SpendsPK so2 = so1 == so2
---   Mints d1 p1 v1 == Mints d2 p2 v2 =
---     case d1 ~*~? d2 of
---       Just HRefl -> (p1, v1) == (p2, v2) && d1 Pl.== d2
---       Nothing -> False
---   Before t1 == Before t2 = t1 == t2
---   After t1 == After t2 = t1 == t2
---   ValidateIn r1 == ValidateIn r2 = r1 == r2
---   SignedBy hs1 == SignedBy hs2 = hs1 == hs2
---   _ == _ = False
-
--- -- | Constraints which specify new transaction outputs
--- data OutConstraint where
---   -- | Creates an UTxO to the given validator, with an optional
---   -- staking credential, and with the given datum and the given
---   -- value. That is, lets the script lock the given value.
---   PaysScript ::
---     (PaysScriptConstrs a) =>
---     Pl.TypedValidator a ->
---     Maybe Pl.StakingCredential ->
---     Pl.DatumType a ->
---     Pl.Value ->
---     OutConstraint
---   -- | Creates a UTxO to a specific 'Pl.PubKeyHash' with a potential 'Pl.StakePubKeyHash'.
---   -- and datum. If the stake pk is present, it will call 'Ledger.Constraints.OffChain.ownStakePubKeyHash'
---   -- to update the script lookups, hence, generating a transaction with /two/ 'PaysPKWithDatum' with
---   -- two different staking keys will cause the first staking key to be overriden by calling @ownStakePubKeyHash@
---   -- a second time. If this is an issue for you, please do submit an issue with an explanation on GitHub.
---   PaysPKWithDatum ::
---     (Pl.ToData a, Pl.Eq a, Show a, Typeable a) =>
---     Pl.PubKeyHash ->
---     Maybe Pl.StakePubKeyHash ->
---     Maybe a ->
---     Pl.Value ->
---     OutConstraint
-
--- -- NB don't forget to update the Eq instance when adding new constructors
-
--- instance Eq OutConstraint where
---   PaysScript s1 sc1 d1 v1 == PaysScript s2 sc2 d2 v2 =
---     case s1 ~*~? s2 of
---       Just HRefl -> (s1, v1) == (s2, v2) && sc1 Pl.== sc2 && d1 Pl.== d2
---       Nothing -> False
---   PaysPKWithDatum pk1 stake1 d1 v1 == PaysPKWithDatum pk2 stake2 d2 v2 =
---     case d1 ~*~? d2 of
---       Just HRefl -> (pk1, stake1, v1) == (pk2, stake2, v2) && d1 Pl.== d2
---       Nothing -> False
---   _ == _ = False
-
--- -- | This typeclass provides user-friendly convenience to overload the
--- -- 'txConstraints' field of 'TxSkel'. For instance, this enables us to ommit the '(:=>:)'
--- -- constructor whenever we're using only one kind of constraints.
--- -- It also opens up future alternative of constraint specification.
--- class (Eq a, Typeable a) => ConstraintsSpec a where
---   toConstraints :: a -> Constraints
-
--- instance ConstraintsSpec Constraints where
---   toConstraints = id
-
--- instance ConstraintsSpec [MiscConstraint] where
---   toConstraints = (:=>: [])
-
--- instance ConstraintsSpec MiscConstraint where
---   toConstraints = toConstraints . (: [])
-
--- instance ConstraintsSpec [OutConstraint] where
---   toConstraints = ([] :=>:)
-
--- instance ConstraintsSpec OutConstraint where
---   toConstraints = toConstraints . (: [])
-
 -- paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
 -- paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
 
@@ -429,110 +419,6 @@ instance Monoid TxSkel where
 -- mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 -- mints = Mints @() Nothing
 
--- type LabelConstrs x = (Show x, Typeable x, Eq x)
-
--- -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
--- -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
--- -- running in 'MockChainT'. If nothing is explicitely stated, the option has an effect independently of the
--- -- running context.
--- data TxOpts = TxOpts
---   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
---     --  has the necessary minimum amount of Ada.
---     --
---     -- By default, this is set to @False@, given this is the default behavior in Plutus:
---     -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
---     adjustUnbalTx :: Bool,
---     -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
---     --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
---     --  If you /do NOT/ wish to do so, please set this to @False@.
---     --
---     --  /This has NO effect when running outside of 'Plutus.Contract.Contract'/.
---     --  By default, this is set to @True@.
---     awaitTxConfirmed :: Bool,
---     -- | Whether to increase the slot counter automatically on this submission.
---     -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
---     -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
---     --
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     --  By default, this is set to @True@.
---     autoSlotIncrease :: Bool,
---     -- | Reorders the transaction outputs to fit the ordering of output
---     -- constraints. Those outputs are put at the very beginning of the list.
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     --  By default, this is set to @True@.
---     forceOutputOrdering :: Bool,
---     -- | Applies an arbitrary modification to a transaction after it has been pottentially adjusted ('adjustUnbalTx')
---     -- and balanced. This is prefixed with /unsafe/ to draw attention that modifying a transaction at
---     -- that stage might make it invalid. Still, this offers a hook for being able to alter a transaction
---     -- in unforeseen ways. It is mostly used to test contracts that have been written for custom PABs.
---     --
---     -- One interesting use of this function is to observe a transaction just before it is being
---     -- sent for validation, with @unsafeModTx = RawModTxAfterBalancing Debug.Trace.traceShowId@.
---     --
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     -- By default, this is set to 'Id'.
---     unsafeModTx :: RawModTx,
---     -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
---     --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
---     -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
---     -- and should adjust the fees accordingly. For now, there is no option to skip the fee computation because
---     -- without it, validation through "Ledger.Validation" would fail with @InsufficientFees@.
---     --
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     -- By default, this is set to @True@.
---     balance :: Bool,
---     -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
---     -- and can be specified manually, or it can be chosen automatically, if any is available.
---     --
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     -- By default, this is set to @CollateralAuto@.
---     collateral :: Collateral,
---     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
---     --
---     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
---     -- By default, this is set to @AdjustExistingOutput@.
---     balanceOutputPolicy :: BalanceOutputPolicy
---   }
---   deriving (Eq, Show)
-
--- | Whether to adjust existing public key outputs during
--- transaction balancing.
-data BalanceOutputPolicy
-  = -- | Try to adjust an existing public key output with the change. If no
-    --   suitable output can be found, create a new change output.
-    AdjustExistingOutput
-  | -- | Do not change the existing outputs, always create a new change
-    --   output.
-    DontAdjustExistingOutput
-  deriving (Eq, Ord, Show)
-
--- -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
--- -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
-
--- -- | Wraps a function that can be applied to a transaction right before submitting it.
--- --  We have a distinguished datatype to be able to provide a little more info on
--- --  the show instance.
--- data RawModTx
---   = -- | no effect modifier
---     Id
---   | -- | Apply modification on transaction after balancing is performed
---     RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
---   | -- | Apply modification on transaction before balancing and transaction fee computation
---     --   are performed.
---     RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
-
--- -- | only applies modification for RawModTxAfterBalancing
--- applyRawModOnBalancedTx :: RawModTx -> Pl.Tx -> Pl.Tx
--- applyRawModOnBalancedTx Id tx = tx
--- applyRawModOnBalancedTx (RawModTxAfterBalancing f) tx = f tx
--- applyRawModOnBalancedTx (RawModTxBeforeBalancing _) tx = tx
-
--- -- | only applies modification for RawModTxBeforeBalancing
--- applyRawModOnUnbalancedTx :: RawModTx -> Pl.UnbalancedTx -> Pl.UnbalancedTx
--- applyRawModOnUnbalancedTx Id tx = tx
--- applyRawModOnUnbalancedTx (RawModTxAfterBalancing _) tx = tx
--- applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f) tx = (Pl.tx %~ f) tx
-
 -- instance Eq RawModTx where
 --   Id == Id = True
 --   _ == _ = False
@@ -541,15 +427,6 @@ data BalanceOutputPolicy
 --   show Id = "Id"
 --   show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
 --   show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
-
--- -- | Specifies how to select the collateral input
--- data Collateral
---   = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
---     CollateralAuto
---   | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
---     --  no collateral will be used whatsoever.
---     CollateralUtxos [Pl.TxOutRef]
---   deriving (Eq, Show)
 
 -- instance Default TxOpts where
 --   def =

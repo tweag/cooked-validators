@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -7,8 +6,10 @@ module Cooked.MockChain.Monad.Contract where
 
 import Control.Lens (review)
 import Control.Monad
+import Cooked.MockChain
 import Cooked.MockChain.Monad
 import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Text as T
@@ -23,8 +24,8 @@ instance (C.AsContractError e) => MonadFail (C.Contract w s e) where
   fail = C.throwError . review C._OtherContractError . T.pack
 
 instance (C.AsContractError e) => MonadBlockChain (C.Contract w s e) where
-  validateTxSkel TxSkel {txConstraints, txOpts} = do
-    let (lkups, constrs) = toLedgerConstraint @Constraints @Void (toConstraints txConstraints)
+  validateTxSkel skel@TxSkel {_txSkelOpts = txOpts} = do
+    let (lkups, constrs) = toLedgerConstraint @_ @Void skel
     tx <- C.submitTxConstraintsWith lkups constrs
     when (awaitTxConfirmed txOpts) $ C.awaitTxConfirmed $ Pl.getCardanoTxId tx
     return tx

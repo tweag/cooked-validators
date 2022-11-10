@@ -235,13 +235,13 @@ outFromOutRef outref = do
 pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
 pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 
--- -- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
--- --  for internal use.
--- pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
--- pkUtxos' pkh = map (second go) <$> pkUtxos pkh
---   where
---     go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
---     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
+-- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
+--  for internal use.
+pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
+pkUtxos' pkh = map (\o -> (spOutTxOutRef o, go . spOutCITxOut $ o)) <$> pkUtxos pkh
+  where
+    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
+    go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
 
 -- ** Slot and Time Management
 

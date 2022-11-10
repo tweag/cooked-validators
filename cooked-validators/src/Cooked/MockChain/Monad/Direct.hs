@@ -22,6 +22,7 @@ import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Balance
+import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Type
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
@@ -30,7 +31,7 @@ import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes)
 import qualified Data.Set as S
 import Data.Void
 import qualified Ledger as Pl
@@ -43,6 +44,7 @@ import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Validation as Pl
 import qualified Ledger.Value as Pl
+import Optics.Core hiding (ix)
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
@@ -228,7 +230,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skel = do
     (reqSigs, tx) <- generateTx' skel
     _ <- validateTx' reqSigs tx
-    when (autoSlotIncrease $ txOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return (Pl.EmulatorTx tx)
 
   txOutByRef outref = gets (M.lookup outref . Pl.getIndex . mcstIndex)
@@ -352,7 +354,10 @@ utxosSuchThisAndThat' ::
 utxosSuchThisAndThat' addrPred datumPred = do
   ix <- gets (Pl.getIndex . mcstIndex)
   let ix' = M.filter (addrPred . Pl.txOutAddress) ix
-  mapMaybe (fmap assocl . rstr) <$> mapM (\(oref, out) -> (oref,) <$> go oref out) (M.toList ix')
+  catMaybes
+    <$> mapM
+      (\(oref, out) -> (first (spOut oref) <$>) <$> go oref out)
+      (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
     go oref (Pl.TxOut oaddr@(Pl.Address ocred _) val mdatumH) = do
@@ -401,7 +406,7 @@ utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 --  'generateTx', which generates /and/ balances a transaction.
 generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
 generateUnbalTx txSkel =
-  let (lkups, constrs) = toLedgerConstraint txSkel
+  let (lkups, constrs) = toLedgerConstraint @_ @Void txSkel
    in first MCETxError $ Pl.mkTx lkups constrs
 
 myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
@@ -412,7 +417,7 @@ myAdjustUnbalTx parms utx =
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-generateTx' skel@(TxSkel _ _ constraintsSpec) = do
+generateTx' skel = do
   modify $ updateDatumStr skel
   signers <- askSigners
   slotCfg <- slotConfig
@@ -436,14 +441,14 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
           (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
           (NE.toList signers)
   where
-    opts = txOpts skel
+    opts = skel ^. txSkelOpts
 
     -- Update the map of pretty printed representations in the mock chain state
     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
-    updateDatumStr skel st@MockChainSt {mcstStrDatums} =
+    updateDatumStr sk st@MockChainSt {mcstStrDatums} =
       st
         { mcstStrDatums =
-            M.union mcstStrDatums . extractDatumStr $ skel
+            M.union mcstStrDatums . extractDatumStr $ sk
         }
 
     -- Order outputs according to the order of output constraints
@@ -534,7 +539,7 @@ calcCollateral w col = do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ (: []) $ fst $ fst $ head souts
+      return $ (: []) $ spOutTxOutRef $ fst $ head souts
   let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
   return $ S.fromList txIns
 
