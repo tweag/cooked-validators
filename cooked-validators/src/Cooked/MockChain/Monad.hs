@@ -30,6 +30,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
+import Optics.Core
 import qualified PlutusTx as Pl (FromData)
 
 -- * BlockChain Monad
@@ -238,7 +239,7 @@ pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 -- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
-pkUtxos' pkh = map (\o -> (spOutTxOutRef o, go . spOutCITxOut $ o)) <$> pkUtxos pkh
+pkUtxos' pkh = map (\o -> (o ^. spOutTxOutRef, go $ o ^. spOutCITxOut)) <$> pkUtxos pkh
   where
     go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"

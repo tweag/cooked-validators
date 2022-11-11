@@ -11,40 +11,37 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens ((%~))
 import Data.Default
+import Data.Function (on)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
+import Optics.Core
 import Optics.TH
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Prelude as Pl
 import Type.Reflection
 
--- for template Haskell reasons, the most intersting thing in this module (the
+-- For template Haskell reasons, the most intersting thing in this module (the
 -- definition of 'TxSkel') is at the very bottom of this file
 
 -- * 'SpendableOut': The type of UTxOs
 
 -- | A 'SpendableOut' is an outref that is ready to be spend; with its
 --  underlying 'Pl.ChainIndexTxOut'.
--- data SpendableOut = SpendableOut Pl.TxOutRef Pl.ChainIndexTxOut deriving (Eq, Ord)
-data SpendableOut deriving (Eq, Ord) -- TODO undefined for now
+data SpendableOut = SpendableOut
+  { _spOutTxOutRef :: Pl.TxOutRef,
+    _spOutCITxOut :: Pl.ChainIndexTxOut
+  }
+  deriving (Eq)
 
--- -- | Accesses the 'Pl.Value' within a 'SpendableOut'
--- sOutValue :: SpendableOut -> Pl.Value
--- sOutValue = Pl.txOutValue . Pl.toTxOut . snd
+makeLenses ''SpendableOut
 
--- -- | Accesses the 'Pl.Address' within a 'SpendableOut'
--- sOutAddress :: SpendableOut -> Pl.Address
--- sOutAddress = Pl.txOutAddress . Pl.toTxOut . snd
-
--- -- | Accesses a potential 'Pl.DatumHash' within a 'SpendableOut'; note that
--- --  the existence (or not) of a datum hash /DOES NOT/ indicate the 'SpendableOut'
--- --  belongs to a script or a public key; you must pattern match on the result of
--- --  'sOutAddress' or use one of 'sBelongsToPubKey' or 'sBelongsToScript' to distinguish that.
--- sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
--- sOutDatumHash = Pl.txOutDatum . Pl.toTxOut . snd
+instance Ord SpendableOut where
+  -- TODO: Is this sufficient, i.e. can there be well-formed 'SpendableOut's
+  -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
+  (<=) = (<=) `on` (^. spOutTxOutRef)
 
 -- -- | If a 'SpendableOut' belongs to a public key, return its hash.
 -- sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
@@ -58,17 +55,20 @@ data SpendableOut deriving (Eq, Ord) -- TODO undefined for now
 --   Pl.ScriptCredential sh -> Just sh
 --   _ -> Nothing
 
-spOutDatum :: SpendableOut -> Maybe Pl.Datum
-spOutDatum = undefined
+spOutDatumOrHash :: AffineTraversal' SpendableOut (Either Pl.DatumHash Pl.Datum)
+spOutDatumOrHash = spOutCITxOut % singular (traversalVL Pl.ciTxOutDatum)
 
-spOutCITxOut :: SpendableOut -> Pl.ChainIndexTxOut
-spOutCITxOut = undefined
+spOutDatum :: AffineTraversal' SpendableOut Pl.Datum
+spOutDatum = spOutDatumOrHash % _Right
 
-spOutTxOutRef :: SpendableOut -> Pl.TxOutRef
-spOutTxOutRef = undefined
+spOutDatumHash :: AffineTraversal' SpendableOut Pl.DatumHash
+spOutDatumHash = spOutDatumOrHash % _Left
 
-spOut :: Pl.TxOutRef -> Pl.ChainIndexTxOut -> SpendableOut
-spOut = undefined
+spOutValue :: Lens' SpendableOut Pl.Value
+spOutValue = spOutCITxOut % lensVL Pl.ciTxOutValue
+
+spOutAddress :: Lens' SpendableOut Pl.Address
+spOutAddress = spOutCITxOut % lensVL Pl.ciTxOutAddress
 
 -- * Transaction labels
 

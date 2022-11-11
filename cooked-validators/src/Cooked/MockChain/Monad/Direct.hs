@@ -356,7 +356,7 @@ utxosSuchThisAndThat' addrPred datumPred = do
   let ix' = M.filter (addrPred . Pl.txOutAddress) ix
   catMaybes
     <$> mapM
-      (\(oref, out) -> (first (spOut oref) <$>) <$> go oref out)
+      (\(oref, out) -> (first (SpendableOut oref) <$>) <$> go oref out)
       (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
@@ -539,7 +539,7 @@ calcCollateral w col = do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ (: []) $ spOutTxOutRef $ fst $ head souts
+      return $ (: []) $ (^. spOutTxOutRef) $ fst $ head souts
   let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
   return $ S.fromList txIns
 

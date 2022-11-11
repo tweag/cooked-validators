@@ -15,6 +15,7 @@ import qualified Ledger.Credential as Pl
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, RedeemerType, validatorScript)
 import qualified Ledger.Value as Pl hiding (singleton)
+import Optics.Core
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx as Pl
 
@@ -61,23 +62,23 @@ instance ToLedgerConstraint MintsConstraint where
           Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
 
 instance ToLedgerConstraint InConstraint where
-  extractDatumStr (SpendsScript _ _ spOut) = case spOutDatum spOut of
+  extractDatumStr (SpendsScript _ _ spOut) = case spOut ^? spOutDatum of
     Just d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)
     Nothing -> M.empty
   extractDatumStr SpendsPK {} = M.empty -- is this accurate? There might be a datum on PK outputs! TODO
 
   toLedgerConstraint (SpendsScript v r spOut) = (lkups, constr)
     where
-      oref = spOutTxOutRef spOut
-      o = spOutCITxOut spOut
+      oref = spOut ^. spOutTxOutRef
+      o = spOut ^. spOutCITxOut
       lkups =
         Pl.otherScript (Pl.validatorScript v)
           <> Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendScriptOutput oref (Pl.Redeemer $ Pl.toBuiltinData r)
   toLedgerConstraint (SpendsPK spOut) = (lkups, constr)
     where
-      oref = spOutTxOutRef spOut
-      o = spOutCITxOut spOut
+      oref = spOut ^. spOutTxOutRef
+      o = spOut ^. spOutCITxOut
       lkups = Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendPubKeyOutput oref
 
