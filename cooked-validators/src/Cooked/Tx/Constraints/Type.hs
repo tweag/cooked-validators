@@ -12,6 +12,8 @@ module Cooked.Tx.Constraints.Type where
 import qualified Control.Lens as Lens ((%~))
 import Data.Default
 import Data.Function (on)
+import Data.List
+import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl
@@ -80,12 +82,34 @@ data TxLabel where
 instance Eq TxLabel where
   a == x = compare a x == EQ
 
+{- note: How to write 'Ord' instances for types with existential type variables in
+ their constructors?
+
+The idea of the 'Ord' instances for 'TxLabel', 'MintsConstraint', and
+'InConstraint' is illustrated by the instance for 'TxLabel' below: Sort by the
+type representation of the existential type variable first, and then by the
+concrete value within each of the possible instances of the existential.
+
+This means:
+
+- If the type(representation) of a is strictly smaller than the type of b, then
+  a<b.
+
+- If the types of a and b are the same, compare a and b normally.
+
+- If the type of a is strictly greater than the type of b, then a>b.
+
+-}
+
 instance Ord TxLabel where
-  (TxLabel a) <= (TxLabel x) =
-    SomeTypeRep (typeOf a) <= SomeTypeRep (typeOf x)
-      || case typeOf a `eqTypeRep` typeOf x of
-        Just HRefl -> a <= x
-        Nothing -> False
+  compare (TxLabel a) (TxLabel x) =
+    case compare (SomeTypeRep (typeOf a)) (SomeTypeRep (typeOf x)) of
+      LT -> LT
+      GT -> GT
+      EQ -> case typeOf a `eqTypeRep` typeOf x of
+        Just HRefl -> compare a x
+        -- This can never happen, since 'eqTypeRep' is implemented in terms of '==' on the type representation:
+        Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
 -- * Transaction options
 
@@ -93,12 +117,20 @@ instance Ord TxLabel where
 data Collateral
   = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
     CollateralAuto
-  | -- | Will use the 'Pl.TxOutRef's given in the list. This list can be empty, in which case
-    --  no collateral will be used whatsoever.
-    CollateralUtxos [Pl.TxOutRef]
+  | -- | Will use the 'Pl.TxOutRef's given in the set. The set can be empty, in
+    --  which case no collateral will be used whatsoever.
+    CollateralUtxos (Set Pl.TxOutRef)
   deriving (Eq, Show)
 
-instance Semigroup Collateral -- TODO can this make any sense?
+instance Default Collateral where
+  def = CollateralAuto
+
+-- | Any manual adjustment should be kept, and if there are several sets of
+-- potential collateral UTxOs, they should combine.
+instance Semigroup Collateral where
+  CollateralAuto <> a = a
+  a <> CollateralAuto = a
+  CollateralUtxos l <> CollateralUtxos r = CollateralUtxos (l <> r)
 
 -- | Whether to adjust existing public key outputs during
 -- transaction balancing.
@@ -111,7 +143,13 @@ data BalanceOutputPolicy
     DontAdjustExistingOutput
   deriving (Eq, Ord, Show)
 
-instance Semigroup BalanceOutputPolicy -- TODO can this make any sense?
+instance Default BalanceOutputPolicy where
+  def = AdjustExistingOutput
+
+-- | This instance always takes the non-default value, if either of the
+-- arguments is non-default.
+instance Semigroup BalanceOutputPolicy where
+  a <> b = fromMaybe def (find (/= def) [a, b])
 
 -- | Wraps a function that can be applied to a transaction right before submitting it.
 --  We have a distinguished datatype to be able to provide a little more info on
@@ -221,14 +259,12 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = [],
         balance = True,
-        collateral = CollateralAuto,
-        balanceOutputPolicy = AdjustExistingOutput
+        collateral = def,
+        balanceOutputPolicy = def
       }
 
--- This instance always takes the non-default value on booleans, if either of
--- the arguments is non-default. This is a sensible behaviour: If we set
--- anything non-default, we expect it to remain that way if we set other options
--- later.
+-- | This instance always takes the non-default value on booleans, if either of
+-- the arguments is non-default.
 instance Semigroup TxOpts where
   ( TxOpts
       adjustUnbalTx1
@@ -266,20 +302,6 @@ instance Monoid TxOpts where
   mempty = def
 
 -- * Minting Constraints
-
--- -- | Helper for heterogeneous comparisons. This works by first comparing the
--- -- type representations, and only comparing non-heterogeneously when they are
--- -- the same.
--- compareHet :: (Typeable t, Typeable a, Typeable b, Ord (t a)) => t a -> t b -> Ordering
--- compareHet x y =
---   let tx = typeOf x
---       ty = typeOf y
---    in case compare (SomeTypeRep tx) (SomeTypeRep ty) of
---         LT -> LT
---         GT -> GT
---         EQ -> case tx `eqTypeRep` ty of
---           Just HRefl -> compare x y
---           Nothing -> LT -- this case can't happen
 
 type MintsConstrs a =
   ( Pl.ToData a,
@@ -411,10 +433,38 @@ data TxSkel where
       _txSkelOuts :: [OutConstraint]
     } ->
     TxSkel
+  -- This equality instance should reflect semantic equality; If two 'TxSkel's
+  -- are equal in the sense of '==', they specify the same transaction(s).
   deriving (Eq)
 
 makeLenses ''TxSkel
 
+-- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
+-- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
+-- contained in @a@ and all requirements contained in @b@. There are a few
+-- wrinkles with regard to this:
+--
+-- - commutativity: @a <> b@ and @b <> a@ describe different transactions in
+--   general. In particular,
+--
+--   - The output constraints of the right argument are appended to the end of
+--     the list of transaction outputs. This matters because some transactions
+--     rely on the ordering of inputs.
+--
+--   - The 'unsafeModTx' contained in the '_txSkelOpts' is also combined
+--     non-commutatively. The modifications in the left argument will be applied
+--     first.
+--
+-- - preference for non-defaults: All of the boolean options in '_txSkelOpts',
+--   as well as 'collateral' and 'balanceOutputPolicy' combine in a way that if
+--   either of the arguments has a non-default value, that value will be
+--   kept. In the case of 'collateral', the sets of Collateral UTxOs will be
+--   combined (see the 'Semigroup' definitions for 'Collateral' and
+--   'BalanceOutputPolicy').
+--
+-- One property that should hold (TODO: write tests) is that
+--
+-- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
   (TxSkel l1 p1 m1 r1 i1 o1) <> (TxSkel l2 p2 m2 r2 i2 o2) =
     TxSkel

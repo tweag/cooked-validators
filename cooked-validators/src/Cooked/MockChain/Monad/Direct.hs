@@ -539,9 +539,8 @@ calcCollateral w col = do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ (: []) $ (^. spOutTxOutRef) $ fst $ head souts
-  let txIns = map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
-  return $ S.fromList txIns
+      return $ S.fromList $ (: []) $ (^. spOutTxOutRef) $ fst $ head souts
+  return $ S.map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux utxoPolicy stage w tx = do
