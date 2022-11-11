@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -9,10 +11,14 @@
 module Cooked.Tx.Constraints.TypeSpec where
 
 import Control.Applicative
+import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import Data.Default (def)
+import Data.Void
 import qualified Ledger.Address as Pl
+import qualified Ledger.Constraints.OffChain as Pl
+import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Generators as LG
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -87,12 +93,10 @@ instance Arbitrary Pl.TokenName where
 
 instance Arbitrary MintsConstraint where
   arbitrary =
-    oneof
-      [ MintsConstraint @Bool <$> arbitrary
-          <*> arbitrary
-          <*> arbitrary
-          <*> arbitrary
-      ]
+    MintsConstraint @Bool <$> arbitrary
+      <*> arbitrary
+      <*> arbitrary
+      <*> arbitrary
 
 -- ** Generating 'Value's
 
@@ -233,13 +237,39 @@ instance Arbitrary TxSkel where
       <*> arbitrary
       <*> arbitrary
 
+genTxSkelDefaultOptionsNoLabel :: Gen TxSkel
+genTxSkelDefaultOptionsNoLabel =
+  TxSkel mempty def
+    <$> arbitrary
+    <*> (hedgehog $ LG.genTimeRange def)
+    <*> arbitrary
+    <*> arbitrary
+
+-- * A few instances for QuickCheck
+
 instance Show TxSkel where
   show = show . prettyTxSkel []
+
+deriving instance (Eq i, Eq o) => Eq (Pl.TxConstraints i o)
+
+deriving instance Eq (Pl.TxConstraintFuns)
+
+instance Eq Pl.TxConstraintFun where
+  _ == _ = False
+
+deriving instance Eq (Pl.ScriptLookups a)
+
+-- * The tests
 
 tests :: TestTree
 tests =
   testGroup
     "testing TxSkel and friends"
     [ testProperty "== is a congruence for <> on TxSkels" $
-        \(a :: TxSkel) b x y -> (a == x && b == y) <= (a <> b == x <> y)
+        \(a :: TxSkel) b x y -> (a == x && b == y) <= (a <> b == x <> y),
+      -- For some reason, there's a stack overflow here, which I've not yet diagnosed:
+      testProperty "toLedgerConstraints is injective" $
+        forAll genTxSkelDefaultOptionsNoLabel $ \a ->
+          forAll genTxSkelDefaultOptionsNoLabel $ \b ->
+            (toLedgerConstraint @_ @AContract a == toLedgerConstraint @_ @AContract b) <= (a == b)
     ]
