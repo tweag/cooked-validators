@@ -26,8 +26,8 @@ toPlTxOut' addr value datum = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.Refer
     cValue = fromRight undefined $ Pl.toCardanoTxOutValue value
     cDatum = fromRight undefined $ Pl.toCardanoTxOutDatum datum
 
-fromTxOut :: Pl.TxOut -> Maybe Pl.ChainIndexTxOut
-fromTxOut (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))
+cTxOutToCito :: Pl.TxOut -> Maybe Pl.ChainIndexTxOut
+cTxOutToCito (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))
   | Just _pkh <- Pl.toPubKeyHash _ciTxOutAddress
     = Just Pl.PublicKeyChainIndexTxOut
         { Pl._ciTxOutPublicKeyDatum = mDatum
