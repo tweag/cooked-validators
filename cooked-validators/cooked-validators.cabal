@@ -66,6 +66,7 @@ library
     , freer-extras
     , freer-simple
     , hashable
+    , hedgehog-quickcheck
     , lens
     , memory
     , monad-control
@@ -135,6 +136,7 @@ test-suite spec
     , freer-extras
     , freer-simple
     , hashable
+    , hedgehog-quickcheck
     , lens
     , memory
     , monad-control

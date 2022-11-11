@@ -46,6 +46,7 @@ dependencies:
   - optics-core
   - optics-th
   - hashable
+  - hedgehog-quickcheck
 
 library:
   source-dirs: src
