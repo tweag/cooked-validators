@@ -195,34 +195,34 @@ mPrettyValue =
     . Pl.flattenValue
 
 prettyCurrencyAndAmount :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> Doc ann
-prettyCurrencyAndAmount (symbol, tName, amount) = prettyToken tName amount
+prettyCurrencyAndAmount (symbol, tName, amount) = prettySingletonValue symbol tName amount
+
+prettySpacedNumber :: Integer -> Doc ann
+prettySpacedNumber i
+  | 0 == i = "0" -- this case should never be reached under normal use through 'mPrettyValue'
+  | i > 0 = psnTerm "" 0 i
+  | otherwise = "-" <> psnTerm "" 0 (- i)
+  where
+    psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
+    psnTerm acc _ 0 = acc
+    psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+    psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
+
+prettySingletonValue :: Pl.CurrencySymbol -> Pl.TokenName -> Integer -> Doc ann
+prettySingletonValue symbol name n = prettyCurrency <+> prettyAmount
   where
     prettySymbol :: Pl.CurrencySymbol -> Doc ann
     prettySymbol = PP.pretty . take 7 . show
 
-    prettySpacedNumber :: Integer -> Doc ann
-    prettySpacedNumber i
-      | 0 == i = "0" -- this case should never be reached under normal use through 'mPrettyValue'
-      | i > 0 = psnTerm "" 0 i
-      | otherwise = "-" <> psnTerm "" 0 (- i)
-      where
-        psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
-        psnTerm acc _ 0 = acc
-        psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-        psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
+    prettyAmount = ":" <+> prettySpacedNumber n
+    prettyCurrency
+      | symbol == Pl.CurrencySymbol "" = "Lovelace"
+      | symbol == quickCurrencySymbol = withTok "Quick"
+      | symbol == permanentCurrencySymbol = withTok "Perm"
+      | otherwise = withTok (prettySymbol symbol)
 
-    prettyToken :: Pl.TokenName -> Integer -> Doc ann
-    prettyToken name n =
-      let prettyAmount = ":" <+> prettySpacedNumber n
-          prettyCurrency
-            | symbol == Pl.CurrencySymbol "" = "Lovelace"
-            | symbol == quickCurrencySymbol = withTok "Quick"
-            | symbol == permanentCurrencySymbol = withTok "Perm"
-            | otherwise = withTok (prettySymbol symbol)
-
-          withTok :: Doc ann -> Doc ann
-          withTok s = PP.parens (s <+> "$" <+> PP.pretty name)
-       in prettyCurrency <+> prettyAmount
+    withTok :: Doc ann -> Doc ann
+    withTok s = PP.parens (s <+> "$" <+> PP.pretty name)
 
 prettyAddressTypeAndHash :: Pl.Address -> Doc ann
 prettyAddressTypeAndHash (Pl.Address addrCr stakingCred) =

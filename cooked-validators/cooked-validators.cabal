@@ -39,6 +39,7 @@ library
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
+      Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
       Example
   other-modules:
@@ -110,6 +111,7 @@ test-suite spec
       Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
       Cooked.TestUtils
+      Cooked.Tx.Constraints.TypeSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

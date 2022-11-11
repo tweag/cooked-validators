@@ -82,6 +82,9 @@ data TxLabel where
 instance Eq TxLabel where
   a == x = compare a x == EQ
 
+instance Show TxLabel where
+  show (TxLabel x) = show x
+
 {- note: How to write 'Ord' instances for types with existential type variables in
  their constructors?
 
@@ -248,7 +251,7 @@ data TxOpts = TxOpts
     -- By default, this is set to @AdjustExistingOutput@.
     balanceOutputPolicy :: BalanceOutputPolicy
   }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance Default TxOpts where
   def =
@@ -306,7 +309,7 @@ instance Monoid TxOpts where
 type MintsConstrs a =
   ( Pl.ToData a,
     Pl.Eq a,
-    -- Show a,
+    Show a,
     Typeable a
   )
 
@@ -338,9 +341,9 @@ instance Ord MintsConstraint where
 type SpendsScriptConstrs a =
   ( -- Pl.ToData (Pl.DatumType a),
     Pl.ToData (Pl.RedeemerType a),
-    -- Pl.UnsafeFromData (Pl.DatumType a),
-    -- Show (Pl.DatumType a),
-    -- Show (Pl.RedeemerType a),
+    Pl.UnsafeFromData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Show (Pl.RedeemerType a),
     -- Pl.Eq (Pl.DatumType a),
     Pl.Eq (Pl.RedeemerType a),
     Typeable a
