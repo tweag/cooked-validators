@@ -91,11 +91,10 @@ txRelock v = do
 {-# INLINEABLE outputDatum #-}
 outputDatum :: L.TxInfo -> L.TxOut -> Maybe MockDatum
 outputDatum txi o = do
-  h <- case L.txOutDatum o of
-            L.NoOutputDatum -> Nothing
-            L.OutputDatumHash dh -> pure dh
-            L.OutputDatum da -> pure $ L.datumHash da
-  L.Datum d <- L.findDatum h txi
+  L.Datum d <- case L.txOutDatum o of
+                    L.NoOutputDatum -> Nothing
+                    L.OutputDatumHash dh -> L.findDatum dh txi
+                    L.OutputDatum datum -> Just datum
   Pl.fromBuiltinData d
 
 {-# INLINEABLE mkMockValidator #-}
@@ -112,7 +111,7 @@ mkMockValidator getOutputs datum _ ctx =
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
                   (L.txOutValue o == lockValue)
-            _ -> Pl.trace "there must be a output re-locked" False
+            [] -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
 
 {-# INLINEABLE mkCarefulValidator #-}
