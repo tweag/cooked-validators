@@ -62,15 +62,22 @@ instance ToLedgerConstraint MintsConstraint where
           Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
 
 instance ToLedgerConstraint InConstraint where
-  extractDatumStr (SpendsScript _ _ spOut) = case spOut ^? spOutDatum of
-    Just d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)
-    Nothing -> M.empty
-  extractDatumStr SpendsPK {} = M.empty -- is this accurate? There might be a datum on PK outputs! TODO
+  -- We had something like this before:
+  --
+  -- extractDatumStr (SpendsScript _ _ spOut) = case spOut ^? spOutDatum of
+  --   Just d -> M.singleton (Pl.datumHash . Pl.Datum $ Pl.toBuiltinData d) (show d)
+  --   Nothing -> M.empty
+  -- extractDatumStr SpendsPK {} = M.empty
+  --
+  -- But since the datum on a spending constraint will most certainly come from
+  -- an earlier paying constraint, it should already be in the pretty printing
+  -- map, and this should suffice:
+  extractDatumStr _ = M.empty
 
   toLedgerConstraint (SpendsScript v r spOut) = (lkups, constr)
     where
       oref = spOut ^. spOutTxOutRef
-      o = spOut ^. spOutCITxOut
+      o = spOut ^. spOutChainIndexTxOut
       lkups =
         Pl.otherScript (Pl.validatorScript v)
           <> Pl.unspentOutputs (M.singleton oref o)
@@ -78,7 +85,7 @@ instance ToLedgerConstraint InConstraint where
   toLedgerConstraint (SpendsPK spOut) = (lkups, constr)
     where
       oref = spOut ^. spOutTxOutRef
-      o = spOut ^. spOutCITxOut
+      o = spOut ^. spOutChainIndexTxOut
       lkups = Pl.unspentOutputs (M.singleton oref o)
       constr = Pl.mustSpendPubKeyOutput oref
 

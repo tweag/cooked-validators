@@ -41,8 +41,6 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange ins outs) =
           Just $ prettyEnum "Constraints:" "/\\" $ map prettyOutConstraint outs
         ]
 
--- prettyInConstraint (SignedBy pkhs) = prettyEnum "SignedBy" "-" $ prettyWallet <$> pkhs
-
 prettyWallet :: Pl.PubKeyHash -> Doc ann
 prettyWallet pkh =
   "wallet" <+> (maybe phash ((<+> PP.parens phash) . ("#" <>) . PP.pretty) . walletPKHashToId $ pkh)
@@ -84,7 +82,7 @@ prettyMintsConstraint (MintsWithRedeemer mr policy tName amount) =
 
 prettyInConstraint :: InConstraint -> Doc ann
 prettyInConstraint (SpendsPK out) =
-  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ out ^. spOutCITxOut
+  let (ppAddr, mppVal) = prettyTxOut $ Pl.toTxOut $ out ^. spOutChainIndexTxOut
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
 prettyInConstraint (SpendsScript val red spOut) =
   prettyEnum

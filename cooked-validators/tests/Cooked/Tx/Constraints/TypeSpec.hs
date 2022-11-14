@@ -296,6 +296,7 @@ tests =
               testProperty "on TxOpts" $ congruenceOn @TxOpts,
               testProperty "on TxSkel" $ congruenceOn @TxSkel
             ],
+      -- TODO: Tests for other laws about <>?
       testGroup "toLedgerConstraints is injective" $
         let injectiveOn :: (Eq a, ToLedgerConstraint a) => a -> a -> Property
             injectiveOn x y =

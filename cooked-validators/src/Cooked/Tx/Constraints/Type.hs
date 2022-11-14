@@ -36,7 +36,7 @@ import Type.Reflection
 --  underlying 'Pl.ChainIndexTxOut'.
 data SpendableOut = SpendableOut
   { _spOutTxOutRef :: Pl.TxOutRef,
-    _spOutCITxOut :: Pl.ChainIndexTxOut
+    _spOutChainIndexTxOut :: Pl.ChainIndexTxOut
   }
   deriving (Eq)
 
@@ -60,7 +60,7 @@ instance Ord SpendableOut where
 --   _ -> Nothing
 
 spOutDatumOrHash :: AffineTraversal' SpendableOut (Either Pl.DatumHash Pl.Datum)
-spOutDatumOrHash = spOutCITxOut % singular (traversalVL Pl.ciTxOutDatum)
+spOutDatumOrHash = spOutChainIndexTxOut % singular (traversalVL Pl.ciTxOutDatum)
 
 spOutDatum :: AffineTraversal' SpendableOut Pl.Datum
 spOutDatum = spOutDatumOrHash % _Right
@@ -69,10 +69,10 @@ spOutDatumHash :: AffineTraversal' SpendableOut Pl.DatumHash
 spOutDatumHash = spOutDatumOrHash % _Left
 
 spOutValue :: Lens' SpendableOut Pl.Value
-spOutValue = spOutCITxOut % lensVL Pl.ciTxOutValue
+spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
 
 spOutAddress :: Lens' SpendableOut Pl.Address
-spOutAddress = spOutCITxOut % lensVL Pl.ciTxOutAddress
+spOutAddress = spOutChainIndexTxOut % lensVL Pl.ciTxOutAddress
 
 -- * Transaction labels
 
@@ -138,6 +138,9 @@ instance Semigroup Collateral where
   a <> CollateralAuto = a
   CollateralUtxos l <> CollateralUtxos r = CollateralUtxos (l <> r)
 
+instance Monoid Collateral where
+  mempty = def
+
 -- | Whether to adjust existing public key outputs during
 -- transaction balancing.
 data BalanceOutputPolicy
@@ -156,6 +159,9 @@ instance Default BalanceOutputPolicy where
 -- arguments is non-default.
 instance Semigroup BalanceOutputPolicy where
   a <> b = fromMaybe def (find (/= def) [a, b])
+
+instance Monoid BalanceOutputPolicy where
+  mempty = def
 
 -- | Wraps a function that can be applied to a transaction right before submitting it.
 --  We have a distinguished datatype to be able to provide a little more info on
@@ -228,7 +234,7 @@ data TxOpts = TxOpts
     --
     -- One interesting use of this function is to observe a transaction just
     -- before it is being sent for validation, with @unsafeModTx =
-    -- RawModTxAfterBalancing Debug.Trace.traceShowId@.
+    -- [RawModTxAfterBalancing Debug.Trace.traceShowId]@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
     -- default, this is set to 'Id'.
