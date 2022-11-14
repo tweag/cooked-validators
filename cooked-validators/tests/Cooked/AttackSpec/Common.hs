@@ -7,9 +7,9 @@ import Cooked.TestUtils
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import Data.Default
+import qualified Ledger.Ada as L
 import qualified Ledger.Value as L
 import Optics.Core
-import qualified Plutus.V1.Ledger.Ada as L
 import Test.Tasty
 import Test.Tasty.HUnit
 

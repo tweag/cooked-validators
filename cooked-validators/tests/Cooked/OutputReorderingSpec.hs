@@ -2,6 +2,7 @@
 
 module Cooked.OutputReorderingSpec (tests) where
 
+import qualified Cardano.Api as Api
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
@@ -11,6 +12,7 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.Credential as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
+import qualified Ledger.Tx.CardanoAPI as Pl
 
 tests :: [TestTree]
 tests =
@@ -45,9 +47,8 @@ skel w1 w2 =
 -- | Checks that the first two outputs in a transaction are payments to the two
 -- given wallets
 firstRecipientsAre :: Wallet -> Wallet -> Pl.Tx -> Bool
-firstRecipientsAre w1 w2 tx =
-  case Pl.txOutputs tx of
-    (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh1) _) _ _)
-      : (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh2) _) _ _)
-      : _ -> walletPKHash w1 == pkh1 && walletPKHash w2 == pkh2
-    _ -> False
+firstRecipientsAre w1 w2 tx
+  | (Pl.TxOut (Api.TxOut a1 _ _ _) : Pl.TxOut (Api.TxOut a2 _ _ _) : _) <- Pl.txOutputs tx
+  , Just pkh1 <- Pl.toPubKeyHash $ Pl.fromCardanoAddressInEra a1
+  , Just pkh2 <- Pl.toPubKeyHash $ Pl.fromCardanoAddressInEra a2 = walletPKHash w1 == pkh1 && walletPKHash w2 == pkh2
+  | otherwise = False
