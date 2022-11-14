@@ -66,13 +66,21 @@ prettyOutConstraint (PaysPK pkh stak dat val) =
     )
 
 prettyMintsConstraint :: MintsConstraint -> Doc ann
-prettyMintsConstraint (MintsConstraint mr policy tName amount) =
-  prettyEnum "Mints" "-" $
-    catMaybes
-      [ fmap (("Redeemer:" <+>) . prettyDatum) mr,
-        Just $ "Policy:" <+> prettyMintingPolicy policy,
-        Just $ "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
-      ]
+prettyMintsConstraint (Mints policy tName amount) =
+  prettyEnum
+    "Mints"
+    "-"
+    [ "Policy:" <+> prettyMintingPolicy policy,
+      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
+    ]
+prettyMintsConstraint (MintsWithRedeemer mr policy tName amount) =
+  prettyEnum
+    "Mints"
+    "-"
+    [ "Redeemer:" <+> prettyDatum mr,
+      "Policy:" <+> prettyMintingPolicy policy,
+      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
+    ]
 
 prettyInConstraint :: InConstraint -> Doc ann
 prettyInConstraint (SpendsPK out) =

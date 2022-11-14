@@ -15,13 +15,16 @@ import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import Data.Default (def)
+import Data.Set (Set)
 import Data.Void
+import Debug.Trace
 import qualified Ledger.Address as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Constraints.TxConstraints as Pl
 import qualified Ledger.Generators as LG
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Typed.Scripts as Pl
+import Optics.Core
 import qualified Plutus.V1.Ledger.Api as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Builtins.Internal as Pl
@@ -74,17 +77,17 @@ instance Arbitrary TxOpts where
 
 -- ** Generating minting policies
 
--- At the moment, there is only one policy we generate:
+-- At the moment, we generate only two different policies:
 
-{-# INLINEABLE mkMockPolicy #-}
-mkMockPolicy :: Pl.BuiltinData -> Pl.BuiltinData -> ()
-mkMockPolicy _ _ = ()
+{-# INLINEABLE mkMockPolicy1 #-}
+mkMockPolicy1 :: Pl.BuiltinData -> Pl.BuiltinData -> ()
+mkMockPolicy1 _ _ = ()
 
-mockPolicy :: Pl.MintingPolicy
-mockPolicy = Pl.mkMintingPolicyScript $$(Pl.compile [||mkMockPolicy||])
+mockPolicy1 :: Pl.MintingPolicy
+mockPolicy1 = Pl.mkMintingPolicyScript $$(Pl.compile [||mkMockPolicy1||])
 
 instance Arbitrary Pl.MintingPolicy where
-  arbitrary = return mockPolicy
+  arbitrary = return mockPolicy1
 
 -- ** Generating 'MintsConstraint's
 
@@ -93,10 +96,15 @@ instance Arbitrary Pl.TokenName where
 
 instance Arbitrary MintsConstraint where
   arbitrary =
-    MintsConstraint @Bool <$> arbitrary
-      <*> arbitrary
-      <*> arbitrary
-      <*> arbitrary
+    oneof
+      [ MintsWithRedeemer @Bool <$> arbitrary
+          <*> arbitrary
+          <*> arbitrary
+          <*> arbitrary,
+        Mints <$> arbitrary
+          <*> arbitrary
+          <*> arbitrary
+      ]
 
 -- ** Generating 'Value's
 
@@ -230,8 +238,7 @@ instance Arbitrary OutConstraint where
 
 instance Arbitrary TxSkel where
   arbitrary =
-    TxSkel <$> arbitrary
-      <*> arbitrary
+    TxSkel mempty <$> arbitrary
       <*> arbitrary
       <*> (hedgehog $ LG.genTimeRange def)
       <*> arbitrary
@@ -246,6 +253,15 @@ genTxSkelDefaultOptionsNoLabel =
     <*> arbitrary
 
 -- * A few instances for QuickCheck
+
+instance Show MintsConstraint where
+  show = show . prettyMintsConstraint
+
+instance Show InConstraint where
+  show = show . prettyInConstraint
+
+instance Show OutConstraint where
+  show = show . prettyOutConstraint
 
 instance Show TxSkel where
   show = show . prettyTxSkel []
@@ -265,11 +281,34 @@ tests :: TestTree
 tests =
   testGroup
     "testing TxSkel and friends"
-    [ testProperty "== is a congruence for <> on TxSkels" $
-        \(a :: TxSkel) b x y -> (a == x && b == y) <= (a <> b == x <> y),
-      -- For some reason, there's a stack overflow here, which I've not yet diagnosed:
-      testProperty "toLedgerConstraints is injective" $
-        forAll genTxSkelDefaultOptionsNoLabel $ \a ->
-          forAll genTxSkelDefaultOptionsNoLabel $ \b ->
-            (toLedgerConstraint @_ @AContract a == toLedgerConstraint @_ @AContract b) <= (a == b)
+    [ testGroup "== is a congruence for <>" $
+        let congruenceOn :: (Eq a, Semigroup a) => a -> a -> a -> a -> Property
+            congruenceOn a b x y =
+              -- The usual definition of the congruence property would be
+              --
+              -- > (a == x && b == y) ==> (a <> b == x <> y)
+              --
+              -- but this forces us to discard so many test cases that
+              -- QuickCheck gives up. A contrapositive formulation is better,
+              -- because the premise is easier to satisfy.
+              (a <> b /= x <> y) ==> (a /= x || b /= y)
+         in [ testProperty "on sets of TxLabel" $ congruenceOn @(Set TxLabel),
+              testProperty "on TxOpts" $ congruenceOn @TxOpts,
+              testProperty "on TxSkel" $ congruenceOn @TxSkel
+            ],
+      testGroup "toLedgerConstraints is injective" $
+        let injectiveOn :: (Eq a, ToLedgerConstraint a) => a -> a -> Property
+            injectiveOn x y =
+              -- Again, a contrapositive formulation of the usual property is
+              -- necessary.
+              (x /= y)
+                ==> (toLedgerConstraint @_ @Void x /= toLedgerConstraint y)
+         in [ testProperty "on MintsConstraint" $ injectiveOn @MintsConstraint,
+              testProperty "on InConstraint" $ injectiveOn @InConstraint,
+              testProperty "on OutConstraint" $ injectiveOn @OutConstraint,
+              testProperty "on TxSkel" $
+                forAll genTxSkelDefaultOptionsNoLabel $ \a ->
+                  forAll genTxSkelDefaultOptionsNoLabel $ \b ->
+                    injectiveOn a b
+            ]
     ]

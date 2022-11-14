@@ -48,15 +48,15 @@ class ToLedgerConstraint constraint where
 instance ToLedgerConstraint MintsConstraint where
   extractDatumStr _ = M.empty
 
-  toLedgerConstraint (MintsConstraint Nothing pol tName amount) = (lkups, constr)
+  toLedgerConstraint (Mints pol tName amount) = (lkups, constr)
     where
-      lkups = Pl.mintingPolicy pol
+      lkups = if amount == 0 then mempty else Pl.mintingPolicy pol
       constr =
         Pl.mustMintValue $
           Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
-  toLedgerConstraint (MintsConstraint (Just red) pol tName amount) = (lkups, constr)
+  toLedgerConstraint (MintsWithRedeemer red pol tName amount) = (lkups, constr)
     where
-      lkups = Pl.mintingPolicy pol
+      lkups = if amount == 0 then mempty else Pl.mintingPolicy pol
       constr =
         Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData red)) $
           Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount

@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -21,6 +22,7 @@ import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import Optics.TH
+import qualified Plutus.V1.Ledger.Scripts as Pl (unitRedeemer)
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Prelude as Pl
 import Type.Reflection
@@ -111,7 +113,8 @@ instance Ord TxLabel where
       GT -> GT
       EQ -> case typeOf a `eqTypeRep` typeOf x of
         Just HRefl -> compare a x
-        -- This can never happen, since 'eqTypeRep' is implemented in terms of '==' on the type representation:
+        -- This can never happen, since 'eqTypeRep' is implemented in terms of
+        -- '==' on the type representation:
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
 -- * Transaction options
@@ -308,15 +311,20 @@ instance Monoid TxOpts where
 
 type MintsConstrs a =
   ( Pl.ToData a,
-    Pl.Eq a,
     Show a,
     Typeable a
   )
 
 data MintsConstraint where
-  MintsConstraint ::
+  Mints ::
+    { _mintsPolicy :: Pl.MintingPolicy,
+      _mintsTokenName :: Pl.TokenName,
+      _mintsAmount :: Integer
+    } ->
+    MintsConstraint
+  MintsWithRedeemer ::
     MintsConstrs a =>
-    { _mintsRedeemer :: Maybe a,
+    { _mintsRedeemer :: a,
       _mintsPolicy :: Pl.MintingPolicy,
       _mintsTokenName :: Pl.TokenName,
       _mintsAmount :: Integer
@@ -329,12 +337,41 @@ instance Eq MintsConstraint where
   m1 == m2 = compare m1 m2 == EQ
 
 instance Ord MintsConstraint where
-  (MintsConstraint r1 p1 t1 n1) <= (MintsConstraint r2 p2 t2 n2) =
-    SomeTypeRep (typeOf r1) <= SomeTypeRep (typeOf r2)
-      && Pl.toData r1 <= Pl.toData r2
-      && p1 <= p2
-      && t1 <= t2
-      && n1 <= n2
+  compare m1 m2
+    | m1 ^. mintsAmount == 0 && m2 ^. mintsAmount == 0 = EQ
+    | otherwise =
+      case (m1, m2) of
+        (Mints p1 t1 n1, Mints p2 t2 n2) -> compare (p1, t1, n1) (p2, t2, n2)
+        (MintsWithRedeemer r1 p1 t1 n1, MintsWithRedeemer r2 p2 t2 n2) ->
+          case compare (SomeTypeRep $ typeOf r1) (SomeTypeRep $ typeOf r2) of
+            LT -> LT
+            GT -> GT
+            EQ -> case typeOf r1 `eqTypeRep` typeOf r2 of
+              Just HRefl ->
+                -- If the minted value is zero, the translation 'toLedgerConstraint'
+                -- ignores the redeemer and token name.
+                if n1 == 0 && n2 == 0
+                  then compare p1 p2
+                  else compare (Pl.toData r1, p1, t1, n1) (Pl.toData r2, p2, t2, n2)
+              Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
+        -- The following two clauses are here because of this wrinkle: We use
+        -- 'mustMintValue' and 'mustMintValueWithRedeemer' to translate 'Mints'
+        -- and 'MintsWithRedeemer', respectively. The former of these two
+        -- functions is defined as
+        --
+        -- > mustMintValue = mustMintValueWithRedeemer unitRedeemer
+        --
+        -- This means that, from the perspective of plutus-apps' constraints, there's
+        -- no difference between minting with no redeemer and minting with any
+        -- redeemer that has the same 'toData' representation as the 'unitRedeemer'.
+        (Mints p1 t1 n1, MintsWithRedeemer r2 p2 t2 n2) ->
+          if Pl.toData r2 == Pl.toData Pl.unitRedeemer
+            then compare (p1, t1, n1) (p2, t2, n2)
+            else LT
+        (MintsWithRedeemer r1 p1 t1 n1, Mints p2 t2 n2) ->
+          if Pl.toData r1 == Pl.toData Pl.unitRedeemer
+            then compare (p1, t1, n1) (p2, t2, n2)
+            else GT
 
 -- * Input Constraints
 
@@ -362,20 +399,24 @@ data InConstraint where
 makeLenses ''InConstraint
 
 instance Eq InConstraint where
-  c1 == c2 = compare c1 c2 == EQ
+  s1 == s2 = compare s1 s2 == EQ
 
 instance Ord InConstraint where
-  (SpendsScript v1 r1 o1) <= (SpendsScript v2 r2 o2) =
-    SomeTypeRep (typeOf v1) < SomeTypeRep (typeOf v2)
-      || case typeOf v1 `eqTypeRep` typeOf v2 of
+  compare (SpendsScript v1 r1 o1) (SpendsScript v2 r2 o2) =
+    case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
+      LT -> LT
+      GT -> GT
+      EQ -> case typeOf v1 `eqTypeRep` typeOf v2 of
         Just HRefl ->
-          Pl.validatorHash v1 <= Pl.validatorHash v2 -- TODO will this suffice, or do we need to compare more components of the typed validator?
-            && Pl.toData r1 <= Pl.toData r2
-            && o1 <= o2
-        Nothing -> False
-  (SpendsPK o1) <= (SpendsPK o2) = o1 <= o2
-  SpendsPK {} <= SpendsScript {} = True
-  SpendsScript {} <= SpendsPK {} = False
+          -- TODO will this suffice, or do we need to compare more components of
+          -- the typed validator?
+          compare
+            (Pl.validatorHash v1, Pl.toData r1, o1)
+            (Pl.validatorHash v2, Pl.toData r2, o2)
+        Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
+  compare (SpendsPK o1) (SpendsPK o2) = compare o1 o2
+  compare SpendsPK {} SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK {} = GT
 
 -- * Output Constraints
 
