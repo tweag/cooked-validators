@@ -69,10 +69,11 @@ tests =
         -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
         -- This test doesn't consider the minAdaTxOut constraint.
         testCase "spends money from the outputs" $
-          let Right (st, _) = tracePayWallet11
-           in let txOut11 = outsOf 11 $ mcstIndex st
-               in spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11
-                    @?= (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty),
+          case tracePayWallet11 of
+               Left err -> fail $ show err
+               Right (st, _) -> let txOut11 = outsOf 11 $ mcstIndex st
+                                 in spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11
+                                     @?= (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty),
         testProperty "spends nothing if nothing to balance" $
           \(IndependentUtxos utxos) -> do
             let (usedUtxos, leftovers, excess) = spendValueFrom @MockOutOutRef mempty utxos
