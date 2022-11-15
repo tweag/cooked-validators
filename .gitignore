@@ -1,4 +1,5 @@
 dist-newstyle
+.envrc
 .direnv
 .projectile
 .vscode
