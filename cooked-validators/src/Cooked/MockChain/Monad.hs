@@ -239,7 +239,7 @@ pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 -- | Return all UTxOs belonging to a pubkey, but keep them as 'Pl.TxOut'. This is
 --  for internal use.
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
-pkUtxos' pkh = map (\o -> (o ^. spOutTxOutRef, go $ o ^. spOutCITxOut)) <$> pkUtxos pkh
+pkUtxos' pkh = map (\o -> (o ^. spOutTxOutRef, go $ o ^. spOutChainIndexTxOut)) <$> pkUtxos pkh
   where
     go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"

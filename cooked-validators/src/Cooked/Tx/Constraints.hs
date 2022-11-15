@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TupleSections #-}
 
 module Cooked.Tx.Constraints where
 
@@ -125,18 +126,19 @@ instance ToLedgerConstraint OutConstraint where
       getStakeValidatorHash _ = Nothing
 
 instance ToLedgerConstraint TxSkel where
-  extractDatumStr (TxSkel _label _opts _mints _validityRange ins outs) =
+  extractDatumStr TxSkel {_txSkelIns = ins, _txSkelOuts = outs} =
     foldMap extractDatumStr ins <> foldMap extractDatumStr outs
 
-  toLedgerConstraint (TxSkel _label _opts mints validityRange ins outs) =
+  toLedgerConstraint (TxSkel _label _opts mints validityRange reqSigners ins outs) =
     (mconcat lkups, mconcat constrs)
     where
       (lkups, constrs) =
         unzip $
-          (toLedgerConstraint <$> Set.toList ins)
-            <> (toLedgerConstraint <$> outs)
-            <> (toLedgerConstraint <$> Set.toList mints)
+          (toLedgerConstraint <$> Set.toList mints)
             <> [(mempty, Pl.mustValidateIn validityRange)]
+            <> ((mempty,) . Pl.mustBeSignedBy <$> Set.toList reqSigners)
+            <> (toLedgerConstraint <$> Set.toList ins)
+            <> (toLedgerConstraint <$> outs)
 
 -- | Generate the 'Pl.TxOut' transaction output associated to a given output
 -- constraint 'OutConstraint'.

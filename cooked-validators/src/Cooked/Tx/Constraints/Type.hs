@@ -32,7 +32,7 @@ import Type.Reflection
 
 -- * 'SpendableOut': The type of UTxOs
 
--- | A 'SpendableOut' is an outref that is ready to be spend; with its
+-- | A 'SpendableOut' is an outref that is ready to be spent; with its
 --  underlying 'Pl.ChainIndexTxOut'.
 data SpendableOut = SpendableOut
   { _spOutTxOutRef :: Pl.TxOutRef,
@@ -354,11 +354,7 @@ instance Ord MintsConstraint where
             GT -> GT
             EQ -> case typeOf r1 `eqTypeRep` typeOf r2 of
               Just HRefl ->
-                -- If the minted value is zero, the translation 'toLedgerConstraint'
-                -- ignores the redeemer and token name.
-                if n1 == 0 && n2 == 0
-                  then compare p1 p2
-                  else compare (Pl.toData r1, p1, t1, n1) (Pl.toData r2, p2, t2, n2)
+                compare (Pl.toData r1, p1, t1, n1) (Pl.toData r2, p2, t2, n2)
               Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
         -- The following two clauses are here because of this wrinkle: We use
         -- 'mustMintValue' and 'mustMintValueWithRedeemer' to translate 'Mints'
@@ -479,6 +475,7 @@ data TxSkel where
       _txSkelOpts :: TxOpts,
       _txSkelMints :: Set MintsConstraint,
       _txSkelValidityRange :: Pl.POSIXTimeRange,
+      _txSkelRequiredSigners :: Set Pl.PaymentPubKeyHash,
       _txSkelIns :: Set InConstraint,
       _txSkelOuts :: [OutConstraint]
     } ->
@@ -516,17 +513,18 @@ makeLenses ''TxSkel
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 i1 o1) <> (TxSkel l2 p2 m2 r2 i2 o2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 o1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
       (m1 <> m2)
       (r1 `Pl.intersection` r2)
+      (s1 <> s2)
       (i1 <> i2)
       (o1 ++ o2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel Set.empty mempty Set.empty Pl.always Set.empty []
+  mempty = TxSkel Set.empty mempty Set.empty Pl.always Set.empty Set.empty []
 
 -- -- | Constructs a skeleton without a default label and with default 'TxOpts'
 -- txSkel :: ConstraintsSpec constraints => constraints -> TxSkel

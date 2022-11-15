@@ -116,6 +116,9 @@ instance Arbitrary Pl.Value where
 instance Arbitrary Pl.PubKeyHash where
   arbitrary = Pl.PubKeyHash <$> Pl.BuiltinByteString <$> arbitrary
 
+instance Arbitrary Pl.PaymentPubKeyHash where
+  arbitrary = Pl.PaymentPubKeyHash <$> arbitrary
+
 instance Arbitrary Pl.StakePubKeyHash where
   arbitrary = Pl.StakePubKeyHash <$> arbitrary
 
@@ -243,12 +246,14 @@ instance Arbitrary TxSkel where
       <*> (hedgehog $ LG.genTimeRange def)
       <*> arbitrary
       <*> arbitrary
+      <*> arbitrary
 
 genTxSkelDefaultOptionsNoLabel :: Gen TxSkel
 genTxSkelDefaultOptionsNoLabel =
   TxSkel mempty def
     <$> arbitrary
     <*> (hedgehog $ LG.genTimeRange def)
+    <*> arbitrary
     <*> arbitrary
     <*> arbitrary
 
