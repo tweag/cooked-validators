@@ -311,8 +311,9 @@ runTransactionValidation s parms ix reqSigners signers tx =
       -- to keep this function pure.
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
       cardanoTx = either (error . show) id $ Pl.fromPlutusTx parms cardanoIndex reqSigners tx
+      cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
-      txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTx
+      txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
       e1 = Pl.validateCardanoTx parms s cardanoIndex txn
 
       -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
@@ -321,7 +322,7 @@ runTransactionValidation s parms ix reqSigners signers tx =
           parms
           (fromIntegral s)
           cardanoIndex
-          (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
+          cardanoTxSigned
 
       -- Now we compute the new index
       e = e1 <|> e2
