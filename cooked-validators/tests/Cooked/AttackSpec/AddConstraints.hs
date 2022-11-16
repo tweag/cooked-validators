@@ -55,7 +55,7 @@ validator =
 -- different values
 testMockChainSt :: MockChainSt
 testMockChainSt = case runMockChainRaw def def setup of
-  Left _ -> def -- this branch will not be reached
+  Left err -> error $ "error running the setup: " <> show err
   Right (_, mcst) -> mcst
   where
     setup = do
