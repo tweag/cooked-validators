@@ -111,7 +111,7 @@ instance ToLedgerConstraint OutConstraint where
           ( Pl.MustPayToOtherScript
               (Pl.validatorHash v)
               (msc >>= getStakeValidatorHash)
-              (Pl.TxOutDatumHash $ Pl.Datum $ Pl.toBuiltinData datum)
+              (Pl.TxOutDatumInTx $ Pl.Datum $ Pl.toBuiltinData datum)
               Nothing   -- TODO PORT expose ScriptHash?
               value
           )
