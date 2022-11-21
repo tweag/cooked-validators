@@ -20,8 +20,10 @@ import qualified Data.Set as Set
 import qualified Ledger as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
+import qualified Ledger.Value as Pl
 import Optics.Core
 import Optics.TH
+import qualified Plutus.Script.Utils.V1.Scripts as Pl (mintingPolicyHash)
 import qualified Plutus.V1.Ledger.Scripts as Pl (unitRedeemer)
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -338,6 +340,15 @@ data MintsConstraint where
     MintsConstraint
 
 makeLenses ''MintsConstraint
+
+mintsCurrencySymbol :: MintsConstraint -> Pl.CurrencySymbol
+mintsCurrencySymbol = Pl.mpsSymbol . Pl.mintingPolicyHash . (^. mintsPolicy)
+
+mintsAssetClass :: MintsConstraint -> Pl.AssetClass
+mintsAssetClass mc = Pl.assetClass (mintsCurrencySymbol mc) $ mc ^. mintsTokenName
+
+mintsValue :: MintsConstraint -> Pl.Value
+mintsValue mc = Pl.assetClassValue (mintsAssetClass mc) $ mc ^. mintsAmount
 
 instance Eq MintsConstraint where
   m1 == m2 = compare m1 m2 == EQ

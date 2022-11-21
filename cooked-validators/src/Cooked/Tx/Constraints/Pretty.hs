@@ -30,17 +30,24 @@ prettyEnum title tag items =
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
 prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs) =
   PP.vsep $
-    map ("-" <+>) $
-      catMaybes
-        [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
-          Just $ prettyEnum "Labels:" "," $ map PP.viaShow $ Set.toList lbl,
-          fmap ("Opts:" <+>) (prettyOpts opts),
-          Just $ prettyEnum "MintsConstraints:" "/\\" $ map prettyMintsConstraint $ Set.toList mints,
-          Just $ "ValidateIn:" <+> PP.pretty validityRange,
-          Just $ prettyEnum "Required signers" "," $ map PP.viaShow $ Set.toList reqSigners,
-          Just $ prettyEnum "Constraints:" "/\\" $ map prettyInConstraint $ Set.toList ins,
-          Just $ prettyEnum "Constraints:" "/\\" $ map prettyOutConstraint outs
-        ]
+    "Transaction Skeleton:" :
+    map
+      ("-" <+>)
+      ( catMaybes
+          [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
+            prettyEnum "Labels:" "," <$> mapNonEmpty PP.viaShow (Set.toList lbl),
+            fmap ("Opts:" <+>) (prettyOpts opts),
+            prettyEnum "MintsConstraints:" "/\\" <$> mapNonEmpty prettyMintsConstraint (Set.toList mints),
+            Just $ "ValidateIn:" <+> PP.pretty validityRange,
+            ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
+            prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyInConstraint (Set.toList ins),
+            prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyOutConstraint outs
+          ]
+      )
+  where
+    mapNonEmpty :: (a -> b) -> [a] -> Maybe [b]
+    mapNonEmpty _ [] = Nothing
+    mapNonEmpty f l = Just . map f $ l
 
 prettyWallet :: Pl.PubKeyHash -> Doc ann
 prettyWallet pkh =
