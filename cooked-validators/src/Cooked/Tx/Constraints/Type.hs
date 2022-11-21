@@ -14,6 +14,8 @@ import qualified Control.Lens as Lens ((%~))
 import Data.Default
 import Data.Function (on)
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -315,7 +317,7 @@ instance Semigroup TxOpts where
 instance Monoid TxOpts where
   mempty = def
 
--- * Minting Constraints
+-- * Minting Redeemers
 
 type MintsConstrs a =
   ( Pl.ToData a,
@@ -323,68 +325,24 @@ type MintsConstrs a =
     Typeable a
   )
 
-data MintsConstraint where
-  Mints ::
-    { _mintsPolicy :: Pl.MintingPolicy,
-      _mintsTokenName :: Pl.TokenName,
-      _mintsAmount :: Integer
-    } ->
-    MintsConstraint
-  MintsWithRedeemer ::
-    MintsConstrs a =>
-    { _mintsRedeemer :: a,
-      _mintsPolicy :: Pl.MintingPolicy,
-      _mintsTokenName :: Pl.TokenName,
-      _mintsAmount :: Integer
-    } ->
-    MintsConstraint
+data MintsRedeemer where
+  NoMintsRedeemer :: MintsRedeemer
+  SomeMintsRedeemer :: MintsConstrs a => a -> MintsRedeemer
 
-makeLenses ''MintsConstraint
+instance Eq MintsRedeemer where
+  a == b = compare a b == EQ
 
-mintsCurrencySymbol :: MintsConstraint -> Pl.CurrencySymbol
-mintsCurrencySymbol = Pl.mpsSymbol . Pl.mintingPolicyHash . (^. mintsPolicy)
-
-mintsAssetClass :: MintsConstraint -> Pl.AssetClass
-mintsAssetClass mc = Pl.assetClass (mintsCurrencySymbol mc) $ mc ^. mintsTokenName
-
-mintsValue :: MintsConstraint -> Pl.Value
-mintsValue mc = Pl.assetClassValue (mintsAssetClass mc) $ mc ^. mintsAmount
-
-instance Eq MintsConstraint where
-  m1 == m2 = compare m1 m2 == EQ
-
-instance Ord MintsConstraint where
-  compare m1 m2
-    | m1 ^. mintsAmount == 0 && m2 ^. mintsAmount == 0 = EQ
-    | otherwise =
-      case (m1, m2) of
-        (Mints p1 t1 n1, Mints p2 t2 n2) -> compare (p1, t1, n1) (p2, t2, n2)
-        (MintsWithRedeemer r1 p1 t1 n1, MintsWithRedeemer r2 p2 t2 n2) ->
-          case compare (SomeTypeRep $ typeOf r1) (SomeTypeRep $ typeOf r2) of
-            LT -> LT
-            GT -> GT
-            EQ -> case typeOf r1 `eqTypeRep` typeOf r2 of
-              Just HRefl ->
-                compare (Pl.toData r1, p1, t1, n1) (Pl.toData r2, p2, t2, n2)
-              Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
-        -- The following two clauses are here because of this wrinkle: We use
-        -- 'mustMintValue' and 'mustMintValueWithRedeemer' to translate 'Mints'
-        -- and 'MintsWithRedeemer', respectively. The former of these two
-        -- functions is defined as
-        --
-        -- > mustMintValue = mustMintValueWithRedeemer unitRedeemer
-        --
-        -- This means that, from the perspective of plutus-apps' constraints, there's
-        -- no difference between minting with no redeemer and minting with any
-        -- redeemer that has the same 'toData' representation as the 'unitRedeemer'.
-        (Mints p1 t1 n1, MintsWithRedeemer r2 p2 t2 n2) ->
-          if Pl.toData r2 == Pl.toData Pl.unitRedeemer
-            then compare (p1, t1, n1) (p2, t2, n2)
-            else LT
-        (MintsWithRedeemer r1 p1 t1 n1, Mints p2 t2 n2) ->
-          if Pl.toData r1 == Pl.toData Pl.unitRedeemer
-            then compare (p1, t1, n1) (p2, t2, n2)
-            else GT
+instance Ord MintsRedeemer where
+  compare NoMintsRedeemer NoMintsRedeemer = EQ
+  compare NoMintsRedeemer SomeMintsRedeemer {} = LT
+  compare SomeMintsRedeemer {} NoMintsRedeemer = GT
+  compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
+    case compare (SomeTypeRep $ typeOf a) (SomeTypeRep $ typeOf b) of
+      LT -> LT
+      GT -> GT
+      EQ -> case typeOf a `eqTypeRep` typeOf b of
+        Just HRefl -> compare (Pl.toData a) (Pl.toData b)
+        Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
 -- * Input Constraints
 
@@ -484,7 +442,7 @@ data TxSkel where
   TxSkel ::
     { _txSkelLabel :: Set TxLabel,
       _txSkelOpts :: TxOpts,
-      _txSkelMints :: Set MintsConstraint,
+      _txSkelMints :: Map Pl.MintingPolicy (Map (MintsRedeemer, Pl.TokenName) Integer),
       _txSkelValidityRange :: Pl.POSIXTimeRange,
       _txSkelRequiredSigners :: Set Pl.PaymentPubKeyHash,
       _txSkelIns :: Set InConstraint,
@@ -535,7 +493,7 @@ instance Semigroup TxSkel where
       (o1 ++ o2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel Set.empty mempty Set.empty Pl.always Set.empty Set.empty []
+  mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty []
 
 -- -- | Constructs a skeleton without a default label and with default 'TxOpts'
 -- txSkel :: ConstraintsSpec constraints => constraints -> TxSkel

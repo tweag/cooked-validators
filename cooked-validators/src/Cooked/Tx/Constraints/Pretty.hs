@@ -11,6 +11,7 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
+import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (unspentOutputs)
@@ -37,7 +38,13 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs) =
           [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
             prettyEnum "Labels:" "," <$> mapNonEmpty PP.viaShow (Set.toList lbl),
             fmap ("Opts:" <+>) (prettyOpts opts),
-            prettyEnum "MintsConstraints:" "/\\" <$> mapNonEmpty prettyMintsConstraint (Set.toList mints),
+            prettyEnum "Mints:" "/\\"
+              <$> mapNonEmpty
+                prettyMints
+                ( concatMap
+                    (\(p, m) -> (\((r, t), n) -> (p, r, t, n)) <$> Map.toList m)
+                    (Map.toList mints)
+                ),
             Just $ "ValidateIn:" <+> PP.pretty validityRange,
             ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
             prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyInConstraint (Set.toList ins),
@@ -55,6 +62,23 @@ prettyWallet pkh =
   where
     phash = prettyHash pkh
 
+prettyMints :: (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> Doc ann
+prettyMints (policy, NoMintsRedeemer, tName, amount) =
+  prettyEnum
+    "Mints"
+    "-"
+    [ "Policy:" <+> prettyMintingPolicy policy,
+      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
+    ]
+prettyMints (policy, SomeMintsRedeemer mr, tName, amount) =
+  prettyEnum
+    "Mints"
+    "-"
+    [ "Redeemer:" <+> prettyDatum mr,
+      "Policy:" <+> prettyMintingPolicy policy,
+      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
+    ]
+
 prettyOutConstraint :: OutConstraint -> Doc ann
 prettyOutConstraint (PaysScript val msc datum value) =
   prettyEnum ("PaysScript" <+> prettyAddressTypeAndHash addr) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
@@ -70,23 +94,6 @@ prettyOutConstraint (PaysPK pkh stak dat val) =
           mPrettyValue val
         ]
     )
-
-prettyMintsConstraint :: MintsConstraint -> Doc ann
-prettyMintsConstraint (Mints policy tName amount) =
-  prettyEnum
-    "Mints"
-    "-"
-    [ "Policy:" <+> prettyMintingPolicy policy,
-      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
-    ]
-prettyMintsConstraint (MintsWithRedeemer mr policy tName amount) =
-  prettyEnum
-    "Mints"
-    "-"
-    [ "Redeemer:" <+> prettyDatum mr,
-      "Policy:" <+> prettyMintingPolicy policy,
-      "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
-    ]
 
 prettyInConstraint :: InConstraint -> Doc ann
 prettyInConstraint (SpendsPK out) =

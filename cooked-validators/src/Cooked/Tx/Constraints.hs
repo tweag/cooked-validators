@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -7,6 +8,7 @@ module Cooked.Tx.Constraints where
 import Cooked.Tx.Constraints.Type
 import Data.Function
 import qualified Data.List as List
+import Data.Map (Map)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
@@ -45,22 +47,6 @@ class ToLedgerConstraint constraint where
   --  quantified type-variable is there on purpose, to enable us to
   --  easily spend from multiple scripts at the same time.
   toLedgerConstraint :: constraint -> LedgerConstraint a
-
-instance ToLedgerConstraint MintsConstraint where
-  extractDatumStr _ = M.empty
-
-  toLedgerConstraint (Mints pol tName amount) = (lkups, constr)
-    where
-      lkups = if amount == 0 then mempty else Pl.mintingPolicy pol
-      constr =
-        Pl.mustMintValue $
-          Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
-  toLedgerConstraint (MintsWithRedeemer red pol tName amount) = (lkups, constr)
-    where
-      lkups = if amount == 0 then mempty else Pl.mintingPolicy pol
-      constr =
-        Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData red)) $
-          Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
 
 instance ToLedgerConstraint InConstraint where
   -- We had something like this before:
@@ -134,11 +120,44 @@ instance ToLedgerConstraint TxSkel where
     where
       (lkups, constrs) =
         unzip $
-          (toLedgerConstraint <$> Set.toList mints)
+          [toLedgerConstraint mints]
             <> [(mempty, Pl.mustValidateIn validityRange)]
             <> ((mempty,) . Pl.mustBeSignedBy <$> Set.toList reqSigners)
             <> (toLedgerConstraint <$> Set.toList ins)
             <> (toLedgerConstraint <$> outs)
+
+instance ToLedgerConstraint (Map Pl.MintingPolicy (Map (MintsRedeemer, Pl.TokenName) Integer)) where
+  extractDatumStr _ = M.empty
+
+  toLedgerConstraint m = (lkups, constr)
+    where
+      lkups = mconcat $ Pl.mintingPolicy <$> M.keys m
+      constr =
+        mconcat $
+          concatMap
+            ( \(policy, mintedTokenMap) ->
+                map
+                  ( \((mintsRed, tName), amount) ->
+                      let mintedValue =
+                            Pl.assetClassValue
+                              (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName)
+                              amount
+                       in case mintsRed of
+                            NoMintsRedeemer -> Pl.mustMintValue mintedValue
+                            SomeMintsRedeemer red -> Pl.mustMintValueWithRedeemer (Pl.Redeemer . Pl.toBuiltinData $ red) mintedValue
+                  )
+                  $ M.toList mintedTokenMap
+            )
+            $ M.toList m
+
+--Pl.mustMintValue . undefined <$> M.toList m -- Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
+
+-- toLedgerConstraint (MintsWithRedeemer red pol tName amount) = (lkups, constr)
+--   where
+--     lkups = if amount == 0 then mempty else Pl.mintingPolicy pol
+--     constr =
+--       Pl.mustMintValueWithRedeemer (Pl.Redeemer (Pl.toBuiltinData red)) $
+--         Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
 
 -- | Generate the 'Pl.TxOut' transaction output associated to a given output
 -- constraint 'OutConstraint'.
