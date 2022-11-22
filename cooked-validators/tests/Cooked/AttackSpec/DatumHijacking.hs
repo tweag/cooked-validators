@@ -223,14 +223,14 @@ tests =
           ),
       testCase "careless validator" $
         testSucceeds
-          ( somewhere
+          ( {-somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
                       L.validatorHash v == L.validatorHash carelessValidator
                         && SecondLock Pl.== d
                   )
                   (const True)
-              )
+              )-}
               (datumHijackingTrace carelessValidator)
           )
     ]
