@@ -71,6 +71,7 @@ library
     , memory
     , monad-control
     , mtl
+    , nonempty-containers
     , optics-core
     , optics-th
     , plutus-contract
@@ -141,6 +142,7 @@ test-suite spec
     , memory
     , monad-control
     , mtl
+    , nonempty-containers
     , optics-core
     , optics-th
     , plutus-contract

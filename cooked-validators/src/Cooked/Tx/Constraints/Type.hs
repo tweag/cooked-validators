@@ -7,28 +7,33 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens ((%~))
+import Control.Monad
 import Data.Default
 import Data.Function (on)
 import Data.List
+import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Map.NonEmpty (NEMap)
+import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Ledger.Value as Pl
 import Optics.Core
 import Optics.TH
-import qualified Plutus.Script.Utils.V1.Scripts as Pl (mintingPolicyHash)
-import qualified Plutus.V1.Ledger.Scripts as Pl (unitRedeemer)
+import Plutus.V1.Ledger.Scripts (unitRedeemer)
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Prelude as Pl
+import Test.QuickCheck (NonZero)
+import Test.QuickCheck.Modifiers (NonZero (..))
 import Type.Reflection
 
 -- For template Haskell reasons, the most intersting thing in this module (the
@@ -317,7 +322,7 @@ instance Semigroup TxOpts where
 instance Monoid TxOpts where
   mempty = def
 
--- * Minting Redeemers
+-- * Description of the Minting
 
 type MintsConstrs a =
   ( Pl.ToData a,
@@ -329,13 +334,25 @@ data MintsRedeemer where
   NoMintsRedeemer :: MintsRedeemer
   SomeMintsRedeemer :: MintsConstrs a => a -> MintsRedeemer
 
+instance Show MintsRedeemer where
+  show NoMintsRedeemer = "NoMintsRedeemer"
+  show (SomeMintsRedeemer x) = "(SomeMintsRedeemer " ++ show x ++ ")"
+
 instance Eq MintsRedeemer where
   a == b = compare a b == EQ
 
 instance Ord MintsRedeemer where
   compare NoMintsRedeemer NoMintsRedeemer = EQ
-  compare NoMintsRedeemer SomeMintsRedeemer {} = LT
-  compare SomeMintsRedeemer {} NoMintsRedeemer = GT
+  -- The next two clauses are ugly, but necessary, since minting with no
+  -- redeemer is represented as minting with the unit redeemer on-chain.
+  compare NoMintsRedeemer (SomeMintsRedeemer a) =
+    if unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
+      then EQ
+      else LT
+  compare (SomeMintsRedeemer a) NoMintsRedeemer =
+    if unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
+      then EQ
+      else GT
   compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
     case compare (SomeTypeRep $ typeOf a) (SomeTypeRep $ typeOf b) of
       LT -> LT
@@ -343,6 +360,89 @@ instance Ord MintsRedeemer where
       EQ -> case typeOf a `eqTypeRep` typeOf b of
         Just HRefl -> compare (Pl.toData a) (Pl.toData b)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
+
+-- | A description of what a transaction mints: For every policy, redeemer, and
+-- token name, a non-zero amount of tokens.
+type TxSkelMints = Map (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName) (NonZero Integer)
+
+-- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
+--
+-- > fromList [((pol, red, tName), 1)]
+--
+-- and
+--
+-- > fromList [((pol, red, tName), -1)]
+--
+-- will combine to become the empty 'TxSkelMints' (and similar examples, where
+-- the values add up to zero).
+--
+-- If, for some reason, you really want to generate a 'TxSkelMints' that has
+-- both of the entries above, you'll have to do so manually.  Even if the
+-- definition hides it, this 'Semigroup' is commutative!
+--
+-- THE FOLLOWING REMARKS ARE FALSE AT THE MOMENT, but I expect that they
+-- _should_ be true. Let's see what the plutus-apps people have to say.
+--
+-- Note, however, that even if you manually create a 'TxSkelMints' that contains
+-- conflicting information in the sense outlined above, NO VALIDATOR WILL EVER
+-- GET TO SEE A TRANSACTION WITH SUCH CONFLICTING INFORMATION. This is not a
+-- design decision/limitation of cooked-validators:
+--
+-- - We translate (with 'toLedgerConstraint') such a requirement into
+--   plutus-apps' 'ScriptLookups' and 'TxConstraints' types (components of our
+--   'LedgerConstraint' type). After this stage, the conflicting information
+--   will still be present.
+--
+-- - Later on (in MockChain.Monad.Direct), we use 'mkTx' (from plutus-apps) to
+--   generate an 'UnbalancedTx' from the 'ScriptLookups' and the
+--   'TxConstraints'. This is what ultimately combines conflicting constraints
+--   in the way outlined above.
+--
+-- There are also tests for the two assertions above in
+-- "test/Cooked/Tx/Constraints/TypeSpec.hs", which will alert us, should the
+-- design of plutus-apps ever change.
+instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
+  a <> b =
+    foldl
+      ( \mints (policy, red, tName, NonZero amount) ->
+          case mints Map.!? (policy, red, tName) of
+            Nothing -> Map.insert (policy, red, tName) (NonZero amount) mints
+            Just (NonZero oldAmount) ->
+              let newAmount = amount + oldAmount
+               in if newAmount == 0
+                    then Map.delete (policy, red, tName) mints
+                    else Map.insert (policy, red, tName) (NonZero newAmount) mints
+      )
+      a
+      (txSkelMintsToList b)
+
+instance {-# OVERLAPPING #-} Monoid TxSkelMints where
+  mempty = Map.empty
+
+txSkelMintsToList :: TxSkelMints -> [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+txSkelMintsToList = map (\((p, r, t), n) -> (p, r, t, n)) . Map.toList
+
+-- | This function relies on the 'Monoid' instance of 'TxSkelMints'. So, some
+-- non-empty lists (where all amounts for a given asset class an redeemer add up
+-- to zero) might be translated into the empty 'TxSkelMints'. (See the comment
+-- at the 'Semigroup' instance definition of 'TxSkelMints'.)
+txSkelMintsFromList :: [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
+txSkelMintsFromList = foldMap (\(policy, red, tName, amount) -> Map.singleton (policy, red, tName) amount)
+
+-- | Convert between 'TxSkelMints' and a list of tuples describing eveything
+-- that's being minted. This iso is implemented in terms of
+-- 'txSkelMintsFromList' (see the comment at that function). The upshot is that
+--
+-- > review mintsListIso . view mintsListIso
+--
+-- is the identity on 'TxSkelMints', but
+--
+-- > view mintsListIso . review mintsListIso
+--
+-- is NOT THE IDENTITY on @[(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName,
+-- NonZero Integer)]@.
+mintsListIso :: Iso' TxSkelMints [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+mintsListIso = iso txSkelMintsToList txSkelMintsFromList
 
 -- * Input Constraints
 
@@ -442,7 +542,7 @@ data TxSkel where
   TxSkel ::
     { _txSkelLabel :: Set TxLabel,
       _txSkelOpts :: TxOpts,
-      _txSkelMints :: Map Pl.MintingPolicy (Map (MintsRedeemer, Pl.TokenName) Integer),
+      _txSkelMints :: TxSkelMints,
       _txSkelValidityRange :: Pl.POSIXTimeRange,
       _txSkelRequiredSigners :: Set Pl.PaymentPubKeyHash,
       _txSkelIns :: Set InConstraint,

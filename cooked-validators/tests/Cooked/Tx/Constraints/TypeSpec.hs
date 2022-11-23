@@ -18,6 +18,7 @@ import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import Data.Default (def)
 import Data.Either
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Void
@@ -94,21 +95,16 @@ mockPolicy1 = Pl.mkMintingPolicyScript $$(Pl.compile [||mkMockPolicy1||])
 instance Arbitrary Pl.MintingPolicy where
   arbitrary = return mockPolicy1
 
--- ** Generating 'MintsConstraint's
+-- ** Generating 'TxSkelMints'
 
 instance Arbitrary Pl.TokenName where
   arbitrary = hedgehog LG.genTokenName
 
-instance Arbitrary MintsConstraint where
+instance Arbitrary MintsRedeemer where
   arbitrary =
     oneof
-      [ MintsWithRedeemer @Bool <$> arbitrary
-          <*> arbitrary
-          <*> arbitrary
-          <*> arbitrary,
-        Mints <$> arbitrary
-          <*> arbitrary
-          <*> arbitrary
+      [ return NoMintsRedeemer,
+        SomeMintsRedeemer <$> arbitrary @Bool
       ]
 
 -- ** Generating 'Value's
@@ -264,26 +260,23 @@ genTxSkelDefaultOptionsNoLabel =
     <*> arbitrary
     <*> arbitrary
 
--- generate a 'TxSkel' @x@ such that @runMockChain . generateTx $ x@ is a
--- non-error with high probability
-genPassingTxSkel :: Gen TxSkel
-genPassingTxSkel = do
-  options <- arbitrary
-  mints <- arbitrary
-  let mintedValue = foldMap mintsValue mints
-  TxSkel
-    mempty -- labels don't matter here
-    options
-    mints
-    <$> (hedgehog $ LG.genTimeRange def) -- validity Time range
-    <*> arbitrary -- required signers
-    <*> arbitrary -- inputs
-    <*> arbitrary -- outputs
+-- -- generate a 'TxSkel' @x@ such that @runMockChain . generateTx $ x@ is a
+-- -- non-error with high probability
+-- genPassingTxSkel :: Gen TxSkel
+-- genPassingTxSkel = do
+--   options <- arbitrary
+--   mints <- arbitrary
+--   let mintedValue = foldMap mintsValue mints
+--   TxSkel
+--     mempty -- labels don't matter here
+--     options
+--     mints
+--     <$> (hedgehog $ LG.genTimeRange def) -- validity Time range
+--     <*> arbitrary -- required signers
+--     <*> arbitrary -- inputs
+--     <*> arbitrary -- outputs
 
 -- * A few instances for QuickCheck
-
-instance Show MintsConstraint where
-  show = show . prettyMintsConstraint
 
 instance Show InConstraint where
   show = show . prettyInConstraint
@@ -309,71 +302,70 @@ tests :: TestTree
 tests =
   testGroup
     "testing TxSkel and friends"
-    [ -- testGroup "== is a congruence for <>" $
-      --   let congruenceOn :: (Eq a, Semigroup a) => a -> a -> a -> a -> Property
-      --       congruenceOn a b x y =
-      --         -- The usual definition of the congruence property would be
-      --         --
-      --         -- > (a == x && b == y) ==> (a <> b == x <> y)
-      --         --
-      --         -- but this forces us to discard so many test cases that
-      --         -- QuickCheck gives up. A contrapositive formulation is better,
-      --         -- because the premise is easier to satisfy.
-      --         (a <> b /= x <> y) ==> (a /= x || b /= y)
-      --    in [ testProperty "on sets of TxLabel" $ congruenceOn @(Set TxLabel),
-      --         testProperty "on TxOpts" $ congruenceOn @TxOpts,
-      --         testProperty "on TxSkel" $ congruenceOn @TxSkel
-      --       ],
-      -- -- TODO: Tests for other laws about <>?
-      -- testGroup "toLedgerConstraints is injective" $
-      --   let injectiveOn :: (Eq a, ToLedgerConstraint a) => a -> a -> Property
-      --       injectiveOn x y =
-      --         -- Again, a contrapositive formulation of the usual property is
-      --         -- necessary.
-      --         (x /= y)
-      --           ==> (toLedgerConstraint @_ @Void x /= toLedgerConstraint y)
-      --    in [ testProperty "on MintsConstraint" $ injectiveOn @MintsConstraint,
-      --         testProperty "on InConstraint" $ injectiveOn @InConstraint,
-      --         testProperty "on OutConstraint" $ injectiveOn @OutConstraint,
-      --         testProperty "on TxSkel" $
-      --           forAll genTxSkelDefaultOptionsNoLabel $ \a ->
-      --             forAll genTxSkelDefaultOptionsNoLabel $ \b ->
-      --               injectiveOn a b
-      --       ],
-      testProperty "always valid if only MintsConstraints" $
+    [ testGroup "== is a congruence for <>" $
+        let congruenceOn :: (Eq a, Show a, Semigroup a) => a -> a -> a -> a -> Property
+            congruenceOn a b x y =
+              -- The usual definition of the congruence property would be
+              --
+              -- > (a == x && b == y) ==> (a <> b == x <> y)
+              --
+              -- but this forces us to discard so many test cases that
+              -- QuickCheck gives up. A contrapositive formulation is better,
+              -- because the premise is easier to satisfy.
+              (a <> b /= x <> y) ==> (a =/= x .||. b =/= y)
+         in [ testProperty "on sets of TxLabel" $ congruenceOn @(Set TxLabel),
+              testProperty "on TxOpts" $ congruenceOn @TxOpts,
+              testProperty "on TxSkel" $ congruenceOn @TxSkel
+            ],
+      testProperty "<> is commutative on Mints" $
+        \(a :: TxSkelMints) b -> a <> b == b <> a,
+      -- TODO: Tests for other laws about <>?
+      testGroup "toLedgerConstraints is injective" $
+        let injectiveOn :: (Eq a, ToLedgerConstraint a) => a -> a -> Property
+            injectiveOn x y =
+              -- Again, a contrapositive formulation of the usual property is
+              -- necessary.
+              (x /= y)
+                ==> (toLedgerConstraint @_ @Void x =/= toLedgerConstraint y)
+         in [ testProperty "on Mints" $
+                \a b -> (a /= b) ==> mintsToLedgerConstraint @Void a /= mintsToLedgerConstraint b,
+              testProperty "on InConstraint" $ injectiveOn @InConstraint,
+              testProperty "on OutConstraint" $ injectiveOn @OutConstraint,
+              testProperty "on TxSkel" $
+                forAll genTxSkelDefaultOptionsNoLabel $ \a ->
+                  forAll genTxSkelDefaultOptionsNoLabel $ \b ->
+                    injectiveOn a b
+            ],
+      testProperty "always valid if only Mints" $
         \a -> isRight $ runMockChain $ generateTx' $ mempty & txSkelMints .~ a,
       testGroup
         "generateTx' is injective"
-        $ [ testGroup "if there are only MintsConstraints" $
-              let isEmptyMint :: Set MintsConstraint -> Bool
-                  isEmptyMint mcs = foldMap mintsValue mcs == mempty
-               in [ testProperty "non-empty difference implies different transaction" $
-                      \a b ->
-                        let txA = runMockChain $ generateTx' $ mempty & txSkelMints .~ a
-                            txB = runMockChain $ generateTx' $ mempty & txSkelMints .~ (a <> b)
-                         in not (isEmptyMint $ b S.\\ a) ==> txA /= txB -- ,
-                        -- testProperty "empty difference implies same transaction" $
-                        --   \a b ->
-                        --     let
-                        --           txA = runMockChain $ generateTx' $ mempty & txSkelMints .~ a
-                        --         txB = runMockChain $ generateTx' $ mempty & txSkelMints .~ (a <> b)
-                        --      in (isEmptyMint $ b S.\\ a) ==> txA == txB
-                  ]
-                  -- HMMM?
-                  -- testing TxSkel and friends
-                  -- generateTx' is injective
-                  --   if there are only MintsConstraints: FAIL (0.04s)
-                  --     *** Failed! Falsified (after 4 tests and 1 shrink):
-                  --     fromList [Mints
-                  --      - Redeemer: True
-                  --      - Policy: 363d39
-                  --      - Value: (363d394 $ "") : -2]
-                  --     fromList [Mints
-                  --      - Policy: 363d39
-                  --      - Value: (363d394 $ "") : -3,Mints
-                  --      - Redeemer: True
-                  --      - Policy: 363d39
-                  --      - Value: (363d394 $ "") : 1]
-                  --     Use --quickcheck-replay=167109 to reproduce.
-          ]
+        $ [ testGroup "if there are only Mints" $
+              [ testProperty "non-empty difference implies different transaction" $
+                  \a b ->
+                    let txA = runMockChain $ generateTx' $ mempty & txSkelMints .~ a
+                        txB = runMockChain $ generateTx' $ mempty & txSkelMints .~ (a <> b)
+                     in b /= mempty ==> txA =/= txB
+              ]
+          ],
+      testGroup "generateTx' is \"surjective\" (in some sense that's still unspecified)" $
+        [ testProperty "conflicting mints constraints disappear" $
+            -- This test fails, and we're discussing at the moment if it should
+            -- fail or not (the latter case would probably mean a bug in
+            -- plutus-apps)
+            let negateMints :: TxSkelMints -> TxSkelMints
+                negateMints = Map.map (negate <$>)
+             in \a b ->
+                  uncurry
+                    Pl.mkTx
+                    ( mintsToLedgerConstraint @Void a
+                        <> mintsToLedgerConstraint b
+                        <> mintsToLedgerConstraint (negateMints b)
+                    )
+                    === uncurry
+                      Pl.mkTx
+                      ( mintsToLedgerConstraint @Void
+                          a
+                      )
+        ]
     ]

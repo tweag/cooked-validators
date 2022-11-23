@@ -47,6 +47,7 @@ dependencies:
   - optics-th
   - hashable
   - hedgehog-quickcheck
+  - nonempty-containers
 
 library:
   source-dirs: src

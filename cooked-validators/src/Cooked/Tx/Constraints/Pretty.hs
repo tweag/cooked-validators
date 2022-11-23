@@ -11,7 +11,6 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
-import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (unspentOutputs)
@@ -23,6 +22,8 @@ import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx.IsData.Class as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
+import Test.QuickCheck (NonZero)
+import Test.Tasty.QuickCheck (NonZero (..))
 
 prettyEnum :: Doc ann -> Doc ann -> [Doc ann] -> Doc ann
 prettyEnum title tag items =
@@ -38,13 +39,7 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs) =
           [ Just $ "Signers:" <+> PP.list (map (prettyWallet . walletPKHash) signers),
             prettyEnum "Labels:" "," <$> mapNonEmpty PP.viaShow (Set.toList lbl),
             fmap ("Opts:" <+>) (prettyOpts opts),
-            prettyEnum "Mints:" "/\\"
-              <$> mapNonEmpty
-                prettyMints
-                ( concatMap
-                    (\(p, m) -> (\((r, t), n) -> (p, r, t, n)) <$> Map.toList m)
-                    (Map.toList mints)
-                ),
+            prettyEnum "Mints:" "/\\" <$> mapNonEmpty prettyMints (mints ^. mintsListIso),
             Just $ "ValidateIn:" <+> PP.pretty validityRange,
             ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
             prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyInConstraint (Set.toList ins),
@@ -62,15 +57,15 @@ prettyWallet pkh =
   where
     phash = prettyHash pkh
 
-prettyMints :: (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> Doc ann
-prettyMints (policy, NoMintsRedeemer, tName, amount) =
+prettyMints :: (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Doc ann
+prettyMints (policy, NoMintsRedeemer, tName, NonZero amount) =
   prettyEnum
     "Mints"
     "-"
     [ "Policy:" <+> prettyMintingPolicy policy,
       "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
     ]
-prettyMints (policy, SomeMintsRedeemer mr, tName, amount) =
+prettyMints (policy, SomeMintsRedeemer mr, tName, NonZero amount) =
   prettyEnum
     "Mints"
     "-"

@@ -8,7 +8,6 @@ module Cooked.Tx.Constraints where
 import Cooked.Tx.Constraints.Type
 import Data.Function
 import qualified Data.List as List
-import Data.Map (Map)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (singleton, unspentOutputs)
@@ -21,6 +20,7 @@ import qualified Ledger.Value as Pl hiding (singleton)
 import Optics.Core
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx as Pl
+import Test.QuickCheck.Modifiers (NonZero (..))
 
 -- * Converting 'Constraint's to 'Pl.ScriptLookups', 'Pl.TxConstraints'
 
@@ -120,35 +120,30 @@ instance ToLedgerConstraint TxSkel where
     where
       (lkups, constrs) =
         unzip $
-          [toLedgerConstraint mints]
+          [mintsToLedgerConstraint mints]
             <> [(mempty, Pl.mustValidateIn validityRange)]
             <> ((mempty,) . Pl.mustBeSignedBy <$> Set.toList reqSigners)
             <> (toLedgerConstraint <$> Set.toList ins)
             <> (toLedgerConstraint <$> outs)
 
-instance ToLedgerConstraint (Map Pl.MintingPolicy (Map (MintsRedeemer, Pl.TokenName) Integer)) where
-  extractDatumStr _ = M.empty
-
-  toLedgerConstraint m = (lkups, constr)
-    where
-      lkups = mconcat $ Pl.mintingPolicy <$> M.keys m
-      constr =
-        mconcat $
-          concatMap
-            ( \(policy, mintedTokenMap) ->
-                map
-                  ( \((mintsRed, tName), amount) ->
-                      let mintedValue =
-                            Pl.assetClassValue
-                              (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName)
-                              amount
-                       in case mintsRed of
-                            NoMintsRedeemer -> Pl.mustMintValue mintedValue
-                            SomeMintsRedeemer red -> Pl.mustMintValueWithRedeemer (Pl.Redeemer . Pl.toBuiltinData $ red) mintedValue
-                  )
-                  $ M.toList mintedTokenMap
-            )
-            $ M.toList m
+mintsToLedgerConstraint :: TxSkelMints -> LedgerConstraint a
+mintsToLedgerConstraint m = (lkups, constr)
+  where
+    lkups = mconcat $ Pl.mintingPolicy . fst3 <$> M.keys m
+      where
+        fst3 (a, _, _) = a
+    constr =
+      foldMap
+        ( \(policy, mintsRed, tName, NonZero amount) ->
+            let mintedValue =
+                  Pl.assetClassValue
+                    (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName)
+                    amount
+             in case mintsRed of
+                  NoMintsRedeemer -> Pl.mustMintValue mintedValue
+                  SomeMintsRedeemer red -> Pl.mustMintValueWithRedeemer (Pl.Redeemer . Pl.toBuiltinData $ red) mintedValue
+        )
+        $ m ^. mintsListIso
 
 --Pl.mustMintValue . undefined <$> M.toList m -- Pl.assetClassValue (Pl.assetClass (Pl.mpsSymbol . Pl.mintingPolicyHash $ pol) tName) amount
 
