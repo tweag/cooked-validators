@@ -12,12 +12,6 @@ library
   exposed-modules:
       Auction
       Auction.Offchain
-      PMultiSigStateful
-      PMultiSigStateful.DatumHijacking
-      PMultiSigStateful.ToUPLC
-      Split
-      Split.OffChain
-      Split.ToUPLC
   other-modules:
       Paths_examples
   autogen-modules:
@@ -71,10 +65,6 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       AuctionSpec
-      PMultiSigStatefulSpec
-      SplitSpec
-      SplitUPLCSpec
-      UseCaseCrowdfundingSpec
       Paths_examples
   autogen-modules:
       Paths_examples

@@ -13,36 +13,21 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
-      Cooked.Attack
-      Cooked.Attack.AddToken
-      Cooked.Attack.DatumHijacking
-      Cooked.Attack.DoubleSat
-      Cooked.Attack.DupToken
-      Cooked.Attack.Tweak
-      Cooked.Attack.Tweak.AddConstraints
-      Cooked.Attack.Tweak.Common
-      Cooked.Attack.Tweak.OutPermutations
-      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Monad
-      Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.GenerateTx
-      Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
-      Cooked.MockChain.Testing
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
-      Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
-      Example
   other-modules:
       Paths_cooked_validators
   autogen-modules:
@@ -98,23 +83,6 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Cooked.AttackSpec
-      Cooked.AttackSpec.AddConstraints
-      Cooked.AttackSpec.Common
-      Cooked.AttackSpec.DatumHijacking
-      Cooked.AttackSpec.DoubleSat
-      Cooked.AttackSpec.DupToken
-      Cooked.AttackSpec.OutPermutations
-      Cooked.AttackSpec.Util
-      Cooked.BalanceSpec
-      Cooked.LtlSpec
-      Cooked.MockChain.Monad.StagedSpec
-      Cooked.MockChain.UtxoStateSpec
-      Cooked.MockChain.WalletSpec
-      Cooked.OutputReorderingSpec
-      Cooked.QuickValueSpec
-      Cooked.TestUtils
-      Cooked.Tx.Constraints.TypeSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
