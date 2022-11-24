@@ -29,6 +29,7 @@ library
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
+      Cooked.MockChain.Monad.GenerateTx
       Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing

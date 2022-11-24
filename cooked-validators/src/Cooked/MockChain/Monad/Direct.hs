@@ -18,6 +18,7 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Monad
+import qualified Cooked.MockChain.Monad.GenerateTx as GenTx
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
@@ -95,7 +96,7 @@ instance Default Pl.Slot where
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
-  | MCETxError Pl.MkTxError
+  | MCETxError GenTx.GenerateTxError
   | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
   | MCENoSuitableCollateral
   | FailWith String
@@ -405,9 +406,10 @@ utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 --  See "Cooked.Tx.Balance" for balancing capabilities or stick to
 --  'generateTx', which generates /and/ balances a transaction.
 generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
-generateUnbalTx txSkel =
-  let (lkups, constrs) = toLedgerConstraint @_ @Void txSkel
-   in first MCETxError $ Pl.mkTx lkups constrs
+generateUnbalTx = first MCETxError . GenTx.generateUnbalTx
+
+-- let (lkups, constrs) = toLedgerConstraint @_ @Void txSkel
+--  in first MCETxError $ Pl.mkTx lkups constrs
 
 myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
 myAdjustUnbalTx parms utx =

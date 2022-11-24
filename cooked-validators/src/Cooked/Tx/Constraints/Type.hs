@@ -12,15 +12,11 @@
 module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens ((%~))
-import Control.Monad
 import Data.Default
 import Data.Function (on)
 import Data.List
-import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Map.NonEmpty (NEMap)
-import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -29,6 +25,7 @@ import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import Optics.TH
+import qualified Plutus.Script.Utils.V1.Scripts as Pl (datumHash)
 import Plutus.V1.Ledger.Scripts (unitRedeemer)
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -510,7 +507,7 @@ data OutConstraint where
     PaysScriptConstrs a =>
     { _recipientValidator :: Pl.TypedValidator a,
       _mStakeCred :: Maybe Pl.StakingCredential,
-      _datum :: Pl.DatumType a,
+      _paysScriptDatum :: Pl.DatumType a,
       _outValue :: Pl.Value
     } ->
     OutConstraint
@@ -518,12 +515,28 @@ data OutConstraint where
     PaysPKConstrs a =>
     { _recipientPubKeyHash :: Pl.PubKeyHash,
       _mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
-      _mDatum :: Maybe a,
+      _paysPKDatum :: Maybe a,
       _outValue :: Pl.Value
     } ->
     OutConstraint
 
 makeLenses ''OutConstraint
+
+outConstraintDatum :: AffineFold OutConstraint Pl.Datum
+outConstraintDatum =
+  afolding
+    ( \case
+        PaysScript {_paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        PaysPK {_paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        _ -> Nothing
+    )
+
+recipientAddress :: OutConstraint -> Pl.Address
+recipientAddress PaysScript {_recipientValidator = val} = Pl.validatorAddress val
+recipientAddress PaysPK {_recipientPubKeyHash = pkh} =
+  -- Should/Can we use the '_mStakpkhbKeyHash' here, to generate a staking
+  -- credential? TODO
+  Pl.Address (Pl.PubKeyCredential pkh) Nothing
 
 instance Eq OutConstraint where
   (PaysScript v1 sc1 d1 x1) == (PaysScript v2 sc2 d2 x2) =
@@ -565,7 +578,7 @@ makeLenses ''TxSkel
 --
 --   - The output constraints of the right argument are appended to the end of
 --     the list of transaction outputs. This matters because some transactions
---     rely on the ordering of inputs.
+--     rely on the ordering of outputs.
 --
 --   - The 'unsafeModTx' contained in the '_txSkelOpts' is also combined
 --     non-commutatively. The modifications in the left argument will be applied
@@ -594,6 +607,21 @@ instance Semigroup TxSkel where
 
 instance Monoid TxSkel where
   mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty []
+
+-- | All data on the given 'TxSkel', with their hashes
+txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelData sk = inputData <> outputData
+  where
+    inputData =
+      foldMapOf
+        (txSkelIns % folded % input % spOutDatum)
+        (\datum -> Map.singleton (Pl.datumHash datum) datum)
+        sk
+    outputData =
+      foldMapOf
+        (txSkelOuts % folded % outConstraintDatum)
+        (\datum -> Map.singleton (Pl.datumHash datum) datum)
+        sk
 
 -- -- | Constructs a skeleton without a default label and with default 'TxOpts'
 -- txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
