@@ -3,6 +3,7 @@ module Cooked.MockChain.Monad.GenerateTx where
 import Cooked.Tx.Constraints.Type
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Ledger.Address as Pl
 import Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -68,7 +69,7 @@ generateUnbalTx
                   }
               ),
           -- As with the signatures above, I'm unsure if this is correct:
-          Pl.unBalancedTxRequiredSignatories = reqSigners,
+          Pl.unBalancedTxRequiredSignatories = Set.map Pl.PaymentPubKeyHash reqSigners,
           -- The haddock comment on plutus-apps "defines" this in terms of the
           -- 'ScriptLookups' that were used to generate the transaction... Don't
           -- know at the moment what it's supposed to be.
@@ -98,7 +99,9 @@ generateUnbalTx
                 ( Pl.RedeemerPtr Pl.Mint i,
                   case mRedeemer of
                     NoMintsRedeemer ->
-                      Pl.unitRedeemer
+                      Pl.unitRedeemer -- Minting with no redeemer means minting
+                      -- with the unit redeemer. Plutus-apps
+                      -- doew it the same way.
                     SomeMintsRedeemer redeemer ->
                       Pl.Redeemer . Pl.toBuiltinData $ redeemer
                 )

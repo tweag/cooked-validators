@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Cooked.Tx.Constraints.Type where
 
@@ -53,17 +54,17 @@ instance Ord SpendableOut where
   -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
   (<=) = (<=) `on` (^. spOutTxOutRef)
 
--- -- | If a 'SpendableOut' belongs to a public key, return its hash.
--- sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
--- sBelongsToPubKey s = case Pl.addressCredential (sOutAddress s) of
---   Pl.PubKeyCredential pkh -> Just pkh
---   _ -> Nothing
+-- | If a 'SpendableOut' belongs to a public key, return its hash.
+sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
+sBelongsToPubKey s = case Pl.addressCredential (s ^. spOutAddress) of
+  Pl.PubKeyCredential pkh -> Just pkh
+  _ -> Nothing
 
--- -- | If a 'SpendableOut' belongs to a validator, return its hash.
--- sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
--- sBelongsToScript s = case Pl.addressCredential (sOutAddress s) of
---   Pl.ScriptCredential sh -> Just sh
---   _ -> Nothing
+-- | If a 'SpendableOut' belongs to a validator, return its hash.
+sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
+sBelongsToScript s = case Pl.addressCredential (s ^. spOutAddress) of
+  Pl.ScriptCredential sh -> Just sh
+  _ -> Nothing
 
 spOutDatumOrHash :: AffineTraversal' SpendableOut (Either Pl.DatumHash Pl.Datum)
 spOutDatumOrHash = spOutChainIndexTxOut % singular (traversalVL Pl.ciTxOutDatum)
@@ -549,6 +550,12 @@ instance Eq OutConstraint where
       Nothing -> False
   _ == _ = False
 
+paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
+paysPK pkh = PaysPK @() pkh Nothing Nothing
+
+paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> OutConstraint
+paysScript tv = PaysScript tv Nothing
+
 -- * Transaction skeletons
 
 data TxSkel where
@@ -557,7 +564,7 @@ data TxSkel where
       _txSkelOpts :: TxOpts,
       _txSkelMints :: TxSkelMints,
       _txSkelValidityRange :: Pl.POSIXTimeRange,
-      _txSkelRequiredSigners :: Set Pl.PaymentPubKeyHash,
+      _txSkelRequiredSigners :: Set Pl.PubKeyHash,
       _txSkelIns :: Set InConstraint,
       _txSkelOuts :: [OutConstraint]
     } ->
@@ -622,28 +629,6 @@ txSkelData sk = inputData <> outputData
         (txSkelOuts % folded % outConstraintDatum)
         (\datum -> Map.singleton (Pl.datumHash datum) datum)
         sk
-
--- -- | Constructs a skeleton without a default label and with default 'TxOpts'
--- txSkel :: ConstraintsSpec constraints => constraints -> TxSkel
--- txSkel = txSkelOpts def
-
--- -- | Constructs a skeleton without a default label, but with custom options
--- txSkelOpts :: ConstraintsSpec constraints => TxOpts -> constraints -> TxSkel
--- txSkelOpts opts cs = TxSkel @() Nothing opts (toConstraints cs)
-
--- -- | Constructs a skeleton with a label
--- txSkelLbl :: (LabelConstrs x, ConstraintsSpec constraints) => x -> constraints -> TxSkel
--- txSkelLbl x = TxSkel (Just x) def . toConstraints
-
--- -- | Constructs a skeleton with the given labtl, options, and constraints
--- txSkelLblOpts :: (LabelConstrs x, ConstraintsSpec constraints) => x -> TxOpts -> constraints -> TxSkel
--- txSkelLblOpts x os cs = TxSkel (Just x) os (toConstraints cs)
-
--- paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
--- paysPK pkh = PaysPKWithDatum @() pkh Nothing Nothing
-
--- paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> OutConstraint
--- paysScript tv = PaysScript tv Nothing
 
 -- mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
 -- mints = Mints @() Nothing
