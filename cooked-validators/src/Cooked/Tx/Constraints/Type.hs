@@ -72,8 +72,11 @@ spOutDatumOrHash = spOutChainIndexTxOut % singular (traversalVL Pl.ciTxOutDatum)
 spOutDatum :: AffineTraversal' SpendableOut Pl.Datum
 spOutDatum = spOutDatumOrHash % _Right
 
-spOutDatumHash :: AffineTraversal' SpendableOut Pl.DatumHash
-spOutDatumHash = spOutDatumOrHash % _Left
+spOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
+spOutDatumHash spOut = case spOut ^? spOutDatumOrHash of
+  Nothing -> Nothing
+  Just (Right d) -> Just $ Pl.datumHash d
+  Just (Left dh) -> Just dh
 
 spOutValue :: Lens' SpendableOut Pl.Value
 spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
@@ -630,5 +633,17 @@ txSkelData sk = inputData <> outputData
         (\datum -> Map.singleton (Pl.datumHash datum) datum)
         sk
 
--- mints :: [Pl.MintingPolicy] -> Pl.Value -> MiscConstraint
--- mints = Mints @() Nothing
+-- | All 'TxOutRefs' of transaction inputs, resolved.
+txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
+txSkelUtxoIndex =
+  foldMapOf
+    (txSkelIns % folded % input)
+    ( \spOut ->
+        Map.singleton
+          (spOut ^. spOutTxOutRef)
+          ( Pl.TxOut
+              (spOut ^. spOutAddress)
+              (spOut ^. spOutValue)
+              (spOutDatumHash spOut)
+          )
+    )

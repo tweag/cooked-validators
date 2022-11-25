@@ -73,7 +73,7 @@ generateUnbalTx
           -- The haddock comment on plutus-apps "defines" this in terms of the
           -- 'ScriptLookups' that were used to generate the transaction... Don't
           -- know at the moment what it's supposed to be.
-          Pl.unBalancedTxUtxoIndex = Map.empty,
+          Pl.unBalancedTxUtxoIndex = txSkelUtxoIndex skel,
           Pl.unBalancedTxValidityTimeRange = validityRange
         }
     where
@@ -98,12 +98,10 @@ generateUnbalTx
             ( \i (_policy, mRedeemer, _tName) ->
                 ( Pl.RedeemerPtr Pl.Mint i,
                   case mRedeemer of
-                    NoMintsRedeemer ->
-                      Pl.unitRedeemer -- Minting with no redeemer means minting
-                      -- with the unit redeemer. Plutus-apps
-                      -- doew it the same way.
-                    SomeMintsRedeemer redeemer ->
-                      Pl.Redeemer . Pl.toBuiltinData $ redeemer
+                    -- Minting with no redeemer means minting with the unit
+                    -- redeemer. Plutus-apps does it the same way.
+                    NoMintsRedeemer -> Pl.unitRedeemer
+                    SomeMintsRedeemer redeemer -> Pl.Redeemer . Pl.toBuiltinData $ redeemer
                 )
             )
             [0 ..]
@@ -118,7 +116,7 @@ generateUnbalTx
               case spOut ^? spOutDatum of
                 Just datum ->
                   Pl.ConsumeScriptAddress
-                    (Pl.validatorScript val) -- TODO
+                    (Pl.validatorScript val)
                     (Pl.Redeemer . Pl.toBuiltinData $ red)
                     datum
                 Nothing -> Pl.ConsumeSimpleScriptAddress
@@ -130,3 +128,5 @@ generateUnbalTx
           (recipientAddress outConstr)
           (outConstr ^. outValue)
           (Pl.datumHash <$> outConstr ^? outConstraintDatum)
+
+-- The InvalidTxIn error means that there's an intput that should have a datum hash but has Nothing.
