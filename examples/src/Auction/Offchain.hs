@@ -10,7 +10,6 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints.Type
 import Data.Default
-import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger as L
@@ -54,12 +53,13 @@ txSetDeadline offerUtxo deadline = do
     mempty
       { _txSkelOpts = def {adjustUnbalTx = True},
         _txSkelMints =
-          Map.singleton
-            ( A.threadTokenPolicy,
-              SomeMintsRedeemer offerOref,
-              A.tokenNameFromTxOutRef offerOref
-            )
-            $ NonZero 1,
+          txSkelMintsFromList
+            [ ( A.threadTokenPolicy,
+                SomeMintsRedeemer offerOref,
+                A.tokenNameFromTxOutRef offerOref,
+                NonZero 1
+              )
+            ],
         _txSkelIns =
           Set.singleton $
             SpendsScript
@@ -104,15 +104,14 @@ txBid offerUtxo bid =
                     (A.Bid (A.BidderInfo bid bidder))
                     utxo,
               _txSkelOuts =
-                ( paysScript
-                    A.auctionValidator
-                    (A.Bidding seller deadline (A.BidderInfo bid bidder))
-                    (utxo ^. spOutValue <> Ada.lovelaceValueOf bid) :
-                  case previousBidder datum of
-                    Nothing -> []
-                    Just (prevBid, prevBidder) ->
-                      [paysPK prevBidder (Ada.lovelaceValueOf prevBid)]
-                ),
+                paysScript
+                  A.auctionValidator
+                  (A.Bidding seller deadline (A.BidderInfo bid bidder))
+                  (utxo ^. spOutValue <> Ada.lovelaceValueOf bid) :
+                case previousBidder datum of
+                  Nothing -> []
+                  Just (prevBid, prevBidder) ->
+                    [paysPK prevBidder (Ada.lovelaceValueOf prevBid)],
               _txSkelValidityRange = Interval.to deadline
             }
 
@@ -123,7 +122,7 @@ txBid offerUtxo bid =
 txHammer :: MonadBlockChain m => SpendableOut -> m ()
 txHammer offerUtxo =
   let offerOref = offerUtxo ^. spOutTxOutRef
-      theNft = A.threadToken $ offerOref
+      theNft = A.threadToken offerOref
    in do
         utxos <-
           scriptUtxosSuchThat

@@ -33,17 +33,23 @@ generateUnbalTx
               ( Pl.Tx
                   { Pl.txInputs = Set.map inConstraintToTxIn ins,
                     Pl.txOutputs = outConstraintToTxOut <$> outs,
+                    Pl.txMint = txSkelMintedValue,
                     -- This is at the moment set later in the transaction
                     -- generation process, but we might alreay include this in
                     -- the 'TxSkel', no?
                     Pl.txCollateral = Set.empty,
-                    Pl.txMint = txSkelMintedValue,
                     -- The next two will be set later: At the moment, we have
                     -- 'setFeeAndValidRange' for that purpose.
                     Pl.txFee = mempty,
                     Pl.txValidRange = Pl.always,
                     -- This is a set of the minting scripts:
-                    Pl.txMintScripts = Set.fromList $ (\(pol, _, _) -> pol) <$> Map.keys mints,
+                    Pl.txMintScripts = Set.fromList $ Map.keys mints,
+                    -- These are the redeemers for the minting scripts, given as
+                    -- a Map from 'RedeemerPtr' to 'Redeemer'. This is strange,
+                    -- because the 'RedeemerPtr's identify the scripts by the
+                    -- order in which they appear on the transaction, and the
+                    -- minting scripts are given as a set...
+                    Pl.txRedeemers = mintsRedeemers,
                     -- Don't yet know how to set this correctly. It's a map from
                     -- 'Pl.PubKey' to 'Pl.Signature', both of which I find
                     -- confusing, also, there are the questions:
@@ -54,12 +60,6 @@ generateUnbalTx
                     -- - Which signatures are needed (the ones from which we
                     --   consume inputs, the ones from the 'reqSigners', both)?
                     Pl.txSignatures = Map.empty,
-                    -- These are the redeemers for the minting scripts, given as
-                    -- a Map from 'RedeemerPtr' to 'Redeemer'. This is strange,
-                    -- because the 'RedeemerPtr's identify the scripts by the
-                    -- order ib which they appear on the transaction, and the
-                    -- minting scripts are given as a set...
-                    Pl.txRedeemers = mintsRedeemers,
                     -- Instead of calling 'txSkelData' here, we might need a
                     -- function that's monadic somehow, to
                     -- - find data that are on the transation, but only has
@@ -79,8 +79,8 @@ generateUnbalTx
     where
       -- The value minted by the transaction described by the TxSkel
       txSkelMintedValue =
-        Map.foldMapWithKey
-          ( \(policy, _redeemer, tName) (NonZero amount) ->
+        foldMap
+          ( \(policy, _red, tName, NonZero amount) ->
               Pl.assetClassValue
                 ( Pl.assetClass
                     (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy)
@@ -88,14 +88,12 @@ generateUnbalTx
                 )
                 amount
           )
-          mints
+          $ txSkelMintsToList mints
 
-      -- If one minting policy appears more than once, what to do? I think we
-      -- should forbid this by construction of the 'TxSkelMints' type.
       mintsRedeemers =
         Map.fromList $
           zipWith
-            ( \i (_policy, mRedeemer, _tName) ->
+            ( \i (_policy, mRedeemer, _tName, _amount) ->
                 ( Pl.RedeemerPtr Pl.Mint i,
                   case mRedeemer of
                     -- Minting with no redeemer means minting with the unit
@@ -105,7 +103,7 @@ generateUnbalTx
                 )
             )
             [0 ..]
-            (Map.keys mints)
+            (txSkelMintsToList mints)
 
       inConstraintToTxIn :: InConstraint -> Pl.TxIn
       inConstraintToTxIn inConstr = Pl.TxIn oRef $ Just txInType
@@ -128,5 +126,3 @@ generateUnbalTx
           (recipientAddress outConstr)
           (outConstr ^. outValue)
           (Pl.datumHash <$> outConstr ^? outConstraintDatum)
-
--- The InvalidTxIn error means that there's an intput that should have a datum hash but has Nothing.

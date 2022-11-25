@@ -16,8 +16,11 @@ import qualified Control.Lens as Lens ((%~))
 import Data.Default
 import Data.Function (on)
 import Data.List
+import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Map.NonEmpty (NEMap)
+import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -362,77 +365,112 @@ instance Ord MintsRedeemer where
         Just HRefl -> compare (Pl.toData a) (Pl.toData b)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
--- | A description of what a transaction mints: For every policy, redeemer, and
--- token name, a non-zero amount of tokens.
-type TxSkelMints = Map (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName) (NonZero Integer)
+-- | A description of what a transaction mints: For every policy, there can only
+-- be one redeemer, and if there is a redeemer, there mus be some token names,
+-- each with a non-zero amount of tokens.
+type TxSkelMints = Map Pl.MintingPolicy (MintsRedeemer, NEMap Pl.TokenName (NonZero Integer))
 
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
--- > fromList [((pol, red, tName), 1)]
+-- > Map.fromList [(pol, (red, NEMap.fromList [(tName, 1)]))]
 --
 -- and
 --
--- > fromList [((pol, red, tName), -1)]
+-- > Map.fromList [(pol, (red, NEMap.fromList [(tName, -1)]))]
 --
 -- will combine to become the empty 'TxSkelMints' (and similar examples, where
--- the values add up to zero).
---
--- If, for some reason, you really want to generate a 'TxSkelMints' that has
--- both of the entries above, you'll have to do so manually.  Even if the
--- definition hides it, this 'Semigroup' is commutative!
---
--- THE FOLLOWING REMARKS ARE FALSE AT THE MOMENT, but I expect that they
--- _should_ be true. Let's see what the plutus-apps people have to say.
---
--- Note, however, that even if you manually create a 'TxSkelMints' that contains
--- conflicting information in the sense outlined above, NO VALIDATOR WILL EVER
--- GET TO SEE A TRANSACTION WITH SUCH CONFLICTING INFORMATION. This is not a
--- design decision/limitation of cooked-validators:
---
--- - We translate (with 'toLedgerConstraint') such a requirement into
---   plutus-apps' 'ScriptLookups' and 'TxConstraints' types (components of our
---   'LedgerConstraint' type). After this stage, the conflicting information
---   will still be present.
---
--- - Later on (in MockChain.Monad.Direct), we use 'mkTx' (from plutus-apps) to
---   generate an 'UnbalancedTx' from the 'ScriptLookups' and the
---   'TxConstraints'. This is what ultimately combines conflicting constraints
---   in the way outlined above.
---
--- There are also tests for the two assertions above in
--- "test/Cooked/Tx/Constraints/TypeSpec.hs", which will alert us, should the
--- design of plutus-apps ever change.
+-- the values add up to zero, see the comment at the definition of
+-- 'addToTxSkelMints').
 instance {-# OVERLAPPING #-} Semigroup TxSkelMints where
   a <> b =
     foldl
-      ( \mints (policy, red, tName, NonZero amount) ->
-          case mints Map.!? (policy, red, tName) of
-            Nothing -> Map.insert (policy, red, tName) (NonZero amount) mints
-            Just (NonZero oldAmount) ->
-              let newAmount = amount + oldAmount
-               in if newAmount == 0
-                    then Map.delete (policy, red, tName) mints
-                    else Map.insert (policy, red, tName) (NonZero newAmount) mints
-      )
+      (flip addToTxSkelMints)
       a
       (txSkelMintsToList b)
 
 instance {-# OVERLAPPING #-} Monoid TxSkelMints where
   mempty = Map.empty
 
+-- | Add a new entry to a 'TxSkelMints'. There are a few wrinkles:
+--
+-- (1) If for a given policy, redeemer, and token name, there are @n@ tokens in
+-- the argument 'TxSkelMints', and you add @-n@ tokens, the corresponding entry
+-- in the "inner map" of the policy will disappear (obviously, because all of
+-- its values have to be non-zero). If that also means that the inner map
+-- becomes empty, the policy will disappear from the 'TxSkelMints' altogether.
+--
+-- (2) If a policy is already present on the argument 'TxSkelMints' with a
+-- redeemer @a@, and you add a mint with a different redeemer @b@, the old
+-- redeemer is thrown away. This is because, on the plutus-apps 'Tx' type, every
+-- minting policy can have only one redeemer per transaction. The values
+-- associated with the token names of that policy are added as described above,
+-- though. This means that any pre-exixting values will be minted with a new
+-- redeemer.
+--
+-- If, for some reason, you really want to generate a 'TxSkelMints' that has
+-- both a negative and a positive entry of the same asset class and redeemer,
+-- you'll have to do so manually. Note, however, that even if you do so, NO
+-- VALIDATOR OR MINTING POLICY WILL EVER GET TO SEE A TRANSACTION WITH SUCH
+-- CONFLICTING INFORMATION. This is not a design decision/limitation of
+-- cooked-validators: The 'Tx' type has _one field_ for the minted value. This
+-- means that there is no way to preserve such information.
+addToTxSkelMints ::
+  (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
+  TxSkelMints ->
+  TxSkelMints
+addToTxSkelMints (pol, red, tName, NonZero amount) mints =
+  case mints Map.!? pol of
+    Nothing ->
+      -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
+      -- new entry:
+      Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
+    Just (_oldRed, innerMap) ->
+      -- Ignore the old redeemer: If it's the same as the new one, nothing will
+      -- change, if not, the new redeemer will be kept.
+      case innerMap NEMap.!? tName of
+        Nothing ->
+          -- The given token name has not yet occurred for the given
+          -- policy. This means that we can just add the new tokens to the
+          -- inner map:
+          Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
+        Just (NonZero oldAmount) ->
+          let newAmount = oldAmount + amount
+           in if newAmount /= 0
+                then -- If the sum of the old amount of tokens and the additional
+                -- tokens is non-zero, we can just update the amount in the
+                -- inner map:
+                  Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
+                else -- If the sum is zero, we'll have to delete the token name
+                -- from the inner map. If that yields a completely empty
+                -- inner map, we'll have to remove the entry altogether:
+                case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
+                  Nothing -> Map.delete pol mints
+                  Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
+
 txSkelMintsToList :: TxSkelMints -> [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
-txSkelMintsToList = map (\((p, r, t), n) -> (p, r, t, n)) . Map.toList
+txSkelMintsToList =
+  concatMap
+    ( \(p, (r, m)) ->
+        (\(t, n) -> (p, r, t, n))
+          <$> (NE.toList $ NEMap.toList m)
+    )
+    . Map.toList
 
 -- | This function relies on the 'Monoid' instance of 'TxSkelMints'. So, some
 -- non-empty lists (where all amounts for a given asset class an redeemer add up
 -- to zero) might be translated into the empty 'TxSkelMints'. (See the comment
--- at the 'Semigroup' instance definition of 'TxSkelMints'.)
+-- at the 'Semigroup' instance definition of 'TxSkelMints', and at the
+-- definition of 'addToTxSkelMints'.)
 txSkelMintsFromList :: [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
-txSkelMintsFromList = foldMap (\(policy, red, tName, amount) -> Map.singleton (policy, red, tName) amount)
+txSkelMintsFromList =
+  foldMap
+    ( \(policy, red, tName, amount) ->
+        Map.singleton policy (red, NEMap.singleton tName amount)
+    )
 
 -- | Convert between 'TxSkelMints' and a list of tuples describing eveything
--- that's being minted. This iso is implemented in terms of
--- 'txSkelMintsFromList' (see the comment at that function). The upshot is that
+-- that's being minted. This is implemented in terms of 'txSkelMintsFromList'
+-- (see the comment at that function). The upshot is that
 --
 -- > review mintsListIso . view mintsListIso
 --
