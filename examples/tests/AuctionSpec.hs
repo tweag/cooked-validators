@@ -108,76 +108,76 @@ twoAuctions = do
   awaitTime (deadline2 + 1)
   A.txHammer offerUtxo2
 
--- -- | helper function to compute what the given wallet owns in the
--- -- given state
--- holdingInState :: UtxoState -> Wallet -> L.Value
--- holdingInState (UtxoState m) w
---   | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
---   | otherwise = mempty
+-- | helper function to compute what the given wallet owns in the
+-- given state
+holdingInState :: UtxoState -> Wallet -> L.Value
+holdingInState (UtxoState m) w
+  | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
+  | otherwise = mempty
 
--- successfulSingle :: TestTree
--- successfulSingle =
---   testGroup
---     "Successful single-trace runs"
---     [ testCase "zero bids" $ testSucceedsFrom testInit noBids,
---       testCase "hammer to withdraw" $ testSucceedsFrom testInit hammerToWithdraw,
---       testCase "one bid" $ testSucceedsFrom testInit oneBid,
---       testCase "two bids on the same auction" $
---         testSucceedsFrom'
---           (\_ s -> testBool $ 7 == bananasIn (holdingInState s (wallet 3)))
---           testInit
---           twoBids,
---       testCase
---         "two concurrent auctions"
---         $ testSucceedsFrom'
---           ( \_ s ->
---               testBool (7 == bananasIn (holdingInState s (wallet 2)))
---                 .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
---           )
---           testInit
---           twoAuctions
---     ]
+successfulSingle :: TestTree
+successfulSingle =
+  testGroup
+    "Successful single-trace runs"
+    [ testCase "zero bids" $ testSucceedsFrom testInit noBids,
+      testCase "hammer to withdraw" $ testSucceedsFrom testInit hammerToWithdraw,
+      testCase "one bid" $ testSucceedsFrom testInit oneBid,
+      testCase "two bids on the same auction" $
+        testSucceedsFrom'
+          (\_ s -> testBool $ 7 == bananasIn (holdingInState s (wallet 3)))
+          testInit
+          twoBids,
+      testCase
+        "two concurrent auctions"
+        $ testSucceedsFrom'
+          ( \_ s ->
+              testBool (7 == bananasIn (holdingInState s (wallet 2)))
+                .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
+          )
+          testInit
+          twoAuctions
+    ]
 
--- -- * Failing single-trace runs
+-- * Failing single-trace runs
 
--- failingOffer :: MonadMockChain m => m ()
--- failingOffer =
---   void $
---     A.txOffer (banana 100) 20_000_000 `as` wallet 2
+failingOffer :: MonadMockChain m => m ()
+failingOffer =
+  void $
+    A.txOffer (banana 100) 20_000_000 `as` wallet 2
 
--- forbiddenHammerToWithdraw :: MonadMockChain m => m ()
--- forbiddenHammerToWithdraw = do
---   offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
---   A.txHammer offerUtxo `as` wallet 2
+forbiddenHammerToWithdraw :: MonadMockChain m => m ()
+forbiddenHammerToWithdraw = do
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  A.txHammer offerUtxo `as` wallet 2
 
--- failingTwoBids :: MonadMockChain m => m ()
--- failingTwoBids = do
---   t0 <- currentTime
---   let deadline = t0 + 60_000
---   offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
---   A.txSetDeadline offerUtxo deadline
---   A.txBid offerUtxo 30_000_000 `as` wallet 2
---   A.txBid offerUtxo 30_000_000 `as` wallet 3
---   awaitTime (deadline + 1)
---   A.txHammer offerUtxo
+failingTwoBids :: MonadMockChain m => m ()
+failingTwoBids = do
+  t0 <- currentTime
+  let deadline = t0 + 60_000
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  A.txSetDeadline offerUtxo deadline
+  A.txBid offerUtxo 30_000_000 `as` wallet 2
+  A.txBid offerUtxo 30_000_000 `as` wallet 3
+  awaitTime (deadline + 1)
+  A.txHammer offerUtxo
 
--- failingSingle :: TestTree
--- failingSingle =
---   testGroup
---     "Single-trace runs that are expected to fail"
---     [ testCase "opening banana auction while owning too few bananas" $
---         testFailsFrom testInit failingOffer,
---       testCase "wrong user hammers to withdraw" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           forbiddenHammerToWithdraw,
---       testCase "second bid not higher than first" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           failingTwoBids
---     ]
+failingSingle :: TestTree
+failingSingle =
+  testGroup
+    "Single-trace runs that are expected to fail"
+    [ testCase "opening banana auction while owning too few bananas" $
+        testFailsFrom testInit failingOffer,
+      testCase "wrong user hammers to withdraw" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          forbiddenHammerToWithdraw,
+      testCase "second bid not higher than first" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          failingTwoBids
+    ]
 
 -- -- * failing attacks
 

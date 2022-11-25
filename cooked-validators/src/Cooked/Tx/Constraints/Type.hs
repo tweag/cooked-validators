@@ -452,7 +452,7 @@ txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
         (\(t, n) -> (p, r, t, n))
-          <$> (NE.toList $ NEMap.toList m)
+          <$> NE.toList (NEMap.toList m)
     )
     . Map.toList
 

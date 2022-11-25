@@ -13,13 +13,16 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
+      Cooked.Attack.Tweak.Common
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.GenerateTx
+      Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
+      Cooked.MockChain.Testing
       Cooked.MockChain.Time
       Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
