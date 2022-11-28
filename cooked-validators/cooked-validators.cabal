@@ -17,6 +17,7 @@ library
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.Misc
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.GenerateTx
@@ -63,6 +64,7 @@ library
     , nonempty-containers
     , optics-core
     , optics-th
+    , optics-vl
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -86,6 +88,15 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Cooked.AttackSpec.AddConstraints
+      Cooked.AttackSpec.Common
+      Cooked.AttackSpec.DatumHijacking
+      Cooked.AttackSpec.DoubleSat
+      Cooked.AttackSpec.DupToken
+      Cooked.AttackSpec.OutPermutations
+      Cooked.BalanceSpec
+      Cooked.MockChain.WalletSpec
+      Cooked.OutputReorderingSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
@@ -117,6 +128,7 @@ test-suite spec
     , nonempty-containers
     , optics-core
     , optics-th
+    , optics-vl
     , plutus-contract
     , plutus-core
     , plutus-ledger

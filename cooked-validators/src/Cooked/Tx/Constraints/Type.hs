@@ -12,9 +12,10 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import qualified Control.Lens as Lens ((%~))
+import qualified Control.Lens as Lens
+import Cooked.MockChain.Misc
 import Data.Default
-import Data.Function (on)
+import Data.Function
 import Data.List
 import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
@@ -24,17 +25,16 @@ import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Ledger as Pl
+import qualified Ledger as Pl hiding (validatorHash)
+import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
-import Optics.TH
-import qualified Plutus.Script.Utils.V1.Scripts as Pl (datumHash)
-import Plutus.V1.Ledger.Scripts (unitRedeemer)
-import qualified Plutus.V2.Ledger.Api as Pl
+import Optics.TH (makeLenses)
+import Optics.VL (prismVL)
+import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
 import qualified PlutusTx.Prelude as Pl
-import Test.QuickCheck (NonZero)
-import Test.QuickCheck.Modifiers (NonZero (..))
+import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
 -- For template Haskell reasons, the most intersting thing in this module (the
@@ -57,6 +57,12 @@ instance Ord SpendableOut where
   -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
   (<=) = (<=) `on` (^. spOutTxOutRef)
 
+spOutValue :: Lens' SpendableOut Pl.Value
+spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
+
+spOutAddress :: Lens' SpendableOut Pl.Address
+spOutAddress = spOutChainIndexTxOut % lensVL Pl.ciTxOutAddress
+
 -- | If a 'SpendableOut' belongs to a public key, return its hash.
 sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
 sBelongsToPubKey s = case Pl.addressCredential (s ^. spOutAddress) of
@@ -69,23 +75,63 @@ sBelongsToScript s = case Pl.addressCredential (s ^. spOutAddress) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
-spOutDatumOrHash :: AffineTraversal' SpendableOut (Either Pl.DatumHash Pl.Datum)
-spOutDatumOrHash = spOutChainIndexTxOut % singular (traversalVL Pl.ciTxOutDatum)
+-- | If it is a 'SpendableOut' belonging to a public key, extract datum (ot only
+-- the hash), if there is one.
+spOutPublicKeyDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+spOutPublicKeyDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutPublicKeyDatumOrHash
 
-spOutDatum :: AffineTraversal' SpendableOut Pl.Datum
-spOutDatum = spOutDatumOrHash % _Right
+chainIndexTxOutPublicKeyDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutPublicKeyDatumOrHash = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
+
+-- | If it is a 'SpendableOut' belonging to a script, extract datum (or only the
+-- hash).
+spOutScriptDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+spOutScriptDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutScriptDatumOrHash
+
+chainIndexTxOutScriptDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutScriptDatumOrHash = prismVL Pl._ScriptChainIndexTxOut % _3
+
+chainIndexTxOutDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutDatumOrHash = unsafeOr chainIndexTxOutPublicKeyDatumOrHash chainIndexTxOutScriptDatumOrHash
+  where
+    -- In the best of all possible worlds, I'd write this:
+    -- > unsafeOr = singular . adjoin
+    -- Alas, @adjoin@ only is available in optics-core >= 0.4, which we can not
+    -- use at the moment, because of the compiler and cabal versions from IOHK
+    -- that we use (at least that is what I think is going on). TODO: can we change this?
+    unsafeOr ::
+      (Is k An_AffineTraversal, Is l An_AffineTraversal) =>
+      Optic' k is s a ->
+      Optic' l js s a ->
+      AffineTraversal' s a
+    unsafeOr o1 o2 = withAffineTraversal o1 $ \m1 u1 ->
+      withAffineTraversal o2 $ \m2 u2 ->
+        atraversal
+          ( \s -> case m1 s of
+              Left _ -> case m2 s of
+                Left _ -> Left s
+                Right a -> Right a
+              Right a -> Right a
+          )
+          (\s a -> u2 (u1 s a) a)
+
+-- | Extract datum (or only the hash), if there is one
+spOutDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+spOutDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutDatumOrHash
 
 spOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
-spOutDatumHash spOut = case spOut ^? spOutDatumOrHash of
-  Nothing -> Nothing
-  Just (Right d) -> Just $ Pl.datumHash d
-  Just (Left dh) -> Just dh
+spOutDatumHash = (^? spOutDatumOrHash % _1)
 
-spOutValue :: Lens' SpendableOut Pl.Value
-spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
+spOutDatum :: SpendableOut -> Maybe Pl.Datum
+spOutDatum = (^? spOutDatumOrHash % _2 % _Just)
 
-spOutAddress :: Lens' SpendableOut Pl.Address
-spOutAddress = spOutChainIndexTxOut % lensVL Pl.ciTxOutAddress
+-- | The 'TxOut' corresponding to a 'SpendableOut'
+spOutTxOut :: SpendableOut -> Pl.TxOut
+spOutTxOut spOut =
+  toPlTxOut
+    (spOut ^. spOutAddress)
+    (spOut ^. spOutValue)
+    (spOut ^? spOutDatumOrHash % _2 % _Just)
 
 -- * Transaction labels
 
@@ -350,11 +396,11 @@ instance Ord MintsRedeemer where
   -- The next two clauses are ugly, but necessary, since minting with no
   -- redeemer is represented as minting with the unit redeemer on-chain.
   compare NoMintsRedeemer (SomeMintsRedeemer a) =
-    if unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
+    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
       then EQ
       else LT
   compare (SomeMintsRedeemer a) NoMintsRedeemer =
-    if unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
+    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
       then EQ
       else GT
   compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
@@ -368,7 +414,10 @@ instance Ord MintsRedeemer where
 -- | A description of what a transaction mints: For every policy, there can only
 -- be one redeemer, and if there is a redeemer, there mus be some token names,
 -- each with a non-zero amount of tokens.
-type TxSkelMints = Map Pl.MintingPolicy (MintsRedeemer, NEMap Pl.TokenName (NonZero Integer))
+type TxSkelMints =
+  Map
+    (Pl.Versioned Pl.MintingPolicy)
+    (MintsRedeemer, NEMap Pl.TokenName (NonZero Integer))
 
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
@@ -415,7 +464,7 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- cooked-validators: The 'Tx' type has _one field_ for the minted value. This
 -- means that there is no way to preserve such information.
 addToTxSkelMints ::
-  (Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
+  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
   TxSkelMints ->
   TxSkelMints
 addToTxSkelMints (pol, red, tName, NonZero amount) mints =
@@ -447,7 +496,7 @@ addToTxSkelMints (pol, red, tName, NonZero amount) mints =
                   Nothing -> Map.delete pol mints
                   Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
 
-txSkelMintsToList :: TxSkelMints -> [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
 txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
@@ -461,7 +510,7 @@ txSkelMintsToList =
 -- to zero) might be translated into the empty 'TxSkelMints'. (See the comment
 -- at the 'Semigroup' instance definition of 'TxSkelMints', and at the
 -- definition of 'addToTxSkelMints'.)
-txSkelMintsFromList :: [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
+txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
 txSkelMintsFromList =
   foldMap
     ( \(policy, red, tName, amount) ->
@@ -480,7 +529,7 @@ txSkelMintsFromList =
 --
 -- is NOT THE IDENTITY on @[(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName,
 -- NonZero Integer)]@.
-mintsListIso :: Iso' TxSkelMints [(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+mintsListIso :: Iso' TxSkelMints [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
 mintsListIso = iso txSkelMintsToList txSkelMintsFromList
 
 -- * Input Constraints
@@ -662,8 +711,12 @@ txSkelData sk = inputData <> outputData
   where
     inputData =
       foldMapOf
-        (txSkelIns % folded % input % spOutDatum)
-        (\datum -> Map.singleton (Pl.datumHash datum) datum)
+        (txSkelIns % folded % input % spOutDatumOrHash)
+        ( \(datumHash, mDatum) ->
+            case mDatum of
+              Nothing -> Map.empty
+              Just datum -> Map.singleton datumHash datum
+        )
         sk
     outputData =
       foldMapOf
@@ -679,9 +732,5 @@ txSkelUtxoIndex =
     ( \spOut ->
         Map.singleton
           (spOut ^. spOutTxOutRef)
-          ( Pl.TxOut
-              (spOut ^. spOutAddress)
-              (spOut ^. spOutValue)
-              (spOutDatumHash spOut)
-          )
+          (spOutTxOut spOut)
     )

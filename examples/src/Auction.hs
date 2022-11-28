@@ -20,13 +20,13 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
-import qualified Ledger as Pl
 import qualified Ledger.Ada as Ada
-import qualified Ledger.Interval as Interval
-import Ledger.Scripts as Pl
-import Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Value as Value
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
+import qualified Plutus.V1.Ledger.Interval as Interval
+import qualified Plutus.V1.Ledger.Value as Value
+import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
@@ -274,7 +274,8 @@ threadTokenAssetClassFromOref offerOref =
 threadCurrencySymbol :: Pl.CurrencySymbol
 threadCurrencySymbol = Pl.scriptCurrencySymbol threadTokenPolicy
 
--- | Compute the token name of the thread token of an auction from its offer Utxo.
+-- | Compute the token name of the thread token of an auction from its offer
+-- Utxo. This must be a 32-byte string, apparently.
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: Pl.TxOutRef -> Pl.TokenName
 tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
@@ -285,7 +286,7 @@ tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
   -- strings. See this issue on plutus-apps for some background:
   --
   -- https://github.com/input-output-hk/plutus-apps/issues/498
-  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
+  Value.TokenName . takeByteString 32 . sha2_256 $ tid <> "-" <> encodeInteger i
   where
     -- we know that the numbers (indices of transaction outputs) we're working
     -- with here are non-negative.
@@ -310,10 +311,13 @@ threadTokenOnChain threadCS offerOref = Value.assetClassValue (Value.AssetClass 
 -- | Extract an auction state from an output (if it has one)
 {-# INLINEABLE outputAuctionState #-}
 outputAuctionState :: Pl.TxInfo -> Pl.TxOut -> Maybe AuctionState
-outputAuctionState txi o = do
-  h <- Pl.txOutDatum o
-  Pl.Datum d <- Pl.findDatum h txi
-  PlutusTx.fromBuiltinData d
+outputAuctionState txi o =
+  case Pl.txOutDatum o of
+    Pl.NoOutputDatum -> Nothing
+    Pl.OutputDatumHash h -> do
+      Pl.Datum d <- Pl.findDatum h txi
+      PlutusTx.fromBuiltinData d
+    Pl.OutputDatum (Pl.Datum d) -> PlutusTx.fromBuiltinData d
 
 -- | Test that the value paid to the given public key address is at
 -- least the given value

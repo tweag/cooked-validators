@@ -54,7 +54,7 @@ txSetDeadline offerUtxo deadline = do
       { _txSkelOpts = def {adjustUnbalTx = True},
         _txSkelMints =
           txSkelMintsFromList
-            [ ( A.threadTokenPolicy,
+            [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                 SomeMintsRedeemer offerOref,
                 A.tokenNameFromTxOutRef offerOref,
                 NonZero 1
@@ -164,7 +164,7 @@ txHammer offerUtxo =
                           _txSkelMints =
                             review
                               mintsListIso
-                              [ ( A.threadTokenPolicy,
+                              [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                                   SomeMintsRedeemer $ offerUtxo ^. spOutTxOutRef,
                                   A.tokenNameFromTxOutRef offerOref,
                                   NonZero (-1)

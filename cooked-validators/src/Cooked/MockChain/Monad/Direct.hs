@@ -8,15 +8,18 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Monad.Direct where
 
+import qualified Cardano.Api as Api
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
 import qualified Cooked.MockChain.Monad.GenerateTx as GenTx
 import Cooked.MockChain.UtxoPredicate
@@ -32,20 +35,23 @@ import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
-import Data.Maybe (catMaybes)
+import Data.Maybe
 import qualified Data.Set as S
 import Data.Void
+import GHC.Stack
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Fee as Pl
 import Ledger.Orphans ()
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
+import qualified Ledger.Tx.CardanoAPI.Internal as Pl
 import qualified Ledger.Validation as Pl
-import qualified Ledger.Value as Pl
+import qualified Ledger.Value as Pl (flattenValue)
 import Optics.Core hiding (ix)
+import qualified Plutus.V2.Ledger.Tx as Pl (OutputDatum (..))
+import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
@@ -69,11 +75,16 @@ mcstToUtxoState s =
   UtxoState . M.fromListWith (<>) . map (uncurry go1) . M.toList . Pl.getIndex . mcstIndex $ s
   where
     go1 :: Pl.TxOutRef -> Pl.TxOut -> (Pl.Address, UtxoValueSet)
-    go1 _ (Pl.TxOut addr val mdh) = do
-      (addr, UtxoValueSet [(val, mdh >>= go2)])
+    go1 _ (Pl.TxOut (Pl.fromCardanoTxOutToPV2TxInfoTxOut -> Pl2.TxOut addr val mdh _)) = do
+      (addr, UtxoValueSet [(val, od2dh mdh >>= dh2datum)])
 
-    go2 :: Pl.DatumHash -> Maybe UtxoDatum
-    go2 datumHash = do
+    od2dh :: Pl2.OutputDatum -> Maybe Pl.DatumHash
+    od2dh Pl2.NoOutputDatum = Nothing
+    od2dh (Pl2.OutputDatumHash dh) = Just dh
+    od2dh (Pl2.OutputDatum datum) = Just $ Pl.datumHash datum
+
+    dh2datum :: Pl.DatumHash -> Maybe UtxoDatum
+    dh2datum datumHash = do
       datumStr <- M.lookup datumHash (mcstStrDatums s)
       datum <- M.lookup datumHash (mcstDatums s)
       return $ UtxoDatum datum datumStr
@@ -289,17 +300,17 @@ runTransactionValidation ::
   -- | List of signers
   [Wallet] ->
   Pl.Tx ->
-  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, [Pl.ScriptValidationEvent])
+  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase)
 runTransactionValidation s parms ix reqSigners signers tx =
-  let (e1, evs) =
-        Pl.runValidation
-          (Pl.validateTransaction s tx)
-          (Pl.ValidationCtx ix parms)
-      -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
+  let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex parms ix
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
       cardanoTx = either (error . show) id $ Pl.fromPlutusTx parms cardanoIndex reqSigners tx
+      cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
+
+      txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
+      e1 = Pl.validateCardanoTx parms s cardanoIndex txn
 
       -- Finally, we get to check that the Cardano.API equivalent of 'tx' has no validation errors
       e2 =
@@ -307,15 +318,15 @@ runTransactionValidation s parms ix reqSigners signers tx =
           parms
           (fromIntegral s)
           cardanoIndex
-          (L.foldl' (flip txAddSignatureAPI) cardanoTx signers)
+          cardanoTxSigned
 
       -- Now we compute the new index
       e = e1 <|> e2
       idx' = case e of
         Just (Pl.Phase1, _) -> ix
-        Just (Pl.Phase2, _) -> Pl.insertCollateral (Pl.EmulatorTx tx) ix
-        Nothing -> Pl.insert (Pl.EmulatorTx tx) ix
-   in (idx', e, evs)
+        Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
+        Nothing -> Pl.insert txn ix
+   in (idx', e)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
@@ -325,7 +336,7 @@ validateTx' reqSigs tx = do
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status, _evs) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
+  let (ix', status) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -334,7 +345,7 @@ validateTx' reqSigs tx = do
       -- The new mcstIndex is just `ix'`; the new mcstDatums is computed by
       -- removing the datum hashes have been consumed and adding
       -- those that have been created in `tx`.
-      let consumedIns = map Pl.txInRef $ S.toList (Pl.txInputs tx) ++ S.toList (Pl.txCollateral tx)
+      let consumedIns = map Pl.txInputRef $ Pl.txInputs tx ++ Pl.txCollateral tx
       consumedDHs <- catMaybes <$> mapM (fmap Pl.txOutDatumHash . outFromOutRef) consumedIns
       let consumedDHs' = M.fromList $ zip consumedDHs (repeat ())
       modify'
@@ -361,33 +372,31 @@ utxosSuchThisAndThat' addrPred datumPred = do
       (M.toList ix')
   where
     go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
-    go oref (Pl.TxOut oaddr@(Pl.Address ocred _) val mdatumH) = do
-      -- We begin by attempting to lookup the given datum hash in our map of managed datums.
+    go oref out@(Pl.TxOut (Api.TxOut _ _ cDatum _)) =
+      pure (cTxOutToCito out)
+        >>= \case
+          Nothing -> pure Nothing
+          Just cito -> do
+            mDatum <- extractDatum oref cito $ Pl.fromCardanoTxOutDatumHash cDatum
+            pure $
+              if datumPred mDatum (Pl._ciTxOutValue cito)
+                then Just (cito, mDatum)
+                else Nothing
+
+    extractDatum :: Pl.TxOutRef -> Pl.ChainIndexTxOut -> Maybe Pl.DatumHash -> MockChainT m (Maybe a)
+    extractDatum oref cito Nothing
+      | isScriptCito cito = fail $ "ScriptCredential with no datum hash: " ++ show oref
+      | otherwise = pure Nothing
+    extractDatum oref _ (Just dh) = do
       managedDatums <- gets mcstDatums
-      let mdatum = mdatumH >>= (`M.lookup` managedDatums)
-      -- Now, depending on whether we're looking at a utxo that belongs to a pk or a script,
-      -- there's a slight difference in treatment:
-      case ocred of
-        -- PubKey outputs are not required to have a datum, hence, we don't care if mdatum is Nothing.
-        Pl.PubKeyCredential _ -> do
-          let ma = mdatum >>= Pl.fromBuiltinData . Pl.getDatum
-          if datumPred ma val
-            then return . Just $ (Pl.PublicKeyChainIndexTxOut oaddr val, ma)
-            else return Nothing
-        -- Script addresses, on the other hand, /must/ have a datum present. Hence, we check that mdatum
-        -- is a just. If this happens, it probably means there's a bug in cooked and we lost some datum.
-        -- Therefore, we check a few different things in order to provide a better debugging experience.
-        Pl.ScriptCredential (Pl.ValidatorHash vh) -> do
-          datumH <- maybe (fail $ "ScriptCredential with no datum hash: " ++ show oref) return mdatumH
-          datum <- maybe (fail $ "Unmanaged datum with hash: " ++ show datumH ++ " at: " ++ show oref) return mdatum
-          a <-
-            maybe
-              (fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?")
-              return
-              (Pl.fromBuiltinData (Pl.getDatum datum))
-          if datumPred (Just a) val
-            then return . Just $ (Pl.ScriptChainIndexTxOut oaddr (Left $ Pl.ValidatorHash vh) (Right datum) val, Just a)
-            else return Nothing
+      Just <$> case dh `M.lookup` managedDatums of
+        -- TODO PORT previously this was an error only for script datums,
+        -- but I think it should be an error for any datum hash
+        -- that's mentioned but cannot be found in managedDatums.
+        Nothing -> fail $ "Unmanaged datum with hash: " ++ show dh ++ " at: " ++ show oref
+        Just datum -> maybe failBadConvert pure (Pl.fromBuiltinData $ Pl.getDatum datum)
+      where
+        failBadConvert = fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?"
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
@@ -416,6 +425,9 @@ myAdjustUnbalTx parms utx =
   case Pl.adjustUnbalancedTx parms utx of
     Left err -> error (show err)
     Right (_, res) -> res
+
+errorExpectedEmulatorTx :: HasCallStack => a
+errorExpectedEmulatorTx = error "expected emulator tx, got cardano tx"
 
 -- | Check 'generateTx' for details
 generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
@@ -455,36 +467,34 @@ generateTx' skel = do
 
     -- Order outputs according to the order of output constraints
     applyTxOutConstraintOrder :: [OutConstraint] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-    applyTxOutConstraintOrder ocs tx =
-      let Right tx' = Pl.unBalancedTxTx tx
-          txOuts' = orderTxOutputs ocs . Pl.txOutputs $ tx'
-       in tx {Pl.unBalancedTxTx = Right $ tx' {Pl.txOutputs = txOuts'}}
+    applyTxOutConstraintOrder ocs (Pl.UnbalancedEmulatorTx tx reqs ui) =
+      Pl.UnbalancedEmulatorTx tx {Pl.txOutputs = txOuts'} reqs ui
+      where
+        txOuts' = orderTxOutputs ocs . Pl.txOutputs $ tx
+    applyTxOutConstraintOrder ocs Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
 
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
 setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange _ _ (Pl.UnbalancedTx (Left _) _ _ _) =
-  error "Impossible: we have a CardanoBuildTx"
-setFeeAndValidRange bPol w (Pl.UnbalancedTx (Right tx0) reqSigs0 uindex slotRange) = do
+setFeeAndValidRange _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
+setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx reqSigs0 uindex) = do
   utxos <- pkUtxos' (walletPKHash w)
   let requiredSigners = S.toList reqSigs0
   ps <- asks mceParams
-  case Pl.fromPlutusIndex ps $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> M.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
-      config <- slotConfig
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
       -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = Pl.lovelaceValueOf 3000000
-      let tx = tx0 {Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange config slotRange}
       fee <-
         calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
           `catchError` \case
-            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx0) requiredSigners cUtxoIndex ps tx
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx) requiredSigners cUtxoIndex ps tx
             e -> throwError e
       return $ tx {Pl.txFee = fee}
   where
@@ -518,20 +528,19 @@ balanceTxFrom ::
   Wallet ->
   Pl.UnbalancedTx ->
   MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-balanceTxFrom bPol skipBalancing col w ubtx = do
-  let requiredSigners = S.toList (Pl.unBalancedTxRequiredSignatories ubtx)
+balanceTxFrom bPol skipBalancing col w (Pl.UnbalancedEmulatorTx ubtx' reqs ui) = do
+  let requiredSigners = S.toList reqs
   colTxIns <- calcCollateral w col
-  let Right ubtx' = Pl.unBalancedTxTx ubtx
   tx <-
-    setFeeAndValidRange bPol w $
-      ubtx {Pl.unBalancedTxTx = Right $ ubtx' {Pl.txCollateral = colTxIns}}
+    setFeeAndValidRange bPol w $ Pl.UnbalancedEmulatorTx ubtx' {Pl.txCollateral = colTxIns} reqs ui
   (requiredSigners,)
     <$> if skipBalancing
       then return tx
       else balanceTxFromAux bPol BalFinalizing w tx
+balanceTxFrom _ _ _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
 
 -- | Calculates the collateral for a some transaction
-calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (S.Set Pl.TxIn)
+calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m [Pl.TxInput]
 calcCollateral w col = do
   orefs <- case col of
     -- We're given a specific utxo to use as collateral
@@ -542,7 +551,7 @@ calcCollateral w col = do
       when (null souts) $
         throwError MCENoSuitableCollateral
       return $ S.fromList $ (: []) $ (^. spOutTxOutRef) $ fst $ head souts
-  return $ S.map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) orefs
+  return $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ S.toList orefs
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux utxoPolicy stage w tx = do
@@ -563,14 +572,14 @@ data BalanceTxRes = BalanceTxRes
 calcBalanceTx :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m BalanceTxRes
 calcBalanceTx w tx = do
   -- We start by gathering all the inputs and summing it
-  lhsInputs <- mapM (outFromOutRef . Pl.txInRef) (S.toList (Pl.txInputs tx))
+  lhsInputs <- mapM (outFromOutRef . Pl.txInputRef) (Pl.txInputs tx)
   let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
   let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
   let wPKH = walletPKHash w
-  let usedInTxIns = S.map Pl.txInRef (Pl.txInputs tx)
+  let usedInTxIns = Pl.txInputRef <$> Pl.txInputs tx
   allUtxos <- pkUtxos' wPKH
   -- It is important that we only consider utxos that have not been spent in the transaction as "available"
-  let availableUtxos = filter ((`S.notMember` usedInTxIns) . fst) allUtxos
+  let availableUtxos = filter ((`L.notElem` usedInTxIns) . fst) allUtxos
   let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
   return $
     BalanceTxRes
@@ -613,7 +622,7 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
         guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
       ]
         ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
-  let newTxIns' = S.fromList $ map (`Pl.TxIn` Just Pl.ConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
+  let newTxIns' = map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
   return $
     tx
       { Pl.txInputs = Pl.txInputs tx <> newTxIns',
@@ -621,7 +630,7 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
       }
   where
     wPKH = walletPKHash w
-    mkOutWithVal v = Pl.TxOut (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) v Nothing
+    mkOutWithVal v = toPlTxOut' (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) v Pl.NoOutputDatum
 
     -- The best output to attempt and modify, if any, is the one with the most ada,
     -- which is at the head of wOutsIxSorted:
@@ -645,10 +654,12 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
     isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
 
     adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [Pl.TxOut] -> Int -> Maybe [Pl.TxOut]
-    adjustOutputValueAt f xs i =
-      let (pref, Pl.TxOut addr val stak : rest) = L.splitAt i xs
-          val' = f val
-       in guard (isAtLeastMinAda val') >> return (pref ++ Pl.TxOut addr val' stak : rest)
+    adjustOutputValueAt f xs i = do
+      guard (isAtLeastMinAda val')
+      return (pref ++ toPlTxOut' addr val' stak : rest)
+      where
+        (pref, (Pl.TxOut (Pl.fromCardanoTxOutToPV2TxInfoTxOut -> Pl2.TxOut addr val stak _)) : rest) = L.splitAt i xs
+        val' = f val
 
     -- Given a list of available utxos; attept to consume them if they would enable the returning
     -- of the leftover.
@@ -661,11 +672,12 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
 
 -- | returns public key hash when txout contains only ada tokens and that no datum hash is specified.
 onlyAdaPkTxOut :: Pl.TxOut -> Maybe Pl.PubKeyHash
-onlyAdaPkTxOut (Pl.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _) v Nothing) =
-  case Pl.flattenValue v of
-    [(cs, tn, _)] | cs == Pl.adaSymbol && tn == Pl.adaToken -> Just pkh
-    _ -> Nothing
-onlyAdaPkTxOut _ = Nothing
+onlyAdaPkTxOut (Pl.TxOut to) = case Pl.fromCardanoTxOutToPV2TxInfoTxOut to of
+  Pl2.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _) v Pl2.NoOutputDatum _ ->
+    case Pl.flattenValue v of
+      [(cs, tn, _)] | cs == Pl.adaSymbol && tn == Pl.adaToken -> Just pkh
+      _ -> Nothing
+  _ -> Nothing
 
 addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
 addressIsPK addr = case Pl.addressCredential addr of

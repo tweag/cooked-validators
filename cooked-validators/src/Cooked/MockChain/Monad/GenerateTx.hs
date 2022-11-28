@@ -1,17 +1,19 @@
 module Cooked.MockChain.Monad.GenerateTx where
 
+import Cooked.MockChain.Misc
 import Cooked.Tx.Constraints.Type
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Ledger.Address as Pl
-import Ledger.Constraints.OffChain as Pl
+import qualified Ledger.Constraints.OffChain as Pl
+import qualified Ledger.Interval as Pl
+import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
-import qualified Plutus.V1.Ledger.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusTx as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
 data GenerateTxError = GenerateTxError deriving (Show, Eq)
@@ -27,58 +29,69 @@ generateUnbalTx
       _txSkelOuts = outs
     } =
     Right $
-      Pl.UnbalancedTx
-        { Pl.unBalancedTxTx =
-            Right
-              ( Pl.Tx
-                  { Pl.txInputs = Set.map inConstraintToTxIn ins,
-                    Pl.txOutputs = outConstraintToTxOut <$> outs,
-                    Pl.txMint = txSkelMintedValue,
-                    -- This is at the moment set later in the transaction
-                    -- generation process, but we might alreay include this in
-                    -- the 'TxSkel', no?
-                    Pl.txCollateral = Set.empty,
-                    -- The next two will be set later: At the moment, we have
-                    -- 'setFeeAndValidRange' for that purpose.
-                    Pl.txFee = mempty,
-                    Pl.txValidRange = Pl.always,
-                    -- This is a set of the minting scripts:
-                    Pl.txMintScripts = Set.fromList $ Map.keys mints,
-                    -- These are the redeemers for the minting scripts, given as
-                    -- a Map from 'RedeemerPtr' to 'Redeemer'. This is strange,
-                    -- because the 'RedeemerPtr's identify the scripts by the
-                    -- order in which they appear on the transaction, and the
-                    -- minting scripts are given as a set...
-                    Pl.txRedeemers = mintsRedeemers,
-                    -- Don't yet know how to set this correctly. It's a map from
-                    -- 'Pl.PubKey' to 'Pl.Signature', both of which I find
-                    -- confusing, also, there are the questions:
-                    -- - What kind of (monadic) contxet will be necessary to
-                    --   figure out the 'Signature's?
-                    -- - When will we need to know them (when generating the
-                    --   transaction or can we add them later?
-                    -- - Which signatures are needed (the ones from which we
-                    --   consume inputs, the ones from the 'reqSigners', both)?
-                    Pl.txSignatures = Map.empty,
-                    -- Instead of calling 'txSkelData' here, we might need a
-                    -- function that's monadic somehow, to
-                    -- - find data that are on the transation, but only has
-                    --   hashes in some registry, and
-                    -- - update that registry.
-                    Pl.txData = txSkelData skel
-                  }
-              ),
+      Pl.UnbalancedEmulatorTx
+        { Pl.unBalancedEmulatorTx =
+            Pl.Tx
+              { Pl.txInputs = inConstraintToTxIn <$> Set.toList ins,
+                -- We don't yet support reference inputs.
+                Pl.txReferenceInputs = [],
+                -- This is at the moment set later in the transaction
+                -- generation process, but we might alreay include this in
+                -- the 'TxSkel', no?
+                Pl.txCollateral = [],
+                Pl.txOutputs = outConstraintToTxOut <$> outs,
+                Pl.txMint = mintedValue,
+                -- Will be set later: At the moment, we have
+                -- 'setFeeAndValidRange' for that purpose.
+                Pl.txFee = mempty,
+                -- This is where we need convert between time and slots. TODO!
+                Pl.txValidRange = Pl.always,
+                -- These are the redeemers for the minting scripts, given as
+                -- a Map from 'MintingPolicyHash' to 'Redeemer'.
+                Pl.txMintingScripts = mintsRedeemers,
+                -- Don't yet know how to use the next two fields:
+                Pl.txWithdrawals = [],
+                Pl.txCertificates = [],
+                -- Don't yet know how to set this correctly. It's a map from
+                -- 'Pl.PubKey' to 'Pl.Signature', both of which I find
+                -- confusing, also, there are the questions:
+                -- - What kind of (monadic) contxet will be necessary to
+                --   figure out the 'Signature's?
+                -- - When will we need to know them (when generating the
+                --   transaction or can we add them later?
+                -- - Which signatures are needed (the ones from which we
+                --   consume inputs, the ones from the 'reqSigners', both)?
+                Pl.txSignatures = Map.empty,
+                -- This should record "Scripts for all script credentials
+                -- mentioned in this tx", as per the comment. For now, it's
+                -- only the minting scripts.
+                Pl.txScripts =
+                  Map.fromList $
+                    ( \(Pl.Versioned (Pl.MintingPolicy mp) version) ->
+                        let mpScript = Pl.Versioned mp version
+                         in (Pl.scriptHash mpScript, mpScript)
+                    )
+                      <$> Map.keys mints,
+                -- Instead of calling 'txSkelData' here, we might need a
+                -- function that's monadic somehow, to
+                -- - find data that are on the transation, but only has
+                --   hashes in some registry, and
+                -- - update that registry.
+                Pl.txData = txSkelData skel,
+                -- What should go here?
+                Pl.txMetadata = Nothing
+              },
           -- As with the signatures above, I'm unsure if this is correct:
           Pl.unBalancedTxRequiredSignatories = Set.map Pl.PaymentPubKeyHash reqSigners,
           -- The haddock comment on plutus-apps "defines" this in terms of the
           -- 'ScriptLookups' that were used to generate the transaction... Don't
           -- know at the moment what it's supposed to be.
-          Pl.unBalancedTxUtxoIndex = txSkelUtxoIndex skel,
-          Pl.unBalancedTxValidityTimeRange = validityRange
+          Pl.unBalancedTxUtxoIndex = txSkelUtxoIndex skel
         }
     where
       -- The value minted by the transaction described by the TxSkel
-      txSkelMintedValue =
+      mintedValue :: Pl.Value
+      mintedValue =
         foldMap
           ( \(policy, _red, tName, NonZero amount) ->
               Pl.assetClassValue
@@ -90,11 +103,12 @@ generateUnbalTx
           )
           $ txSkelMintsToList mints
 
+      mintsRedeemers :: Map Pl.MintingPolicyHash Pl.Redeemer
       mintsRedeemers =
         Map.fromList $
-          zipWith
-            ( \i (_policy, mRedeemer, _tName, _amount) ->
-                ( Pl.RedeemerPtr Pl.Mint i,
+          map
+            ( \(policy, mRedeemer, _tName, _amount) ->
+                ( Pl.mintingPolicyHash policy,
                   case mRedeemer of
                     -- Minting with no redeemer means minting with the unit
                     -- redeemer. Plutus-apps does it the same way.
@@ -102,27 +116,26 @@ generateUnbalTx
                     SomeMintsRedeemer redeemer -> Pl.Redeemer . Pl.toBuiltinData $ redeemer
                 )
             )
-            [0 ..]
             (txSkelMintsToList mints)
 
-      inConstraintToTxIn :: InConstraint -> Pl.TxIn
-      inConstraintToTxIn inConstr = Pl.TxIn oRef $ Just txInType
+      inConstraintToTxIn :: InConstraint -> Pl.TxInput
+      inConstraintToTxIn inConstr = Pl.TxInput oRef txInputType
         where
           oRef = inConstr ^. input % spOutTxOutRef
-          txInType
+          txInputType
             | SpendsScript val red spOut <- inConstr =
-              case spOut ^? spOutDatum of
+              case spOutDatum spOut of
                 Just datum ->
-                  Pl.ConsumeScriptAddress
-                    (Pl.validatorScript val)
+                  Pl.TxScriptAddress
                     (Pl.Redeemer . Pl.toBuiltinData $ red)
-                    datum
-                Nothing -> Pl.ConsumeSimpleScriptAddress
-            | otherwise = Pl.ConsumePublicKeyAddress
+                    (Left . Pl.validatorHash $ val)
+                    (Pl.datumHash datum)
+                Nothing -> Pl.TxConsumeSimpleScriptAddress
+            | otherwise = Pl.TxConsumePublicKeyAddress
 
       outConstraintToTxOut :: OutConstraint -> Pl.TxOut
       outConstraintToTxOut outConstr =
-        Pl.TxOut
+        toPlTxOut
           (recipientAddress outConstr)
           (outConstr ^. outValue)
           (Pl.datumHash <$> outConstr ^? outConstraintDatum)

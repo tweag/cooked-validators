@@ -3,6 +3,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -18,6 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
+import Cooked.MockChain.Misc
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
@@ -27,7 +29,6 @@ import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
 import Optics.Core
@@ -123,14 +124,26 @@ spOutResolveDatum ::
   MonadBlockChain m =>
   SpendableOut ->
   m SpendableOut
-spOutResolveDatum (SpendableOut txOutRef chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _)) = do
-  mDatum <- datumFromHash datumHash
-  case mDatum of
-    Nothing -> fail "datum hash not found in block chain state"
-    Just datum ->
-      return
-        (SpendableOut txOutRef chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
-spOutResolveDatum spOut = return spOut
+spOutResolveDatum =
+  traverseOf
+    spOutDatumOrHash
+    ( \case
+        (datumHash, Nothing) -> do
+          mDatum <- datumFromHash datumHash
+          case mDatum of
+            Nothing -> fail "datum hash not found in block chain state"
+            Just datum -> return (datumHash, Just datum)
+        x -> return x
+    )
+
+-- (SpendableOut txOutRef chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _)) = do
+--   mDatum <- datumFromHash datumHash
+--   case mDatum of
+--     Nothing -> fail "datum hash not found in block chain state"
+--     Just datum ->
+--       return
+--         (SpendableOut txOutRef chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
+-- spOutResolveDatum spOut = return spOut
 
 -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
 -- output of the given "CardanoTx". These "SpendableOutput" are processed to
@@ -141,11 +154,12 @@ spOutResolveDatum spOut = return spOut
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using "utxosSuchThat" functions.
 spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
-spOutsFromCardanoTx cardanoTx = forM (Pl.getCardanoTxOutRefs cardanoTx) $
-  \(txOut, txOutRef) ->
-    case Pl.fromTxOut txOut of
-      Just chainIndexTxOut -> spOutResolveDatum (SpendableOut txOutRef chainIndexTxOut)
-      Nothing -> fail "could not extract ChainIndexTxOut"
+spOutsFromCardanoTx cardanoTx =
+  forM (Pl.getCardanoTxOutRefs cardanoTx) $
+    \(txOut, txOutRef) ->
+      case cTxOutToCito txOut of
+        Just chainIndexTxOut -> spOutResolveDatum (SpendableOut txOutRef chainIndexTxOut)
+        Nothing -> fail "could not extract ChainIndexTxOut"
 
 -- | Retrieve a typed datum from a 'SpendableOut'. This function is useful if you
 -- know the type of datum you expect on a 'SpendableOut' and you want to extract
@@ -169,11 +183,11 @@ datumFromSpOut :: MonadBlockChain m => SpendableOut -> m (Maybe Pl.Datum)
 datumFromSpOut (SpendableOut _ chainIndexTxOut) = datumFromTxOut chainIndexTxOut
 
 datumFromTxOut :: MonadBlockChain m => Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
-datumFromTxOut Pl.ScriptChainIndexTxOut {Pl._ciTxOutDatum = eDatum} =
-  case eDatum of
-    Right datum -> return $ Just datum
-    Left datumHash -> datumFromHash datumHash
-datumFromTxOut _ = return Nothing
+datumFromTxOut o =
+  case o ^? chainIndexTxOutDatumOrHash of
+    Nothing -> return Nothing
+    Just (_, Just datum) -> return $ Just datum
+    Just (datumHash, Nothing) -> datumFromHash datumHash
 
 -- | Select public-key UTxOs that might contain some datum but no staking address.
 -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
@@ -241,7 +255,7 @@ pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
 pkUtxos' :: (MonadBlockChain m) => Pl.PubKeyHash -> m [(Pl.TxOutRef, Pl.TxOut)]
 pkUtxos' pkh = map (\o -> (o ^. spOutTxOutRef, go $ o ^. spOutChainIndexTxOut)) <$> pkUtxos pkh
   where
-    go (Pl.PublicKeyChainIndexTxOut a v) = Pl.TxOut a v Nothing
+    go (Pl.PublicKeyChainIndexTxOut a v datum _) = toPlTxOut a v (datum >>= snd)
     go _ = error "pkUtxos must return only Pl.PublicKeyChainIndexTxOut's"
 
 -- ** Slot and Time Management
@@ -309,7 +323,7 @@ slotConfig = Pl.pSlotConfig <$> params
 -- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
 -- Note that if you need this your Plutus script will probably not validate on Mainnet.
 allowBigTransactions :: (MonadMockChain m) => m a -> m a
-allowBigTransactions = localParams Pl.allowBigTransactions
+allowBigTransactions = localParams Pl.increaseTransactionLimits
 
 -- ** Deriving further 'MonadBlockChain' instances
 
