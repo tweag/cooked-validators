@@ -159,7 +159,8 @@ txHammer offerUtxo =
                         [ paysPK
                             seller
                             (offerUtxo ^. spOutValue)
-                        ]
+                        ],
+                      _txSkelRequiredSigners = Set.singleton seller
                     }
                 (utxo, datum) : _ ->
                   -- There is a thread token, so the auction is in 'NoBids' or
@@ -197,16 +198,6 @@ txHammer offerUtxo =
                                       paysPK seller (Ada.lovelaceValueOf lastBid)
                                     ]
                         }
-
--- [SpendableOut {
---     _spOutTxOutRef = TxOutRef {txOutRefId = 1defc5b138836eecda9a023003ef86f42c4dfc02b4171c87ec0ab23b0f5bec36, txOutRefIdx = 0},
---     _spOutChainIndexTxOut =
---       ScriptChainIndexTxOut {
---         _ciTxOutAddress = Address {addressCredential = ScriptCredential 51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b, addressStakingCredential = Nothing},
---         _ciTxOutValue = Value (Map [(,Map [("",1232660)]),(bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e,Map [("Banana",2)])]),
---         _ciTxOutScriptDatum = (43298b10672cdab78aa18d17fa349fb87e53b68a611c6ece79a51a7adcdfd150,Just (Datum {getDatum = Constr 0 [B "\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194",I 30000000]})),
---         _ciTxOutReferenceScript = Nothing,
---         _ciTxOutValidator = (51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b,Nothing)}}]
 
 -- tx =
 --   EmulatorTx

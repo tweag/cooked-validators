@@ -707,17 +707,17 @@ instance Monoid TxSkel where
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
-txSkelData sk = inputData <> txSkelOutputData sk
-  where
-    inputData =
-      foldMapOf
-        (txSkelIns % folded % input % spOutDatumOrHash)
-        ( \(datumHash, mDatum) ->
-            case mDatum of
-              Nothing -> Map.empty
-              Just datum -> Map.singleton datumHash datum
-        )
-        sk
+txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
+
+txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelInputData =
+  foldMapOf
+    (txSkelIns % folded % input % spOutDatumOrHash)
+    ( \(datumHash, mDatum) ->
+        case mDatum of
+          Nothing -> Map.empty
+          Just datum -> Map.singleton datumHash datum
+    )
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData =

@@ -68,7 +68,7 @@ generateUnbalTx
                 -- This should record "Scripts for all script credentials
                 -- mentioned in this tx", as per the documentation comment.
                 Pl.txScripts = txScripts,
-                -- Instead of calling 'txSkelData' here, we might need a
+                -- Instead of calling 'txSkelData' or a similar function here, we might need a
                 -- function that's monadic somehow, to
                 -- - find data that are on the transation, but only has
                 --   hashes in some registry, and

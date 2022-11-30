@@ -54,12 +54,21 @@ testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
 foo :: MonadMockChain m => m ()
 foo = do
   (utxo, _) : _ <- pkUtxosSuchThat @() (walletPKHash $ wallet 1) (\_ _ -> True)
-  validateTxSkel $
+  tx <-
+    validateTxSkel $
+      mempty
+        { _txSkelOpts = def {adjustUnbalTx = True},
+          _txSkelIns = Set.singleton $ SpendsPK utxo,
+          _txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
+        }
+  o : _ <- spOutsFromCardanoTx tx
+  validateTxSkel
     mempty
       { _txSkelOpts = def {adjustUnbalTx = True},
-        _txSkelIns = Set.singleton $ SpendsPK utxo,
-        _txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
+        _txSkelIns = Set.singleton $ SpendsPK o,
+        _txSkelOuts = [paysPK (walletPKHash $ wallet 3) (Ada.lovelaceValueOf 5_000_000)]
       }
+    `as` wallet 2
   return ()
 
 -- * Successful single-trace runs

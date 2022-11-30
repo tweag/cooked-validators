@@ -17,7 +17,7 @@ theNetworkId = Api.Testnet $ Api.NetworkMagic 42 -- TODO PORT what's magic?
 toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
 toPlTxOut addr value datum = toPlTxOut' addr value datum'
   where
-    datum' = maybe Pl.NoOutputDatum (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData) datum
+    datum' = maybe Pl.NoOutputDatum (Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData) datum
 
 toPlTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Pl.TxOut
 toPlTxOut' addr value datum = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
