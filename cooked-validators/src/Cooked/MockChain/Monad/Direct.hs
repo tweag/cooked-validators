@@ -324,8 +324,8 @@ runTransactionValidation s parms ix reqSigners signers tx =
       e = e1 <|> e2
       idx' = case e of
         Just (Pl.Phase1, _) -> ix
-        Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
-        Nothing -> Pl.insert txn ix
+        Just (Pl.Phase2, _) -> Pl.insertCollateral (Pl.EmulatorTx tx) ix
+        Nothing -> Pl.insert (Pl.EmulatorTx tx) ix
    in (idx', e)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since

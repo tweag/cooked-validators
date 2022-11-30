@@ -1,9 +1,12 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Cooked.MockChain.Monad.GenerateTx where
 
 import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Type
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger.Address as Pl
 import qualified Ledger.Constraints.OffChain as Pl
@@ -63,15 +66,8 @@ generateUnbalTx
                 --   consume inputs, the ones from the 'reqSigners', both)?
                 Pl.txSignatures = Map.empty,
                 -- This should record "Scripts for all script credentials
-                -- mentioned in this tx", as per the comment. For now, it's
-                -- only the minting scripts.
-                Pl.txScripts =
-                  Map.fromList $
-                    ( \(Pl.Versioned (Pl.MintingPolicy mp) version) ->
-                        let mpScript = Pl.Versioned mp version
-                         in (Pl.scriptHash mpScript, mpScript)
-                    )
-                      <$> Map.keys mints,
+                -- mentioned in this tx", as per the documentation comment.
+                Pl.txScripts = txScripts,
                 -- Instead of calling 'txSkelData' here, we might need a
                 -- function that's monadic somehow, to
                 -- - find data that are on the transation, but only has
@@ -132,3 +128,25 @@ generateUnbalTx
                     (Pl.datumHash datum)
                 Nothing -> Pl.TxConsumeSimpleScriptAddress
             | otherwise = Pl.TxConsumePublicKeyAddress
+
+      txScripts :: Map Pl.ScriptHash (Pl.Versioned Pl.Script)
+      txScripts = mintingPolicies <> inputValidators
+        where
+          mintingPolicies =
+            Map.fromList $
+              ( \(Pl.Versioned (Pl.MintingPolicy mp) version) ->
+                  let mpScript = Pl.Versioned mp version
+                   in (Pl.scriptHash mpScript, mpScript)
+              )
+                <$> Map.keys mints
+          inputValidators =
+            Map.fromList $
+              mapMaybe
+                ( \case
+                    SpendsScript {_spendingValidator = val} ->
+                      let Pl.Versioned (Pl.Validator scr) version = Pl.vValidatorScript val
+                          vScr = Pl.Versioned scr version
+                       in Just (Pl.scriptHash vScr, vScr)
+                    _ -> Nothing
+                )
+                $ Set.toList ins

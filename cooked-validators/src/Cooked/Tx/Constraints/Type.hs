@@ -707,7 +707,7 @@ instance Monoid TxSkel where
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
-txSkelData sk = inputData <> outputData
+txSkelData sk = inputData <> txSkelOutputData sk
   where
     inputData =
       foldMapOf
@@ -718,11 +718,12 @@ txSkelData sk = inputData <> outputData
               Just datum -> Map.singleton datumHash datum
         )
         sk
-    outputData =
-      foldMapOf
-        (txSkelOuts % folded % outConstraintDatum)
-        (\datum -> Map.singleton (Pl.datumHash datum) datum)
-        sk
+
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelOutputData =
+  foldMapOf
+    (txSkelOuts % folded % outConstraintDatum)
+    (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
 -- | All 'TxOutRefs' of transaction inputs and outputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut

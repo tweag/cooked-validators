@@ -15,11 +15,13 @@ import qualified Data.Set as Set
 import qualified Debug.Trace as Debug
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
+import qualified Ledger.Index as Pl
 import qualified Ledger.Interval as Interval
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Value as Value
 import Optics.Core
 import qualified PlutusTx.Numeric as Pl
+import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
 -- | Make an offer. There are no checks with this transaction. Anyone is allowed
@@ -29,7 +31,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- This transaction returns the 'SpendableOut' of the 'Offer' UTxO it creates.
 txOffer :: MonadBlockChain m => L.Value -> Integer -> m SpendableOut
 txOffer lot minBid = do
-  oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
+  -- oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
   seller <- ownPaymentPubKeyHash
   tx <-
     validateTxSkel $
@@ -39,12 +41,16 @@ txOffer lot minBid = do
         }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
-  newUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
+  -- newUtxo : _ <- scriptUtxosSuchThat A.auctionValidator (\d x -> d Pl.== A.Offer seller minBid && x `Value.geq` lot)
+  -- return $ -- Debug.trace (show tx ++ "\n\n" ++ show (Pl.getCardanoTxOutRefs tx) ++ "\n\n" ++ show (Pl.insert tx mempty)) $
+  --   fst newUtxo
+
+  -- uncomment below for something that I would expect to be equivalent, but which isn't:
   return $
-    Debug.trace
-      (show (fst <$> oldUtxos) ++ "\n\n" ++ show outputs ++ "\n\n" ++ show (fst <$> newUtxos))
-      head
-      $ filter (isJust . sBelongsToScript) outputs
+    -- Debug.trace
+    --   (show (fst <$> oldUtxos) ++ "\n\n" ++ show outputs ++ "\n\n" ++ show (fst <$> newUtxos))
+    head $
+      filter (isJust . sBelongsToScript) outputs
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
@@ -201,3 +207,111 @@ txHammer offerUtxo =
 --         _ciTxOutScriptDatum = (43298b10672cdab78aa18d17fa349fb87e53b68a611c6ece79a51a7adcdfd150,Just (Datum {getDatum = Constr 0 [B "\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194",I 30000000]})),
 --         _ciTxOutReferenceScript = Nothing,
 --         _ciTxOutValidator = (51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b,Nothing)}}]
+
+-- tx =
+--   EmulatorTx
+--     { _emulatorTx =
+--         Tx
+--           { txInputs =
+--               [ TxInput
+--                   { txInputRef =
+--                       TxOutRef
+--                         { txOutRefId = 0769793 bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29,
+--                           txOutRefIdx = 65
+--                         },
+--                     txInputType = TxConsumePublicKeyAddress
+--                   },
+--                 TxInput
+--                   { txInputRef =
+--                       TxOutRef
+--                         { txOutRefId = 0769793 bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29,
+--                           txOutRefIdx = 55
+--                         },
+--                     txInputType = TxConsumePublicKeyAddress
+--                   }
+--               ],
+--             txReferenceInputs = [],
+--             txCollateral =
+--               [ TxInput
+--                   { txInputRef =
+--                       TxOutRef
+--                         { txOutRefId = 0769793 bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29,
+--                           txOutRefIdx = 55
+--                         },
+--                     txInputType = TxConsumePublicKeyAddress
+--                   }
+--               ],
+--             txOutputs =
+--               [ TxOut
+--                   { getTxOut =
+--                       TxOut
+--                         ( AddressInEra
+--                             (ShelleyAddressInEra ShelleyBasedEraBabbage)
+--                             ( ShelleyAddress
+--                                 Testnet
+--                                 ( ScriptHashObj
+--                                     (ScriptHash "51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b")
+--                                 )
+--                                 StakeRefNull
+--                             )
+--                         )
+--                         ( TxOutValue
+--                             MultiAssetInBabbageEra
+--                             ( valueFromList
+--                                 [ (AdaAssetId, 1232660),
+--                                   (AssetId "bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e" "Banana", 2)
+--                                 ]
+--                             )
+--                         )
+--                         ( TxOutDatumInline
+--                             ReferenceTxInsScriptsInlineDatumsInBabbageEra
+--                             ( ScriptDataConstructor
+--                                 0
+--                                 [ ScriptDataBytes "\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194",
+--                                   ScriptDataNumber 30000000
+--                                 ]
+--                             )
+--                         )
+--                         ReferenceScriptNone
+--                   },
+--                 TxOut
+--                   { getTxOut =
+--                       TxOut
+--                         ( AddressInEra
+--                             (ShelleyAddressInEra ShelleyBasedEraBabbage)
+--                             (ShelleyAddress Testnet (KeyHashObj (KeyHash "a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2")) StakeRefNull)
+--                         )
+--                         ( TxOutValue
+--                             MultiAssetInBabbageEra
+--                             ( valueFromList
+--                                 [ (AdaAssetId, 100583887),
+--                                   (AssetId "bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e" "Banana", 3)
+--                                 ]
+--                             )
+--                         )
+--                         TxOutDatumNone
+--                         ReferenceScriptNone
+--                   }
+--               ],
+--             txMint = Value (Map []),
+--             txFee = Value (Map [(,Map [("", 183453)])]),
+--             txValidRange = Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound PosInf True},
+--             txMintingScripts = fromList [],
+--             txWithdrawals = [],
+--             txCertificates = [],
+--             txSignatures =
+--               fromList
+--                 [ ( 8 d9de88fbf445b7f6c3875a14daba94caee2ffcbc9ac211c95aba0a2f5711853,
+--                     0211 cec05bca82dd4e0787a1060eccc3fbb1e474da4c4dad2e5e3d21fe321527cc1add36d7887e0cf2e49d5d12000af7164526b1367e916a42c039d5c7f8de01
+--                   )
+--                 ],
+--             txScripts = fromList [],
+--             txData =
+--               fromList
+--                 [ ( 43298 b10672cdab78aa18d17fa349fb87e53b68a611c6ece79a51a7adcdfd150,
+--                     Datum {getDatum = Constr 0 [B "\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194", I 30000000]}
+--                   )
+--                 ],
+--             txMetadata = Nothing
+--           }
+--     }
