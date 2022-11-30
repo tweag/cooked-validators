@@ -51,6 +51,17 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 testInit :: InitialDistribution
 testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
 
+foo :: MonadMockChain m => m ()
+foo = do
+  (utxo, _) : _ <- pkUtxosSuchThat @() (walletPKHash $ wallet 1) (\_ _ -> True)
+  validateTxSkel $
+    mempty
+      { _txSkelOpts = def {adjustUnbalTx = True},
+        _txSkelIns = Set.singleton $ SpendsPK utxo,
+        _txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
+      }
+  return ()
+
 -- * Successful single-trace runs
 
 -- These runs use the transactions from Auction.Offchain as they are meant to be
@@ -67,8 +78,8 @@ noBids = do
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
   A.txSetDeadline offerUtxo deadline
-  -- awaitTime (deadline + 1)
-  -- A.txHammer offerUtxo
+  awaitTime (deadline + 1)
+  A.txHammer offerUtxo
   return ()
 
 oneBid :: MonadMockChain m => m ()

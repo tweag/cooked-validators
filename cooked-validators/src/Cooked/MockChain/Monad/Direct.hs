@@ -417,9 +417,6 @@ utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 generateUnbalTx :: TxSkel -> Either MockChainError Pl.UnbalancedTx
 generateUnbalTx = first MCETxError . GenTx.generateUnbalTx
 
--- let (lkups, constrs) = toLedgerConstraint @_ @Void txSkel
---  in first MCETxError $ Pl.mkTx lkups constrs
-
 myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
 myAdjustUnbalTx parms utx =
   case Pl.adjustUnbalancedTx parms utx of
@@ -591,6 +588,15 @@ calcBalanceTx w tx = do
         -- we can't 'applyBalanceTx' this 'BalanceTxRes'.
         remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
       }
+  where
+    -- TODO remove this where clause, it's only here to have an 'outFromOutRef'
+    -- with a custom error message.
+
+    outFromOutRef outref = do
+      mo <- txOutByRef outref
+      case mo of
+        Just o -> return o
+        Nothing -> fail ("No output associated with (for debugging purposes): " ++ show outref)
 
 -- | Once we calculated what is needed to balance a transaction @tx@, we still need to
 -- apply those changes to @tx@. Because of the 'Ledger.minAdaTxOut' constraint, this
@@ -689,3 +695,80 @@ rstr (a, mb) = (a,) <$> mb
 
 assocl :: (a, (b, c)) -> ((a, b), c)
 assocl (a, (b, c)) = ((a, b), c)
+
+-- CardanoApiTx
+--   { _cardanoApiTx =
+--       SomeTx
+--         ( ShelleyTx
+--             ShelleyBasedEraBabbage
+--             ( ValidatedTx
+--                 { body =
+--                     TxBodyConstr
+--                       TxBodyRaw
+--                         { _spendInputs =
+--                             fromList
+--                               [ TxIn (TxId {_unTxId = SafeHash "0769793bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29"}) (TxIx 55),
+--                                 TxIn (TxId {_unTxId = SafeHash "0769793bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29"}) (TxIx 65)
+--                               ],
+--                           _collateralInputs = fromList [TxIn (TxId {_unTxId = SafeHash "0769793bdb14a22858b5be184b6205054b8810b1c3d757d85aba85408393ee29"}) (TxIx 55)],
+--                           _referenceInputs = fromList [],
+--                           _outputs =
+--                             StrictSeq
+--                               { fromStrict =
+--                                   fromList
+--                                     [ Sized
+--                                         { sizedValue =
+--                                             ( Addr Testnet (ScriptHashObj (ScriptHash "51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b")) StakeRefNull,
+--                                               Value 1232660 (fromList [(PolicyID {policyID = ScriptHash "bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e"}, fromList [(42616e616 e61, 2)])]),
+--                                               Datum "\216y\159X\FS\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194\SUB\SOH\201\195\128\255",
+--                                               SNothing
+--                                             ),
+--                                           sizedSize = 126
+--                                         },
+--                                       Sized
+--                                         { sizedValue =
+--                                             ( Addr Testnet (KeyHashObj (KeyHash "a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2")) StakeRefNull,
+--                                               Value 100583887 (fromList [(PolicyID {policyID = ScriptHash "bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e"}, fromList [(42616e616 e61, 3)])]),
+--                                               NoDatum,
+--                                               SNothing
+--                                             ),
+--                                           sizedSize = 80
+--                                         }
+--                                     ]
+--                               },
+--                           _collateralReturn = SNothing,
+--                           _totalCollateral = SNothing,
+--                           _certs = StrictSeq {fromStrict = fromList []},
+--                           _wdrls = Wdrl {unWdrl = fromList []},
+--                           _txfee = Coin 183453,
+--                           _vldt = ValidityInterval {invalidBefore = SNothing, invalidHereafter = SNothing},
+--                           _update = SNothing,
+--                           _reqSignerHashes = fromList [],
+--                           _mint = Value 0 (fromList []),
+--                           _scriptIntegrityHash = SNothing,
+--                           _adHash = SNothing,
+--                           _txnetworkid = SNothing
+--                         },
+--                   wits =
+--                     TxWitnessRaw
+--                       { _txwitsVKey =
+--                           fromList
+--                             [ WitVKey'
+--                                 { wvkKey' = VKey (VerKeyEd25519DSIGN "8d9de88fbf445b7f6c3875a14daba94caee2ffcbc9ac211c95aba0a2f5711853"),
+--                                   wvkSig' = SignedDSIGN (SigEd25519DSIGN "3276238ffaf30595f6ba235ed10e0e30174964362e5401b94bf40c8f7d8a230289547935f95b95d8a5ee93648bb160a0870580d0a09aa278f2e0f5f6be565406"),
+--                                   wvkKeyHash = KeyHash "a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2",
+--                                   wvkBytes = "\130X \141\157\232\143\191D[\DELl8u\161M\171\169L\174\226\255\203\201\172!\FS\149\171\160\162\245q\CANSX@2v#\143\250\243\ENQ\149\246\186#^\209\SO\SO0\ETBId6.T\SOH\185K\244\f\143}\138#\STX\137Ty5\249[\149\216\165\238\147d\139\177`\160\135\ENQ\128\208\160\154\162x\242\224\245\246\190VT\ACK"
+--                                 }
+--                             ],
+--                         _txwitsBoot = fromList [],
+--                         _txscripts = fromList [],
+--                         _txdats = TxDatsRaw (fromList []),
+--                         _txrdmrs = RedeemersRaw (fromList [])
+--                       },
+--                   isValid = IsValid True,
+--                   auxiliaryData = SNothing
+--                 }
+--             )
+--         )
+--         BabbageEraInCardanoMode
+--   }

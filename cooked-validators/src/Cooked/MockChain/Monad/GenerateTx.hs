@@ -1,6 +1,6 @@
 module Cooked.MockChain.Monad.GenerateTx where
 
-import Cooked.MockChain.Misc
+import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Type
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -132,10 +132,3 @@ generateUnbalTx
                     (Pl.datumHash datum)
                 Nothing -> Pl.TxConsumeSimpleScriptAddress
             | otherwise = Pl.TxConsumePublicKeyAddress
-
-      outConstraintToTxOut :: OutConstraint -> Pl.TxOut
-      outConstraintToTxOut outConstr =
-        toPlTxOut
-          (recipientAddress outConstr)
-          (outConstr ^. outValue)
-          (Pl.datumHash <$> outConstr ^? outConstraintDatum)

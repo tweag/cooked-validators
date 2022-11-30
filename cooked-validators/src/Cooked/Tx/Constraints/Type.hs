@@ -48,7 +48,7 @@ data SpendableOut = SpendableOut
   { _spOutTxOutRef :: Pl.TxOutRef,
     _spOutChainIndexTxOut :: Pl.ChainIndexTxOut
   }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 makeLenses ''SpendableOut
 
@@ -724,7 +724,7 @@ txSkelData sk = inputData <> outputData
         (\datum -> Map.singleton (Pl.datumHash datum) datum)
         sk
 
--- | All 'TxOutRefs' of transaction inputs, resolved.
+-- | All 'TxOutRefs' of transaction inputs and outputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf

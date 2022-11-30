@@ -124,26 +124,15 @@ spOutResolveDatum ::
   MonadBlockChain m =>
   SpendableOut ->
   m SpendableOut
-spOutResolveDatum =
-  traverseOf
-    spOutDatumOrHash
-    ( \case
-        (datumHash, Nothing) -> do
-          mDatum <- datumFromHash datumHash
-          case mDatum of
-            Nothing -> fail "datum hash not found in block chain state"
-            Just datum -> return (datumHash, Just datum)
-        x -> return x
-    )
-
--- (SpendableOut txOutRef chainIndexTxOut@(Pl.ScriptChainIndexTxOut _ _ (Left datumHash) _)) = do
---   mDatum <- datumFromHash datumHash
---   case mDatum of
---     Nothing -> fail "datum hash not found in block chain state"
---     Just datum ->
---       return
---         (SpendableOut txOutRef chainIndexTxOut {Pl._ciTxOutDatum = Right datum})
--- spOutResolveDatum spOut = return spOut
+spOutResolveDatum o =
+  case o ^? spOutDatumOrHash of
+    Just (datumHash, Nothing) ->
+      do
+        mDatum <- datumFromHash datumHash
+        case mDatum of
+          Nothing -> fail "datum hash not found in block chain state"
+          Just datum -> return $ o & spOutDatumOrHash .~ (datumHash, Just datum)
+    _ -> return o
 
 -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
 -- output of the given "CardanoTx". These "SpendableOutput" are processed to

@@ -12,6 +12,7 @@ import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.Maybe
 import qualified Data.Set as Set
+import qualified Debug.Trace as Debug
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Interval as Interval
@@ -28,6 +29,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- This transaction returns the 'SpendableOut' of the 'Offer' UTxO it creates.
 txOffer :: MonadBlockChain m => L.Value -> Integer -> m SpendableOut
 txOffer lot minBid = do
+  oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
   seller <- ownPaymentPubKeyHash
   tx <-
     validateTxSkel $
@@ -37,7 +39,12 @@ txOffer lot minBid = do
         }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
-  return $ head $ filter (isJust . sBelongsToScript) outputs
+  newUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
+  return $
+    Debug.trace
+      (show (fst <$> oldUtxos) ++ "\n\n" ++ show outputs ++ "\n\n" ++ show (fst <$> newUtxos))
+      head
+      $ filter (isJust . sBelongsToScript) outputs
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
@@ -184,3 +191,13 @@ txHammer offerUtxo =
                                       paysPK seller (Ada.lovelaceValueOf lastBid)
                                     ]
                         }
+
+-- [SpendableOut {
+--     _spOutTxOutRef = TxOutRef {txOutRefId = 1defc5b138836eecda9a023003ef86f42c4dfc02b4171c87ec0ab23b0f5bec36, txOutRefIdx = 0},
+--     _spOutChainIndexTxOut =
+--       ScriptChainIndexTxOut {
+--         _ciTxOutAddress = Address {addressCredential = ScriptCredential 51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b, addressStakingCredential = Nothing},
+--         _ciTxOutValue = Value (Map [(,Map [("",1232660)]),(bca6e8ec9b55fc0044405e5a0b4142fed8bc23b9882dc7210b60ba8e,Map [("Banana",2)])]),
+--         _ciTxOutScriptDatum = (43298b10672cdab78aa18d17fa349fb87e53b68a611c6ece79a51a7adcdfd150,Just (Datum {getDatum = Constr 0 [B "\162\194\fw\136z\206\FS\217\134\EM>Nu\186\189\137\147\207\213i\149\205\\\252\230\t\194",I 30000000]})),
+--         _ciTxOutReferenceScript = Nothing,
+--         _ciTxOutValidator = (51625af2b30d3c1e83a8b006ada76dd536cdcaf7b79fd23408f7158b,Nothing)}}]
