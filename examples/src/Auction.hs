@@ -489,4 +489,4 @@ auctionValidator' =
     wrap = Scripts.mkUntypedValidator @AuctionState @Action
 
 auctionValidator :: Scripts.TypedValidator Auction
-auctionValidator = auctionValidator' $ ValParams $ Pl.scriptCurrencySymbol threadTokenPolicy
+auctionValidator = auctionValidator' $ ValParams threadCurrencySymbol

@@ -2,7 +2,7 @@
 
 module Cooked.MockChain.Monad.GenerateTx where
 
-import Cooked.Tx.Constraints
+import Cooked.MockChain.Misc
 import Cooked.Tx.Constraints.Type
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -10,19 +10,21 @@ import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger.Address as Pl
 import qualified Ledger.Constraints.OffChain as Pl
-import qualified Ledger.Interval as Pl
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
+import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
-import qualified PlutusTx as Pl
+import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
 import Test.QuickCheck.Modifiers (NonZero (..))
 
 data GenerateTxError = GenerateTxError deriving (Show, Eq)
 
-generateUnbalTx :: TxSkel -> Either GenerateTxError Pl.UnbalancedTx
+generateUnbalTx :: Pl.SlotConfig -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either GenerateTxError Pl.UnbalancedTx
 generateUnbalTx
+  slotConfig
+  managedData
   skel@TxSkel
     { _txSkelOpts = _opts, -- seems we don't need these yet?
       _txSkelMints = mints,
@@ -48,7 +50,7 @@ generateUnbalTx
                 -- 'setFeeAndValidRange' for that purpose.
                 Pl.txFee = mempty,
                 -- This is where we need convert between time and slots. TODO!
-                Pl.txValidRange = Pl.always,
+                Pl.txValidRange = Pl.posixTimeRangeToContainedSlotRange slotConfig validityRange,
                 -- These are the redeemers for the minting scripts, given as
                 -- a Map from 'MintingPolicyHash' to 'Redeemer'.
                 Pl.txMintingScripts = mintsRedeemers,
@@ -68,12 +70,8 @@ generateUnbalTx
                 -- This should record "Scripts for all script credentials
                 -- mentioned in this tx", as per the documentation comment.
                 Pl.txScripts = txScripts,
-                -- Instead of calling 'txSkelData' or a similar function here, we might need a
-                -- function that's monadic somehow, to
-                -- - find data that are on the transation, but only has
-                --   hashes in some registry, and
-                -- - update that registry.
-                Pl.txData = txSkelData skel,
+                -- see the definition below
+                Pl.txData = txData,
                 -- What should go here?
                 Pl.txMetadata = Nothing
               },
@@ -120,14 +118,32 @@ generateUnbalTx
           oRef = inConstr ^. input % spOutTxOutRef
           txInputType
             | SpendsScript val red spOut <- inConstr =
-              case spOutDatum spOut of
-                Just datum ->
+              case spOutDatumHash spOut of
+                Just datumHash ->
                   Pl.TxScriptAddress
                     (Pl.Redeemer . Pl.toBuiltinData $ red)
                     (Left . Pl.validatorHash $ val)
-                    (Pl.datumHash datum)
-                Nothing -> Pl.TxConsumeSimpleScriptAddress
+                    datumHash
+                Nothing -> error "No datum hash on script input!"
             | otherwise = Pl.TxConsumePublicKeyAddress
+
+      outConstraintToTxOut :: OutConstraint -> Pl.TxOut
+      outConstraintToTxOut (PaysPK pkh mStakePkh mDatum value) =
+        toPlTxOut'
+          ( Pl.Address
+              (Pl.PubKeyCredential pkh)
+              (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStakePkh)
+          )
+          value
+          (maybe Pl.NoOutputDatum (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData) mDatum)
+      outConstraintToTxOut (PaysScript validator mStCred datum value) =
+        toPlTxOut'
+          ( Pl.Address
+              (Pl.ScriptCredential . Pl.validatorHash $ validator)
+              mStCred
+          )
+          value
+          (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum)
 
       txScripts :: Map Pl.ScriptHash (Pl.Versioned Pl.Script)
       txScripts = mintingPolicies <> inputValidators
@@ -150,3 +166,16 @@ generateUnbalTx
                     _ -> Nothing
                 )
                 $ Set.toList ins
+
+      txData :: Map Pl.DatumHash Pl.Datum
+      txData = inputData <> txSkelOutputData skel
+        where
+          inputData =
+            foldMapOf
+              (txSkelIns % folded % input % spOutDatumOrHash)
+              ( \(datumHash, mDatum) ->
+                  case mDatum of
+                    Just datum -> Map.singleton datumHash datum
+                    Nothing -> maybe Map.empty (Map.singleton datumHash) (Map.lookup datumHash managedData)
+              )
+              skel

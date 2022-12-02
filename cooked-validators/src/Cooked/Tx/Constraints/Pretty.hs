@@ -77,7 +77,13 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer mr, tName, NonZero amount)
 
 prettyOutConstraint :: OutConstraint -> Doc ann
 prettyOutConstraint (PaysScript val msc datum value) =
-  prettyEnum ("PaysScript" <+> prettyAddressTypeAndHash addr) "-" (map (uncurry (prettyDatumVal val)) [(datum, value)])
+  prettyEnum
+    ("PaysScript" <+> prettyAddressTypeAndHash addr)
+    "-"
+    ( map
+        (\(d, v) -> prettyDatumVal val d v <+> "with hash:" <+> prettyHash (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ d)) -- uncurry (prettyDatumVal val))
+        [(datum, value)]
+    )
   where
     addr = (Pl.scriptHashAddress $ Pl.validatorHash val) {Pl.addressStakingCredential = msc}
 prettyOutConstraint (PaysPK pkh stak dat val) =
@@ -127,7 +133,7 @@ prettyScriptOutputDatum _ (SpendableOut _ chainIndexTxOut) =
                     Just datum ->
                       let typedDatum :: Pl.DatumType a
                           typedDatum = Pl.unsafeFromBuiltinData (Pl.getDatum datum)
-                       in Just $ "Datum:" <+> prettyDatum typedDatum
+                       in Just $ "Datum:" <+> prettyDatum typedDatum <+> "with hash:" <+> prettyHash datumHash
                 _ -> error "Not a script output"
             ]
 

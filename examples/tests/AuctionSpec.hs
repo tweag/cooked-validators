@@ -510,13 +510,13 @@ failingSingle =
 --     "Miscellaneous tests"
 --     [bidderAlternative]
 
--- tests :: TestTree
--- tests =
---   testGroup
---     "AuctionSpec"
---     [ successfulSingle,
---       failingSingle,
---       failingAttacks,
---       miscTests,
---       successfulAttacks
---     ]
+tests :: TestTree
+tests =
+  testGroup
+    "AuctionSpec"
+    [ successfulSingle -- ,
+    -- failingSingle,
+    -- failingAttacks,
+    -- miscTests,
+    -- successfulAttacks
+    ]

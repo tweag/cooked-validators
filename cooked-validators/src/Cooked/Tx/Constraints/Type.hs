@@ -719,13 +719,19 @@ txSkelInputData =
           Just datum -> Map.singleton datumHash datum
     )
 
+txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
+txSkelInputDatumHashes =
+  foldMapOf
+    (txSkelIns % folded % input % spOutDatumOrHash % _1)
+    (: [])
+
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData =
   foldMapOf
     (txSkelOuts % folded % outConstraintDatum)
     (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
--- | All 'TxOutRefs' of transaction inputs and outputs, resolved.
+-- | All 'TxOutRefs' of transaction inputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
