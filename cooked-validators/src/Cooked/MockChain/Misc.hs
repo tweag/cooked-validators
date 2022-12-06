@@ -20,7 +20,10 @@ toPlTxOut addr value datum = toPlTxOut' addr value datum'
     datum' = maybe Pl.NoOutputDatum (Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData) datum
 
 toPlTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Pl.TxOut
-toPlTxOut' addr value datum = Pl.TxOut $ Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
+toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
+
+toCardanoTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Api.TxOut Api.CtxTx Api.BabbageEra
+toCardanoTxOut' addr value datum = Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
   where
     cAddr = fromRight undefined $ Pl.toCardanoAddressInEra theNetworkId addr
     cValue = case Pl.toCardanoTxOutValue value of
