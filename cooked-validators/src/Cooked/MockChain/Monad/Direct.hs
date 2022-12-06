@@ -248,9 +248,9 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     case generateCardanoBuildTx params managedData skel of
       Left err -> throwError $ MCEGenerationError err
       Right cardanoBuildTx -> do
-        _ <- validateTx' [] (txSkelData skel) cardanoBuildTx
+        someCardanoTx <- validateTx' [] (txSkelData skel) cardanoBuildTx
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-        return (Pl.CardanoApiTx . undefined $ cardanoBuildTx)
+        return (Pl.CardanoApiTx someCardanoTx)
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
 
@@ -307,7 +307,7 @@ runTransactionValidation ::
   -- | List of signers
   [Wallet] ->
   Pl.CardanoBuildTx ->
-  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase)
+  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
 runTransactionValidation s parms ix reqSigners signers tx =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
@@ -326,17 +326,17 @@ runTransactionValidation s parms ix reqSigners signers tx =
         Just (Pl.Phase1, _) -> ix
         Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
         Nothing -> Pl.insert txn ix
-   in (idx', e)
+   in (idx', e, Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
-validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> Pl.CardanoBuildTx -> MockChainT m ()
+validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> Pl.CardanoBuildTx -> MockChainT m Pl.SomeCardanoApiTx
 validateTx' reqSigs txData tx = do
   s <- currentSlot
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
+  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -352,7 +352,7 @@ validateTx' reqSigs txData tx = do
                 mcstDatums = mcstDatums st `Map.union` txData -- TODO: remove the consumed datum hashes
               }
         )
-  return ()
+  return someCardanoTx
 
 utxosSuchThisAndThat' ::
   forall a m.
