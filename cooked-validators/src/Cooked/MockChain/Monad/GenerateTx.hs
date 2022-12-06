@@ -223,13 +223,6 @@ generateCardanoBuildTx theParams managedData skel = do
                   (ToCardanoError "txSkelMintsToTxMintValue, translating to Cardano API PlutusV2 script")
                   (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
-          -- datumHash <-
-          --   throwOnNothing (GenerateTxErrorGeneral "inConstraintToTxIn: No datum hash on script input") $
-          --     spOut ^? (spOutScriptDatumOrHash % _1)
-          -- datum <-
-          --   throwOnNothing
-          --     (GenerateTxErrorGeneral "inConstraintToTxIn: Unknown datum hash on script input")
-          --     (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.toBuiltinData <$> inputData Map.!? datumHash)
           return $
             scriptWitnessBuilder
               C.NoScriptDatumForMint -- This seems to be the only well-typed option (?)
@@ -237,4 +230,4 @@ generateCardanoBuildTx theParams managedData skel = do
                   NoMintsRedeemer -> Pl.toCardanoScriptData $ Pl.toBuiltinData () -- This is also how plutus-apps is doing it: Using no redeemer means using '()' on-chain
                   SomeMintsRedeemer red -> Pl.toCardanoScriptData $ Pl.toBuiltinData red
               )
-              Pl.zeroExecutionUnits -- This is what plutus-apps does as well
+              Pl.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
