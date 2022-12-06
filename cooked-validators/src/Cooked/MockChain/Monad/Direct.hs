@@ -314,7 +314,7 @@ runTransactionValidation s parms ix reqSigners signers tx =
       -- to keep this function pure.
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
       cardanoTx =
-        fromRight (error "Cannot build Cardano Tx") $
+        either (error . ("Error building cardano tx: " <>) . show) id $
           Pl.makeAutoBalancedTransaction parms cardanoIndex tx (walletAddress $ head signers)
       cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
