@@ -30,7 +30,7 @@ import Cooked.Tx.Constraints.Type
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
 import Data.Either
-import Data.Foldable (asum)
+import Data.Foldable (asum, Foldable (toList))
 import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
@@ -415,47 +415,52 @@ errorExpectedEmulatorTx :: HasCallStack => a
 errorExpectedEmulatorTx = error "expected emulator tx, got cardano tx"
 
 -- -- | Check 'generateTx' for details
--- generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
--- generateTx' skel = do
---   modify $ updateDatumStr skel
---   signers <- askSigners
---   params <- params
---   managedData <- gets mcstDatums
---   case generateCardanoBuildTx params managedData skel of
---     Left err -> throwError $ MCEGenerationError err
---     Right unbalancedTx -> do
---       -- adjust
---       let adjustedUnbalTx = myAdjustUnbalTx params unbalancedTx
+{-
+generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
+generateTx' skel@(TxSkel _ _ constraintsSpec) = do
+  modify $ updateDatumStr skel
+  signers <- askSigners
+  slotCfg <- slotConfig
+  let parms = def {Pl.pSlotConfig = slotCfg}
+  case generateUnbalTx skel of
+    Left err -> throwError err
+    Right ubtx -> do
+      let adjust = if adjustUnbalTx opts then myAdjustUnbalTx parms else id
+      let (_ :=>: outputConstraints) = toConstraints constraintsSpec
+      let reorderedUbtx =
+            if forceOutputOrdering opts
+              then applyTxOutConstraintOrder outputConstraints ubtx
+              else ubtx
+      -- optionally apply a transformation before balancing
+      let modifiedUbtx = applyRawModOnUnbalancedTx (unsafeModTx opts) reorderedUbtx
+      (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust modifiedUbtx)
+      return . (reqSigs,) $
+        foldl
+          (flip txAddSignature)
+          -- optionally apply a transformation to a balanced tx before sending it in.
+          (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
+          (NE.toList signers)
+  where
+    opts = txOpts skel
 
---           -- applyRawModOnUnbalancedTx
---       -- balancing (and fees?)
---       -- applyRawModOnBalancedTx
+    -- Update the map of pretty printed representations in the mock chain state
+    updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
+    updateDatumStr TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
+      st
+        { mcstStrDatums =
+            M.union mcstStrDatums . extractDatumStr . toConstraints $ txConstraints
+        }
 
---       -- do
---       -- let adjust = if adjustUnbalTx opts then myAdjustUnbalTx parms else id
---       -- let (_ :=>: outputConstraints) = toConstraints constraintsSpec
---       -- let reorderedUbtx =
---       --       if forceOutputOrdering opts
---       --         then applyTxOutConstraintOrder outputConstraints ubtx
---       --         else ubtx
---       -- -- optionally apply a transformation before balancing
---       -- let modifiedUbtx = applyRawModOnUnbalancedTx (unsafeModTx opts) reorderedUbtx
---       -- (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust modifiedUbtx)
---       -- return . (reqSigs,) $
---       --   foldl
---       --     (flip txAddSignature)
---       --     -- optionally apply a transformation to a balanced tx before sending it in.
---       --     (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
---       --     (NE.toList signers)
---   where
---     -- Update the map of pretty printed representations in the mock chain state
---     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
---     updateDatumStr = undefined -- TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
---       -- st
---       --   { mcstStrDatums =
---       --       Map.union mcstStrDatums . extractDatumStr . toConstraints $ txConstraints
---       --   }
+    -- Order outputs according to the order of output constraints
+    applyTxOutConstraintOrder :: [OutConstraint] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+    applyTxOutConstraintOrder ocs (Pl.UnbalancedEmulatorTx tx reqs ui) =
+      Pl.UnbalancedEmulatorTx tx {Pl.txOutputs = txOuts'} reqs ui
+      where
+        txOuts' = orderTxOutputs ocs . Pl.txOutputs $ tx
+    applyTxOutConstraintOrder ocs Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
+ -}
 
+  {-
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
@@ -521,6 +526,7 @@ balanceTxFrom bPol skipBalancing col w (Pl.UnbalancedEmulatorTx ubtx' reqs ui) =
       then return tx
       else balanceTxFromAux bPol BalFinalizing w tx
 balanceTxFrom _ _ _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
+-}
 
 -- | Calculates the collateral for a some transaction
 calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m [Pl.TxInput]
@@ -536,12 +542,14 @@ calcCollateral w col = do
       return $ Set.singleton $ (^. spOutTxOutRef) $ fst $ head souts
   pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
 
+  {-
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux utxoPolicy stage w tx = do
   bres <- calcBalanceTx w tx
   case applyBalanceTx utxoPolicy w bres tx of
     Just tx' -> return tx'
     Nothing -> throwError $ MCEUnbalanceable stage tx bres
+    -}
 
 data BalanceTxRes = BalanceTxRes
   { newInputs :: [Pl.TxOutRef],
@@ -552,17 +560,17 @@ data BalanceTxRes = BalanceTxRes
 
 -- | Calculate the changes needed to balance a transaction with money from a given wallet.
 -- Every transaction that is sent to the chain must be balanced, that is: @inputs + mint == outputs + fee@.
-calcBalanceTx :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m BalanceTxRes
+calcBalanceTx :: (Monad m) => Wallet -> TxSkel -> MockChainT m BalanceTxRes
 calcBalanceTx w tx = do
+  let inTxIns = _spOutTxOutRef . _input <$> toList (_txSkelIns tx)
   -- We start by gathering all the inputs and summing it
-  lhsInputs <- mapM (outFromOutRef . Pl.txInputRef) (Pl.txInputs tx)
-  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
-  let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
+  lhsInputs <- mapM outFromOutRef inTxIns
+  let lhs = mconcat (map Pl.txOutValue lhsInputs) -- <> Pl.txMint tx TODO PORT reimplement this over _txSkelMints
+  let rhs = foldMap _outValue $ _txSkelOuts tx -- <> Pl.txFee tx TODO PORT is it zero?
   let wPKH = walletPKHash w
-  let usedInTxIns = Pl.txInputRef <$> Pl.txInputs tx
   allUtxos <- pkUtxos' wPKH
   -- It is important that we only consider utxos that have not been spent in the transaction as "available"
-  let availableUtxos = filter ((`L.notElem` usedInTxIns) . fst) allUtxos
+  let availableUtxos = filter ((`L.notElem` inTxIns) . fst) allUtxos
   let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
   return $
     BalanceTxRes
@@ -583,7 +591,7 @@ calcBalanceTx w tx = do
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
 -- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
 -- way to balance this transaction.
-applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
+applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> TxSkel -> Maybe TxSkel
 applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
   -- Here we'll try a few things, in order, until one of them succeeds:
   --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
@@ -597,23 +605,23 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
 
   let adjustOutputs = case utxoPolicy of
         DontAdjustExistingOutput -> empty
-        AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx)
+        AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (_txSkelOuts tx)
 
   (txInsDelta, txOuts') <-
     asum $
       [ adjustOutputs, -- 1.
-        guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
+        guard (isAtLeastMinAda leftover) >> return ([], _txSkelOuts tx ++ [mkOutWithVal leftover]) -- 2.
       ]
-        ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
+        ++ map (fmap (second (_txSkelOuts tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
   let newTxIns' = map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
   return $
     tx
-      { Pl.txInputs = Pl.txInputs tx <> newTxIns',
-        Pl.txOutputs = txOuts'
+      { _txSkelIns = _txSkelIns tx <> newTxIns',
+        _txSkelOuts = txOuts'
       }
   where
     wPKH = walletPKHash w
-    mkOutWithVal v = toPlTxOut' (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) v Pl.NoOutputDatum
+    mkOutWithVal v = PaysPK wPKH Nothing Nothing v
 
     -- The best output to attempt and modify, if any, is the one with the most ada,
     -- which is at the head of wOutsIxSorted:
@@ -627,8 +635,8 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
           filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
             zip [0 ..] (Pl.txOutputs tx)
 
-    sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
-    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . Pl.txOutValue . snd))
+    sortByMoreAda :: [(a, OutConstraint)] -> [(a, OutConstraint)]
+    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . _outValue . snd))
 
     adaVal :: Pl.Value -> Integer
     adaVal = Pl.getLovelace . Pl.fromValue
@@ -636,19 +644,21 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
     isAtLeastMinAda :: Pl.Value -> Bool
     isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
 
-    adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [Pl.TxOut] -> Int -> Maybe [Pl.TxOut]
-    adjustOutputValueAt f xs i = do
-      guard (isAtLeastMinAda val')
-      return (pref ++ toPlTxOut' addr val' stak : rest)
-      where
-        (pref, (Pl.TxOut (Pl.fromCardanoTxOutToPV2TxInfoTxOut -> Pl2.TxOut addr val stak _)) : rest) = L.splitAt i xs
-        val' = f val
+    adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [OutConstraint] -> Int -> Maybe [OutConstraint]
+    adjustOutputValueAt f xs i =
+      case L.splitAt i xs of
+           (pref, PaysPK addr stak dat val : rest) -> do
+                let val' = f val
+                guard (isAtLeastMinAda val')
+                pure $ pref ++ PaysPK addr stak dat val' : rest
+           -- TODO PORT is this really always PaysPK?
+           _ -> error "adjustOutputValueAt: not a PK"
 
     -- Given a list of available utxos; attept to consume them if they would enable the returning
     -- of the leftover.
-    consumeRemainder :: (Pl.TxOutRef, Pl.TxOut) -> Maybe ([Pl.TxOutRef], [Pl.TxOut])
+    consumeRemainder :: (Pl.TxOutRef, OutConstraint) -> Maybe ([Pl.TxOutRef], [OutConstraint])
     consumeRemainder (remRef, remOut) =
-      let v = leftover <> Pl.txOutValue remOut
+      let v = leftover <> _outValue remOut
        in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
 
 -- * Utilities
