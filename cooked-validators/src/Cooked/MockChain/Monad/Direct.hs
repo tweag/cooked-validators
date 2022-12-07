@@ -1,7 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
@@ -9,7 +8,9 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Cooked.MockChain.Monad.Direct where
 
@@ -25,19 +26,17 @@ import Cooked.MockChain.Monad.GenerateTx (GenerateTxError, generateCardanoBuildT
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Balance
 import Cooked.Tx.Constraints.Type
 import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
-import Data.Either
-import Data.Foldable (asum, Foldable (toList))
 import Data.Function (on)
+import Data.List
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
-import qualified Data.Set as S
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Void
 import GHC.Stack
@@ -51,11 +50,10 @@ import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI.Internal as Pl
 import qualified Ledger.Validation as Pl
 import qualified Ledger.Value as Pl (flattenValue)
+import qualified Ledger.Value as Value
 import Optics.Core
-import qualified Plutus.V2.Ledger.Tx as Pl (OutputDatum (..))
 import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx as Pl
-import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
@@ -110,7 +108,7 @@ instance Default Pl.Slot where
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
-  | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
+  | MCEUnbalanceable String BalanceStage TxSkel
   | MCENoSuitableCollateral
   | MCEGenerationError GenerateTxError
   | FailWith String
@@ -460,7 +458,7 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
     applyTxOutConstraintOrder ocs Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
  -}
 
-  {-
+{-
 -- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
 -- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
 -- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
@@ -542,7 +540,7 @@ calcCollateral w col = do
       return $ Set.singleton $ (^. spOutTxOutRef) $ fst $ head souts
   pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
 
-  {-
+{-
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
 balanceTxFromAux utxoPolicy stage w tx = do
   bres <- calcBalanceTx w tx
@@ -552,47 +550,141 @@ balanceTxFromAux utxoPolicy stage w tx = do
     -}
 
 data BalanceTxRes = BalanceTxRes
-  { newInputs :: [Pl.TxOutRef],
+  { -- | Inputs that need to be added in order to cover the value in the
+    -- transaction outputs
+    newInputs :: Set SpendableOut,
+    -- | The 'newInputs' will add _at least_ the missing value to cover the
+    -- outputs, this is the difference @inputvalue with 'newInputs' -
+    -- outputValue@
     returnValue :: Pl.Value,
-    remainderUtxos :: [(Pl.TxOutRef, Pl.TxOut)]
+    -- | Some additional UTxOs that could be used as extra inputs. These all
+    -- belong to the same wallet that was passed to 'calcBalanceTx' as an
+    -- argument, and are sorted in decreasing order of their Ada value, where
+    -- UTxOs with the same Ada value are sorted with decreasing (complete)
+    -- values.
+    availableUtxos :: [SpendableOut]
   }
   deriving (Eq, Show)
 
--- | Calculate the changes needed to balance a transaction with money from a given wallet.
--- Every transaction that is sent to the chain must be balanced, that is: @inputs + mint == outputs + fee@.
-calcBalanceTx :: (Monad m) => Wallet -> TxSkel -> MockChainT m BalanceTxRes
-calcBalanceTx w tx = do
-  let inTxIns = _spOutTxOutRef . _input <$> toList (_txSkelIns tx)
-  -- We start by gathering all the inputs and summing it
-  lhsInputs <- mapM outFromOutRef inTxIns
-  let lhs = mconcat (map Pl.txOutValue lhsInputs) -- <> Pl.txMint tx TODO PORT reimplement this over _txSkelMints
-  let rhs = foldMap _outValue $ _txSkelOuts tx -- <> Pl.txFee tx TODO PORT is it zero?
-  let wPKH = walletPKHash w
-  allUtxos <- pkUtxos' wPKH
-  -- It is important that we only consider utxos that have not been spent in the transaction as "available"
-  let availableUtxos = filter ((`L.notElem` inTxIns) . fst) allUtxos
-  let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
-  return $
-    BalanceTxRes
-      { -- Now, we will add the necessary utxos to the transaction,
-        newInputs = usedUTxOs,
-        -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
-        returnValue = leftOver <> excess,
-        -- We also return the remainder utxos that could still be used in case
-        -- we can't 'applyBalanceTx' this 'BalanceTxRes'.
-        remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
-      }
+-- | Calculate the changes needed to balance a transaction with money from a
+-- given wallet.  Every transaction that is sent to the chain must be balanced,
+-- that is: @inputs + mints == outputs + fee + burns@.
+calcBalanceTx :: Monad m => BalanceStage -> Wallet -> TxSkel -> MockChainT m BalanceTxRes
+calcBalanceTx balanceStage wallet skel = do
+  -- Get all Utxos that belong to the given wallet, and that are not yet being
+  -- consumed on the transaction.
+  --
+  -- These UTxOs are sorted in dec decreasing order of their Ada value, and
+  -- UTxOs that have the same Ada value are decreasinlgy sorted with respect to
+  -- their complete value. This is for the following two reasons:
+  --
+  -- - Sorting by Ada value means that 'selectNewInputs' will more likely select
+  --   additional inputs that contain a lot of Ada. The hope is that it'll
+  --   therefore become less likely for the 'returnValue' to be less than the
+  --   minimum Ada amount required for each output. See this comment for
+  --   context:
+  --   https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
+  --
+  -- - Sorting by complete value means that 'selectNewInputs' will hopefully
+  --   have to select fewer additional inputs.
+  candidateUtxos <-
+    sortBy (flip compare `on` Pl.fromValue . (^. spOutValue))
+      . sortBy (flip compare `on` (^. spOutValue))
+      . filter (`notElem` inUtxos)
+      <$> pkUtxos (walletPKHash wallet)
+  case selectNewInputs candidateUtxos Set.empty initialExcess missingValueList of
+    Nothing ->
+      throwError $
+        MCEUnbalanceable
+          ("The wallet " ++ show wallet ++ " does not own enough funds to pay for balancing.")
+          balanceStage
+          skel
+    Just (available, chosen, excess) ->
+      return
+        BalanceTxRes
+          { newInputs = chosen,
+            returnValue = excess,
+            availableUtxos = available
+          }
+  where
+    inUtxos = toListOf (txSkelIns % folded % input) skel -- The Utxos consumed by the given transaction
+    inValue = txSkelInputValue skel -- inputs + mints
+    outValue = txSkelOutputValue skel -- outputs + fee + burns
+    difference = outValue <> Pl.negate inValue
 
--- | Once we calculated what is needed to balance a transaction @tx@, we still need to
--- apply those changes to @tx@. Because of the 'Ledger.minAdaTxOut' constraint, this
+    -- This is what must still be paid by 'wallet', given as a list of type
+    -- [(Pl.AssetClass, Integer
+    missingValueList = positivePart difference ^. flattenValueI
+
+    -- This is the part of the input that already excesses the ouput. We'll
+    -- have to pay this to 'wallet' in any case. (Note that 'negativePart' is a
+    -- function that returns a stricly (componentwise) positive 'Pl.Value'!)
+    initialExcess = negativePart difference
+
+    -- missing = outValue <> Pl.negate inValue -- The value we'll have to cover with additional Utxos
+    selectNewInputs ::
+      [SpendableOut] ->
+      Set SpendableOut ->
+      Pl.Value ->
+      [(Pl.AssetClass, Integer)] ->
+      Maybe ([SpendableOut], Set SpendableOut, Pl.Value)
+    selectNewInputs available chosen excess missing =
+      case missing of
+        [] -> Just (available, chosen, excess)
+        (ac, _) : _ ->
+          -- Find the first UTxO belonging to the wallet that contains at least
+          -- one token of the required asset class (The hope is that it'll
+          -- contain at least @n@ such tokens, but we can't yet fail if there are
+          -- fewer; we might need to add several UTxOs):
+          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . (^. spOutValue)) available of
+            Nothing -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
+            Just i ->
+              let (left, theChosenUtxo : right) = splitAt i available
+                  available' = left ++ right
+                  chosen' = chosen <> Set.singleton theChosenUtxo
+                  theChosenValue = theChosenUtxo ^. spOutValue
+                  missingValue = review flattenValueI missing
+                  theChosenDifference = missingValue <> Pl.negate theChosenValue
+                  excess' = negativePart theChosenDifference
+                  missing' = view flattenValueI $ missingValue <> positivePart theChosenDifference
+               in -- A remark on why the following line should not lead to an
+                  -- infinite recursion: The value described by @missing'@ is
+                  -- strictly smaller than the value described by @missing@,
+                  -- because there was at least one token of the asset class @ac@
+                  -- in @theChosenValue@.
+                  selectNewInputs available' chosen' excess' missing'
+
+-- let inTxIns = _spOutTxOutRef . _input <$> toList (_txSkelIns tx)
+-- -- We start by gathering all the inputs and summing it
+-- lhsInputs <- mapM outFromOutRef inTxIns
+-- let lhs = mconcat (map Pl.txOutValue lhsInputs) -- <> Pl.txMint tx TODO PORT reimplement this over _txSkelMints
+-- let rhs = foldMap _outValue $ _txSkelOuts tx -- <> Pl.txFee tx TODO PORT is it zero?
+-- let wPKH = walletPKHash w
+-- allUtxos <- pkUtxos' wPKH
+-- -- It is important that we only consider utxos that have not been spent in the transaction as "available"
+-- let availableUtxos = filter ((`L.notElem` inTxIns) . fst) allUtxos
+-- let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
+-- return $
+--   BalanceTxRes
+--     { -- Now, we will add the necessary utxos to the transaction,
+--       newInputs = usedUTxOs,
+--       -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
+--       returnValue = leftOver <> excess,
+--       -- We also return the remainder utxos that could still be used in case
+--       -- we can't 'applyBalanceTx' with this 'BalanceTxRes'.
+--       remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
+--     }
+
+-- | Once we calculated what is needed to balance a transaction @skel@, we still need to
+-- apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut' constraint, this
 -- might not be possible: imagine the leftover is less than 'Ledger.minAdaTxOut', but
 -- the transaction has no output addressed to the sending wallet. If we just
 -- create a new ouput for @w@ and place the leftover there the resulting tx will fail to validate
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
 -- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
 -- way to balance this transaction.
-applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> TxSkel -> Maybe TxSkel
-applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
+applyBalanceTx :: Wallet -> BalanceTxRes -> TxSkel -> Maybe TxSkel
+applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
   --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
   --      more than 'Pl.minAdaTxOut'. No need for additional inputs. The "best possible" here means the ada-only
@@ -603,7 +695,7 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
   --   3. Attempt to consume other possible utxos from 'w' in order to combine them
   --      and return the leftover.
 
-  let adjustOutputs = case utxoPolicy of
+  let adjustOutputs = case balanceOutputPolicy . _txSkelOpts $ skel of
         DontAdjustExistingOutput -> empty
         AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (_txSkelOuts tx)
 
@@ -647,12 +739,12 @@ applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
     adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [OutConstraint] -> Int -> Maybe [OutConstraint]
     adjustOutputValueAt f xs i =
       case L.splitAt i xs of
-           (pref, PaysPK addr stak dat val : rest) -> do
-                let val' = f val
-                guard (isAtLeastMinAda val')
-                pure $ pref ++ PaysPK addr stak dat val' : rest
-           -- TODO PORT is this really always PaysPK?
-           _ -> error "adjustOutputValueAt: not a PK"
+        (pref, PaysPK addr stak dat val : rest) -> do
+          let val' = f val
+          guard (isAtLeastMinAda val')
+          pure $ pref ++ PaysPK addr stak dat val' : rest
+        -- TODO PORT is this really always PaysPK?
+        _ -> error "adjustOutputValueAt: not a PK"
 
     -- Given a list of available utxos; attept to consume them if they would enable the returning
     -- of the leftover.

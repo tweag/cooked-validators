@@ -12,6 +12,7 @@
 
 module Cooked.Tx.Constraints.Type where
 
+import Control.Arrow
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
 import Data.Default
@@ -672,7 +673,8 @@ data TxSkel where
       _txSkelRequiredSigners :: Set Pl.PubKeyHash,
       _txSkelIns :: Set InConstraint,
       _txSkelInsCollateral :: Set SpendableOut,
-      _txSkelOuts :: [OutConstraint]
+      _txSkelOuts :: [OutConstraint],
+      _txSkelFee :: Pl.Value
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
@@ -708,7 +710,7 @@ makeLenses ''TxSkel
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2 f2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
@@ -718,9 +720,10 @@ instance Semigroup TxSkel where
       (i1 <> i2)
       (c1 <> c2)
       (o1 ++ o2)
+      (f1 <> f2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty Set.empty []
+  mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty Set.empty [] mempty
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -758,3 +761,44 @@ txSkelUtxoIndex =
           (spOut ^. spOutTxOutRef)
           (spOutTxOut spOut)
     )
+
+-- | The value in all transaction inputs, plus the positive part of the minted
+-- value. This is the left hand side of the "balancing equation":
+--
+-- > mints + inputs = fees + burns + outputs
+txSkelInputValue :: TxSkel -> Pl.Value
+txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
+  positivePart (txSkelMintsValue mints)
+    <> foldOf (txSkelIns % folded % input % spOutValue) skel
+
+-- | The value in all transaction inputs, plus the negative parts of the minted
+-- value. This is the right hand side of the "balancing equation":
+--
+-- > mints + inputs = fees + burns + outputs
+txSkelOutputValue :: TxSkel -> Pl.Value
+txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
+  negativePart (txSkelMintsValue mints)
+    <> foldOf (txSkelOuts % folded % outValue) skel
+    <> skel ^. txSkelFee
+
+flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
+flattenValueI =
+  iso
+    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
+    (foldl (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
+
+-- | The positive part of a value. For every asset class in the given value,
+-- this asset class and its amount are included in the output iff the amount is
+-- strictly positive. It holds
+--
+-- > x == positivePart x <> Pl.negate negativePart x
+positivePart :: Pl.Value -> Pl.Value
+positivePart = over flattenValueI (filter $ (0 <) . snd)
+
+-- | The negative part of a value. For every asset class in the given value,
+-- this asset class and its negated amount are included in the output iff the
+-- amount is strictly negative. It holds
+--
+-- > x == positivePart x <> Pl.negate negativePart x
+negativePart :: Pl.Value -> Pl.Value
+negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, - n) else Nothing))
