@@ -6,6 +6,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
@@ -571,6 +572,8 @@ data InConstraint where
     InConstraint
   SpendsPK :: {_input :: SpendableOut} -> InConstraint
 
+deriving instance Show InConstraint
+
 makeLenses ''InConstraint
 
 instance Eq InConstraint where
@@ -627,6 +630,8 @@ data OutConstraint where
     } ->
     OutConstraint
 
+deriving instance Show OutConstraint
+
 makeLenses ''OutConstraint
 
 outConstraintDatum :: AffineFold OutConstraint Pl.Datum
@@ -679,7 +684,7 @@ data TxSkel where
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
   -- are equal in the sense of '==', they specify the same transaction(s).
-  deriving (Eq)
+  deriving (Show, Eq)
 
 makeLenses ''TxSkel
 
