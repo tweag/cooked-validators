@@ -241,6 +241,7 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skel = do
+    -- TODO balance the TxSkel
     params <- params
     managedData <- gets mcstDatums
     case generateCardanoBuildTx params managedData skel of
@@ -480,7 +481,7 @@ setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx reqSigs0 uindex) = do
       fee <-
         calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
           `catchError` \case
-            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx) requiredSigners cUtxoIndex ps tx
+            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 Pl.minFee tx) requiredSigners cUtxoIndex ps tx
             e -> throwError e
       return $ tx {Pl.txFee = fee}
   where
@@ -555,7 +556,7 @@ data BalanceTxRes = BalanceTxRes
     newInputs :: Set SpendableOut,
     -- | The 'newInputs' will add _at least_ the missing value to cover the
     -- outputs, this is the difference @inputvalue with 'newInputs' -
-    -- outputValue@
+    -- outputValue@. This value must be nonnegative in every asset class.
     returnValue :: Pl.Value,
     -- | Some additional UTxOs that could be used as extra inputs. These all
     -- belong to the same wallet that was passed to 'calcBalanceTx' as an
@@ -606,8 +607,7 @@ calcBalanceTx balanceStage wallet skel = do
     outValue = txSkelOutputValue skel -- outputs + fee + burns
     difference = outValue <> Pl.negate inValue
 
-    -- This is what must still be paid by 'wallet', given as a list of type
-    -- [(Pl.AssetClass, Integer)]
+    -- This is what must still be paid by 'wallet'
     missingValue = positivePart difference
 
     -- This is the part of the input that already excesses the ouput. We'll
@@ -655,74 +655,94 @@ calcBalanceTx balanceStage wallet skel = do
 -- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
 -- way to balance this transaction.
 applyBalanceTx :: Wallet -> BalanceTxRes -> TxSkel -> Maybe TxSkel
-applyBalanceTx w (BalanceTxRes newTxIns leftover remainders) skel = do
+applyBalanceTx wallet (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
-  --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
-  --      more than 'Pl.minAdaTxOut'. No need for additional inputs. The "best possible" here means the ada-only
-  --      utxo with the most ada and without any datum hash. If the policy doesn't allow modifying an
-  --      existing utxo or no such utxo exists, we move on to the next option;
-  --   2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible, create a new output
-  --      to return leftover. No need for additional inputs.
-  --   3. Attempt to consume other possible utxos from 'w' in order to combine them
-  --      and return the leftover.
+  --
+  -- 1. If allowed by the utxoPolicy, pick out the best possible output to
+  --    adjust and adjust it as long as it remains with more than
+  --    'Pl.minAdaTxOut'. No need for additional inputs. The "best possible"
+  --    here means the ada-only utxo with the most ada and without any datum
+  --    hash. If the policy doesn't allow modifying an existing utxo or no such
+  --    utxo exists, we move on to the next option;
+  --
+  -- 2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible,
+  --    create a new output to return leftover. No need for additional inputs.
+  --
+  -- 3. Attempt to consume other possible utxos from 'w' in order to combine
+  --    them and return the leftover.
 
-  let adjustOutputs = case balanceOutputPolicy . _txSkelOpts $ skel of
-        DontAdjustExistingOutput -> empty
-        AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (_txSkelOuts tx)
+  let outs = skel ^. txSkelOuts
+  case findIndex
+    ( \out ->
+        Value.isAdaOnlyValue (out ^. outValue)
+          && isNothing (out ^? outConstraintDatum)
+    )
+    outs of
+    Just i ->
+      let (left, bestOutput : right) = splitAt i outs
+       in undefined
+    Nothing ->
+      -- There's no "best possible transaction output" in the sense described
+      -- above.
+      undefined
 
-  (txInsDelta, txOuts') <-
-    asum $
-      [ adjustOutputs, -- 1.
-        guard (isAtLeastMinAda leftover) >> return ([], _txSkelOuts tx ++ [mkOutWithVal leftover]) -- 2.
-      ]
-        ++ map (fmap (second (_txSkelOuts tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
-  let newTxIns' = map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
-  return $
-    tx
-      { _txSkelIns = _txSkelIns tx <> newTxIns',
-        _txSkelOuts = txOuts'
-      }
-  where
-    wPKH = walletPKHash w
-    mkOutWithVal v = PaysPK wPKH Nothing Nothing v
+-- let adjustOutputs = case balanceOutputPolicy . _txSkelOpts $ skel of
+--       DontAdjustExistingOutput -> empty
+--       AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (_txSkelOuts tx)
 
-    -- The best output to attempt and modify, if any, is the one with the most ada,
-    -- which is at the head of wOutsIxSorted:
-    wOutsBest = fst <$> L.uncons wOutsIxSorted
+-- (txInsDelta, txOuts') <-
+--   asum $
+--     [ adjustOutputs, -- 1.
+--       guard (isAtLeastMinAda leftover) >> return ([], _txSkelOuts tx ++ [mkOutWithVal leftover]) -- 2.
+--     ]
+--       ++ map (fmap (second (_txSkelOuts tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
+-- let newTxIns' = map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
+-- return $
+--   tx
+--     { _txSkelIns = _txSkelIns tx <> newTxIns',
+--       _txSkelOuts = txOuts'
+--     }
+-- where
+--   wPKH = walletPKHash w
+--   mkOutWithVal v = PaysPK wPKH Nothing Nothing v
 
-    -- The indexes of outputs belonging to w sorted by amount of ada.
-    wOutsIxSorted :: [Int]
-    wOutsIxSorted =
-      map fst $
-        sortByMoreAda $
-          filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
-            zip [0 ..] (Pl.txOutputs tx)
+--   -- The best output to attempt and modify, if any, is the one with the most ada,
+--   -- which is at the head of wOutsIxSorted:
+--   wOutsBest = fst <$> L.uncons wOutsIxSorted
 
-    sortByMoreAda :: [(a, OutConstraint)] -> [(a, OutConstraint)]
-    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . _outValue . snd))
+--   -- The indexes of outputs belonging to w sorted by amount of ada.
+--   wOutsIxSorted :: [Int]
+--   wOutsIxSorted =
+--     map fst $
+--       sortByMoreAda $
+--         filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
+--           zip [0 ..] (Pl.txOutputs tx)
 
-    adaVal :: Pl.Value -> Integer
-    adaVal = Pl.getLovelace . Pl.fromValue
+--   sortByMoreAda :: [(a, OutConstraint)] -> [(a, OutConstraint)]
+--   sortByMoreAda = L.sortBy (flip compare `on` (adaVal . _outValue . snd))
 
-    isAtLeastMinAda :: Pl.Value -> Bool
-    isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
+--   adaVal :: Pl.Value -> Integer
+--   adaVal = Pl.getLovelace . Pl.fromValue
 
-    adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [OutConstraint] -> Int -> Maybe [OutConstraint]
-    adjustOutputValueAt f xs i =
-      case L.splitAt i xs of
-        (pref, PaysPK addr stak dat val : rest) -> do
-          let val' = f val
-          guard (isAtLeastMinAda val')
-          pure $ pref ++ PaysPK addr stak dat val' : rest
-        -- TODO PORT is this really always PaysPK?
-        _ -> error "adjustOutputValueAt: not a PK"
+--   isAtLeastMinAda :: Pl.Value -> Bool
+--   isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
 
-    -- Given a list of available utxos; attept to consume them if they would enable the returning
-    -- of the leftover.
-    consumeRemainder :: (Pl.TxOutRef, OutConstraint) -> Maybe ([Pl.TxOutRef], [OutConstraint])
-    consumeRemainder (remRef, remOut) =
-      let v = leftover <> _outValue remOut
-       in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
+--   adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [OutConstraint] -> Int -> Maybe [OutConstraint]
+--   adjustOutputValueAt f xs i =
+--     case L.splitAt i xs of
+--       (pref, PaysPK addr stak dat val : rest) -> do
+--         let val' = f val
+--         guard (isAtLeastMinAda val')
+--         pure $ pref ++ PaysPK addr stak dat val' : rest
+--       -- TODO PORT is this really always PaysPK?
+--       _ -> error "adjustOutputValueAt: not a PK"
+
+--   -- Given a list of available utxos; attept to consume them if they would enable the returning
+--   -- of the leftover.
+--   consumeRemainder :: (Pl.TxOutRef, OutConstraint) -> Maybe ([Pl.TxOutRef], [OutConstraint])
+--   consumeRemainder (remRef, remOut) =
+--     let v = leftover <> _outValue remOut
+--      in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
 
 -- * Utilities
 
