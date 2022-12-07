@@ -590,7 +590,6 @@ calcBalanceTx balanceStage wallet skel = do
   --   have to select fewer additional inputs.
   candidateUtxos <-
     sortBy (flip compare `on` Pl.fromValue . (^. spOutValue))
-      . sortBy (flip compare `on` (^. spOutValue))
       . filter (`notElem` inUtxos)
       <$> pkUtxos (walletPKHash wallet)
   case selectNewInputs candidateUtxos Set.empty initialExcess missingValue of
