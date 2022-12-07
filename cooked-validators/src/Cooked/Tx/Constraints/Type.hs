@@ -785,7 +785,7 @@ flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =
   iso
     (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
-    (foldl (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
+    (foldl' (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
 
 -- | The positive part of a value. For every asset class in the given value,
 -- this asset class and its amount are included in the output iff the amount is

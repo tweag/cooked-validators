@@ -574,9 +574,9 @@ calcBalanceTx balanceStage wallet skel = do
   -- Get all Utxos that belong to the given wallet, and that are not yet being
   -- consumed on the transaction.
   --
-  -- These UTxOs are sorted in dec decreasing order of their Ada value, and
-  -- UTxOs that have the same Ada value are decreasinlgy sorted with respect to
-  -- their complete value. This is for the following two reasons:
+  -- These UTxOs are sorted in decreasing order of their Ada value, and UTxOs
+  -- that have the same Ada value are decreasinlgy sorted with respect to their
+  -- complete value. This is for the following two reasons:
   --
   -- - Sorting by Ada value means that 'selectNewInputs' will more likely select
   --   additional inputs that contain a lot of Ada. The hope is that it'll
@@ -592,20 +592,14 @@ calcBalanceTx balanceStage wallet skel = do
       . sortBy (flip compare `on` (^. spOutValue))
       . filter (`notElem` inUtxos)
       <$> pkUtxos (walletPKHash wallet)
-  case selectNewInputs candidateUtxos Set.empty initialExcess missingValueList of
+  case selectNewInputs candidateUtxos Set.empty initialExcess missingValue of
     Nothing ->
       throwError $
         MCEUnbalanceable
           ("The wallet " ++ show wallet ++ " does not own enough funds to pay for balancing.")
           balanceStage
           skel
-    Just (available, chosen, excess) ->
-      return
-        BalanceTxRes
-          { newInputs = chosen,
-            returnValue = excess,
-            availableUtxos = available
-          }
+    Just bTxRes -> return bTxRes
   where
     inUtxos = toListOf (txSkelIns % folded % input) skel -- The Utxos consumed by the given transaction
     inValue = txSkelInputValue skel -- inputs + mints
@@ -613,24 +607,23 @@ calcBalanceTx balanceStage wallet skel = do
     difference = outValue <> Pl.negate inValue
 
     -- This is what must still be paid by 'wallet', given as a list of type
-    -- [(Pl.AssetClass, Integer
-    missingValueList = positivePart difference ^. flattenValueI
+    -- [(Pl.AssetClass, Integer)]
+    missingValue = positivePart difference
 
     -- This is the part of the input that already excesses the ouput. We'll
     -- have to pay this to 'wallet' in any case. (Note that 'negativePart' is a
     -- function that returns a stricly (componentwise) positive 'Pl.Value'!)
     initialExcess = negativePart difference
 
-    -- missing = outValue <> Pl.negate inValue -- The value we'll have to cover with additional Utxos
     selectNewInputs ::
       [SpendableOut] ->
       Set SpendableOut ->
       Pl.Value ->
-      [(Pl.AssetClass, Integer)] ->
-      Maybe ([SpendableOut], Set SpendableOut, Pl.Value)
+      Pl.Value ->
+      Maybe BalanceTxRes
     selectNewInputs available chosen excess missing =
-      case missing of
-        [] -> Just (available, chosen, excess)
+      case view flattenValueI missing of
+        [] -> Just $ BalanceTxRes chosen excess available
         (ac, _) : _ ->
           -- Find the first UTxO belonging to the wallet that contains at least
           -- one token of the required asset class (The hope is that it'll
@@ -643,37 +636,15 @@ calcBalanceTx balanceStage wallet skel = do
                   available' = left ++ right
                   chosen' = chosen <> Set.singleton theChosenUtxo
                   theChosenValue = theChosenUtxo ^. spOutValue
-                  missingValue = review flattenValueI missing
-                  theChosenDifference = missingValue <> Pl.negate theChosenValue
+                  theChosenDifference = missing <> Pl.negate theChosenValue
                   excess' = negativePart theChosenDifference
-                  missing' = view flattenValueI $ missingValue <> positivePart theChosenDifference
+                  missing' = positivePart theChosenDifference
                in -- A remark on why the following line should not lead to an
                   -- infinite recursion: The value described by @missing'@ is
                   -- strictly smaller than the value described by @missing@,
                   -- because there was at least one token of the asset class @ac@
                   -- in @theChosenValue@.
                   selectNewInputs available' chosen' excess' missing'
-
--- let inTxIns = _spOutTxOutRef . _input <$> toList (_txSkelIns tx)
--- -- We start by gathering all the inputs and summing it
--- lhsInputs <- mapM outFromOutRef inTxIns
--- let lhs = mconcat (map Pl.txOutValue lhsInputs) -- <> Pl.txMint tx TODO PORT reimplement this over _txSkelMints
--- let rhs = foldMap _outValue $ _txSkelOuts tx -- <> Pl.txFee tx TODO PORT is it zero?
--- let wPKH = walletPKHash w
--- allUtxos <- pkUtxos' wPKH
--- -- It is important that we only consider utxos that have not been spent in the transaction as "available"
--- let availableUtxos = filter ((`L.notElem` inTxIns) . fst) allUtxos
--- let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
--- return $
---   BalanceTxRes
---     { -- Now, we will add the necessary utxos to the transaction,
---       newInputs = usedUTxOs,
---       -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
---       returnValue = leftOver <> excess,
---       -- We also return the remainder utxos that could still be used in case
---       -- we can't 'applyBalanceTx' with this 'BalanceTxRes'.
---       remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
---     }
 
 -- | Once we calculated what is needed to balance a transaction @skel@, we still need to
 -- apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut' constraint, this
