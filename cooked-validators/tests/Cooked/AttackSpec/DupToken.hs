@@ -14,11 +14,11 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
 import qualified Ledger.Ada as L
+import qualified Ledger.Scripts as L
+import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
-import qualified Plutus.Script.Utils.V2.Scripts as L
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as L
-import qualified Plutus.V2.Ledger.Api as L
-import qualified Plutus.V2.Ledger.Contexts as L
+import qualified Plutus.Script.Utils.V1.Scripts as L
+import qualified Plutus.V1.Ledger.Contexts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty

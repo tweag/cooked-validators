@@ -5,8 +5,8 @@ import Cooked (quickValue)
 import Cooked.MockChain.Wallet
 import qualified Cooked.MockChain.Wallet as Pl
 import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
+import qualified Plutus.V1.Ledger.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
