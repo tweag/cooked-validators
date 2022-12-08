@@ -242,7 +242,7 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    skel <- setFeeAndBalance theWallet skelUnbal
+    skel <- setFeeAndBalance (walletPKHash theWallet) skelUnbal
     params <- params
     managedData <- gets mcstDatums
     case generateTxBodyContent params managedData skel of
@@ -465,9 +465,9 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
 -- /plutus-apps/.
-setFeeAndBalance :: (Monad m) => Wallet -> TxSkel -> MockChainT m TxSkel
-setFeeAndBalance wallet skel = do
-  utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos (walletPKHash wallet)
+setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+setFeeAndBalance balancePK skel = do
+  utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
@@ -505,7 +505,7 @@ setFeeAndBalance wallet skel = do
     calcFee n fee cUtxoIndex parms skel = do
       let skelWithFee = skel & txSkelFee .~ fee
           bPol = balanceOutputPolicy (skel ^. txSkelOpts)
-      attemptedSkel <- balanceTxFromAux bPol BalCalcFee wallet skelWithFee
+      attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
       manageData <- gets mcstDatums
       case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
         -- necessary to capture script failure for failed cases
@@ -568,10 +568,10 @@ calcCollateral w col = do
   pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
 -}
 
-balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> TxSkel -> MockChainT m TxSkel
-balanceTxFromAux utxoPolicy stage wallet txskel = do
-  bres <- calcBalanceTx stage wallet txskel
-  case applyBalanceTx wallet bres txskel of
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+balanceTxFromAux utxoPolicy stage balancePK txskel = do
+  bres <- calcBalanceTx stage balancePK txskel
+  case applyBalanceTx balancePK bres txskel of
     Just txskel' -> return txskel'
     Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
 
@@ -593,8 +593,8 @@ data BalanceTxRes = BalanceTxRes
 -- | Calculate the changes needed to balance a transaction with money from a
 -- given wallet.  Every transaction that is sent to the chain must be balanced,
 -- that is: @inputs + mints == outputs + fee + burns@.
-calcBalanceTx :: Monad m => BalanceStage -> Wallet -> TxSkel -> MockChainT m BalanceTxRes
-calcBalanceTx balanceStage wallet skel = do
+calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m BalanceTxRes
+calcBalanceTx balanceStage balancePK skel = do
   -- Get all Utxos that belong to the given wallet, and that are not yet being
   -- consumed on the transaction.
   --
@@ -607,12 +607,12 @@ calcBalanceTx balanceStage wallet skel = do
   candidateUtxos <-
     sortBy (flip compare `on` Pl.fromValue . (^. spOutValue))
       . filter (`notElem` inUtxos)
-      <$> pkUtxos (walletPKHash wallet)
+      <$> pkUtxos balancePK
   case selectNewInputs candidateUtxos Set.empty initialExcess missingValue of
     Nothing ->
       throwError $
         MCEUnbalanceable
-          ("The wallet " ++ show wallet ++ " does not own enough funds to pay for balancing.")
+          ("The wallet " ++ show balancePK ++ " does not own enough funds to pay for balancing.")
           balanceStage
           skel
     Just bTxRes -> return bTxRes
@@ -670,8 +670,8 @@ calcBalanceTx balanceStage wallet skel = do
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another
 -- UTxO belonging to the wallet to then create the output with the proper leftover. If
 -- the wallet has no UTxO, then there's no way to balance this transaction.
-applyBalanceTx :: Wallet -> BalanceTxRes -> TxSkel -> Maybe TxSkel
-applyBalanceTx wallet (BalanceTxRes newInputs returnValue availableUtxos) skel = do
+applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
+applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
   --
   -- 1. If allowed by the balanceOutputPolicy, pick out the best possible output
@@ -697,7 +697,7 @@ applyBalanceTx wallet (BalanceTxRes newInputs returnValue availableUtxos) skel =
   (newIns, newOuts) <-
     case findIndex
       ( \out ->
-          Just (walletPKHash wallet) == out ^? recipientPubKeyHash
+          Just balancePK == out ^? recipientPubKeyHash
             && Value.isAdaOnlyValue (out ^. outValue)
             && isNothing (out ^? outConstraintDatum)
       )
@@ -728,7 +728,7 @@ applyBalanceTx wallet (BalanceTxRes newInputs returnValue availableUtxos) skel =
         then
           Just -- (2)
             ( ins <> Set.map SpendsPK newInputs,
-              outs ++ [PaysPK (walletPKHash wallet) Nothing (Nothing @()) returnValue]
+              outs ++ [PaysPK balancePK Nothing (Nothing @()) returnValue]
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
@@ -740,7 +740,7 @@ applyBalanceTx wallet (BalanceTxRes newInputs returnValue availableUtxos) skel =
           let additionalValue = additionalUtxo ^. spOutValue
               newReturn = additionalValue <> return
               newIns = ins <> Set.map SpendsPK newInputs <> Set.singleton (SpendsPK additionalUtxo)
-              newOuts = outs ++ [PaysPK (walletPKHash wallet) Nothing (Nothing @()) newReturn]
+              newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]
            in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
                 then Just (newIns, newOuts) -- (3)
                 else tryAdditionalInputs newIns newOuts newAvailable newReturn
