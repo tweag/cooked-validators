@@ -729,7 +729,17 @@ instance Semigroup TxSkel where
       (f1 <> f2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty Set.empty [] mempty
+  mempty = TxSkel
+    { _txSkelLabel = Set.empty,
+      _txSkelOpts = mempty,
+      _txSkelMints = Map.empty,
+      _txSkelValidityRange = Pl.always,
+      _txSkelRequiredSigners = Set.empty,
+      _txSkelIns = Set.empty,
+      _txSkelInsCollateral = Set.empty,
+      _txSkelOuts = [],
+      _txSkelFee = mempty
+    }
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
