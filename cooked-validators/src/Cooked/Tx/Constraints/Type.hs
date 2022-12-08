@@ -16,6 +16,7 @@ module Cooked.Tx.Constraints.Type where
 import Control.Arrow
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
+import Cooked.MockChain.Wallet (wallet, walletPKHash)
 import Data.Default
 import Data.Function
 import Data.List
@@ -734,7 +735,7 @@ instance Monoid TxSkel where
       _txSkelOpts = mempty,
       _txSkelMints = Map.empty,
       _txSkelValidityRange = Pl.always,
-      _txSkelRequiredSigners = Set.empty,
+      _txSkelRequiredSigners = Set.singleton $ walletPKHash $ wallet 1,
       _txSkelIns = Set.empty,
       _txSkelInsCollateral = Set.empty,
       _txSkelOuts = [],
