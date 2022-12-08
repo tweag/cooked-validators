@@ -1,19 +1,21 @@
-{ pkgs ? import (import ./nix/sources.nix {}).nixpkgs {} }:
-let
-  ourpkgs = import ./nix/packages.nix {};
-in pkgs.mkShell {
-    buildInputs = ourpkgs.build-deps ++ ourpkgs.dev-deps;
-
-    # This shell hook was taken from: https://github.com/input-output-hk/ouroboros-network/pull/3649/files
-    # and is necessary to set the right locale so tools such as ormolu and graphmod can work
-    # with files contaning non-ascii characters.
-    shellHook =
-      if (pkgs.glibcLocales != null && pkgs.stdenv.hostPlatform.libc == "glibc")
-      then ''
-        export LANG="en_US.UTF-8"
-        export LOCALE_ARCHIVE="${pkgs.glibcLocales}/lib/locale/locale-archive"
-        ''
-      else ''
-        export LANG="en_US.UTF-8"
-        '';
+{ pkgs ? import <nixpkgs> { }, haskellPackages ? pkgs.haskell.packages.ghc8107
+, ...
+# Allow more arguments for flake-utils, in particular, which seems to call the
+# package with a `system` argument
+}:
+pkgs.mkShell {
+  buildInputs = (with haskellPackages; [
+    ghc
+    cabal-install
+    hpack
+    haskell-language-server
+    hlint
+  ]) ++ (with pkgs; [
+    libsodium
+    pkg-config
+    secp256k1
+    zlib
+    xz
+    postgresql # For pg_config
+  ]);
 }
