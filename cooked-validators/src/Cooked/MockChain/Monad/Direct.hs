@@ -242,7 +242,7 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    skel <- setFee (wallet 1) skelUnbal
+    skel <- setFeeAndBalance theWallet skelUnbal
     params <- params
     managedData <- gets mcstDatums
     case generateTxBodyContent params managedData skel of
@@ -465,8 +465,8 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
 -- /plutus-apps/.
-setFee :: (Monad m) => Wallet -> TxSkel -> MockChainT m TxSkel
-setFee wallet skel = do
+setFeeAndBalance :: (Monad m) => Wallet -> TxSkel -> MockChainT m TxSkel
+setFeeAndBalance wallet skel = do
   utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos (walletPKHash wallet)
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
@@ -478,21 +478,19 @@ setFee wallet skel = do
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = Pl.lovelaceValueOf 3000000
-      fee <-
-        calcFee 5 startingFee cUtxoIndex mockChainParams skel
-          `catchError` \case
-            -- Impossible to balance the transaction
-            MCEUnbalanceable _ BalCalcFee _ ->
-              -- WARN
-              -- "Pl.minFee" takes an actual Tx but we no longer provide it
-              -- since we work on "TxSkel". However, for now, the
-              -- implementation of "Pl.minFee" is a constant of 10 lovelace.
-              -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
-              let minFee = Pl.lovelaceValueOf 10 -- forall tx. Pl.minFee tx = 10 lovelace
-               in calcFee 5 minFee cUtxoIndex mockChainParams skel
-            -- Impossible to generate the Cardano transaction at all
-            e -> throwError e
-      return $ skel {_txSkelFee = fee}
+      calcFee 5 startingFee cUtxoIndex mockChainParams skel
+        `catchError` \case
+          -- Impossible to balance the transaction
+          MCEUnbalanceable _ BalCalcFee _ ->
+            -- WARN
+            -- "Pl.minFee" takes an actual Tx but we no longer provide it
+            -- since we work on "TxSkel". However, for now, the
+            -- implementation of "Pl.minFee" is a constant of 10 lovelace.
+            -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
+            let minFee = Pl.lovelaceValueOf 10 -- forall tx. Pl.minFee tx = 10 lovelace
+             in calcFee 5 minFee cUtxoIndex mockChainParams skel
+          -- Impossible to generate the Cardano transaction at all
+          e -> throwError e
   where
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
 
@@ -503,7 +501,7 @@ setFee wallet skel = do
       Pl.UTxO Pl.EmulatorEra ->
       Pl.Params ->
       TxSkel ->
-      MockChainT m Pl.Value
+      MockChainT m TxSkel
     calcFee n fee cUtxoIndex parms skel = do
       let skelWithFee = skel & txSkelFee .~ fee
           bPol = balanceOutputPolicy (skel ^. txSkelOpts)
@@ -513,8 +511,8 @@ setFee wallet skel = do
         -- necessary to capture script failure for failed cases
         Left err -> throwError $ MCECalcFee err
         Right newFee
-          | newFee == fee -> pure newFee -- reached fixpoint
-          | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
+          | newFee == fee -> pure attemptedSkel {_txSkelFee = fee}-- reached fixpoint
+          | n == 0 -> pure attemptedSkel {_txSkelFee = newFee PlutusTx.\/ fee} -- maximum number of iterations
           | otherwise -> calcFee (n - 1) newFee cUtxoIndex parms skel
 
 -- | This funcion is essentially a copy of
