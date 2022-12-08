@@ -462,11 +462,15 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
     applyTxOutConstraintOrder ocs Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
  -}
 
+ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
+ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValue %~ ensureHasMinAda
+
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
 -- /plutus-apps/.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
-setFeeAndBalance balancePK skel = do
+setFeeAndBalance balancePK skel0 = do
+  let skel = ensureTxSkelOutsMinAda skel0
   utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
