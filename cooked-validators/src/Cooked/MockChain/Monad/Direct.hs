@@ -241,8 +241,8 @@ utxoIndex0 = utxoIndex0From def
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skel = do
-    -- TODO balance the TxSkel
+  validateTxSkel skelUnbal = do
+    skel <- setFee (wallet 1) skelUnbal
     params <- params
     managedData <- gets mcstDatums
     case generateTxBodyContent params managedData skel of
@@ -251,6 +251,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         someCardanoTx <- validateTx' [] (txSkelData skel) (Pl.CardanoBuildTx cardanoBuildTx)
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
+    where
+      theWallet = wallet 1     -- TODO no access to wallets yet
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
 
