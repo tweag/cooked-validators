@@ -485,7 +485,7 @@ setFee wallet skel = do
               -- "Pl.minFee" takes an actual Tx but we no longer provide it
               -- since we work on "TxSkel". However, for now, the
               -- implementation of "Pl.minFee" is a constant of 10 lovelace.
-              -- https://github.com/input-output-hk/plutus-apps/blob/665387a2184845c4b7f3402f03b654cacfd0198b/plutus-ledger/src/Ledger/Index.hs#L171
+              -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
               let minFee = Pl.lovelaceValueOf 10 -- forall tx. Pl.minFee tx = 10 lovelace
                in calcFee 5 minFee cUtxoIndex mockChainParams skel
             -- Impossible to generate the Cardano transaction at all
