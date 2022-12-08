@@ -29,6 +29,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Default
+import Data.Foldable
 import Data.Function (on)
 import Data.List
 import qualified Data.List as L
@@ -242,7 +243,8 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    skel <- setFeeAndBalance (walletPKHash theWallet) skelUnbal
+    (firstSigner : _) <- pure $ toList $ skelUnbal ^. txSkelRequiredSigners
+    skel <- setFeeAndBalance firstSigner skelUnbal
     params <- params
     managedData <- gets mcstDatums
     case generateTxBodyContent params managedData skel of
@@ -251,8 +253,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         someCardanoTx <- validateTx' [] (txSkelData skel) (Pl.CardanoBuildTx cardanoBuildTx)
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
-    where
-      theWallet = wallet 1     -- TODO no access to wallets yet
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
 
