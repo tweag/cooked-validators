@@ -24,7 +24,7 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.GenerateTx (GenerateTxError, generateTxBodyContent)
+import Cooked.MockChain.Monad.GenerateTx (GenerateTxError (..), generateTxBodyContent)
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
@@ -111,6 +111,7 @@ data MockChainError
   | MCEUnbalanceable String BalanceStage TxSkel
   | MCENoSuitableCollateral
   | MCEGenerationError GenerateTxError
+  | MCECalcFee MockChainError
   | FailWith String
   deriving (Show, Eq)
 
@@ -244,10 +245,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- TODO balance the TxSkel
     params <- params
     managedData <- gets mcstDatums
-    case generateCardanoBuildTx params managedData skel of
+    case generateTxBodyContent params managedData skel of
       Left err -> throwError $ MCEGenerationError err
       Right cardanoBuildTx -> do
-        someCardanoTx <- validateTx' [] (txSkelData skel) cardanoBuildTx
+        someCardanoTx <- validateTx' [] (txSkelData skel) (Pl.CardanoBuildTx cardanoBuildTx)
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
@@ -464,28 +465,35 @@ generateTx' skel@(TxSkel _ _ constraintsSpec) = do
 -- /plutus-apps/.
 setFee :: (Monad m) => Wallet -> TxSkel -> MockChainT m TxSkel
 setFee wallet skel = do
-  return undefined
+  utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos (walletPKHash wallet)
+  mockChainParams <- asks mceParams
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
+    Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
+    Right cUtxoIndex -> do
+      -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
+      -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
+      -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
+      -- fee and then increasing, but that might require more iterations until its settled.
+      -- For now, let's keep it just like the folks from plutus-apps did it.
+      let startingFee = Pl.lovelaceValueOf 3000000
+      fee <-
+        calcFee 5 startingFee cUtxoIndex mockChainParams skel
+          `catchError` \case
+            -- Impossible to balance the transaction
+            MCEUnbalanceable _ BalCalcFee _ ->
+              -- WARN
+              -- "Pl.minFee" takes an actual Tx but we no longer provide it
+              -- since we work on "TxSkel". However, for now, the
+              -- implementation of "Pl.minFee" is a constant of 10 lovelace.
+              -- https://github.com/input-output-hk/plutus-apps/blob/665387a2184845c4b7f3402f03b654cacfd0198b/plutus-ledger/src/Ledger/Index.hs#L171
+              let minFee = Pl.lovelaceValueOf 10 -- forall tx. Pl.minFee tx = 10 lovelace
+               in calcFee 5 minFee cUtxoIndex mockChainParams skel
+            -- Impossible to generate the Cardano transaction at all
+            e -> throwError e
+      return $ skel {_txSkelFee = fee}
   where
-    -- utxos <- pkUtxos' (walletPKHash w)
-    -- let requiredSigners = S.toList reqSigs0
-    -- ps <- asks mceParams
-    -- case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> Map.fromList utxos of
-    --   Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
-    --   Right cUtxoIndex -> do
-    --     -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
-    --     -- so we'll see an unbalanceable error; in that case, we switch to the minimum fee and try again.
-    --     -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
-    --     -- fee and then increasing, but that might require more iterations until its settled.
-    --     -- For now, let's keep it just like the folks from plutus-apps did it.
-    --     let startingFee = Pl.lovelaceValueOf 3000000
-    --     fee <-
-    --       calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
-    --         `catchError` \case
-    --           MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 Pl.minFee tx requiredSigners cUtxoIndex ps tx
-    --           e -> throwError e
-    --     return $ tx {Pl.txFee = fee}
-
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
+
     calcFee ::
       (Monad m) =>
       Int ->
@@ -496,35 +504,42 @@ setFee wallet skel = do
       MockChainT m Pl.Value
     calcFee n fee cUtxoIndex parms skel = do
       let skelWithFee = skel & txSkelFee .~ fee
+          bPol = balanceOutputPolicy (skel ^. txSkelOpts)
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee wallet skelWithFee
-      case estimateTxSkelFee parms cUtxoIndex attemptedSkel of
+      manageData <- gets mcstDatums
+      case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
         -- necessary to capture script failure for failed cases
-        Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
-        Left err -> throwError $ FailWith $ "calcFee: " ++ show err
+        Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> pure newFee -- reached fixpoint
           | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
-          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex parms skel
+          | otherwise -> calcFee (n - 1) newFee cUtxoIndex parms skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Pl.Value
 estimateTxSkelFee params utxo managedData skel = do
-  txBodyContent <- undefined $ generateTxBodyContent params managedData skel
-  let nkeys = C.estimateTransactionKeyWitnessCount (Pl.getCardanoBuildTx txBodyContent)
-  txBody <- left undefined $ Pl.makeTransactionBody params utxo txBodyContent
+  txBodyContent <- left MCEGenerationError $ generateTxBodyContent params managedData skel
+  let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
+  txBody <-
+    left
+      ( \case
+          Left err -> MCEValidationError err
+          Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
+      )
+      $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
     C.Lovelace fee -> pure $ Pl.lovelaceValueOf fee
 
-balanceTxFrom ::
-  (Monad m) =>
-  BalanceOutputPolicy ->
-  Bool ->
-  Collateral ->
-  Wallet ->
-  Pl.UnbalancedTx ->
-  MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-balanceTxFrom = undefined
+-- balanceTxFrom ::
+--   (Monad m) =>
+--   BalanceOutputPolicy ->
+--   Bool ->
+--   Collateral ->
+--   Wallet ->
+--   Pl.UnbalancedTx ->
+--   MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
+-- balanceTxFrom = undefined
 
 -- balanceTxFrom bPol skipBalancing col w (Pl.UnbalancedEmulatorTx ubtx' reqs ui) = do
 --   let requiredSigners = S.toList reqs
@@ -553,14 +568,12 @@ calcCollateral w col = do
   pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
 -}
 
-{-
-balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
-balanceTxFromAux utxoPolicy stage w tx = do
-  bres <- calcBalanceTx w tx
-  case applyBalanceTx utxoPolicy w bres tx of
-    Just tx' -> return tx'
-    Nothing -> throwError $ MCEUnbalanceable stage tx bres
-    -}
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> TxSkel -> MockChainT m TxSkel
+balanceTxFromAux utxoPolicy stage wallet txskel = do
+  bres <- calcBalanceTx stage wallet txskel
+  case applyBalanceTx wallet bres txskel of
+    Just txskel' -> return txskel'
+    Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
