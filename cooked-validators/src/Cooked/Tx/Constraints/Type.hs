@@ -203,8 +203,9 @@ instance Semigroup Collateral where
 instance Monoid Collateral where
   mempty = def
 
--- | Whether to adjust existing public key outputs during
--- transaction balancing.
+-- | Whether to adjust existing public key outputs during transaction
+-- balancing. TODO: Why do we need these two options? Are they just historical
+-- baggage?
 data BalanceOutputPolicy
   = -- | Try to adjust an existing public key output with the change. If no
     --   suitable output can be found, create a new change output.

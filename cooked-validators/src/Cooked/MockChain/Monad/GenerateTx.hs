@@ -23,8 +23,14 @@ data GenerateTxError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
-generateCardanoBuildTx :: Pl.Params -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either GenerateTxError Pl.CardanoBuildTx
-generateCardanoBuildTx theParams managedData skel = do
+generateTxBodyContent ::
+  Pl.Params ->
+  Map Pl.DatumHash Pl.Datum ->
+  TxSkel ->
+  Either
+    GenerateTxError
+    (C.TxBodyContent C.BuildTx C.BabbageEra)
+generateTxBodyContent theParams managedData skel = do
   txIns <- mapM inConstraintToTxIn $ Set.toList (skel ^. txSkelIns)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
   txOuts <- mapM outConstraintToTxOut $ skel ^. txSkelOuts
@@ -36,29 +42,28 @@ generateCardanoBuildTx theParams managedData skel = do
       $ skel ^. txSkelValidityRange
   txMintValue <- txSkelMintsToTxMintValue $ skel ^. txSkelMints
   Right $
-    Pl.CardanoBuildTx
-      C.TxBodyContent
-        { C.txIns = txIns,
-          C.txInsCollateral = txInsCollateral,
-          -- We don't yet support reference inputs. If you add this
-          -- functionality, remember that both the 'txIns' and 'txInsReference'
-          -- fields have to change!
-          C.txInsReference = C.TxInsReferenceNone,
-          C.txOuts = txOuts,
-          C.txTotalCollateral = C.TxTotalCollateralNone, -- That's what plutus-apps does as well
-          C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
-          C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra mempty, -- That's what plutus-apps does as well
-          C.txValidityRange = txValidityRange,
-          C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
-          C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
-          C.txExtraKeyWits = C.TxExtraKeyWitnessesNone, -- That's what plutus-apps does as well
-          C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
-          C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
-          C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
-          C.txUpdateProposal = C.TxUpdateProposalNone, -- That's what plutus-apps does as well
-          C.txMintValue = txMintValue,
-          C.txScriptValidity = C.TxScriptValidityNone -- That's what plutus-apps does as well
-        }
+    C.TxBodyContent
+      { C.txIns = txIns,
+        C.txInsCollateral = txInsCollateral,
+        -- We don't yet support reference inputs. If you add this
+        -- functionality, remember that both the 'txIns' and 'txInsReference'
+        -- fields have to change!
+        C.txInsReference = C.TxInsReferenceNone,
+        C.txOuts = txOuts,
+        C.txTotalCollateral = C.TxTotalCollateralNone, -- That's what plutus-apps does as well
+        C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra mempty, -- That's what plutus-apps does as well
+        C.txValidityRange = txValidityRange,
+        C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
+        C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
+        C.txExtraKeyWits = C.TxExtraKeyWitnessesNone, -- That's what plutus-apps does as well
+        C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
+        C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
+        C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
+        C.txUpdateProposal = C.TxUpdateProposalNone, -- That's what plutus-apps does as well
+        C.txMintValue = txMintValue,
+        C.txScriptValidity = C.TxScriptValidityNone -- That's what plutus-apps does as well
+      }
   where
     -- Helper function to throw errors.
     throwOnNothing :: e -> Maybe a -> Either e a
