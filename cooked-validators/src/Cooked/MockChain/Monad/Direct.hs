@@ -408,11 +408,11 @@ utxosSuchThat' ::
   MockChainT m [(SpendableOut, Maybe a)]
 utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
-myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-myAdjustUnbalTx parms utx =
-  case Pl.adjustUnbalancedTx parms utx of
-    Left err -> error (show err)
-    Right (_, res) -> res
+-- myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
+-- myAdjustUnbalTx parms utx =
+--   case Pl.adjustUnbalancedTx parms utx of
+--     Left err -> error (show err)
+--     Right (_, res) -> res
 
 errorExpectedEmulatorTx :: HasCallStack => a
 errorExpectedEmulatorTx = error "expected emulator tx, got cardano tx"
