@@ -39,6 +39,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Debug.Trace
 import GHC.Stack
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
@@ -515,9 +516,17 @@ setFeeAndBalance balancePK skel0 = do
         -- necessary to capture script failure for failed cases
         Left err -> throwError $ MCECalcFee err
         Right newFee
-          | newFee == fee -> pure attemptedSkel {_txSkelFee = fee}-- reached fixpoint
-          | n == 0 -> pure attemptedSkel {_txSkelFee = newFee PlutusTx.\/ fee} -- maximum number of iterations
-          | otherwise -> calcFee (n - 1) newFee cUtxoIndex parms skel
+          | newFee == fee -> do
+            Debug.Trace.traceM $ "Reached fixpoint:"
+            Debug.Trace.traceM $ "- fee = " <> show fee
+            Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+            pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
+          | n == 0 -> do
+            Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+            pure attemptedSkel {_txSkelFee = newFee PlutusTx.\/ fee} -- maximum number of iterations
+          | otherwise -> do
+            Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+            calcFee (n - 1) newFee cUtxoIndex parms skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
