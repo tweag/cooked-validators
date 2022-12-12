@@ -10,7 +10,10 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
+
+{-# HLINT ignore "Use section" #-}
 
 module Cooked.MockChain.Monad.Direct where
 
@@ -45,7 +48,6 @@ import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Credential as Pl
-import qualified Ledger.Fee as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl hiding (makeTransactionBody)
@@ -249,8 +251,12 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     managedData <- gets mcstDatums
     case generateTxBodyContent params managedData skel of
       Left err -> throwError $ MCEGenerationError err
-      Right cardanoBuildTx -> do
-        someCardanoTx <- validateTx' [] (txSkelData skel) (Pl.CardanoBuildTx cardanoBuildTx)
+      Right txBodyContent -> do
+        someCardanoTx <-
+          validateTx'
+            (Pl.PaymentPubKeyHash <$> Set.toList (skel ^. txSkelRequiredSigners))
+            (txSkelData skel)
+            txBodyContent
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
@@ -308,16 +314,24 @@ runTransactionValidation ::
   [Pl.PaymentPubKeyHash] ->
   -- | List of signers
   [Wallet] ->
-  Pl.CardanoBuildTx ->
+  C.TxBodyContent C.BuildTx C.BabbageEra ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
-runTransactionValidation s parms ix reqSigners signers tx =
+runTransactionValidation s parms ix reqSigners signers txBodyContent =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
       cardanoTx =
-        either (error . ("Error building cardano tx: " <>) . show) id $
-          Pl.makeAutoBalancedTransaction parms cardanoIndex tx (walletAddress $ head signers)
+        either
+          (error . ("Error building Cardano Tx: " <>) . show)
+          ( \txBody ->
+              let witnesses =
+                    C.makeShelleyKeyWitness txBody
+                      . C.WitnessPaymentKey -- all signers sign with their 'WitnessPaymentKey' I've no idea what the 10 constructors of 'ShelleyWitnessSigningKey' mean, but this one seemed most relevant...
+                      <$> []
+               in C.Tx txBody witnesses
+          )
+          $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
       cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
       txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
@@ -329,16 +343,26 @@ runTransactionValidation s parms ix reqSigners signers tx =
         Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
         Nothing -> Pl.insert txn ix
    in (idx', e, Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
+  where
+    txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+    txAddSignatureAPI w tx = case tx' of
+      Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx'') -> tx''
+      Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
+      -- looking at the implementation of Pl.addCardanoTxSignature
+      -- it never changes the constructor used, so the above branch
+      -- shall never happen
+      where
+        tx' = Pl.addCardanoTxSignature (walletSK w) (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
-validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> Pl.CardanoBuildTx -> MockChainT m Pl.SomeCardanoApiTx
-validateTx' reqSigs txData tx = do
+validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
+validateTx' reqSigs txData txBodyContent = do
   s <- currentSlot
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
+  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix reqSigs (NE.toList signers) txBodyContent
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -516,7 +540,7 @@ setFeeAndBalance balancePK skel0 = do
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
-            Debug.Trace.traceM $ "Reached fixpoint:"
+            Debug.Trace.traceM "Reached fixpoint:"
             Debug.Trace.traceM $ "- fee = " <> show fee
             Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
             pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
