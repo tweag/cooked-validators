@@ -254,7 +254,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Right txBodyContent -> do
         someCardanoTx <-
           validateTx'
-            (Pl.PaymentPubKeyHash <$> Set.toList (skel ^. txSkelRequiredSigners))
+            (Pl.PaymentPubKeyHash <$> Set.toList (skel ^. txSkelRequiredSigners)) -- TODO: also add all of the keys belonging to Pk inputs being consumed?
             (txSkelData skel)
             txBodyContent
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
@@ -321,14 +321,21 @@ runTransactionValidation s parms ix reqSigners signers txBodyContent =
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
+
+      requiredSignerPrivateKeys :: [PrivateKey]
+      requiredSignerPrivateKeys =
+        walletSK
+          <$> filter ((`elem` reqSigners) . Pl.PaymentPubKeyHash . walletPKHash) knownWallets
+
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
           ( \txBody ->
               let witnesses =
                     C.makeShelleyKeyWitness txBody
-                      . C.WitnessPaymentKey -- all signers sign with their 'WitnessPaymentKey' I've no idea what the 10 constructors of 'ShelleyWitnessSigningKey' mean, but this one seemed most relevant...
-                      <$> []
+                      . C.WitnessPaymentExtendedKey -- all signers sign with their 'WitnessPaymentExtendedKey' I've no idea what the 10 constructors of 'ShelleyWitnessSigningKey' mean, but this one seemed relevant, while tye types also worked out...
+                      . C.PaymentExtendedSigningKey
+                      <$> requiredSignerPrivateKeys
                in C.Tx txBody witnesses
           )
           $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
