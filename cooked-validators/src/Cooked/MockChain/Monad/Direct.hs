@@ -664,7 +664,7 @@ calcBalanceTx balanceStage balancePK skel = do
                   chosen' = chosen <> Set.singleton theChosenUtxo
                   theChosenValue = theChosenUtxo ^. spOutValue
                   theChosenDifference = missing <> Pl.negate theChosenValue
-                  excess' = negativePart theChosenDifference
+                  excess' = excess <> negativePart theChosenDifference
                   missing' = positivePart theChosenDifference
                in -- A remark on why the following line should not lead to an
                   -- infinite recursion: The value described by @missing'@ is
