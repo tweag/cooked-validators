@@ -56,7 +56,6 @@ import Optics.Core
 import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
-import qualified PlutusTx.Prelude as PlutusTx
 
 -- * Direct Emulation
 
@@ -482,7 +481,7 @@ setFeeAndBalance balancePK skel0 = do
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
-      let startingFee = Pl.lovelaceValueOf 3000000
+      let startingFee = 3000000
       calcFee 5 startingFee cUtxoIndex mockChainParams skel
         `catchError` \case
           -- Impossible to balance the transaction
@@ -492,7 +491,7 @@ setFeeAndBalance balancePK skel0 = do
             -- since we work on "TxSkel". However, for now, the
             -- implementation of "Pl.minFee" is a constant of 10 lovelace.
             -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
-            let minFee = Pl.lovelaceValueOf 10 -- forall tx. Pl.minFee tx = 10 lovelace
+            let minFee = 10 -- forall tx. Pl.minFee tx = 10 lovelace
              in calcFee 5 minFee cUtxoIndex mockChainParams skel
           -- Impossible to generate the Cardano transaction at all
           e -> throwError e
@@ -502,7 +501,7 @@ setFeeAndBalance balancePK skel0 = do
     calcFee ::
       (Monad m) =>
       Int ->
-      Pl.Value ->
+      Integer ->
       Pl.UTxO Pl.EmulatorEra ->
       Pl.Params ->
       TxSkel ->
@@ -523,14 +522,14 @@ setFeeAndBalance balancePK skel0 = do
             pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
           | n == 0 -> do
             Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-            pure attemptedSkel {_txSkelFee = newFee PlutusTx.\/ fee} -- maximum number of iterations
+            pure attemptedSkel {_txSkelFee = max newFee fee} -- maximum number of iterations
           | otherwise -> do
             Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
             calcFee (n - 1) newFee cUtxoIndex parms skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Pl.Value
+estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Integer
 estimateTxSkelFee params utxo managedData skel = do
   txBodyContent <- left MCEGenerationError $ generateTxBodyContent params managedData skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
@@ -542,7 +541,7 @@ estimateTxSkelFee params utxo managedData skel = do
       )
       $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
-    C.Lovelace fee -> pure $ Pl.lovelaceValueOf fee
+    C.Lovelace fee -> pure fee
 
 -- balanceTxFrom ::
 --   (Monad m) =>

@@ -29,6 +29,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (validatorHash)
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -681,7 +682,7 @@ data TxSkel where
       _txSkelIns :: Set InConstraint,
       _txSkelInsCollateral :: Set SpendableOut,
       _txSkelOuts :: [OutConstraint],
-      _txSkelFee :: Pl.Value
+      _txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
@@ -727,20 +728,21 @@ instance Semigroup TxSkel where
       (i1 <> i2)
       (c1 <> c2)
       (o1 ++ o2)
-      (f1 <> f2)
+      (f1 + f2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel
-    { _txSkelLabel = Set.empty,
-      _txSkelOpts = mempty,
-      _txSkelMints = Map.empty,
-      _txSkelValidityRange = Pl.always,
-      _txSkelRequiredSigners = Set.singleton $ walletPKHash $ wallet 1,
-      _txSkelIns = Set.empty,
-      _txSkelInsCollateral = Set.empty,
-      _txSkelOuts = [],
-      _txSkelFee = mempty
-    }
+  mempty =
+    TxSkel
+      { _txSkelLabel = Set.empty,
+        _txSkelOpts = mempty,
+        _txSkelMints = Map.empty,
+        _txSkelValidityRange = Pl.always,
+        _txSkelRequiredSigners = Set.singleton $ walletPKHash $ wallet 1,
+        _txSkelIns = Set.empty,
+        _txSkelInsCollateral = Set.empty,
+        _txSkelOuts = [],
+        _txSkelFee = 0
+      }
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -796,7 +798,7 @@ txSkelOutputValue :: TxSkel -> Pl.Value
 txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOuts % folded % outValue) skel
-    <> skel ^. txSkelFee
+    <> Pl.lovelaceValueOf (skel ^. txSkelFee)
 
 flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =

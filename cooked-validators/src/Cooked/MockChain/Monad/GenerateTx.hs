@@ -53,7 +53,7 @@ generateTxBodyContent theParams managedData skel = do
         -- WARN For now we are not dealing with collaterals
         C.txTotalCollateral = C.TxTotalCollateralNone, -- That's what plutus-apps does as well
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
-        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra mempty, -- That's what plutus-apps does as well
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ skel ^. txSkelFee,
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
