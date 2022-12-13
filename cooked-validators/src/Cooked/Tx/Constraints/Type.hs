@@ -263,6 +263,8 @@ applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnb
 --
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
+--
+-- TODO Refactor field names to avoid clashes on common terms such as "collateral" or "balance"
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
     --  has the necessary minimum amount of Ada.
