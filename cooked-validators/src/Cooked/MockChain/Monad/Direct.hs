@@ -320,13 +320,29 @@ runTransactionValidation s parms ix reqSigners signers txBodyContent =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
+
+      cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
 
       requiredSignerPrivateKeys :: [PrivateKey]
       requiredSignerPrivateKeys =
+        -- WARNING: This assumes that all 'reqSigners' are given by
+        -- 'knownWallets'. If you see some mysterious errors about missing
+        -- signers, this might be why. Possible fixes:
+        --
+        -- 1. Fail here, with a suitable error message, if one of the
+        --    'reqSigners' is not the 'PaymentPubKeyHash' of a 'knownWallet'
+        --
+        -- 2. (might be some work) somehow extract from (and in some cases
+        --    include on?) the 'TxSkel' the necessary information. This might be
+        --    a cleaner solution, because this way to do it "ties" 'TxSkel' to
+        --    the 'knownWallets' implicitly.
         walletSK
-          <$> filter ((`elem` reqSigners) . Pl.PaymentPubKeyHash . walletPKHash) knownWallets
+          <$> filter
+            ((`elem` reqSigners) . Pl.PaymentPubKeyHash . walletPKHash)
+            knownWallets
 
+      cardanoTx :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
