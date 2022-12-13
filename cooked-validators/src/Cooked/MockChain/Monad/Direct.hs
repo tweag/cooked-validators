@@ -28,6 +28,7 @@ import Control.Monad.State.Strict
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.GenerateTx (GenerateTxError (..), generateTxBodyContent)
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
@@ -42,6 +43,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Void (Void)
 import qualified Debug.Trace
 import GHC.Stack
 import qualified Ledger as Pl
@@ -245,11 +247,22 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    (firstSigner : _) <- pure $ toList $ skelUnbal ^. txSkelRequiredSigners
-    skel <- setFeeAndBalance firstSigner skelUnbal
+    (firstSignerPkh : _) <- pure $ toList $ skelUnbal ^. txSkelRequiredSigners
+    -- TODO We use the first signer as a default wallet for fees and
+    -- collaterals. These should become parameters of validateTxSkel in the
+    -- future
+    firstSigner <-
+      maybe
+        (fail "validateTxSkel: firstSigner is not a known wallet")
+        return
+        (Map.lookup firstSignerPkh (toPKHMap knownWallets))
+    let balancingWalletPkh = firstSignerPkh
+    let collateralWallet = firstSigner
+    skel <- setFeeAndBalance balancingWalletPkh skelUnbal
+    collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
     params <- params
     managedData <- gets mcstDatums
-    case generateTxBodyContent params managedData skel of
+    case generateTxBodyContent params managedData (skel { _txSkelInsCollateral = collateralInputs }) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         someCardanoTx <-
@@ -586,11 +599,10 @@ estimateTxSkelFee params utxo managedData skel = do
 --       else balanceTxFromAux bPol BalFinalizing w tx
 -- balanceTxFrom _ _ _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
 
-{-
 -- | Calculates the collateral for a transaction
 calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (Set SpendableOut)
 calcCollateral w col = do
-  orefs <- case col of
+  case col of
     -- We're given a specific utxo to use as collateral
     CollateralUtxos r -> return r
     -- We must pick them; we'll first select
@@ -598,9 +610,10 @@ calcCollateral w col = do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ Set.singleton $ (^. spOutTxOutRef) $ fst $ head souts
-  pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
--}
+      -- TODO We only keep one element of the list because we are limited on
+      -- how many collateral inputs a transaction can have. Should this be
+      -- investigated further for a better approach?
+      return $ Set.fromList $ take 1 (fst <$> souts)
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 balanceTxFromAux utxoPolicy stage balancePK txskel = do

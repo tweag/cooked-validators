@@ -186,9 +186,9 @@ instance Ord TxLabel where
 data Collateral
   = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
     CollateralAuto
-  | -- | Will use the 'Pl.TxOutRef's given in the set. The set can be empty, in
+  | -- | Will use the 'SpendableOut's given in the set. The set can be empty, in
     --  which case no collateral will be used whatsoever.
-    CollateralUtxos (Set Pl.TxOutRef)
+    CollateralUtxos (Set SpendableOut)
   deriving (Eq, Show)
 
 instance Default Collateral where
