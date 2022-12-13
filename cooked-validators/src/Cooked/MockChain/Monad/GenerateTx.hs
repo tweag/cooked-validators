@@ -10,8 +10,10 @@ import Cooked.Tx.Constraints.Type
 import Data.Bifunctor
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, validatorHash)
+import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -57,8 +59,12 @@ generateTxBodyContent theParams managedData skel = do
         -- fields have to change!
         C.txInsReference = C.TxInsReferenceNone,
         C.txOuts = txOuts,
-        -- WARN For now we are not dealing with collaterals
-        C.txTotalCollateral = C.TxTotalCollateralNone, -- That's what plutus-apps does as well
+        C.txTotalCollateral =
+          C.TxTotalCollateral
+            (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
+            (C.Lovelace . Pl.getLovelace . Pl.fromValue $
+              foldOf (txSkelInsCollateral % folded % spOutValue) skel),
+        -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
         C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ skel ^. txSkelFee,
         C.txValidityRange = txValidityRange,
