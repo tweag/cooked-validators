@@ -13,7 +13,6 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import Control.Arrow
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Wallet (wallet, walletPKHash)
@@ -799,6 +798,20 @@ txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOuts % folded % outValue) skel
     <> Pl.lovelaceValueOf (skel ^. txSkelFee)
+
+-- | All of the '_txSkelRequiredSigners', plus all of the signers required for
+-- PK inputs on the transaction
+txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
+txSkelAllSigners skel =
+  (skel ^. txSkelRequiredSigners)
+    <> foldMapOf
+      (txSkelIns % folded % input % afolding sBelongsToPubKey)
+      Set.singleton
+      skel
+
+-- * Utilities
+
+-- ** Working with 'Value's
 
 flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =
