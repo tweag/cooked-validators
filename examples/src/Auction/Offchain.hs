@@ -37,7 +37,7 @@ txOffer lot minBid = do
     validateTxSkel $
       mempty
         { _txSkelOpts = def {adjustUnbalTx = True},
-          _txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
+          _txSkelOuts = [paysScript A.auctionValidator {- (A.Offer seller minBid) -} A.ASDummy lot]
         }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
@@ -59,7 +59,8 @@ txSetDeadline offerUtxo deadline = do
   let lot = offerUtxo ^. spOutValue
       offerOref = offerUtxo ^. spOutTxOutRef
       theNft = A.threadToken offerOref
-  (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
+  -- (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
+  A.ASDummy <- spOutGetDatum @A.Auction offerUtxo
   validateTxSkel $
     mempty
       { _txSkelOpts =
@@ -84,17 +85,17 @@ txSetDeadline offerUtxo deadline = do
               A.auctionValidator
               A.SetDeadline
               offerUtxo,
-        _txSkelRequiredSigners = Set.singleton seller,
+        -- _txSkelRequiredSigners = Set.singleton seller,
         _txSkelOuts =
           [ paysScript
               A.auctionValidator
-              (A.NoBids seller minBid deadline)
+              A.ASDummy -- (A.NoBids seller minBid deadline)
               (lot <> theNft)
           ]
       }
 
 previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
-previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
+-- previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
@@ -124,7 +125,7 @@ txBid offerUtxo bid =
               _txSkelOuts =
                 paysScript
                   A.auctionValidator
-                  (A.Bidding seller deadline (A.BidderInfo bid bidder))
+                  A.ASDummy -- (A.Bidding seller deadline (A.BidderInfo bid bidder))
                   (utxo ^. spOutValue <> Ada.lovelaceValueOf bid) :
                 case previousBidder datum of
                   Nothing -> []
@@ -147,7 +148,8 @@ txHammer offerUtxo =
           scriptUtxosSuchThat
             A.auctionValidator
             (\_ x -> x `Value.geq` theNft)
-        (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
+        -- (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
+        A.ASDummy <- spOutGetDatum @A.Auction offerUtxo
         void $
           validateTxSkel $
             mempty
@@ -162,11 +164,11 @@ txHammer offerUtxo =
                         Set.singleton $
                           SpendsScript A.auctionValidator (A.Hammer offerOref) offerUtxo,
                       _txSkelOuts =
-                        [ paysPK
+                        [ {- paysPK
                             seller
-                            (offerUtxo ^. spOutValue)
-                        ],
-                      _txSkelRequiredSigners = Set.singleton seller
+                            (offerUtxo ^. spOutValue) -}
+                        ]
+                      -- _txSkelRequiredSigners = Set.singleton seller
                     }
                 (utxo, datum) : _ ->
                   -- There is a thread token, so the auction is in 'NoBids' or
@@ -194,13 +196,13 @@ txHammer offerUtxo =
                             case previousBidder datum of
                               Nothing ->
                                 let lot = utxo ^. spOutValue <> Pl.negate theNft
-                                 in [paysPK seller lot]
+                                 in [] -- [paysPK seller lot]
                               Just (lastBid, lastBidder) ->
                                 let lot =
                                       utxo ^. spOutValue
                                         <> Pl.negate (Ada.lovelaceValueOf lastBid)
                                         <> Pl.negate theNft
-                                 in [ paysPK lastBidder lot,
-                                      paysPK seller (Ada.lovelaceValueOf lastBid)
+                                 in [ paysPK lastBidder lot-- ,
+                                      -- paysPK seller (Ada.lovelaceValueOf lastBid)
                                     ]
                         }
