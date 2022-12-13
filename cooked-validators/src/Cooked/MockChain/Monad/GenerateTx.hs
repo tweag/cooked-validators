@@ -41,6 +41,13 @@ generateTxBodyContent theParams managedData skel = do
       . Pl.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
       $ skel ^. txSkelValidityRange
   txMintValue <- txSkelMintsToTxMintValue $ skel ^. txSkelMints
+  txExtraKeyWits <-
+    bimap
+      (ToCardanoError "translating the required signers")
+      (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
+      $ mapM
+        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash)
+        (Set.toList $ skel ^. txSkelRequiredSigners)
   Right $
     C.TxBodyContent
       { C.txIns = txIns,
@@ -57,7 +64,7 @@ generateTxBodyContent theParams managedData skel = do
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
-        C.txExtraKeyWits = C.TxExtraKeyWitnessesNone, -- That's what plutus-apps does as well
+        C.txExtraKeyWits = txExtraKeyWits,
         C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
         C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
         C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
