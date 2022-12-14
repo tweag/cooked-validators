@@ -82,7 +82,6 @@ data MockChainBuiltin a where
     (Maybe a -> Pl.Value -> Bool) ->
     MockChainBuiltin [(SpendableOut, Maybe a)]
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
-  OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   -- the following are only available in MonadMockChain, not MonadBlockChain:
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
   AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
@@ -157,7 +156,6 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
   interpBuiltin (UtxosSuchThisAndThat apred dpred) = utxosSuchThisAndThat apred dpred
   interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetParams = params
   interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
@@ -208,7 +206,6 @@ instance MonadBlockChain StagedMockChain where
   utxosSuchThisAndThat apred dpred = singletonBuiltin (UtxosSuchThisAndThat apred dpred)
   datumFromHash = singletonBuiltin . DatumFromHash
   txOutByRef = singletonBuiltin . TxOutByRef
-  ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot
   currentTime = singletonBuiltin GetCurrentTime
   awaitSlot = singletonBuiltin . AwaitSlot

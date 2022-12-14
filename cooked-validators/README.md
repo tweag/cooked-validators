@@ -42,6 +42,7 @@ datum which we're a recipient of.
 ```haskell
 txUnlock :: (MonadBlockChain m) => m ()
 txUnlock = do
+  -- TODO rewrite the example to not rely on ownPaymentPubKeyHash
   pkh <- ownPaymentPubKeyHash
   (output, datum@(Split.SplitDatum r1 r2 amount)) : _ <-
     scriptUtxosSuchThat splitValidator (isARecipient pkh)

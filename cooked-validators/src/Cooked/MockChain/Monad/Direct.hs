@@ -269,8 +269,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
 
-  ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
-
   utxosSuchThat = utxosSuchThat'
 
   utxosSuchThisAndThat = utxosSuchThisAndThat'

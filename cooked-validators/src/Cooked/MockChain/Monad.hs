@@ -79,11 +79,6 @@ class (MonadFail m) => MonadBlockChain m where
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
-  -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
-  --  this is a proxy to 'Pl.ownPubKey'; when running in mock mode, the return value can be
-  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
-  ownPaymentPubKeyHash :: m Pl.PubKeyHash
-
   -- | Returns the current slot number
   currentSlot :: m Pl.Slot
 
@@ -324,7 +319,6 @@ instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
   datumFromHash = lift . datumFromHash
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   txOutByRef = lift . txOutByRef
   currentSlot = lift currentSlot
   currentTime = lift currentTime
