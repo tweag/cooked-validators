@@ -31,7 +31,6 @@ import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
 import qualified Prelude as Haskell
-import Cooked.MockChain.Wallet
 
 {-
 
@@ -155,7 +154,6 @@ instance Eq BidderInfo where
 
 -- | The state of the auction. This will be the 'DatumType'.
 data AuctionState
-  {-
   = -- | state of an auction where an offer has already been made. The address
     -- is the seller's, the integer is the minimum bid in Lovelaces.
     Offer Pl.PubKeyHash Integer
@@ -165,38 +163,27 @@ data AuctionState
   | -- | state of an auction with a given seller and deadline that has had at
     -- least one bid.
     Bidding Pl.PubKeyHash Pl.POSIXTime BidderInfo
-    -}
-  = ASDummy
   deriving (Haskell.Show)
 
 getSeller :: AuctionState -> Pl.PubKeyHash
-getSeller _ = walletPKHash $ wallet 1
-  {-
 getSeller (Offer s _) = s
 getSeller (NoBids s _ _) = s
 getSeller (Bidding s _ _) = s
--}
 
 getBidDeadline :: AuctionState -> Maybe Pl.POSIXTime
-getBidDeadline _ = Nothing
-  {-
 getBidDeadline (Offer _ _) = Nothing
 getBidDeadline (NoBids _ _ t) = Just t
 getBidDeadline (Bidding _ t _) = Just t
--}
 
 PlutusTx.makeLift ''AuctionState
 PlutusTx.unstableMakeIsData ''AuctionState
 
 instance Eq AuctionState where
   {-# INLINEABLE (==) #-}
-    {-
   Offer s m == Offer s' m' = s == s' && m == m'
   NoBids s m t == NoBids s' m' t' = s == s' && m == m' && t == t'
   Bidding s t b == Bidding s' t' b' = s == s' && t == t' && b == b'
   _ == _ = False
-  -}
-  _ == _ = True
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
 data Action
@@ -345,7 +332,7 @@ receivesFrom txi who what = Pl.valuePaidTo txi who `Value.geq` what
 -- * sign the transaction as the seller
 {-# INLINEABLE validSetDeadline #-}
 validSetDeadline :: Pl.CurrencySymbol -> AuctionState -> Pl.ScriptContext -> Bool
-validSetDeadline threadCS datum ctx = True {-
+validSetDeadline threadCS datum ctx =
   let txi = Pl.scriptContextTxInfo ctx
    in case datum of
         Offer seller minbid ->
@@ -368,7 +355,6 @@ validSetDeadline threadCS datum ctx = True {-
                   )
         NoBids {} -> trace "Cannot re-set the deadline in 'NoBids' state" False
         Bidding {} -> trace "Cannot re-set the deadline in 'Bidding' state" False
-        -}
 
 -- | A new bid is valid if
 -- * it is made before the bidding deadline
@@ -388,7 +374,6 @@ validBid datum bid bidder ctx =
           "Bidding past the deadline is not permitted"
           (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
           && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
-            {-
       checkLocked seller deadline v =
         traceIfFalse
           "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
@@ -399,8 +384,7 @@ validBid datum bid bidder ctx =
               )
               (Pl.getContinuingOutputs ctx)
           )
-          -}
-   in True {- case datum of
+   in case datum of
         Offer {} -> trace "Cannot bid on an auction that hasn't yet got a deadline" False
         NoBids seller minBid deadline ->
           checkDeadlineAndSignature deadline
@@ -435,7 +419,6 @@ validBid datum bid bidder ctx =
             traceIfFalse
               "Last bidder is not paid back"
               (receivesFrom txi prevBidder $ Ada.lovelaceValueOf prevBid)
-              -}
 
 -- | A hammer ends the auction. It is valid if
 -- * it is made after the bidding deadline
@@ -460,7 +443,7 @@ validHammer threadCS datum offerOref ctx =
           && traceIfFalse
             "Hammer does not burn exactly one thread token"
             threadTokenIsBurned
-   in True {- case datum of
+   in case datum of
         Offer seller _minbid ->
           traceIfFalse "Seller must sign the hammer to withdraw the offer" (txi `Pl.txSignedBy` seller)
             && traceIfFalse "Seller must get the offer back" (seller `receives` lockedValue)
@@ -481,7 +464,6 @@ validHammer threadCS datum offerOref ctx =
             && traceIfFalse
               "Seller must get the last bid"
               (seller `receives` Ada.lovelaceValueOf lastBid)
-              -}
 
 {-# INLINEABLE validate #-}
 validate :: ValParams -> AuctionState -> Action -> Pl.ScriptContext -> Bool
