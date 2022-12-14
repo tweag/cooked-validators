@@ -65,7 +65,7 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
-  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
+  ValidateTxSkel :: Wallet -> [Wallet] -> TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
@@ -83,8 +83,6 @@ data MockChainBuiltin a where
     MockChainBuiltin [(SpendableOut, Maybe a)]
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   -- the following are only available in MonadMockChain, not MonadBlockChain:
-  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
-  AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
   GetParams :: MockChainBuiltin Pl.Params
   LocalParams :: (Pl.Params -> Pl.Params) -> StagedMockChain a -> MockChainBuiltin a
   -- the following are not strictly blockchain specific, but they allow us to
@@ -125,7 +123,7 @@ instance MonadPlus m => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
-  interpBuiltin (ValidateTxSkel skel) =
+  interpBuiltin (ValidateTxSkel src wallets skel) =
     get
       >>= msum
         . map (uncurry interpretAndTell)
@@ -140,14 +138,12 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
         msum $
           map
             ( \(skel', _) -> do
-                signers <- askSigners
-                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-                tx <- validateTxSkel skel'
+                lift $ lift $ tell $ prettyMockChainOp $ Builtin $ ValidateTxSkel src wallets skel'
+                tx <- validateTxSkel src wallets skel'
                 put later
                 return tx
             )
             (now mcst skel)
-  interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
@@ -156,15 +152,11 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
   interpBuiltin (UtxosSuchThisAndThat apred dpred) = utxosSuchThisAndThat apred dpred
   interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin AskSigners = askSigners
   interpBuiltin GetParams = params
   interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
-  interpBuiltin (Fail msg) = do
-    signers <- askSigners
-    lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ Fail msg
-    fail msg
+  interpBuiltin (Fail msg) = fail msg
 
 -- ** Modalities
 
@@ -201,7 +193,9 @@ singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
 instance MonadBlockChain StagedMockChain where
-  validateTxSkel = singletonBuiltin . ValidateTxSkel
+  type BalanceAndCollateralSource StagedMockChain = Wallet
+
+  validateTxSkel s ws = singletonBuiltin . ValidateTxSkel s ws
   utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
   utxosSuchThisAndThat apred dpred = singletonBuiltin (UtxosSuchThisAndThat apred dpred)
   datumFromHash = singletonBuiltin . DatumFromHash
@@ -212,8 +206,6 @@ instance MonadBlockChain StagedMockChain where
   awaitTime = singletonBuiltin . AwaitTime
 
 instance MonadMockChain StagedMockChain where
-  signingWith ws act = singletonBuiltin (SigningWith ws act)
-  askSigners = singletonBuiltin AskSigners
   params = singletonBuiltin GetParams
   localParams f act = singletonBuiltin (LocalParams f act)
 
@@ -221,14 +213,14 @@ instance MonadMockChain StagedMockChain where
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
-prettyMockChainOp signers (Builtin (ValidateTxSkel skel)) =
+prettyMockChainOp :: MockChainOp a -> TraceDescr
+prettyMockChainOp (Builtin (ValidateTxSkel s ws skel)) =
   trSingleton $
     PP.hang 2 $
-      PP.vsep ["ValidateTxSkel", prettyTxSkel (NE.toList signers) skel]
-prettyMockChainOp _ (Builtin (Fail reason)) =
+      PP.vsep ["ValidateTxSkel", prettyTxSkel (s : ws) skel]
+prettyMockChainOp (Builtin (Fail reason)) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ _ = mempty
+prettyMockChainOp _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).

@@ -3,7 +3,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -25,7 +24,6 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Function (on)
 import Data.Kind
-import qualified Data.List.NonEmpty as NE
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
@@ -50,13 +48,19 @@ import qualified PlutusTx as Pl (FromData (fromBuiltinData))
 -- 'Plutus.Contract.Contract' monad to generate and submit transactions and to
 -- test the code by running it in the 'Cooked.MockChain.Monad.Direct.MockChain' monad, provided in this library.
 class (MonadFail m) => MonadBlockChain m where
+  type BalanceAndCollateralSource m :: *
+
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
   --  To balance a transaction, we need access to the current UTxO state to choose
   --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
-  validateTxSkel :: TxSkel -> m Pl.CardanoTx
+  validateTxSkel ::
+    BalanceAndCollateralSource m ->   -- the source of funds for balancing and collateral (will also be a signer)
+    [Wallet] ->                       -- the list of additional signers
+    TxSkel ->                         -- the transaction to validate
+    m Pl.CardanoTx
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -269,13 +273,6 @@ waitNMilliSeconds n = do
 -- Changing the set of wallets that sign a transaction has no interpretation
 -- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
 class (MonadBlockChain m) => MonadMockChain m where
-  -- | Sets a list of wallets that will sign every transaction emitted
-  --  in the respective block
-  signingWith :: NE.NonEmpty Wallet -> m a -> m a
-
-  -- | Returns the current set of signing wallets.
-  askSigners :: m (NE.NonEmpty Wallet)
-
   -- | Returns the protocol parameters of the mock chain, which includes
   -- the slot config.
   params :: m Pl.Params
@@ -283,13 +280,7 @@ class (MonadBlockChain m) => MonadMockChain m where
   -- | Modify the parameters according to some function
   localParams :: (Pl.Params -> Pl.Params) -> m a -> m a
 
--- | Runs a given block of computations signing transactions as @w@.
-as :: (MonadMockChain m) => m a -> Wallet -> m a
-as ma w = signingWith (w NE.:| []) ma
-
--- | Flipped version of 'as'
-signs :: (MonadMockChain m) => Wallet -> m a -> m a
-signs = flip as
+type MonadWalletMockChain m = (BalanceAndCollateralSource m ~ Wallet, MonadMockChain m)
 
 -- | Return the 'Pl.SlotConfig' contained within the current 'Pl.Params'
 slotConfig :: (MonadMockChain m) => m Pl.SlotConfig
@@ -315,7 +306,9 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
+  type BalanceAndCollateralSource (AsTrans t m) = BalanceAndCollateralSource m
+
+  validateTxSkel s ws = lift . validateTxSkel s ws
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
   datumFromHash = lift . datumFromHash
@@ -331,8 +324,6 @@ unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (St
 f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 
 instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
-  askSigners = lift askSigners
   params = lift params
   localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
 

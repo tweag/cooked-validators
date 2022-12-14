@@ -50,24 +50,23 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 testInit :: InitialDistribution
 testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
 
-foo :: MonadMockChain m => m ()
+foo :: MonadWalletMockChain m => m ()
 foo = do
   (utxo, _) : _ <- pkUtxosSuchThat @() (walletPKHash $ wallet 1) (\_ _ -> True)
   tx <-
-    validateTxSkel $
+    validateTxSkel (wallet 1) [] $
       mempty
         { _txSkelOpts = def {adjustUnbalTx = True},
           _txSkelIns = Set.singleton $ SpendsPK utxo,
           _txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
         }
   o : _ <- spOutsFromCardanoTx tx
-  validateTxSkel
+  validateTxSkel (wallet 2) []
     mempty
       { _txSkelOpts = def {adjustUnbalTx = True},
         _txSkelIns = Set.singleton $ SpendsPK o,
         _txSkelOuts = [paysPK (walletPKHash $ wallet 3) (Ada.lovelaceValueOf 5_000_000)]
       }
-    `as` wallet 2
   return ()
 
 -- * Successful single-trace runs
@@ -75,58 +74,58 @@ foo = do
 -- These runs use the transactions from Auction.Offchain as they are meant to be
 -- used.
 
-hammerToWithdraw :: MonadMockChain m => m ()
+hammerToWithdraw :: MonadWalletMockChain m => m ()
 hammerToWithdraw = do
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txHammer offerUtxo `as` wallet 1
+  A.txHammer offerUtxo (wallet 1)
 
-noBids :: MonadMockChain m => m ()
+noBids :: MonadWalletMockChain m => m ()
 noBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo deadline
+  A.txSetDeadline offerUtxo deadline (wallet 1)
   awaitTime (deadline + 1)
-  A.txHammer offerUtxo
+  A.txHammer offerUtxo (wallet 1)
   return ()
 
-oneBid :: MonadMockChain m => m ()
+oneBid :: MonadWalletMockChain m => m ()
 oneBid = do
   t0 <- currentTime
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo deadline
+  A.txSetDeadline offerUtxo deadline (wallet 1)
   A.txBid offerUtxo 30_000_000 (wallet 2)
   awaitTime (deadline + 1)
-  A.txHammer offerUtxo
+  A.txHammer offerUtxo (wallet 1)
 
-twoBids :: MonadMockChain m => m ()
+twoBids :: MonadWalletMockChain m => m ()
 twoBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo deadline
+  A.txSetDeadline offerUtxo deadline (wallet 1)
   A.txBid offerUtxo 30_000_000 (wallet 2)
   A.txBid offerUtxo 40_000_000 (wallet 3)
   awaitTime (deadline + 1)
-  A.txHammer offerUtxo
+  A.txHammer offerUtxo (wallet 1)
 
-twoAuctions :: MonadMockChain m => m ()
+twoAuctions :: MonadWalletMockChain m => m ()
 twoAuctions = do
   t0 <- currentTime
   let deadline1 = t0 + 60_000
       deadline2 = t0 + 90_000
   offerUtxo1 <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   offerUtxo2 <- A.txOffer (banana 3) 50_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo1 deadline1
-  A.txSetDeadline offerUtxo2 deadline2
+  A.txSetDeadline offerUtxo1 deadline1 (wallet 1)
+  A.txSetDeadline offerUtxo2 deadline2 (wallet 1)
   A.txBid offerUtxo1 30_000_000 (wallet 2)
   A.txBid offerUtxo2 50_000_000 (wallet 3)
   A.txBid offerUtxo2 60_000_000 (wallet 4)
   awaitTime (deadline1 + 1)
-  A.txHammer offerUtxo1
+  A.txHammer offerUtxo1 (wallet 1)
   awaitTime (deadline2 + 1)
-  A.txHammer offerUtxo2
+  A.txHammer offerUtxo2 (wallet 1)
 
 -- | helper function to compute what the given wallet owns in the
 -- given state
@@ -160,26 +159,26 @@ successfulSingle =
 
 -- * Failing single-trace runs
 
-failingOffer :: MonadMockChain m => m ()
+failingOffer :: MonadWalletMockChain m => m ()
 failingOffer =
   void $
     A.txOffer (banana 100) 20_000_000 (wallet 2)
 
-forbiddenHammerToWithdraw :: MonadMockChain m => m ()
+forbiddenHammerToWithdraw :: MonadWalletMockChain m => m ()
 forbiddenHammerToWithdraw = do
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txHammer offerUtxo `as` wallet 2
+  A.txHammer offerUtxo (wallet 2)
 
-failingTwoBids :: MonadMockChain m => m ()
+failingTwoBids :: MonadWalletMockChain m => m ()
 failingTwoBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo deadline
+  A.txSetDeadline offerUtxo deadline (wallet 1)
   A.txBid offerUtxo 30_000_000 (wallet 2)
   A.txBid offerUtxo 30_000_000 (wallet 3)
   awaitTime (deadline + 1)
-  A.txHammer offerUtxo
+  A.txHammer offerUtxo (wallet 1)
 
 failingSingle :: TestTree
 failingSingle =
@@ -479,15 +478,15 @@ failingSingle =
 -- auction was. Then test that the sellers and buyers in both "worlds" have paid
 -- the same amounts.
 
-bidderAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
+bidderAlternativeTrace :: (Alternative m, MonadWalletMockChain m) => m ()
 bidderAlternativeTrace = do
   t0 <- currentTime
   let deadline = t0 + 60_000
   offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
-  A.txSetDeadline offerUtxo deadline
+  A.txSetDeadline offerUtxo deadline (wallet 1)
   A.txBid offerUtxo 30_000_000 (wallet 2) <|> A.txBid offerUtxo 30_000_000 (wallet 3)
   awaitTime (deadline + 1)
-  A.txHammer offerUtxo
+  A.txHammer offerUtxo (wallet 1)
 
 bidderAlternative :: TestTree
 bidderAlternative =

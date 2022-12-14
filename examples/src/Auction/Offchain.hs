@@ -1,6 +1,8 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Auction.Offchain where
@@ -29,15 +31,15 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- 'Offer' datum to specify the seller of the auction.
 --
 -- This transaction returns the 'SpendableOut' of the 'Offer' UTxO it creates.
-txOffer :: MonadMockChain m => L.Value -> Integer -> Wallet -> m SpendableOut
+txOffer :: MonadWalletMockChain m => L.Value -> Integer -> Wallet -> m SpendableOut
 txOffer lot minBid sellerWallet = do
   -- oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
   tx <-
-    validateTxSkel
+    validateTxSkel sellerWallet []
       mempty
         { _txSkelOpts = def {adjustUnbalTx = True},
           _txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
-        } `as` sellerWallet
+        }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
   -- newUtxo : _ <- scriptUtxosSuchThat A.auctionValidator (\d x -> d Pl.== A.Offer seller minBid && x `Value.geq` lot)
@@ -51,17 +53,25 @@ txOffer lot minBid sellerWallet = do
   where
     seller = walletPKHash sellerWallet
 
+checkWallet :: Monad m => L.PubKeyHash -> Wallet -> m ()
+checkWallet pkh w
+  | pkh /= walletPkh = error $ "wrong wallet arg: got " <> show walletPkh <> "; expected " <> show w
+  | otherwise = pure ()
+  where
+    walletPkh = walletPKHash w
+
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
 -- validator. It also mints the thread NFT that ensures the authenticity of the
 -- auction from that point on.
-txSetDeadline :: MonadBlockChain m => SpendableOut -> L.POSIXTime -> m Pl.CardanoTx
-txSetDeadline offerUtxo deadline = do
+txSetDeadline :: MonadWalletMockChain m => SpendableOut -> L.POSIXTime -> Wallet -> m Pl.CardanoTx
+txSetDeadline offerUtxo deadline sellerWallet = do
   let lot = offerUtxo ^. spOutValue
       offerOref = offerUtxo ^. spOutTxOutRef
       theNft = A.threadToken offerOref
   (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
-  validateTxSkel $
+  checkWallet seller sellerWallet -- TODO is there a better way?
+  validateTxSkel sellerWallet [] $
     mempty
       { _txSkelOpts =
           def
@@ -100,7 +110,7 @@ previousBidder _ = Nothing
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
-txBid :: MonadMockChain m => SpendableOut -> Integer -> Wallet -> m L.CardanoTx
+txBid :: MonadWalletMockChain m => SpendableOut -> Integer -> Wallet -> m L.CardanoTx
 txBid offerUtxo bid bidderWallet =
   let theNft = A.threadToken $ offerUtxo ^. spOutTxOutRef
       bidder = walletPKHash bidderWallet
@@ -113,7 +123,7 @@ txBid offerUtxo bid bidderWallet =
         -- we're at least in 'NoBids' state.
         let deadline = fromJust $ A.getBidDeadline datum
             seller = A.getSeller datum
-        validateTxSkel
+        validateTxSkel bidderWallet []
           mempty
             { _txSkelOpts = def {adjustUnbalTx = True},
               _txSkelIns =
@@ -133,14 +143,14 @@ txBid offerUtxo bid bidderWallet =
                     [paysPK prevBidder (Ada.lovelaceValueOf prevBid)],
               _txSkelValidityRange = Interval.to (deadline - 1),
               _txSkelRequiredSigners = Set.singleton bidder
-            } `as` bidderWallet
+            }
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
 -- will pay the lot to the last bidder and the last bid to the
 -- seller. Otherwise, the seller will receive the lot back. This transaction
 -- also burns the thread token.
-txHammer :: MonadBlockChain m => SpendableOut -> m ()
-txHammer offerUtxo =
+txHammer :: MonadWalletMockChain m => SpendableOut -> Wallet -> m ()
+txHammer offerUtxo sellerWallet =
   let offerOref = offerUtxo ^. spOutTxOutRef
       theNft = A.threadToken offerOref
    in do
@@ -149,8 +159,9 @@ txHammer offerUtxo =
             A.auctionValidator
             (\_ x -> x `Value.geq` theNft)
         (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
+        -- checkWallet seller sellerWallet
         void $
-          validateTxSkel $
+          validateTxSkel sellerWallet [] $
             mempty
               { _txSkelOpts = def {adjustUnbalTx = True}
               }

@@ -246,13 +246,12 @@ utxoIndex0 = utxoIndex0From def
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal = do
-    -- TODO We use the first signer as a default wallet for fees and
-    -- collaterals. These should become parameters of validateTxSkel in the
-    -- future
-    firstSigner NE.:| _ <- askSigners
-    let balancingWalletPkh = walletPKHash firstSigner
-    let collateralWallet = firstSigner
+  type BalanceAndCollateralSource (MockChainT m) = Wallet
+
+  validateTxSkel bcWallet moreSigners skelUnbal = do
+    let balancingWalletPkh = walletPKHash bcWallet
+        collateralWallet = bcWallet
+        allSigners = NE.nub (bcWallet NE.:| moreSigners) -- TODO also use skelUnbal's signers?
     skel <- setFeeAndBalance balancingWalletPkh skelUnbal
     collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
     params <- params
@@ -262,6 +261,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Right txBodyContent -> do
         someCardanoTx <-
           validateTx'
+            allSigners
             (txSkelData skel)
             txBodyContent
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
@@ -287,10 +287,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     return $ Pl.slotToBeginPOSIXTime sc s
 
 instance (Monad m) => MonadMockChain (MockChainT m) where
-  signingWith ws = local $ \env -> env {mceSigners = ws}
-
-  askSigners = asks mceSigners
-
   params = asks mceParams
 
   localParams f = local (\e -> e {mceParams = f (mceParams e)})
@@ -359,12 +355,11 @@ runTransactionValidation slot parms ix signers txBodyContent =
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
-validateTx' :: (Monad m) => Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
-validateTx' txData txBodyContent = do
+validateTx' :: (Monad m) => NE.NonEmpty Wallet -> Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
+validateTx' signers txData txBodyContent = do
   s <- currentSlot
   ix <- gets mcstIndex
   ps <- asks mceParams
-  signers <- askSigners
   let (ix', status, someCardanoTx) = runTransactionValidation s ps ix (NE.toList signers) txBodyContent
   -- case trace (show $ snd res) $ fst res of
   case status of
