@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
@@ -78,14 +77,14 @@ foo = do
 
 hammerToWithdraw :: MonadMockChain m => m ()
 hammerToWithdraw = do
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txHammer offerUtxo `as` wallet 1
 
 noBids :: MonadMockChain m => m ()
 noBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txSetDeadline offerUtxo deadline
   awaitTime (deadline + 1)
   A.txHammer offerUtxo
@@ -95,9 +94,9 @@ oneBid :: MonadMockChain m => m ()
 oneBid = do
   t0 <- currentTime
   let deadline = t0 + 60_000
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txSetDeadline offerUtxo deadline
-  A.txBid offerUtxo 30_000_000 `as` wallet 2
+  A.txBid offerUtxo 30_000_000 (wallet 2)
   awaitTime (deadline + 1)
   A.txHammer offerUtxo
 
@@ -105,10 +104,10 @@ twoBids :: MonadMockChain m => m ()
 twoBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txSetDeadline offerUtxo deadline
-  A.txBid offerUtxo 30_000_000 `as` wallet 2
-  A.txBid offerUtxo 40_000_000 `as` wallet 3
+  A.txBid offerUtxo 30_000_000 (wallet 2)
+  A.txBid offerUtxo 40_000_000 (wallet 3)
   awaitTime (deadline + 1)
   A.txHammer offerUtxo
 
@@ -117,13 +116,13 @@ twoAuctions = do
   t0 <- currentTime
   let deadline1 = t0 + 60_000
       deadline2 = t0 + 90_000
-  offerUtxo1 <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
-  offerUtxo2 <- A.txOffer (banana 3) 50_000_000 `as` wallet 1
+  offerUtxo1 <- A.txOffer (banana 2) 30_000_000 (wallet 1)
+  offerUtxo2 <- A.txOffer (banana 3) 50_000_000 (wallet 1)
   A.txSetDeadline offerUtxo1 deadline1
   A.txSetDeadline offerUtxo2 deadline2
-  A.txBid offerUtxo1 30_000_000 `as` wallet 2
-  A.txBid offerUtxo2 50_000_000 `as` wallet 3
-  A.txBid offerUtxo2 60_000_000 `as` wallet 4
+  A.txBid offerUtxo1 30_000_000 (wallet 2)
+  A.txBid offerUtxo2 50_000_000 (wallet 3)
+  A.txBid offerUtxo2 60_000_000 (wallet 4)
   awaitTime (deadline1 + 1)
   A.txHammer offerUtxo1
   awaitTime (deadline2 + 1)
@@ -164,21 +163,21 @@ successfulSingle =
 failingOffer :: MonadMockChain m => m ()
 failingOffer =
   void $
-    A.txOffer (banana 100) 20_000_000 `as` wallet 2
+    A.txOffer (banana 100) 20_000_000 (wallet 2)
 
 forbiddenHammerToWithdraw :: MonadMockChain m => m ()
 forbiddenHammerToWithdraw = do
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txHammer offerUtxo `as` wallet 2
 
 failingTwoBids :: MonadMockChain m => m ()
 failingTwoBids = do
   t0 <- currentTime
   let deadline = t0 + 60_000
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txSetDeadline offerUtxo deadline
-  A.txBid offerUtxo 30_000_000 `as` wallet 2
-  A.txBid offerUtxo 30_000_000 `as` wallet 3
+  A.txBid offerUtxo 30_000_000 (wallet 2)
+  A.txBid offerUtxo 30_000_000 (wallet 3)
   awaitTime (deadline + 1)
   A.txHammer offerUtxo
 
@@ -484,9 +483,9 @@ bidderAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
 bidderAlternativeTrace = do
   t0 <- currentTime
   let deadline = t0 + 60_000
-  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 (wallet 1)
   A.txSetDeadline offerUtxo deadline
-  A.txBid offerUtxo 30_000_000 `as` wallet 2 <|> A.txBid offerUtxo 30_000_000 `as` wallet 3
+  A.txBid offerUtxo 30_000_000 (wallet 2) <|> A.txBid offerUtxo 30_000_000 (wallet 3)
   awaitTime (deadline + 1)
   A.txHammer offerUtxo
 

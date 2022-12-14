@@ -29,16 +29,15 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- 'Offer' datum to specify the seller of the auction.
 --
 -- This transaction returns the 'SpendableOut' of the 'Offer' UTxO it creates.
-txOffer :: MonadBlockChain m => L.Value -> Integer -> m SpendableOut
-txOffer lot minBid = do
+txOffer :: MonadMockChain m => L.Value -> Integer -> Wallet -> m SpendableOut
+txOffer lot minBid sellerWallet = do
   -- oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
-  seller <- ownPaymentPubKeyHash
   tx <-
-    validateTxSkel $
+    validateTxSkel
       mempty
         { _txSkelOpts = def {adjustUnbalTx = True},
           _txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
-        }
+        } `as` sellerWallet
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
   -- newUtxo : _ <- scriptUtxosSuchThat A.auctionValidator (\d x -> d Pl.== A.Offer seller minBid && x `Value.geq` lot)
@@ -49,6 +48,8 @@ txOffer lot minBid = do
   return $
     -- Debug.trace (show tx) $
     head $ filter (isJust . sBelongsToScript) outputs
+  where
+    seller = walletPKHash sellerWallet
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
@@ -99,11 +100,11 @@ previousBidder _ = Nothing
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
-txBid :: MonadBlockChain m => SpendableOut -> Integer -> m L.CardanoTx
-txBid offerUtxo bid =
+txBid :: MonadMockChain m => SpendableOut -> Integer -> Wallet -> m L.CardanoTx
+txBid offerUtxo bid bidderWallet =
   let theNft = A.threadToken $ offerUtxo ^. spOutTxOutRef
+      bidder = walletPKHash bidderWallet
    in do
-        bidder <- ownPaymentPubKeyHash
         [(utxo, datum)] <-
           scriptUtxosSuchThat
             A.auctionValidator
@@ -112,7 +113,7 @@ txBid offerUtxo bid =
         -- we're at least in 'NoBids' state.
         let deadline = fromJust $ A.getBidDeadline datum
             seller = A.getSeller datum
-        validateTxSkel $
+        validateTxSkel
           mempty
             { _txSkelOpts = def {adjustUnbalTx = True},
               _txSkelIns =
@@ -132,7 +133,7 @@ txBid offerUtxo bid =
                     [paysPK prevBidder (Ada.lovelaceValueOf prevBid)],
               _txSkelValidityRange = Interval.to (deadline - 1),
               _txSkelRequiredSigners = Set.singleton bidder
-            }
+            } `as` bidderWallet
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
 -- will pay the lot to the last bidder and the last bid to the
