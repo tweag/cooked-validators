@@ -335,7 +335,7 @@ runTransactionValidation slot parms ix signers txBodyContent =
           (error . ("Error building Cardano Tx: " <>) . show)
           (flip C.Tx [])
           $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
-      cardanoTxSigned = Debug.Trace.traceShowId $ L.foldl' (flip txAddSignatureAPI) cardanoTx signers
+      cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
       txn :: Pl.CardanoTx
       txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
