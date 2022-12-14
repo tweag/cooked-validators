@@ -738,7 +738,7 @@ instance Monoid TxSkel where
         _txSkelOpts = mempty,
         _txSkelMints = Map.empty,
         _txSkelValidityRange = Pl.always,
-        _txSkelRequiredSigners = Set.singleton $ walletPKHash $ wallet 1,
+        _txSkelRequiredSigners = Set.empty,
         _txSkelIns = Set.empty,
         _txSkelInsCollateral = Set.empty,
         _txSkelOuts = [],
