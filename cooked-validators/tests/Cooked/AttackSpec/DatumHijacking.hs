@@ -62,9 +62,8 @@ lockTxSkel o v =
     (def {adjustUnbalTx = True})
     ([SpendsPK o] :=>: [paysScript v FirstLock lockValue])
 
-txLock :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
-txLock v = do
-  me <- ownPaymentPubKeyHash
+txLock :: MonadBlockChain m => L.PubKeyHash -> L.TypedValidator MockContract -> m ()
+txLock me v = do
   utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
   void $ validateTxSkel $ lockTxSkel utxo v
 
@@ -137,7 +136,7 @@ carelessValidator =
 
 datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do
-  txLock v
+  txLock (wallet 1) v
   txRelock v
 
 -- * TestTree for the datum hijacking attack
