@@ -550,6 +550,7 @@ setFeeAndBalance balancePK skel0 = do
       manageData <- gets mcstDatums
       case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
         -- necessary to capture script failure for failed cases
+        Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
