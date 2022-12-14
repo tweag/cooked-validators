@@ -25,14 +25,26 @@ data GenerateTxError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
-generateTxBodyContent ::
+generateTxBodyContent,
+  generateTxBodyContentWithoutInputDatums ::
+    Pl.Params ->
+    Map Pl.DatumHash Pl.Datum ->
+    TxSkel ->
+    Either
+      GenerateTxError
+      (C.TxBodyContent C.BuildTx C.BabbageEra)
+generateTxBodyContentWithoutInputDatums = generateTxBodyContent' False
+generateTxBodyContent = generateTxBodyContent' True
+
+generateTxBodyContent' ::
+  Bool ->
   Pl.Params ->
   Map Pl.DatumHash Pl.Datum ->
   TxSkel ->
   Either
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
-generateTxBodyContent theParams managedData skel = do
+generateTxBodyContent' includeDatums theParams managedData skel = do
   txIns <- mapM inConstraintToTxIn $ Set.toList (skel ^. txSkelIns)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
   txOuts <- mapM outConstraintToTxOut $ skel ^. txSkelOuts
@@ -62,8 +74,9 @@ generateTxBodyContent theParams managedData skel = do
         C.txTotalCollateral =
           C.TxTotalCollateral
             (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
-            (C.Lovelace . Pl.getLovelace . Pl.fromValue $
-              foldOf (txSkelInsCollateral % folded % spOutValue) skel),
+            ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
+                foldOf (txSkelInsCollateral % folded % spOutValue) skel
+            ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
         C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ skel ^. txSkelFee,
@@ -95,7 +108,7 @@ generateTxBodyContent theParams managedData skel = do
               Just datum -> Map.singleton datumHash datum
               Nothing ->
                 maybe
-                  Map.empty -- throw an error here? I've decided for now to throw errors if the datum is actually needed later on.
+                  Map.empty -- throw an error here? I've decided for now to throw errors only if the datum is actually needed later on.
                   (Map.singleton datumHash)
                   (Map.lookup datumHash managedData)
         )
@@ -141,15 +154,18 @@ generateTxBodyContent theParams managedData skel = do
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
           datumHash <-
             throwOnNothing (GenerateTxErrorGeneral "inConstraintToTxIn: No datum hash on script input") $
-              spOut ^? (spOutScriptDatumOrHash % _1)
+              spOutDatumHash spOut
           datum <-
             throwOnNothing
               (GenerateTxErrorGeneral "inConstraintToTxIn: Unknown datum hash on script input")
-              (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.toBuiltinData <$> inputData Map.!? datumHash)
+              (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> inputData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
-                datum
+                ( if includeDatums
+                    then datum
+                    else C.InlineScriptDatum
+                )
                 (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
