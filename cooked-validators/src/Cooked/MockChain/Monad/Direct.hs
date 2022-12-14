@@ -27,7 +27,7 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.GenerateTx (GenerateTxError (..), generateTxBodyContent)
+import Cooked.MockChain.Monad.GenerateTx
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
@@ -262,7 +262,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
     params <- params
     managedData <- gets mcstDatums
-    case generateTxBodyContent params managedData (skel { _txSkelInsCollateral = collateralInputs }) of
+    case generateTxBodyContentWithoutInputDatums params managedData (skel {_txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         someCardanoTx <-
@@ -329,7 +329,7 @@ runTransactionValidation ::
   [Wallet] ->
   C.TxBodyContent C.BuildTx C.BabbageEra ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
-runTransactionValidation s parms ix reqSigners signers txBodyContent =
+runTransactionValidation slot parms ix reqSigners signers txBodyContent =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
@@ -337,7 +337,7 @@ runTransactionValidation s parms ix reqSigners signers txBodyContent =
       cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
 
-      cardanoTx :: C.Tx C.BabbageEra
+      cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
@@ -345,8 +345,10 @@ runTransactionValidation s parms ix reqSigners signers txBodyContent =
           $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
       cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
+      txn :: Pl.CardanoTx
       txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
-      e = Pl.validateCardanoTx parms s cardanoIndex txn
+
+      e = Pl.validateCardanoTx parms slot cardanoIndex txn
 
       -- Now we compute the new index
       idx' = case e of
@@ -551,15 +553,15 @@ setFeeAndBalance balancePK skel0 = do
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
-            Debug.Trace.traceM "Reached fixpoint:"
-            Debug.Trace.traceM $ "- fee = " <> show fee
-            Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+            -- Debug.Trace.traceM "Reached fixpoint:"
+            -- Debug.Trace.traceM $ "- fee = " <> show fee
+            -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
             pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
           | n == 0 -> do
-            Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+            -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
             pure attemptedSkel {_txSkelFee = max newFee fee} -- maximum number of iterations
           | otherwise -> do
-            Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+            -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
             calcFee (n - 1) newFee cUtxoIndex parms skel
 
 -- | This funcion is essentially a copy of
