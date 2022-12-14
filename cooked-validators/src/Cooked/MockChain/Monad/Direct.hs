@@ -247,16 +247,11 @@ utxoIndex0 = utxoIndex0From def
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    (firstSignerPkh : _) <- pure $ toList $ skelUnbal ^. txSkelRequiredSigners
     -- TODO We use the first signer as a default wallet for fees and
     -- collaterals. These should become parameters of validateTxSkel in the
     -- future
-    firstSigner <-
-      maybe
-        (fail "validateTxSkel: firstSigner is not a known wallet")
-        return
-        (Map.lookup firstSignerPkh (toPKHMap knownWallets))
-    let balancingWalletPkh = firstSignerPkh
+    firstSigner NE.:| _ <- askSigners
+    let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
     skel <- setFeeAndBalance balancingWalletPkh skelUnbal
     collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
@@ -267,7 +262,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Right txBodyContent -> do
         someCardanoTx <-
           validateTx'
-            (Pl.PaymentPubKeyHash <$> Set.toList (skel ^. txSkelRequiredSigners)) -- TODO: also add all of the keys belonging to Pk inputs being consumed?
             (txSkelData skel)
             txBodyContent
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
@@ -323,13 +317,11 @@ runTransactionValidation ::
   Pl.Slot ->
   Pl.Params ->
   Pl.UtxoIndex ->
-  -- | List of required signers
-  [Pl.PaymentPubKeyHash] ->
   -- | List of signers
   [Wallet] ->
   C.TxBodyContent C.BuildTx C.BabbageEra ->
   (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
-runTransactionValidation slot parms ix reqSigners signers txBodyContent =
+runTransactionValidation slot parms ix signers txBodyContent =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
@@ -343,7 +335,7 @@ runTransactionValidation slot parms ix reqSigners signers txBodyContent =
           (error . ("Error building Cardano Tx: " <>) . show)
           (flip C.Tx [])
           $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
-      cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
+      cardanoTxSigned = Debug.Trace.traceShowId $ L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
       txn :: Pl.CardanoTx
       txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
@@ -369,13 +361,13 @@ runTransactionValidation slot parms ix reqSigners signers txBodyContent =
 
 -- | Check 'validateTx' for details; we pass the list of required signatories since
 -- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
-validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
-validateTx' reqSigs txData txBodyContent = do
+validateTx' :: (Monad m) => Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
+validateTx' txData txBodyContent = do
   s <- currentSlot
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix reqSigs (NE.toList signers) txBodyContent
+  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix (NE.toList signers) txBodyContent
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
