@@ -75,7 +75,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
           C.TxTotalCollateral
             (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
             ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
-                foldOf (txSkelInsCollateral % folded % spOutValue) skel
+                foldOf (txSkelInsCollateral % folded % sOutValueL) skel
             ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
@@ -102,7 +102,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
     inputData :: Map Pl.DatumHash Pl.Datum
     inputData =
       foldMapOf
-        (txSkelIns % folded % input % spOutDatumOrHash)
+        (txSkelIns % folded % input % sOutDatumOrHashAT)
         ( \(datumHash, mDatum) ->
             case mDatum of
               Just datum -> Map.singleton datumHash datum
@@ -154,7 +154,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
           datumHash <-
             throwOnNothing (GenerateTxErrorGeneral "inConstraintToTxIn: No datum hash on script input") $
-              spOutDatumHash spOut
+              sOutDatumHash spOut
           datum <-
             throwOnNothing
               (GenerateTxErrorGeneral "inConstraintToTxIn: Unknown datum hash on script input")
@@ -177,7 +177,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
         . (toPKTxInput <$>)
       where
         toPKTxInput :: SpendableOut -> Pl.TxInput
-        toPKTxInput o = Pl.TxInput (o ^. spOutTxOutRef) Pl.TxConsumePublicKeyAddress
+        toPKTxInput o = Pl.TxInput (sOutTxOutRef o) Pl.TxConsumePublicKeyAddress
 
     outConstraintToTxOut :: OutConstraint -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
     outConstraintToTxOut = \case

@@ -15,7 +15,6 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
-import Cooked.MockChain.Wallet (wallet, walletPKHash)
 import Data.Default
 import Data.Function
 import Data.List
@@ -34,69 +33,87 @@ import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
-import Optics.TH (makeLenses)
+import Optics.TH
 import Optics.VL (prismVL)
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
--- For template Haskell reasons, the most intersting thing in this module (the
+-- For Template Haskell reasons, the most intersting thing in this module (the
 -- definition of 'TxSkel') is at the very bottom of this file
+--
+-- We'll use TH to generate optics for the types in this file, and the naming
+-- convention will be that the optic's names will be the corresponding field's
+-- names, followed by
+--
+-- - an 'L' for lenses
+--
+-- - an 'AT' for affine traversals
 
 -- * 'SpendableOut': The type of UTxOs
 
 -- | A 'SpendableOut' is an outref that is ready to be spent; with its
 --  underlying 'Pl.ChainIndexTxOut'.
 data SpendableOut = SpendableOut
-  { _spOutTxOutRef :: Pl.TxOutRef,
-    _spOutChainIndexTxOut :: Pl.ChainIndexTxOut
+  { sOutTxOutRef :: Pl.TxOutRef,
+    sOutChainIndexTxOut :: Pl.ChainIndexTxOut
   }
   deriving (Eq, Show)
 
-makeLenses ''SpendableOut
+makeLensesFor
+  [ ("sOutTxOutRef", "sOutTxOutRefL"),
+    ("sOutChainIndexTxOut", "sOutChainIndexTxOutL")
+  ]
+  ''SpendableOut
 
 instance Ord SpendableOut where
   -- TODO: Is this sufficient, i.e. can there be well-formed 'SpendableOut's
   -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
-  (<=) = (<=) `on` (^. spOutTxOutRef)
+  (<=) = (<=) `on` sOutTxOutRef
 
-spOutValue :: Lens' SpendableOut Pl.Value
-spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
+sOutValueL :: Lens' SpendableOut Pl.Value
+sOutValueL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutValue
 
-spOutAddress :: Lens' SpendableOut Pl.Address
-spOutAddress = spOutChainIndexTxOut % lensVL Pl.ciTxOutAddress
+sOutValue :: SpendableOut -> Pl.Value
+sOutValue = (^. sOutValueL)
+
+sOutAddressL :: Lens' SpendableOut Pl.Address
+sOutAddressL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutAddress
+
+sOutAddress :: SpendableOut -> Pl.Address
+sOutAddress = (^. sOutAddressL)
 
 -- | If a 'SpendableOut' belongs to a public key, return its hash.
 sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
-sBelongsToPubKey s = case Pl.addressCredential (s ^. spOutAddress) of
+sBelongsToPubKey s = case Pl.addressCredential (s ^. sOutAddressL) of
   Pl.PubKeyCredential pkh -> Just pkh
   _ -> Nothing
 
 -- | If a 'SpendableOut' belongs to a validator, return its hash.
 sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
-sBelongsToScript s = case Pl.addressCredential (s ^. spOutAddress) of
+sBelongsToScript s = case Pl.addressCredential (s ^. sOutAddressL) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
 -- | If it is a 'SpendableOut' belonging to a public key, extract datum (ot only
 -- the hash), if there is one.
-spOutPublicKeyDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutPublicKeyDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutPublicKeyDatumOrHash
+sOutPublicKeyDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutPublicKeyDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutPublicKeyDatumOrHashAT
 
-chainIndexTxOutPublicKeyDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutPublicKeyDatumOrHash = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
+chainIndexTxOutPublicKeyDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutPublicKeyDatumOrHashAT = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
 
 -- | If it is a 'SpendableOut' belonging to a script, extract datum (or only the
 -- hash).
-spOutScriptDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutScriptDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutScriptDatumOrHash
+sOutScriptDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutScriptDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutScriptDatumOrHashAT
 
-chainIndexTxOutScriptDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutScriptDatumOrHash = prismVL Pl._ScriptChainIndexTxOut % _3
+chainIndexTxOutScriptDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutScriptDatumOrHashAT = prismVL Pl._ScriptChainIndexTxOut % _3
 
-chainIndexTxOutDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutDatumOrHash = unsafeOr chainIndexTxOutPublicKeyDatumOrHash chainIndexTxOutScriptDatumOrHash
+chainIndexTxOutDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutDatumOrHashAT = unsafeOr chainIndexTxOutPublicKeyDatumOrHashAT chainIndexTxOutScriptDatumOrHashAT
   where
     -- In the best of all possible worlds, I'd write this:
     -- > unsafeOr = singular . adjoin
@@ -120,22 +137,22 @@ chainIndexTxOutDatumOrHash = unsafeOr chainIndexTxOutPublicKeyDatumOrHash chainI
           (\s a -> u2 (u1 s a) a)
 
 -- | Extract datum (or only the hash), if there is one
-spOutDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutDatumOrHash
+sOutDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutDatumOrHashAT
 
-spOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
-spOutDatumHash = (^? spOutDatumOrHash % _1)
+sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
+sOutDatumHash = (^? sOutDatumOrHashAT % _1)
 
-spOutDatum :: SpendableOut -> Maybe Pl.Datum
-spOutDatum = (^? spOutDatumOrHash % _2 % _Just)
+sOutDatum :: SpendableOut -> Maybe Pl.Datum
+sOutDatum = (^? sOutDatumOrHashAT % _2 % _Just)
 
 -- | The 'TxOut' corresponding to a 'SpendableOut'
-spOutTxOut :: SpendableOut -> Pl.TxOut
-spOutTxOut spOut =
+sOutTxOut :: SpendableOut -> Pl.TxOut
+sOutTxOut sOut =
   toPlTxOut
-    (spOut ^. spOutAddress)
-    (spOut ^. spOutValue)
-    (spOut ^? spOutDatumOrHash % _2 % _Just)
+    (sOutAddress sOut)
+    (sOutValue sOut)
+    (sOutDatum sOut)
 
 -- * Transaction labels
 
@@ -752,7 +769,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelIns % folded % input % spOutDatumOrHash)
+    (txSkelIns % folded % input % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -762,7 +779,7 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelIns % folded % input % spOutDatumOrHash % _1)
+    (txSkelIns % folded % input % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -776,10 +793,10 @@ txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
     (txSkelIns % folded % input)
-    ( \spOut ->
+    ( \sOut ->
         Map.singleton
-          (spOut ^. spOutTxOutRef)
-          (spOutTxOut spOut)
+          (sOutTxOutRef sOut)
+          (sOutTxOut sOut)
     )
 
 -- | The value in all transaction inputs, plus the positive part of the minted
@@ -789,7 +806,7 @@ txSkelUtxoIndex =
 txSkelInputValue :: TxSkel -> Pl.Value
 txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelIns % folded % input % spOutValue) skel
+    <> foldOf (txSkelIns % folded % input % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":

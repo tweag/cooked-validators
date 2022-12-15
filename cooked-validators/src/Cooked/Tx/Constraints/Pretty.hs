@@ -100,7 +100,7 @@ prettyOutConstraint (PaysPK pkh stak dat val) =
 
 prettyInConstraint :: InConstraint -> Doc ann
 prettyInConstraint (SpendsPK out) =
-  let (ppAddr, mppVal) = prettyTxOut $ spOutTxOut out
+  let (ppAddr, mppVal) = prettyTxOut $ sOutTxOut out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
 prettyInConstraint (SpendsScript val red spOut) =
   prettyEnum

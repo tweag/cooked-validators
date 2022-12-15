@@ -424,7 +424,7 @@ ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValue %~ ensureHasMinAda
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 setFeeAndBalance balancePK skel0 = do
   let skel = ensureTxSkelOutsMinAda skel0 -- TODO Disable if "adjustUnbalTx = False"??
-  utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos balancePK
+  utxos <- map (sOutTxOutRef &&& sOutTxOut) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
@@ -550,7 +550,7 @@ calcBalanceTx balanceStage balancePK skel = do
   -- minimum Ada amount required for each output. See this comment for context:
   -- https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
   candidateUtxos <-
-    sortBy (flip compare `on` Pl.fromValue . (^. spOutValue))
+    sortBy (flip compare `on` Pl.fromValue . sOutValue)
       . filter (`notElem` inUtxos)
       <$> pkUtxos balancePK
   case selectNewInputs candidateUtxos Set.empty initialExcess missingValue of
@@ -589,13 +589,13 @@ calcBalanceTx balanceStage balancePK skel = do
           -- one token of the required asset class (The hope is that it'll
           -- contain at least @n@ such tokens, but we can't yet fail if there are
           -- fewer; we might need to add several UTxOs):
-          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . (^. spOutValue)) available of
+          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . sOutValue) available of
             Nothing -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
             Just i ->
               let (left, theChosenUtxo : right) = splitAt i available
                   available' = left ++ right
                   chosen' = chosen <> Set.singleton theChosenUtxo
-                  theChosenValue = theChosenUtxo ^. spOutValue
+                  theChosenValue = sOutValue theChosenUtxo
                   theChosenDifference = missing <> Pl.negate theChosenValue
                   excess' = excess <> negativePart theChosenDifference
                   missing' = positivePart theChosenDifference
@@ -682,7 +682,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       case available of
         [] -> Nothing
         additionalUtxo : newAvailable ->
-          let additionalValue = additionalUtxo ^. spOutValue
+          let additionalValue = sOutValue additionalUtxo
               newReturn = additionalValue <> return
               newIns = ins <> Set.map SpendsPK newInputs <> Set.singleton (SpendsPK additionalUtxo)
               newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]

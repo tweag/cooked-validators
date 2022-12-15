@@ -12,16 +12,13 @@ import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.Maybe
 import qualified Data.Set as Set
-import qualified Debug.Trace as Debug
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
-import qualified Ledger.Index as Pl
 import qualified Ledger.Interval as Interval
 import qualified Ledger.Tx as Pl
 import qualified Ledger.Value as Value
 import Optics.Core
 import qualified PlutusTx.Numeric as Pl
-import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
 -- | Make an offer. There are no checks with this transaction. Anyone is allowed
@@ -56,8 +53,8 @@ txOffer lot minBid = do
 -- auction from that point on.
 txSetDeadline :: MonadBlockChain m => SpendableOut -> L.POSIXTime -> m Pl.CardanoTx
 txSetDeadline offerUtxo deadline = do
-  let lot = offerUtxo ^. spOutValue
-      offerOref = offerUtxo ^. spOutTxOutRef
+  let lot = sOutValue offerUtxo
+      offerOref = sOutTxOutRef offerUtxo
       theNft = A.threadToken offerOref
   (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
   validateTxSkel $
@@ -101,7 +98,7 @@ previousBidder _ = Nothing
 -- UTxO. If there was a previous bidder, they will receive their money back.
 txBid :: MonadBlockChain m => SpendableOut -> Integer -> m L.CardanoTx
 txBid offerUtxo bid =
-  let theNft = A.threadToken $ offerUtxo ^. spOutTxOutRef
+  let theNft = A.threadToken $ sOutTxOutRef offerUtxo
    in do
         bidder <- ownPaymentPubKeyHash
         [(utxo, datum)] <-
@@ -125,7 +122,7 @@ txBid offerUtxo bid =
                 paysScript
                   A.auctionValidator
                   (A.Bidding seller deadline (A.BidderInfo bid bidder))
-                  (utxo ^. spOutValue <> Ada.lovelaceValueOf bid) :
+                  (sOutValue utxo <> Ada.lovelaceValueOf bid) :
                 case previousBidder datum of
                   Nothing -> []
                   Just (prevBid, prevBidder) ->
@@ -140,7 +137,7 @@ txBid offerUtxo bid =
 -- also burns the thread token.
 txHammer :: MonadBlockChain m => SpendableOut -> m ()
 txHammer offerUtxo =
-  let offerOref = offerUtxo ^. spOutTxOutRef
+  let offerOref = sOutTxOutRef offerUtxo
       theNft = A.threadToken offerOref
    in do
         utxos <-
@@ -164,7 +161,7 @@ txHammer offerUtxo =
                       _txSkelOuts =
                         [ paysPK
                             seller
-                            (offerUtxo ^. spOutValue)
+                            (sOutValue offerUtxo)
                         ]
                     }
                 (utxo, datum) : _ ->
@@ -184,7 +181,7 @@ txHammer offerUtxo =
                             review
                               mintsListIso
                               [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
-                                  SomeMintsRedeemer $ offerUtxo ^. spOutTxOutRef,
+                                  SomeMintsRedeemer $ sOutTxOutRef offerUtxo,
                                   A.tokenNameFromTxOutRef offerOref,
                                   NonZero (-1)
                                 )
@@ -192,11 +189,11 @@ txHammer offerUtxo =
                           _txSkelOuts =
                             case previousBidder datum of
                               Nothing ->
-                                let lot = utxo ^. spOutValue <> Pl.negate theNft
+                                let lot = sOutValue utxo <> Pl.negate theNft
                                  in [paysPK seller lot]
                               Just (lastBid, lastBidder) ->
                                 let lot =
-                                      utxo ^. spOutValue
+                                      sOutValue utxo
                                         <> Pl.negate (Ada.lovelaceValueOf lastBid)
                                         <> Pl.negate theNft
                                  in [ paysPK lastBidder lot,
