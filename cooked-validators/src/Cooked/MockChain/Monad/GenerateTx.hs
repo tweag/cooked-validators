@@ -45,7 +45,7 @@ generateTxBodyContent' ::
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent' includeDatums theParams managedData skel = do
-  txIns <- mapM inConstraintToTxIn $ Set.toList (skel ^. txSkelIns)
+  txIns <- mapM txSkelIntoTxIn $ Set.toList (skel ^. txSkelIns)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
   txOuts <- mapM outConstraintToTxOut $ skel ^. txSkelOuts
   txValidityRange <-
@@ -102,7 +102,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
     inputData :: Map Pl.DatumHash Pl.Datum
     inputData =
       foldMapOf
-        (txSkelIns % folded % input % sOutDatumOrHashAT)
+        (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT)
         ( \(datumHash, mDatum) ->
             case mDatum of
               Just datum -> Map.singleton datumHash datum
@@ -117,8 +117,8 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
     -- Convert an 'InConstraint' into a 'C.TxIn', together with the
     -- appropriate witness. If you add reference inputs, don't forget to also
     -- update the 'txInsReference'!
-    inConstraintToTxIn ::
-      InConstraint ->
+    txSkelIntoTxIn ::
+      TxSkelIn ->
       Either
         GenerateTxError
         ( C.TxIn,
@@ -126,15 +126,15 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    inConstraintToTxIn (SpendsPK (SpendableOut txOutRef _)) =
+    txSkelIntoTxIn (SpendsPK (SpendableOut txOutRef _)) =
       bimap
-        (ToCardanoError "inConstraintToTxIn, translating 'SpendsPK' outRef")
+        (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    inConstraintToTxIn (SpendsScript validator redeemer spOut@(SpendableOut txOutRef _)) = do
+    txSkelIntoTxIn (SpendsScript validator redeemer spOut@(SpendableOut txOutRef _)) = do
       witness <- mkWitness
       bimap
-        (ToCardanoError "inConstraintToTxIn, translating 'SpendsScript' outRef")
+        (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
         (,C.BuildTxWith witness)
         $ Pl.toCardanoTxIn txOutRef
       where
@@ -144,20 +144,20 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
             case Pl.vValidatorScript validator of
               Pl.Versioned (Pl.Validator script) Pl.PlutusV1 ->
                 bimap
-                  (ToCardanoError "inConstraintToTxIn, translating to Cardano API PlutusV1 script")
+                  (ToCardanoError "txSkelIntoTxIn, translating to Cardano API PlutusV1 script")
                   (C.PlutusScriptWitness C.PlutusScriptV1InBabbage C.PlutusScriptV1 . C.PScript)
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV1) script)
               Pl.Versioned (Pl.Validator script) Pl.PlutusV2 ->
                 bimap
-                  (ToCardanoError "inConstraintToTxIn, translating to Cardano API PlutusV2 script")
+                  (ToCardanoError "txSkelIntoTxIn, translating to Cardano API PlutusV2 script")
                   (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
           datumHash <-
-            throwOnNothing (GenerateTxErrorGeneral "inConstraintToTxIn: No datum hash on script input") $
+            throwOnNothing (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum hash on script input") $
               sOutDatumHash spOut
           datum <-
             throwOnNothing
-              (GenerateTxErrorGeneral "inConstraintToTxIn: Unknown datum hash on script input")
+              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown datum hash on script input")
               (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> inputData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $

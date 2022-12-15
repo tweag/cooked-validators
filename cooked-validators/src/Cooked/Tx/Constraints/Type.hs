@@ -171,7 +171,7 @@ instance Show TxLabel where
  their constructors?
 
 The idea of the 'Ord' instances for 'TxLabel', 'MintsConstraint', and
-'InConstraint' is illustrated by the instance for 'TxLabel' below: Sort by the
+'TxSkelIn' is illustrated by the instance for 'TxLabel' below: Sort by the
 type representation of the existential type variable first, and then by the
 concrete value within each of the possible instances of the existential.
 
@@ -574,37 +574,40 @@ txSkelMintsValue =
           amount
     )
 
--- * Input Constraints
+-- * Transaction inputs
 
 type SpendsScriptConstrs a =
-  ( -- Pl.ToData (Pl.DatumType a),
-    Pl.ToData (Pl.RedeemerType a),
+  ( Pl.ToData (Pl.RedeemerType a),
     Pl.UnsafeFromData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
-    -- Pl.Eq (Pl.DatumType a),
     Pl.Eq (Pl.RedeemerType a),
     Typeable a
   )
 
-data InConstraint where
+data TxSkelIn where
   SpendsScript ::
     SpendsScriptConstrs a =>
-    { _spendingValidator :: Pl.TypedValidator a,
-      _redeemer :: Pl.RedeemerType a,
-      _input :: SpendableOut
+    { spendingValidator :: Pl.TypedValidator a,
+      inputRedeemer :: Pl.RedeemerType a,
+      consumedOutput :: SpendableOut
     } ->
-    InConstraint
-  SpendsPK :: {_input :: SpendableOut} -> InConstraint
+    TxSkelIn
+  SpendsPK :: {consumedOutput :: SpendableOut} -> TxSkelIn
 
-deriving instance Show InConstraint
+deriving instance Show TxSkelIn
 
-makeLenses ''InConstraint
+makeLensesFor
+  [ ("consumedOutput", "consumedOutputL"),
+    ("spendingValidator", "spendingValidatorAT"),
+    ("inputRedeemer", "inputRedeemerAT")
+  ]
+  ''TxSkelIn
 
-instance Eq InConstraint where
+instance Eq TxSkelIn where
   s1 == s2 = compare s1 s2 == EQ
 
-instance Ord InConstraint where
+instance Ord TxSkelIn where
   compare (SpendsScript v1 r1 o1) (SpendsScript v2 r2 o2) =
     case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
       LT -> LT
@@ -701,7 +704,7 @@ data TxSkel where
       _txSkelMints :: TxSkelMints,
       _txSkelValidityRange :: Pl.POSIXTimeRange,
       _txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      _txSkelIns :: Set InConstraint,
+      _txSkelIns :: Set TxSkelIn,
       _txSkelInsCollateral :: Set SpendableOut,
       _txSkelOuts :: [OutConstraint],
       _txSkelFee :: Integer -- Fee in Lovelace
@@ -773,7 +776,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelIns % folded % input % sOutDatumOrHashAT)
+    (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -783,7 +786,7 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelIns % folded % input % sOutDatumOrHashAT % _1)
+    (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -796,7 +799,7 @@ txSkelOutputData =
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
-    (txSkelIns % folded % input)
+    (txSkelIns % folded % consumedOutputL)
     ( \sOut ->
         Map.singleton
           (sOutTxOutRef sOut)
@@ -810,7 +813,7 @@ txSkelUtxoIndex =
 txSkelInputValue :: TxSkel -> Pl.Value
 txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelIns % folded % input % sOutValueL) skel
+    <> foldOf (txSkelIns % folded % consumedOutputL % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
@@ -828,7 +831,7 @@ txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
 txSkelAllSigners skel =
   (skel ^. txSkelRequiredSigners)
     <> foldMapOf
-      (txSkelIns % folded % input % afolding sBelongsToPubKey)
+      (txSkelIns % folded % consumedOutputL % afolding sBelongsToPubKey)
       Set.singleton
       skel
 

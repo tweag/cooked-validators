@@ -562,7 +562,7 @@ calcBalanceTx balanceStage balancePK skel = do
           skel
     Just bTxRes -> return bTxRes
   where
-    inUtxos = toListOf (txSkelIns % folded % input) skel -- The Utxos consumed by the given transaction
+    inUtxos = toListOf (txSkelIns % folded % consumedOutputL) skel -- The Utxos consumed by the given transaction
     inValue = txSkelInputValue skel -- inputs + mints
     outValue = txSkelOutputValue skel -- outputs + fee + burns
     difference = outValue <> Pl.negate inValue
@@ -667,7 +667,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         tryAdditionalOutput ins outs
   return skel {_txSkelIns = newIns, _txSkelOuts = newOuts}
   where
-    tryAdditionalOutput :: Set InConstraint -> [OutConstraint] -> Maybe (Set InConstraint, [OutConstraint])
+    tryAdditionalOutput :: Set TxSkelIn -> [OutConstraint] -> Maybe (Set TxSkelIn, [OutConstraint])
     tryAdditionalOutput ins outs =
       if Pl.fromValue returnValue >= Pl.minAdaTxOut
         then
@@ -677,7 +677,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
-    tryAdditionalInputs :: Set InConstraint -> [OutConstraint] -> [SpendableOut] -> Pl.Value -> Maybe (Set InConstraint, [OutConstraint])
+    tryAdditionalInputs :: Set TxSkelIn -> [OutConstraint] -> [SpendableOut] -> Pl.Value -> Maybe (Set TxSkelIn, [OutConstraint])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
