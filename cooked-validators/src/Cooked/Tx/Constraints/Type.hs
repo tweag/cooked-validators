@@ -34,69 +34,87 @@ import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
-import Optics.TH (makeLenses)
+import Optics.TH
 import Optics.VL (prismVL)
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
--- For template Haskell reasons, the most intersting thing in this module (the
+-- For Template Haskell reasons, the most intersting thing in this module (the
 -- definition of 'TxSkel') is at the very bottom of this file
+--
+-- We'll use TH to generate optics for the types in this file, and the naming
+-- convention will be that the optic's names will be the corresponding field's
+-- names, followed by
+--
+-- - an 'L' for lenses
+--
+-- - an 'AT' for affine traversals
 
 -- * 'SpendableOut': The type of UTxOs
 
 -- | A 'SpendableOut' is an outref that is ready to be spent; with its
 --  underlying 'Pl.ChainIndexTxOut'.
 data SpendableOut = SpendableOut
-  { _spOutTxOutRef :: Pl.TxOutRef,
-    _spOutChainIndexTxOut :: Pl.ChainIndexTxOut
+  { sOutTxOutRef :: Pl.TxOutRef,
+    sOutChainIndexTxOut :: Pl.ChainIndexTxOut
   }
   deriving (Eq, Show)
 
-makeLenses ''SpendableOut
+makeLensesFor
+  [ ("sOutTxOutRef", "sOutTxOutRefL"),
+    ("sOutChainIndexTxOut", "sOutChainIndexTxOutL")
+  ]
+  ''SpendableOut
 
 instance Ord SpendableOut where
   -- TODO: Is this sufficient, i.e. can there be well-formed 'SpendableOut's
   -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
-  (<=) = (<=) `on` (^. spOutTxOutRef)
+  (<=) = (<=) `on` sOutTxOutRef
 
-spOutValue :: Lens' SpendableOut Pl.Value
-spOutValue = spOutChainIndexTxOut % lensVL Pl.ciTxOutValue
+sOutValueL :: Lens' SpendableOut Pl.Value
+sOutValueL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutValue
 
-spOutAddress :: Lens' SpendableOut Pl.Address
-spOutAddress = spOutChainIndexTxOut % lensVL Pl.ciTxOutAddress
+sOutValue :: SpendableOut -> Pl.Value
+sOutValue = (^. sOutValueL)
+
+sOutAddressL :: Lens' SpendableOut Pl.Address
+sOutAddressL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutAddress
+
+sOutAddress :: SpendableOut -> Pl.Address
+sOutAddress = (^. sOutAddressL)
 
 -- | If a 'SpendableOut' belongs to a public key, return its hash.
 sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
-sBelongsToPubKey s = case Pl.addressCredential (s ^. spOutAddress) of
+sBelongsToPubKey s = case Pl.addressCredential (s ^. sOutAddressL) of
   Pl.PubKeyCredential pkh -> Just pkh
   _ -> Nothing
 
 -- | If a 'SpendableOut' belongs to a validator, return its hash.
 sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
-sBelongsToScript s = case Pl.addressCredential (s ^. spOutAddress) of
+sBelongsToScript s = case Pl.addressCredential (s ^. sOutAddressL) of
   Pl.ScriptCredential sh -> Just sh
   _ -> Nothing
 
 -- | If it is a 'SpendableOut' belonging to a public key, extract datum (ot only
 -- the hash), if there is one.
-spOutPublicKeyDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutPublicKeyDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutPublicKeyDatumOrHash
+sOutPublicKeyDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutPublicKeyDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutPublicKeyDatumOrHashAT
 
-chainIndexTxOutPublicKeyDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutPublicKeyDatumOrHash = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
+chainIndexTxOutPublicKeyDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutPublicKeyDatumOrHashAT = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
 
 -- | If it is a 'SpendableOut' belonging to a script, extract datum (or only the
 -- hash).
-spOutScriptDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutScriptDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutScriptDatumOrHash
+sOutScriptDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutScriptDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutScriptDatumOrHashAT
 
-chainIndexTxOutScriptDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutScriptDatumOrHash = prismVL Pl._ScriptChainIndexTxOut % _3
+chainIndexTxOutScriptDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutScriptDatumOrHashAT = prismVL Pl._ScriptChainIndexTxOut % _3
 
-chainIndexTxOutDatumOrHash :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
-chainIndexTxOutDatumOrHash = unsafeOr chainIndexTxOutPublicKeyDatumOrHash chainIndexTxOutScriptDatumOrHash
+chainIndexTxOutDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
+chainIndexTxOutDatumOrHashAT = unsafeOr chainIndexTxOutPublicKeyDatumOrHashAT chainIndexTxOutScriptDatumOrHashAT
   where
     -- In the best of all possible worlds, I'd write this:
     -- > unsafeOr = singular . adjoin
@@ -120,22 +138,22 @@ chainIndexTxOutDatumOrHash = unsafeOr chainIndexTxOutPublicKeyDatumOrHash chainI
           (\s a -> u2 (u1 s a) a)
 
 -- | Extract datum (or only the hash), if there is one
-spOutDatumOrHash :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
-spOutDatumOrHash = spOutChainIndexTxOut % chainIndexTxOutDatumOrHash
+sOutDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
+sOutDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutDatumOrHashAT
 
-spOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
-spOutDatumHash = (^? spOutDatumOrHash % _1)
+sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
+sOutDatumHash = (^? sOutDatumOrHashAT % _1)
 
-spOutDatum :: SpendableOut -> Maybe Pl.Datum
-spOutDatum = (^? spOutDatumOrHash % _2 % _Just)
+sOutDatum :: SpendableOut -> Maybe Pl.Datum
+sOutDatum = (^? sOutDatumOrHashAT % _2 % _Just)
 
 -- | The 'TxOut' corresponding to a 'SpendableOut'
-spOutTxOut :: SpendableOut -> Pl.TxOut
-spOutTxOut spOut =
+sOutTxOut :: SpendableOut -> Pl.TxOut
+sOutTxOut sOut =
   toPlTxOut
-    (spOut ^. spOutAddress)
-    (spOut ^. spOutValue)
-    (spOut ^? spOutDatumOrHash % _2 % _Just)
+    (sOutAddress sOut)
+    (sOutValue sOut)
+    (sOutDatum sOut)
 
 -- * Transaction labels
 
@@ -154,7 +172,7 @@ instance Show TxLabel where
  their constructors?
 
 The idea of the 'Ord' instances for 'TxLabel', 'MintsConstraint', and
-'InConstraint' is illustrated by the instance for 'TxLabel' below: Sort by the
+'TxSkelIn' is illustrated by the instance for 'TxLabel' below: Sort by the
 type representation of the existential type variable first, and then by the
 concrete value within each of the possible instances of the existential.
 
@@ -468,8 +486,12 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- you'll have to do so manually. Note, however, that even if you do so, NO
 -- VALIDATOR OR MINTING POLICY WILL EVER GET TO SEE A TRANSACTION WITH SUCH
 -- CONFLICTING INFORMATION. This is not a design decision/limitation of
--- cooked-validators: The 'Tx' type has _one field_ for the minted value. This
--- means that there is no way to preserve such information.
+-- cooked-validators: The Cardano API 'TxBodyContent' type, that we're
+-- translating everything into eventually, stores minting information as a
+-- minted value together with a map from policy IDs to witnesses (which
+-- represent the used redeemers). That means that we can only store _one_
+-- redeemer per minting policy, and no conflicting mints of the same asset
+-- class, since they'll just cancel.
 addToTxSkelMints ::
   (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
   TxSkelMints ->
@@ -553,37 +575,40 @@ txSkelMintsValue =
           amount
     )
 
--- * Input Constraints
+-- * Transaction inputs
 
 type SpendsScriptConstrs a =
-  ( -- Pl.ToData (Pl.DatumType a),
-    Pl.ToData (Pl.RedeemerType a),
+  ( Pl.ToData (Pl.RedeemerType a),
     Pl.UnsafeFromData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
-    -- Pl.Eq (Pl.DatumType a),
     Pl.Eq (Pl.RedeemerType a),
     Typeable a
   )
 
-data InConstraint where
+data TxSkelIn where
   SpendsScript ::
     SpendsScriptConstrs a =>
-    { _spendingValidator :: Pl.TypedValidator a,
-      _redeemer :: Pl.RedeemerType a,
-      _input :: SpendableOut
+    { spendingValidator :: Pl.TypedValidator a,
+      inputRedeemer :: Pl.RedeemerType a,
+      consumedOutput :: SpendableOut
     } ->
-    InConstraint
-  SpendsPK :: {_input :: SpendableOut} -> InConstraint
+    TxSkelIn
+  SpendsPK :: {consumedOutput :: SpendableOut} -> TxSkelIn
 
-deriving instance Show InConstraint
+deriving instance Show TxSkelIn
 
-makeLenses ''InConstraint
+makeLensesFor
+  [ ("consumedOutput", "consumedOutputL"),
+    ("spendingValidator", "spendingValidatorAT"),
+    ("inputRedeemer", "inputRedeemerAT")
+  ]
+  ''TxSkelIn
 
-instance Eq InConstraint where
+instance Eq TxSkelIn where
   s1 == s2 = compare s1 s2 == EQ
 
-instance Ord InConstraint where
+instance Ord TxSkelIn where
   compare (SpendsScript v1 r1 o1) (SpendsScript v2 r2 o2) =
     case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
       LT -> LT
@@ -600,7 +625,7 @@ instance Ord InConstraint where
   compare SpendsPK {} SpendsScript {} = LT
   compare SpendsScript {} SpendsPK {} = GT
 
--- * Output Constraints
+-- * Transaction outputs
 
 type PaysScriptConstrs a =
   ( Pl.ToData (Pl.DatumType a),
@@ -616,45 +641,49 @@ type PaysPKConstrs a =
     Typeable a
   )
 
-data OutConstraint where
+data TxSkelOut where
   PaysScript ::
     PaysScriptConstrs a =>
-    { _recipientValidator :: Pl.TypedValidator a,
-      _mStakeCred :: Maybe Pl.StakingCredential,
-      _paysScriptDatum :: Pl.DatumType a,
-      _outValue :: Pl.Value
+    { recipientValidator :: Pl.TypedValidator a,
+      mStakeCred :: Maybe Pl.StakingCredential,
+      paysScriptDatum :: Pl.DatumType a,
+      outValue :: Pl.Value
     } ->
-    OutConstraint
+    TxSkelOut
   PaysPK ::
     PaysPKConstrs a =>
-    { _recipientPubKeyHash :: Pl.PubKeyHash,
-      _mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
-      _paysPKDatum :: Maybe a,
-      _outValue :: Pl.Value
+    { recipientPubKeyHash :: Pl.PubKeyHash,
+      mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
+      paysPKDatum :: Maybe a,
+      outValue :: Pl.Value
     } ->
-    OutConstraint
+    TxSkelOut
 
-deriving instance Show OutConstraint
+deriving instance Show TxSkelOut
 
-makeLenses ''OutConstraint
+makeLensesFor
+  [ ("outValue", "outValueL"),
+    ("recipientPubKeyHash", "recipientPubKeyHashAT")
+  ]
+  ''TxSkelOut
 
-outConstraintDatum :: AffineFold OutConstraint Pl.Datum
-outConstraintDatum =
+txSkelOutDatumAT :: AffineFold TxSkelOut Pl.Datum
+txSkelOutDatumAT =
   afolding
     ( \case
-        PaysScript {_paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
-        PaysPK {_paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        PaysScript {paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        PaysPK {paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
         _ -> Nothing
     )
 
-recipientAddress :: OutConstraint -> Pl.Address
-recipientAddress PaysScript {_recipientValidator = val} = Pl.validatorAddress val
-recipientAddress PaysPK {_recipientPubKeyHash = pkh} =
+recipientAddress :: TxSkelOut -> Pl.Address
+recipientAddress PaysScript {recipientValidator = val} = Pl.validatorAddress val
+recipientAddress PaysPK {recipientPubKeyHash = pkh} =
   -- Should/Can we use the '_mStakpkhbKeyHash' here, to generate a staking
   -- credential? TODO
   Pl.Address (Pl.PubKeyCredential pkh) Nothing
 
-instance Eq OutConstraint where
+instance Eq TxSkelOut where
   (PaysScript v1 sc1 d1 x1) == (PaysScript v2 sc2 d2 x2) =
     case typeOf v1 `eqTypeRep` typeOf v2 of
       Just HRefl -> d1 Pl.== d2 && (v1, sc1, x1) == (v2, sc2, x2)
@@ -665,32 +694,43 @@ instance Eq OutConstraint where
       Nothing -> False
   _ == _ = False
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
+paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
 paysPK pkh = PaysPK @() pkh Nothing Nothing
 
-paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> OutConstraint
+paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> TxSkelOut
 paysScript tv = PaysScript tv Nothing
 
 -- * Transaction skeletons
 
 data TxSkel where
   TxSkel ::
-    { _txSkelLabel :: Set TxLabel,
-      _txSkelOpts :: TxOpts,
-      _txSkelMints :: TxSkelMints,
-      _txSkelValidityRange :: Pl.POSIXTimeRange,
-      _txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      _txSkelIns :: Set InConstraint,
-      _txSkelInsCollateral :: Set SpendableOut,
-      _txSkelOuts :: [OutConstraint],
-      _txSkelFee :: Integer -- Fee in Lovelace
+    { txSkelLabel :: Set TxLabel,
+      txSkelOpts :: TxOpts,
+      txSkelMints :: TxSkelMints,
+      txSkelValidityRange :: Pl.POSIXTimeRange,
+      txSkelRequiredSigners :: Set Pl.PubKeyHash,
+      txSkelIns :: Set TxSkelIn,
+      txSkelInsCollateral :: Set SpendableOut,
+      txSkelOuts :: [TxSkelOut],
+      txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
   -- are equal in the sense of '==', they specify the same transaction(s).
   deriving (Show, Eq)
 
-makeLenses ''TxSkel
+makeLensesFor
+  [ ("txSkelLabel", "txSkelLabelL"),
+    ("txSkelOpts", "txSkelOptsL"),
+    ("txSkelMints", "txSkelMintsL"),
+    ("txSkelValidityRange", "txSkelValidityRangeL"),
+    ("txSkelRequiredSigners", "txSkelRequiredSignersL"),
+    ("txSkelIns", "txSkelInsL"),
+    ("txSkelInsCollateral", "txSkelInsCollateralL"),
+    ("txSkelOuts", "txSkelOutsL"),
+    ("txSkelFee", "txSkelFeeL")
+  ]
+  ''TxSkel
 
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
@@ -734,15 +774,15 @@ instance Semigroup TxSkel where
 instance Monoid TxSkel where
   mempty =
     TxSkel
-      { _txSkelLabel = Set.empty,
-        _txSkelOpts = mempty,
-        _txSkelMints = Map.empty,
-        _txSkelValidityRange = Pl.always,
-        _txSkelRequiredSigners = Set.empty,
-        _txSkelIns = Set.empty,
-        _txSkelInsCollateral = Set.empty,
-        _txSkelOuts = [],
-        _txSkelFee = 0
+      { txSkelLabel = Set.empty,
+        txSkelOpts = mempty,
+        txSkelMints = Map.empty,
+        txSkelValidityRange = Pl.always,
+        txSkelRequiredSigners = Set.empty,
+        txSkelIns = Set.empty,
+        txSkelInsCollateral = Set.empty,
+        txSkelOuts = [],
+        txSkelFee = 0
       }
 
 -- | All data on the given 'TxSkel', with their hashes
@@ -752,7 +792,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelIns % folded % input % spOutDatumOrHash)
+    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -762,24 +802,24 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelIns % folded % input % spOutDatumOrHash % _1)
+    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData =
   foldMapOf
-    (txSkelOuts % folded % outConstraintDatum)
+    (txSkelOutsL % folded % txSkelOutDatumAT)
     (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
 -- | All 'TxOutRefs' of transaction inputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
-    (txSkelIns % folded % input)
-    ( \spOut ->
+    (txSkelInsL % folded % consumedOutputL)
+    ( \sOut ->
         Map.singleton
-          (spOut ^. spOutTxOutRef)
-          (spOutTxOut spOut)
+          (sOutTxOutRef sOut)
+          (sOutTxOut sOut)
     )
 
 -- | The value in all transaction inputs, plus the positive part of the minted
@@ -787,27 +827,27 @@ txSkelUtxoIndex =
 --
 -- > mints + inputs = fees + burns + outputs
 txSkelInputValue :: TxSkel -> Pl.Value
-txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
+txSkelInputValue skel@TxSkel {txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelIns % folded % input % spOutValue) skel
+    <> foldOf (txSkelInsL % folded % consumedOutputL % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
 txSkelOutputValue :: TxSkel -> Pl.Value
-txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
-    <> foldOf (txSkelOuts % folded % outValue) skel
-    <> Pl.lovelaceValueOf (skel ^. txSkelFee)
+    <> foldOf (txSkelOutsL % folded % outValueL) skel
+    <> Pl.lovelaceValueOf (txSkelFee skel)
 
 -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
 -- PK inputs on the transaction
 txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
 txSkelAllSigners skel =
-  (skel ^. txSkelRequiredSigners)
+  (skel ^. txSkelRequiredSignersL)
     <> foldMapOf
-      (txSkelIns % folded % input % afolding sBelongsToPubKey)
+      (txSkelInsL % folded % consumedOutputL % afolding sBelongsToPubKey)
       Set.singleton
       skel
 

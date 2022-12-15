@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
@@ -266,4 +265,4 @@ changeValueTweak optic change =
 -- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
 -- given label will be added, forming a pair @(newlabel, oldlabel)@.
 addLabelTweak :: LabelConstrs x => x -> Tweak ()
-addLabelTweak newlabel = overTweak txSkelLabel (Set.insert $ TxLabel newlabel)
+addLabelTweak newlabel = overTweak txSkelLabelL (Set.insert $ TxLabel newlabel)

@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
@@ -57,16 +56,16 @@ foo = do
   tx <-
     validateTxSkel $
       mempty
-        { _txSkelOpts = def {adjustUnbalTx = True},
-          _txSkelIns = Set.singleton $ SpendsPK utxo,
-          _txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
+        { txSkelOpts = def {adjustUnbalTx = True},
+          txSkelIns = Set.singleton $ SpendsPK utxo,
+          txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
         }
   o : _ <- spOutsFromCardanoTx tx
   validateTxSkel
     mempty
-      { _txSkelOpts = def {adjustUnbalTx = True},
-        _txSkelIns = Set.singleton $ SpendsPK o,
-        _txSkelOuts = [paysPK (walletPKHash $ wallet 3) (Ada.lovelaceValueOf 5_000_000)]
+      { txSkelOpts = def {adjustUnbalTx = True},
+        txSkelIns = Set.singleton $ SpendsPK o,
+        txSkelOuts = [paysPK (walletPKHash $ wallet 3) (Ada.lovelaceValueOf 5_000_000)]
       }
     `as` wallet 2
   return ()

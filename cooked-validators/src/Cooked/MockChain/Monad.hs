@@ -3,7 +3,6 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -125,13 +124,13 @@ spOutResolveDatum ::
   SpendableOut ->
   m SpendableOut
 spOutResolveDatum o =
-  case o ^? spOutDatumOrHash of
+  case o ^? sOutDatumOrHashAT of
     Just (datumHash, Nothing) ->
       do
         mDatum <- datumFromHash datumHash
         case mDatum of
           Nothing -> fail "datum hash not found in block chain state"
-          Just datum -> return $ o & spOutDatumOrHash .~ (datumHash, Just datum)
+          Just datum -> return $ o & sOutDatumOrHashAT .~ (datumHash, Just datum)
     _ -> return o
 
 -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
@@ -173,7 +172,7 @@ datumFromSpOut (SpendableOut _ chainIndexTxOut) = datumFromTxOut chainIndexTxOut
 
 datumFromTxOut :: MonadBlockChain m => Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
 datumFromTxOut o =
-  case o ^? chainIndexTxOutDatumOrHash of
+  case o ^? chainIndexTxOutDatumOrHashAT of
     Nothing -> return Nothing
     Just (_, Just datum) -> return $ Just datum
     Just (datumHash, Nothing) -> datumFromHash datumHash
