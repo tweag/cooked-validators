@@ -379,6 +379,16 @@ oneContributionFundErrorDeadline = do
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
+-- | one contribution, project funding error: alice attempts to fund project
+-- when bob is the funding target
+oneContributionFundErrorOwner :: MonadMockChain m => m ()
+oneContributionFundErrorOwner = do
+  t0 <- currentTime
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txProjectFund (bananaParams t0) sOut `as` alice
+
 -- | attempting to refund all contributors before the deadline
 ownerRefundsErrorDeadline :: MonadMockChain m => m ()
 ownerRefundsErrorDeadline = do
@@ -389,6 +399,18 @@ ownerRefundsErrorDeadline = do
   Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
   Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
+
+-- | alice attempts to refund all contributors with bob as owner
+ownerRefundsErrorOwner :: MonadMockChain m => m ()
+ownerRefundsErrorOwner = do
+  t0 <- currentTime
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
+  Cf.txRefundAll (bananaParams t0) sOut `as` alice
 
 -- | two contributions, error: one contribution does not exceed minimum
 twoContributionsFundErrorMinimum :: MonadMockChain m => m ()
@@ -423,37 +445,17 @@ failingSingle =
         testFailsFrom testInit oneContributionFundErrorAmount,
       testCase "funding after the deadline" $
         testFailsFrom testInit oneContributionFundErrorDeadline,
+      testCase "wrong user attempts to fund project" $
+        testFailsFrom testInit oneContributionFundErrorOwner,
       testCase "owner refunds before the deadline" $
         testFailsFrom testInit ownerRefundsErrorDeadline,
+      testCase "wrong user attempts to refund all" $
+        testFailsFrom testInit ownerRefundsErrorOwner,
       testCase "contribution does not exceed minimum" $
         testFailsFrom testInit twoContributionsFundErrorMinimum,
       testCase "owner pays self all funds after the deadline" $
         testFailsFrom testInit ownerRefundsVulnerability
     ]
-
--- | one contribution, project funding error: alice attempts to fund project
--- when bob is the funding target. Funds stay locked in the script
--- TODO: make this throw an error
-oneContributionFundErrorOwner :: MonadMockChain m => m ()
-oneContributionFundErrorOwner = do
-  t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txProjectFund (bananaParams t0) sOut `as` alice
-
--- | alice attempts to refund all contributors with bob as owner
--- funds are locked in the script
--- TODO: make this throw an error
-ownerRefundsErrorOwner :: MonadMockChain m => m ()
-ownerRefundsErrorOwner = do
-  t0 <- currentTime
-  sOut <- Cf.txOpen (bananaParams t0) `as` bob
-  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
-  void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
-  Cf.txRefundAll (bananaParams t0) sOut `as` alice
 
 -- * (hopefully) failing attacks
 

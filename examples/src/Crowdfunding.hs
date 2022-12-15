@@ -78,10 +78,7 @@ instance Eq FundingParams where
   FundingParams from to val txOut == FundingParams from' to' val' txOut' =
     from == from' && to == to' && val == val' && txOut == txOut'
 
--- | Datum type. Either a pre-proposal, a project proposal with policy params,
--- or funding with funding params. The pre-proposal is used in a two-step transaction
--- process in order to avoid allowing an attacker to redirect the thread token.
--- For more information, see the Auction contract.
+-- | Datum type. Either a a project proposal with val params or funding with funding params.
 data CfDatum
   = Proposal ValParams
   | Funding FundingParams
@@ -95,6 +92,8 @@ instance Eq CfDatum where
   Proposal vp == Proposal vp' = vp == vp'
   Funding fp == Funding fp' = fp == fp'
   _ == _ = False
+
+-- Helpers for retrieving information from the datum
 
 {-# INLINEABLE getOwner #-}
 getOwner :: CfDatum -> L.PubKeyHash
@@ -111,17 +110,6 @@ getUtxoDatum :: CfDatum -> Maybe L.TxOutRef
 getUtxoDatum (Funding fp) = Just (txOut fp)
 getUtxoDatum _ = Nothing
 
-{-# INLINEABLE getValParams #-}
-getValParams :: CfDatum -> Maybe ValParams
-getValParams (Proposal vp) = Just vp
-getValParams _ = Nothing
-
--- | Retrieve funder from 'Funding' datum and owner from 'Proposal' datum
-{-# INLINEABLE getFunderOwner #-}
-getFunderOwner :: CfDatum -> L.PubKeyHash
-getFunderOwner (Proposal vp) = fundingTarget vp
-getFunderOwner (Funding fp) = from fp
-
 {-# INLINEABLE getValue #-}
 getValue :: CfDatum -> Maybe L.Value
 getValue (Funding fp) = Just (val fp)
@@ -133,7 +121,7 @@ data Action
     Launch L.TxOutRef
   | -- | Minting thread token
     Minting
-  | -- | Refund contributors
+  | -- | Refund individual contributor
     IndividualRefund
   deriving (Haskell.Show)
 
@@ -152,7 +140,7 @@ instance Eq Action where
 -- crowdfund. This NFT will belong to the 'crowdfundingValidator'; its
 -- presence proves the authenticity of the crowdfund. Here, we check
 -- that exactly one thread token is minted, enforcing that the
--- appropriate offer utxo, whose hash as computed by
+-- appropriate proposal UTxO, whose hash as computed by
 -- 'tokenNameFromTxOutRef' must be the token name of the minted token,
 -- is consumed.
 {-# INLINEABLE mkThreadTokenPolicy #-}
@@ -191,10 +179,6 @@ threadTokenOnChain :: L.CurrencySymbol -> L.TxOutRef -> L.Value
 threadTokenOnChain threadCS txOut =
   Value.assetClassValue (Value.AssetClass (threadCS, tokenNameFromTxOutRef txOut)) 1
 
--- | Compute the thread token of the auction with the givven proposal UTxO
--- threadToken :: L.TxOutRef -> L.Value
--- threadToken txOut = Value.assetClassValue (threadTokenAssetClas
-
 -- * The minting policy of the reward token
 
 -- | This minting policy controls the reward tokens of a crowdfund. There are n tokens
@@ -203,7 +187,6 @@ threadTokenOnChain threadCS txOut =
 -- * the transaction has at least one input
 -- * all contributors receive one token + amount contributed - amount in funding datum
 --   + note: this result must be at least 2 ada. if not, transaction will fail earlier
--- * this should throw an error in traces where funds were locked in the script
 {-# INLINEABLE mkRewardTokenPolicy #-}
 mkRewardTokenPolicy :: L.TxOutRef -> () -> L.ScriptContext -> Bool
 mkRewardTokenPolicy txOut _ ctx
@@ -248,7 +231,7 @@ getRewardTokenAssetClass :: L.TxOutRef -> Value.AssetClass
 getRewardTokenAssetClass txOut =
   Value.assetClass
     (Pl.scriptCurrencySymbol $ rewardTokenPolicy txOut)
-    (rewardTokenName txOut)
+    (tokenNameFromTxOutRef txOut)
 
 rewardToken :: L.TxOutRef -> Integer -> L.Value
 rewardToken txOut = Value.assetClassValue (getRewardTokenAssetClass txOut)
@@ -263,23 +246,6 @@ getMintedAmount txi me tName =
     )
     0
     $ Value.flattenValue (L.txInfoMint txi)
-
--- | Copied from the Auction contract
-{-# INLINEABLE rewardTokenName #-}
-rewardTokenName :: L.TxOutRef -> Value.TokenName
-rewardTokenName (L.TxOutRef (L.TxId tid) i) =
-  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
-  where
-    -- we know that the numbers (indices of transaction outputs) we're working
-    -- with here are non-negative.
-    encodeInteger :: Integer -> BuiltinByteString
-    encodeInteger n
-      | n `quotient` 10 == 0 = encodeDigit n
-      | otherwise = encodeInteger (n `quotient` 10) <> encodeDigit (n `remainder` 10)
-      where
-        encodeDigit :: Integer -> BuiltinByteString
-        -- 48 is the ASCII code for '0'
-        encodeDigit d = consByteString (d + 48) emptyByteString
 
 -- | Compute the token name of the thread token of an auction from its proposal UTxO.
 -- Copied from the Auction contract.
