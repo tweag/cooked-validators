@@ -282,7 +282,7 @@ class (MonadBlockChain m) => MonadMockChain m where
 
   -- | Returns the protocol parameters of the mock chain, which includes
   -- the slot config.
-  params :: m Pl.Params
+  askParams :: m Pl.Params
 
   -- | Modify the parameters according to some function
   localParams :: (Pl.Params -> Pl.Params) -> m a -> m a
@@ -297,7 +297,7 @@ signs = flip as
 
 -- | Return the 'Pl.SlotConfig' contained within the current 'Pl.Params'
 slotConfig :: (MonadMockChain m) => m Pl.SlotConfig
-slotConfig = Pl.pSlotConfig <$> params
+slotConfig = Pl.pSlotConfig <$> askParams
 
 -- | Set higher limits on transaction size and execution units.
 -- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
@@ -338,7 +338,7 @@ f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
   askSigners = lift askSigners
-  params = lift params
+  askParams = lift askParams
   localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)

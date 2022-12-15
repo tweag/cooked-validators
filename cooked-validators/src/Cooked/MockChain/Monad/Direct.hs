@@ -249,7 +249,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let collateralWallet = firstSigner
     skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSignersL %~ (<> Set.singleton balancingWalletPkh))
     collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
-    params <- params
+    params <- askParams
     managedData <- gets mcstDatums
     case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
@@ -287,7 +287,7 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   askSigners = asks mceSigners
 
-  params = asks mceParams
+  askParams = asks mceParams
 
   localParams f = local (\e -> e {mceParams = f (mceParams e)})
 

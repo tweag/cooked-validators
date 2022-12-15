@@ -159,7 +159,7 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
-  interpBuiltin GetParams = params
+  interpBuiltin GetParams = askParams
   interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
@@ -217,7 +217,7 @@ instance MonadBlockChain StagedMockChain where
 instance MonadMockChain StagedMockChain where
   signingWith ws act = singletonBuiltin (SigningWith ws act)
   askSigners = singletonBuiltin AskSigners
-  params = singletonBuiltin GetParams
+  askParams = singletonBuiltin GetParams
   localParams f act = singletonBuiltin (LocalParams f act)
 
 -- * Human Readable Traces
