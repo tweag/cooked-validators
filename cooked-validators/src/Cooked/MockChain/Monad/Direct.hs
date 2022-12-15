@@ -245,20 +245,37 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- collaterals. These should become parameters of validateTxSkel in the
     -- future
     firstSigner NE.:| _ <- askSigners
+    let balancingWallet = firstSigner
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
-    skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSignersL %~ (<> Set.singleton balancingWalletPkh))
+    skel <-
+      setFeeAndBalance
+        balancingWalletPkh
+        -- We need to add the balancing wallet to the signers before
+        -- calculating the fees. The fees depend on the number of signers: they
+        -- make the transaction heavier.
+        ( skelUnbal
+            & txSkelRequiredSignersL
+            %~ (<> Set.singleton balancingWalletPkh)
+        )
     collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
     params <- askParams
     managedData <- gets mcstDatums
     case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
+        slot <- currentSlot
+        index <- gets mcstIndex
         someCardanoTx <-
-          validateTx'
-            (txSkelData skel)
+          runTransactionValidation
+            slot
+            params
+            index
+            [balancingWallet, collateralWallet]
             txBodyContent
-        when (autoSlotIncrease $ txSkelOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+            (txSkelData skel)
+        when (autoSlotIncrease $ txSkelOpts skel) $
+          modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
@@ -291,78 +308,80 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   localParams f = local (\e -> e {mceParams = f (mceParams e)})
 
--- | TODo update this comment
 runTransactionValidation ::
+  (Monad m) =>
   Pl.Slot ->
   Pl.Params ->
   Pl.UtxoIndex ->
   -- | List of signers
   [Wallet] ->
   C.TxBodyContent C.BuildTx C.BabbageEra ->
-  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
-runTransactionValidation slot parms ix signers txBodyContent =
-  let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
-      -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
-      -- to keep this function pure.
-
-      cardanoIndex :: Pl.UTxO Pl.EmulatorEra
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
+  Map Pl.DatumHash Pl.Datum ->
+  MockChainT m Pl.SomeCardanoApiTx
+runTransactionValidation slot parms utxoIndex signers txBodyContent txData =
+  let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
       cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
           (flip C.Tx [])
-          $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
+          -- TODO 'makeTransactionBody' will be deprecated in newer versions of
+          -- cardano-api
+          -- The new name (which is more fitting as well) is
+          -- 'createAndValidateTransactionBody'.
+          (C.makeTransactionBody txBodyContent)
       cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
+        where
+          txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+          txAddSignatureAPI w tx = case signedTx of
+            Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx') -> tx'
+            Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
+            -- looking at the implementation of Pl.addCardanoTxSignature
+            -- it never changes the constructor used, so the above branch
+            -- shall never happen
+            where
+              signedTx =
+                Pl.addCardanoTxSignature
+                  (walletSK w)
+                  (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
 
-      txn :: Pl.CardanoTx
-      txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
+      -- "Pl.CardanoTx" is a plutus-apps type
+      -- "Tx BabbageEra" is a cardano-api type with the information we need
+      -- This wraps the latter inside the former
+      txWrapped :: Pl.CardanoTx
+      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
 
-      e = Pl.validateCardanoTx parms slot cardanoIndex txn
+      mValidationError :: Maybe Pl.ValidationErrorInPhase
+      mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
 
-      -- Now we compute the new index
-      idx' = case e of
-        Just (Pl.Phase1, _) -> ix
-        Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
-        Nothing -> Pl.insert txn ix
-   in (idx', e, Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
-  where
-    txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
-    txAddSignatureAPI w tx = case tx' of
-      Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx'') -> tx''
-      Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
-      -- looking at the implementation of Pl.addCardanoTxSignature
-      -- it never changes the constructor used, so the above branch
-      -- shall never happen
-      where
-        tx' = Pl.addCardanoTxSignature (walletSK w) (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
+      newUtxoIndex :: Pl.UtxoIndex
+      newUtxoIndex = case mValidationError of
+        Just (Pl.Phase1, _) -> utxoIndex
+        Just (Pl.Phase2, _) ->
+          -- Despite its name, this actually deletes the collateral Utxos from
+          -- the index
+          Pl.insertCollateral txWrapped utxoIndex
+        Nothing -> Pl.insert txWrapped utxoIndex
+   in case mValidationError of
+        Just err -> throwError (MCEValidationError err)
+        Nothing -> do
+          -- Validation succeeded; now we update the indexes and the managed
+          -- datums. The new mcstIndex is just `newUtxoIndex`; the new
+          -- mcstDatums is computed by removing the datum hashes have been
+          -- consumed and adding those that have been created in the
+          -- transaction.
+          modify'
+            ( \st ->
+                st
+                  { mcstIndex = newUtxoIndex,
+                    -- TODO: remove the consumed datum hashes
+                    mcstDatums = mcstDatums st `Map.union` txData
+                  }
+            )
 
--- | TODO documentation comment. Since this is only a wrapper around
--- 'runTransactionValidation', maybe we should refactor it into oblivion?
-validateTx' :: (Monad m) => Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
-validateTx' txData txBodyContent = do
-  s <- currentSlot
-  ix <- gets mcstIndex
-  ps <- asks mceParams
-  signers <- askSigners
-  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix (NE.toList signers) txBodyContent
-  -- case trace (show $ snd res) $ fst res of
-  case status of
-    Just err -> throwError (MCEValidationError err)
-    Nothing -> do
-      -- Validation succeeded; now we update the indexes and the managed datums.
-      -- The new mcstIndex is just `ix'`; the new mcstDatums is computed by
-      -- removing the datum hashes have been consumed and adding
-      -- those that have been created in `tx`
-      modify'
-        ( \st ->
-            st
-              { mcstIndex = ix',
-                mcstDatums = mcstDatums st `Map.union` txData -- TODO: remove the consumed datum hashes
-              }
-        )
-  return someCardanoTx
+          return (Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
 
 utxosSuchThisAndThat' ::
   forall a m.
