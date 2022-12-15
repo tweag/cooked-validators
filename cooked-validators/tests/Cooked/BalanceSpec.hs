@@ -25,13 +25,12 @@ import Data.String
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Crypto as Pl
 import qualified Ledger.Index as Pl
-import qualified Ledger.Tx.Internal as Pl
 import qualified Ledger.Value as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.V1.Ledger.Api as Pl
+import qualified Plutus.V1.Ledger.Crypto as Pl
+import qualified Plutus.V1.Ledger.Tx as Pl
 import qualified PlutusTx.AssocMap as Map
 import qualified PlutusTx.Builtins.Internal as PlI
-import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
@@ -69,10 +68,8 @@ tests =
         -- It is necessary to spend both outputs of w11 to gather 8 Adas (8_000_000 lovelaces).
         -- This test doesn't consider the minAdaTxOut constraint.
         testCase "spends money from the outputs" $
-          case tracePayWallet11 of
-            Left err -> fail $ show err
-            Right (st, _) ->
-              let txOut11 = outsOf 11 $ mcstIndex st
+          let Right (st, _) = tracePayWallet11
+           in let txOut11 = outsOf 11 $ mcstIndex st
                in spendValueFrom (Pl.lovelaceValueOf 8_000_000) txOut11
                     @?= (map fst txOut11, Pl.lovelaceValueOf 400_000, mempty),
         testProperty "spends nothing if nothing to balance" $

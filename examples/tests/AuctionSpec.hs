@@ -474,49 +474,49 @@ failingSingle =
 --             exploitDoubleSat
 --       ]
 
--- -- * Comparing two outcomes with 'testBinaryRelatedBy'
+-- * Comparing two outcomes with 'testBinaryRelatedBy'
 
--- -- Produce two outcomes, which differ only by who the (only) bidder in the
--- -- auction was. Then test that the sellers and buyers in both "worlds" have paid
--- -- the same amounts.
+-- Produce two outcomes, which differ only by who the (only) bidder in the
+-- auction was. Then test that the sellers and buyers in both "worlds" have paid
+-- the same amounts.
 
--- bidderAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
--- bidderAlternativeTrace = do
---   t0 <- currentTime
---   let deadline = t0 + 60_000
---   offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
---   A.txSetDeadline offerUtxo deadline
---   A.txBid offerUtxo 30_000_000 `as` wallet 2 <|> A.txBid offerUtxo 30_000_000 `as` wallet 3
---   awaitTime (deadline + 1)
---   A.txHammer offerUtxo
+bidderAlternativeTrace :: (Alternative m, MonadMockChain m) => m ()
+bidderAlternativeTrace = do
+  t0 <- currentTime
+  let deadline = t0 + 60_000
+  offerUtxo <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
+  A.txSetDeadline offerUtxo deadline
+  A.txBid offerUtxo 30_000_000 `as` wallet 2 <|> A.txBid offerUtxo 30_000_000 `as` wallet 3
+  awaitTime (deadline + 1)
+  A.txHammer offerUtxo
 
--- bidderAlternative :: TestTree
--- bidderAlternative =
---   testCase "change in possessions independent of bidder" $
---     testBinaryRelatedBy
---       ( \a b ->
---           testBool $
---             holdingInState a (wallet 1) == holdingInState b (wallet 1)
---               && holdingInState a (wallet 2) == holdingInState b (wallet 3)
---       )
---       testInit
---       bidderAlternativeTrace
+bidderAlternative :: TestTree
+bidderAlternative =
+  testCase "change in possessions independent of bidder" $
+    testBinaryRelatedBy
+      ( \a b ->
+          testBool $
+            holdingInState a (wallet 1) == holdingInState b (wallet 1)
+              && holdingInState a (wallet 2) == holdingInState b (wallet 3)
+      )
+      testInit
+      bidderAlternativeTrace
 
--- -- * Collecting all the tests in this module
+-- * Collecting all the tests in this module
 
--- miscTests :: TestTree
--- miscTests =
---   testGroup
---     "Miscellaneous tests"
---     [bidderAlternative]
+miscTests :: TestTree
+miscTests =
+  testGroup
+    "Miscellaneous tests"
+    [bidderAlternative]
 
 tests :: TestTree
 tests =
   testGroup
     "AuctionSpec"
-    [ successfulSingle -- ,
-    -- failingSingle,
-    -- failingAttacks,
-    -- miscTests,
-    -- successfulAttacks
+    [ successfulSingle,
+      failingSingle,
+      -- failingAttacks,
+      miscTests
+      -- successfulAttacks
     ]

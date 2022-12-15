@@ -99,16 +99,6 @@ toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
 txAddSignature w = Pl.addSignature' (walletSK w)
 
-txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
-txAddSignatureAPI w tx = case tx' of
-  Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx'') -> tx''
-  Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
-  -- looking at the implementation of Pl.addCardanoTxSignature
-  -- it never changes the constructor used, so the above branch
-  -- shall never happen
-  where
-    tx' = Pl.addCardanoTxSignature (walletSK w) (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
-
 -- * Initial distribution of funds
 
 -- $initfundsdistr

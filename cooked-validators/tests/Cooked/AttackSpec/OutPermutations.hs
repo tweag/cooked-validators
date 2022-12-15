@@ -10,7 +10,7 @@ import Cooked.MockChain.Testing
 import Cooked.TestUtils
 import Cooked.Tx.Constraints
 import Data.Default
-import qualified Ledger.Ada as L
+import qualified Plutus.V1.Ledger.Ada as L
 import Test.Tasty
 import Test.Tasty.HUnit
 

@@ -16,12 +16,11 @@ import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints
 import Data.Default
+import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
+import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
-import qualified Plutus.Script.Utils.V2.Scripts as L hiding (validatorHash)
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as L
-import qualified Plutus.V2.Ledger.Api as L
-import qualified Plutus.V2.Ledger.Contexts as L
+import qualified Plutus.V1.Ledger.Scripts as L
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -91,10 +90,8 @@ txRelock v = do
 {-# INLINEABLE outputDatum #-}
 outputDatum :: L.TxInfo -> L.TxOut -> Maybe MockDatum
 outputDatum txi o = do
-  L.Datum d <- case L.txOutDatum o of
-    L.NoOutputDatum -> Nothing
-    L.OutputDatumHash dh -> L.findDatum dh txi
-    L.OutputDatum datum -> Just datum
+  h <- L.txOutDatum o
+  L.Datum d <- L.findDatum h txi
   Pl.fromBuiltinData d
 
 {-# INLINEABLE mkMockValidator #-}
@@ -111,7 +108,7 @@ mkMockValidator getOutputs datum _ ctx =
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
                   (L.txOutValue o == lockValue)
-            [] -> Pl.trace "there must be a output re-locked" False
+            _ -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
 
 {-# INLINEABLE mkCarefulValidator #-}
@@ -223,14 +220,14 @@ tests =
           ),
       testCase "careless validator" $
         testSucceeds
-          ( {-somewhere
+          ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
                       L.validatorHash v == L.validatorHash carelessValidator
                         && SecondLock Pl.== d
                   )
                   (const True)
-              )-}
-            (datumHijackingTrace carelessValidator)
+              )
+              (datumHijackingTrace carelessValidator)
           )
     ]

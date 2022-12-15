@@ -10,8 +10,10 @@ import Cooked.Tx.Constraints.Type
 import Data.Bifunctor
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, validatorHash)
+import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -23,8 +25,26 @@ data GenerateTxError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
-generateCardanoBuildTx :: Pl.Params -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either GenerateTxError Pl.CardanoBuildTx
-generateCardanoBuildTx theParams managedData skel = do
+generateTxBodyContent,
+  generateTxBodyContentWithoutInputDatums ::
+    Pl.Params ->
+    Map Pl.DatumHash Pl.Datum ->
+    TxSkel ->
+    Either
+      GenerateTxError
+      (C.TxBodyContent C.BuildTx C.BabbageEra)
+generateTxBodyContentWithoutInputDatums = generateTxBodyContent' False
+generateTxBodyContent = generateTxBodyContent' True
+
+generateTxBodyContent' ::
+  Bool ->
+  Pl.Params ->
+  Map Pl.DatumHash Pl.Datum ->
+  TxSkel ->
+  Either
+    GenerateTxError
+    (C.TxBodyContent C.BuildTx C.BabbageEra)
+generateTxBodyContent' includeDatums theParams managedData skel = do
   txIns <- mapM inConstraintToTxIn $ Set.toList (skel ^. txSkelIns)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
   txOuts <- mapM outConstraintToTxOut $ skel ^. txSkelOuts
@@ -35,30 +55,42 @@ generateCardanoBuildTx theParams managedData skel = do
       . Pl.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
       $ skel ^. txSkelValidityRange
   txMintValue <- txSkelMintsToTxMintValue $ skel ^. txSkelMints
+  txExtraKeyWits <-
+    bimap
+      (ToCardanoError "translating the required signers")
+      (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
+      $ mapM
+        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash)
+        (Set.toList $ skel ^. txSkelRequiredSigners)
   Right $
-    Pl.CardanoBuildTx
-      C.TxBodyContent
-        { C.txIns = txIns,
-          C.txInsCollateral = txInsCollateral,
-          -- We don't yet support reference inputs. If you add this
-          -- functionality, remember that both the 'txIns' and 'txInsReference'
-          -- fields have to change!
-          C.txInsReference = C.TxInsReferenceNone,
-          C.txOuts = txOuts,
-          C.txTotalCollateral = C.TxTotalCollateralNone, -- That's what plutus-apps does as well
-          C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
-          C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra mempty, -- That's what plutus-apps does as well
-          C.txValidityRange = txValidityRange,
-          C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
-          C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
-          C.txExtraKeyWits = C.TxExtraKeyWitnessesNone, -- That's what plutus-apps does as well
-          C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
-          C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
-          C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
-          C.txUpdateProposal = C.TxUpdateProposalNone, -- That's what plutus-apps does as well
-          C.txMintValue = txMintValue,
-          C.txScriptValidity = C.TxScriptValidityNone -- That's what plutus-apps does as well
-        }
+    C.TxBodyContent
+      { C.txIns = txIns,
+        C.txInsCollateral = txInsCollateral,
+        -- We don't yet support reference inputs. If you add this
+        -- functionality, remember that both the 'txIns' and 'txInsReference'
+        -- fields have to change!
+        C.txInsReference = C.TxInsReferenceNone,
+        C.txOuts = txOuts,
+        C.txTotalCollateral =
+          C.TxTotalCollateral
+            (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
+            ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
+                foldOf (txSkelInsCollateral % folded % spOutValue) skel
+            ),
+        -- WARN For now we are not dealing with return collateral
+        C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ skel ^. txSkelFee,
+        C.txValidityRange = txValidityRange,
+        C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
+        C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
+        C.txExtraKeyWits = txExtraKeyWits,
+        C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
+        C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
+        C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
+        C.txUpdateProposal = C.TxUpdateProposalNone, -- That's what plutus-apps does as well
+        C.txMintValue = txMintValue,
+        C.txScriptValidity = C.TxScriptValidityNone -- That's what plutus-apps does as well
+      }
   where
     -- Helper function to throw errors.
     throwOnNothing :: e -> Maybe a -> Either e a
@@ -76,7 +108,7 @@ generateCardanoBuildTx theParams managedData skel = do
               Just datum -> Map.singleton datumHash datum
               Nothing ->
                 maybe
-                  Map.empty -- throw an error here? I've decided for now to throw errors if the datum is actually needed later on.
+                  Map.empty -- throw an error here? I've decided for now to throw errors only if the datum is actually needed later on.
                   (Map.singleton datumHash)
                   (Map.lookup datumHash managedData)
         )
@@ -122,15 +154,18 @@ generateCardanoBuildTx theParams managedData skel = do
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
           datumHash <-
             throwOnNothing (GenerateTxErrorGeneral "inConstraintToTxIn: No datum hash on script input") $
-              spOut ^? (spOutScriptDatumOrHash % _1)
+              spOutDatumHash spOut
           datum <-
             throwOnNothing
               (GenerateTxErrorGeneral "inConstraintToTxIn: Unknown datum hash on script input")
-              (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.toBuiltinData <$> inputData Map.!? datumHash)
+              (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> inputData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
-                datum
+                ( if includeDatums
+                    then datum
+                    else C.InlineScriptDatum
+                )
                 (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 

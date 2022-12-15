@@ -165,8 +165,7 @@ txHammer offerUtxo =
                         [ paysPK
                             seller
                             (offerUtxo ^. spOutValue)
-                        ],
-                      _txSkelRequiredSigners = Set.singleton seller
+                        ]
                     }
                 (utxo, datum) : _ ->
                   -- There is a thread token, so the auction is in 'NoBids' or

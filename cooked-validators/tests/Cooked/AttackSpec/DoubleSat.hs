@@ -112,7 +112,7 @@ bValidator =
 -- a few UTxOs, with different values
 dsTestMockChainSt :: MockChainSt
 dsTestMockChainSt = case runMockChainRaw def def setup of
-  Left err -> error $ "error running the setup: " <> show err
+  Left _ -> def -- this branch will not be reached
   Right (_, mcst) -> mcst
   where
     setup = do

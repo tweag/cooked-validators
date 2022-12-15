@@ -31,7 +31,7 @@ prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins _insCollateral outs) =
+prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins _insCollateral outs fee) =
   PP.vsep $
     "Transaction Skeleton:" :
     map
@@ -44,7 +44,8 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins _insCol
             Just $ "ValidateIn:" <+> PP.pretty validityRange,
             ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
             prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyInConstraint (Set.toList ins),
-            prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyOutConstraint outs
+            prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyOutConstraint outs,
+            Just $ "Fee:" <+> PP.pretty fee
           ]
       )
   where

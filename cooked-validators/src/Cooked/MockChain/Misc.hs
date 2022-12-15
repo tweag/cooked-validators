@@ -25,11 +25,12 @@ toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
 toCardanoTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Api.TxOut Api.CtxTx Api.BabbageEra
 toCardanoTxOut' addr value datum = Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
   where
-    cAddr = fromRight undefined $ Pl.toCardanoAddressInEra theNetworkId addr
-    cValue = case Pl.toCardanoTxOutValue value of
+    fromRight' x = case x of
       Left err -> error $ show err
-      Right v -> v
-    cDatum = fromRight undefined $ Pl.toCardanoTxOutDatum datum
+      Right res -> res
+    cAddr = fromRight' $ Pl.toCardanoAddressInEra theNetworkId addr
+    cValue = fromRight' $ Pl.toCardanoTxOutValue value
+    cDatum = fromRight' $ Pl.toCardanoTxOutDatum datum
 
 cTxOutToCito :: Pl.TxOut -> Maybe Pl.ChainIndexTxOut
 cTxOutToCito (Pl.TxOut (Api.TxOut cAddr cValue cDatum cRefScript))

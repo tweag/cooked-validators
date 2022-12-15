@@ -1,61 +1,58 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+
+{-# HLINT ignore "Use section" #-}
 
 module Cooked.MockChain.Monad.Direct where
 
 import qualified Cardano.Api as Api
+import qualified Cardano.Api as C
 import Control.Applicative
+import Control.Arrow
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.GenerateTx (GenerateTxError, generateCardanoBuildTx)
+import Cooked.MockChain.Monad.GenerateTx
 import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Balance
 import Cooked.Tx.Constraints.Type
-import Data.Bifunctor (Bifunctor (first, second))
 import Data.Default
-import Data.Either
-import Data.Foldable (asum)
 import Data.Function (on)
+import Data.List
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
-import qualified Data.Set as S
+import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Void
-import GHC.Stack
+import Data.Void (Void)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Fee as Pl
 import Ledger.Orphans ()
 import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Tx.CardanoAPI.Internal as Pl
+import qualified Ledger.Tx.CardanoAPI as Pl hiding (makeTransactionBody)
 import qualified Ledger.Validation as Pl
-import qualified Ledger.Value as Pl (flattenValue)
+import qualified Ledger.Value as Value
 import Optics.Core
-import qualified Plutus.V2.Ledger.Tx as Pl (OutputDatum (..))
 import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx as Pl
-import qualified PlutusTx.Lattice as PlutusTx
 import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
@@ -110,9 +107,10 @@ instance Default Pl.Slot where
 data MockChainError
   = MCEValidationError Pl.ValidationErrorInPhase
   | MCETxError Pl.MkTxError
-  | MCEUnbalanceable BalanceStage Pl.Tx BalanceTxRes
+  | MCEUnbalanceable String BalanceStage TxSkel
   | MCENoSuitableCollateral
   | MCEGenerationError GenerateTxError
+  | MCECalcFee MockChainError
   | FailWith String
   deriving (Show, Eq)
 
@@ -242,15 +240,26 @@ utxoIndex0 = utxoIndex0From def
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skel = do
+  validateTxSkel skelUnbal = do
+    -- TODO We use the first signer as a default wallet for fees and
+    -- collaterals. These should become parameters of validateTxSkel in the
+    -- future
+    firstSigner NE.:| _ <- askSigners
+    let balancingWalletPkh = walletPKHash firstSigner
+    let collateralWallet = firstSigner
+    skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSigners %~ (<> Set.singleton balancingWalletPkh))
+    collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
     params <- params
     managedData <- gets mcstDatums
-    case generateCardanoBuildTx params managedData skel of
+    case generateTxBodyContentWithoutInputDatums params managedData (skel {_txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
-      Right cardanoBuildTx -> do
-        _ <- validateTx' [] (txSkelData skel) cardanoBuildTx
+      Right txBodyContent -> do
+        someCardanoTx <-
+          validateTx'
+            (txSkelData skel)
+            txBodyContent
         when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-        return (Pl.CardanoApiTx . undefined $ cardanoBuildTx)
+        return (Pl.CardanoApiTx someCardanoTx)
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
 
@@ -282,61 +291,62 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
   localParams f = local (\e -> e {mceParams = f (mceParams e)})
 
--- | This validates a given 'Pl.Tx' in its proper context; this is a very tricky thing to do. We're basing
---  ourselves off from how /plutus-apps/ is doing it.
---
---  TL;DR: we need to use "Ledger.Index" to compute the new 'Pl.UtxoIndex', but we neet to
---  rely on "Ledger.Validation" to run the validation akin to how it happens on-chain, with
---  proper checks on transactions fees and signatures.
---
---  For more details, check the following relevant pointers:
---
---  1. https://github.com/tweag/plutus-libs/issues/92
---  2. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-ledger/src/Ledger/Tx.hs#L126
---  3. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Chain.hs#L209
---  4. https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
---
--- Finally; because 'Pl.fromPlutusTx' doesn't preserve signatures, we need the list of signers
--- around to re-sign the transaction.
+-- | TODo update this comment
 runTransactionValidation ::
   Pl.Slot ->
   Pl.Params ->
   Pl.UtxoIndex ->
-  -- | List of required signers
-  [Pl.PaymentPubKeyHash] ->
   -- | List of signers
   [Wallet] ->
-  Pl.CardanoBuildTx ->
-  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase)
-runTransactionValidation s parms ix reqSigners signers tx =
+  C.TxBodyContent C.BuildTx C.BabbageEra ->
+  (Pl.UtxoIndex, Maybe Pl.ValidationErrorInPhase, Pl.SomeCardanoApiTx)
+runTransactionValidation slot parms ix signers txBodyContent =
   let -- Now we'll convert the emulator datastructures into their Cardano.API equivalents.
       -- This should not go wrong and if it does, its unrecoverable, so we stick with `error`
       -- to keep this function pure.
+
+      cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex ix
+
+      cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
       cardanoTx =
-        fromRight (error "Cannot build Cardano Tx") $
-          Pl.makeAutoBalancedTransaction parms cardanoIndex tx (walletAddress $ head signers)
+        either
+          (error . ("Error building Cardano Tx: " <>) . show)
+          (flip C.Tx [])
+          $ C.makeTransactionBody txBodyContent -- on newer versions of the Cardano API, 'makeTransactionBody' is deprecated, and the new name (which is more fitting as well) is 'createAndValidateTransactionBody'.
       cardanoTxSigned = L.foldl' (flip txAddSignatureAPI) cardanoTx signers
 
+      txn :: Pl.CardanoTx
       txn = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
-      e = Pl.validateCardanoTx parms s cardanoIndex txn
+
+      e = Pl.validateCardanoTx parms slot cardanoIndex txn
 
       -- Now we compute the new index
       idx' = case e of
         Just (Pl.Phase1, _) -> ix
         Just (Pl.Phase2, _) -> Pl.insertCollateral txn ix
         Nothing -> Pl.insert txn ix
-   in (idx', e)
+   in (idx', e, Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
+  where
+    txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+    txAddSignatureAPI w tx = case tx' of
+      Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx'') -> tx''
+      Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
+      -- looking at the implementation of Pl.addCardanoTxSignature
+      -- it never changes the constructor used, so the above branch
+      -- shall never happen
+      where
+        tx' = Pl.addCardanoTxSignature (walletSK w) (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
 
--- | Check 'validateTx' for details; we pass the list of required signatories since
--- that is only truly available from the unbalanced tx, so we bubble that up all the way here.
-validateTx' :: (Monad m) => [Pl.PaymentPubKeyHash] -> Map Pl.DatumHash Pl.Datum -> Pl.CardanoBuildTx -> MockChainT m ()
-validateTx' reqSigs txData tx = do
+-- | TODO documentation comment. Since this is only a wrapper around
+-- 'runTransactionValidation', maybe we should refactor it into oblivion?
+validateTx' :: (Monad m) => Map Pl.DatumHash Pl.Datum -> C.TxBodyContent C.BuildTx C.BabbageEra -> MockChainT m Pl.SomeCardanoApiTx
+validateTx' txData txBodyContent = do
   s <- currentSlot
   ix <- gets mcstIndex
   ps <- asks mceParams
   signers <- askSigners
-  let (ix', status) = runTransactionValidation s ps ix reqSigs (NE.toList signers) tx
+  let (ix', status, someCardanoTx) = runTransactionValidation s ps ix (NE.toList signers) txBodyContent
   -- case trace (show $ snd res) $ fst res of
   case status of
     Just err -> throwError (MCEValidationError err)
@@ -352,7 +362,7 @@ validateTx' reqSigs txData tx = do
                 mcstDatums = mcstDatums st `Map.union` txData -- TODO: remove the consumed datum hashes
               }
         )
-  return ()
+  return someCardanoTx
 
 utxosSuchThisAndThat' ::
   forall a m.
@@ -405,67 +415,18 @@ utxosSuchThat' ::
   MockChainT m [(SpendableOut, Maybe a)]
 utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
-myAdjustUnbalTx :: Pl.Params -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-myAdjustUnbalTx parms utx =
-  case Pl.adjustUnbalancedTx parms utx of
-    Left err -> error (show err)
-    Right (_, res) -> res
+ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
+ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValue %~ ensureHasMinAda
 
-errorExpectedEmulatorTx :: HasCallStack => a
-errorExpectedEmulatorTx = error "expected emulator tx, got cardano tx"
-
--- -- | Check 'generateTx' for details
--- generateTx' :: (Monad m) => TxSkel -> MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
--- generateTx' skel = do
---   modify $ updateDatumStr skel
---   signers <- askSigners
---   params <- params
---   managedData <- gets mcstDatums
---   case generateCardanoBuildTx params managedData skel of
---     Left err -> throwError $ MCEGenerationError err
---     Right unbalancedTx -> do
---       -- adjust
---       let adjustedUnbalTx = myAdjustUnbalTx params unbalancedTx
-
---           -- applyRawModOnUnbalancedTx
---       -- balancing (and fees?)
---       -- applyRawModOnBalancedTx
-
---       -- do
---       -- let adjust = if adjustUnbalTx opts then myAdjustUnbalTx parms else id
---       -- let (_ :=>: outputConstraints) = toConstraints constraintsSpec
---       -- let reorderedUbtx =
---       --       if forceOutputOrdering opts
---       --         then applyTxOutConstraintOrder outputConstraints ubtx
---       --         else ubtx
---       -- -- optionally apply a transformation before balancing
---       -- let modifiedUbtx = applyRawModOnUnbalancedTx (unsafeModTx opts) reorderedUbtx
---       -- (reqSigs, balancedTx) <- balanceTxFrom (balanceOutputPolicy opts) (not $ balance opts) (collateral opts) (NE.head signers) (adjust modifiedUbtx)
---       -- return . (reqSigs,) $
---       --   foldl
---       --     (flip txAddSignature)
---       --     -- optionally apply a transformation to a balanced tx before sending it in.
---       --     (applyRawModOnBalancedTx (unsafeModTx opts) balancedTx)
---       --     (NE.toList signers)
---   where
---     -- Update the map of pretty printed representations in the mock chain state
---     updateDatumStr :: TxSkel -> MockChainSt -> MockChainSt
---     updateDatumStr = undefined -- TxSkel {txConstraints} st@MockChainSt {mcstStrDatums} =
---       -- st
---       --   { mcstStrDatums =
---       --       Map.union mcstStrDatums . extractDatumStr . toConstraints $ txConstraints
---       --   }
-
--- | Sets the 'Pl.txFee' and 'Pl.txValidRange' according to our environment. The transaction
--- fee gets set realistically, based on a fixpoint calculation taken from /plutus-apps/,
--- see https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
-setFeeAndValidRange :: (Monad m) => BalanceOutputPolicy -> Wallet -> Pl.UnbalancedTx -> MockChainT m Pl.Tx
-setFeeAndValidRange _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
-setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx reqSigs0 uindex) = do
-  utxos <- pkUtxos' (walletPKHash w)
-  let requiredSigners = S.toList reqSigs0
-  ps <- asks mceParams
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ uindex <> Map.fromList utxos of
+-- | Sets the '_txSkelFee' according to our environment. The transaction fee
+-- gets set realistically, based on a fixpoint calculation taken from
+-- /plutus-apps/.
+setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+setFeeAndBalance balancePK skel0 = do
+  let skel = ensureTxSkelOutsMinAda skel0 -- TODO Disable if "adjustUnbalTx = False"??
+  utxos <- map (\spOut -> (spOut ^. spOutTxOutRef, spOutTxOut spOut)) <$> pkUtxos balancePK
+  mockChainParams <- asks mceParams
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
@@ -473,59 +434,73 @@ setFeeAndValidRange bPol w (Pl.UnbalancedEmulatorTx tx reqSigs0 uindex) = do
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
-      let startingFee = Pl.lovelaceValueOf 3000000
-      fee <-
-        calcFee 5 startingFee requiredSigners cUtxoIndex ps tx
-          `catchError` \case
-            MCEUnbalanceable BalCalcFee _ _ -> calcFee 5 (Pl.minFee tx) requiredSigners cUtxoIndex ps tx
-            e -> throwError e
-      return $ tx {Pl.txFee = fee}
+      let startingFee = 3000000
+      calcFee 5 startingFee cUtxoIndex mockChainParams skel
+        `catchError` \case
+          -- Impossible to balance the transaction
+          MCEUnbalanceable _ BalCalcFee _ ->
+            -- WARN
+            -- "Pl.minFee" takes an actual Tx but we no longer provide it
+            -- since we work on "TxSkel". However, for now, the
+            -- implementation of "Pl.minFee" is a constant of 10 lovelace.
+            -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
+            let minFee = 10 -- forall tx. Pl.minFee tx = 10 lovelace
+             in calcFee 5 minFee cUtxoIndex mockChainParams skel
+          -- Impossible to generate the Cardano transaction at all
+          e -> throwError e
   where
-    -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/03ba6b7e8b9371adf352ffd53df8170633b6dffa/plutus-contract/src/Wallet/Emulator/Wallet.hs#L314
+    -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
+
     calcFee ::
       (Monad m) =>
       Int ->
-      Pl.Value ->
-      [Pl.PaymentPubKeyHash] ->
+      Integer ->
       Pl.UTxO Pl.EmulatorEra ->
       Pl.Params ->
-      Pl.Tx ->
-      MockChainT m Pl.Value
-    calcFee n fee reqSigs cUtxoIndex parms tx = do
-      let tx1 = tx {Pl.txFee = fee}
-      attemptedTx <- balanceTxFromAux bPol BalCalcFee w tx1
-      case Pl.estimateTransactionFee parms cUtxoIndex reqSigs attemptedTx of
+      TxSkel ->
+      MockChainT m TxSkel
+    calcFee n fee cUtxoIndex parms skel = do
+      let skelWithFee = skel & txSkelFee .~ fee
+          bPol = balanceOutputPolicy (skel ^. txSkelOpts)
+      attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
+      manageData <- gets mcstDatums
+      case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
         -- necessary to capture script failure for failed cases
-        Left (Left err@(Pl.Phase2, Pl.ScriptFailure _)) -> throwError $ MCEValidationError err
-        Left err -> throwError $ FailWith $ "calcFee: " ++ show err
+        Left err@MCEValidationError {} -> throwError err
+        Left err -> throwError $ MCECalcFee err
         Right newFee
-          | newFee == fee -> pure newFee -- reached fixpoint
-          | n == 0 -> pure (newFee PlutusTx.\/ fee) -- maximum number of iterations
-          | otherwise -> calcFee (n - 1) newFee reqSigs cUtxoIndex parms tx
+          | newFee == fee -> do
+            -- Debug.Trace.traceM "Reached fixpoint:"
+            -- Debug.Trace.traceM $ "- fee = " <> show fee
+            -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+            pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
+          | n == 0 -> do
+            -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+            pure attemptedSkel {_txSkelFee = max newFee fee} -- maximum number of iterations
+          | otherwise -> do
+            -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+            calcFee (n - 1) newFee cUtxoIndex parms skel
 
-balanceTxFrom ::
-  (Monad m) =>
-  BalanceOutputPolicy ->
-  Bool ->
-  Collateral ->
-  Wallet ->
-  Pl.UnbalancedTx ->
-  MockChainT m ([Pl.PaymentPubKeyHash], Pl.Tx)
-balanceTxFrom bPol skipBalancing col w (Pl.UnbalancedEmulatorTx ubtx' reqs ui) = do
-  let requiredSigners = S.toList reqs
-  colTxIns <- calcCollateral w col
-  tx <-
-    setFeeAndValidRange bPol w $ Pl.UnbalancedEmulatorTx ubtx' {Pl.txCollateral = colTxIns} reqs ui
-  (requiredSigners,)
-    <$> if skipBalancing
-      then return tx
-      else balanceTxFromAux bPol BalFinalizing w tx
-balanceTxFrom _ _ _ _ Pl.UnbalancedCardanoTx {} = errorExpectedEmulatorTx
+-- | This funcion is essentially a copy of
+-- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
+estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Integer
+estimateTxSkelFee params utxo managedData skel = do
+  txBodyContent <- left MCEGenerationError $ generateTxBodyContent params managedData skel
+  let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
+  txBody <-
+    left
+      ( \case
+          Left err -> MCEValidationError err
+          Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
+      )
+      $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
+  case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
+    C.Lovelace fee -> pure fee
 
--- | Calculates the collateral for a some transaction
-calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m [Pl.TxInput]
+-- | Calculates the collateral for a transaction
+calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (Set SpendableOut)
 calcCollateral w col = do
-  orefs <- case col of
+  case col of
     -- We're given a specific utxo to use as collateral
     CollateralUtxos r -> return r
     -- We must pick them; we'll first select
@@ -533,142 +508,184 @@ calcCollateral w col = do
       souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
-      return $ Set.singleton $ (^. spOutTxOutRef) $ fst $ head souts
-  pure $ map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) $ Set.toList orefs
+      -- TODO We only keep one element of the list because we are limited on
+      -- how many collateral inputs a transaction can have. Should this be
+      -- investigated further for a better approach?
+      return $ Set.fromList $ take 1 (fst <$> souts)
 
-balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Wallet -> Pl.Tx -> MockChainT m Pl.Tx
-balanceTxFromAux utxoPolicy stage w tx = do
-  bres <- calcBalanceTx w tx
-  case applyBalanceTx utxoPolicy w bres tx of
-    Just tx' -> return tx'
-    Nothing -> throwError $ MCEUnbalanceable stage tx bres
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+balanceTxFromAux utxoPolicy stage balancePK txskel = do
+  bres <- calcBalanceTx stage balancePK txskel
+  case applyBalanceTx balancePK bres txskel of
+    Just txskel' -> return txskel'
+    Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
 
 data BalanceTxRes = BalanceTxRes
-  { newInputs :: [Pl.TxOutRef],
+  { -- | Inputs that need to be added in order to cover the value in the
+    -- transaction outputs
+    newInputs :: Set SpendableOut,
+    -- | The 'newInputs' will add _at least_ the missing value to cover the
+    -- outputs, this is the difference @inputvalue with 'newInputs' -
+    -- outputValue@. This value must be nonnegative in every asset class.
     returnValue :: Pl.Value,
-    remainderUtxos :: [(Pl.TxOutRef, Pl.TxOut)]
+    -- | Some additional UTxOs that could be used as extra inputs. These all
+    -- belong to the same wallet that was passed to 'calcBalanceTx' as an
+    -- argument, and are sorted in decreasing order of their Ada value.
+    availableUtxos :: [SpendableOut]
   }
   deriving (Eq, Show)
 
--- | Calculate the changes needed to balance a transaction with money from a given wallet.
--- Every transaction that is sent to the chain must be balanced, that is: @inputs + mint == outputs + fee@.
-calcBalanceTx :: (Monad m) => Wallet -> Pl.Tx -> MockChainT m BalanceTxRes
-calcBalanceTx w tx = do
-  -- We start by gathering all the inputs and summing it
-  lhsInputs <- mapM (outFromOutRef . Pl.txInputRef) (Pl.txInputs tx)
-  let lhs = mappend (mconcat $ map Pl.txOutValue lhsInputs) (Pl.txMint tx)
-  let rhs = mappend (mconcat $ map Pl.txOutValue $ Pl.txOutputs tx) (Pl.txFee tx)
-  let wPKH = walletPKHash w
-  let usedInTxIns = Pl.txInputRef <$> Pl.txInputs tx
-  allUtxos <- pkUtxos' wPKH
-  -- It is important that we only consider utxos that have not been spent in the transaction as "available"
-  let availableUtxos = filter ((`L.notElem` usedInTxIns) . fst) allUtxos
-  let (usedUTxOs, leftOver, excess) = balanceWithUTxOs (rhs Pl.- lhs) availableUtxos
-  return $
-    BalanceTxRes
-      { -- Now, we will add the necessary utxos to the transaction,
-        newInputs = usedUTxOs,
-        -- Pay to wPKH whatever is leftOver from newTxIns and whatever was excessive to begin with
-        returnValue = leftOver <> excess,
-        -- We also return the remainder utxos that could still be used in case
-        -- we can't 'applyBalanceTx' this 'BalanceTxRes'.
-        remainderUtxos = filter ((`L.notElem` usedUTxOs) . fst) availableUtxos
-      }
-
--- | Once we calculated what is needed to balance a transaction @tx@, we still need to
--- apply those changes to @tx@. Because of the 'Ledger.minAdaTxOut' constraint, this
--- might not be possible: imagine the leftover is less than 'Ledger.minAdaTxOut', but
--- the transaction has no output addressed to the sending wallet. If we just
--- create a new ouput for @w@ and place the leftover there the resulting tx will fail to validate
--- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another UTxO belonging to @w@ to
--- then create the output with the proper leftover. If @w@ has no UTxO, then there's no
--- way to balance this transaction.
-applyBalanceTx :: BalanceOutputPolicy -> Wallet -> BalanceTxRes -> Pl.Tx -> Maybe Pl.Tx
-applyBalanceTx utxoPolicy w (BalanceTxRes newTxIns leftover remainders) tx = do
-  -- Here we'll try a few things, in order, until one of them succeeds:
-  --   1. If allowed by the utxoPolicy, pick out the best possible output to adjust and adjust it as long as it remains with
-  --      more than 'Pl.minAdaTxOut'. No need for additional inputs. The "best possible" here means the ada-only
-  --      utxo with the most ada and without any datum hash. If the policy doesn't allow modifying an
-  --      existing utxo or no such utxo exists, we move on to the next option;
-  --   2. if the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible, create a new output
-  --      to return leftover. No need for additional inputs.
-  --   3. Attempt to consume other possible utxos from 'w' in order to combine them
-  --      and return the leftover.
-
-  let adjustOutputs = case utxoPolicy of
-        DontAdjustExistingOutput -> empty
-        AdjustExistingOutput -> wOutsBest >>= fmap ([],) . adjustOutputValueAt (<> leftover) (Pl.txOutputs tx)
-
-  (txInsDelta, txOuts') <-
-    asum $
-      [ adjustOutputs, -- 1.
-        guard (isAtLeastMinAda leftover) >> return ([], Pl.txOutputs tx ++ [mkOutWithVal leftover]) -- 2.
-      ]
-        ++ map (fmap (second (Pl.txOutputs tx ++)) . consumeRemainder) (sortByMoreAda remainders) -- 3.
-  let newTxIns' = map (`Pl.TxInput` Pl.TxConsumePublicKeyAddress) (newTxIns ++ txInsDelta)
-  return $
-    tx
-      { Pl.txInputs = Pl.txInputs tx <> newTxIns',
-        Pl.txOutputs = txOuts'
-      }
+-- | Calculate the changes needed to balance a transaction with money from a
+-- given wallet.  Every transaction that is sent to the chain must be balanced,
+-- that is: @inputs + mints == outputs + fee + burns@.
+calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m BalanceTxRes
+calcBalanceTx balanceStage balancePK skel = do
+  -- Get all Utxos that belong to the given wallet, and that are not yet being
+  -- consumed on the transaction.
+  --
+  -- These UTxOs are sorted in decreasing order of their Ada value, which will
+  -- make 'selectNewInputs' will more likely select additional inputs that
+  -- contain a lot of Ada. The hope behind this heuristic is that it'll
+  -- therefore become less likely for the 'returnValue' to be less than the
+  -- minimum Ada amount required for each output. See this comment for context:
+  -- https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
+  candidateUtxos <-
+    sortBy (flip compare `on` Pl.fromValue . (^. spOutValue))
+      . filter (`notElem` inUtxos)
+      <$> pkUtxos balancePK
+  case selectNewInputs candidateUtxos Set.empty initialExcess missingValue of
+    Nothing ->
+      throwError $
+        MCEUnbalanceable
+          ("The wallet " ++ show balancePK ++ " does not own enough funds to pay for balancing.")
+          balanceStage
+          skel
+    Just bTxRes -> return bTxRes
   where
-    wPKH = walletPKHash w
-    mkOutWithVal v = toPlTxOut' (Pl.Address (Pl.PubKeyCredential wPKH) Nothing) v Pl.NoOutputDatum
+    inUtxos = toListOf (txSkelIns % folded % input) skel -- The Utxos consumed by the given transaction
+    inValue = txSkelInputValue skel -- inputs + mints
+    outValue = txSkelOutputValue skel -- outputs + fee + burns
+    difference = outValue <> Pl.negate inValue
 
-    -- The best output to attempt and modify, if any, is the one with the most ada,
-    -- which is at the head of wOutsIxSorted:
-    wOutsBest = fst <$> L.uncons wOutsIxSorted
+    -- This is what must still be paid by 'wallet'
+    missingValue = positivePart difference
 
-    -- The indexes of outputs belonging to w sorted by amount of ada.
-    wOutsIxSorted :: [Int]
-    wOutsIxSorted =
-      map fst $
-        sortByMoreAda $
-          filter ((== Just wPKH) . onlyAdaPkTxOut . snd) $
-            zip [0 ..] (Pl.txOutputs tx)
+    -- This is the part of the input that already excesses the ouput. We'll
+    -- have to pay this to 'wallet' in any case. (Note that 'negativePart' is a
+    -- function that returns a stricly (componentwise) positive 'Pl.Value'!)
+    initialExcess = negativePart difference
 
-    sortByMoreAda :: [(a, Pl.TxOut)] -> [(a, Pl.TxOut)]
-    sortByMoreAda = L.sortBy (flip compare `on` (adaVal . Pl.txOutValue . snd))
+    selectNewInputs ::
+      [SpendableOut] ->
+      Set SpendableOut ->
+      Pl.Value ->
+      Pl.Value ->
+      Maybe BalanceTxRes
+    selectNewInputs available chosen excess missing =
+      case view flattenValueI missing of
+        [] -> Just $ BalanceTxRes chosen excess available
+        (ac, _) : _ ->
+          -- Find the first UTxO belonging to the wallet that contains at least
+          -- one token of the required asset class (The hope is that it'll
+          -- contain at least @n@ such tokens, but we can't yet fail if there are
+          -- fewer; we might need to add several UTxOs):
+          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . (^. spOutValue)) available of
+            Nothing -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
+            Just i ->
+              let (left, theChosenUtxo : right) = splitAt i available
+                  available' = left ++ right
+                  chosen' = chosen <> Set.singleton theChosenUtxo
+                  theChosenValue = theChosenUtxo ^. spOutValue
+                  theChosenDifference = missing <> Pl.negate theChosenValue
+                  excess' = excess <> negativePart theChosenDifference
+                  missing' = positivePart theChosenDifference
+               in -- A remark on why the following line should not lead to an
+                  -- infinite recursion: The value described by @missing'@ is
+                  -- strictly smaller than the value described by @missing@,
+                  -- because there was at least one token of the asset class @ac@
+                  -- in @theChosenValue@.
+                  selectNewInputs available' chosen' excess' missing'
 
-    adaVal :: Pl.Value -> Integer
-    adaVal = Pl.getLovelace . Pl.fromValue
+-- | Once we calculated what is needed to balance a transaction @skel@, we still
+-- need to apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut'
+-- constraint, this might not be possible: imagine the leftover is less than
+-- 'Ledger.minAdaTxOut', but the transaction has no output addressed to the
+-- sending wallet. If we just create a new ouput for the balancing wallet and
+-- place the leftover there, the resulting transaction will fail to validate
+-- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another
+-- UTxO belonging to the wallet to then create the output with the proper leftover. If
+-- the wallet has no UTxO, then there's no way to balance this transaction.
+applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
+applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
+  -- Here we'll try a few things, in order, until one of them succeeds:
+  --
+  -- 1. If allowed by the balanceOutputPolicy, pick out the best possible output
+  --    to adjust and adjust it as long as it remains with more than
+  --    'Pl.minAdaTxOut'. No need for additional inputs apart from the
+  --    @newInputs@. The "best possible" here means the most valuable ada-only
+  --    output without any datum that will be paid to the given wallet. If the
+  --    policy doesn't allow modifying an existing utxo or no such utxo exists,
+  --    we move on to the next option;
+  --
+  -- 2. If the leftover is more than 'Pl.minAdaTxOut' and (1) wasn't possible,
+  --    create a new output to return leftover. No need for additional inputs
+  --    besides the @newInputs@.
+  --
+  -- 3. Attempt to consume other possible utxos from 'w' in order to combine
+  --    them and return the leftover.
 
-    isAtLeastMinAda :: Pl.Value -> Bool
-    isAtLeastMinAda v = adaVal v >= Pl.getLovelace Pl.minAdaTxOut
+  -- TODO: Mustn't every UTxO belongign to the wallet contain at least minAda?
+  -- In that case, we could forget about adding several additional inputs. If
+  -- one isn't enough, there's nothing we can do, no?
+  let outs = skel ^. txSkelOuts
+      ins = skel ^. txSkelIns
+  (newIns, newOuts) <-
+    case findIndex
+      ( \out ->
+          Just balancePK == out ^? recipientPubKeyHash
+            && Value.isAdaOnlyValue (out ^. outValue)
+            && isNothing (out ^? outConstraintDatum)
+      )
+      outs of
+      Just i ->
+        let (left, bestOutput : right) = splitAt i outs
+         in case balanceOutputPolicy $ skel ^. txSkelOpts of
+              AdjustExistingOutput ->
+                let bestOutputValue = bestOutput ^. outValue
+                    adjustedValue = bestOutputValue <> returnValue
+                 in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
+                      then
+                        Just -- (1)
+                          ( ins <> Set.map SpendsPK newInputs,
+                            left ++ (bestOutput & outValue .~ adjustedValue) : right
+                          )
+                      else tryAdditionalInputs ins outs availableUtxos returnValue
+              DontAdjustExistingOutput -> tryAdditionalOutput ins outs
+      Nothing ->
+        -- There's no "best possible transaction output" in the sense described
+        -- above.
+        tryAdditionalOutput ins outs
+  return skel {_txSkelIns = newIns, _txSkelOuts = newOuts}
+  where
+    tryAdditionalOutput :: Set InConstraint -> [OutConstraint] -> Maybe (Set InConstraint, [OutConstraint])
+    tryAdditionalOutput ins outs =
+      if Pl.fromValue returnValue >= Pl.minAdaTxOut
+        then
+          Just -- (2)
+            ( ins <> Set.map SpendsPK newInputs,
+              outs ++ [PaysPK balancePK Nothing (Nothing @()) returnValue]
+            )
+        else tryAdditionalInputs ins outs availableUtxos returnValue
 
-    adjustOutputValueAt :: (Pl.Value -> Pl.Value) -> [Pl.TxOut] -> Int -> Maybe [Pl.TxOut]
-    adjustOutputValueAt f xs i = do
-      guard (isAtLeastMinAda val')
-      return (pref ++ toPlTxOut' addr val' stak : rest)
-      where
-        (pref, (Pl.TxOut (Pl.fromCardanoTxOutToPV2TxInfoTxOut -> Pl2.TxOut addr val stak _)) : rest) = L.splitAt i xs
-        val' = f val
-
-    -- Given a list of available utxos; attept to consume them if they would enable the returning
-    -- of the leftover.
-    consumeRemainder :: (Pl.TxOutRef, Pl.TxOut) -> Maybe ([Pl.TxOutRef], [Pl.TxOut])
-    consumeRemainder (remRef, remOut) =
-      let v = leftover <> Pl.txOutValue remOut
-       in guard (isAtLeastMinAda v) >> return ([remRef], [mkOutWithVal v])
-
--- * Utilities
-
--- | returns public key hash when txout contains only ada tokens and that no datum hash is specified.
-onlyAdaPkTxOut :: Pl.TxOut -> Maybe Pl.PubKeyHash
-onlyAdaPkTxOut (Pl.TxOut to) = case Pl.fromCardanoTxOutToPV2TxInfoTxOut to of
-  Pl2.TxOut (Pl.Address (Pl.PubKeyCredential pkh) _) v Pl2.NoOutputDatum _ ->
-    case Pl.flattenValue v of
-      [(cs, tn, _)] | cs == Pl.adaSymbol && tn == Pl.adaToken -> Just pkh
-      _ -> Nothing
-  _ -> Nothing
-
-addressIsPK :: Pl.Address -> Maybe Pl.PubKeyHash
-addressIsPK addr = case Pl.addressCredential addr of
-  Pl.PubKeyCredential pkh -> Just pkh
-  _ -> Nothing
-
-rstr :: (Monad m) => (a, m b) -> m (a, b)
-rstr (a, mb) = (a,) <$> mb
-
-assocl :: (a, (b, c)) -> ((a, b), c)
-assocl (a, (b, c)) = ((a, b), c)
+    tryAdditionalInputs :: Set InConstraint -> [OutConstraint] -> [SpendableOut] -> Pl.Value -> Maybe (Set InConstraint, [OutConstraint])
+    tryAdditionalInputs ins outs available return =
+      case available of
+        [] -> Nothing
+        additionalUtxo : newAvailable ->
+          let additionalValue = additionalUtxo ^. spOutValue
+              newReturn = additionalValue <> return
+              newIns = ins <> Set.map SpendsPK newInputs <> Set.singleton (SpendsPK additionalUtxo)
+              newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]
+           in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
+                then Just (newIns, newOuts) -- (3)
+                else tryAdditionalInputs newIns newOuts newAvailable newReturn

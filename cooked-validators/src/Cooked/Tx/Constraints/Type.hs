@@ -6,6 +6,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
@@ -14,6 +15,7 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
+import Cooked.MockChain.Wallet (wallet, walletPKHash)
 import Data.Default
 import Data.Function
 import Data.List
@@ -26,6 +28,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (validatorHash)
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
 import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
@@ -183,9 +186,9 @@ instance Ord TxLabel where
 data Collateral
   = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
     CollateralAuto
-  | -- | Will use the 'Pl.TxOutRef's given in the set. The set can be empty, in
+  | -- | Will use the 'SpendableOut's given in the set. The set can be empty, in
     --  which case no collateral will be used whatsoever.
-    CollateralUtxos (Set Pl.TxOutRef)
+    CollateralUtxos (Set SpendableOut)
   deriving (Eq, Show)
 
 instance Default Collateral where
@@ -201,8 +204,9 @@ instance Semigroup Collateral where
 instance Monoid Collateral where
   mempty = def
 
--- | Whether to adjust existing public key outputs during
--- transaction balancing.
+-- | Whether to adjust existing public key outputs during transaction
+-- balancing. TODO: Why do we need these two options? Are they just historical
+-- baggage?
 data BalanceOutputPolicy
   = -- | Try to adjust an existing public key output with the change. If no
     --   suitable output can be found, create a new change output.
@@ -259,6 +263,8 @@ applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnb
 --
 -- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
 -- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
+--
+-- TODO Refactor field names to avoid clashes on common terms such as "collateral" or "balance"
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
     --  has the necessary minimum amount of Ada.
@@ -570,6 +576,8 @@ data InConstraint where
     InConstraint
   SpendsPK :: {_input :: SpendableOut} -> InConstraint
 
+deriving instance Show InConstraint
+
 makeLenses ''InConstraint
 
 instance Eq InConstraint where
@@ -626,6 +634,8 @@ data OutConstraint where
     } ->
     OutConstraint
 
+deriving instance Show OutConstraint
+
 makeLenses ''OutConstraint
 
 outConstraintDatum :: AffineFold OutConstraint Pl.Datum
@@ -672,12 +682,13 @@ data TxSkel where
       _txSkelRequiredSigners :: Set Pl.PubKeyHash,
       _txSkelIns :: Set InConstraint,
       _txSkelInsCollateral :: Set SpendableOut,
-      _txSkelOuts :: [OutConstraint]
+      _txSkelOuts :: [OutConstraint],
+      _txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
   -- are equal in the sense of '==', they specify the same transaction(s).
-  deriving (Eq)
+  deriving (Show, Eq)
 
 makeLenses ''TxSkel
 
@@ -708,7 +719,7 @@ makeLenses ''TxSkel
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2 f2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
@@ -718,9 +729,21 @@ instance Semigroup TxSkel where
       (i1 <> i2)
       (c1 <> c2)
       (o1 ++ o2)
+      (f1 + f2)
 
 instance Monoid TxSkel where
-  mempty = TxSkel Set.empty mempty Map.empty Pl.always Set.empty Set.empty Set.empty []
+  mempty =
+    TxSkel
+      { _txSkelLabel = Set.empty,
+        _txSkelOpts = mempty,
+        _txSkelMints = Map.empty,
+        _txSkelValidityRange = Pl.always,
+        _txSkelRequiredSigners = Set.empty,
+        _txSkelIns = Set.empty,
+        _txSkelInsCollateral = Set.empty,
+        _txSkelOuts = [],
+        _txSkelFee = 0
+      }
 
 -- | All data on the given 'TxSkel', with their hashes
 txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -758,3 +781,58 @@ txSkelUtxoIndex =
           (spOut ^. spOutTxOutRef)
           (spOutTxOut spOut)
     )
+
+-- | The value in all transaction inputs, plus the positive part of the minted
+-- value. This is the left hand side of the "balancing equation":
+--
+-- > mints + inputs = fees + burns + outputs
+txSkelInputValue :: TxSkel -> Pl.Value
+txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
+  positivePart (txSkelMintsValue mints)
+    <> foldOf (txSkelIns % folded % input % spOutValue) skel
+
+-- | The value in all transaction inputs, plus the negative parts of the minted
+-- value. This is the right hand side of the "balancing equation":
+--
+-- > mints + inputs = fees + burns + outputs
+txSkelOutputValue :: TxSkel -> Pl.Value
+txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
+  negativePart (txSkelMintsValue mints)
+    <> foldOf (txSkelOuts % folded % outValue) skel
+    <> Pl.lovelaceValueOf (skel ^. txSkelFee)
+
+-- | All of the '_txSkelRequiredSigners', plus all of the signers required for
+-- PK inputs on the transaction
+txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
+txSkelAllSigners skel =
+  (skel ^. txSkelRequiredSigners)
+    <> foldMapOf
+      (txSkelIns % folded % input % afolding sBelongsToPubKey)
+      Set.singleton
+      skel
+
+-- * Utilities
+
+-- ** Working with 'Value's
+
+flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
+flattenValueI =
+  iso
+    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
+    (foldl' (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
+
+-- | The positive part of a value. For every asset class in the given value,
+-- this asset class and its amount are included in the output iff the amount is
+-- strictly positive. It holds
+--
+-- > x == positivePart x <> Pl.negate negativePart x
+positivePart :: Pl.Value -> Pl.Value
+positivePart = over flattenValueI (filter $ (0 <) . snd)
+
+-- | The negative part of a value. For every asset class in the given value,
+-- this asset class and its negated amount are included in the output iff the
+-- amount is strictly negative. It holds
+--
+-- > x == positivePart x <> Pl.negate negativePart x
+negativePart :: Pl.Value -> Pl.Value
+negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, - n) else Nothing))
