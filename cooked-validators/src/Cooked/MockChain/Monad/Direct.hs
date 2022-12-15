@@ -253,7 +253,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     firstSigner NE.:| _ <- askSigners
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
-    skel <- setFeeAndBalance balancingWalletPkh skelUnbal
+    skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSigners %~ (<> Set.singleton balancingWalletPkh))
     collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
     params <- params
     managedData <- gets mcstDatums
