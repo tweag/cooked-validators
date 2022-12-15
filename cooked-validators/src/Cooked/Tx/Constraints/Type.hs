@@ -485,8 +485,12 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- you'll have to do so manually. Note, however, that even if you do so, NO
 -- VALIDATOR OR MINTING POLICY WILL EVER GET TO SEE A TRANSACTION WITH SUCH
 -- CONFLICTING INFORMATION. This is not a design decision/limitation of
--- cooked-validators: The 'Tx' type has _one field_ for the minted value. This
--- means that there is no way to preserve such information.
+-- cooked-validators: The Cardano API 'TxBodyContent' type, that we're
+-- translating everything into eventually, stores minting information as a
+-- minted value together with a map from policy IDs to witnesses (which
+-- represent the used redeemers). That means that we can only store _one_
+-- redeemer per minting policy, and no conflicting mints of the same asset
+-- class, since they'll just cancel.
 addToTxSkelMints ::
   (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
   TxSkelMints ->
