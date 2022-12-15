@@ -624,7 +624,7 @@ instance Ord TxSkelIn where
   compare SpendsPK {} SpendsScript {} = LT
   compare SpendsScript {} SpendsPK {} = GT
 
--- * Output Constraints
+-- * Transaction outputs
 
 type PaysScriptConstrs a =
   ( Pl.ToData (Pl.DatumType a),
@@ -640,45 +640,49 @@ type PaysPKConstrs a =
     Typeable a
   )
 
-data OutConstraint where
+data TxSkelOut where
   PaysScript ::
     PaysScriptConstrs a =>
-    { _recipientValidator :: Pl.TypedValidator a,
-      _mStakeCred :: Maybe Pl.StakingCredential,
-      _paysScriptDatum :: Pl.DatumType a,
-      _outValue :: Pl.Value
+    { recipientValidator :: Pl.TypedValidator a,
+      mStakeCred :: Maybe Pl.StakingCredential,
+      paysScriptDatum :: Pl.DatumType a,
+      outValue :: Pl.Value
     } ->
-    OutConstraint
+    TxSkelOut
   PaysPK ::
     PaysPKConstrs a =>
-    { _recipientPubKeyHash :: Pl.PubKeyHash,
-      _mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
-      _paysPKDatum :: Maybe a,
-      _outValue :: Pl.Value
+    { recipientPubKeyHash :: Pl.PubKeyHash,
+      mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
+      paysPKDatum :: Maybe a,
+      outValue :: Pl.Value
     } ->
-    OutConstraint
+    TxSkelOut
 
-deriving instance Show OutConstraint
+deriving instance Show TxSkelOut
 
-makeLenses ''OutConstraint
+makeLensesFor
+  [ ("outValue", "outValueL"),
+    ("recipientPubKeyHash", "recipientPubKeyHashAT")
+  ]
+  ''TxSkelOut
 
-outConstraintDatum :: AffineFold OutConstraint Pl.Datum
-outConstraintDatum =
+txSkelOutDatumAT :: AffineFold TxSkelOut Pl.Datum
+txSkelOutDatumAT =
   afolding
     ( \case
-        PaysScript {_paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
-        PaysPK {_paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        PaysScript {paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+        PaysPK {paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
         _ -> Nothing
     )
 
-recipientAddress :: OutConstraint -> Pl.Address
-recipientAddress PaysScript {_recipientValidator = val} = Pl.validatorAddress val
-recipientAddress PaysPK {_recipientPubKeyHash = pkh} =
+recipientAddress :: TxSkelOut -> Pl.Address
+recipientAddress PaysScript {recipientValidator = val} = Pl.validatorAddress val
+recipientAddress PaysPK {recipientPubKeyHash = pkh} =
   -- Should/Can we use the '_mStakpkhbKeyHash' here, to generate a staking
   -- credential? TODO
   Pl.Address (Pl.PubKeyCredential pkh) Nothing
 
-instance Eq OutConstraint where
+instance Eq TxSkelOut where
   (PaysScript v1 sc1 d1 x1) == (PaysScript v2 sc2 d2 x2) =
     case typeOf v1 `eqTypeRep` typeOf v2 of
       Just HRefl -> d1 Pl.== d2 && (v1, sc1, x1) == (v2, sc2, x2)
@@ -689,10 +693,10 @@ instance Eq OutConstraint where
       Nothing -> False
   _ == _ = False
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> OutConstraint
+paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
 paysPK pkh = PaysPK @() pkh Nothing Nothing
 
-paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> OutConstraint
+paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> TxSkelOut
 paysScript tv = PaysScript tv Nothing
 
 -- * Transaction skeletons
@@ -706,7 +710,7 @@ data TxSkel where
       _txSkelRequiredSigners :: Set Pl.PubKeyHash,
       _txSkelIns :: Set TxSkelIn,
       _txSkelInsCollateral :: Set SpendableOut,
-      _txSkelOuts :: [OutConstraint],
+      _txSkelOuts :: [TxSkelOut],
       _txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
@@ -792,7 +796,7 @@ txSkelInputDatumHashes =
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData =
   foldMapOf
-    (txSkelOuts % folded % outConstraintDatum)
+    (txSkelOuts % folded % txSkelOutDatumAT)
     (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
 -- | All 'TxOutRefs' of transaction inputs, resolved.
@@ -822,7 +826,7 @@ txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
 txSkelOutputValue :: TxSkel -> Pl.Value
 txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
-    <> foldOf (txSkelOuts % folded % outValue) skel
+    <> foldOf (txSkelOuts % folded % outValueL) skel
     <> Pl.lovelaceValueOf (skel ^. txSkelFee)
 
 -- | All of the '_txSkelRequiredSigners', plus all of the signers required for

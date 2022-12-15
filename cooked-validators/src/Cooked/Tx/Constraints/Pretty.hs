@@ -43,8 +43,8 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins _insCol
             prettyEnum "Mints:" "/\\" <$> mapNonEmpty prettyMints (mints ^. mintsListIso),
             Just $ "ValidateIn:" <+> PP.pretty validityRange,
             ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
-            prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyInConstraint (Set.toList ins),
-            prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyOutConstraint outs,
+            prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyTxSkelIn (Set.toList ins),
+            prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyTxSkelOut outs,
             Just $ "Fee:" <+> PP.pretty fee
           ]
       )
@@ -76,8 +76,8 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer mr, tName, NonZero amount)
       "Value:" <+> prettySingletonValue (Pl.mpsSymbol . Pl.mintingPolicyHash $ policy) tName amount
     ]
 
-prettyOutConstraint :: OutConstraint -> Doc ann
-prettyOutConstraint (PaysScript val msc datum value) =
+prettyTxSkelOut :: TxSkelOut -> Doc ann
+prettyTxSkelOut (PaysScript val msc datum value) =
   prettyEnum
     ("PaysScript" <+> prettyAddressTypeAndHash addr)
     "-"
@@ -87,7 +87,7 @@ prettyOutConstraint (PaysScript val msc datum value) =
     )
   where
     addr = (Pl.scriptHashAddress $ Pl.validatorHash val) {Pl.addressStakingCredential = msc}
-prettyOutConstraint (PaysPK pkh stak dat val) =
+prettyTxSkelOut (PaysPK pkh stak dat val) =
   prettyEnum
     ("PaysPK" <+> prettyWallet pkh)
     PP.emptyDoc
@@ -98,11 +98,11 @@ prettyOutConstraint (PaysPK pkh stak dat val) =
         ]
     )
 
-prettyInConstraint :: TxSkelIn -> Doc ann
-prettyInConstraint (SpendsPK out) =
+prettyTxSkelIn :: TxSkelIn -> Doc ann
+prettyTxSkelIn (SpendsPK out) =
   let (ppAddr, mppVal) = prettyTxOut $ sOutTxOut out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyInConstraint (SpendsScript val red spOut) =
+prettyTxSkelIn (SpendsScript val red spOut) =
   prettyEnum
     ("SpendsScript" <+> prettyTypedValidator val)
     "-"

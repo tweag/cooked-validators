@@ -47,7 +47,7 @@ generateTxBodyContent' ::
 generateTxBodyContent' includeDatums theParams managedData skel = do
   txIns <- mapM txSkelIntoTxIn $ Set.toList (skel ^. txSkelIns)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
-  txOuts <- mapM outConstraintToTxOut $ skel ^. txSkelOuts
+  txOuts <- mapM txSkelOutToTxOut $ skel ^. txSkelOuts
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -179,11 +179,11 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
         toPKTxInput :: SpendableOut -> Pl.TxInput
         toPKTxInput o = Pl.TxInput (sOutTxOutRef o) Pl.TxConsumePublicKeyAddress
 
-    outConstraintToTxOut :: OutConstraint -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    outConstraintToTxOut = \case
+    txSkelOutToTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+    txSkelOutToTxOut = \case
       (PaysPK pkh mStPkh mDatum value) ->
         left
-          (ToCardanoError "outConstraintToTxOut, translating 'PaysPK'")
+          (ToCardanoError "txSkelOutToTxOut, translating 'PaysPK'")
           ( Pl.toCardanoTxOut
               (Pl.pNetworkId theParams)
               Pl.toCardanoTxOutDatum
@@ -198,7 +198,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
           )
       (PaysScript validator mStCred datum value) ->
         left
-          (ToCardanoError "outConstraintToTxOut, translating 'PaysScript'")
+          (ToCardanoError "txSkelOutToTxOut, translating 'PaysScript'")
           ( Pl.toCardanoTxOut
               (Pl.pNetworkId theParams)
               Pl.toCardanoTxOutDatum

@@ -416,7 +416,7 @@ utxosSuchThat' ::
 utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
 ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
-ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValue %~ ensureHasMinAda
+ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValueL %~ ensureHasMinAda
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
@@ -642,22 +642,22 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
   (newIns, newOuts) <-
     case findIndex
       ( \out ->
-          Just balancePK == out ^? recipientPubKeyHash
-            && Value.isAdaOnlyValue (out ^. outValue)
-            && isNothing (out ^? outConstraintDatum)
+          Just balancePK == out ^? recipientPubKeyHashAT
+            && Value.isAdaOnlyValue (outValue out)
+            && isNothing (out ^? txSkelOutDatumAT)
       )
       outs of
       Just i ->
         let (left, bestOutput : right) = splitAt i outs
          in case balanceOutputPolicy $ skel ^. txSkelOpts of
               AdjustExistingOutput ->
-                let bestOutputValue = bestOutput ^. outValue
+                let bestOutputValue = outValue bestOutput
                     adjustedValue = bestOutputValue <> returnValue
                  in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
                       then
                         Just -- (1)
                           ( ins <> Set.map SpendsPK newInputs,
-                            left ++ (bestOutput & outValue .~ adjustedValue) : right
+                            left ++ (bestOutput & outValueL .~ adjustedValue) : right
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
               DontAdjustExistingOutput -> tryAdditionalOutput ins outs
@@ -667,7 +667,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         tryAdditionalOutput ins outs
   return skel {_txSkelIns = newIns, _txSkelOuts = newOuts}
   where
-    tryAdditionalOutput :: Set TxSkelIn -> [OutConstraint] -> Maybe (Set TxSkelIn, [OutConstraint])
+    tryAdditionalOutput :: Set TxSkelIn -> [TxSkelOut] -> Maybe (Set TxSkelIn, [TxSkelOut])
     tryAdditionalOutput ins outs =
       if Pl.fromValue returnValue >= Pl.minAdaTxOut
         then
@@ -677,7 +677,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
-    tryAdditionalInputs :: Set TxSkelIn -> [OutConstraint] -> [SpendableOut] -> Pl.Value -> Maybe (Set TxSkelIn, [OutConstraint])
+    tryAdditionalInputs :: Set TxSkelIn -> [TxSkelOut] -> [SpendableOut] -> Pl.Value -> Maybe (Set TxSkelIn, [TxSkelOut])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
