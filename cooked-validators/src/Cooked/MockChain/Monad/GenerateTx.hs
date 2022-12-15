@@ -45,23 +45,23 @@ generateTxBodyContent' ::
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent' includeDatums theParams managedData skel = do
-  txIns <- mapM txSkelIntoTxIn $ Set.toList (skel ^. txSkelIns)
-  txInsCollateral <- spOutsToTxInsCollateral . Set.toList $ skel ^. txSkelInsCollateral
-  txOuts <- mapM txSkelOutToTxOut $ skel ^. txSkelOuts
+  txIns <- mapM txSkelIntoTxIn $ Set.toList (txSkelIns skel)
+  txInsCollateral <- spOutsToTxInsCollateral . Set.toList . txSkelInsCollateral $ skel
+  txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
       . Pl.toCardanoValidityRange
       . Pl.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
-      $ skel ^. txSkelValidityRange
-  txMintValue <- txSkelMintsToTxMintValue $ skel ^. txSkelMints
+      $ txSkelValidityRange skel
+  txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-
     bimap
       (ToCardanoError "translating the required signers")
       (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
       $ mapM
         (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash)
-        (Set.toList $ skel ^. txSkelRequiredSigners)
+        (Set.toList $ txSkelRequiredSigners skel)
   Right $
     C.TxBodyContent
       { C.txIns = txIns,
@@ -75,11 +75,11 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
           C.TxTotalCollateral
             (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
             ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
-                foldOf (txSkelInsCollateral % folded % sOutValueL) skel
+                foldOf (txSkelInsCollateralL % folded % sOutValueL) skel
             ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
-        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ skel ^. txSkelFee,
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ txSkelFee skel,
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
@@ -102,7 +102,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
     inputData :: Map Pl.DatumHash Pl.Datum
     inputData =
       foldMapOf
-        (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT)
+        (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
         ( \(datumHash, mDatum) ->
             case mDatum of
               Just datum -> Map.singleton datumHash datum

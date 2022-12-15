@@ -33,8 +33,8 @@ txOffer lot minBid = do
   tx <-
     validateTxSkel $
       mempty
-        { _txSkelOpts = def {adjustUnbalTx = True},
-          _txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
+        { txSkelOpts = def {adjustUnbalTx = True},
+          txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
         }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
@@ -59,7 +59,7 @@ txSetDeadline offerUtxo deadline = do
   (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
   validateTxSkel $
     mempty
-      { _txSkelOpts =
+      { txSkelOpts =
           def
             { adjustUnbalTx = True -- ,
             -- unsafeModTx =
@@ -67,7 +67,7 @@ txSetDeadline offerUtxo deadline = do
             --     RawModTxAfterBalancing (\tx -> Debug.trace (show tx) tx)
             --   ]
             },
-        _txSkelMints =
+        txSkelMints =
           txSkelMintsFromList
             [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                 SomeMintsRedeemer offerOref,
@@ -75,14 +75,14 @@ txSetDeadline offerUtxo deadline = do
                 NonZero 1
               )
             ],
-        _txSkelIns =
+        txSkelIns =
           Set.singleton $
             SpendsScript
               A.auctionValidator
               A.SetDeadline
               offerUtxo,
-        _txSkelRequiredSigners = Set.singleton seller,
-        _txSkelOuts =
+        txSkelRequiredSigners = Set.singleton seller,
+        txSkelOuts =
           [ paysScript
               A.auctionValidator
               (A.NoBids seller minBid deadline)
@@ -111,14 +111,14 @@ txBid offerUtxo bid =
             seller = A.getSeller datum
         validateTxSkel $
           mempty
-            { _txSkelOpts = def {adjustUnbalTx = True},
-              _txSkelIns =
+            { txSkelOpts = def {adjustUnbalTx = True},
+              txSkelIns =
                 Set.singleton $
                   SpendsScript
                     A.auctionValidator
                     (A.Bid (A.BidderInfo bid bidder))
                     utxo,
-              _txSkelOuts =
+              txSkelOuts =
                 paysScript
                   A.auctionValidator
                   (A.Bidding seller deadline (A.BidderInfo bid bidder))
@@ -127,8 +127,8 @@ txBid offerUtxo bid =
                   Nothing -> []
                   Just (prevBid, prevBidder) ->
                     [paysPK prevBidder (Ada.lovelaceValueOf prevBid)],
-              _txSkelValidityRange = Interval.to (deadline - 1),
-              _txSkelRequiredSigners = Set.singleton bidder
+              txSkelValidityRange = Interval.to (deadline - 1),
+              txSkelRequiredSigners = Set.singleton bidder
             }
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
@@ -148,17 +148,17 @@ txHammer offerUtxo =
         void $
           validateTxSkel $
             mempty
-              { _txSkelOpts = def {adjustUnbalTx = True}
+              { txSkelOpts = def {adjustUnbalTx = True}
               }
               <> case utxos of
                 [] ->
                   -- There's no thread token, so the auction is still in 'Offer'
                   -- state
                   mempty
-                    { _txSkelIns =
+                    { txSkelIns =
                         Set.singleton $
                           SpendsScript A.auctionValidator (A.Hammer offerOref) offerUtxo,
-                      _txSkelOuts =
+                      txSkelOuts =
                         [ paysPK
                             seller
                             (sOutValue offerUtxo)
@@ -170,14 +170,14 @@ txHammer offerUtxo =
                   -- match can not fail:
                   let Just deadline = A.getBidDeadline datum
                    in mempty
-                        { _txSkelValidityRange = Interval.from deadline,
-                          _txSkelIns =
+                        { txSkelValidityRange = Interval.from deadline,
+                          txSkelIns =
                             Set.singleton $
                               SpendsScript
                                 A.auctionValidator
                                 (A.Hammer offerOref)
                                 utxo,
-                          _txSkelMints =
+                          txSkelMints =
                             review
                               mintsListIso
                               [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
@@ -186,7 +186,7 @@ txHammer offerUtxo =
                                   NonZero (-1)
                                 )
                               ],
-                          _txSkelOuts =
+                          txSkelOuts =
                             case previousBidder datum of
                               Nothing ->
                                 let lot = sOutValue utxo <> Pl.negate theNft

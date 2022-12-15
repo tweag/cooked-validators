@@ -703,22 +703,33 @@ paysScript tv = PaysScript tv Nothing
 
 data TxSkel where
   TxSkel ::
-    { _txSkelLabel :: Set TxLabel,
-      _txSkelOpts :: TxOpts,
-      _txSkelMints :: TxSkelMints,
-      _txSkelValidityRange :: Pl.POSIXTimeRange,
-      _txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      _txSkelIns :: Set TxSkelIn,
-      _txSkelInsCollateral :: Set SpendableOut,
-      _txSkelOuts :: [TxSkelOut],
-      _txSkelFee :: Integer -- Fee in Lovelace
+    { txSkelLabel :: Set TxLabel,
+      txSkelOpts :: TxOpts,
+      txSkelMints :: TxSkelMints,
+      txSkelValidityRange :: Pl.POSIXTimeRange,
+      txSkelRequiredSigners :: Set Pl.PubKeyHash,
+      txSkelIns :: Set TxSkelIn,
+      txSkelInsCollateral :: Set SpendableOut,
+      txSkelOuts :: [TxSkelOut],
+      txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
   -- are equal in the sense of '==', they specify the same transaction(s).
   deriving (Show, Eq)
 
-makeLenses ''TxSkel
+makeLensesFor
+  [ ("txSkelLabel", "txSkelLabelL"),
+    ("txSkelOpts", "txSkelOptsL"),
+    ("txSkelMints", "txSkelMintsL"),
+    ("txSkelValidityRange", "txSkelValidityRangeL"),
+    ("txSkelRequiredSigners", "txSkelRequiredSignersL"),
+    ("txSkelIns", "txSkelInsL"),
+    ("txSkelInsCollateral", "txSkelInsCollateralL"),
+    ("txSkelOuts", "txSkelOutsL"),
+    ("txSkelFee", "txSkelFeeL")
+  ]
+  ''TxSkel
 
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
@@ -762,15 +773,15 @@ instance Semigroup TxSkel where
 instance Monoid TxSkel where
   mempty =
     TxSkel
-      { _txSkelLabel = Set.empty,
-        _txSkelOpts = mempty,
-        _txSkelMints = Map.empty,
-        _txSkelValidityRange = Pl.always,
-        _txSkelRequiredSigners = Set.empty,
-        _txSkelIns = Set.empty,
-        _txSkelInsCollateral = Set.empty,
-        _txSkelOuts = [],
-        _txSkelFee = 0
+      { txSkelLabel = Set.empty,
+        txSkelOpts = mempty,
+        txSkelMints = Map.empty,
+        txSkelValidityRange = Pl.always,
+        txSkelRequiredSigners = Set.empty,
+        txSkelIns = Set.empty,
+        txSkelInsCollateral = Set.empty,
+        txSkelOuts = [],
+        txSkelFee = 0
       }
 
 -- | All data on the given 'TxSkel', with their hashes
@@ -780,7 +791,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT)
+    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -790,20 +801,20 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelIns % folded % consumedOutputL % sOutDatumOrHashAT % _1)
+    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData =
   foldMapOf
-    (txSkelOuts % folded % txSkelOutDatumAT)
+    (txSkelOutsL % folded % txSkelOutDatumAT)
     (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
 -- | All 'TxOutRefs' of transaction inputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
-    (txSkelIns % folded % consumedOutputL)
+    (txSkelInsL % folded % consumedOutputL)
     ( \sOut ->
         Map.singleton
           (sOutTxOutRef sOut)
@@ -815,27 +826,27 @@ txSkelUtxoIndex =
 --
 -- > mints + inputs = fees + burns + outputs
 txSkelInputValue :: TxSkel -> Pl.Value
-txSkelInputValue skel@TxSkel {_txSkelMints = mints} =
+txSkelInputValue skel@TxSkel {txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelIns % folded % consumedOutputL % sOutValueL) skel
+    <> foldOf (txSkelInsL % folded % consumedOutputL % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
 txSkelOutputValue :: TxSkel -> Pl.Value
-txSkelOutputValue skel@TxSkel {_txSkelMints = mints} =
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
-    <> foldOf (txSkelOuts % folded % outValueL) skel
-    <> Pl.lovelaceValueOf (skel ^. txSkelFee)
+    <> foldOf (txSkelOutsL % folded % outValueL) skel
+    <> Pl.lovelaceValueOf (txSkelFee skel)
 
 -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
 -- PK inputs on the transaction
 txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
 txSkelAllSigners skel =
-  (skel ^. txSkelRequiredSigners)
+  (skel ^. txSkelRequiredSignersL)
     <> foldMapOf
-      (txSkelIns % folded % consumedOutputL % afolding sBelongsToPubKey)
+      (txSkelInsL % folded % consumedOutputL % afolding sBelongsToPubKey)
       Set.singleton
       skel
 

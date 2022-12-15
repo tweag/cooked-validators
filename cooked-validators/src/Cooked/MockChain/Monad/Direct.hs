@@ -247,18 +247,18 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     firstSigner NE.:| _ <- askSigners
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
-    skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSigners %~ (<> Set.singleton balancingWalletPkh))
-    collateralInputs <- calcCollateral collateralWallet (collateral . _txSkelOpts $ skel)
+    skel <- setFeeAndBalance balancingWalletPkh (skelUnbal & txSkelRequiredSignersL %~ (<> Set.singleton balancingWalletPkh))
+    collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
     params <- params
     managedData <- gets mcstDatums
-    case generateTxBodyContentWithoutInputDatums params managedData (skel {_txSkelInsCollateral = collateralInputs}) of
+    case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         someCardanoTx <-
           validateTx'
             (txSkelData skel)
             txBodyContent
-        when (autoSlotIncrease $ skel ^. txSkelOpts) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+        when (autoSlotIncrease $ txSkelOpts skel) $ modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
   txOutByRef outref = gets (Map.lookup outref . Pl.getIndex . mcstIndex)
@@ -416,7 +416,7 @@ utxosSuchThat' ::
 utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
 ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
-ensureTxSkelOutsMinAda = txSkelOuts % traversed % outValueL %~ ensureHasMinAda
+ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
@@ -460,8 +460,8 @@ setFeeAndBalance balancePK skel0 = do
       TxSkel ->
       MockChainT m TxSkel
     calcFee n fee cUtxoIndex parms skel = do
-      let skelWithFee = skel & txSkelFee .~ fee
-          bPol = balanceOutputPolicy (skel ^. txSkelOpts)
+      let skelWithFee = skel & txSkelFeeL .~ fee
+          bPol = balanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
       manageData <- gets mcstDatums
       case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
@@ -473,10 +473,10 @@ setFeeAndBalance balancePK skel0 = do
             -- Debug.Trace.traceM "Reached fixpoint:"
             -- Debug.Trace.traceM $ "- fee = " <> show fee
             -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-            pure attemptedSkel {_txSkelFee = fee} -- reached fixpoint
+            pure attemptedSkel {txSkelFee = fee} -- reached fixpoint
           | n == 0 -> do
             -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-            pure attemptedSkel {_txSkelFee = max newFee fee} -- maximum number of iterations
+            pure attemptedSkel {txSkelFee = max newFee fee} -- maximum number of iterations
           | otherwise -> do
             -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
             calcFee (n - 1) newFee cUtxoIndex parms skel
@@ -562,7 +562,7 @@ calcBalanceTx balanceStage balancePK skel = do
           skel
     Just bTxRes -> return bTxRes
   where
-    inUtxos = toListOf (txSkelIns % folded % consumedOutputL) skel -- The Utxos consumed by the given transaction
+    inUtxos = toListOf (txSkelInsL % folded % consumedOutputL) skel -- The Utxos consumed by the given transaction
     inValue = txSkelInputValue skel -- inputs + mints
     outValue = txSkelOutputValue skel -- outputs + fee + burns
     difference = outValue <> Pl.negate inValue
@@ -637,8 +637,8 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
   -- TODO: Mustn't every UTxO belongign to the wallet contain at least minAda?
   -- In that case, we could forget about adding several additional inputs. If
   -- one isn't enough, there's nothing we can do, no?
-  let outs = skel ^. txSkelOuts
-      ins = skel ^. txSkelIns
+  let outs = txSkelOuts skel
+      ins = txSkelIns skel
   (newIns, newOuts) <-
     case findIndex
       ( \out ->
@@ -649,7 +649,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       outs of
       Just i ->
         let (left, bestOutput : right) = splitAt i outs
-         in case balanceOutputPolicy $ skel ^. txSkelOpts of
+         in case balanceOutputPolicy $ txSkelOpts skel of
               AdjustExistingOutput ->
                 let bestOutputValue = outValue bestOutput
                     adjustedValue = bestOutputValue <> returnValue
@@ -665,7 +665,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         -- There's no "best possible transaction output" in the sense described
         -- above.
         tryAdditionalOutput ins outs
-  return skel {_txSkelIns = newIns, _txSkelOuts = newOuts}
+  return skel {txSkelIns = newIns, txSkelOuts = newOuts}
   where
     tryAdditionalOutput :: Set TxSkelIn -> [TxSkelOut] -> Maybe (Set TxSkelIn, [TxSkelOut])
     tryAdditionalOutput ins outs =
