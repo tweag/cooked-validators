@@ -37,6 +37,7 @@ txOutScriptTypeP =
         _ -> Nothing
     )
 
+-- | Go thorouhg all transaction outputs that pay a typed validator of a certain type.
 paysScriptTypeT ::
   PaysScriptConstrs a =>
   Traversal'
@@ -47,6 +48,19 @@ paysScriptTypeT ::
       Pl.Value
     )
 paysScriptTypeT = txSkelOutsL % traversed % txOutScriptTypeP
+
+paysPKNoDatumP :: Prism' TxSkelOut (Pl.PubKeyHash, Maybe Pl.StakePubKeyHash, Pl.Value)
+paysPKNoDatumP =
+  prism'
+    (\(pkh, mStPkh, value) -> PaysPK pkh mStPkh (Nothing @()) value)
+    ( \case
+        PaysPK pkh mStPkh Nothing value -> Just (pkh, mStPkh, value)
+        _ -> Nothing
+    )
+
+-- | Go thhrough all transaction outputs that pay a plublic key without using a datum.
+paysPKNoDatumT :: Traversal' TxSkel (Pl.PubKeyHash, Maybe Pl.StakePubKeyHash, Pl.Value)
+paysPKNoDatumT = txSkelOutsL % traversed % paysPKNoDatumP
 
 -- -- A few remarks:
 
