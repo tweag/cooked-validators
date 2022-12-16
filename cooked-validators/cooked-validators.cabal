@@ -14,6 +14,7 @@ library
   exposed-modules:
       Cooked
       Cooked.Attack
+      Cooked.Attack.DoubleSat
       Cooked.Attack.Tweak
       Cooked.Attack.Tweak.AddInputsAndOutputs
       Cooked.Attack.Tweak.Common
@@ -96,6 +97,7 @@ test-suite spec
   other-modules:
       Cooked.Attack.Tweak.CommonSpec
       Cooked.Attack.Tweak.OutPermutationsSpec
+      Cooked.Attack.DoubleSatSpec
       Cooked.AttackSpec
       Cooked.TestUtils
       Paths_cooked_validators

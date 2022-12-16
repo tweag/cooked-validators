@@ -11,6 +11,7 @@
 module Cooked.Tx.Constraints.Optics where
 
 import Cooked.Tx.Constraints.Type
+import qualified Data.Map as Map
 import qualified Ledger as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
@@ -37,7 +38,7 @@ txOutScriptTypeP =
         _ -> Nothing
     )
 
--- | Go thorouhg all transaction outputs that pay a typed validator of a certain type.
+-- | Go through all transaction outputs that pay a typed validator of a certain type.
 paysScriptTypeT ::
   PaysScriptConstrs a =>
   Traversal'
@@ -58,9 +59,31 @@ paysPKNoDatumP =
         _ -> Nothing
     )
 
--- | Go thhrough all transaction outputs that pay a plublic key without using a datum.
+-- | Go through all transaction outputs that pay a plublic key without using a datum.
 paysPKNoDatumT :: Traversal' TxSkel (Pl.PubKeyHash, Maybe Pl.StakePubKeyHash, Pl.Value)
 paysPKNoDatumT = txSkelOutsL % traversed % paysPKNoDatumP
+
+spendsScriptTypeP ::
+  forall a.
+  SpendsScriptConstrs a =>
+  Prism' (SpendableOut, TxSkelIn) (SpendableOut, Pl.TypedValidator a, Pl.RedeemerType a)
+spendsScriptTypeP =
+  prism'
+    (\(sOut, validator, redeemer) -> (sOut, SpendsScript validator redeemer))
+    ( \(sOut, txSkelIn) ->
+        case txSkelIn of
+          SpendsScript validator redeemer ->
+            case typeOf validator `eqTypeRep` typeRep @(Pl.TypedValidator a) of
+              Just HRefl -> Just (sOut, validator, redeemer)
+              Nothing -> Nothing
+          _ -> Nothing
+    )
+
+-- | Go through all transaction inputs that come from some script of a given type.
+spendsScriptTypeF ::
+  SpendsScriptConstrs a =>
+  Fold TxSkel (SpendableOut, Pl.TypedValidator a, Pl.RedeemerType a)
+spendsScriptTypeF = txSkelInsL % folding Map.toList % spendsScriptTypeP
 
 -- -- A few remarks:
 

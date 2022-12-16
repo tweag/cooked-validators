@@ -83,8 +83,8 @@ removeOutputTweak removePred = do
 -- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under
 -- modification. As this is implemented in terms of 'addToTxSkelMints', the same
 -- caveats apply as do to that function!
-addMintTweak :: Pl.Versioned Pl.MintingPolicy -> MintsRedeemer -> Pl.TokenName -> NonZero Integer -> Tweak ()
-addMintTweak pol red tNAme amount = overTweak txSkelMintsL $ addToTxSkelMints (pol, red, tNAme, amount)
+addMintTweak :: (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Tweak ()
+addMintTweak mint = overTweak txSkelMintsL $ addToTxSkelMints mint
 
 -- | Remove some entries from the 'TxSkelMints' of a transaction, according to
 -- some predicate. The returned list holds the removed entries.

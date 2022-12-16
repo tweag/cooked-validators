@@ -13,6 +13,7 @@ import Control.Arrow
 import Control.Monad
 import Cooked
 import Cooked.Attack
+import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.List (isPrefixOf)
@@ -237,51 +238,53 @@ simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
 --     )
 --     simpleTraces
 
--- -- | Double satisfaction attack. This attack tries to add extra 'Bid' inputs to
--- -- transactions that already 'Bid'.
--- tryDoubleSat :: (Alternative m, MonadModalMockChain m) => m ()
--- tryDoubleSat =
---   somewhere
---     ( doubleSatAttack
---         (spendsScriptConstraintsT % spendsScriptConstraintTypeP @A.Auction)
---         ( \mcst (_, redeemer, _) ->
---             case redeemer of
---               A.Bid (A.BidderInfo bid bidder) ->
---                 let extraUtxos =
---                       scriptUtxosSuchThatMcst
---                         mcst
---                         A.auctionValidator
---                         (\_ _ -> True)
---                  in mapMaybe
---                       ( \(out, datum) ->
---                           case datum of
---                             A.NoBids seller minBid _deadline ->
---                               Just $
---                                 [ SpendsScript
---                                     A.auctionValidator
---                                     (A.Bid (A.BidderInfo minBid bidder))
---                                     out
---                                 ]
---                                   :=>: []
---                             A.Bidding seller _deadline (A.BidderInfo prevBid prevBidder) ->
---                               Just $
---                                 [ SpendsScript
---                                     A.auctionValidator
---                                     (A.Bid (A.BidderInfo (prevBid + 10_000_000) bidder))
---                                     out
---                                 ]
---                                   :=>: []
---                             _ -> Nothing
---                       )
---                       extraUtxos
---               _ -> []
---         )
---         -- pay the surplus to wallet 6
---         (wallet 6)
---         -- try each extra redeemer on a different modified transaction
---         AllSeparate
---     )
---     simpleTraces
+-- | Double satisfaction attack. This attack tries to add extra 'Bid' inputs to
+-- transactions that already 'Bid'.
+tryDoubleSat :: (Alternative m, MonadModalMockChain m) => m ()
+tryDoubleSat =
+  somewhere
+    ( doubleSatAttack
+        (spendsScriptTypeF @A.Auction)
+        ( \mcst (_, _, redeemer) ->
+            case redeemer of
+              A.Bid (A.BidderInfo bid bidder) ->
+                let extraUtxos =
+                      scriptUtxosSuchThatMcst
+                        mcst
+                        A.auctionValidator
+                        (\_ _ -> True)
+                 in mapMaybe
+                      ( \(out, datum) ->
+                          case datum of
+                            A.NoBids seller minBid _deadline ->
+                              Just
+                                ( Map.singleton out $
+                                    SpendsScript
+                                      A.auctionValidator
+                                      (A.Bid (A.BidderInfo minBid bidder)),
+                                  [],
+                                  mempty
+                                )
+                            A.Bidding seller _deadline (A.BidderInfo prevBid prevBidder) ->
+                              Just
+                                ( Map.singleton out $
+                                    SpendsScript
+                                      A.auctionValidator
+                                      (A.Bid (A.BidderInfo (prevBid + 10_000_000) bidder)),
+                                  [],
+                                  mempty
+                                )
+                            _ -> Nothing
+                      )
+                      extraUtxos
+              _ -> []
+        )
+        -- pay the surplus to wallet 6
+        (wallet 6)
+        -- try each extra redeemer on a different modified transaction
+        AllSeparate
+    )
+    simpleTraces
 
 -- | datum tampering attack that tries to change the seller to wallet 6 on every
 -- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
@@ -321,12 +324,12 @@ failingAttacks =
         testFailsFrom'
           isCekEvaluationFailure
           testInit
-          tryTamperDatum --,
-          -- testCase "double satisfaction" $
-          --   testFailsFrom'
-          --     isCekEvaluationFailure
-          --     testInit
-          --     tryDoubleSat
+          tryTamperDatum,
+      testCase "double satisfaction" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDoubleSat
     ]
 
 -- -- * Known successful attacks and exploits
