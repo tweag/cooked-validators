@@ -319,7 +319,7 @@ runTransactionValidation ::
   Pl.Slot ->
   -- | The parameters of the MockChain
   Pl.Params ->
-  -- | The current
+  -- | The currently known UTxOs
   Pl.UtxoIndex ->
   -- | List of signers that have to be on the transaction in order for it to be
   -- Phase 1 - valid. This will be the list that contains the ballancing wallet
