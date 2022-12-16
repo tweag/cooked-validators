@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -7,6 +8,7 @@
 module Cooked.Attack.Tweak.TamperDatum where
 
 import Cooked.Attack.Tweak.Common
+import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
@@ -28,9 +30,9 @@ tamperDatumTweak ::
 tamperDatumTweak change = do
   unmodified <-
     mkTweak
-      (paysScriptConstraintsT % paysScriptConstraintTypeP @a % _3)
+      (paysScriptTypeT @a % _3)
       (const change)
   addLabelTweak TamperDatumLbl
   return unmodified
 
-data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq)
+data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)

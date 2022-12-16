@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
@@ -11,6 +12,7 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Cooked
+import Cooked.Attack
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.List (isPrefixOf)
@@ -202,8 +204,8 @@ failingSingle =
 
 -- -- * failing attacks
 
--- simpleTraces :: (Alternative m, MonadMockChain m) => m ()
--- simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
+simpleTraces :: (Alternative m, MonadMockChain m) => m ()
+simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
 
 -- -- | Token duplication attack: Whenever we see a transaction that mints
 -- -- something, try to mint one more token and pay it to the attacker. This should
@@ -281,51 +283,51 @@ failingSingle =
 --     )
 --     simpleTraces
 
--- -- | datum tampering attack that tries to change the seller to wallet 6 on every
--- -- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
--- -- there are actual checks happening).
--- tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
--- tryTamperDatum =
---   somewhere
---     ( tamperDatumTweak @A.Auction
---         ( \case
---             A.NoBids seller minBid deadline ->
---               Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline
---             A.Bidding seller deadline bidderInfo ->
---               Just $ A.Bidding (walletPKHash $ wallet 6) deadline bidderInfo
---             _ -> Nothing
---         )
---     )
---     simpleTraces
+-- | datum tampering attack that tries to change the seller to wallet 6 on every
+-- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
+-- there are actual checks happening).
+tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
+tryTamperDatum =
+  somewhere
+    ( tamperDatumTweak @A.Auction
+        ( \case
+            A.NoBids seller minBid deadline ->
+              Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline
+            A.Bidding seller deadline bidderInfo ->
+              Just $ A.Bidding (walletPKHash $ wallet 6) deadline bidderInfo
+            _ -> Nothing
+        )
+    )
+    simpleTraces
 
--- failingAttacks :: TestTree
--- failingAttacks =
---   testGroup
---     "failing attacks"
---     [ testCase "token duplication" $
---         testFailsFrom'
---           -- Ensure that the trace fails and gives back an error message satisfying a specific condition
---           ( isCekEvaluationFailureWithMsg
---               (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
---           )
---           testInit
---           tryDupTokens,
---       testCase "datum hijacking" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryDatumHijack,
---       testCase "datum tampering" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryTamperDatum,
---       testCase "double satisfaction" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryDoubleSat
---     ]
+failingAttacks :: TestTree
+failingAttacks =
+  testGroup
+    "failing attacks"
+    [ -- testCase "token duplication" $
+      --   testFailsFrom'
+      --     -- Ensure that the trace fails and gives back an error message satisfying a specific condition
+      --     ( isCekEvaluationFailureWithMsg
+      --         (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
+      --     )
+      --     testInit
+      --     tryDupTokens,
+      -- testCase "datum hijacking" $
+      --   testFailsFrom'
+      --     isCekEvaluationFailure
+      --     testInit
+      --     tryDatumHijack,
+      testCase "datum tampering" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryTamperDatum --,
+          -- testCase "double satisfaction" $
+          --   testFailsFrom'
+          --     isCekEvaluationFailure
+          --     testInit
+          --     tryDoubleSat
+    ]
 
 -- -- * Known successful attacks and exploits
 
@@ -516,7 +518,7 @@ tests =
     "AuctionSpec"
     [ successfulSingle,
       failingSingle,
-      -- failingAttacks,
+      failingAttacks,
       miscTests
       -- successfulAttacks
     ]
