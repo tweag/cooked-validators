@@ -13,7 +13,16 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
+      Cooked.Attack
+      Cooked.Attack.AddToken
+      Cooked.Attack.DatumHijacking
+      Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
+      Cooked.Attack.Tweak
+      Cooked.Attack.Tweak.AddConstraints
       Cooked.Attack.Tweak.Common
+      Cooked.Attack.Tweak.OutPermutations
+      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
