@@ -8,9 +8,9 @@ import Cooked.Attack
 import Cooked.MockChain
 import Cooked.MockChain.Testing
 import Cooked.TestUtils
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import Data.Default
-import qualified Plutus.V1.Ledger.Ada as L
+import qualified Ledger.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -66,10 +66,10 @@ tests =
                     )
                   ],
       testGroup "tests for PermutOutTweakMode" $
-        let a = paysPK (walletPKHash $ wallet 1) $ L.lovelaceValueOf 123
-            b = paysPK (walletPKHash $ wallet 2) $ L.lovelaceValueOf 123
-            c = paysPK (walletPKHash $ wallet 3) $ L.lovelaceValueOf 123
-            skel x y z = txSkel ([] :=>: [x, y, z])
+        let a = paysPK (walletPKHash $ wallet 1) $ Pl.lovelaceValueOf 123
+            b = paysPK (walletPKHash $ wallet 2) $ Pl.lovelaceValueOf 123
+            c = paysPK (walletPKHash $ wallet 3) $ Pl.lovelaceValueOf 123
+            skel x y z = mempty {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   (map (,()) [skel a b c, skel b a c])

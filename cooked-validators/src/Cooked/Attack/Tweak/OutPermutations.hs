@@ -2,7 +2,7 @@ module Cooked.Attack.Tweak.OutPermutations where
 
 import Control.Monad
 import Cooked.Attack.Tweak.Common
-import Cooked.Tx.Constraints.Optics
+import Cooked.Tx.Constraints.Type
 
 data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 
@@ -27,10 +27,10 @@ data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 -- permutations, even if some outputs are identical.)
 permutOutTweak :: PermutOutTweakMode -> Tweak ()
 permutOutTweak mode = do
-  oldOut <- viewTweak outConstraintsL
+  oldOut <- viewTweak txSkelOutsL
   msum $
     map
-      (setTweak outConstraintsL)
+      (setTweak txSkelOutsL)
       (perms oldOut)
   where
     perms = case mode of
