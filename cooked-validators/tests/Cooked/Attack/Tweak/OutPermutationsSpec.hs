@@ -2,7 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.AttackSpec.OutPermutations (tests) where
+module Cooked.Attack.Tweak.OutPermutationsSpec (tests) where
 
 import Cooked.Attack
 import Cooked.MockChain

@@ -1,4 +1,4 @@
-module Cooked.AttackSpec.Common (tests) where
+module Cooked.Attack.Tweak.CommonSpec (tests) where
 
 import Cooked.Attack.Tweak.Common
 import Cooked.MockChain
