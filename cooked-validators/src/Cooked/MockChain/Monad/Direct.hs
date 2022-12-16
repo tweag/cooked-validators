@@ -273,7 +273,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             index
             [balancingWallet, collateralWallet]
             txBodyContent
-            (txSkelData skel)
+            (txSkelInputData skel)
+            (txSkelOutputData skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -317,8 +318,9 @@ runTransactionValidation ::
   [Wallet] ->
   C.TxBodyContent C.BuildTx C.BabbageEra ->
   Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash Pl.Datum ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent txData =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
@@ -376,8 +378,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent txData =
             ( \st ->
                 st
                   { mcstIndex = newUtxoIndex,
-                    -- TODO: remove the consumed datum hashes
-                    mcstDatums = mcstDatums st `Map.union` txData
+                    mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData
                   }
             )
 
