@@ -30,6 +30,7 @@ import Optics.Core
 import qualified Plutus.Contract.Constraints as Pl
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified PlutusTx.Numeric as Pl
+import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
@@ -203,7 +204,7 @@ failingSingle =
           failingTwoBids
     ]
 
--- -- * failing attacks
+-- * failing attacks
 
 simpleTraces :: (Alternative m, MonadMockChain m) => m ()
 simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
@@ -220,23 +221,23 @@ simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
 --     )
 --     simpleTraces
 
--- -- | Datum hijacking attack: Try to steal outputs from a validator.
--- tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
--- tryDatumHijack =
---   somewhere
---     ( datumHijackingAttack @A.Auction
---         ( \_ d _ -> case d of
---             -- try to steal all outputs that have the 'Bidding' datum, no matter
---             -- their validator or value.
---             A.Bidding {} -> True
---             -- try to steal during the 'SetDeadline' transaction. This
---             -- vulnerability existed before PR #161.
---             A.NoBids {} -> True
---             _ -> False
---         )
---         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
---     )
---     simpleTraces
+-- | Datum hijacking attack: Try to steal outputs from a validator.
+tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
+tryDatumHijack =
+  somewhere
+    ( datumHijackingAttack @A.Auction
+        ( \_ d _ -> case d of
+            -- try to steal all outputs that have the 'Bidding' datum, no matter
+            -- their validator or value.
+            A.Bidding {} -> True
+            -- try to steal during the 'SetDeadline' transaction. This
+            -- vulnerability existed before PR #161.
+            A.NoBids {} -> True
+            _ -> False
+        )
+        (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
+    )
+    simpleTraces
 
 -- | Double satisfaction attack. This attack tries to add extra 'Bid' inputs to
 -- transactions that already 'Bid'.
@@ -315,11 +316,11 @@ failingAttacks =
       --     )
       --     testInit
       --     tryDupTokens,
-      -- testCase "datum hijacking" $
-      --   testFailsFrom'
-      --     isCekEvaluationFailure
-      --     testInit
-      --     tryDatumHijack,
+      testCase "datum hijacking" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDatumHijack,
       testCase "datum tampering" $
         testFailsFrom'
           isCekEvaluationFailure
@@ -332,7 +333,7 @@ failingAttacks =
           tryDoubleSat
     ]
 
--- -- * Known successful attacks and exploits
+-- * Known successful attacks and exploits
 
 -- | Try to mint an additional token of the token name "exampleTokenName"
 -- whenever anything is minted.
@@ -340,7 +341,7 @@ tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
 tryAddToken =
   somewhere
     ( addTokenAttack
-        (const [(Pl.TokenName "exampleTokenName", 1)])
+        (const [(Pl.TokenName "exampleTokenName", NonZero 1)])
         (wallet 6)
     )
     simpleTraces
@@ -522,6 +523,6 @@ tests =
     [ successfulSingle,
       failingSingle,
       failingAttacks,
-      miscTests
-      -- successfulAttacks
+      miscTests,
+      successfulAttacks
     ]

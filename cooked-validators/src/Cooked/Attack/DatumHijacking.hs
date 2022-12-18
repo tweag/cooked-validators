@@ -12,11 +12,11 @@ module Cooked.Attack.DatumHijacking where
 
 import Cooked.Attack.Tweak
 import Cooked.MockChain.RawUPLC
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Optics
+import Cooked.Tx.Constraints.Type
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
-import qualified Plutus.V1.Ledger.Credential as L
 import qualified PlutusTx as Pl
 
 -- | Redirect 'PaysScript's from one validator to another validator of the same
@@ -26,8 +26,8 @@ import qualified PlutusTx as Pl
 --
 -- If no output is redirected, this tweak fails.
 --
--- Something like 'paysScriptCoinstraintTypeP' might be useful to construct the
--- optics used by this tweak.
+-- Something like 'paysScriptTypeT' might be useful to construct the optics used
+-- by this tweak.
 redirectScriptOutputTweak ::
   Is k A_Traversal =>
   Optic' k is TxSkel (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value) ->
@@ -80,14 +80,14 @@ datumHijackingAttack change select =
    in do
         redirected <-
           redirectScriptOutputTweak
-            (paysScriptConstraintsT % paysScriptConstraintTypeP @a)
+            (paysScriptTypeT @a)
             (\val _mStakingCred dat money -> if change val dat money then Just thief else Nothing)
             select
         addLabelTweak $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected
 
 newtype DatumHijackingLbl = DatumHijackingLbl L.Address
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | The trivial validator that always succeds; this is a sufficient target for
 -- the datum hijacking attack since we only want to show feasibility of the
