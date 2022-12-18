@@ -1,6 +1,6 @@
 module Cooked.AttackSpec (tests) where
 
--- import qualified Cooked.AttackSpec.DatumHijacking as DatumHijacking
+import qualified Cooked.Attack.DatumHijackingSpec as DatumHijacking
 import qualified Cooked.Attack.DoubleSatSpec as DoubleSat
 import qualified Cooked.Attack.Tweak.CommonSpec as Common
 -- import qualified Cooked.AttackSpec.DupToken as DupToken
@@ -13,7 +13,7 @@ tests =
       "Attack DSL"
       [ Common.tests,
         -- DupToken.tests,
-        -- DatumHijacking.tests,
+        DatumHijacking.tests,
         DoubleSat.tests,
         OutPermutations.tests
       ]

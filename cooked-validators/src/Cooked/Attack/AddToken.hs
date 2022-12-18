@@ -3,12 +3,13 @@ module Cooked.Attack.AddToken where
 import Control.Monad
 import Cooked.Attack.Tweak
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
+import qualified Data.Map as Map
 import qualified Ledger as Pl
-import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
-import Optics.Core
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Ledger.Value as Value
+import qualified PlutusTx.Numeric as Pl
+import Test.QuickCheck.Modifiers (NonZero)
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
 -- different from the 'dupTokenAttack' in that it does not merely try to
@@ -19,38 +20,42 @@ import qualified Plutus.Script.Utils.V1.Scripts as Pl
 -- minted token(s). It returns additional value minted.
 addTokenAttack ::
   -- | For each policy that occurs in some 'Mints' constraint, return a list of
-  -- token names together with how many tokens with that name be minted, using
-  -- the same redeemer as on the original transaction. For each of the elements
-  -- of the returned list, one modified transaction will be tried.
-  (Pl.MintingPolicy -> [(Pl.TokenName, Integer)]) ->
+  -- token names together with how many tokens with that name should be
+  -- minted.
+  --
+  -- For each of the elements of the returned list, one modified transaction
+  -- with the additional tokens will be generated. (This means for example that,
+  -- if there were three minting policies on the original transaction, and the
+  -- lists returned for each of them have n,m, and o elements, respectively,
+  -- there'll be n*m*o modified transactions.)
+  --
+  -- The redeemer will be the one that's already being used on the transaction.
+  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, NonZero Integer)]) ->
   -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
   Wallet ->
   Tweak Pl.Value
 addTokenAttack extraTokens attacker = do
-  mintsCs <- viewTweak $ partsOf mintsConstraintsT
+  oldMints <- viewTweak txSkelMintsL
   msum $
     map
-      ( \(MintsConstraint redeemer pols _value) ->
-          msum $
-            map
-              ( \pol ->
-                  msum $
-                    map
-                      ( \(extraTn, amount) ->
-                          let extraValue =
-                                Pl.assetClassValue
-                                  (Pl.assetClass (Pl.scriptCurrencySymbol pol) extraTn)
-                                  amount
-                           in do
-                                _ <- addMiscConstraintTweak $ Mints redeemer [pol] extraValue
-                                addLabelTweak $ AddTokenLbl extraTn
-                                addOutConstraintTweak $ paysPK (walletPKHash attacker) extraValue
-                                return extraValue
-                      )
-                      $ extraTokens pol
-              )
-              pols
+      ( \policy ->
+          let (redeemer, _) = oldMints Map.! policy
+           in msum $
+                map
+                  ( \(tName, amount) ->
+                      let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
+                          increment =
+                            txSkelMintsValue newMints
+                              <> Pl.negate (txSkelMintsValue oldMints)
+                       in if increment `Value.geq` mempty
+                            then do
+                              setTweak txSkelMintsL newMints
+                              addOutputTweak $ paysPK (walletPKHash attacker) increment
+                              return increment
+                            else failingTweak
+                  )
+                  (extraTokens policy)
       )
-      mintsCs
+      (Map.keys oldMints)
 
 newtype AddTokenLbl = AddTokenLbl Pl.TokenName deriving (Show, Eq)

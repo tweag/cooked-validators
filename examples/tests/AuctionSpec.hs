@@ -334,16 +334,16 @@ failingAttacks =
 
 -- -- * Known successful attacks and exploits
 
--- -- | Try to mint an additional token of the token name "exampleTokenName"
--- -- whenever anything is minted.
--- tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
--- tryAddToken =
---   somewhere
---     ( addTokenAttack
---         (const [(Pl.TokenName "exampleTokenName", 1)])
---         (wallet 6)
---     )
---     simpleTraces
+-- | Try to mint an additional token of the token name "exampleTokenName"
+-- whenever anything is minted.
+tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
+tryAddToken =
+  somewhere
+    ( addTokenAttack
+        (const [(Pl.TokenName "exampleTokenName", 1)])
+        (wallet 6)
+    )
+    simpleTraces
 
 -- -- | This trace exploits the fact, discovered with the 'addTokenAttack' above,
 -- -- that one can mint extra tokens on the 'SetDeadline' transaction, in order to
@@ -457,27 +457,27 @@ failingAttacks =
 --     bob = wallet 2
 --     eve = wallet 6
 
--- successfulAttacks :: TestTree
--- successfulAttacks =
---   testGroup "successful attacks and exploits" $
---     map
---       expectFail
---       [ testCase "adding extra tokens" $
---           testFailsFrom'
---             isCekEvaluationFailure
---             testInit
---             tryAddToken,
---         testCase "exploit extra tokens to steal a bid" $
---           testFailsFrom'
---             isCekEvaluationFailure
---             testInit
---             exploitAddToken,
---         testCase "exploit double satisfaction to steal a bid" $
---           testFailsFrom'
---             isCekEvaluationFailure
---             testInit
---             exploitDoubleSat
---       ]
+successfulAttacks :: TestTree
+successfulAttacks =
+  testGroup "successful attacks and exploits" $
+    map
+      expectFail
+      [ testCase "adding extra tokens" $
+          testFailsFrom'
+            isCekEvaluationFailure
+            testInit
+            tryAddToken -- ,
+            -- testCase "exploit extra tokens to steal a bid" $
+            --   testFailsFrom'
+            --     isCekEvaluationFailure
+            --     testInit
+            --     exploitAddToken,
+            -- testCase "exploit double satisfaction to steal a bid" $
+            --   testFailsFrom'
+            --     isCekEvaluationFailure
+            --     testInit
+            --     exploitDoubleSat
+      ]
 
 -- * Comparing two outcomes with 'testBinaryRelatedBy'
 
