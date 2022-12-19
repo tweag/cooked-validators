@@ -213,7 +213,11 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
                     (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStPkh)
                 )
                 value
-                (maybe Pl.NoOutputDatum (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData) mDatum) -- What to do if we want to use only the datum hash?
+                ( case mDatum of
+                    Nothing -> Pl.NoOutputDatum
+                    Just (Left datumHash) -> Pl.OutputDatumHash datumHash
+                    Just (Right datum) -> Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
+                )
                 Nothing -- What to do about reference scripts?
           )
       (PaysScript validator mStCred datum value) ->
@@ -228,7 +232,10 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
                     mStCred
                 )
                 value
-                (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum) -- What to do if we want to use only the datum hash?
+                ( case datum of
+                    Left datumHash -> Pl.OutputDatumHash datumHash
+                    Right dat -> Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ dat
+                )
                 Nothing -- What to do about reference scripts?
           )
 
