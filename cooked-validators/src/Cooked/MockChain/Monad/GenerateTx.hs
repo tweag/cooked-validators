@@ -64,7 +64,7 @@ generateTxBodyContent' ::
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent' includeInputDatums theParams managedData skel = do
-  txIns <- mapM txSkelIntoTxIn $ Map.toList (txSkelIns skel)
+  txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList . txSkelInsCollateral $ skel
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
@@ -151,7 +151,7 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelIntoTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
+    txSkelInToTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
