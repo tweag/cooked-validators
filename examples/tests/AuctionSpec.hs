@@ -209,17 +209,17 @@ failingSingle =
 simpleTraces :: (Alternative m, MonadMockChain m) => m ()
 simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
 
--- -- | Token duplication attack: Whenever we see a transaction that mints
--- -- something, try to mint one more token and pay it to the attacker. This should
--- -- be ruled out by the minting policy of the thread token.
--- tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
--- tryDupTokens =
---   somewhere
---     ( dupTokenAttack
---         (\_ n -> n + 1) -- the modification of the minted value
---         (wallet 6) -- the attacker's wallet
---     )
---     simpleTraces
+-- | Token duplication attack: Whenever we see a transaction that mints
+-- something, try to mint one more token and pay it to the attacker. This should
+-- be ruled out by the minting policy of the thread token.
+tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
+tryDupTokens =
+  somewhere
+    ( dupTokenAttack
+        (\_ n -> n + 1) -- the modification of the minted value
+        (wallet 6) -- the attacker's wallet
+    )
+    simpleTraces
 
 -- | Datum hijacking attack: Try to steal outputs from a validator.
 tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
@@ -308,14 +308,14 @@ failingAttacks :: TestTree
 failingAttacks =
   testGroup
     "failing attacks"
-    [ -- testCase "token duplication" $
-      --   testFailsFrom'
-      --     -- Ensure that the trace fails and gives back an error message satisfying a specific condition
-      --     ( isCekEvaluationFailureWithMsg
-      --         (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
-      --     )
-      --     testInit
-      --     tryDupTokens,
+    [ testCase "token duplication" $
+        testFailsFrom'
+          -- Ensure that the trace fails and gives back an error message satisfying a specific condition
+          ( isCekEvaluationFailureWithMsg
+              (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
+          )
+          testInit
+          tryDupTokens,
       testCase "datum hijacking" $
         testFailsFrom'
           isCekEvaluationFailure

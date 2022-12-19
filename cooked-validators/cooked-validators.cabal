@@ -15,6 +15,8 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.AddToken
+      Cooked.Attack.DupToken
+      Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.Tweak
       Cooked.Attack.Tweak.AddInputsAndOutputs
@@ -99,6 +101,8 @@ test-suite spec
       Cooked.Attack.Tweak.CommonSpec
       Cooked.Attack.Tweak.OutPermutationsSpec
       Cooked.Attack.DoubleSatSpec
+      Cooked.Attack.DatumHijackingSpec
+      Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
       Cooked.TestUtils
       Paths_cooked_validators
