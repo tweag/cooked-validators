@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -78,26 +79,36 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer mr, tName, NonZero amount)
     ]
 
 prettyTxSkelOut :: TxSkelOut -> Doc ann
-prettyTxSkelOut (PaysScript val msc datum value) =
-  prettyEnum
-    ("PaysScript" <+> prettyAddressTypeAndHash addr)
-    "-"
-    ( map
-        (\(d, v) -> prettyDatumVal val d v <+> "with hash:" <+> prettyHash (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ d)) -- uncurry (prettyDatumVal val))
-        [(datum, value)]
-    )
+prettyTxSkelOut =
+  \case
+    (PaysScript val msc datum value) ->
+      let addr = (Pl.scriptHashAddress $ Pl.validatorHash val) {Pl.addressStakingCredential = msc}
+       in prettyEnum
+            ("PaysScript" <+> prettyAddressTypeAndHash addr)
+            "-"
+            ( catMaybes $
+                (("Value:" <+>) <$> mPrettyValue value) :
+                (Just <$> prettyDatumOrHash datum)
+            )
+    (PaysPK pkh stak dat val) ->
+      prettyEnum
+        ("PaysPK" <+> prettyWallet pkh)
+        PP.emptyDoc
+        ( catMaybes $
+            [ fmap (("StakePKH:" <+>) . PP.pretty) stak,
+              ("Value:" <+>) <$> mPrettyValue val
+            ]
+              ++ case dat of
+                Nothing -> []
+                Just d -> Just <$> prettyDatumOrHash d
+        )
   where
-    addr = (Pl.scriptHashAddress $ Pl.validatorHash val) {Pl.addressStakingCredential = msc}
-prettyTxSkelOut (PaysPK pkh stak dat val) =
-  prettyEnum
-    ("PaysPK" <+> prettyWallet pkh)
-    PP.emptyDoc
-    ( catMaybes
-        [ fmap (("StakePKH:" <+>) . PP.pretty) stak,
-          fmap (("Datum:" <+>) . prettyDatum) dat,
-          mPrettyValue val
-        ]
-    )
+    prettyDatumOrHash :: (Show a, Pl.ToData a) => Either Pl.DatumHash a -> [Doc ann]
+    prettyDatumOrHash (Left dh) = ["Datum Hash:" <+> prettyHash dh]
+    prettyDatumOrHash (Right d) =
+      [ "Datum:" <+> prettyDatum d,
+        "DatumHash:" <+> (prettyHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ d)
+      ]
 
 prettyTxSkelIn :: (SpendableOut, TxSkelIn) -> Doc ann
 prettyTxSkelIn (out, SpendsPK) =
@@ -144,15 +155,6 @@ prettyTxOut tout = (prettyAddressTypeAndHash $ Pl.txOutAddress tout, mPrettyValu
 
 prettyTypedValidator :: Pl.TypedValidator a -> Doc ann
 prettyTypedValidator = prettyAddressTypeAndHash . Pl.validatorAddress
-
-prettyDatumVal ::
-  (Show (Pl.DatumType a)) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Doc ann
-prettyDatumVal _ d value =
-  PP.align $ PP.vsep $ catMaybes [Just $ prettyDatum d, mPrettyValue value]
 
 -- | Prettifies a 'TxOpts'; returns 'Nothing' if we're looking at default options.
 prettyOpts :: TxOpts -> Maybe (Doc ann)
