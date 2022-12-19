@@ -665,7 +665,7 @@ makeLensesFor
   ]
   ''TxSkelOut
 
--- | Return the datum hash of a 'TxSkelOut'
+-- | Return the datum hash of a 'TxSkelOut', if there is one.
 txSkelOutDatumHash :: TxSkelOut -> Maybe Pl.DatumHash
 txSkelOutDatumHash =
   \case
@@ -673,6 +673,14 @@ txSkelOutDatumHash =
     PaysScript {paysScriptDatum = Right datum} -> Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
     PaysPK {paysPKDatum = Just (Left datumHash)} -> Just datumHash
     PaysPK {paysPKDatum = Just (Right datum)} -> Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+    _ -> Nothing
+
+-- | Return the datum of a 'TxSkelOut', if there is one.
+txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
+txSkelOutDatum =
+  \case
+    PaysScript {paysScriptDatum = Right datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
+    PaysPK {paysPKDatum = Just (Right datum)} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
     _ -> Nothing
 
 instance Eq TxSkelOut where
@@ -806,6 +814,14 @@ txSkelOutputDatumHashes =
   foldMapOf
     (txSkelOutsL % folded % afolding txSkelOutDatumHash)
     Set.singleton
+
+-- | All datums from known transaction outputs. These will necessarily come from
+-- outputs that use inline data.
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelOutputData =
+  foldMapOf
+    (txSkelOutsL % folded % afolding txSkelOutDatum)
+    (\datum -> Map.singleton (Pl.datumHash datum) datum)
 
 -- | All 'TxOutRefs' of transaction inputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut

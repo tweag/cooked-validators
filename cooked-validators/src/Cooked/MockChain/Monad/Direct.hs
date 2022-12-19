@@ -675,7 +675,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
   -- 3. Attempt to consume other possible utxos from 'w' in order to combine
   --    them and return the leftover.
 
-  -- TODO: Mustn't every UTxO belongign to the wallet contain at least minAda?
+  -- TODO: Mustn't every UTxO belonging to the wallet contain at least minAda?
   -- In that case, we could forget about adding several additional inputs. If
   -- one isn't enough, there's nothing we can do, no?
   let outs = txSkelOuts skel
@@ -685,7 +685,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       ( \out ->
           Just balancePK == out ^? recipientPubKeyHashAT
             && Value.isAdaOnlyValue (outValue out)
-            && isNothing (out ^? txSkelOutDatumAT)
+            && isNothing (txSkelOutDatumHash out)
       )
       outs of
       Just i ->
@@ -717,7 +717,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         then
           Just -- (2)
             ( ins <> Map.fromSet (const SpendsPK) newInputs,
-              outs ++ [PaysPK balancePK Nothing (Nothing @()) returnValue]
+              outs ++ [paysPK balancePK returnValue]
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
@@ -737,7 +737,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                 ins
                   <> Map.fromSet (const SpendsPK) newInputs
                   <> Map.singleton additionalUtxo SpendsPK
-              newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]
+              newOuts = outs ++ [paysPK balancePK newReturn]
            in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
                 then Just (newIns, newOuts) -- (3)
                 else tryAdditionalInputs newIns newOuts newAvailable newReturn
