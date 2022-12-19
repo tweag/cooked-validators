@@ -325,7 +325,7 @@ runTransactionValidation ::
   -- Phase 1 - valid. This will be the list that contains the ballancing wallet
   -- and the collateral wallet.
   [Wallet] ->
-  -- | The transaction to vaildate. It should already be balanced and have
+  -- | The transaction to validate. It should already be balanced and have
   -- appropriate collateral.
   --
   -- The witnesses in script inputs must use the 'C.InlineScriptDatum'
@@ -337,7 +337,7 @@ runTransactionValidation ::
   -- | The data on transaction inputs. If the transaction is successful, these
   -- will be deleted from the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
-  -- | The data on transaction outputs. If the transaction is succesfil, these
+  -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
   MockChainT m Pl.SomeCardanoApiTx

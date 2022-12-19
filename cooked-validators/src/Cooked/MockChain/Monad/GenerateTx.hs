@@ -47,7 +47,7 @@ generateTxBodyContent' ::
   -- chooses.
   --
   -- The latter option will (probably, We've not yet completely understood how
-  -- this works!) rely on the information in the UTxO what will be included when
+  -- this works!) rely on the information in the UTxO that will be included when
   -- the 'C.TxBodyContent' is finally transformed into an actual 'C.Tx'.
   --
   -- The former option (i.e. to include the datum) is necessary when such
