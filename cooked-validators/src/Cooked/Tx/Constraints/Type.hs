@@ -710,7 +710,6 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
       txSkelIns :: Set TxSkelIn,
-      txSkelInsCollateral :: Set SpendableOut,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
@@ -759,7 +758,7 @@ makeLensesFor
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2 f2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2 f2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
@@ -767,7 +766,6 @@ instance Semigroup TxSkel where
       (r1 `Pl.intersection` r2)
       (s1 <> s2)
       (i1 <> i2)
-      (c1 <> c2)
       (o1 ++ o2)
       (f1 + f2)
 
@@ -780,7 +778,6 @@ instance Monoid TxSkel where
         txSkelValidityRange = Pl.always,
         txSkelRequiredSigners = Set.empty,
         txSkelIns = Set.empty,
-        txSkelInsCollateral = Set.empty,
         txSkelOuts = [],
         txSkelFee = 0
       }

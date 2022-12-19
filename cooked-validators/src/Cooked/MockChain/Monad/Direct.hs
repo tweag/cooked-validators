@@ -239,6 +239,11 @@ utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 
+withCollateral :: TxSkel -> Set SpendableOut -> TxSkel
+withCollateral skel souts = skel {txSkelOpts = txSkelOpts'}
+  where
+    txSkelOpts' = (txSkelOpts skel) {collateral = CollateralUtxos souts}
+
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     -- TODO We use the first signer as a default wallet for fees and
@@ -265,7 +270,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
     -- documentation of the 'generateTxBodyContent*' functions might also be
     -- informative.
-    case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
+    case generateTxBodyContentWithoutInputDatums params managedData (skel `withCollateral` collateralInputs) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot

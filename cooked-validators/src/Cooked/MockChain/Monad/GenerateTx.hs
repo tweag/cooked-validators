@@ -65,7 +65,10 @@ generateTxBodyContent' ::
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent' includeInputDatums theParams managedData skel = do
   txIns <- mapM txSkelIntoTxIn $ Set.toList (txSkelIns skel)
-  txInsCollateral <- spOutsToTxInsCollateral . Set.toList . txSkelInsCollateral $ skel
+  let collateralIns = case collateral $ txSkelOpts skel of
+        CollateralAuto -> []
+        CollateralUtxos utxos -> Set.toList utxos
+  txInsCollateral <- spOutsToTxInsCollateral collateralIns
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
     left
@@ -94,7 +97,7 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
           C.TxTotalCollateral
             (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
             ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
-                foldOf (txSkelInsCollateralL % folded % sOutValueL) skel
+                foldOf (folded % sOutValueL) collateralIns
             ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well

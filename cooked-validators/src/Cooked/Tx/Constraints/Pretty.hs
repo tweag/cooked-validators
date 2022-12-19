@@ -31,7 +31,7 @@ prettyEnum title tag items =
   PP.hang 1 $ PP.vsep $ title : map (tag <+>) items
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins _insCollateral outs fee) =
+prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs fee) =
   PP.vsep $
     "Transaction Skeleton:" :
     map
