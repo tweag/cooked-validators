@@ -29,7 +29,6 @@ library
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
-      Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
   other-modules:
