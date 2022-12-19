@@ -644,7 +644,7 @@ data TxSkelOut where
     PaysScriptConstrs a =>
     { recipientValidator :: Pl.TypedValidator a,
       mStakeCred :: Maybe Pl.StakingCredential,
-      paysScriptDatum :: Pl.DatumType a,
+      paysScriptDatum :: Either Pl.DatumHash (Pl.DatumType a),
       outValue :: Pl.Value
     } ->
     TxSkelOut
@@ -652,7 +652,7 @@ data TxSkelOut where
     PaysPKConstrs a =>
     { recipientPubKeyHash :: Pl.PubKeyHash,
       mStakePubKeyHash :: Maybe Pl.StakePubKeyHash,
-      paysPKDatum :: Maybe a,
+      paysPKDatum :: Maybe (Either Pl.DatumHash a),
       outValue :: Pl.Value
     } ->
     TxSkelOut
@@ -665,21 +665,15 @@ makeLensesFor
   ]
   ''TxSkelOut
 
-txSkelOutDatumAT :: AffineFold TxSkelOut Pl.Datum
-txSkelOutDatumAT =
-  afolding
-    ( \case
-        PaysScript {paysScriptDatum = datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
-        PaysPK {paysPKDatum = Just datum} -> Just . Pl.Datum . Pl.toBuiltinData $ datum
-        _ -> Nothing
-    )
-
-recipientAddress :: TxSkelOut -> Pl.Address
-recipientAddress PaysScript {recipientValidator = val} = Pl.validatorAddress val
-recipientAddress PaysPK {recipientPubKeyHash = pkh} =
-  -- Should/Can we use the '_mStakpkhbKeyHash' here, to generate a staking
-  -- credential? TODO
-  Pl.Address (Pl.PubKeyCredential pkh) Nothing
+-- | Return the datum hash of a 'TxSkelOut'
+txSkelOutDatumHash :: TxSkelOut -> Maybe Pl.DatumHash
+txSkelOutDatumHash =
+  \case
+    PaysScript {paysScriptDatum = Left datumHash} -> Just datumHash
+    PaysScript {paysScriptDatum = Right datum} -> Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+    PaysPK {paysPKDatum = Just (Left datumHash)} -> Just datumHash
+    PaysPK {paysPKDatum = Just (Right datum)} -> Just . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+    _ -> Nothing
 
 instance Eq TxSkelOut where
   (PaysScript v1 sc1 d1 x1) == (PaysScript v2 sc2 d2 x2) =
@@ -692,10 +686,14 @@ instance Eq TxSkelOut where
       Nothing -> False
   _ == _ = False
 
+-- | Smart constructor for a 'TxSkelOut' that goes to a public key, uses no
+-- datum, and provides no staking information.
 paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
 paysPK pkh = PaysPK @() pkh Nothing Nothing
 
-paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> TxSkelOut
+-- | Smart constructor for a 'TxSkelOut' that goes to a script and provides no
+-- staking information.
+paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Either Pl.DatumHash (Pl.DatumType a) -> Pl.Value -> TxSkelOut
 paysScript tv = PaysScript tv Nothing
 
 -- * Transaction skeletons
@@ -787,10 +785,6 @@ instance Monoid TxSkel where
         txSkelFee = 0
       }
 
--- | All data on the given 'TxSkel', with their hashes
-txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
-txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
-
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
@@ -807,11 +801,11 @@ txSkelInputDatumHashes =
     (consumedOutputsF % sOutDatumOrHashAT % _1)
     (: [])
 
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
-txSkelOutputData =
+txSkelOutputDatumHashes :: TxSkel -> Set Pl.DatumHash
+txSkelOutputDatumHashes =
   foldMapOf
-    (txSkelOutsL % folded % txSkelOutDatumAT)
-    (\datum -> Map.singleton (Pl.datumHash datum) datum)
+    (txSkelOutsL % folded % afolding txSkelOutDatumHash)
+    Set.singleton
 
 -- | All 'TxOutRefs' of transaction inputs, resolved.
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
