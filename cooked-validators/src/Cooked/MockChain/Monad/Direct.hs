@@ -261,6 +261,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
     params <- askParams
     managedData <- gets mcstDatums
+    -- See the comment at the arguments of 'runTransactionValidation' on why we
+    -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
+    -- documentation of the 'generateTxBodyContent*' functions might also be
+    -- informative.
     case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
@@ -273,7 +277,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             index
             [balancingWallet, collateralWallet]
             txBodyContent
-            (txSkelData skel)
+            (txSkelInputData skel)
+            (txSkelOutputData skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -310,15 +315,33 @@ instance (Monad m) => MonadMockChain (MockChainT m) where
 
 runTransactionValidation ::
   (Monad m) =>
+  -- | The current slot
   Pl.Slot ->
+  -- | The parameters of the MockChain
   Pl.Params ->
+  -- | The currently known UTxOs
   Pl.UtxoIndex ->
-  -- | List of signers
+  -- | List of signers that have to be on the transaction in order for it to be
+  -- Phase 1 - valid. This will be the list that contains the ballancing wallet
+  -- and the collateral wallet.
   [Wallet] ->
+  -- | The transaction to validate. It should already be balanced and have
+  -- appropriate collateral.
+  --
+  -- The witnesses in script inputs must use the 'C.InlineScriptDatum'
+  -- constructor. We've not really understood why this is required by
+  -- 'Pl.validateCardanoTx', but if the 'C.ScriptDatumForTxIn' constructor with
+  -- an explicit datum is used, we see an error about
+  -- 'NonOutputSupplimentaryDatums'.
   C.TxBodyContent C.BuildTx C.BabbageEra ->
+  -- | The data on transaction inputs. If the transaction is successful, these
+  -- will be deleted from the 'mcstDatums'.
+  Map Pl.DatumHash Pl.Datum ->
+  -- | The data on transaction outputs. If the transaction is successful, these
+  -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent txData =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
@@ -376,8 +399,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent txData =
             ( \st ->
                 st
                   { mcstIndex = newUtxoIndex,
-                    -- TODO: remove the consumed datum hashes
-                    mcstDatums = mcstDatums st `Map.union` txData
+                    mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData
                   }
             )
 
