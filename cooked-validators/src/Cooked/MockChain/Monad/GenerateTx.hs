@@ -36,16 +36,35 @@ generateTxBodyContent,
 generateTxBodyContentWithoutInputDatums = generateTxBodyContent' False
 generateTxBodyContent = generateTxBodyContent' True
 
+-- | Translate a 'TxSkel' into a corresponding 'C.TxBodyContent'.
 generateTxBodyContent' ::
+  -- | Whether to include data on the inputs: Transaction inputs are represented
+  -- on the 'C.TxBodyContent' as a pair of a 'C.TxIn' and a _witness_, which
+  -- records information on how the input is spent. For script inputs there are
+  -- two options with regard to datums: To explicitly include them in the
+  -- witness with the 'C.ScritptDatumForTxIn' constructor, or to leave them
+  -- implicit with the 'C.InlineScriptDatum' constructor. This is what this flag
+  -- chooses.
+  --
+  -- The latter option will (probably, We've not yet completely understood how
+  -- this works!) rely on the information in the UTxO that will be included when
+  -- the 'C.TxBodyContent' is finally transformed into an actual 'C.Tx'.
+  --
+  -- The former option (i.e. to include the datum) is necessary when such
+  -- additional information is not present. At the moment, this is for example
+  -- during balancing and fee calculation.
   Bool ->
+  -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
+  -- | All of the currently known data, also coming from the 'MockChain'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | The transaction skeleton to translate.
   TxSkel ->
   Either
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
-generateTxBodyContent' includeDatums theParams managedData skel = do
-  txIns <- mapM txSkelIntoTxIn $ Map.toList (txSkelIns skel)
+generateTxBodyContent' includeInputDatums theParams managedData skel = do
+  txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList . txSkelInsCollateral $ skel
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
@@ -118,7 +137,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
     -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
     -- you add reference inputs, don't forget to also update the
     -- 'txInsReference'!
-    txSkelIntoTxIn ::
+    txSkelInToTxIn ::
       (SpendableOut, TxSkelIn) ->
       Either
         GenerateTxError
@@ -127,12 +146,12 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelIntoTxIn (SpendableOut txOutRef _, SpendsPK) =
+    txSkelInToTxIn (SpendableOut txOutRef _, SpendsPK) =
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelIntoTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
+    txSkelInToTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
@@ -163,7 +182,7 @@ generateTxBodyContent' includeDatums theParams managedData skel = do
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
-                ( if includeDatums
+                ( if includeInputDatums
                     then datum
                     else C.InlineScriptDatum
                 )
