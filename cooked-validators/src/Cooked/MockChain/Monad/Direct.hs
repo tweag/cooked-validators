@@ -468,7 +468,10 @@ ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 -- /plutus-apps/.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 setFeeAndBalance balancePK skel0 = do
-  let skel = ensureTxSkelOutsMinAda skel0 -- TODO Disable if "adjustUnbalTx = False"??
+  let skel =
+        if adjustUnbalTx $ txSkelOpts skel0
+          then ensureTxSkelOutsMinAda skel0
+          else skel0
   utxos <- map (sOutTxOutRef &&& sOutTxOut) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
