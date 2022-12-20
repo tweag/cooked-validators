@@ -15,9 +15,9 @@ library
       Cooked
       Cooked.Attack
       Cooked.Attack.AddToken
-      Cooked.Attack.DupToken
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
       Cooked.Attack.Tweak
       Cooked.Attack.Tweak.AddInputsAndOutputs
       Cooked.Attack.Tweak.Common
@@ -98,12 +98,13 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Cooked.Attack.DatumHijackingSpec
+      Cooked.Attack.DoubleSatSpec
+      Cooked.Attack.DupTokenSpec
       Cooked.Attack.Tweak.CommonSpec
       Cooked.Attack.Tweak.OutPermutationsSpec
-      Cooked.Attack.DoubleSatSpec
-      Cooked.Attack.DatumHijackingSpec
-      Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
+      Cooked.LtlSpec
       Cooked.TestUtils
       Paths_cooked_validators
   autogen-modules:
