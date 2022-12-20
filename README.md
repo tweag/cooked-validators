@@ -40,7 +40,7 @@ This results in a simpler nix setup that is easy to extend with different tools 
 ### __IMPORTANT:__ Configure your nix cache!
 
 Plutus uses a custom GHC version. To avoid having to build this GHC, make sure you
-set up the IOHK binary nix cache as instructed [here](https://github.com/input-output-hk/plutus#iohk-binary-cache).
+set up the IOG binary nix cache as instructed [here](https://input-output-hk.github.io/haskell.nix/tutorials/getting-started.html#setting-up-the-binary-cache).
 
 ### Seamless Integration with `direnv`
 
