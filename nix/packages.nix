@@ -8,26 +8,7 @@
     haskellNix.sources.nixpkgs-unstable
     haskellNix.nixpkgsArgs
 }:
-let
-  # The only difficulty we face is making sure to build the haskell-language-server
-  # with the same version of GHC that is used for plutus; doing so, however,
-  # requires patching ghcide, a dependency of haskell-language-server.
-  #
-  # To do that, we create a hackage-package and specify a patch
-  # inside its 'modules' key:
-  custom-hls =
-    with
-    (iohkpkgs.haskell-nix.hackage-package {
-      compiler-nix-name = "ghc8107";
-      name = "haskell-language-server";
-      version = "1.7.0.0";
-      modules = [{
-        packages.ghcide.patches = [ patches/ghcide_partial_iface.patch ];
-        packages.ghcide.flags.ghc-patched-unboxed-bytecode = true;
-      }];
-    }).components.exes;
-    [haskell-language-server haskell-language-server-wrapper];
-in {
+{
   # We will split our dependencies into those deps that are needed for
   # building and testing; and those that are needed for development
   # the purpose is to keep CI happier and make it as fast as possible.
