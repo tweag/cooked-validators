@@ -44,5 +44,5 @@
     rawpkgs.haskellPackages.haskell-language-server
   ];
 
-  LD_LIBRARY_PATH = with rawpkgs; "${zlib}/lib:${lzma.out}/lib";
+  LD_LIBRARY_PATH = with rawpkgs; lib.strings.makeLibraryPath [zlib lzma];
 }
