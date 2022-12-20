@@ -41,7 +41,7 @@
   # Besides what's needed for building, we also want our instance of the
   # the haskell-language-server
   dev-deps = [
-    rawpkgs.haskellPackages.haskell-language-server
+    rawpkgs.haskell.packages.ghc8107.haskell-language-server
   ];
 
   LD_LIBRARY_PATH = with rawpkgs; lib.strings.makeLibraryPath [zlib lzma];
