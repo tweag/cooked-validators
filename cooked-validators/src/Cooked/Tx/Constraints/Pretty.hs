@@ -172,7 +172,6 @@ prettyOpts opts = case mapMaybe cmpAgainstDefAndPrint fields of
         Field "autoSlotIncrease" autoSlotIncrease,
         Field "unsafeModTx" unsafeModTx,
         Field "balance" balance,
-        Field "collateral" collateral,
         Field "balanceOutputPolicy" balanceOutputPolicy
       ]
 

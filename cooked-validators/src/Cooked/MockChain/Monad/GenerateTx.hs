@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
 module Cooked.MockChain.Monad.GenerateTx where
@@ -8,6 +9,7 @@ import qualified Cardano.Api.Shelley as C
 import Control.Arrow
 import Cooked.Tx.Constraints.Type
 import Data.Bifunctor
+import Data.Default
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -25,19 +27,19 @@ data GenerateTxError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
-generateTxBodyContent,
-  generateTxBodyContentWithoutInputDatums ::
-    Pl.Params ->
-    Map Pl.DatumHash Pl.Datum ->
-    TxSkel ->
-    Either
-      GenerateTxError
-      (C.TxBodyContent C.BuildTx C.BabbageEra)
-generateTxBodyContentWithoutInputDatums = generateTxBodyContent' False
-generateTxBodyContent = generateTxBodyContent' True
+data GenTxParams = GenTxParams
+  { gtpWithDatums :: Bool,
+    gtpCollateralIns :: Set.Set SpendableOut
+  }
 
--- | Translate a 'TxSkel' into a corresponding 'C.TxBodyContent'.
-generateTxBodyContent' ::
+instance Default GenTxParams where
+  def = GenTxParams {gtpWithDatums = True, gtpCollateralIns = mempty}
+
+withDatums, withoutDatums :: GenTxParams
+withDatums = def {gtpWithDatums = True}
+withoutDatums = def {gtpWithDatums = False}
+
+generateTxBodyContent ::
   -- | Whether to include data on the inputs: Transaction inputs are represented
   -- on the 'C.TxBodyContent' as a pair of a 'C.TxIn' and a _witness_, which
   -- records information on how the input is spent. For script inputs there are
@@ -53,7 +55,7 @@ generateTxBodyContent' ::
   -- The former option (i.e. to include the datum) is necessary when such
   -- additional information is not present. At the moment, this is for example
   -- during balancing and fee calculation.
-  Bool ->
+  GenTxParams ->
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
   -- | All of the currently known data, also coming from the 'MockChain'.
@@ -63,12 +65,9 @@ generateTxBodyContent' ::
   Either
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
-generateTxBodyContent' includeInputDatums theParams managedData skel = do
+generateTxBodyContent GenTxParams {..} theParams managedData skel = do
   txIns <- mapM txSkelIntoTxIn $ Set.toList (txSkelIns skel)
-  let collateralIns = case collateral $ txSkelOpts skel of
-        CollateralAuto -> []
-        CollateralUtxos utxos -> Set.toList utxos
-  txInsCollateral <- spOutsToTxInsCollateral collateralIns
+  txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
     left
@@ -97,7 +96,7 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
           C.TxTotalCollateral
             (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
             ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
-                foldOf (folded % sOutValueL) collateralIns
+                foldOf (folded % sOutValueL) gtpCollateralIns
             ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
@@ -184,7 +183,7 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
-                ( if includeInputDatums
+                ( if gtpWithDatums
                     then datum
                     else C.InlineScriptDatum
                 )

@@ -200,28 +200,6 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
--- | Specifies how to select the collateral input
-data Collateral
-  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
-    CollateralAuto
-  | -- | Will use the 'SpendableOut's given in the set. The set can be empty, in
-    --  which case no collateral will be used whatsoever.
-    CollateralUtxos (Set SpendableOut)
-  deriving (Eq, Show)
-
-instance Default Collateral where
-  def = CollateralAuto
-
--- | Any manual adjustment should be kept, and if there are several sets of
--- potential collateral UTxOs, they should combine.
-instance Semigroup Collateral where
-  CollateralAuto <> a = a
-  a <> CollateralAuto = a
-  CollateralUtxos l <> CollateralUtxos r = CollateralUtxos (l <> r)
-
-instance Monoid Collateral where
-  mempty = def
-
 -- | Whether to adjust existing public key outputs during transaction
 -- balancing. TODO: Why do we need these two options? Are they just historical
 -- baggage?
@@ -332,12 +310,6 @@ data TxOpts = TxOpts
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
     balance :: Bool,
-    -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
-    -- and can be specified manually, or it can be chosen automatically, if any is available.
-    --
-    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    -- By default, this is set to @CollateralAuto@.
-    collateral :: Collateral,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
@@ -355,7 +327,6 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = [],
         balance = True,
-        collateral = def,
         balanceOutputPolicy = def
       }
 
@@ -369,7 +340,6 @@ instance Semigroup TxOpts where
       forceOutputOrdering1
       unsafeModTx1
       balance1
-      collateral1
       balanceOutputPolicy1
     )
     <> ( TxOpts
@@ -379,7 +349,6 @@ instance Semigroup TxOpts where
            forceOutputOrdering2
            unsafeModTx2
            balance2
-           collateral2
            balanceOutputPolicy2
          ) =
       TxOpts
@@ -389,7 +358,6 @@ instance Semigroup TxOpts where
         (takeNonDefault (forceOutputOrdering def) forceOutputOrdering1 forceOutputOrdering2)
         (unsafeModTx1 ++ unsafeModTx2) -- this will apply the left modifications first. See the definitions of 'applyRawModOnUnbalancedTx' and 'applyRawModOnBalancedTx'
         (takeNonDefault (balance def) balance1 balance2)
-        (collateral1 <> collateral2)
         (balanceOutputPolicy1 <> balanceOutputPolicy2)
       where
         takeNonDefault d a b = if any (/= d) [a, b] then not d else d
