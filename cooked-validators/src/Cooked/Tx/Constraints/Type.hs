@@ -13,7 +13,7 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import qualified Control.Lens as Lens
+import qualified Cardano.Api as C
 import Cooked.MockChain.Misc
 import Data.Default
 import Data.Function
@@ -28,8 +28,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (validatorHash)
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
@@ -244,34 +242,24 @@ instance Semigroup BalanceOutputPolicy where
 instance Monoid BalanceOutputPolicy where
   mempty = def
 
--- | Wraps a function that can be applied to a transaction right before submitting it.
---  We have a distinguished datatype to be able to provide a little more info on
---  the show instance.
-data RawModTx
-  = -- | Apply modification on transaction after balancing is performed
-    RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
-  | -- | Apply modification on transaction before balancing and transaction fee computation
-    --   are performed.
-    RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
+-- | Wraps a function that will be applied to a transaction right before
+-- submitting it.
+newtype RawModTx
+  = -- | Apply modification on transaction after balancing, fee calculation, and
+    -- final signing areperformed
+    RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
 
 instance Eq RawModTx where
   _ == _ = False
 
 instance Show RawModTx where
   show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
-  show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
 
--- | only applies modification for RawModTxAfterBalancing
-applyRawModOnBalancedTx :: [RawModTx] -> Pl.Tx -> Pl.Tx
-applyRawModOnBalancedTx [] tx = tx
-applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) tx = applyRawModOnBalancedTx fs . f $ tx
-applyRawModOnBalancedTx (RawModTxBeforeBalancing _ : fs) tx = applyRawModOnBalancedTx fs tx
-
--- | only applies modification for RawModTxBeforeBalancing
-applyRawModOnUnbalancedTx :: [RawModTx] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-applyRawModOnUnbalancedTx [] tx = tx
-applyRawModOnUnbalancedTx (RawModTxAfterBalancing _ : fs) tx = applyRawModOnUnbalancedTx fs tx
-applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnbalancedTx fs . (Pl.tx Lens.%~ f) $ tx
+-- | Applies a list of modifications right before the transaction is
+-- submitted. The leftmost function in the argument list is applied first.
+applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+applyRawModOnBalancedTx [] = id
+applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
@@ -320,7 +308,9 @@ data TxOpts = TxOpts
     -- [RawModTxAfterBalancing Debug.Trace.traceShowId]@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
-    -- default, this is set to 'Id'.
+    -- default, this is set to the empty list.
+    --
+    -- The leftmost function in the list is applied first.
     unsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
     --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
@@ -620,8 +610,8 @@ instance Ord TxSkelIn where
             (Pl.validatorHash v2, Pl.toData r2)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
   compare SpendsPK SpendsPK = EQ
-  compare SpendsPK {} SpendsScript {} = LT
-  compare SpendsScript {} SpendsPK {} = GT
+  compare SpendsPK SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK = GT
 
 -- * Transaction outputs
 
