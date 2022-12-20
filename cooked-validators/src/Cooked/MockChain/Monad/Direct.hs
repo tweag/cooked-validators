@@ -16,7 +16,6 @@
 
 module Cooked.MockChain.Monad.Direct where
 
-import qualified Cardano.Api as Api
 import qualified Cardano.Api as C
 import Control.Applicative
 import Control.Arrow
@@ -409,51 +408,59 @@ utxosSuchThisAndThat' ::
   forall a m.
   (Monad m, Pl.FromData a) =>
   (Pl.Address -> Bool) ->
-  (Maybe a -> Pl.Value -> Bool) ->
-  MockChainT m [(SpendableOut, Maybe a)]
-utxosSuchThisAndThat' addrPred datumPred = do
+  UtxoPredicate a ->
+  MockChainT m [(SpendableOut, Maybe (Either Pl.DatumHash a))]
+utxosSuchThisAndThat' addrPred utxoPred = do
   ix <- gets (Pl.getIndex . mcstIndex)
-  let ix' = Map.filter (addrPred . Pl.txOutAddress) ix
-  -- TODO: Make this less ugly
-  catMaybes
-    <$> mapM
-      (\(oref, out) -> (first (SpendableOut oref) <$>) <$> go oref out)
-      (Map.toList ix')
+  let ixFilteredForAddress = Map.filter (addrPred . Pl.txOutAddress) ix
+  catMaybes <$> mapM go (Map.toList ixFilteredForAddress)
   where
-    go :: Pl.TxOutRef -> Pl.TxOut -> MockChainT m (Maybe (Pl.ChainIndexTxOut, Maybe a))
-    go oref out@(Pl.TxOut (Api.TxOut _ _ cDatum _)) =
-      pure (cTxOutToCito out)
-        >>= \case
-          Nothing -> pure Nothing
-          Just cito -> do
-            mDatum <- extractDatum oref cito $ Pl.fromCardanoTxOutDatumHash cDatum
-            pure $
-              if datumPred mDatum (Pl._ciTxOutValue cito)
-                then Just (cito, mDatum)
-                else Nothing
-
-    extractDatum :: Pl.TxOutRef -> Pl.ChainIndexTxOut -> Maybe Pl.DatumHash -> MockChainT m (Maybe a)
-    extractDatum oref cito Nothing
-      | isScriptCito cito = fail $ "ScriptCredential with no datum hash: " ++ show oref
-      | otherwise = pure Nothing
-    extractDatum oref _ (Just dh) = do
-      managedDatums <- gets mcstDatums
-      Just <$> case dh `Map.lookup` managedDatums of
-        -- TODO PORT previously this was an error only for script datums,
-        -- but I think it should be an error for any datum hash
-        -- that's mentioned but cannot be found in managedDatums.
-        Nothing -> fail $ "Unmanaged datum with hash: " ++ show dh ++ " at: " ++ show oref
-        Just datum -> maybe failBadConvert pure (Pl.fromBuiltinData $ Pl.getDatum datum)
+    go :: (Pl.TxOutRef, Pl.TxOut) -> MockChainT m (Maybe (SpendableOut, Maybe (Either Pl.DatumHash a)))
+    go (oref, out) =
+      case cTxOutToCito out of
+        Nothing -> fail $ "utxosSuchThisAndThat': Can't convert TxOut " ++ show out ++ " to a ChainIndexTxOut"
+        Just cito ->
+          case cito ^? chainIndexTxOutDatumOrHashAT of
+            Nothing ->
+              if isScriptCito cito
+                then fail $ "utxosSuchThisAndThat': ScriptCredential with no datum or hash: " ++ show oref
+                else testUtxoPredAndReturn Nothing cito
+            Just (dh, Nothing) -> do
+              mDatum <- datumFromHash dh
+              case mDatum of
+                Nothing -> testUtxoPredAndReturn (Just $ Left dh) cito
+                Just datum -> parseDatumAndReturn cito datum
+            Just (_, Just datum) -> parseDatumAndReturn cito datum
       where
-        failBadConvert = fail $ "Can't convert from builtin data at: " ++ show oref ++ "; are you sure this is the right type?"
+        parseDatumAndReturn ::
+          Pl.ChainIndexTxOut ->
+          Pl.Datum ->
+          MockChainT m (Maybe (SpendableOut, Maybe (Either Pl.DatumHash a)))
+        parseDatumAndReturn cito (Pl.Datum d) =
+          case Pl.fromBuiltinData d of
+            Nothing ->
+              fail $
+                "utxosSuchThisAndThat': Can't convert from builtin data at: "
+                  ++ show oref
+                  ++ "; are you sure the datum has the correct type?"
+            Just a -> testUtxoPredAndReturn (Just $ Right a) cito
+
+        testUtxoPredAndReturn ::
+          Maybe (Either Pl.DatumHash a) ->
+          Pl.ChainIndexTxOut ->
+          MockChainT m (Maybe (SpendableOut, Maybe (Either Pl.DatumHash a)))
+        testUtxoPredAndReturn mDatumOrHash cito =
+          if utxoPred mDatumOrHash (Pl._ciTxOutValue cito)
+            then return $ Just (SpendableOut oref cito, mDatumOrHash)
+            else return Nothing
 
 -- | Check 'utxosSuchThat' for details
 utxosSuchThat' ::
   forall a m.
   (Monad m, Pl.FromData a) =>
   Pl.Address ->
-  (Maybe a -> Pl.Value -> Bool) ->
-  MockChainT m [(SpendableOut, Maybe a)]
+  UtxoPredicate a ->
+  MockChainT m [(SpendableOut, Maybe (Either Pl.DatumHash a))]
 utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 
 ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
@@ -546,7 +553,7 @@ calcCollateral w col = do
     CollateralUtxos r -> return r
     -- We must pick them; we'll first select
     CollateralAuto -> do
-      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
+      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatumOrHash .&& valueSat hasOnlyAda)
       when (null souts) $
         throwError MCENoSuitableCollateral
       -- TODO We only keep one element of the list because we are limited on

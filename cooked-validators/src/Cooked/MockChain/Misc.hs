@@ -4,7 +4,6 @@ module Cooked.MockChain.Misc where
 
 import qualified Cardano.Api as Api
 import qualified Cardano.Api.Shelley as Api
-import Data.Either
 import Data.Maybe
 import qualified Ledger as Pl
 import qualified Ledger.Tx.CardanoAPI.Internal as Pl

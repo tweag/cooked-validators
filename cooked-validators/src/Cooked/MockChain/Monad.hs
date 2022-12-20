@@ -64,13 +64,13 @@ class (MonadFail m) => MonadBlockChain m where
     (Pl.FromData a) =>
     Pl.Address ->
     UtxoPredicate a ->
-    m [(SpendableOut, Maybe a)]
+    m [(SpendableOut, Maybe (Either Pl.DatumHash a))]
 
   utxosSuchThisAndThat ::
     (Pl.FromData a) =>
     (Pl.Address -> Bool) ->
     UtxoPredicate a ->
-    m [(SpendableOut, Maybe a)]
+    m [(SpendableOut, Maybe (Either Pl.DatumHash a))]
 
   -- | Returns the datum with the given hash, or 'Nothing' if there is none
   datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
@@ -185,7 +185,7 @@ pkUtxosSuchThat ::
   (MonadBlockChain m, Pl.FromData a) =>
   Pl.PubKeyHash ->
   UtxoPredicate a ->
-  m [(SpendableOut, Maybe a)]
+  m [(SpendableOut, Maybe (Either Pl.DatumHash a))]
 pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
 
 -- | Select public-key UTxOs that do not contain some datum nor staking address.
@@ -204,9 +204,9 @@ pkUtxosSuchThatValue pkh predi =
 scriptUtxosSuchThat ::
   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
-  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
-  (Pl.DatumType tv -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Pl.DatumType tv)]
+  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum or hash present.
+  (Either Pl.DatumHash (Pl.DatumType tv) -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Either Pl.DatumHash (Pl.DatumType tv))]
 scriptUtxosSuchThat v predicate =
   map (second fromJust)
     <$> utxosSuchThat
@@ -217,9 +217,9 @@ scriptUtxosSuchThat v predicate =
 scriptUtxosSuchThatIgnoringSCred ::
   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
   Pl.TypedValidator tv ->
-  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
-  (Pl.DatumType tv -> Pl.Value -> Bool) ->
-  m [(SpendableOut, Pl.DatumType tv)]
+  -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum or hash present.
+  (Either Pl.DatumHash (Pl.DatumType tv) -> Pl.Value -> Bool) ->
+  m [(SpendableOut, Either Pl.DatumHash (Pl.DatumType tv))]
 scriptUtxosSuchThatIgnoringSCred v predicate =
   map (second fromJust)
     <$> utxosSuchThisAndThat

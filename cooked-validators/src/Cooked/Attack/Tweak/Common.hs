@@ -219,7 +219,7 @@ utxosSuchThatMcst ::
   MockChainSt ->
   L.Address ->
   UtxoPredicate a ->
-  [(SpendableOut, Maybe a)]
+  [(SpendableOut, Maybe (Either L.DatumHash a))]
 utxosSuchThatMcst mcst addr select =
   case runMockChainRaw def mcst (utxosSuchThat addr select) of
     Left _ -> []
@@ -231,8 +231,8 @@ scriptUtxosSuchThatMcst ::
   (Pl.FromData (L.DatumType a)) =>
   MockChainSt ->
   L.TypedValidator a ->
-  (L.DatumType a -> L.Value -> Bool) ->
-  [(SpendableOut, L.DatumType a)]
+  (Either L.DatumHash (L.DatumType a) -> L.Value -> Bool) ->
+  [(SpendableOut, Either L.DatumHash (L.DatumType a))]
 scriptUtxosSuchThatMcst mcst val select =
   map (second fromJust) $
     utxosSuchThatMcst

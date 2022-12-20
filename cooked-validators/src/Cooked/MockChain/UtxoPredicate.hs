@@ -1,6 +1,7 @@
 module Cooked.MockChain.UtxoPredicate where
 
 import Cooked.Currencies
+import qualified Ledger as Pl
 import Ledger.Ada (adaSymbol, adaToken)
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.AssocMap as Map
@@ -10,7 +11,7 @@ import qualified PlutusTx.AssocMap as Map
 -- | A 'UtxoPredicate' is a predicate that is used to filter and select utxos
 --  in 'utxosSuchThat'. We declare them through a type synonym to create a convenient
 --  shallow DSL of predicates.
-type UtxoPredicate a = Maybe a -> Pl.Value -> Bool
+type UtxoPredicate a = Maybe (Either Pl.DatumHash a) -> Pl.Value -> Bool
 
 -- * Basic building blocks
 
@@ -33,13 +34,13 @@ valueSat predi _ = predi
 -- | Lifts a predicate over datums to a 'UtxoPredicate' by forcing the datum
 --  to be present and satisfy the predicate.
 datumSat :: (a -> Bool) -> UtxoPredicate a
-datumSat _ Nothing _ = False
-datumSat predi (Just a) _ = predi a
+datumSat predi (Just (Right a)) _ = predi a
+datumSat _ _ _ = False
 
--- | Returns true when no datum is present
-noDatum :: UtxoPredicate a
-noDatum Nothing _ = True
-noDatum _ _ = False
+-- | Returns true when no datum or datum hash is present
+noDatumOrHash :: UtxoPredicate a
+noDatumOrHash Nothing _ = True
+noDatumOrHash _ _ = False
 
 -- * Predicatesover Values
 

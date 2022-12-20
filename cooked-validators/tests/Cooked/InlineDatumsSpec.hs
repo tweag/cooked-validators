@@ -33,7 +33,7 @@ testTrace ::
   Pl.TypedValidator a ->
   Pl.DatumType a ->
   Bool ->
-  m [(SpendableOut, Pl.DatumType a)]
+  m [(SpendableOut, Either Pl.DatumHash (Pl.DatumType a))]
 testTrace validator datum useInlineDatum = do
   _ <-
     validateTxSkel

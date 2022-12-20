@@ -19,13 +19,13 @@ import Cooked.Attack.Tweak.Common
 import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
+import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
-import qualified Ledger.Scripts as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -74,13 +74,13 @@ data MockChainBuiltin a where
   UtxosSuchThat ::
     (Pl.FromData a) =>
     Pl.Address ->
-    (Maybe a -> Pl.Value -> Bool) ->
-    MockChainBuiltin [(SpendableOut, Maybe a)]
+    UtxoPredicate a ->
+    MockChainBuiltin [(SpendableOut, Maybe (Either Pl.DatumHash a))]
   UtxosSuchThisAndThat ::
     (Pl.FromData a) =>
     (Pl.Address -> Bool) ->
-    (Maybe a -> Pl.Value -> Bool) ->
-    MockChainBuiltin [(SpendableOut, Maybe a)]
+    UtxoPredicate a ->
+    MockChainBuiltin [(SpendableOut, Maybe (Either Pl.DatumHash a))]
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   -- the following are only available in MonadMockChain, not MonadBlockChain:
