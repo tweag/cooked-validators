@@ -8,5 +8,5 @@ tests :: TestTree
 tests =
   testGroup
     "cooked-validators"
-    [ testGroup "inline datums" InlineDatums.tests
+    [ testGroup "inline datums" [InlineDatums.tests]
     ]
