@@ -249,15 +249,18 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
     skel <-
-      setFeeAndBalance
-        balancingWalletPkh
-        -- We need to add the balancing wallet to the signers before
-        -- calculating the fees. The fees depend on the number of signers: they
-        -- make the transaction heavier.
-        ( skelUnbal
-            & txSkelRequiredSignersL
-            %~ (<> Set.singleton balancingWalletPkh)
-        )
+      if balance . txSkelOpts $ skelUnbal
+        then
+          setFeeAndBalance
+            balancingWalletPkh
+            -- We need to add the balancing wallet to the signers before
+            -- calculating the fees. The fees depend on the number of signers: they
+            -- make the transaction heavier.
+            ( skelUnbal
+                & txSkelRequiredSignersL
+                %~ (<> Set.singleton balancingWalletPkh)
+            )
+        else return skelUnbal
     collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
     params <- askParams
     managedData <- gets mcstDatums
