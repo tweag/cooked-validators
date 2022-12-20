@@ -279,6 +279,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             txBodyContent
             (txSkelInputData skel)
             (txSkelOutputData skel)
+            (unsafeModTx $ txSkelOpts skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -340,12 +341,14 @@ runTransactionValidation ::
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | Modifications to apply to the transaction right before it is submitted.
+  [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
-      cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
+      cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
@@ -369,12 +372,13 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                 Pl.addCardanoTxSignature
                   (walletSK w)
                   (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
+      cardanoTxModified = applyRawModOnBalancedTx rawModTx cardanoTxSigned
 
       -- "Pl.CardanoTx" is a plutus-apps type
       -- "Tx BabbageEra" is a cardano-api type with the information we need
       -- This wraps the latter inside the former
       txWrapped :: Pl.CardanoTx
-      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
+      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxModified
 
       mValidationError :: Maybe Pl.ValidationErrorInPhase
       mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
@@ -403,7 +407,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                   }
             )
 
-          return (Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
+          return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
 
 utxosSuchThisAndThat' ::
   forall a m.
@@ -648,14 +652,15 @@ calcBalanceTx balanceStage balancePK skel = do
                   selectNewInputs available' chosen' excess' missing'
 
 -- | Once we calculated what is needed to balance a transaction @skel@, we still
--- need to apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut'
+-- need to apply those changes to @skel@. Because of the 'Pl.minAdaTxOut'
 -- constraint, this might not be possible: imagine the leftover is less than
--- 'Ledger.minAdaTxOut', but the transaction has no output addressed to the
--- sending wallet. If we just create a new ouput for the balancing wallet and
+-- 'Pl.minAdaTxOut', but the transaction has no output addressed to the
+-- balancing wallet. If we just create a new ouput for the balancing wallet and
 -- place the leftover there, the resulting transaction will fail to validate
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another
--- UTxO belonging to the wallet to then create the output with the proper leftover. If
--- the wallet has no UTxO, then there's no way to balance this transaction.
+-- UTxO belonging to the wallet to then create the output with the proper
+-- leftover. If the wallet has no UTxO, then there's no way to balance this
+-- transaction.
 applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
 applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
