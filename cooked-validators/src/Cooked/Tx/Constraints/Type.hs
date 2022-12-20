@@ -620,8 +620,8 @@ instance Ord TxSkelIn where
             (Pl.validatorHash v2, Pl.toData r2)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
   compare SpendsPK SpendsPK = EQ
-  compare SpendsPK {} SpendsScript {} = LT
-  compare SpendsScript {} SpendsPK {} = GT
+  compare SpendsPK SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK = GT
 
 -- * Transaction outputs
 
