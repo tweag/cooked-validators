@@ -15,7 +15,6 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Control.Lens as Lens
 import Cooked.MockChain.Misc
-import Cooked.MockChain.Wallet (wallet, walletPKHash)
 import Data.Default
 import Data.Function
 import Data.List
@@ -590,11 +589,10 @@ data TxSkelIn where
   SpendsScript ::
     SpendsScriptConstrs a =>
     { spendingValidator :: Pl.TypedValidator a,
-      inputRedeemer :: Pl.RedeemerType a,
-      consumedOutput :: SpendableOut
+      inputRedeemer :: Pl.RedeemerType a
     } ->
     TxSkelIn
-  SpendsPK :: {consumedOutput :: SpendableOut} -> TxSkelIn
+  SpendsPK :: TxSkelIn
 
 deriving instance Show TxSkelIn
 
@@ -609,7 +607,7 @@ instance Eq TxSkelIn where
   s1 == s2 = compare s1 s2 == EQ
 
 instance Ord TxSkelIn where
-  compare (SpendsScript v1 r1 o1) (SpendsScript v2 r2 o2) =
+  compare (SpendsScript v1 r1) (SpendsScript v2 r2) =
     case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
       LT -> LT
       GT -> GT
@@ -618,12 +616,12 @@ instance Ord TxSkelIn where
           -- TODO will this suffice, or do we need to compare more components of
           -- the typed validator?
           compare
-            (Pl.validatorHash v1, Pl.toData r1, o1)
-            (Pl.validatorHash v2, Pl.toData r2, o2)
+            (Pl.validatorHash v1, Pl.toData r1)
+            (Pl.validatorHash v2, Pl.toData r2)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
-  compare (SpendsPK o1) (SpendsPK o2) = compare o1 o2
-  compare SpendsPK {} SpendsScript {} = LT
-  compare SpendsScript {} SpendsPK {} = GT
+  compare SpendsPK SpendsPK = EQ
+  compare SpendsPK SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK = GT
 
 -- * Transaction outputs
 
@@ -709,7 +707,7 @@ data TxSkel where
       txSkelMints :: TxSkelMints,
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      txSkelIns :: Set TxSkelIn,
+      txSkelIns :: Map SpendableOut TxSkelIn,
       txSkelInsCollateral :: Set SpendableOut,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
@@ -731,6 +729,10 @@ makeLensesFor
     ("txSkelFee", "txSkelFeeL")
   ]
   ''TxSkel
+
+-- | All inputs to the transaction
+consumedOutputsF :: Fold TxSkel SpendableOut
+consumedOutputsF = folding (Map.keys . txSkelIns)
 
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
@@ -779,7 +781,7 @@ instance Monoid TxSkel where
         txSkelMints = Map.empty,
         txSkelValidityRange = Pl.always,
         txSkelRequiredSigners = Set.empty,
-        txSkelIns = Set.empty,
+        txSkelIns = Map.empty,
         txSkelInsCollateral = Set.empty,
         txSkelOuts = [],
         txSkelFee = 0
@@ -792,7 +794,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
+    (consumedOutputsF % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -802,7 +804,7 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT % _1)
+    (consumedOutputsF % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -815,7 +817,7 @@ txSkelOutputData =
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL)
+    consumedOutputsF
     ( \sOut ->
         Map.singleton
           (sOutTxOutRef sOut)
@@ -829,7 +831,7 @@ txSkelUtxoIndex =
 txSkelInputValue :: TxSkel -> Pl.Value
 txSkelInputValue skel@TxSkel {txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelInsL % folded % consumedOutputL % sOutValueL) skel
+    <> foldOf (consumedOutputsF % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
@@ -847,7 +849,7 @@ txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
 txSkelAllSigners skel =
   (skel ^. txSkelRequiredSignersL)
     <> foldMapOf
-      (txSkelInsL % folded % consumedOutputL % afolding sBelongsToPubKey)
+      (consumedOutputsF % afolding sBelongsToPubKey)
       Set.singleton
       skel
 

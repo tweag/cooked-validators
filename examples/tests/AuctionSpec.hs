@@ -14,6 +14,7 @@ import Cooked
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.List (isPrefixOf)
+import qualified Data.Map as Map
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Data.Set as Set
@@ -57,14 +58,14 @@ foo = do
     validateTxSkel $
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
-          txSkelIns = Set.singleton $ SpendsPK utxo,
+          txSkelIns = Map.singleton utxo SpendsPK,
           txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Ada.lovelaceValueOf 10_000_000)]
         }
   o : _ <- spOutsFromCardanoTx tx
   validateTxSkel
     mempty
       { txSkelOpts = def {adjustUnbalTx = True},
-        txSkelIns = Set.singleton $ SpendsPK o,
+        txSkelIns = Map.singleton o SpendsPK,
         txSkelOuts = [paysPK (walletPKHash $ wallet 3) (Ada.lovelaceValueOf 5_000_000)]
       }
     `as` wallet 2

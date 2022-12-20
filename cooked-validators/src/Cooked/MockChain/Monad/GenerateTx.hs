@@ -64,7 +64,7 @@ generateTxBodyContent' ::
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent' includeInputDatums theParams managedData skel = do
-  txIns <- mapM txSkelIntoTxIn $ Set.toList (txSkelIns skel)
+  txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral . Set.toList . txSkelInsCollateral $ skel
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
   txValidityRange <-
@@ -121,7 +121,7 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
     inputData :: Map Pl.DatumHash Pl.Datum
     inputData =
       foldMapOf
-        (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
+        (consumedOutputsF % sOutDatumOrHashAT)
         ( \(datumHash, mDatum) ->
             case mDatum of
               Just datum -> Map.singleton datumHash datum
@@ -133,11 +133,12 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
         )
         skel
 
-    -- Convert an 'InConstraint' into a 'C.TxIn', together with the
-    -- appropriate witness. If you add reference inputs, don't forget to also
-    -- update the 'txInsReference'!
-    txSkelIntoTxIn ::
-      TxSkelIn ->
+    -- Convert a 'TxSkel' input, which consists of a 'SpendableOut' and a
+    -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
+    -- you add reference inputs, don't forget to also update the
+    -- 'txInsReference'!
+    txSkelInToTxIn ::
+      (SpendableOut, TxSkelIn) ->
       Either
         GenerateTxError
         ( C.TxIn,
@@ -145,12 +146,12 @@ generateTxBodyContent' includeInputDatums theParams managedData skel = do
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelIntoTxIn (SpendsPK (SpendableOut txOutRef _)) =
+    txSkelInToTxIn (SpendableOut txOutRef _, SpendsPK) =
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelIntoTxIn (SpendsScript validator redeemer spOut@(SpendableOut txOutRef _)) = do
+    txSkelInToTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")

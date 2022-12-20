@@ -603,7 +603,7 @@ calcBalanceTx balanceStage balancePK skel = do
           skel
     Just bTxRes -> return bTxRes
   where
-    inUtxos = toListOf (txSkelInsL % folded % consumedOutputL) skel -- The Utxos consumed by the given transaction
+    inUtxos = toListOf consumedOutputsF skel -- The Utxos consumed by the given transaction
     inValue = txSkelInputValue skel -- inputs + mints
     outValue = txSkelOutputValue skel -- outputs + fee + burns
     difference = outValue <> Pl.negate inValue
@@ -697,7 +697,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                  in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
                       then
                         Just -- (1)
-                          ( ins <> Set.map SpendsPK newInputs,
+                          ( ins <> Map.fromSet (const SpendsPK) newInputs,
                             left ++ (bestOutput & outValueL .~ adjustedValue) : right
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
@@ -708,24 +708,35 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         tryAdditionalOutput ins outs
   return skel {txSkelIns = newIns, txSkelOuts = newOuts}
   where
-    tryAdditionalOutput :: Set TxSkelIn -> [TxSkelOut] -> Maybe (Set TxSkelIn, [TxSkelOut])
+    tryAdditionalOutput ::
+      Map SpendableOut TxSkelIn ->
+      [TxSkelOut] ->
+      Maybe (Map SpendableOut TxSkelIn, [TxSkelOut])
     tryAdditionalOutput ins outs =
       if Pl.fromValue returnValue >= Pl.minAdaTxOut
         then
           Just -- (2)
-            ( ins <> Set.map SpendsPK newInputs,
+            ( ins <> Map.fromSet (const SpendsPK) newInputs,
               outs ++ [PaysPK balancePK Nothing (Nothing @()) returnValue]
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
-    tryAdditionalInputs :: Set TxSkelIn -> [TxSkelOut] -> [SpendableOut] -> Pl.Value -> Maybe (Set TxSkelIn, [TxSkelOut])
+    tryAdditionalInputs ::
+      Map SpendableOut TxSkelIn ->
+      [TxSkelOut] ->
+      [SpendableOut] ->
+      Pl.Value ->
+      Maybe (Map SpendableOut TxSkelIn, [TxSkelOut])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
         additionalUtxo : newAvailable ->
           let additionalValue = sOutValue additionalUtxo
               newReturn = additionalValue <> return
-              newIns = ins <> Set.map SpendsPK newInputs <> Set.singleton (SpendsPK additionalUtxo)
+              newIns =
+                ins
+                  <> Map.fromSet (const SpendsPK) newInputs
+                  <> Map.singleton additionalUtxo SpendsPK
               newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]
            in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
                 then Just (newIns, newOuts) -- (3)
