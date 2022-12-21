@@ -498,7 +498,7 @@ tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
 tryDupTokens =
   somewhere
     ( dupTokenAttack
-        (\_ n -> Just $ n + 1) -- the modification of the minted value
+        (\_ n -> n + 1) -- the modification of the minted value
         fred -- the attacker's wallet
     )
     simpleTraces
