@@ -261,14 +261,14 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
                 %~ (<> Set.singleton balancingWalletPkh)
             )
         else return skelUnbal
-    collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
+    collateralInputs <- calcCollateral collateralWallet
     params <- askParams
     managedData <- gets mcstDatums
     -- See the comment at the arguments of 'runTransactionValidation' on why we
     -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
     -- documentation of the 'generateTxBodyContent*' functions might also be
     -- informative.
-    case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
+    case generateTxBodyContent withoutDatums {gtpCollateralIns = collateralInputs} params managedData skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
@@ -536,7 +536,7 @@ setFeeAndBalance balancePK skel0 = do
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Integer
 estimateTxSkelFee params utxo managedData skel = do
-  txBodyContent <- left MCEGenerationError $ generateTxBodyContent params managedData skel
+  txBodyContent <- left MCEGenerationError $ generateTxBodyContent withDatums params managedData skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
     left
@@ -549,20 +549,15 @@ estimateTxSkelFee params utxo managedData skel = do
     C.Lovelace fee -> pure fee
 
 -- | Calculates the collateral for a transaction
-calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (Set SpendableOut)
-calcCollateral w col = do
-  case col of
-    -- We're given a specific utxo to use as collateral
-    CollateralUtxos r -> return r
-    -- We must pick them; we'll first select
-    CollateralAuto -> do
-      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
-      when (null souts) $
-        throwError MCENoSuitableCollateral
-      -- TODO We only keep one element of the list because we are limited on
-      -- how many collateral inputs a transaction can have. Should this be
-      -- investigated further for a better approach?
-      return $ Set.fromList $ take 1 (fst <$> souts)
+calcCollateral :: (Monad m) => Wallet -> MockChainT m (Set SpendableOut)
+calcCollateral w = do
+  souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatum .&& valueSat hasOnlyAda)
+  when (null souts) $
+    throwError MCENoSuitableCollateral
+  -- TODO We only keep one element of the list because we are limited on
+  -- how many collateral inputs a transaction can have. Should this be
+  -- investigated further for a better approach?
+  return $ Set.fromList $ take 1 (fst <$> souts)
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 balanceTxFromAux utxoPolicy stage balancePK txskel = do

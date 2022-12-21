@@ -8,16 +8,18 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.AttackSpec.DoubleSat (tests) where
+module Cooked.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
 import Cooked.Attack
-import Cooked.AttackSpec.Util
+import Cooked.Attack.DoubleSat
 import Cooked.MockChain
 import Cooked.TestUtils
-import Cooked.Tx.Constraints
 import Cooked.Tx.Constraints.Optics
+import Cooked.Tx.Constraints.Type
 import Data.Default
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Ledger.Ada as L
 import Ledger.Typed.Scripts
 import qualified Ledger.Typed.Scripts as L
@@ -116,13 +118,13 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]
-      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]
-      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]
-      validateTxSkel $ txSkel [paysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]
-      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]
-      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]
-      validateTxSkel $ txSkel [paysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]
+      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator ADatum (L.lovelaceValueOf 2_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator ADatum (L.lovelaceValueOf 3_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator ADatum (L.lovelaceValueOf 4_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator ADatum (L.lovelaceValueOf 5_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator BDatum (L.lovelaceValueOf 6_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator BDatum (L.lovelaceValueOf 7_000_000)]}
+      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator BDatum (L.lovelaceValueOf 8_000_000)]}
 
 tests :: TestTree
 tests =
@@ -161,37 +163,38 @@ tests =
               -- 'SpendsScript' constraints for UTxOs belonging to the
               -- 'aValidator' on the input 'TxSkel', the correct additional
               -- 'SpendsScript' constraints for UTxOs of the 'bValidator' are on
-              -- the output 'TxSkel's. Both 'DSSplitMode's are tested.
+              -- the output 'TxSkel's. Both 'DoubleSatSplitMode's are tested.
               let -- generate an input skeleton from some 'aValidator' UTxOs to
                   -- be spent.
                   skelIn :: [SpendableOut] -> TxSkel
                   skelIn aUtxos =
-                    txSkel $
-                      map (SpendsScript aValidator ARedeemer) aUtxos
-                        :=>: [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
+                    mempty
+                      { txSkelIns = Map.fromSet (const (SpendsScript aValidator ARedeemer)) $ Set.fromList aUtxos,
+                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000)]
+                      }
 
                   -- apply the 'doubleSatAttack' to the input skeleton to
                   -- generate a list of output skeleta. The multiway-if
                   -- statement is what decides which UTxOs belonging to the
                   -- 'bValidator' to add, depending on the focused input
                   -- 'aValidator' UTxO.
-                  skelsOut :: DSSplitMode -> [SpendableOut] -> [TxSkel]
+                  skelsOut :: DoubleSatSplitMode -> [SpendableOut] -> [TxSkel]
                   skelsOut splitMode aUtxos =
                     fst
                       <$> getTweak
                         ( doubleSatAttack
-                            (spendsScriptConstraintsT % spendsScriptConstraintTypeP @AContract)
-                            ( \mcst (_, _, aOut) ->
+                            (spendsScriptTypeF @AContract)
+                            ( \mcst (aOut, _, _) ->
                                 let bUtxos = fst <$> scriptUtxosSuchThatMcst mcst bValidator (\_ _ -> True)
                                     aValue = sOutValue aOut
                                  in if
                                         | aValue == L.lovelaceValueOf 2_000_000 ->
-                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                          [ toDelta bOut $ SpendsScript bValidator BRedeemer1
                                             | bOut <- bUtxos,
                                               sOutValue bOut == L.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                           ]
                                         | aValue == L.lovelaceValueOf 3_000_000 ->
-                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut
+                                          [ toDelta bOut $ SpendsScript bValidator BRedeemer1
                                             | bOut <- bUtxos,
                                               sOutValue bOut == L.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
                                           ]
@@ -201,10 +204,10 @@ tests =
                                                 let bValue = sOutValue bOut
                                                  in if
                                                         | bValue == L.lovelaceValueOf 6_000_000 ->
-                                                          [toConstraints $ SpendsScript bValidator BRedeemer1 bOut]
+                                                          [toDelta bOut $ SpendsScript bValidator BRedeemer1]
                                                         | bValue == L.lovelaceValueOf 7_000_000 ->
-                                                          [ toConstraints $ SpendsScript bValidator BRedeemer1 bOut,
-                                                            toConstraints $ SpendsScript bValidator BRedeemer2 bOut
+                                                          [ toDelta bOut $ SpendsScript bValidator BRedeemer1,
+                                                            toDelta bOut $ SpendsScript bValidator BRedeemer2
                                                           ]
                                                         | otherwise -> []
                                             )
@@ -216,23 +219,29 @@ tests =
                         )
                         dsTestMockChainSt
                         (skelIn aUtxos)
+                    where
+                      toDelta :: SpendableOut -> TxSkelIn -> DoubleSatDelta
+                      toDelta sOut howSpent = (Map.singleton sOut howSpent, [], mempty)
 
                   -- generate a transaction that spends the given 'aValidator'
                   -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
                   -- with the specified redeemers.
                   skelExpected :: [SpendableOut] -> [(BRedeemer, SpendableOut)] -> TxSkel
                   skelExpected aUtxos bUtxos =
-                    txSkelLbl DoubleSatLbl $
-                      ( map (uncurry $ SpendsScript bValidator) bUtxos
-                          ++ map (SpendsScript aValidator ARedeemer) aUtxos
-                      )
-                        :=>: [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
-                               paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . snd) bUtxos)
-                             ]
+                    mempty
+                      { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
+                        txSkelIns =
+                          Map.fromList ((\(bRedeemer, bUtxo) -> (bUtxo, SpendsScript bValidator bRedeemer)) <$> bUtxos)
+                            <> Map.fromSet (const (SpendsScript aValidator ARedeemer)) (Set.fromList aUtxos),
+                        txSkelOuts =
+                          [ paysPK (walletPKHash (wallet 2)) (L.lovelaceValueOf 2_500_000),
+                            paysPK (walletPKHash (wallet 6)) (foldMap (sOutValue . snd) bUtxos)
+                          ]
+                      }
                in [ testGroup "with 'AllSeparate'" $
                       let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
                           thePredicate aUtxos bUtxos =
-                            assertSameTxSkels
+                            assertSameSets
                               (skelExpected aUtxos <$> bUtxos)
                               (skelsOut AllSeparate aUtxos)
                        in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
@@ -261,7 +270,7 @@ tests =
                     testGroup "with 'TryCombinations'" $
                       let thePredicate :: [SpendableOut] -> [[(BRedeemer, SpendableOut)]] -> Assertion
                           thePredicate aUtxos bUtxos =
-                            assertSameTxSkels
+                            assertSameSets
                               (skelExpected aUtxos <$> bUtxos)
                               (skelsOut TryCombinations aUtxos)
                        in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],

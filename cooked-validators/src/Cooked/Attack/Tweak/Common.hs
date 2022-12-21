@@ -85,6 +85,10 @@ mcstTweak = Tweak $ \mcst skel -> [(skel, mcst)]
 viewTweak :: Is k A_Getter => Optic' k is TxSkel a -> Tweak a
 viewTweak optic = Tweak $ \_mcst skel -> [(skel, view optic skel)]
 
+-- | Like the 'viewTweak', but returns a list of all foci
+viewAllTweak :: Is k A_Fold => Optic' k is TxSkel a -> Tweak [a]
+viewAllTweak optic = Tweak $ \_mcst skel -> [(skel, toListOf optic skel)]
+
 -- | The tweak that sets a certain value in the 'TxSkel'.
 setTweak :: Is k A_Setter => Optic' k is TxSkel a -> a -> Tweak ()
 setTweak optic newValue = Tweak $ \_mcst skel -> [(set optic newValue skel, ())]
