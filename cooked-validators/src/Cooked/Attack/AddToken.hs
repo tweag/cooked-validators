@@ -38,24 +38,23 @@ addTokenAttack extraTokens attacker = do
   oldMints <- viewTweak txSkelMintsL
   msum $
     map
-      ( \policy ->
-          let (redeemer, _) = oldMints Map.! policy
-           in msum $
-                map
-                  ( \(tName, amount) ->
-                      let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
-                          increment =
-                            txSkelMintsValue newMints
-                              <> Pl.negate (txSkelMintsValue oldMints)
-                       in if increment `Value.geq` mempty
-                            then do
-                              setTweak txSkelMintsL newMints
-                              addOutputTweak $ paysPK (walletPKHash attacker) increment
-                              return increment
-                            else failingTweak
-                  )
-                  (extraTokens policy)
+      ( \(policy, (redeemer, _)) ->
+          msum $
+            map
+              ( \(tName, amount) ->
+                  let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
+                      increment =
+                        txSkelMintsValue newMints
+                          <> Pl.negate (txSkelMintsValue oldMints)
+                   in if increment `Value.geq` mempty
+                        then do
+                          setTweak txSkelMintsL newMints
+                          addOutputTweak $ paysPK (walletPKHash attacker) increment
+                          return increment
+                        else failingTweak
+              )
+              (extraTokens policy)
       )
-      (Map.keys oldMints)
+      (Map.toList oldMints)
 
 newtype AddTokenLbl = AddTokenLbl Pl.TokenName deriving (Show, Eq)
