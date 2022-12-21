@@ -178,7 +178,25 @@ tests =
         "from the point of view of scripts"
         [ testGroup
             "looking at transaction inputs"
-            [],
+            [ testGroup
+                "validator expects an inline datum..."
+                [ testCase "... and gets an inline datum, expecting success" $
+                    testSucceeds $
+                      spendOutputTestTrace (inputDatumValidator True) True,
+                  testCase "... and gets a datum hash, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      spendOutputTestTrace (inputDatumValidator True) False
+                ],
+              testGroup
+                "validator expects a datum hash..."
+                [ testCase "... and gets an inline datum, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      spendOutputTestTrace (inputDatumValidator False) True,
+                  testCase "... and gets a datum hash, expecting success" $
+                    testSucceeds $
+                      spendOutputTestTrace (inputDatumValidator False) False
+                ]
+            ],
           testGroup
             "looking at transaction outputs"
             [ testGroup
