@@ -13,7 +13,16 @@ extra-source-files:
 library
   exposed-modules:
       Cooked
+      Cooked.Attack
+      Cooked.Attack.AddToken
+      Cooked.Attack.DatumHijacking
+      Cooked.Attack.DoubleSat
+      Cooked.Attack.DupToken
+      Cooked.Attack.Tweak
+      Cooked.Attack.Tweak.AddInputsAndOutputs
       Cooked.Attack.Tweak.Common
+      Cooked.Attack.Tweak.OutPermutations
+      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
@@ -30,6 +39,7 @@ library
       Cooked.MockChain.Wallet
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
+      Cooked.Tx.Constraints.Optics
       Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
   other-modules:
@@ -48,6 +58,69 @@ library
     , cardano-crypto
     , cardano-wallet-core
     , containers
+    , data-default
+    , deepseq
+    , either
+    , flat
+    , foldl
+    , freer-extras
+    , freer-simple
+    , hashable
+    , hedgehog-quickcheck
+    , lens
+    , memory
+    , monad-control
+    , mtl
+    , nonempty-containers
+    , optics-core
+    , optics-th
+    , optics-vl
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
+    , plutus-ledger-api
+    , plutus-ledger-constraints
+    , plutus-pab
+    , plutus-script-utils
+    , plutus-tx
+    , plutus-tx-plugin
+    , prettyprinter
+    , scientific
+    , streaming
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , transformers
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Cooked.Attack.DatumHijackingSpec
+      Cooked.Attack.DoubleSatSpec
+      Cooked.Attack.DupTokenSpec
+      Cooked.Attack.Tweak.CommonSpec
+      Cooked.Attack.Tweak.OutPermutationsSpec
+      Cooked.AttackSpec
+      Cooked.LtlSpec
+      Cooked.TestUtils
+      Paths_cooked_validators
+  autogen-modules:
+      Paths_cooked_validators
+  hs-source-dirs:
+      tests/
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.9 && <5
+    , bytestring
+    , cardano-api
+    , cardano-crypto
+    , cardano-wallet-core
+    , containers
+    , cooked-validators
     , data-default
     , deepseq
     , either

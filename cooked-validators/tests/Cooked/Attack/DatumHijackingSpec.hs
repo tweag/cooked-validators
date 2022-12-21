@@ -7,20 +7,22 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.AttackSpec.DatumHijacking (tests) where
+module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked.Attack
-import Cooked.AttackSpec.Util
 import Cooked.Ltl
 import Cooked.MockChain
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Type
 import Data.Default
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Ledger as L hiding (validatorHash)
 import qualified Ledger.Ada as L
-import qualified Ledger.Typed.Scripts as L
 import qualified Ledger.Value as L
-import qualified Plutus.V1.Ledger.Scripts as L
+import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -47,7 +49,7 @@ Pl.unstableMakeIsData ''MockDatum
 
 data MockContract
 
-instance L.ValidatorTypes MockContract where
+instance Pl.ValidatorTypes MockContract where
   type DatumType MockContract = MockDatum
   type RedeemerType MockContract = ()
 
@@ -56,29 +58,31 @@ instance L.ValidatorTypes MockContract where
 lockValue :: L.Value
 lockValue = L.lovelaceValueOf 12345678
 
-lockTxSkel :: SpendableOut -> L.TypedValidator MockContract -> TxSkel
+lockTxSkel :: SpendableOut -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
-  txSkelOpts
-    (def {adjustUnbalTx = True})
-    ([SpendsPK o] :=>: [paysScript v FirstLock lockValue])
+  mempty
+    { txSkelOpts = def {adjustUnbalTx = True},
+      txSkelIns = Map.singleton o SpendsPK,
+      txSkelOuts = [paysScript v FirstLock lockValue]
+    }
 
-txLock :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
+txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   me <- ownPaymentPubKeyHash
   utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
   void $ validateTxSkel $ lockTxSkel utxo v
 
-relockTxSkel :: L.TypedValidator MockContract -> SpendableOut -> TxSkel
+relockTxSkel :: Pl.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
-  txSkelOpts
-    (def {adjustUnbalTx = True})
-    ( [SpendsScript v () o]
-        :=>: [paysScript v SecondLock lockValue]
-    )
+  mempty
+    { txSkelOpts = def {adjustUnbalTx = True},
+      txSkelIns = Map.singleton o $ SpendsScript v (),
+      txSkelOuts = [paysScript v SecondLock lockValue]
+    }
 
 txRelock ::
   MonadBlockChain m =>
-  L.TypedValidator MockContract ->
+  Pl.TypedValidator MockContract ->
   m ()
 txRelock v = do
   utxo : _ <- scriptUtxosSuchThat v (\d _ -> FirstLock Pl.== d)
@@ -88,16 +92,18 @@ txRelock v = do
 
 -- | Try to extract a datum from an output.
 {-# INLINEABLE outputDatum #-}
-outputDatum :: L.TxInfo -> L.TxOut -> Maybe MockDatum
-outputDatum txi o = do
-  h <- L.txOutDatum o
-  L.Datum d <- L.findDatum h txi
-  Pl.fromBuiltinData d
+outputDatum :: Pl.TxInfo -> Pl.TxOut -> Maybe MockDatum
+outputDatum txi o = case Pl.txOutDatum o of
+  Pl.NoOutputDatum -> Nothing
+  Pl.OutputDatumHash h -> do
+    L.Datum d <- Pl.findDatum h txi
+    Pl.fromBuiltinData d
+  Pl.OutputDatum (L.Datum d) -> Pl.fromBuiltinData d
 
 {-# INLINEABLE mkMockValidator #-}
-mkMockValidator :: (L.ScriptContext -> [L.TxOut]) -> MockDatum -> () -> L.ScriptContext -> Bool
+mkMockValidator :: (Pl.ScriptContext -> [Pl.TxOut]) -> MockDatum -> () -> Pl.ScriptContext -> Bool
 mkMockValidator getOutputs datum _ ctx =
-  let txi = L.scriptContextTxInfo ctx
+  let txi = Pl.scriptContextTxInfo ctx
    in case datum of
         FirstLock ->
           case getOutputs ctx of
@@ -107,38 +113,41 @@ mkMockValidator getOutputs datum _ ctx =
                 (outputDatum txi o Pl.== Just SecondLock)
                 && Pl.traceIfFalse
                   "not re-locking the right amout"
-                  (L.txOutValue o == lockValue)
+                  (Pl.txOutValue o == lockValue)
             _ -> Pl.trace "there must be a output re-locked" False
         SecondLock -> False
 
 {-# INLINEABLE mkCarefulValidator #-}
-mkCarefulValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarefulValidator = mkMockValidator L.getContinuingOutputs
+mkCarefulValidator :: MockDatum -> () -> Pl.ScriptContext -> Bool
+mkCarefulValidator = mkMockValidator Pl.getContinuingOutputs
 
-carefulValidator :: L.TypedValidator MockContract
+carefulValidator :: Pl.TypedValidator MockContract
 carefulValidator =
-  L.mkTypedValidator @MockContract
+  Pl.mkTypedValidator @MockContract
     $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator @MockDatum @()
 
 {-# INLINEABLE mkCarelessValidator #-}
-mkCarelessValidator :: MockDatum -> () -> L.ScriptContext -> Bool
-mkCarelessValidator = mkMockValidator (L.txInfoOutputs . L.scriptContextTxInfo)
+mkCarelessValidator :: MockDatum -> () -> Pl.ScriptContext -> Bool
+mkCarelessValidator = mkMockValidator (Pl.txInfoOutputs . Pl.scriptContextTxInfo)
 
-carelessValidator :: L.TypedValidator MockContract
+carelessValidator :: Pl.TypedValidator MockContract
 carelessValidator =
-  L.mkTypedValidator @MockContract
+  Pl.mkTypedValidator @MockContract
     $$(Pl.compile [||mkCarelessValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = L.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator @MockDatum @()
 
-datumHijackingTrace :: MonadBlockChain m => L.TypedValidator MockContract -> m ()
+datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do
   txLock v
   txRelock v
+
+txSkelFromOuts :: [TxSkelOut] -> TxSkel
+txSkelFromOuts os = mempty {txSkelOuts = os}
 
 -- * TestTree for the datum hijacking attack
 
@@ -154,7 +163,7 @@ tests =
             x2 = L.lovelaceValueOf 10000
             x3 = L.lovelaceValueOf 9999
             skelIn =
-              txSkel
+              txSkelFromOuts
                 [ paysScript val1 SecondLock x1,
                   paysScript val1 SecondLock x3,
                   paysScript val2 SecondLock x1,
@@ -165,7 +174,7 @@ tests =
               getTweak
                 ( datumHijackingAttack @MockContract
                     ( \v d x ->
-                        L.validatorHash val1 == L.validatorHash v
+                        Pl.validatorHash val1 == Pl.validatorHash v
                           && SecondLock Pl.== d
                           && bound `L.geq` x
                     )
@@ -174,14 +183,18 @@ tests =
                 def
                 skelIn
             skelExpected a b =
-              txSkelLbl
-                (DatumHijackingLbl $ L.validatorAddress thief)
-                [ paysScript val1 SecondLock x1,
-                  paysScript a SecondLock x3,
-                  paysScript val2 SecondLock x1,
-                  paysScript val1 FirstLock x2,
-                  paysScript b SecondLock x2
-                ]
+              mempty
+                { txSkelLabel =
+                    Set.singleton . TxLabel . DatumHijackingLbl $
+                      Pl.validatorAddress thief
+                }
+                <> txSkelFromOuts
+                  [ paysScript val1 SecondLock x1,
+                    paysScript a SecondLock x3,
+                    paysScript val2 SecondLock x1,
+                    paysScript val1 FirstLock x2,
+                    paysScript b SecondLock x2
+                  ]
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ ( skelExpected thief val1,
@@ -211,7 +224,7 @@ tests =
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
-                      L.validatorHash v == L.validatorHash carefulValidator
+                      Pl.validatorHash v == Pl.validatorHash carefulValidator
                         && SecondLock Pl.== d
                   )
                   (const True)
@@ -223,7 +236,7 @@ tests =
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \v d _ ->
-                      L.validatorHash v == L.validatorHash carelessValidator
+                      Pl.validatorHash v == Pl.validatorHash carelessValidator
                         && SecondLock Pl.== d
                   )
                   (const True)
