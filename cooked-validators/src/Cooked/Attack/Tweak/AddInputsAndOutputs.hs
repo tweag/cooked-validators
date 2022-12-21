@@ -24,17 +24,11 @@ import Test.QuickCheck (NonZero (..))
 ensureInputTweak :: SpendableOut -> TxSkelIn -> Tweak (Maybe (SpendableOut, TxSkelIn))
 ensureInputTweak sOut howConsumed = do
   presentInputs <- viewTweak txSkelInsL
-  case presentInputs Map.!? sOut of
-    Nothing -> doTheChange
-    Just howConsumed' ->
-      if howConsumed == howConsumed'
-        then return Nothing
-        else doTheChange
-  where
-    doTheChange =
-      do
-        overTweak txSkelInsL (Map.insert sOut howConsumed)
-        return $ Just (sOut, howConsumed)
+  if presentInputs Map.!? sOut == Just howConsumed
+    then return Nothing
+    else do
+      overTweak txSkelInsL (Map.insert sOut howConsumed)
+      return $ Just (sOut, howConsumed)
 
 -- | Add an input to a transaction. If the given 'SpendableOut' is already being
 -- consumed by the transaction, fail.
