@@ -279,6 +279,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             txBodyContent
             (txSkelInputData skel)
             (txSkelOutputData skel)
+            (unsafeModTx $ txSkelOpts skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -340,12 +341,14 @@ runTransactionValidation ::
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | Modifications to apply to the transaction right before it is submitted.
+  [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
-      cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
+      cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
@@ -369,12 +372,13 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                 Pl.addCardanoTxSignature
                   (walletSK w)
                   (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
+      cardanoTxModified = applyRawModOnBalancedTx rawModTx cardanoTxSigned
 
       -- "Pl.CardanoTx" is a plutus-apps type
       -- "Tx BabbageEra" is a cardano-api type with the information we need
       -- This wraps the latter inside the former
       txWrapped :: Pl.CardanoTx
-      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
+      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxModified
 
       mValidationError :: Maybe Pl.ValidationErrorInPhase
       mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
@@ -403,7 +407,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                   }
             )
 
-          return (Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
+          return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
 
 utxosSuchThisAndThat' ::
   forall a m.
@@ -464,7 +468,10 @@ ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 -- /plutus-apps/.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 setFeeAndBalance balancePK skel0 = do
-  let skel = ensureTxSkelOutsMinAda skel0 -- TODO Disable if "adjustUnbalTx = False"??
+  let skel =
+        if adjustUnbalTx $ txSkelOpts skel0
+          then ensureTxSkelOutsMinAda skel0
+          else skel0
   utxos <- map (sOutTxOutRef &&& sOutTxOut) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
@@ -598,7 +605,7 @@ calcBalanceTx balanceStage balancePK skel = do
           skel
     Just bTxRes -> return bTxRes
   where
-    inUtxos = toListOf (txSkelInsL % folded % consumedOutputL) skel -- The Utxos consumed by the given transaction
+    inUtxos = toListOf consumedOutputsF skel -- The Utxos consumed by the given transaction
     inValue = txSkelInputValue skel -- inputs + mints
     outValue = txSkelOutputValue skel -- outputs + fee + burns
     difference = outValue <> Pl.negate inValue
@@ -643,14 +650,15 @@ calcBalanceTx balanceStage balancePK skel = do
                   selectNewInputs available' chosen' excess' missing'
 
 -- | Once we calculated what is needed to balance a transaction @skel@, we still
--- need to apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut'
+-- need to apply those changes to @skel@. Because of the 'Pl.minAdaTxOut'
 -- constraint, this might not be possible: imagine the leftover is less than
--- 'Ledger.minAdaTxOut', but the transaction has no output addressed to the
--- sending wallet. If we just create a new ouput for the balancing wallet and
+-- 'Pl.minAdaTxOut', but the transaction has no output addressed to the
+-- balancing wallet. If we just create a new ouput for the balancing wallet and
 -- place the leftover there, the resulting transaction will fail to validate
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another
--- UTxO belonging to the wallet to then create the output with the proper leftover. If
--- the wallet has no UTxO, then there's no way to balance this transaction.
+-- UTxO belonging to the wallet to then create the output with the proper
+-- leftover. If the wallet has no UTxO, then there's no way to balance this
+-- transaction.
 applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
 applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
@@ -692,7 +700,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                  in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
                       then
                         Just -- (1)
-                          ( ins <> Set.map SpendsPK newInputs,
+                          ( ins <> Map.fromSet (const SpendsPK) newInputs,
                             left ++ (bestOutput & outValueL .~ adjustedValue) : right
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
@@ -703,24 +711,35 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         tryAdditionalOutput ins outs
   return skel {txSkelIns = newIns, txSkelOuts = newOuts}
   where
-    tryAdditionalOutput :: Set TxSkelIn -> [TxSkelOut] -> Maybe (Set TxSkelIn, [TxSkelOut])
+    tryAdditionalOutput ::
+      Map SpendableOut TxSkelIn ->
+      [TxSkelOut] ->
+      Maybe (Map SpendableOut TxSkelIn, [TxSkelOut])
     tryAdditionalOutput ins outs =
       if Pl.fromValue returnValue >= Pl.minAdaTxOut
         then
           Just -- (2)
-            ( ins <> Set.map SpendsPK newInputs,
+            ( ins <> Map.fromSet (const SpendsPK) newInputs,
               outs ++ [PaysPK balancePK Nothing (Nothing @()) returnValue]
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
-    tryAdditionalInputs :: Set TxSkelIn -> [TxSkelOut] -> [SpendableOut] -> Pl.Value -> Maybe (Set TxSkelIn, [TxSkelOut])
+    tryAdditionalInputs ::
+      Map SpendableOut TxSkelIn ->
+      [TxSkelOut] ->
+      [SpendableOut] ->
+      Pl.Value ->
+      Maybe (Map SpendableOut TxSkelIn, [TxSkelOut])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
         additionalUtxo : newAvailable ->
           let additionalValue = sOutValue additionalUtxo
               newReturn = additionalValue <> return
-              newIns = ins <> Set.map SpendsPK newInputs <> Set.singleton (SpendsPK additionalUtxo)
+              newIns =
+                ins
+                  <> Map.fromSet (const SpendsPK) newInputs
+                  <> Map.singleton additionalUtxo SpendsPK
               newOuts = outs ++ [PaysPK balancePK Nothing (Nothing @()) newReturn]
            in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
                 then Just (newIns, newOuts) -- (3)

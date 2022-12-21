@@ -13,9 +13,8 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import qualified Control.Lens as Lens
+import qualified Cardano.Api as C
 import Cooked.MockChain.Misc
-import Cooked.MockChain.Wallet (wallet, walletPKHash)
 import Data.Default
 import Data.Function
 import Data.List
@@ -29,8 +28,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (validatorHash)
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
@@ -223,34 +220,24 @@ instance Semigroup BalanceOutputPolicy where
 instance Monoid BalanceOutputPolicy where
   mempty = def
 
--- | Wraps a function that can be applied to a transaction right before submitting it.
---  We have a distinguished datatype to be able to provide a little more info on
---  the show instance.
-data RawModTx
-  = -- | Apply modification on transaction after balancing is performed
-    RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
-  | -- | Apply modification on transaction before balancing and transaction fee computation
-    --   are performed.
-    RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
+-- | Wraps a function that will be applied to a transaction right before
+-- submitting it.
+newtype RawModTx
+  = -- | Apply modification on transaction after balancing, fee calculation, and
+    -- final signing areperformed
+    RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
 
 instance Eq RawModTx where
   _ == _ = False
 
 instance Show RawModTx where
   show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
-  show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
 
--- | only applies modification for RawModTxAfterBalancing
-applyRawModOnBalancedTx :: [RawModTx] -> Pl.Tx -> Pl.Tx
-applyRawModOnBalancedTx [] tx = tx
-applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) tx = applyRawModOnBalancedTx fs . f $ tx
-applyRawModOnBalancedTx (RawModTxBeforeBalancing _ : fs) tx = applyRawModOnBalancedTx fs tx
-
--- | only applies modification for RawModTxBeforeBalancing
-applyRawModOnUnbalancedTx :: [RawModTx] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-applyRawModOnUnbalancedTx [] tx = tx
-applyRawModOnUnbalancedTx (RawModTxAfterBalancing _ : fs) tx = applyRawModOnUnbalancedTx fs tx
-applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnbalancedTx fs . (Pl.tx Lens.%~ f) $ tx
+-- | Applies a list of modifications right before the transaction is
+-- submitted. The leftmost function in the argument list is applied first.
+applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+applyRawModOnBalancedTx [] = id
+applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
@@ -299,7 +286,9 @@ data TxOpts = TxOpts
     -- [RawModTxAfterBalancing Debug.Trace.traceShowId]@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
-    -- default, this is set to 'Id'.
+    -- default, this is set to the empty list.
+    --
+    -- The leftmost function in the list is applied first.
     unsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
     --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
@@ -558,11 +547,10 @@ data TxSkelIn where
   SpendsScript ::
     SpendsScriptConstrs a =>
     { spendingValidator :: Pl.TypedValidator a,
-      inputRedeemer :: Pl.RedeemerType a,
-      consumedOutput :: SpendableOut
+      inputRedeemer :: Pl.RedeemerType a
     } ->
     TxSkelIn
-  SpendsPK :: {consumedOutput :: SpendableOut} -> TxSkelIn
+  SpendsPK :: TxSkelIn
 
 deriving instance Show TxSkelIn
 
@@ -577,7 +565,7 @@ instance Eq TxSkelIn where
   s1 == s2 = compare s1 s2 == EQ
 
 instance Ord TxSkelIn where
-  compare (SpendsScript v1 r1 o1) (SpendsScript v2 r2 o2) =
+  compare (SpendsScript v1 r1) (SpendsScript v2 r2) =
     case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
       LT -> LT
       GT -> GT
@@ -586,12 +574,12 @@ instance Ord TxSkelIn where
           -- TODO will this suffice, or do we need to compare more components of
           -- the typed validator?
           compare
-            (Pl.validatorHash v1, Pl.toData r1, o1)
-            (Pl.validatorHash v2, Pl.toData r2, o2)
+            (Pl.validatorHash v1, Pl.toData r1)
+            (Pl.validatorHash v2, Pl.toData r2)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
-  compare (SpendsPK o1) (SpendsPK o2) = compare o1 o2
-  compare SpendsPK {} SpendsScript {} = LT
-  compare SpendsScript {} SpendsPK {} = GT
+  compare SpendsPK SpendsPK = EQ
+  compare SpendsPK SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK = GT
 
 -- * Transaction outputs
 
@@ -677,7 +665,7 @@ data TxSkel where
       txSkelMints :: TxSkelMints,
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      txSkelIns :: Set TxSkelIn,
+      txSkelIns :: Map SpendableOut TxSkelIn,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
@@ -698,6 +686,10 @@ makeLensesFor
     ("txSkelFee", "txSkelFeeL")
   ]
   ''TxSkel
+
+-- | All inputs to the transaction
+consumedOutputsF :: Fold TxSkel SpendableOut
+consumedOutputsF = folding (Map.keys . txSkelIns)
 
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
@@ -745,7 +737,7 @@ instance Monoid TxSkel where
         txSkelMints = Map.empty,
         txSkelValidityRange = Pl.always,
         txSkelRequiredSigners = Set.empty,
-        txSkelIns = Set.empty,
+        txSkelIns = mempty,
         txSkelOuts = [],
         txSkelFee = 0
       }
@@ -757,7 +749,7 @@ txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
 txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelInputData =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT)
+    (consumedOutputsF % sOutDatumOrHashAT)
     ( \(datumHash, mDatum) ->
         case mDatum of
           Nothing -> Map.empty
@@ -767,7 +759,7 @@ txSkelInputData =
 txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
 txSkelInputDatumHashes =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL % sOutDatumOrHashAT % _1)
+    (consumedOutputsF % sOutDatumOrHashAT % _1)
     (: [])
 
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
@@ -780,7 +772,7 @@ txSkelOutputData =
 txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
 txSkelUtxoIndex =
   foldMapOf
-    (txSkelInsL % folded % consumedOutputL)
+    consumedOutputsF
     ( \sOut ->
         Map.singleton
           (sOutTxOutRef sOut)
@@ -794,7 +786,7 @@ txSkelUtxoIndex =
 txSkelInputValue :: TxSkel -> Pl.Value
 txSkelInputValue skel@TxSkel {txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
-    <> foldOf (txSkelInsL % folded % consumedOutputL % sOutValueL) skel
+    <> foldOf (consumedOutputsF % sOutValueL) skel
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
@@ -812,7 +804,7 @@ txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
 txSkelAllSigners skel =
   (skel ^. txSkelRequiredSignersL)
     <> foldMapOf
-      (txSkelInsL % folded % consumedOutputL % afolding sBelongsToPubKey)
+      (consumedOutputsF % afolding sBelongsToPubKey)
       Set.singleton
       skel
 

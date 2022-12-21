@@ -13,6 +13,7 @@ import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
 import Data.Either
+import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (mintingPolicyHash, unspentOutputs, validatorHash)
@@ -43,7 +44,7 @@ prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs fe
             prettyEnum "Mints:" "/\\" <$> mapNonEmpty prettyMints (mints ^. mintsListIso),
             Just $ "ValidateIn:" <+> PP.pretty validityRange,
             ("Required signers:" <+>) . PP.list <$> mapNonEmpty PP.viaShow (Set.toList reqSigners),
-            prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyTxSkelIn (Set.toList ins),
+            prettyEnum "Inputs:" "/\\" <$> mapNonEmpty prettyTxSkelIn (Map.toList ins),
             prettyEnum "Outputs:" "/\\" <$> mapNonEmpty prettyTxSkelOut outs,
             Just $ "Fee:" <+> PP.pretty fee
           ]
@@ -98,11 +99,11 @@ prettyTxSkelOut (PaysPK pkh stak dat val) =
         ]
     )
 
-prettyTxSkelIn :: TxSkelIn -> Doc ann
-prettyTxSkelIn (SpendsPK out) =
+prettyTxSkelIn :: (SpendableOut, TxSkelIn) -> Doc ann
+prettyTxSkelIn (out, SpendsPK) =
   let (ppAddr, mppVal) = prettyTxOut $ sOutTxOut out
    in prettyEnum "SpendsPK" "-" $ catMaybes [Just ppAddr, mppVal]
-prettyTxSkelIn (SpendsScript val red spOut) =
+prettyTxSkelIn (spOut, SpendsScript val red) =
   prettyEnum
     ("SpendsScript" <+> prettyTypedValidator val)
     "-"

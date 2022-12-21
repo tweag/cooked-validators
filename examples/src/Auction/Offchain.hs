@@ -10,6 +10,7 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Tx.Constraints.Type
 import Data.Default
+import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger as L
@@ -75,12 +76,7 @@ txSetDeadline offerUtxo deadline = do
                 NonZero 1
               )
             ],
-        txSkelIns =
-          Set.singleton $
-            SpendsScript
-              A.auctionValidator
-              A.SetDeadline
-              offerUtxo,
+        txSkelIns = Map.singleton offerUtxo $ SpendsScript A.auctionValidator A.SetDeadline,
         txSkelRequiredSigners = Set.singleton seller,
         txSkelOuts =
           [ paysScript
@@ -113,11 +109,10 @@ txBid offerUtxo bid =
           mempty
             { txSkelOpts = def {adjustUnbalTx = True},
               txSkelIns =
-                Set.singleton $
+                Map.singleton utxo $
                   SpendsScript
                     A.auctionValidator
-                    (A.Bid (A.BidderInfo bid bidder))
-                    utxo,
+                    (A.Bid (A.BidderInfo bid bidder)),
               txSkelOuts =
                 paysScript
                   A.auctionValidator
@@ -156,8 +151,10 @@ txHammer offerUtxo =
                   -- state
                   mempty
                     { txSkelIns =
-                        Set.singleton $
-                          SpendsScript A.auctionValidator (A.Hammer offerOref) offerUtxo,
+                        Map.singleton offerUtxo $
+                          SpendsScript
+                            A.auctionValidator
+                            (A.Hammer offerOref),
                       txSkelOuts =
                         [ paysPK
                             seller
@@ -172,11 +169,10 @@ txHammer offerUtxo =
                    in mempty
                         { txSkelValidityRange = Interval.from deadline,
                           txSkelIns =
-                            Set.singleton $
+                            Map.singleton utxo $
                               SpendsScript
                                 A.auctionValidator
-                                (A.Hammer offerOref)
-                                utxo,
+                                (A.Hammer offerOref),
                           txSkelMints =
                             review
                               mintsListIso
