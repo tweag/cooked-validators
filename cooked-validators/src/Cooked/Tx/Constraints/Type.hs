@@ -13,7 +13,7 @@
 
 module Cooked.Tx.Constraints.Type where
 
-import qualified Control.Lens as Lens
+import qualified Cardano.Api as C
 import Cooked.MockChain.Misc
 import Data.Default
 import Data.Function
@@ -28,8 +28,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (validatorHash)
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Constraints.OffChain as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
 import Optics.Core
@@ -199,28 +197,6 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
--- | Specifies how to select the collateral input
-data Collateral
-  = -- | Will select the first Ada-only UTxO we find belonging to 'ownPaymentPubKeyHash'
-    CollateralAuto
-  | -- | Will use the 'SpendableOut's given in the set. The set can be empty, in
-    --  which case no collateral will be used whatsoever.
-    CollateralUtxos (Set SpendableOut)
-  deriving (Eq, Show)
-
-instance Default Collateral where
-  def = CollateralAuto
-
--- | Any manual adjustment should be kept, and if there are several sets of
--- potential collateral UTxOs, they should combine.
-instance Semigroup Collateral where
-  CollateralAuto <> a = a
-  a <> CollateralAuto = a
-  CollateralUtxos l <> CollateralUtxos r = CollateralUtxos (l <> r)
-
-instance Monoid Collateral where
-  mempty = def
-
 -- | Whether to adjust existing public key outputs during transaction
 -- balancing. TODO: Why do we need these two options? Are they just historical
 -- baggage?
@@ -244,34 +220,24 @@ instance Semigroup BalanceOutputPolicy where
 instance Monoid BalanceOutputPolicy where
   mempty = def
 
--- | Wraps a function that can be applied to a transaction right before submitting it.
---  We have a distinguished datatype to be able to provide a little more info on
---  the show instance.
-data RawModTx
-  = -- | Apply modification on transaction after balancing is performed
-    RawModTxAfterBalancing (Pl.Tx -> Pl.Tx)
-  | -- | Apply modification on transaction before balancing and transaction fee computation
-    --   are performed.
-    RawModTxBeforeBalancing (Pl.Tx -> Pl.Tx)
+-- | Wraps a function that will be applied to a transaction right before
+-- submitting it.
+newtype RawModTx
+  = -- | Apply modification on transaction after balancing, fee calculation, and
+    -- final signing areperformed
+    RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
 
 instance Eq RawModTx where
   _ == _ = False
 
 instance Show RawModTx where
   show (RawModTxAfterBalancing _) = "RawModTxAfterBalancing"
-  show (RawModTxBeforeBalancing _) = "RawModTxBeforeBalancing"
 
--- | only applies modification for RawModTxAfterBalancing
-applyRawModOnBalancedTx :: [RawModTx] -> Pl.Tx -> Pl.Tx
-applyRawModOnBalancedTx [] tx = tx
-applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) tx = applyRawModOnBalancedTx fs . f $ tx
-applyRawModOnBalancedTx (RawModTxBeforeBalancing _ : fs) tx = applyRawModOnBalancedTx fs tx
-
--- | only applies modification for RawModTxBeforeBalancing
-applyRawModOnUnbalancedTx :: [RawModTx] -> Pl.UnbalancedTx -> Pl.UnbalancedTx
-applyRawModOnUnbalancedTx [] tx = tx
-applyRawModOnUnbalancedTx (RawModTxAfterBalancing _ : fs) tx = applyRawModOnUnbalancedTx fs tx
-applyRawModOnUnbalancedTx (RawModTxBeforeBalancing f : fs) tx = applyRawModOnUnbalancedTx fs . (Pl.tx Lens.%~ f) $ tx
+-- | Applies a list of modifications right before the transaction is
+-- submitted. The leftmost function in the argument list is applied first.
+applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+applyRawModOnBalancedTx [] = id
+applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
 
 -- | Set of options to modify the behavior of generating and validating some transaction. Some of these
 -- options only have an effect when running in the 'Plutus.Contract.Contract', some only have an effect when
@@ -320,23 +286,19 @@ data TxOpts = TxOpts
     -- [RawModTxAfterBalancing Debug.Trace.traceShowId]@.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.  By
-    -- default, this is set to 'Id'.
+    -- default, this is set to the empty list.
+    --
+    -- The leftmost function in the list is applied first.
     unsafeModTx :: [RawModTx],
-    -- | Whether to balance the transaction or not. Balancing is the process of ensuring that
-    --  @input + mint = output + fees@, if you decide to set @balance = false@ you will have trouble
-    -- satisfying that equation by hand because @fees@ are variable. You will likely see a @ValueNotPreserved@ error
-    -- and should adjust the fees accordingly. For now, there is no option to skip the fee computation because
-    -- without it, validation through "Ledger.Validation" would fail with @InsufficientFees@.
+    -- | Whether to balance the transaction or not. Balancing
+    --  ensures that @input + mint = output + fees + burns@, if you decide to
+    --  set @balance = false@ you will have trouble satisfying that equation by
+    --  hand because @fees@ are variable. You will likely see a
+    --  @ValueNotPreserved@ error and should adjust the fees accordingly.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
     balance :: Bool,
-    -- | Which collateral utxo to use for this transaction. A collateral UTxO must be an Ada-only utxo
-    -- and can be specified manually, or it can be chosen automatically, if any is available.
-    --
-    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    -- By default, this is set to @CollateralAuto@.
-    collateral :: Collateral,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
@@ -354,7 +316,6 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = [],
         balance = True,
-        collateral = def,
         balanceOutputPolicy = def
       }
 
@@ -368,7 +329,6 @@ instance Semigroup TxOpts where
       forceOutputOrdering1
       unsafeModTx1
       balance1
-      collateral1
       balanceOutputPolicy1
     )
     <> ( TxOpts
@@ -378,7 +338,6 @@ instance Semigroup TxOpts where
            forceOutputOrdering2
            unsafeModTx2
            balance2
-           collateral2
            balanceOutputPolicy2
          ) =
       TxOpts
@@ -388,7 +347,6 @@ instance Semigroup TxOpts where
         (takeNonDefault (forceOutputOrdering def) forceOutputOrdering1 forceOutputOrdering2)
         (unsafeModTx1 ++ unsafeModTx2) -- this will apply the left modifications first. See the definitions of 'applyRawModOnUnbalancedTx' and 'applyRawModOnBalancedTx'
         (takeNonDefault (balance def) balance1 balance2)
-        (collateral1 <> collateral2)
         (balanceOutputPolicy1 <> balanceOutputPolicy2)
       where
         takeNonDefault d a b = if any (/= d) [a, b] then not d else d
@@ -620,8 +578,8 @@ instance Ord TxSkelIn where
             (Pl.validatorHash v2, Pl.toData r2)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
   compare SpendsPK SpendsPK = EQ
-  compare SpendsPK {} SpendsScript {} = LT
-  compare SpendsScript {} SpendsPK {} = GT
+  compare SpendsPK SpendsScript {} = LT
+  compare SpendsScript {} SpendsPK = GT
 
 -- * Transaction outputs
 
@@ -714,7 +672,6 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
       txSkelIns :: Map SpendableOut TxSkelIn,
-      txSkelInsCollateral :: Set SpendableOut,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
@@ -730,7 +687,6 @@ makeLensesFor
     ("txSkelValidityRange", "txSkelValidityRangeL"),
     ("txSkelRequiredSigners", "txSkelRequiredSignersL"),
     ("txSkelIns", "txSkelInsL"),
-    ("txSkelInsCollateral", "txSkelInsCollateralL"),
     ("txSkelOuts", "txSkelOutsL"),
     ("txSkelFee", "txSkelFeeL")
   ]
@@ -767,7 +723,7 @@ consumedOutputsF = folding (Map.keys . txSkelIns)
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 c1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 c2 o2 f2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2 f2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
@@ -775,7 +731,6 @@ instance Semigroup TxSkel where
       (r1 `Pl.intersection` r2)
       (s1 <> s2)
       (i1 <> i2)
-      (c1 <> c2)
       (o1 ++ o2)
       (f1 + f2)
 
@@ -787,8 +742,7 @@ instance Monoid TxSkel where
         txSkelMints = Map.empty,
         txSkelValidityRange = Pl.always,
         txSkelRequiredSigners = Set.empty,
-        txSkelIns = Map.empty,
-        txSkelInsCollateral = Set.empty,
+        txSkelIns = mempty,
         txSkelOuts = [],
         txSkelFee = 0
       }

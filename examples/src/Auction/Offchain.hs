@@ -35,7 +35,7 @@ txOffer lot minBid = do
     validateTxSkel $
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
-          txSkelOuts = [paysScript A.auctionValidator (A.Offer seller minBid) lot]
+          txSkelOuts = [paysScript A.auctionValidator (Right $ A.Offer seller minBid) lot]
         }
   outputs <- spOutsFromCardanoTx tx
   -- the transaction created exactly one script output, so the call to head never fail
@@ -81,7 +81,7 @@ txSetDeadline offerUtxo deadline = do
         txSkelOuts =
           [ paysScript
               A.auctionValidator
-              (A.NoBids seller minBid deadline)
+              (Right $ A.NoBids seller minBid deadline)
               (lot <> theNft)
           ]
       }
@@ -97,7 +97,7 @@ txBid offerUtxo bid =
   let theNft = A.threadToken $ sOutTxOutRef offerUtxo
    in do
         bidder <- ownPaymentPubKeyHash
-        [(utxo, datum)] <-
+        [(utxo, Right datum)] <-
           scriptUtxosSuchThat
             A.auctionValidator
             (\_ x -> x `Value.geq` theNft)
@@ -116,7 +116,7 @@ txBid offerUtxo bid =
               txSkelOuts =
                 paysScript
                   A.auctionValidator
-                  (A.Bidding seller deadline (A.BidderInfo bid bidder))
+                  (Right $ A.Bidding seller deadline (A.BidderInfo bid bidder))
                   (sOutValue utxo <> Ada.lovelaceValueOf bid) :
                 case previousBidder datum of
                   Nothing -> []
@@ -161,7 +161,7 @@ txHammer offerUtxo =
                             (sOutValue offerUtxo)
                         ]
                     }
-                (utxo, datum) : _ ->
+                (utxo, Right datum) : _ ->
                   -- There is a thread token, so the auction is in 'NoBids' or
                   -- 'Bidding' state, which means that the following pattern
                   -- match can not fail:
@@ -196,3 +196,4 @@ txHammer offerUtxo =
                                       paysPK seller (Ada.lovelaceValueOf lastBid)
                                     ]
                         }
+                _ -> error "expected one output with a datum"

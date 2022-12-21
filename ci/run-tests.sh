@@ -9,8 +9,8 @@ usage: ./ci/run-tests.sh [--ci]
   Options:
     --ci      Informs the script it is running in CI; this means
               we will save the test results as a file (named <project>-cabal-test.{res,out})
-              The script WILL SUCCEED IFF THE BUILD SUCCEEDED; 
-              This behavior ensures that the build gets cached. 
+              The script WILL SUCCEED IFF THE BUILD SUCCEEDED;
+              This behavior ensures that the build gets cached.
               Another job should check the artifact/cache to decide whether
               the workflow passes or fails as a whole
 EOF
@@ -38,7 +38,7 @@ fi
 ## The point of this is that when running in CI, we will execute all these steps
 ## but we "succeed" iff the build is ok. Another job will then check the resulting
 ## files for their exit codes. This is ugly but it ensures that the cabal build
-## gets cached even if tests or ormolu fails, which means we save a lot of time 
+## gets cached even if tests or ormolu fails, which means we save a lot of time
 ## (and CI runner money) in the long run.
 
 run_hpack() {
@@ -50,7 +50,7 @@ run_hpack() {
   hpack | grep -v "generated"
   hpack_res=$?
   popd
-  
+
   if $ci; then
     if [[ "$hpack_res" -ne "0" ]]; then
       echo "hpack regenerated the cabal file; please push it!" >> "./${proj}-hpack.out"
@@ -58,7 +58,7 @@ run_hpack() {
       echo "hpack didn't need to regenarate; all good" >> "./${proj}-hpack.out"
     fi
     echo "run_hpack:$hpack_res" >> "./${proj}-hpack.res"
-  fi 
+  fi
 
   return $hpack_res
 }
@@ -74,10 +74,10 @@ run_ormolu() {
     ormolu --mode check $(find ./$proj -name '*.hs') 2> >(tee "./${proj}-ormolu.out")
     ormolu_res=$?
     echo "run_ormolu:$ormolu_res" >> "./${proj}-ormolu.res"
-  else 
-    ormolu --mode inplace $(find ./$proj -name '*.hs') 
+  else
+    ormolu --mode inplace $(find ./$proj -name '*.hs')
     ormolu_res=$?
-  fi 
+  fi
 
   return $ormolu_res
 }
@@ -122,7 +122,7 @@ run_cabal_test() {
   return $cabal_res
 }
 
-projects=("cooked-validators" "examples" "pirouette-plutusir")
+projects=("cooked-validators" "examples")
 overall_ok=true
 
 for p in ${projects[*]}; do
@@ -165,7 +165,7 @@ for p in ${projects[*]}; do
     if ! ($hpack_ok && $cabal_build_ok && $cabal_test_ok && $ormolu_ok && $hpack_ok); then
       overall_ok=false
     fi
-  fi    
+  fi
 done
 
 if $overall_ok; then

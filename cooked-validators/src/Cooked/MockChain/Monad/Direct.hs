@@ -248,23 +248,26 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
     skel <-
-      setFeeAndBalance
-        balancingWalletPkh
-        -- We need to add the balancing wallet to the signers before
-        -- calculating the fees. The fees depend on the number of signers: they
-        -- make the transaction heavier.
-        ( skelUnbal
-            & txSkelRequiredSignersL
-            %~ (<> Set.singleton balancingWalletPkh)
-        )
-    collateralInputs <- calcCollateral collateralWallet (collateral . txSkelOpts $ skel)
+      if balance . txSkelOpts $ skelUnbal
+        then
+          setFeeAndBalance
+            balancingWalletPkh
+            -- We need to add the balancing wallet to the signers before
+            -- calculating the fees. The fees depend on the number of signers: they
+            -- make the transaction heavier.
+            ( skelUnbal
+                & txSkelRequiredSignersL
+                %~ (<> Set.singleton balancingWalletPkh)
+            )
+        else return skelUnbal
+    collateralInputs <- calcCollateral collateralWallet
     params <- askParams
     managedData <- gets mcstDatums
     -- See the comment at the arguments of 'runTransactionValidation' on why we
     -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
     -- documentation of the 'generateTxBodyContent*' functions might also be
     -- informative.
-    case generateTxBodyContentWithoutInputDatums params managedData (skel {txSkelInsCollateral = collateralInputs}) of
+    case generateTxBodyContent withoutDatums {gtpCollateralIns = collateralInputs} params managedData skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
@@ -278,6 +281,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             txBodyContent
             (txSkelInputData skel)
             (txSkelOutputData skel)
+            (unsafeModTx $ txSkelOpts skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -339,12 +343,14 @@ runTransactionValidation ::
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | Modifications to apply to the transaction right before it is submitted.
+  [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
-      cardanoTx, cardanoTxSigned :: C.Tx C.BabbageEra
+      cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
         either
           (error . ("Error building Cardano Tx: " <>) . show)
@@ -368,12 +374,13 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                 Pl.addCardanoTxSignature
                   (walletSK w)
                   (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
+      cardanoTxModified = applyRawModOnBalancedTx rawModTx cardanoTxSigned
 
       -- "Pl.CardanoTx" is a plutus-apps type
       -- "Tx BabbageEra" is a cardano-api type with the information we need
       -- This wraps the latter inside the former
       txWrapped :: Pl.CardanoTx
-      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxSigned
+      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxModified
 
       mValidationError :: Maybe Pl.ValidationErrorInPhase
       mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
@@ -402,7 +409,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                   }
             )
 
-          return (Pl.CardanoApiEmulatorEraTx cardanoTxSigned)
+          return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
 
 utxosSuchThisAndThat' ::
   forall a m.
@@ -471,7 +478,10 @@ ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 -- /plutus-apps/.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 setFeeAndBalance balancePK skel0 = do
-  let skel = ensureTxSkelOutsMinAda skel0 -- TODO Disable if "adjustUnbalTx = False"??
+  let skel =
+        if adjustUnbalTx $ txSkelOpts skel0
+          then ensureTxSkelOutsMinAda skel0
+          else skel0
   utxos <- map (sOutTxOutRef &&& sOutTxOut) <$> pkUtxos balancePK
   mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList utxos of
@@ -533,7 +543,7 @@ setFeeAndBalance balancePK skel0 = do
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Integer
 estimateTxSkelFee params utxo managedData skel = do
-  txBodyContent <- left MCEGenerationError $ generateTxBodyContent params managedData skel
+  txBodyContent <- left MCEGenerationError $ generateTxBodyContent withDatums params managedData skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
     left
@@ -546,20 +556,15 @@ estimateTxSkelFee params utxo managedData skel = do
     C.Lovelace fee -> pure fee
 
 -- | Calculates the collateral for a transaction
-calcCollateral :: (Monad m) => Wallet -> Collateral -> MockChainT m (Set SpendableOut)
-calcCollateral w col = do
-  case col of
-    -- We're given a specific utxo to use as collateral
-    CollateralUtxos r -> return r
-    -- We must pick them; we'll first select
-    CollateralAuto -> do
-      souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatumOrHash .&& valueSat hasOnlyAda)
-      when (null souts) $
-        throwError MCENoSuitableCollateral
-      -- TODO We only keep one element of the list because we are limited on
-      -- how many collateral inputs a transaction can have. Should this be
-      -- investigated further for a better approach?
-      return $ Set.fromList $ take 1 (fst <$> souts)
+calcCollateral :: (Monad m) => Wallet -> MockChainT m (Set SpendableOut)
+calcCollateral w = do
+  souts <- pkUtxosSuchThat @Void (walletPKHash w) (noDatumOrHash .&& valueSat hasOnlyAda)
+  when (null souts) $
+    throwError MCENoSuitableCollateral
+  -- TODO We only keep one element of the list because we are limited on
+  -- how many collateral inputs a transaction can have. Should this be
+  -- investigated further for a better approach?
+  return $ Set.fromList $ take 1 (fst <$> souts)
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 balanceTxFromAux utxoPolicy stage balancePK txskel = do
@@ -655,14 +660,15 @@ calcBalanceTx balanceStage balancePK skel = do
                   selectNewInputs available' chosen' excess' missing'
 
 -- | Once we calculated what is needed to balance a transaction @skel@, we still
--- need to apply those changes to @skel@. Because of the 'Ledger.minAdaTxOut'
+-- need to apply those changes to @skel@. Because of the 'Pl.minAdaTxOut'
 -- constraint, this might not be possible: imagine the leftover is less than
--- 'Ledger.minAdaTxOut', but the transaction has no output addressed to the
--- sending wallet. If we just create a new ouput for the balancing wallet and
+-- 'Pl.minAdaTxOut', but the transaction has no output addressed to the
+-- balancing wallet. If we just create a new ouput for the balancing wallet and
 -- place the leftover there, the resulting transaction will fail to validate
 -- with "LessThanMinAdaPerUTxO" error. Instead, we need to consume yet another
--- UTxO belonging to the wallet to then create the output with the proper leftover. If
--- the wallet has no UTxO, then there's no way to balance this transaction.
+-- UTxO belonging to the wallet to then create the output with the proper
+-- leftover. If the wallet has no UTxO, then there's no way to balance this
+-- transaction.
 applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
 applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
