@@ -312,8 +312,8 @@ data TxOpts = TxOpts
     --
     -- The leftmost function in the list is applied first.
     unsafeModTx :: [RawModTx],
-    -- | Whether to balance the transaction or not. Balancing is the process of
-    --  ensuring that @input + mint = output + fees + burns@, if you decide to
+    -- | Whether to balance the transaction or not. Balancing
+    --  ensures that @input + mint = output + fees + burns@, if you decide to
     --  set @balance = false@ you will have trouble satisfying that equation by
     --  hand because @fees@ are variable. You will likely see a
     --  @ValueNotPreserved@ error and should adjust the fees accordingly.
