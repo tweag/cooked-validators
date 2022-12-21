@@ -134,10 +134,9 @@ continuingOutputTestTrace ::
   ) =>
   Pl.TypedValidator a ->
   Bool ->
-  Bool ->
   m ()
-continuingOutputTestTrace validator useInlineDatumOnInitialPayment useInlineDatumOnSecondPayment = do
-  (theUtxo, _) : _ <- listUtxosTestTrace validator useInlineDatumOnInitialPayment
+continuingOutputTestTrace validator useInlineDatumOnSecondPayment = do
+  (theUtxo, _) : _ <- listUtxosTestTrace validator True
   void $
     validateTxSkel
       mempty
@@ -163,7 +162,7 @@ tests =
   testGroup
     "inline datums vs. datum hashes"
     [ testGroup
-        "in terms of (script)UtxosSuchThat"
+        "from the point of view of (script)UtxosSuchThat"
         [ -- The validator used in these test cases does not actually matter, we
           -- just need some script to pay to.
           testCase "the datum is retrieved correctly" $
@@ -174,5 +173,32 @@ tests =
             assertBool "... it's not" $ case runMockChain (listUtxosTestTrace (inputDatumValidator True) False) of
               Right ([(_, Left dh)], _) -> dh == (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ ())
               _ -> False
+        ],
+      testGroup
+        "from the point of view of scripts"
+        [ testGroup
+            "looking at transaction inputs"
+            [],
+          testGroup
+            "looking at transaction outputs"
+            [ testGroup
+                "validator expects an inline datum..."
+                [ testCase "... and gets an inline datum, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace (outputDatumValidator True) True,
+                  testCase "... and gets a datum hash, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace (outputDatumValidator True) False
+                ],
+              testGroup
+                "validator expects a datum hash..."
+                [ testCase "... and gets an inline datum, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace (outputDatumValidator False) True,
+                  testCase "... and gets a datum hash, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace (outputDatumValidator False) False
+                ]
+            ]
         ]
     ]
