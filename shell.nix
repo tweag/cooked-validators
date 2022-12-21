@@ -8,12 +8,14 @@ in pkgs.mkShell {
     # and is necessary to set the right locale so tools such as ormolu and graphmod can work
     # with files contaning non-ascii characters.
     shellHook =
-      if (pkgs.glibcLocales != null && pkgs.stdenv.hostPlatform.libc == "glibc")
+      pkgs.lib.strings.concatStringsSep "\n" [
+      "export LD_LIBRARY_PATH=${ourpkgs.LD_LIBRARY_PATH}:$\{LD_LIBRARY_PATH:+:\}"
+      (if (pkgs.glibcLocales != null && pkgs.stdenv.hostPlatform.libc == "glibc")
       then ''
         export LANG="en_US.UTF-8"
         export LOCALE_ARCHIVE="${pkgs.glibcLocales}/lib/locale/locale-archive"
         ''
       else ''
         export LANG="en_US.UTF-8"
-        '';
+        '') ];
 }
