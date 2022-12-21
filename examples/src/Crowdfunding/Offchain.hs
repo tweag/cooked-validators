@@ -44,10 +44,10 @@ txMintThreadToken p sOut = do
           :=>: [paysScript Cf.crowdfundingValidator datum threadToken]
 
 -- | Individual can contribute a fund
-txIndividualFund :: MonadBlockChain m => Cf.ValParams -> L.Value -> SpendableOut -> m ()
-txIndividualFund p fund sOut = do
+txIndividualFund :: MonadBlockChain m => L.Value -> SpendableOut -> m ()
+txIndividualFund fund sOut = do
   funder <- ownPaymentPubKeyHash
-  let fp = Cf.FundingParams funder (Cf.fundingTarget p) fund $ fst sOut
+  let fp = Cf.FundingParams funder fund $ fst sOut
   let datum = Cf.Funding fp
   void $
     validateTxSkel $
@@ -103,6 +103,60 @@ txProjectFund p sOut = do
                  -- vulnerability where the owner receives all tokens
                  -- map (\_ -> paysPK fundingTarget token) uniqueAddrs
                )
+
+-- | Use all but the first funding utxos to fund the project
+-- TODO: this should use a Tweak
+txProjectFundPartial :: (MonadBlockChain m) => Cf.ValParams -> SpendableOut -> m ()
+txProjectFundPartial p sOut = do
+  let txOut = fst sOut
+      threadToken = Cf.threadToken txOut
+      rewardToken = Cf.rewardToken txOut
+  fundingTarget <- ownPaymentPubKeyHash
+  [proposalUtxo] <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\_ x -> x `Value.geq` threadToken)
+  fundingUtxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getUtxoDatum d == Just txOut)
+  let partialFundingUtxos = tail fundingUtxos
+      datumTotal = PlutusTx.Prelude.sum $ mapMaybe (Cf.getValue . snd) partialFundingUtxos
+      uniqueAddrs = nub $ mapMaybe (Cf.getFunder . snd) partialFundingUtxos
+  void $
+    validateTxSkel $
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        ( Before (Cf.projectDeadline p) :
+          Mints
+            (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
+            [Cf.rewardTokenPolicy txOut]
+            (rewardToken $ fromIntegral $ length uniqueAddrs) :
+          Mints
+            (Just txOut)
+            [Cf.threadTokenPolicy]
+            (Pl.negate threadToken) :
+          map
+            (SpendsScript Cf.crowdfundingValidator (Cf.Launch txOut) . fst)
+            (proposalUtxo : partialFundingUtxos)
+        )
+          :=>: ( paysPK fundingTarget datumTotal :
+                 map (`paysPK` rewardToken 1) uniqueAddrs
+               )
+
+-- | Owner funds the project without consuming the proposal utxo, thereby stealing
+-- all funds from the contributors
+txProjectFundNoProposal :: (MonadBlockChain m) => Cf.ValParams -> SpendableOut -> m ()
+txProjectFundNoProposal p sOut = do
+  let txOut = fst sOut
+  fundingTarget <- ownPaymentPubKeyHash
+  fundingUtxos <-
+    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getUtxoDatum d == Just txOut)
+  let datumTotal = PlutusTx.Prelude.sum $ mapMaybe (Cf.getValue . snd) fundingUtxos
+  void $
+    validateTxSkel $
+      txSkelOpts (def {adjustUnbalTx = True}) $
+        ( Before (Cf.projectDeadline p) :
+          map
+            (SpendsScript Cf.crowdfundingValidator (Cf.Launch txOut) . fst)
+            fundingUtxos
+        )
+          :=>: [paysPK fundingTarget datumTotal]
 
 -- | Get total contributions from a specific address given all utxos
 getContributionsAddr :: [(SpendableOut, Cf.CfDatum)] -> L.PubKeyHash -> L.Value

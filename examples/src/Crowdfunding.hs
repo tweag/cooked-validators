@@ -61,8 +61,6 @@ instance Eq ValParams where
 data FundingParams = FundingParams
   { -- | public key that is contributing
     from :: L.PubKeyHash,
-    -- | public key representing project funder is contributing to
-    to :: L.PubKeyHash,
     -- | value funder is contributing
     val :: L.Value,
     -- | utxo representing the crowdfund
@@ -75,8 +73,8 @@ PlutusTx.unstableMakeIsData ''FundingParams
 
 instance Eq FundingParams where
   {-# INLINEABLE (==) #-}
-  FundingParams from to val txOut == FundingParams from' to' val' txOut' =
-    from == from' && to == to' && val == val' && txOut == txOut'
+  FundingParams from val txOut == FundingParams from' val' txOut' =
+    from == from' && val == val' && txOut == txOut'
 
 -- | Datum type. Either a a project proposal with val params or funding with funding params.
 data CfDatum
@@ -94,11 +92,6 @@ instance Eq CfDatum where
   _ == _ = False
 
 -- Helpers for retrieving information from the datum
-
-{-# INLINEABLE getOwner #-}
-getOwner :: CfDatum -> L.PubKeyHash
-getOwner (Proposal vp) = fundingTarget vp
-getOwner (Funding fp) = to fp
 
 {-# INLINEABLE getFunder #-}
 getFunder :: CfDatum -> Maybe L.PubKeyHash
@@ -187,6 +180,9 @@ threadTokenOnChain threadCS txOut =
 -- * the transaction has at least one input
 -- * all contributors receive one token + amount contributed - amount in funding datum
 --   + note: this result must be at least 2 ada. if not, transaction will fail earlier
+-- Note: the owner of the crowdfund can launch without including all contributors provided
+-- the funds are enough. However, this is not a vulnerability as whoever is not included can
+-- still cancel their contribution. See test `partialCrowdfund`.
 {-# INLINEABLE mkRewardTokenPolicy #-}
 mkRewardTokenPolicy :: L.TxOutRef -> () -> L.ScriptContext -> Bool
 mkRewardTokenPolicy txOut _ ctx
@@ -247,7 +243,7 @@ getMintedAmount txi me tName =
     0
     $ Value.flattenValue (L.txInfoMint txi)
 
--- | Compute the token name of the thread token of an auction from its proposal UTxO.
+-- | Compute the token name of the thread token of a crowdfund from its proposal UTxO.
 -- Copied from the Auction contract.
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: L.TxOutRef -> L.TokenName
@@ -347,6 +343,9 @@ validAllRefund cf ctx =
 -- | Fixed version of above. Launch after the deadline is valid if
 -- * the owner signs the transaction
 -- * all contributors are refunded what they contributed
+-- * the thread token is burned and nothing else is minted or burned
+--    + note: this prevents any other tokens (not related to the crowdfund)
+--      from being minted or burned
 {-# INLINEABLE validAllRefund #-}
 validAllRefund :: ValParams -> L.TxOutRef -> L.ScriptContext -> Bool
 validAllRefund cf txOut ctx =
@@ -372,9 +371,12 @@ validAllRefund cf txOut ctx =
        in addr `receives` datumTotal
 
 -- | Launch before the deadline is valid if
+-- * it is signed by the owner of the crowdfund
 -- * it occurs before the deadline
 -- * the total sum of all contributions is greater than the threshold
 -- * the funding target is paid the funds
+-- * each contribution is at least the minimum value
+-- * the thread token is burned
 {-# INLINEABLE validLaunch #-}
 validLaunch :: ValParams -> L.TxOutRef -> L.ScriptContext -> Bool
 validLaunch cf txOut ctx =
@@ -383,7 +385,7 @@ validLaunch cf txOut ctx =
       datums = getAllDatums txi
       total = getTotalValue datums
       funderDatums =
-        filter (\d -> isJust (getFunder d) && getOwner d == fundingTarget cf) datums
+        filter (\d -> isJust (getFunder d) && getUtxoDatum d == Just txOut) datums
       vals = mapMaybe getValue funderDatums
       token = threadTokenOnChain (threadCS cf) txOut
    in traceIfFalse
@@ -406,15 +408,21 @@ validLaunch cf txOut ctx =
           (fst (Value.split $ L.txInfoMint txi) == token)
 
 -- | An individual contributing during launch is valid if
--- * the owner signs the transaction
--- * the contribution is at least the minimum value
+-- * the proposal utxo is present in the consuming inputs
 {-# INLINEABLE validFund #-}
-validFund :: L.PubKeyHash -> L.PubKeyHash -> L.Value -> L.ScriptContext -> Bool
-validFund _ to _ ctx =
+validFund :: L.TxOutRef -> L.ScriptContext -> Bool
+validFund txOut ctx =
   let txi = L.scriptContextTxInfo ctx
    in traceIfFalse
-        "Transaction not signed by owner"
-        (txi `L.txSignedBy` to)
+        "No valid proposal UTxO in inputs"
+        ( any
+            ( \i ->
+                case outputDatumState txi i of
+                  Just (Proposal vp) -> L.txOutValue i `Value.geq` threadTokenOnChain (threadCS vp) txOut
+                  _ -> False
+            )
+            (map L.txInInfoResolved $ L.txInfoInputs txi)
+        )
 
 -- | Minting thread token is valid if it consumes the correct proposal utxo
 {-# INLINEABLE validMinting #-}
@@ -439,8 +447,9 @@ validMinting vp@(ValParams _ _ _ ft threadCS) ctx =
 
 {-# INLINEABLE validate #-}
 validate :: CfDatum -> Action -> L.ScriptContext -> Bool
-validate (Funding fp) (Launch _) ctx =
-  validFund (from fp) (to fp) (val fp) ctx
+validate (Funding fp) (Launch launchTxOut) ctx =
+  traceIfFalse "Launching with incorrect txOut" (launchTxOut == txOut fp)
+    && validFund launchTxOut ctx
 validate (Proposal cf) (Launch txOut) ctx
   | validRange = validLaunch cf txOut ctx
   | otherwise = validAllRefund cf txOut ctx

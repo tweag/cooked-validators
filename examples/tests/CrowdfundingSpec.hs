@@ -108,7 +108,7 @@ oneContribution :: MonadMockChain m => m ()
 oneContribution = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` charlie
 
 -- | one contribution, refunded
 oneContributionRefund :: MonadMockChain m => m ()
@@ -116,7 +116,7 @@ oneContributionRefund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` charlie
   Cf.txRefund `as` charlie
 
 -- | one contribution, project funded
@@ -125,7 +125,7 @@ oneContributionFund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 5) sOut `as` alice
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | one contributer, multiple contributions, refunded
@@ -134,8 +134,8 @@ oneContributorRefund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
   Cf.txRefund `as` charlie
 
 -- | one contributor, multiple contributions, project is funded
@@ -144,8 +144,8 @@ oneContributorFund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 3) sOut `as` alice
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner contributes, project is funded
@@ -154,7 +154,7 @@ ownerContributes = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` bob
+  Cf.txIndividualFund (banana 5) sOut `as` bob
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner refunds all contributors
@@ -163,9 +163,9 @@ ownerRefunds = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txIndividualFund (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
@@ -175,8 +175,8 @@ ownerRefundsSameContributor = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
@@ -186,8 +186,8 @@ twoContributionsRefund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
   Cf.txRefund `as` alice
   Cf.txRefund `as` charlie
 
@@ -197,8 +197,8 @@ twoContributionsFund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | multiple contributions, one refunded before project is funded
@@ -207,9 +207,9 @@ multipleContributionsOneRefunded = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` dylan
+  Cf.txIndividualFund (banana 3) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 5) sOut `as` dylan
   Cf.txRefund `as` charlie
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
@@ -219,17 +219,16 @@ manyContributorsFund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` fred
+  Cf.txIndividualFund (banana 2) sOut `as` greta
+  Cf.txIndividualFund (banana 2) sOut `as` alice
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | many contributors, including some with multiple contributions. owner refunds all
@@ -238,17 +237,17 @@ manyContributorsOwnerRefunds = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` fred
+  Cf.txIndividualFund (banana 2) sOut `as` greta
+  Cf.txIndividualFund (banana 2) sOut `as` hank
+  Cf.txIndividualFund (banana 2) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
@@ -259,17 +258,17 @@ manyContributorsSomeRefundsFund = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` eve
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` fred
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` greta
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` hank
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txIndividualFund (banana 2) sOut `as` fred
+  Cf.txIndividualFund (banana 2) sOut `as` greta
+  Cf.txIndividualFund (banana 2) sOut `as` hank
+  Cf.txIndividualFund (banana 2) sOut `as` alice
   Cf.txRefund `as` charlie
   Cf.txRefund `as` dylan
   Cf.txRefund `as` hank
@@ -281,7 +280,7 @@ oneContributionRefundBelowMinimum = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` charlie
+  Cf.txIndividualFund (banana 1) sOut `as` charlie
   Cf.txRefund `as` charlie
 
 -- | owner refunds all contributors when one contribution does not
@@ -291,9 +290,9 @@ ownerRefundsBelowMinimum = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txIndividualFund (banana 1) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
@@ -305,12 +304,25 @@ twoCrowdfunds = do
   sOutA <- Cf.txOpen (appleParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOutB `as` bob
   Cf.txMintThreadToken (appleParams t0) sOutA `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOutB `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 2) sOutB `as` charlie
-  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` alice
-  Cf.txIndividualFund (appleParams t0) (apple 2) sOutA `as` dylan
+  Cf.txIndividualFund (banana 3) sOutB `as` alice
+  Cf.txIndividualFund (banana 2) sOutB `as` charlie
+  Cf.txIndividualFund (apple 2) sOutA `as` alice
+  Cf.txIndividualFund (apple 2) sOutA `as` dylan
   Cf.txProjectFund (bananaParams t0) sOutB `as` bob
   Cf.txProjectFund (appleParams t0) sOutA `as` bob
+
+-- | launch a crowdfund without consuming all funding utxos
+partialCrowdfund :: MonadMockChain m => m ()
+partialCrowdfund = do
+  t0 <- currentTime
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (banana 2) sOut `as` alice
+  Cf.txIndividualFund (banana 2) sOut `as` charlie
+  Cf.txIndividualFund (banana 2) sOut `as` dylan
+  Cf.txIndividualFund (banana 2) sOut `as` eve
+  Cf.txProjectFundPartial (bananaParams t0) sOut `as` bob
+  Cf.txRefund `as` alice
 
 successfulSingle :: TestTree
 successfulSingle =
@@ -338,7 +350,7 @@ successfulSingle =
       testCase "many contributors, project funded" $
         testSucceedsFrom testInit (allowBigTransactions manyContributorsFund),
       testCase "many contributors, owner refunds" $
-        testSucceedsFrom testInit manyContributorsOwnerRefunds,
+        testSucceedsFrom testInit (allowBigTransactions manyContributorsOwnerRefunds),
       testCase "many contributors, some refund, project funded" $
         testSucceedsFrom testInit (allowBigTransactions manyContributorsSomeRefundsFund),
       testCase "one contribution not exceeding minimum, refunded" $
@@ -346,7 +358,9 @@ successfulSingle =
       testCase "owner refunds, one contribution not exceeding minimum" $
         testSucceedsFrom testInit ownerRefundsBelowMinimum,
       testCase "two crowdfunds at the same time" $
-        testSucceedsFrom testInit (allowBigTransactions twoCrowdfunds)
+        testSucceedsFrom testInit (allowBigTransactions twoCrowdfunds),
+      testCase "launch crowdfund without consuming all utxos from funders" $
+        testSucceedsFrom testInit (allowBigTransactions partialCrowdfund)
     ]
 
 -- | one contribution, refund error: alice attempts to refund without contributing
@@ -355,7 +369,7 @@ oneContributionRefundError = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` charlie
   Cf.txRefund `as` alice
 
 -- | one contribution, project funding error: attempting to fund the project
@@ -365,7 +379,7 @@ oneContributionFundErrorAmount = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` alice
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | one contribution, project funding error: attempting to fund the project
@@ -375,7 +389,7 @@ oneContributionFundErrorDeadline = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 5) sOut `as` alice
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
@@ -386,7 +400,7 @@ oneContributionFundErrorOwner = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 5) sOut `as` alice
   Cf.txProjectFund (bananaParams t0) sOut `as` alice
 
 -- | attempting to refund all contributors before the deadline
@@ -395,9 +409,9 @@ ownerRefundsErrorDeadline = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txIndividualFund (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` dylan
   Cf.txRefundAll (bananaParams t0) sOut `as` bob
 
 -- | alice attempts to refund all contributors with bob as owner
@@ -406,9 +420,9 @@ ownerRefundsErrorOwner = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txIndividualFund (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAll (bananaParams t0) sOut `as` alice
 
@@ -418,8 +432,8 @@ twoContributionsFundErrorMinimum = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 1) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 1) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 -- | owner attempts to pay self all funds after the deadline, with no tokens
@@ -429,11 +443,21 @@ ownerRefundsVulnerability = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` alice
-  Cf.txIndividualFund (bananaParams t0) (banana 4) sOut `as` charlie
-  Cf.txIndividualFund (bananaParams t0) (banana 3) sOut `as` dylan
+  Cf.txIndividualFund (banana 5) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txIndividualFund (banana 3) sOut `as` dylan
   void $ awaitTime (Cf.projectDeadline (bananaParams t0) + 1)
   Cf.txRefundAllVulnerability (bananaParams t0) sOut `as` bob
+
+-- | contributor attempts to steal contributions by not consuming the proposal utxo
+ownerStealsFunds :: MonadMockChain m => m ()
+ownerStealsFunds = do
+  t0 <- currentTime
+  sOut <- Cf.txOpen (bananaParams t0) `as` bob
+  Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
+  Cf.txIndividualFund (banana 3) sOut `as` alice
+  Cf.txIndividualFund (banana 4) sOut `as` charlie
+  Cf.txProjectFundNoProposal (bananaParams t0) sOut `as` bob
 
 failingSingle :: TestTree
 failingSingle =
@@ -454,7 +478,9 @@ failingSingle =
       testCase "contribution does not exceed minimum" $
         testFailsFrom testInit twoContributionsFundErrorMinimum,
       testCase "owner pays self all funds after the deadline" $
-        testFailsFrom testInit ownerRefundsVulnerability
+        testFailsFrom testInit ownerRefundsVulnerability,
+      testCase "owner launches without consuming proposal, steals contributions" $
+        testFailsFrom testInit ownerStealsFunds
     ]
 
 -- * (hopefully) failing attacks
@@ -518,8 +544,8 @@ oneContributionFundAlternativeTrace = do
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
-  Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` iris
-    <|> Cf.txIndividualFund (bananaParams t0) (banana 5) sOut `as` james
+  Cf.txIndividualFund (banana 5) sOut `as` iris
+    <|> Cf.txIndividualFund (banana 5) sOut `as` james
   Cf.txProjectFund (bananaParams t0) sOut `as` bob
 
 oneContributionFundAlternative :: TestTree
