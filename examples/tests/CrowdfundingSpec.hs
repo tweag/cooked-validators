@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
@@ -12,6 +13,7 @@ import Cooked.Attack
 import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints
 import qualified Crowdfunding as Cf
 import qualified Crowdfunding.Offchain as Cf
@@ -20,6 +22,7 @@ import Data.List (isPrefixOf, (\\))
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Ledger as L
+import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ledger.Value as Value
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified Plutus.V1.Ledger.Ada as Ada
@@ -312,17 +315,45 @@ twoCrowdfunds = do
   Cf.txProjectFund (appleParams t0) sOutA `as` bob
 
 -- | launch a crowdfund without consuming all funding utxos
-partialCrowdfund :: MonadMockChain m => m ()
+partialCrowdfund :: MonadModalMockChain m => m ()
 partialCrowdfund = do
+  let evePKH = walletPKHash eve
   t0 <- currentTime
   sOut <- Cf.txOpen (bananaParams t0) `as` bob
   Cf.txMintThreadToken (bananaParams t0) sOut `as` bob
   Cf.txIndividualFund (banana 2) sOut `as` alice
   Cf.txIndividualFund (banana 2) sOut `as` charlie
   Cf.txIndividualFund (banana 2) sOut `as` dylan
-  Cf.txIndividualFund (banana 2) sOut `as` eve
-  Cf.txProjectFundPartial (bananaParams t0) sOut `as` bob
-  Cf.txRefund `as` alice
+  Cf.txIndividualFund (banana 3) sOut `as` eve
+  Cf.txProjectFund (bananaParams t0) sOut `as` bob
+    `withTweak` do
+      mintOneLessTweak (fst sOut)
+      removeMiscConstraintsTweak
+        ( \case
+            mc@(SpendsScript _ _ out) | sOutValue out `Value.geq` banana 3 -> Just mc
+            _ -> Nothing
+        )
+      removeOutConstraintsTweak
+        ( \case
+            oc@(PaysPKWithDatum pkh _ _ _) | pkh == evePKH -> Just oc
+            _ -> Nothing
+        )
+
+  Cf.txRefund `as` eve
+  where
+    mintOneLessTweak txOut = do
+      let mp = [Cf.rewardTokenPolicy txOut]
+          ac = Cf.getRewardTokenAssetClass txOut
+      [amount] <-
+        removeMiscConstraintsTweak
+          ( \case
+              mc@(Mints _ pol tok) | pol == mp -> Just $ Value.assetClassValueOf tok ac
+              _ -> Nothing
+          )
+      addMintsTweak
+        (Just (Scripts.validatorAddress Cf.crowdfundingValidator))
+        mp
+        (Cf.rewardToken txOut (amount - 1))
 
 successfulSingle :: TestTree
 successfulSingle =
