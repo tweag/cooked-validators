@@ -268,16 +268,15 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
     -- documentation of the 'generateTxBodyContent*' functions might also be
     -- informative.
-    case generateTxBodyContent withoutDatums {gtpCollateralIns = collateralInputs} params managedData skel of
+    case generateTxBodyContent withDatums {gtpCollateralIns = collateralInputs} params managedData skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
-        index <- gets mcstIndex
         someCardanoTx <-
           runTransactionValidation
             slot
             params
-            index
+            (Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList (map (sOutTxOutRef &&& sOutTxOut) $ Set.toList collateralInputs)) -- These are exactly the UTxOs that will be (maybe, in the case of collateral) consumed by the transaction
             [balancingWallet, collateralWallet]
             txBodyContent
             (txSkelInputData skel)
@@ -323,7 +322,7 @@ runTransactionValidation ::
   Pl.Slot ->
   -- | The parameters of the MockChain
   Pl.Params ->
-  -- | The currently known UTxOs
+  -- | the input UTxOs of the transaction, and the collateral UTxO(s)
   Pl.UtxoIndex ->
   -- | List of signers that have to be on the transaction in order for it to be
   -- Phase 1 - valid. This will be the list that contains the ballancing wallet
@@ -347,9 +346,9 @@ runTransactionValidation ::
   -- | Modifications to apply to the transaction right before it is submitted.
   [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
+runTransactionValidation slot parms inputUtxoIndex signers txBodyContent consumedData producedData rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex inputUtxoIndex
 
       cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
@@ -385,27 +384,28 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
 
       mValidationError :: Maybe Pl.ValidationErrorInPhase
       mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
-
-      newUtxoIndex :: Pl.UtxoIndex
-      newUtxoIndex = case mValidationError of
-        Just (Pl.Phase1, _) -> utxoIndex
-        Just (Pl.Phase2, _) ->
-          -- Despite its name, this actually deletes the collateral Utxos from
-          -- the index
-          Pl.insertCollateral txWrapped utxoIndex
-        Nothing -> Pl.insert txWrapped utxoIndex
    in case mValidationError of
-        Just err -> throwError (MCEValidationError err)
-        Nothing -> do
-          -- Validation succeeded; now we update the indexes and the managed
-          -- datums. The new mcstIndex is just `newUtxoIndex`; the new
-          -- mcstDatums is computed by removing the datum hashes have been
-          -- consumed and adding those that have been created in the
-          -- transaction.
+        Just err@(Pl.Phase1, _) -> throwError (MCEValidationError err)
+        Just err@(Pl.Phase2, _) -> do
+          -- Script failure -- keep the collateral inputs and throw the error.
           modify'
             ( \st ->
                 st
-                  { mcstIndex = newUtxoIndex,
+                  { mcstIndex =
+                      -- Despite its name, this actually deletes the collateral Utxos from
+                      -- the index
+                      Pl.insertCollateral txWrapped (mcstIndex st)
+                  }
+            )
+          throwError (MCEValidationError err)
+        Nothing -> do
+          -- Validation succeeded -- insert the transaction in the UTxO index
+          -- and update the managed datums by deleting input datums and adding
+          -- output datums
+          modify'
+            ( \st ->
+                st
+                  { mcstIndex = Pl.insert txWrapped (mcstIndex st),
                     mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData
                   }
             )
