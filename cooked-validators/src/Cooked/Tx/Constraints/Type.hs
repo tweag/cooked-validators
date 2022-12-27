@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -666,8 +667,7 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
       txSkelIns :: Map SpendableOut TxSkelIn,
-      txSkelOuts :: [TxSkelOut],
-      txSkelFee :: Integer -- Fee in Lovelace
+      txSkelOuts :: [TxSkelOut]
     } ->
     TxSkel
   -- This equality instance should reflect semantic equality; If two 'TxSkel's
@@ -718,7 +718,7 @@ consumedOutputsF = folding (Map.keys . txSkelIns)
 --
 -- > a == x && b == y `implies` a <> b == x <> y
 instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2 f2) =
+  (TxSkel l1 p1 m1 r1 s1 i1 o1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2) =
     TxSkel
       (l1 <> l2)
       (p1 <> p2)
@@ -727,7 +727,6 @@ instance Semigroup TxSkel where
       (s1 <> s2)
       (i1 <> i2)
       (o1 ++ o2)
-      (f1 + f2)
 
 instance Monoid TxSkel where
   mempty =
@@ -738,8 +737,7 @@ instance Monoid TxSkel where
         txSkelValidityRange = Pl.always,
         txSkelRequiredSigners = Set.empty,
         txSkelIns = mempty,
-        txSkelOuts = [],
-        txSkelFee = 0
+        txSkelOuts = []
       }
 
 -- | All data on the given 'TxSkel', with their hashes
@@ -788,15 +786,17 @@ txSkelInputValue skel@TxSkel {txSkelMints = mints} =
   positivePart (txSkelMintsValue mints)
     <> foldOf (consumedOutputsF % sOutValueL) skel
 
+newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
+
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Pl.Value
-txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
+txSkelOutputValue :: TxSkel -> Fee -> Pl.Value
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % outValueL) skel
-    <> Pl.lovelaceValueOf (txSkelFee skel)
+    <> Pl.lovelaceValueOf (feeLovelace fees)
 
 -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
 -- PK inputs on the transaction

@@ -50,11 +50,13 @@ data GenTxParams = GenTxParams
     --
     -- It is the duty of the caller to choose and set the collateral UTxOs.
     -- 'generateTxBodyContent' will not do it.
-    gtpCollateralIns :: Set.Set SpendableOut
+    gtpCollateralIns :: Set.Set SpendableOut,
+    -- | The transaction fee (in Lovelace)
+    gtpFee :: Fee
   }
 
 instance Default GenTxParams where
-  def = GenTxParams {gtpWithDatums = True, gtpCollateralIns = mempty}
+  def = GenTxParams {gtpWithDatums = True, gtpCollateralIns = mempty, gtpFee = 0}
 
 withDatums, withoutDatums :: GenTxParams
 withDatums = def {gtpWithDatums = True}
@@ -107,7 +109,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
             ),
         -- WARN For now we are not dealing with return collateral
         C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
-        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ txSkelFee skel,
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra $ C.Lovelace $ feeLovelace gtpFee,
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
