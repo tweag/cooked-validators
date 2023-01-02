@@ -94,16 +94,16 @@ that they end up at the correct validator V,
 - the minting policy P has to know the address of V, which is the hash of V's
   (compiled and normalised) source code. In particular, there is no way to
   compute this address on-chain, which means that this can only be accomplished
-  by parameterising the P the address of V.
+  by parameterising P with the address of V.
 
 - Conversely, the validator V needs to know the 'CurrencySymbol' of the thread
   token, which is the hash of the (compiled and normalised) code of P.
 
 So, each of the two scripts P and V has to have the other's hash as a parameter,
-and have it known at compile time. This is is patently an impossible cycle.
+and have it known at compile time. This is patently an impossible cycle.
 
 The only generic solution that we know of is to turn any initial payment of
-freshly minted tokens to the validator into a two-transaction process: The first
+freshly minted tokens to the validator into a process that involves two transactions: The first
 transaction does not involve any checks at all, does not mint any tokens that
 should be locked in the validator script, and creates "unchecked" UTxOs (Here,
 these are the UTxOs with the 'Offer' datum). The second transaction consumes
