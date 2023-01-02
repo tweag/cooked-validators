@@ -466,9 +466,13 @@ utxosSuchThat' addr = utxosSuchThisAndThat' (== addr)
 ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
 ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 
--- | Sets the '_txSkelFee' according to our environment. The transaction fee
--- gets set realistically, based on a fixpoint calculation taken from
--- /plutus-apps/.
+-- | Balance the 'TxSkel' and compute the the fee. Balancing is the process of ensuring that the equation
+--
+-- > value in inputs + minted value = value in outputs + burned value + fee
+-- 
+-- holds. The fee depends on the transaction size, which might change during the process of balancing, because additional inputs belonging to the 'balancePK' might be added to ensure that transaction inputs can cover all of the outputs. This means that fee calculation and balancing are tied together. We follow /plutus-apps/ in breaking this mutual dependency with a fixpoint iteration, which should compute realistic fees. 
+--
+--  This function also adjusts the transaction outputs to contain at least the minimum Ada amount, if the 'adjustUnbalTx' option is @True@.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m (TxSkel, Fee)
 setFeeAndBalance balancePK skel0 = do
   let skel =
