@@ -103,7 +103,7 @@ So, each of the two scripts P and V has to have the other's hash as a parameter,
 and have it known at compile time. This is patently an impossible cycle.
 
 The only generic solution that we know of is to turn any initial payment of
-freshly minted tokens to the validator into a two-transactions process: The first
+freshly minted tokens to the validator into a process that involves two transactions: The first
 transaction does not involve any checks at all, does not mint any tokens that
 should be locked in the validator script, and creates "unchecked" UTxOs (Here,
 these are the UTxOs with the 'Offer' datum). The second transaction consumes
