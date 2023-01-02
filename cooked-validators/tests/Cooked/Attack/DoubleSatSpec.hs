@@ -118,13 +118,13 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 2_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 3_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 4_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 5_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 6_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 7_000_000)]}
-      validateTxSkel $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 8_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 2_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 3_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 4_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript aValidator (Right ADatum) (L.lovelaceValueOf 5_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 6_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 7_000_000)]}
+      validateTxSkel' $ mempty {txSkelOuts = [paysScript bValidator (Right BDatum) (L.lovelaceValueOf 8_000_000)]}
 
 tests :: TestTree
 tests =

@@ -25,6 +25,7 @@ import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
 import qualified Data.List.NonEmpty as NE
+import Data.Map (Map)
 import qualified Ledger as Pl
 import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
@@ -65,7 +66,7 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
-  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
+  ValidateTxSkel :: Map Pl.DatumHash Pl.Datum -> TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
@@ -126,7 +127,7 @@ instance MonadPlus m => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
-  interpBuiltin (ValidateTxSkel skel) =
+  interpBuiltin (ValidateTxSkel extraData skel) =
     get
       >>= msum
         . map (uncurry interpretAndTell)
@@ -142,8 +143,8 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
           map
             ( \(skel', _) -> do
                 signers <- askSigners
-                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
-                tx <- validateTxSkel skel'
+                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel extraData skel'
+                tx <- validateTxSkel extraData skel'
                 put later
                 return tx
             )
@@ -203,7 +204,7 @@ singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
 instance MonadBlockChain StagedMockChain where
-  validateTxSkel = singletonBuiltin . ValidateTxSkel
+  validateTxSkel extraData = singletonBuiltin . ValidateTxSkel extraData
   utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
   utxosSuchThisAndThat apred dpred = singletonBuiltin (UtxosSuchThisAndThat apred dpred)
   datumFromHash = singletonBuiltin . DatumFromHash
@@ -225,7 +226,8 @@ instance MonadMockChain StagedMockChain where
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
 prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
-prettyMockChainOp signers (Builtin (ValidateTxSkel skel)) =
+prettyMockChainOp signers (Builtin (ValidateTxSkel _extraData skel)) =
+  -- TODO pretty-print the extraData as well
   trSingleton $
     PP.hang 2 $
       PP.vsep ["ValidateTxSkel", prettyTxSkel (NE.toList signers) skel]

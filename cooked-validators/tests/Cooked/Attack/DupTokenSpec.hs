@@ -58,7 +58,7 @@ carelessPolicy =
       $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
 dupTokenTrace :: MonadBlockChain m => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> NonZero Integer -> Wallet -> m ()
-dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
+dupTokenTrace pol tName amount recipient = void $ validateTxSkel' skel
   where
     skel =
       let mints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName, amount)]

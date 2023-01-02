@@ -239,7 +239,7 @@ utxoIndex0 = utxoIndex0From def
 -- ** Direct Interpretation of Operations
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
-  validateTxSkel skelUnbal = do
+  validateTxSkel extraData skelUnbal = do
     -- TODO We use the first signer as a default wallet for fees and
     -- collaterals. These should become parameters of validateTxSkel in the
     -- future
@@ -251,6 +251,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       if balance . txSkelOpts $ skelUnbal
         then
           setFeeAndBalance
+            extraData
             balancingWalletPkh
             -- We need to add the balancing wallet to the signers before
             -- calculating the fees. The fees depend on the number of signers: they
@@ -260,23 +261,22 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
                 %~ (<> Set.singleton balancingWalletPkh)
             )
         else return skelUnbal
-    collateralInputs <- calcCollateral collateralWallet
+    collateralInputs <- calcCollateral collateralWallet -- TODO: Why is it OK to balance first and then add collateral?
     params <- askParams
     managedData <- gets mcstDatums
     -- See the comment at the arguments of 'runTransactionValidation' on why we
     -- have to use 'generateTxBodyContentWithoutInputDatums' here. The
     -- documentation of the 'generateTxBodyContent*' functions might also be
     -- informative.
-    case generateTxBodyContent withoutDatums {gtpCollateralIns = collateralInputs} params managedData skel of
+    case generateTxBodyContent def {gtpCollateralIns = collateralInputs} params (managedData <> extraData) skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
-        index <- gets mcstIndex
         someCardanoTx <-
           runTransactionValidation
             slot
             params
-            index
+            (Pl.UtxoIndex $ txSkelUtxoIndex skel <> Map.fromList (map (sOutTxOutRef &&& sOutTxOut) $ Set.toList collateralInputs)) -- These are exactly the UTxOs that will be (maybe, in the case of collateral) consumed by the transaction
             [balancingWallet, collateralWallet]
             txBodyContent
             (txSkelInputData skel)
@@ -322,7 +322,7 @@ runTransactionValidation ::
   Pl.Slot ->
   -- | The parameters of the MockChain
   Pl.Params ->
-  -- | The currently known UTxOs
+  -- | the input UTxOs of the transaction, and the collateral UTxO(s)
   Pl.UtxoIndex ->
   -- | List of signers that have to be on the transaction in order for it to be
   -- Phase 1 - valid. This will be the list that contains the ballancing wallet
@@ -346,9 +346,9 @@ runTransactionValidation ::
   -- | Modifications to apply to the transaction right before it is submitted.
   [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
+runTransactionValidation slot parms inputUtxoIndex signers txBodyContent consumedData producedData rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
+      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex inputUtxoIndex
 
       cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
@@ -384,27 +384,28 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
 
       mValidationError :: Maybe Pl.ValidationErrorInPhase
       mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
-
-      newUtxoIndex :: Pl.UtxoIndex
-      newUtxoIndex = case mValidationError of
-        Just (Pl.Phase1, _) -> utxoIndex
-        Just (Pl.Phase2, _) ->
-          -- Despite its name, this actually deletes the collateral Utxos from
-          -- the index
-          Pl.insertCollateral txWrapped utxoIndex
-        Nothing -> Pl.insert txWrapped utxoIndex
    in case mValidationError of
-        Just err -> throwError (MCEValidationError err)
-        Nothing -> do
-          -- Validation succeeded; now we update the indexes and the managed
-          -- datums. The new mcstIndex is just `newUtxoIndex`; the new
-          -- mcstDatums is computed by removing the datum hashes have been
-          -- consumed and adding those that have been created in the
-          -- transaction.
+        Just err@(Pl.Phase1, _) -> throwError (MCEValidationError err)
+        Just err@(Pl.Phase2, _) -> do
+          -- Script failure -- keep the collateral inputs and throw the error.
           modify'
             ( \st ->
                 st
-                  { mcstIndex = newUtxoIndex,
+                  { mcstIndex =
+                      -- Despite its name, this actually deletes the collateral Utxos from
+                      -- the index
+                      Pl.insertCollateral txWrapped (mcstIndex st)
+                  }
+            )
+          throwError (MCEValidationError err)
+        Nothing -> do
+          -- Validation succeeded -- insert the transaction in the UTxO index
+          -- and update the managed datums by deleting input datums and adding
+          -- output datums
+          modify'
+            ( \st ->
+                st
+                  { mcstIndex = Pl.insert txWrapped (mcstIndex st),
                     mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData
                   }
             )
@@ -476,8 +477,8 @@ ensureTxSkelOutsMinAda = txSkelOutsL % traversed % outValueL %~ ensureHasMinAda
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
 -- /plutus-apps/.
-setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
-setFeeAndBalance balancePK skel0 = do
+setFeeAndBalance :: (Monad m) => Map Pl.DatumHash Pl.Datum -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+setFeeAndBalance extraData balancePK skel0 = do
   let skel =
         if adjustUnbalTx $ txSkelOpts skel0
           then ensureTxSkelOutsMinAda skel0
@@ -521,8 +522,8 @@ setFeeAndBalance balancePK skel0 = do
       let skelWithFee = skel & txSkelFeeL .~ fee
           bPol = balanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
-      manageData <- gets mcstDatums
-      case estimateTxSkelFee parms cUtxoIndex manageData attemptedSkel of
+      managedData <- gets mcstDatums
+      case estimateTxSkelFee parms cUtxoIndex (managedData <> extraData) attemptedSkel of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -543,7 +544,7 @@ setFeeAndBalance balancePK skel0 = do
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee :: Pl.Params -> Pl.UTxO Pl.EmulatorEra -> Map Pl.DatumHash Pl.Datum -> TxSkel -> Either MockChainError Integer
 estimateTxSkelFee params utxo managedData skel = do
-  txBodyContent <- left MCEGenerationError $ generateTxBodyContent withDatums params managedData skel
+  txBodyContent <- left MCEGenerationError $ generateTxBodyContent def params managedData skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
     left
@@ -688,7 +689,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
   -- 3. Attempt to consume other possible utxos from 'w' in order to combine
   --    them and return the leftover.
 
-  -- TODO: Mustn't every UTxO belonging to the wallet contain at least minAda?
+  -- TODO: Mustn't every UTxO belongign to the wallet contain at least minAda?
   -- In that case, we could forget about adding several additional inputs. If
   -- one isn't enough, there's nothing we can do, no?
   let outs = txSkelOuts skel
@@ -698,7 +699,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       ( \out ->
           Just balancePK == out ^? recipientPubKeyHashAT
             && Value.isAdaOnlyValue (outValue out)
-            && isNothing (txSkelOutDatumHash out)
+            && isNothing (txSkelOutDatum out)
       )
       outs of
       Just i ->

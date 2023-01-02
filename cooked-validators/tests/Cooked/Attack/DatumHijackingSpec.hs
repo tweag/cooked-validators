@@ -70,7 +70,7 @@ txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   me <- ownPaymentPubKeyHash
   utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
-  void $ validateTxSkel $ lockTxSkel utxo v
+  void $ validateTxSkel' $ lockTxSkel utxo v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> SpendableOut -> TxSkel
 relockTxSkel v o =
@@ -86,7 +86,7 @@ txRelock ::
   m ()
 txRelock v = do
   utxo : _ <- scriptUtxosSuchThat v (\d _ -> Right FirstLock Pl.== d)
-  void $ validateTxSkel $ relockTxSkel v (fst utxo)
+  void $ validateTxSkel' $ relockTxSkel v (fst utxo)
 
 -- * Validators for the datum hijacking attack
 

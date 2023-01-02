@@ -141,16 +141,19 @@ sOutDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutDatumOrHashAT
 sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
 sOutDatumHash = (^? sOutDatumOrHashAT % _1)
 
-sOutDatum :: SpendableOut -> Maybe Pl.Datum
-sOutDatum = (^? sOutDatumOrHashAT % _2 % _Just)
+sOutOutputDatum :: SpendableOut -> Pl.OutputDatum
+sOutOutputDatum out = case out ^? sOutDatumOrHashAT of
+  Nothing -> Pl.NoOutputDatum
+  Just (datumHash, Nothing) -> Pl.OutputDatumHash datumHash
+  Just (_datumHash, Just datum) -> Pl.OutputDatum datum
 
 -- | The 'TxOut' corresponding to a 'SpendableOut'
 sOutTxOut :: SpendableOut -> Pl.TxOut
 sOutTxOut sOut =
-  toPlTxOut
+  toPlTxOut'
     (sOutAddress sOut)
     (sOutValue sOut)
-    (sOutDatum sOut)
+    (sOutOutputDatum sOut)
 
 -- * Transaction labels
 
@@ -659,7 +662,7 @@ paysPK pkh = PaysPK @() pkh Nothing Nothing
 
 -- | Smart constructor for a 'TxSkelOut' that goes to a script and provides no
 -- staking information.
-paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Either Pl.DatumHash (Pl.DatumType a) -> Pl.Value -> TxSkelOut
+paysScript :: PaysScriptConstrs a => Pl.TypedValidator a -> Either Pl.DatumHash (Pl.DatumType a) -> Pl.Value -> TxSkelOut
 paysScript tv = PaysScript tv Nothing
 
 -- * Transaction skeletons

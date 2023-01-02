@@ -25,6 +25,8 @@ import Cooked.Tx.Constraints.Type
 import Data.Function (on)
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import qualified Ledger as Pl
 import qualified Ledger.Credential as Pl
@@ -55,7 +57,7 @@ class (MonadFail m) => MonadBlockChain m where
   --  which inputs to add in case the output-side of the balancing equation is bigger.
   --
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
-  validateTxSkel :: TxSkel -> m Pl.CardanoTx
+  validateTxSkel :: Map Pl.DatumHash Pl.Datum -> TxSkel -> m Pl.CardanoTx
 
   -- | Returns a list of spendable outputs that belong to a given address and satisfy a given predicate;
   --  Additionally, return the datum present in there if it happened to be a script output. It is important
@@ -101,10 +103,9 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- spendableRef :: (MonadBlockChain m) => Pl.TxOutRef -> m SpendableOut
--- spendableRef txORef = do
---   Just txOut <- txOutByRef txORef
---   return (txORef, fromJust (Pl.fromTxOut txOut))
+-- | Validate a transaction without providing a map of extra datums
+validateTxSkel' :: MonadBlockChain m => TxSkel -> m Pl.CardanoTx
+validateTxSkel' = validateTxSkel Map.empty
 
 -- | Some values of type "SpendableOut" have no explicit datum in their
 -- "ChainIndexTxOut" but the datum hash instead. When used in cooked
@@ -319,7 +320,7 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
+  validateTxSkel extraData = lift . validateTxSkel extraData
   utxosSuchThat addr f = lift $ utxosSuchThat addr f
   utxosSuchThisAndThat addrPred datumPred = lift $ utxosSuchThisAndThat addrPred datumPred
   datumFromHash = lift . datumFromHash
