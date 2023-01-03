@@ -32,7 +32,7 @@ txOffer lot minBid = do
   -- oldUtxos <- scriptUtxosSuchThat A.auctionValidator (\_ _ -> True)
   seller <- ownPaymentPubKeyHash
   tx <-
-    validateTxSkel $
+    validateTxSkel' $
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelOuts = [paysScript A.auctionValidator (Right $ A.Offer seller minBid) lot]
@@ -58,7 +58,7 @@ txSetDeadline offerUtxo deadline = do
       offerOref = sOutTxOutRef offerUtxo
       theNft = A.threadToken offerOref
   (A.Offer seller minBid) <- spOutGetDatum @A.Auction offerUtxo
-  validateTxSkel $
+  validateTxSkel' $
     mempty
       { txSkelOpts =
           def
@@ -105,7 +105,7 @@ txBid offerUtxo bid =
         -- we're at least in 'NoBids' state.
         let deadline = fromJust $ A.getBidDeadline datum
             seller = A.getSeller datum
-        validateTxSkel $
+        validateTxSkel' $
           mempty
             { txSkelOpts = def {adjustUnbalTx = True},
               txSkelIns =
@@ -141,7 +141,7 @@ txHammer offerUtxo =
             (\_ x -> x `Value.geq` theNft)
         (A.Offer seller _minBid) <- spOutGetDatum @A.Auction offerUtxo
         void $
-          validateTxSkel $
+          validateTxSkel' $
             mempty
               { txSkelOpts = def {adjustUnbalTx = True}
               }
