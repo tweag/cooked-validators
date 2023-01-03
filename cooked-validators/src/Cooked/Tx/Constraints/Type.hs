@@ -12,6 +12,7 @@
 module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
+import Cooked.MockChain.Misc (toPlTxOut')
 import Data.Default
 import Data.List
 import qualified Data.List.NonEmpty as NE
@@ -43,34 +44,47 @@ import Type.Reflection
 --
 -- - an 'AT' for affine traversals
 
--- * 'SpendableOut's: UTxOs that can be used as transaction inputs
+-- * 'IsOutput': UTxOs that can be used as transaction outputs
 
-class IsSpendableOut o where
+class (Show o) => IsOutput o where
+  -- The owner type can be, in particular, a 'TypedValidator a' or a
+  -- 'PubkeyHash'
   type OwnerType o
   type DatumType o
-  sOutTxOutRefL :: Lens' o Pl.TxOutRef
   sOutOwnerL :: Lens' o (OwnerType o)
   sOutDatumL :: Lens' o (DatumType o)
   sOutValueL :: Lens' o Pl.Value
   sOutAddressL :: Lens o o Pl.Address (OwnerType o, Maybe Pl.StakingCredential)
   sOutOutputDatumL :: Lens o o Pl.OutputDatum (DatumType o)
 
-sOutValue :: IsSpendableOut o => o -> Pl.Value
+-- | Outputs that can be used as transaction inputs
+data SpendableOutput o where
+  SpendableOutput :: IsOutput o => Pl.TxOutRef -> o -> SpendableOutput o
+
+deriving instance (Show (SpendableOutput o))
+
+sOutValue :: IsOutput o => o -> Pl.Value
 sOutValue = (^. sOutValueL)
+
+sOutTxOut :: IsOutput o => o -> Pl.TxOut
+sOutTxOut o =
+  toPlTxOut'
+    (o ^. getting sOutAddressL)
+    (o ^. sOutValueL)
+    (o ^. getting sOutOutputDatumL)
 
 -- ** Generic spendable outputs
 
-type GenericSpendableOut =
+type GenericOut =
   ( Pl.TxOutRef,
     Pl.Address,
     Pl.OutputDatum,
     Pl.Value
   )
 
-instance IsSpendableOut GenericSpendableOut where
-  type OwnerType GenericSpendableOut = Pl.Address
-  type DatumType GenericSpendableOut = Pl.OutputDatum
-  sOutTxOutRefL = _1
+instance IsOutput GenericOut where
+  type OwnerType GenericOut = Pl.Address
+  type DatumType GenericOut = Pl.OutputDatum
   sOutOwnerL = _2
   sOutDatumL = _3
   sOutValueL = _4
@@ -82,19 +96,18 @@ instance IsSpendableOut GenericSpendableOut where
       )
   sOutOutputDatumL = _3
 
--- ** Spendable outputs without data belonging to public keys
+-- ** outputs without data belonging to public keys
 
-type PKSpendableOut =
+type PKOutput =
   ( Pl.TxOutRef,
     Pl.PubKeyHash,
     Maybe Pl.StakingCredential,
     Pl.Value
   )
 
-instance IsSpendableOut PKSpendableOut where
-  type OwnerType PKSpendableOut = Pl.PubKeyHash
-  type DatumType PKSpendableOut = ()
-  sOutTxOutRefL = _1
+instance IsOutput PKOutput where
+  type OwnerType PKOutput = Pl.PubKeyHash
+  type DatumType PKOutput = ()
   sOutOwnerL = _2
   sOutDatumL = lens (const ()) const
   sOutValueL = _4
@@ -104,9 +117,9 @@ instance IsSpendableOut PKSpendableOut where
       (\(oRef, _, _, value) (pkh, mStCred) -> (oRef, pkh, mStCred, value))
   sOutOutputDatumL = undefined
 
--- ** Spendable outputs with datum belonging to public keys
+-- ** outputs with datum belonging to public keys
 
-type PKSpendableOutWithDatum a =
+type PKOutputWithDatum a =
   ( Pl.TxOutRef,
     Pl.PubKeyHash,
     Maybe Pl.StakingCredential,
@@ -114,19 +127,19 @@ type PKSpendableOutWithDatum a =
     Pl.Value
   )
 
-instance IsSpendableOut (PKSpendableOutWithDatum a)
+instance IsOutput (PKOutputWithDatum a)
 
--- type OwnerType (PKSpendableOutWithDatum a) = Pl.PubKeyHash
--- type DatumType (PKSpendableOutWithDatum a) = a
+-- type OwnerType (PKOutputWithDatum a) = Pl.PubKeyHash
+-- type DatumType (PKOutputWithDatum a) = a
 -- sOutTxOutRefL = _1
 -- sOutOwnerL = _2
 -- sOutStakingCredentialL = _3
 -- sOutDatumL = _4
 -- sOutValueL = _5
 
--- ** Spendable outputs with datum hash belonging to public keys
+-- ** outputs with datum hash belonging to public keys
 
-type PKSpendableOutWithDatumHash =
+type PKOutputWithDatumHash =
   ( Pl.TxOutRef,
     Pl.PubKeyHash,
     Maybe Pl.StakingCredential,
@@ -134,175 +147,77 @@ type PKSpendableOutWithDatumHash =
     Pl.Value
   )
 
-instance IsSpendableOut PKSpendableOutWithDatumHash
+instance IsOutput PKOutputWithDatumHash
 
--- type OwnerType PKSpendableOutWithDatumHash = Pl.PubKeyHash
--- type DatumType PKSpendableOutWithDatumHash = Pl.DatumHash
+-- type OwnerType PKOutputWithDatumHash = Pl.PubKeyHash
+-- type DatumType PKOutputWithDatumHash = Pl.DatumHash
 -- sOutTxOutRefL = _1
 -- sOutOwnerL = _2
 -- sOutStakingCredentialL = _3
 -- sOutDatumL = _4
 -- sOutValueL = _5
 
--- ** Spendable outputs with datum belonging to scripts
+-- ** outputs with datum belonging to scripts
 
 -- I can't define this as a tuple, because otherwise I'll get an error "Illegal
 -- type synonym family application in instance" concerning the 'Pl.DatumType' in
--- the 'IsSpendableOut' instance declaration.
-data ScriptSpendableOutWithDatum a
-  = ScriptSpendableOutWithDatum
-      Pl.TxOutRef
+-- the 'IsOutput' instance declaration.
+data ScriptOutputWithDatum a
+  = ScriptOutputWithDatum
       (Pl.TypedValidator a)
       (Maybe Pl.StakingCredential)
       (Pl.DatumType a)
       Pl.Value
 
-instance IsSpendableOut (ScriptSpendableOutWithDatum a)
+instance IsOutput (ScriptOutputWithDatum a)
 
--- type OwnerType (ScriptSpendableOutWithDatum a) = Pl.TypedValidator a
--- type DatumType (ScriptSpendableOutWithDatum a) = Pl.DatumType a
+-- type OwnerType (ScriptOutputWithDatum a) = Pl.TypedValidator a
+-- type DatumType (ScriptOutputWithDatum a) = Pl.DatumType a
 
 -- sOutTxOutRefL =
 --   lens
---     (\(ScriptSpendableOutWithDatum r _ _ _ _) -> r)
---     (\(ScriptSpendableOutWithDatum _ v s d x) r -> ScriptSpendableOutWithDatum r v s d x)
+--     (\(ScriptOutputWithDatum r _ _ _ _) -> r)
+--     (\(ScriptOutputWithDatum _ v s d x) r -> ScriptOutputWithDatum r v s d x)
 -- sOutOwnerL =
 --   lens
---     (\(ScriptSpendableOutWithDatum _ v _ _ _) -> v)
---     (\(ScriptSpendableOutWithDatum r _ s d x) v -> ScriptSpendableOutWithDatum r v s d x)
+--     (\(ScriptOutputWithDatum _ v _ _ _) -> v)
+--     (\(ScriptOutputWithDatum r _ s d x) v -> ScriptOutputWithDatum r v s d x)
 -- sOutStakingCredentialL =
 --   lens
---     (\(ScriptSpendableOutWithDatum _ _ s _ _) -> s)
---     (\(ScriptSpendableOutWithDatum r v _ d x) s -> ScriptSpendableOutWithDatum r v s d x)
+--     (\(ScriptOutputWithDatum _ _ s _ _) -> s)
+--     (\(ScriptOutputWithDatum r v _ d x) s -> ScriptOutputWithDatum r v s d x)
 -- sOutDatumL =
 --   lens
---     (\(ScriptSpendableOutWithDatum _ _ _ d _) -> d)
---     (\(ScriptSpendableOutWithDatum r v s _ x) d -> ScriptSpendableOutWithDatum r v s d x)
+--     (\(ScriptOutputWithDatum _ _ _ d _) -> d)
+--     (\(ScriptOutputWithDatum r v s _ x) d -> ScriptOutputWithDatum r v s d x)
 -- sOutValueL =
 --   lens
---     (\(ScriptSpendableOutWithDatum _ _ _ _ x) -> x)
---     (\(ScriptSpendableOutWithDatum r v s d _) x -> ScriptSpendableOutWithDatum r v s d x)
+--     (\(ScriptOutputWithDatum _ _ _ _ x) -> x)
+--     (\(ScriptOutputWithDatum r v s d _) x -> ScriptOutputWithDatum r v s d x)
 
--- ** Spendable outputs with datum hash belonging to scripts
+-- ** outputs with datum hash belonging to scripts
 
-type ScriptSpendableOutWithDatumHash a =
-  ( Pl.TxOutRef,
-    Pl.TypedValidator a,
-    Maybe Pl.StakingCredential,
-    Pl.DatumHash,
-    Pl.Value
-  )
+data ScriptOutputWithDatumHash a where
+  ScriptOutputWithDatumHash ::
+    Show (Pl.DatumType a) =>
+    Pl.TypedValidator a ->
+    Maybe Pl.StakingCredential ->
+    Pl.DatumType a ->
+    Pl.Value ->
+    ScriptOutputWithDatumHash a
 
-instance IsSpendableOut (ScriptSpendableOutWithDatumHash a)
+deriving instance (Show (ScriptOutputWithDatumHash a))
 
--- type OwnerType (ScriptSpendableOutWithDatumHash a) = Pl.TypedValidator a
--- type DatumType (ScriptSpendableOutWithDatumHash a) = Pl.DatumHash
--- sOutTxOutRefL = _1
--- sOutOwnerL = _2
--- sOutStakingCredentialL = _3
--- sOutDatumL = _4
--- sOutValueL = _5
+instance IsOutput (ScriptOutputWithDatumHash a) where
+  type OwnerType (ScriptOutputWithDatumHash a) = Pl.TypedValidator a
+  type DatumType (ScriptOutputWithDatumHash a) = Pl.DatumType a
+  sOutOwnerL = undefined
+  sOutDatumL = undefined
+  sOutValueL = undefined
+  sOutAddressL = undefined
 
--- -- | A 'SpendableOut' is an outref that is ready to be spent; with its
--- --  underlying 'Pl.ChainIndexTxOut'.
--- data SpendableOut = SpendableOut
---   { sOutTxOutRef :: Pl.TxOutRef,
---     sOutChainIndexTxOut :: Pl.ChainIndexTxOut
---   }
---   deriving (Eq, Show)
-
--- makeLensesFor
---   [ ("sOutTxOutRef", "sOutTxOutRefL"),
---     ("sOutChainIndexTxOut", "sOutChainIndexTxOutL")
---   ]
---   ''SpendableOut
-
--- instance Ord SpendableOut where
---   -- TODO: Is this sufficient, i.e. can there be well-formed 'SpendableOut's
---   -- that have the same 'TxOutRef', but different 'ChainIndexTxOut's?
---   (<=) = (<=) `on` sOutTxOutRef
-
--- sOutValueL :: Lens' SpendableOut Pl.Value
--- sOutValueL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutValue
-
--- sOutValue :: SpendableOut -> Pl.Value
--- sOutValue = (^. sOutValueL)
-
--- sOutAddressL :: Lens' SpendableOut Pl.Address
--- sOutAddressL = sOutChainIndexTxOutL % lensVL Pl.ciTxOutAddress
-
--- sOutAddress :: SpendableOut -> Pl.Address
--- sOutAddress = (^. sOutAddressL)
-
--- -- | If a 'SpendableOut' belongs to a public key, return its hash.
--- sBelongsToPubKey :: SpendableOut -> Maybe Pl.PubKeyHash
--- sBelongsToPubKey s = case Pl.addressCredential (s ^. sOutAddressL) of
---   Pl.PubKeyCredential pkh -> Just pkh
---   _ -> Nothing
-
--- -- | If a 'SpendableOut' belongs to a validator, return its hash.
--- sBelongsToScript :: SpendableOut -> Maybe Pl.ValidatorHash
--- sBelongsToScript s = case Pl.addressCredential (s ^. sOutAddressL) of
---   Pl.ScriptCredential sh -> Just sh
---   _ -> Nothing
-
--- -- | If it is a 'SpendableOut' belonging to a public key, extract datum (ot only
--- -- the hash), if there is one.
--- sOutPublicKeyDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
--- sOutPublicKeyDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutPublicKeyDatumOrHashAT
-
--- chainIndexTxOutPublicKeyDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
--- chainIndexTxOutPublicKeyDatumOrHashAT = prismVL Pl._PublicKeyChainIndexTxOut % _3 % _Just
-
--- -- | If it is a 'SpendableOut' belonging to a script, extract datum (or only the
--- -- hash).
--- sOutScriptDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
--- sOutScriptDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutScriptDatumOrHashAT
-
--- chainIndexTxOutScriptDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
--- chainIndexTxOutScriptDatumOrHashAT = prismVL Pl._ScriptChainIndexTxOut % _3
-
--- chainIndexTxOutDatumOrHashAT :: AffineTraversal' Pl.ChainIndexTxOut (Pl.DatumHash, Maybe Pl.Datum)
--- chainIndexTxOutDatumOrHashAT = unsafeOr chainIndexTxOutPublicKeyDatumOrHashAT chainIndexTxOutScriptDatumOrHashAT
---   where
---     -- In the best of all possible worlds, I'd write this:
---     -- > unsafeOr = singular . adjoin
---     -- Alas, @adjoin@ only is available in optics-core >= 0.4, which we can not
---     -- use at the moment, because of the compiler and cabal versions from IOHK
---     -- that we use (at least that is what I think is going on). TODO: can we change this?
---     unsafeOr ::
---       (Is k An_AffineTraversal, Is l An_AffineTraversal) =>
---       Optic' k is s a ->
---       Optic' l js s a ->
---       AffineTraversal' s a
---     unsafeOr o1 o2 = withAffineTraversal o1 $ \m1 u1 ->
---       withAffineTraversal o2 $ \m2 u2 ->
---         atraversal
---           ( \s -> case m1 s of
---               Left _ -> case m2 s of
---                 Left _ -> Left s
---                 Right a -> Right a
---               Right a -> Right a
---           )
---           (\s a -> u2 (u1 s a) a)
-
--- -- | Extract datum (or only the hash), if there is one
--- sOutDatumOrHashAT :: AffineTraversal' SpendableOut (Pl.DatumHash, Maybe Pl.Datum)
--- sOutDatumOrHashAT = sOutChainIndexTxOutL % chainIndexTxOutDatumOrHashAT
-
--- sOutDatumHash :: SpendableOut -> Maybe Pl.DatumHash
--- sOutDatumHash = (^? sOutDatumOrHashAT % _1)
-
--- sOutDatum :: SpendableOut -> Maybe Pl.Datum
--- sOutDatum = (^? sOutDatumOrHashAT % _2 % _Just)
-
--- -- | The 'TxOut' corresponding to a 'SpendableOut'
--- sOutTxOut :: SpendableOut -> Pl.TxOut
--- sOutTxOut sOut =
---   toPlTxOut
---     (sOutAddress sOut)
---     (sOutValue sOut)
---     (sOutDatum sOut)
+  -- TODO Remember that an 'OutputDatumHash ...' should be targeted by the lens
+  sOutOutputDatumL = undefined
 
 -- * Transaction labels
 
@@ -688,6 +603,7 @@ txSkelMintsValue =
 
 type SpendsScriptConstrs a =
   ( Pl.ToData (Pl.RedeemerType a),
+    Pl.ToData (Pl.DatumType a),
     Pl.UnsafeFromData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Show (Pl.RedeemerType a),
@@ -696,24 +612,38 @@ type SpendsScriptConstrs a =
   )
 
 data TxSkelIn where
-  SpendsScript ::
-    SpendsScriptConstrs a =>
-    { spendingValidator :: Pl.TypedValidator a,
-      inputDatum :: Pl.DatumType a,
-      inputRedeemer :: Pl.RedeemerType a
-    } ->
+  SpendsPk ::
+    ( IsOutput o,
+      OwnerType o ~ Pl.PubKeyHash
+    ) =>
+    SpendableOutput o ->
     TxSkelIn
-  SpendsPK :: {spendingPKH :: Pl.PubKeyHash} -> TxSkelIn
+  SpendsScript ::
+    ( SpendsScriptConstrs a,
+      IsOutput o,
+      OwnerType o ~ Pl.TypedValidator a,
+      DatumType o ~ Pl.DatumType a
+    ) =>
+    SpendableOutput o ->
+    Pl.RedeemerType a ->
+    TxSkelIn
 
 deriving instance Show TxSkelIn
 
--- makeLensesFor
---   [ ("consumedOutput", "consumedOutputL"),
---     ("spendingValidator", "spendingValidatorAT"),
---     ("inputRedeemer", "inputRedeemerAT")
---   ]
---   ''TxSkelIn
+txSkelInDatum :: TxSkelIn -> Pl.OutputDatum
+txSkelInDatum (SpendsPk (SpendableOutput _ o)) = o ^. getting sOutOutputDatumL
+txSkelInDatum (SpendsScript (SpendableOutput _ o) _) = o ^. getting sOutOutputDatumL
 
+-- txSkelInTxOut :: TxSkelIn -> Pl.TxOut
+-- txSkelInTxOut (TxSkelIn o _) = sOutTxOut o
+
+makeLensesFor
+  [ ("spendingValidator", "spendingValidatorAT"),
+    ("inputRedeemer", "inputRedeemerAT")
+  ]
+  ''TxSkelIn
+
+-- TODO
 instance Eq TxSkelIn
 
 -- instance Ord TxSkelIn where
@@ -755,28 +685,8 @@ type PaysPKConstrs a =
 -- complete datum would need to be known anyway, even if it is not part of the
 -- actual transaction on the chain. We therefore decided that providing this
 -- information here is the most convenient option.
-data TxSkelOutDatum a
-  = TxSkelOutInlineDatum {unTxSkelOutDatum :: a}
-  | TxSkelOutDatumHash {unTxSkelOutDatum :: a}
-  deriving (Show)
-
 data TxSkelOut where
-  PaysScript ::
-    PaysScriptConstrs a =>
-    { recipientValidator :: Pl.TypedValidator a,
-      mStakeCred :: Maybe Pl.StakingCredential,
-      paysScriptDatum :: TxSkelOutDatum (Pl.DatumType a),
-      outValue :: Pl.Value
-    } ->
-    TxSkelOut
-  PaysPK ::
-    PaysPKConstrs a =>
-    { recipientPubKeyHash :: Pl.PubKeyHash,
-      mStakeCred :: Maybe Pl.StakingCredential,
-      paysPKDatum :: Maybe (TxSkelOutDatum a),
-      outValue :: Pl.Value
-    } ->
-    TxSkelOut
+  Pays :: IsOutput o => o -> TxSkelOut
 
 deriving instance Show TxSkelOut
 
@@ -786,13 +696,13 @@ makeLensesFor
   ]
   ''TxSkelOut
 
-txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
-txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
-txSkelOutDatum PaysPK {..} = Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum <$> paysPKDatum
+-- txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
+-- txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
+-- txSkelOutDatum PaysPK {..} = Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum <$> paysPKDatum
 
-recipientAddress :: TxSkelOut -> Pl.Address
-recipientAddress PaysScript {..} = (Pl.validatorAddress recipientValidator) {Pl.addressStakingCredential = mStakeCred}
-recipientAddress PaysPK {..} = Pl.Address (Pl.PubKeyCredential recipientPubKeyHash) mStakeCred
+-- recipientAddress :: TxSkelOut -> Pl.Address
+-- recipientAddress PaysScript {..} = (Pl.validatorAddress recipientValidator) {Pl.addressStakingCredential = mStakeCred}
+-- recipientAddress PaysPK {..} = Pl.Address (Pl.PubKeyCredential recipientPubKeyHash) mStakeCred
 
 instance Eq TxSkelOut
 
@@ -806,17 +716,29 @@ instance Eq TxSkelOut
 --     Nothing -> False
 -- _ == _ = False
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh = PaysPK @() pkh Nothing Nothing
+-- paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
+-- paysPK pkh = PaysPK @() pkh Nothing Nothing
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
-paysScript :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> TxSkelOut
-paysScript tv = PaysScript tv Nothing . TxSkelOutDatumHash
+paysScript ::
+  (PaysScriptConstrs a) =>
+  Pl.TypedValidator a ->
+  Pl.DatumType a ->
+  Pl.Value ->
+  TxSkelOut
+paysScript tv datum value =
+  Pays (ScriptOutputWithDatumHash tv Nothing datum value)
 
 -- | Like 'paysScript', but using an inline datum.
-paysScriptInlineDatum :: (PaysScriptConstrs a) => Pl.TypedValidator a -> Pl.DatumType a -> Pl.Value -> TxSkelOut
-paysScriptInlineDatum tv = PaysScript tv Nothing . TxSkelOutInlineDatum
+paysScriptInlineDatum ::
+  (PaysScriptConstrs a) =>
+  Pl.TypedValidator a ->
+  Pl.DatumType a ->
+  Pl.Value ->
+  TxSkelOut
+paysScriptInlineDatum tv datum value =
+  Pays (ScriptOutputWithDatum tv Nothing datum value)
 
 -- * Transaction skeletons
 
@@ -848,10 +770,6 @@ makeLensesFor
     ("txSkelFee", "txSkelFeeL")
   ]
   ''TxSkel
-
--- | All inputs to the transaction
--- consumedOutputsF :: Fold TxSkel SpendableOut
--- consumedOutputsF = folding (Map.keys . txSkelIns)
 
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
@@ -904,42 +822,24 @@ instance Monoid TxSkel where
         txSkelFee = 0
       }
 
--- | All data on the given 'TxSkel', with their hashes
--- txSkelData :: TxSkel -> Map Pl.DatumHash Pl.Datum
--- txSkelData sk = txSkelInputData sk <> txSkelOutputData sk
+txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelInputData =
+  foldMapOf
+    (txSkelInsL % folded % afolding (Just . txSkelInDatum))
+    ( \case
+        Pl.NoOutputDatum -> Map.empty
+        (Pl.OutputDatumHash _) -> Map.empty
+        (Pl.OutputDatum datum) -> Map.singleton (Pl.datumHash datum) datum
+    )
 
--- txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
--- txSkelInputData =
---   foldMapOf
---     (consumedOutputsF % sOutDatumOrHashAT)
---     ( \(datumHash, mDatum) ->
---         case mDatum of
---           Nothing -> Map.empty
---           Just datum -> Map.singleton datumHash datum
---     )
+-- TODO
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelOutputData = undefined
 
--- txSkelInputDatumHashes :: TxSkel -> [Pl.DatumHash]
--- txSkelInputDatumHashes =
---   foldMapOf
---     (consumedOutputsF % sOutDatumOrHashAT % _1)
---     (: [])
-
--- txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
--- txSkelOutputData =
---   foldMapOf
---     (txSkelOutsL % folded % txSkelOutDatumAT)
---     (\datum -> Map.singleton (Pl.datumHash datum) datum)
-
--- -- | All 'TxOutRefs' of transaction inputs, resolved.
--- txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
--- txSkelUtxoIndex =
---   foldMapOf
---     consumedOutputsF
---     ( \sOut ->
---         Map.singleton
---           (sOutTxOutRef sOut)
---           (sOutTxOut sOut)
---     )
+-- | All 'TxOutRefs' of transaction inputs, resolved.
+-- TODO
+txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
+txSkelUtxoIndex = undefined
 
 -- -- | The value in all transaction inputs, plus the positive part of the minted
 -- -- value. This is the left hand side of the "balancing equation":
