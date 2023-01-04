@@ -29,23 +29,7 @@ data GenerateTxError
 -- | The internal (do-not-modify unless you know what you're doing) parameters
 -- for 'generateTxBodyContent'.
 data GenTxParams = GenTxParams
-  { -- | Whether to include data on the inputs: Transaction inputs are represented
-    -- on the 'C.TxBodyContent' as a pair of a 'C.TxIn' and a _witness_, which
-    -- records information on how the input is spent. For script inputs there are
-    -- two options with regard to datums: To explicitly include them in the
-    -- witness with the 'C.ScritptDatumForTxIn' constructor, or to leave them
-    -- implicit with the 'C.InlineScriptDatum' constructor. This is what this flag
-    -- chooses.
-    --
-    -- The latter option will (probably, We've not yet completely understood how
-    -- this works!) rely on the information in the UTxO that will be included when
-    -- the 'C.TxBodyContent' is finally transformed into an actual 'C.Tx'.
-    --
-    -- The former option (i.e. to include the datum) is necessary when such
-    -- additional information is not present. At the moment, this is for example
-    -- during balancing and fee calculation.
-    gtpWithDatums :: Bool,
-    -- | The collateral UTxOs to use for the transaction.
+  { -- | The collateral UTxOs to use for the transaction.
     --
     -- It is the duty of the caller to choose and set the collateral UTxOs.
     -- 'generateTxBodyContent' will not do it.
@@ -53,11 +37,7 @@ data GenTxParams = GenTxParams
   }
 
 instance Default GenTxParams where
-  def = GenTxParams {gtpWithDatums = True, gtpCollateralIns = mempty}
-
-withDatums, withoutDatums :: GenTxParams
-withDatums = def {gtpWithDatums = True}
-withoutDatums = def {gtpWithDatums = False}
+  def = GenTxParams {gtpCollateralIns = mempty}
 
 generateTxBodyContent ::
   -- | The parameters controlling the transaction generation.
@@ -195,7 +175,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
           datum <-
             case outputDatum of
               Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum found on script output")
-              Pl.OutputDatum datum -> Right . C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum $ datum
+              Pl.OutputDatum _datum -> Right C.InlineScriptDatum
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
                   (GenerateTxErrorGeneral "txSkelIntoTxIn: Datum hash could not be resolved")
@@ -203,10 +183,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
-                ( if gtpWithDatums
-                    then datum
-                    else C.InlineScriptDatum
-                )
+                datum
                 (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
