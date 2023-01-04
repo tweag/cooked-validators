@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -19,7 +18,6 @@ import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
-import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
 
@@ -95,6 +93,24 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
       $ mapM
         (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash)
         (Set.toList $ txSkelRequiredSigners skel)
+  txTotalCollateral <-
+    right
+      ( C.TxTotalCollateral (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
+          . C.Lovelace
+          . Pl.getLovelace
+          . Pl.fromValue
+          . mconcat
+      )
+      ( mapM
+          ( \txOutRef -> do
+              Pl.TxOut _ outValue _ _ <-
+                throwOnNothing
+                  (GenerateTxErrorGeneral $ "computing the total collateral: Unknown TxOutRef" ++ show txOutRef)
+                  (Map.lookup txOutRef managedTxOuts)
+              Right outValue
+          )
+          $ Set.toList gtpCollateralIns
+      )
   Right $
     C.TxBodyContent
       { C.txIns = txIns,
@@ -104,14 +120,9 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         -- fields have to change!
         C.txInsReference = C.TxInsReferenceNone,
         C.txOuts = txOuts,
-        C.txTotalCollateral =
-          C.TxTotalCollateral
-            (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
-            ( C.Lovelace . Pl.getLovelace . Pl.fromValue $
-                foldOf (folded % sOutValueL) gtpCollateralIns
-            ),
+        C.txTotalCollateral = txTotalCollateral,
         -- WARN For now we are not dealing with return collateral
-        C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
+        C.txReturnCollateral = C.TxReturnCollateralNone,
         C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ txSkelFee skel,
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
@@ -183,7 +194,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
           let (Pl.TxOut _ _ outputDatum _) = txOut
           datum <-
             case outputDatum of
-              Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum found on the output")
+              Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum found on script output")
               Pl.OutputDatum datum -> Right . C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum $ datum
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
