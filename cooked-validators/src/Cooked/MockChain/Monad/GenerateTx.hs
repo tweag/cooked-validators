@@ -13,6 +13,7 @@ import Data.Default
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
+import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
@@ -50,7 +51,7 @@ data GenTxParams = GenTxParams
     --
     -- It is the duty of the caller to choose and set the collateral UTxOs.
     -- 'generateTxBodyContent' will not do it.
-    gtpCollateralIns :: Set.Set SpendableOut
+    gtpCollateralIns :: Set Pl.TxOutRef
   }
 
 instance Default GenTxParams where
@@ -67,12 +68,16 @@ generateTxBodyContent ::
   Pl.Params ->
   -- | All of the currently known data, also coming from the 'MockChain'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
+  Map Pl.TxOutRef Pl.TxOut ->
+  -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
+  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | The transaction skeleton to translate.
   TxSkel ->
   Either
     GenerateTxError
     (C.TxBodyContent C.BuildTx C.BabbageEra)
-generateTxBodyContent GenTxParams {..} theParams managedData skel = do
+generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
   txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
@@ -124,30 +129,12 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
     throwOnNothing :: e -> Maybe a -> Either e a
     throwOnNothing err = maybe (Left err) Right
 
-    -- This map should contain the data for all datum hashes on inputs of the
-    -- transaction. This means that the data corresponding to some of the datum
-    -- hashes are derived from the 'managedData'.
-    inputData :: Map Pl.DatumHash Pl.Datum
-    inputData =
-      foldMapOf
-        (consumedOutputsF % sOutDatumOrHashAT)
-        ( \(datumHash, mDatum) ->
-            case mDatum of
-              Just datum -> Map.singleton datumHash datum
-              Nothing ->
-                maybe
-                  Map.empty -- throw an error here? I've decided for now to throw errors only if the datum is actually needed later on.
-                  (Map.singleton datumHash)
-                  (Map.lookup datumHash managedData)
-        )
-        skel
-
     -- Convert a 'TxSkel' input, which consists of a 'SpendableOut' and a
     -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
     -- you add reference inputs, don't forget to also update the
     -- 'txInsReference'!
     txSkelInToTxIn ::
-      (SpendableOut, TxSkelIn) ->
+      (Pl.TxOutRef, TxSkelRedeemer) ->
       Either
         GenerateTxError
         ( C.TxIn,
@@ -155,12 +142,12 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelInToTxIn (SpendableOut txOutRef _, SpendsPK) =
+    txSkelInToTxIn (txOutRef, TxSkelNoRedeemer) =
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelInToTxIn (spOut@(SpendableOut txOutRef _), SpendsScript validator redeemer) = do
+    txSkelInToTxIn (txOutRef, TxSkelRedeemer redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
@@ -169,8 +156,20 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
       where
         mkWitness :: Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)
         mkWitness = do
+          txOut <-
+            throwOnNothing
+              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown txOutRef")
+              (Map.lookup txOutRef managedTxOuts)
+          validatorHash <-
+            case txOut of
+              Pl.TxOut (Pl.Address (Pl.ScriptCredential validatorHash) _) _ _ _ -> Right validatorHash
+              _ -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: tx output is not a script output")
+          validator <-
+            throwOnNothing
+              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown validator")
+              (Map.lookup validatorHash managedValidators)
           scriptWitnessBuilder <-
-            case Pl.vValidatorScript validator of
+            case validator of
               Pl.Versioned (Pl.Validator script) Pl.PlutusV1 ->
                 bimap
                   (ToCardanoError "txSkelIntoTxIn, translating to Cardano API PlutusV1 script")
@@ -181,13 +180,15 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
                   (ToCardanoError "txSkelIntoTxIn, translating to Cardano API PlutusV2 script")
                   (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
-          datumHash <-
-            throwOnNothing (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum hash on script input") $
-              sOutDatumHash spOut
+          let (Pl.TxOut _ _ outputDatum _) = txOut
           datum <-
-            throwOnNothing
-              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown datum hash on script input")
-              (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> inputData Map.!? datumHash)
+            case outputDatum of
+              Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum found on the output")
+              Pl.OutputDatum datum -> Right . C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum $ datum
+              Pl.OutputDatumHash datumHash ->
+                throwOnNothing
+                  (GenerateTxErrorGeneral "txSkelIntoTxIn: Datum hash could not be resolved")
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> managedData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
@@ -199,47 +200,28 @@ generateTxBodyContent GenTxParams {..} theParams managedData skel = do
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
     -- Convert a list of 'SpendableOut' into a 'C.TxInsCollateral'
-    spOutsToTxInsCollateral :: [SpendableOut] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
+    spOutsToTxInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
     spOutsToTxInsCollateral =
       left (ToCardanoError "spOutsToTxInCollateral")
         . Pl.toCardanoTxInsCollateral
         . (toPKTxInput <$>)
       where
-        toPKTxInput :: SpendableOut -> Pl.TxInput
-        toPKTxInput o = Pl.TxInput (sOutTxOutRef o) Pl.TxConsumePublicKeyAddress
+        toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
+        toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
 
     txSkelOutToTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToTxOut = \case
-      (PaysPK pkh mStPkh mDatum value) ->
-        left
-          (ToCardanoError "txSkelOutToTxOut, translating 'PaysPK'")
-          ( Pl.toCardanoTxOut
-              (Pl.pNetworkId theParams)
-              Pl.toCardanoTxOutDatum
-              $ Pl.TxOut
-                ( Pl.Address
-                    (Pl.PubKeyCredential pkh)
-                    (Pl.StakingHash . Pl.PubKeyCredential . Pl.unStakePubKeyHash <$> mStPkh)
-                )
-                value
-                (maybe Pl.NoOutputDatum (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData) mDatum) -- What to do if we want to use only the datum hash?
-                Nothing -- What to do about reference scripts?
-          )
-      (PaysScript validator mStCred datum value) ->
-        left
-          (ToCardanoError "txSkelOutToTxOut, translating 'PaysScript'")
-          ( Pl.toCardanoTxOut
-              (Pl.pNetworkId theParams)
-              Pl.toCardanoTxOutDatum
-              $ Pl.TxOut
-                ( Pl.Address
-                    (Pl.ScriptCredential $ Pl.validatorHash validator)
-                    mStCred
-                )
-                value
-                (Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum) -- What to do if we want to use only the datum hash?
-                Nothing -- What to do about reference scripts?
-          )
+    txSkelOutToTxOut (Pays output) =
+      left
+        (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
+        ( Pl.toCardanoTxOut
+            (Pl.pNetworkId theParams)
+            Pl.toCardanoTxOutDatum
+            $ Pl.TxOut
+              (output ^. getting sOutAddressL)
+              (output ^. sOutValueL)
+              (output ^. getting sOutOutputDatumL)
+              Nothing -- What to do about reference scripts?
+        )
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)

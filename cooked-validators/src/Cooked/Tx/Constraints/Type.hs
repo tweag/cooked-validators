@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -127,7 +128,7 @@ type PKOutputWithDatum a =
     Pl.Value
   )
 
-instance IsOutput (PKOutputWithDatum a)
+instance Show a => IsOutput (PKOutputWithDatum a)
 
 -- type OwnerType (PKOutputWithDatum a) = Pl.PubKeyHash
 -- type DatumType (PKOutputWithDatum a) = a
@@ -162,12 +163,16 @@ instance IsOutput PKOutputWithDatumHash
 -- I can't define this as a tuple, because otherwise I'll get an error "Illegal
 -- type synonym family application in instance" concerning the 'Pl.DatumType' in
 -- the 'IsOutput' instance declaration.
-data ScriptOutputWithDatum a
-  = ScriptOutputWithDatum
-      (Pl.TypedValidator a)
-      (Maybe Pl.StakingCredential)
-      (Pl.DatumType a)
-      Pl.Value
+data ScriptOutputWithDatum a where
+  ScriptOutputWithDatum ::
+    Show (Pl.DatumType a) =>
+    Pl.TypedValidator a ->
+    Maybe Pl.StakingCredential ->
+    Pl.DatumType a ->
+    Pl.Value ->
+    ScriptOutputWithDatum a
+
+deriving instance (Show (ScriptOutputWithDatum a))
 
 instance IsOutput (ScriptOutputWithDatum a)
 
@@ -423,15 +428,15 @@ instance Monoid TxOpts where
 
 -- * Description of the Minting
 
-type MintsConstrs a =
-  ( Pl.ToData a,
-    Show a,
-    Typeable a
+type MintsConstrs redeemer =
+  ( Pl.ToData redeemer,
+    Show redeemer,
+    Typeable redeemer
   )
 
 data MintsRedeemer where
   NoMintsRedeemer :: MintsRedeemer
-  SomeMintsRedeemer :: MintsConstrs a => a -> MintsRedeemer
+  SomeMintsRedeemer :: MintsConstrs redeemer => redeemer -> MintsRedeemer
 
 instance Show MintsRedeemer where
   show NoMintsRedeemer = "NoMintsRedeemer"
@@ -599,70 +604,6 @@ txSkelMintsValue =
           amount
     )
 
--- * Transaction inputs
-
-type SpendsScriptConstrs a =
-  ( Pl.ToData (Pl.RedeemerType a),
-    Pl.ToData (Pl.DatumType a),
-    Pl.UnsafeFromData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Show (Pl.RedeemerType a),
-    Pl.Eq (Pl.RedeemerType a),
-    Typeable a
-  )
-
-data TxSkelIn where
-  SpendsPk ::
-    ( IsOutput o,
-      OwnerType o ~ Pl.PubKeyHash
-    ) =>
-    SpendableOutput o ->
-    TxSkelIn
-  SpendsScript ::
-    ( SpendsScriptConstrs a,
-      IsOutput o,
-      OwnerType o ~ Pl.TypedValidator a,
-      DatumType o ~ Pl.DatumType a
-    ) =>
-    SpendableOutput o ->
-    Pl.RedeemerType a ->
-    TxSkelIn
-
-deriving instance Show TxSkelIn
-
-txSkelInDatum :: TxSkelIn -> Pl.OutputDatum
-txSkelInDatum (SpendsPk (SpendableOutput _ o)) = o ^. getting sOutOutputDatumL
-txSkelInDatum (SpendsScript (SpendableOutput _ o) _) = o ^. getting sOutOutputDatumL
-
--- txSkelInTxOut :: TxSkelIn -> Pl.TxOut
--- txSkelInTxOut (TxSkelIn o _) = sOutTxOut o
-
-makeLensesFor
-  [ ("spendingValidator", "spendingValidatorAT"),
-    ("inputRedeemer", "inputRedeemerAT")
-  ]
-  ''TxSkelIn
-
--- TODO
-instance Eq TxSkelIn
-
--- instance Ord TxSkelIn where
---   compare (SpendsScript v1 r1) (SpendsScript v2 r2) =
---     case compare (SomeTypeRep (typeOf v1)) (SomeTypeRep (typeOf v2)) of
---       LT -> LT
---       GT -> GT
---       EQ -> case typeOf v1 `eqTypeRep` typeOf v2 of
---         Just HRefl ->
---           -- TODO will this suffice, or do we need to compare more components of
---           -- the typed validator?
---           compare
---             (Pl.validatorHash v1, Pl.toData r1)
---             (Pl.validatorHash v2, Pl.toData r2)
---         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
---   compare SpendsPK SpendsPK = EQ
---   compare SpendsPK SpendsScript {} = LT
---   compare SpendsScript {} SpendsPK = GT
-
 -- * Transaction outputs
 
 type PaysScriptConstrs a =
@@ -672,11 +613,11 @@ type PaysScriptConstrs a =
     Typeable a
   )
 
-type PaysPKConstrs a =
-  ( Pl.ToData a,
-    Show a,
-    Pl.Eq a,
-    Typeable a
+type PaysPKConstrs datum =
+  ( Pl.ToData datum,
+    Show datum,
+    Pl.Eq datum,
+    Typeable datum
   )
 
 -- | On transaction outputs, we have the option to use full datums (inline
@@ -742,6 +683,19 @@ paysScriptInlineDatum tv datum value =
 
 -- * Transaction skeletons
 
+type SpendsScriptConstrs a =
+  ( Pl.ToData (Pl.RedeemerType a),
+    Show (Pl.RedeemerType a),
+    Pl.Eq (Pl.RedeemerType a),
+    Typeable a
+  )
+
+data TxSkelRedeemer where
+  TxSkelNoRedeemer :: TxSkelRedeemer
+  TxSkelRedeemer :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
+
+deriving instance (Show TxSkelRedeemer)
+
 data TxSkel where
   TxSkel ::
     { txSkelLabel :: Set TxLabel,
@@ -749,14 +703,12 @@ data TxSkel where
       txSkelMints :: TxSkelMints,
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelRequiredSigners :: Set Pl.PubKeyHash,
-      txSkelIns :: Map Pl.TxOutRef TxSkelIn,
+      txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
-  -- This equality instance should reflect semantic equality; If two 'TxSkel's
-  -- are equal in the sense of '==', they specify the same transaction(s).
-  deriving (Show, Eq)
+  deriving (Show)
 
 makeLensesFor
   [ ("txSkelLabel", "txSkelLabelL"),
@@ -821,16 +773,6 @@ instance Monoid TxSkel where
         txSkelOuts = [],
         txSkelFee = 0
       }
-
-txSkelInputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
-txSkelInputData =
-  foldMapOf
-    (txSkelInsL % folded % afolding (Just . txSkelInDatum))
-    ( \case
-        Pl.NoOutputDatum -> Map.empty
-        (Pl.OutputDatumHash _) -> Map.empty
-        (Pl.OutputDatum datum) -> Map.singleton (Pl.datumHash datum) datum
-    )
 
 -- TODO
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
