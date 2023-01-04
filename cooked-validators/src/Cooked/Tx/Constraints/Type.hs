@@ -108,108 +108,197 @@ instance IsOutput GenericOutput where
 genericOutputFromTxOut :: Pl2.TxOut -> GenericOutput
 genericOutputFromTxOut (Pl2.TxOut addr value datum _refScript) = GenericOutput addr datum value
 
--- ** outputs without data belonging to public keys
+-- ** Outputs without data belonging to public keys
 
-type PKOutput =
-  ( Pl.TxOutRef,
-    Pl.PubKeyHash,
-    Maybe Pl.StakingCredential,
-    Pl.Value
-  )
+data PKOutput = PKOutput
+  { pkOutputPubKeyHash :: Pl.PubKeyHash,
+    pkOutputStaking :: Maybe Pl.StakingCredential,
+    pkOutputValue :: Pl.Value
+  }
+  deriving (Show)
+
+makeLensesFor
+  [ ("pkOutputPubKeyHash", "pkOutputPubKeyHashL"),
+    ("pkOutputStaking", "pkOutputStakingL"),
+    ("pkOutputValue", "pkOutputValueL")
+  ]
+  ''PKOutput
 
 instance IsOutput PKOutput where
   type OwnerType PKOutput = Pl.PubKeyHash
   type DatumType PKOutput = ()
-  sOutOwnerL = _2
+  sOutOwnerL = pkOutputPubKeyHashL
   sOutDatumL = lens (const ()) const
-  sOutValueL = _4
+  sOutValueL = pkOutputValueL
   sOutAddressL =
     lens
-      (\sOut -> Pl.Address (Pl.PubKeyCredential $ sOut ^. _2) (sOut ^. _3))
-      (\(oRef, _, _, value) (pkh, mStCred) -> (oRef, pkh, mStCred, value))
-  sOutOutputDatumL = undefined
+      (\output -> Pl.Address (Pl.PubKeyCredential $ output ^. pkOutputPubKeyHashL) (output ^. pkOutputStakingL))
+      (\(PKOutput _ _ value) (pkh, mStCred) -> PKOutput pkh mStCred value)
+  sOutOutputDatumL =
+    lens
+      (const Pl.NoOutputDatum)
+      (\output () -> output)
 
--- ** outputs with datum belonging to public keys
+pkOutputFromGeneric :: GenericOutput -> Maybe PKOutput
+pkOutputFromGeneric
+  GenericOutput
+    { genericOutputAddress = (Pl.Address (Pl.PubKeyCredential pkh) staking),
+      genericOutputDatum = Pl.NoOutputDatum,
+      genericOutputValue = value
+    } =
+    Just
+      ( PKOutput
+          { pkOutputPubKeyHash = pkh,
+            pkOutputStaking = staking,
+            pkOutputValue = value
+          }
+      )
+pkOutputFromGeneric _ = Nothing
 
-type PKOutputWithDatum a =
-  ( Pl.TxOutRef,
-    Pl.PubKeyHash,
-    Maybe Pl.StakingCredential,
-    a,
-    Pl.Value
-  )
+-- ** Outputs with datum belonging to public keys
 
-instance Show a => IsOutput (PKOutputWithDatum a)
+data PKOutputWithDatum datum = PKOutputWithDatum
+  { pkOutputDatumPubKeyHash :: Pl.PubKeyHash,
+    pkOutputDatumStaking :: Maybe Pl.StakingCredential,
+    pkOutputDatumDatum :: datum,
+    pkOutputDatumValue :: Pl.Value
+  }
 
--- type OwnerType (PKOutputWithDatum a) = Pl.PubKeyHash
--- type DatumType (PKOutputWithDatum a) = a
--- sOutTxOutRefL = _1
--- sOutOwnerL = _2
--- sOutStakingCredentialL = _3
--- sOutDatumL = _4
--- sOutValueL = _5
+deriving instance (Show datum => Show (PKOutputWithDatum datum))
+
+makeLensesFor
+  [ ("pkOutputDatumPubKeyHash", "pkOutputDatumPubKeyHashL"),
+    ("pkOutputDatumStaking", "pkOutputDatumStakingL"),
+    ("pkOutputDatumDatum", "pkOutputDatumDatumL"),
+    ("pkOutputDatumValue", "pkOutputDatumValueL")
+  ]
+  ''PKOutputWithDatum
+
+instance (Pl.ToData datum, Show datum) => IsOutput (PKOutputWithDatum datum) where
+  type OwnerType (PKOutputWithDatum datum) = Pl.PubKeyHash
+  type DatumType (PKOutputWithDatum datum) = datum
+  sOutOwnerL = pkOutputDatumPubKeyHashL
+  sOutDatumL = pkOutputDatumDatumL
+  sOutValueL = pkOutputDatumValueL
+  sOutAddressL =
+    lens
+      (\output -> Pl.Address (Pl.PubKeyCredential $ output ^. pkOutputDatumPubKeyHashL) (output ^. pkOutputDatumStakingL))
+      (\(PKOutputWithDatum _ _ datum value) (pkh, mStCred) -> PKOutputWithDatum pkh mStCred datum value)
+  sOutOutputDatumL =
+    lens
+      (\output -> Pl.OutputDatum (Pl.Datum . Pl.toBuiltinData $ (output ^. pkOutputDatumDatumL)))
+      (\output datum -> output & pkOutputDatumDatumL .~ datum)
+
+pkOutputWithDatumFromGeneric :: Pl.FromData datum => GenericOutput -> Maybe (PKOutputWithDatum datum)
+pkOutputWithDatumFromGeneric
+  GenericOutput
+    { genericOutputAddress = (Pl.Address (Pl.PubKeyCredential pkh) staking),
+      genericOutputDatum = Pl.OutputDatum datum,
+      genericOutputValue = value
+    } = do
+    typedDatum <- Pl.fromBuiltinData (Pl.getDatum datum)
+    return $
+      PKOutputWithDatum
+        { pkOutputDatumPubKeyHash = pkh,
+          pkOutputDatumStaking = staking,
+          pkOutputDatumDatum = typedDatum,
+          pkOutputDatumValue = value
+        }
+pkOutputWithDatumFromGeneric _ = Nothing
 
 -- ** outputs with datum hash belonging to public keys
 
-type PKOutputWithDatumHash =
-  ( Pl.TxOutRef,
-    Pl.PubKeyHash,
-    Maybe Pl.StakingCredential,
-    Pl.DatumHash,
-    Pl.Value
-  )
+data PKOutputWithDatumHash = PKOutputWithDatumHash
+  { pkOutputHashPubKeyHash :: Pl.PubKeyHash,
+    pkOutputHashStaking :: Maybe Pl.StakingCredential,
+    pkOutputHashDatumHash :: Pl.DatumHash,
+    pkOutputHashValue :: Pl.Value
+  }
+  deriving (Show)
 
-instance IsOutput PKOutputWithDatumHash
+makeLensesFor
+  [ ("pkOutputHashPubKeyHash", "pkOutputHashPubKeyHashL"),
+    ("pkOutputHashStaking", "pkOutputHashStakingL"),
+    ("pkOutputHashDatumHash", "pkOutputHashDatumHashL"),
+    ("pkOutputHashValue", "pkOutputHashValueL")
+  ]
+  ''PKOutputWithDatumHash
 
--- type OwnerType PKOutputWithDatumHash = Pl.PubKeyHash
--- type DatumType PKOutputWithDatumHash = Pl.DatumHash
--- sOutTxOutRefL = _1
--- sOutOwnerL = _2
--- sOutStakingCredentialL = _3
--- sOutDatumL = _4
--- sOutValueL = _5
+instance IsOutput PKOutputWithDatumHash where
+  type OwnerType PKOutputWithDatumHash = Pl.PubKeyHash
+  type DatumType PKOutputWithDatumHash = Pl.DatumHash
+  sOutOwnerL = pkOutputHashPubKeyHashL
+  sOutDatumL = pkOutputHashDatumHashL
+  sOutValueL = pkOutputHashValueL
+  sOutAddressL =
+    lens
+      (\output -> Pl.Address (Pl.PubKeyCredential $ output ^. pkOutputHashPubKeyHashL) (output ^. pkOutputHashStakingL))
+      (\(PKOutputWithDatumHash _ _ datumHash value) (pkh, mStCred) -> PKOutputWithDatumHash pkh mStCred datumHash value)
+  sOutOutputDatumL =
+    lens
+      (\output -> Pl.OutputDatumHash (output ^. pkOutputHashDatumHashL))
+      (flip (pkOutputHashDatumHashL .~))
 
--- ** outputs with datum belonging to scripts
+pkOutputWithDatumHashFromGeneric :: GenericOutput -> Maybe PKOutputWithDatumHash
+pkOutputWithDatumHashFromGeneric
+  GenericOutput
+    { genericOutputAddress = (Pl.Address (Pl.PubKeyCredential pkh) staking),
+      genericOutputDatum = Pl.OutputDatumHash datumHash,
+      genericOutputValue = value
+    } =
+    Just
+      ( PKOutputWithDatumHash
+          { pkOutputHashPubKeyHash = pkh,
+            pkOutputHashStaking = staking,
+            pkOutputHashDatumHash = datumHash,
+            pkOutputHashValue = value
+          }
+      )
+pkOutputWithDatumHashFromGeneric _ = Nothing
+
+-- ** Outputs with datum belonging to scripts
 
 -- I can't define this as a tuple, because otherwise I'll get an error "Illegal
 -- type synonym family application in instance" concerning the 'Pl.DatumType' in
 -- the 'IsOutput' instance declaration.
 data ScriptOutputWithDatum a where
   ScriptOutputWithDatum ::
-    Show (Pl.DatumType a) =>
-    Pl.TypedValidator a ->
-    Maybe Pl.StakingCredential ->
-    Pl.DatumType a ->
-    Pl.Value ->
+    (Show (Pl.DatumType a), Pl.ToData (Pl.DatumType a)) =>
+    { scriptOutputDatumValidator :: Pl.TypedValidator a,
+      scriptOutputDatumCredential :: Maybe Pl.StakingCredential,
+      scriptOutputDatumDatum :: Pl.DatumType a,
+      scriptOutputDatumValue :: Pl.Value
+    } ->
     ScriptOutputWithDatum a
 
 deriving instance (Show (ScriptOutputWithDatum a))
 
-instance IsOutput (ScriptOutputWithDatum a)
+makeLensesFor
+  [ ("scriptOutputDatumValidator", "scriptOutputDatumValidatorL"),
+    ("scriptOutputDatumCredential", "scriptOutputDatumCredentialL"),
+    ("scriptOutputDatumDatum", "scriptOutputDatumDatumL"),
+    ("scriptOutputDatumValue", "scriptOutputDatumValueL")
+  ]
+  ''ScriptOutputWithDatum
 
--- type OwnerType (ScriptOutputWithDatum a) = Pl.TypedValidator a
--- type DatumType (ScriptOutputWithDatum a) = Pl.DatumType a
+instance IsOutput (ScriptOutputWithDatum a) where
+  type OwnerType (ScriptOutputWithDatum a) = Pl.TypedValidator a
+  type DatumType (ScriptOutputWithDatum a) = Pl.DatumType a
+  sOutOwnerL = scriptOutputDatumValidatorL
+  sOutDatumL = scriptOutputDatumDatumL
+  sOutValueL = scriptOutputDatumValueL
+  sOutAddressL =
+    lens
+      (\output -> Pl.Address (Pl.ScriptCredential . Pl.validatorHash $ output ^. scriptOutputDatumValidatorL) (output ^. scriptOutputDatumCredentialL))
+      (\(ScriptOutputWithDatum _ _ datum value) (validator, mStCred) -> ScriptOutputWithDatum validator mStCred datum value)
+  sOutOutputDatumL =
+    lens
+      (\output -> Pl.OutputDatum (Pl.Datum . Pl.toBuiltinData $ (output ^. scriptOutputDatumDatumL)))
+      (flip (scriptOutputDatumDatumL .~))
 
--- sOutTxOutRefL =
---   lens
---     (\(ScriptOutputWithDatum r _ _ _ _) -> r)
---     (\(ScriptOutputWithDatum _ v s d x) r -> ScriptOutputWithDatum r v s d x)
--- sOutOwnerL =
---   lens
---     (\(ScriptOutputWithDatum _ v _ _ _) -> v)
---     (\(ScriptOutputWithDatum r _ s d x) v -> ScriptOutputWithDatum r v s d x)
--- sOutStakingCredentialL =
---   lens
---     (\(ScriptOutputWithDatum _ _ s _ _) -> s)
---     (\(ScriptOutputWithDatum r v _ d x) s -> ScriptOutputWithDatum r v s d x)
--- sOutDatumL =
---   lens
---     (\(ScriptOutputWithDatum _ _ _ d _) -> d)
---     (\(ScriptOutputWithDatum r v s _ x) d -> ScriptOutputWithDatum r v s d x)
--- sOutValueL =
---   lens
---     (\(ScriptOutputWithDatum _ _ _ _ x) -> x)
---     (\(ScriptOutputWithDatum r v s d _) x -> ScriptOutputWithDatum r v s d x)
+-- TODO
+scriptOutputWithDatumFromGeneric :: GenericOutput -> Maybe (ScriptOutputWithDatum a)
+scriptOutputWithDatumFromGeneric = undefined
 
 -- ** outputs with datum hash belonging to scripts
 
