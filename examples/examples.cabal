@@ -12,6 +12,8 @@ library
   exposed-modules:
       Auction
       Auction.Offchain
+      Crowdfunding
+      Crowdfunding.Offchain
       PMultiSigStateful
       PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
@@ -71,6 +73,7 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       AuctionSpec
+      CrowdfundingSpec
       PMultiSigStatefulSpec
       SplitSpec
       SplitUPLCSpec
