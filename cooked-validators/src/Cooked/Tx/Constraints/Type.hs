@@ -30,6 +30,7 @@ import qualified Ledger.Value as Pl
 import Optics.Core
 import Optics.TH
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
+import qualified Plutus.V2.Ledger.Api as Pl2
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
@@ -74,28 +75,38 @@ sOutTxOut o =
     (o ^. sOutValueL)
     (o ^. getting sOutOutputDatumL)
 
--- ** Generic spendable outputs
+-- ** Generic outputs
 
-type GenericOut =
-  ( Pl.TxOutRef,
-    Pl.Address,
-    Pl.OutputDatum,
-    Pl.Value
-  )
+data GenericOutput = GenericOutput
+  { genericOutputAddress :: Pl.Address,
+    genericOutputDatum :: Pl.OutputDatum,
+    genericOutputValue :: Pl.Value
+  }
+  deriving (Show)
 
-instance IsOutput GenericOut where
-  type OwnerType GenericOut = Pl.Address
-  type DatumType GenericOut = Pl.OutputDatum
-  sOutOwnerL = _2
-  sOutDatumL = _3
-  sOutValueL = _4
+makeLensesFor
+  [ ("genericOutputAddress", "genericOutputAddressL"),
+    ("genericOutputDatum", "genericOutputDatumL"),
+    ("genericOutputValue", "genericOutputValueL")
+  ]
+  ''GenericOutput
+
+instance IsOutput GenericOutput where
+  type OwnerType GenericOutput = Pl.Address
+  type DatumType GenericOutput = Pl.OutputDatum
+  sOutOwnerL = genericOutputAddressL
+  sOutDatumL = genericOutputDatumL
+  sOutValueL = genericOutputValueL
   sOutAddressL =
     lens
-      (^. _2)
-      ( \(oRef, _, datum, value) (addr, mStCred) ->
-          (oRef, addr {Pl.addressStakingCredential = mStCred}, datum, value)
+      (^. genericOutputAddressL)
+      ( \(GenericOutput _ datum value) (addr, mStCred) ->
+          GenericOutput addr {Pl.addressStakingCredential = mStCred} datum value
       )
-  sOutOutputDatumL = _3
+  sOutOutputDatumL = genericOutputDatumL
+
+genericOutputFromTxOut :: Pl2.TxOut -> GenericOutput
+genericOutputFromTxOut (Pl2.TxOut addr value datum _refScript) = GenericOutput addr datum value
 
 -- ** outputs without data belonging to public keys
 
