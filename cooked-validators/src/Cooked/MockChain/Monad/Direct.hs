@@ -417,16 +417,17 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
    in case mValidationError of
         Just err -> throwError (MCEValidationError err)
         Nothing -> do
-          -- Validation succeeded; now we update the indexes and the managed
-          -- datums. The new mcstIndex is just `newUtxoIndex`; the new
-          -- mcstDatums is computed by removing the datum hashes have been
-          -- consumed and adding those that have been created in the
-          -- transaction.
+          -- Validation succeeded; now we update the UTxO index, the managed
+          -- datums, and the managed Validators. The new mcstIndex is just
+          -- `newUtxoIndex`; the new mcstDatums is computed by removing the
+          -- datum hashes have been consumed and adding those that have been
+          -- created in the transaction.
           modify'
             ( \st ->
                 st
                   { mcstIndex = newUtxoIndex,
-                    mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData
+                    mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData,
+                    mcstValidators = mcstValidators st `Map.union` txSkelOutputValidators skel
                   }
             )
 

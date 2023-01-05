@@ -4,7 +4,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -696,6 +698,7 @@ data TxSkelOut where
   Pays ::
     ( IsOutput o,
       Show (OwnerType o),
+      Typeable (OwnerType o),
       ToCredential (OwnerType o),
       Show (DatumType o),
       ToOutputDatum (DatumType o),
@@ -720,6 +723,28 @@ txSkelOutValueL = dangerousProducedOutputIso % outputValueL
 
 txSkelOutValue :: TxSkelOut -> Pl.Value
 txSkelOutValue = (^. txSkelOutValueL)
+
+-- | If the output goes to a typed validator of some type a, return the
+-- validator.
+txSkelOutTypedValidator ::
+  forall a.
+  Typeable a =>
+  TxSkelOut ->
+  Maybe (Pl.TypedValidator a)
+txSkelOutTypedValidator (Pays output) =
+  let validator = output ^. outputOwnerL
+   in case typeOf validator `eqTypeRep` typeRep @(Pl.TypedValidator a) of
+        Just HRefl -> Just validator
+        Nothing -> Nothing
+
+-- class ToVersionedValidator a where
+--   toVersionedValidator :: a -> Pl.Versioned Pl.Validator
+
+-- instance ToVersionedValidator (Pl.TypedValidator a) where
+--   toVersionedValidator = Pl.vValidatorScript
+
+txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
+txSkelOutValidator (Pays output) = undefined
 
 -- txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
 -- txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
@@ -765,7 +790,8 @@ instance Pl.ToData a => ToOutputDatum (TxSkelOutDatum a) where
 -- as a datum hash on the transaction.
 paysScript ::
   ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a)
+    Show (Pl.DatumType a),
+    Typeable a
   ) =>
   Pl.TypedValidator a ->
   Pl.DatumType a ->
@@ -783,7 +809,8 @@ paysScript validator datum value =
 -- | Like 'paysScript', but using an inline datum.
 paysScriptInlineDatum ::
   ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a)
+    Show (Pl.DatumType a),
+    Typeable a
   ) =>
   Pl.TypedValidator a ->
   Pl.DatumType a ->
@@ -904,6 +931,18 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
     <> Pl.lovelaceValueOf (txSkelFee skel)
+
+txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+txSkelOutValidators =
+  Map.fromList
+    . mapMaybe
+      ( \txSkelOut ->
+          let typedValidator = txSkelOutValidator txSkelOut
+           in case typedValidator of
+                Nothing -> Nothing
+                Just script -> Just (Pl.validatorHash script, script)
+      )
+    . txSkelOuts
 
 -- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
 -- -- PK inputs on the transaction
