@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -13,7 +14,6 @@
 
 module Cooked.MockChain.Monad where
 
-import Control.Arrow (second)
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
@@ -25,7 +25,7 @@ import Cooked.Tx.Constraints.Type
 import Data.Function (on)
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (fromJust)
+import Data.Maybe
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Params as Pl
 import qualified Ledger.Slot as Pl
@@ -61,17 +61,14 @@ class (MonadFail m) => MonadBlockChain m where
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
   validateTxSkel :: TxSkel -> m Pl.CardanoTx
 
-  -- | Return a list outputs that satisfy a given predicate.
-  utxosSuchThat ::
-    (GenericOutput -> Bool) ->
-    m [(Pl.TxOutRef, GenericOutput)]
+  -- | Returns a list of all currently known outputs
+  allUtxos :: m [(Pl.TxOutRef, Pl.TxOut)]
 
   -- | Returns the datum with the given hash, or 'Nothing' if there is none
   datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
 
-  -- TODO: Maybe make this return a GenericOutput?
-  -- -- | Returns an output given a reference to it
-  -- txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
+  -- | Returns an output given a reference to it
+  txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
 
   -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
   --  this is a proxy to 'Pl.ownPubKey'; when running in mock mode, the return value can be
@@ -224,9 +221,17 @@ class (MonadFail m) => MonadBlockChain m where
 --     Just o -> return o
 --     Nothing -> fail ("No output associated with: " ++ show outref)
 
--- -- | Return all UTxOs belonging to a pubkey
--- pkUtxos :: (MonadBlockChain m) => Pl.PubKeyHash -> m [SpendableOut]
--- pkUtxos pkh = pkUtxosSuchThatValue pkh (const True)
+-- | Return all UTxOs belonging to a particular pubkey that have no datum on them
+pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
+pkUtxos pkh =
+  mapMaybe
+    (secondMaybe $ isOutputWithoutDatum <=< isPKOutputFrom pkh)
+    <$> allUtxos
+
+-- | A little helper for all of the "utxosSuchThat"-like functions. Why is
+-- (something more general than) this not in Control.Arrow or somewhere similar?
+secondMaybe :: (b -> Maybe c) -> (a, b) -> Maybe (a, c)
+secondMaybe f (x, y) = (x,) <$> f y
 
 -- ** Slot and Time Management
 
@@ -310,7 +315,8 @@ newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
-  utxosSuchThat = lift . utxosSuchThat
+  allUtxos = lift allUtxos
+  txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
