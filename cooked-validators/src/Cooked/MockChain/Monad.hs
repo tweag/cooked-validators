@@ -223,22 +223,18 @@ class (MonadFail m) => MonadBlockChain m where
 
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
-pkUtxosMaybeDatum :: MonadBlockChain m => Pl.PubKeyHash -> m [SpendableOutput PKOutputMaybeDatum]
+pkUtxosMaybeDatum :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
 pkUtxosMaybeDatum pkh =
   mapMaybe
-    ( (uncurry SpendableOutput <$>)
-        . secondMaybe (isPKOutputFrom pkh)
-    )
+    (secondMaybe (isPKOutputFrom pkh))
     <$> allUtxos
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
-pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [SpendableOutput PKOutput]
+pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
 pkUtxos pkh =
   mapMaybe
-    ( (uncurry SpendableOutput <$>)
-        . secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh)
-    )
+    (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
     <$> allUtxos
 
 -- | A little helper for all of the "utxosSuchThat"-like functions. Why is

@@ -76,40 +76,6 @@ outputTxOut o =
     (outputOutputDatum o)
     Nothing -- TODO for when we introduce reference scripts
 
--- ** 'SpendableOuputs': outputs that have a known 'Pl.TxOutRef', i.e. that come from known past transactions
-
--- | Outputs that can be used as transaction inputs
-data SpendableOutput o where
-  SpendableOutput ::
-    IsOutput o =>
-    { sOutTxOutRef :: Pl.TxOutRef,
-      sOutOutput :: o
-    } ->
-    SpendableOutput o
-
-deriving instance (Show (SpendableOutput o))
-
-sOutOutputL :: Lens' (SpendableOutput o) o
-sOutOutputL = lens sOutOutput (\sOut out -> sOut {sOutOutput = out})
-
-instance IsOutput o => IsOutput (SpendableOutput o) where
-  type OwnerType (SpendableOutput o) = OwnerType o
-  type DatumType (SpendableOutput o) = DatumType o
-  type ValueType (SpendableOutput o) = ValueType o
-  outputOwnerL = sOutOutputL % outputOwnerL
-  outputStakingCredentialL = sOutOutputL % outputStakingCredentialL
-  outputDatumL = sOutOutputL % outputDatumL
-  outputValueL = sOutOutputL % outputValueL
-  outputAddress = outputAddress . sOutOutput
-  outputOutputDatum = outputOutputDatum . sOutOutput
-  outputValue = outputValue . sOutOutput
-
--- | Equality on 'SpendableOut's is defined only on the 'Pl.TxOutRef'
--- component. If we have two 'SpendableOut's with the same 'Pl.TxOutRef', we're
--- in deep trouble anyway...
-instance Eq (SpendableOutput o) where
-  (==) = (==) `on` sOutTxOutRef
-
 -- ** 'Pl.TxOut's are outputs
 
 instance IsOutput Pl.TxOut where

@@ -574,7 +574,7 @@ calcCollateral w = do
   -- TODO We only keep one element of the list because we are limited on
   -- how many collateral inputs a transaction can have. Should this be
   -- investigated further for a better approach?
-  return $ Set.fromList $ take 1 (sOutTxOutRef <$> souts)
+  return $ Set.fromList $ take 1 (fst <$> souts)
 
 balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 balanceTxFromAux utxoPolicy stage balancePK txskel = do
@@ -586,7 +586,7 @@ balanceTxFromAux utxoPolicy stage balancePK txskel = do
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
     -- transaction outputs
-    newInputs :: [SpendableOutput PKOutputMaybeDatum],
+    newInputs :: [(Pl.TxOutRef, PKOutputMaybeDatum)],
     -- | The 'newInputs' will add _at least_ the missing value to cover the
     -- outputs, this is the difference of the input value together with the
     -- 'newInputs' and the output value.  This value must be nonnegative in
@@ -595,7 +595,7 @@ data BalanceTxRes = BalanceTxRes
     -- | Some additional UTxOs that could be used as extra inputs. These all
     -- belong to the same wallet that was passed to 'calcBalanceTx' as an
     -- argument, and are sorted in decreasing order of their Ada value.
-    availableUtxos :: [SpendableOutput PKOutputMaybeDatum]
+    availableUtxos :: [(Pl.TxOutRef, PKOutputMaybeDatum)]
   }
   deriving (Show)
 
@@ -626,8 +626,8 @@ calcBalanceTx balanceStage balancePK skel = do
   -- minimum Ada amount required for each output. See this comment for context:
   -- https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
   candidateUtxos <-
-    sortBy (flip compare `on` Pl.fromValue . outputValue)
-      . filter ((`notElem` inputOrefs) . sOutTxOutRef)
+    sortBy (flip compare `on` Pl.fromValue . outputValue . snd)
+      . filter ((`notElem` inputOrefs) . fst)
       <$> pkUtxosMaybeDatum balancePK
   case selectNewInputs candidateUtxos [] initialExcess missingValue of
     Nothing ->
@@ -639,8 +639,8 @@ calcBalanceTx balanceStage balancePK skel = do
     Just bTxRes -> return bTxRes
   where
     selectNewInputs ::
-      [SpendableOutput PKOutputMaybeDatum] ->
-      [SpendableOutput PKOutputMaybeDatum] ->
+      [(Pl.TxOutRef, PKOutputMaybeDatum)] ->
+      [(Pl.TxOutRef, PKOutputMaybeDatum)] ->
       Pl.Value ->
       Pl.Value ->
       Maybe BalanceTxRes
@@ -652,13 +652,13 @@ calcBalanceTx balanceStage balancePK skel = do
           -- one token of the required asset class (The hope is that it'll
           -- contain at least @n@ such tokens, but we can't yet fail if there are
           -- fewer; we might need to add several UTxOs):
-          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . outputValue) available of
+          case findIndex ((`Value.geq` Value.assetClassValue ac 1) . outputValue . snd) available of
             Nothing -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
             Just i ->
               let (left, theChosenUtxo : right) = splitAt i available
                   available' = left ++ right
                   chosen' = theChosenUtxo : chosen
-                  theChosenValue = outputValue theChosenUtxo
+                  theChosenValue = outputValue $ snd theChosenUtxo
                   theChosenDifference = missing <> Pl.negate theChosenValue
                   excess' = excess <> negativePart theChosenDifference
                   missing' = positivePart theChosenDifference
@@ -746,7 +746,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                  in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
                       then
                         Just -- (1)
-                          ( ins <> Map.fromSet (const TxSkelNoRedeemer) (Set.fromList $ map sOutTxOutRef newInputs),
+                          ( ins <> Map.fromSet (const TxSkelNoRedeemer) (Set.fromList $ map fst newInputs),
                             left ++ (bestTxOut & txSkelOutValueL .~ adjustedValue) : right
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
@@ -771,14 +771,14 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
     tryAdditionalInputs ::
       Map Pl.TxOutRef TxSkelRedeemer ->
       [TxSkelOut] ->
-      [SpendableOutput PKOutputMaybeDatum] ->
+      [(Pl.TxOutRef, PKOutputMaybeDatum)] ->
       Pl.Value ->
       Maybe (Map Pl.TxOutRef TxSkelRedeemer, [TxSkelOut])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
         additionalUtxo : newAvailable ->
-          let additionalValue = outputValue additionalUtxo
+          let additionalValue = outputValue $ snd additionalUtxo
               newReturn = additionalValue <> return
               newIns = undefined
               -- ins
