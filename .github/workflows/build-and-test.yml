@@ -41,8 +41,7 @@ jobs:
 
     - name: Build and test
       run: |
-        ## Commented out because ormolu fails
-        # nix flake check
+        nix flake check
         nix develop .#ci --command cabal update
         nix develop .#ci --command bash ci/run-tests.sh --ci
 

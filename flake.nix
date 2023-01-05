@@ -23,6 +23,8 @@
             ormolu --mode check $(find . -name '*.hs') || exit 1
             echo "[OK] Formatting"
           '';
+          ## The derivation succeeds if the output is created.
+          installPhase = "mkdir -p $out";
         };
 
         devShells = let
@@ -37,6 +39,7 @@
               haskell-language-server
               hlint
             ]) ++ (with pkgs; [
+              ormolu
               hpack
               libsodium
               pkg-config
@@ -52,7 +55,6 @@
           ci = pkgs.mkShell {
             buildInputs = (with haskellPackages; [ ghc cabal-install ])
               ++ (with pkgs; [
-                hpack
                 libsodium
                 secp256k1
                 pkg-config
