@@ -16,11 +16,10 @@
           src = ./.;
           buildInputs = with pkgs; [ coreutils findutils hpack ormolu ];
           buildPhase = ''
-            set -o errexit # Fail when output is not 0
             set -o xtrace # See when it fails
-            hpack cooked-validators/package.yaml | grep -q 'is up-to-date'
-            hpack examples/package.yaml | grep -q 'is up-to-date'
-            hpack pirouette-plutusir | grep -q 'is up-to-date'
+            hpack cooked-validators/package.yaml | grep -q 'is up-to-date' || exit 1
+            hpack examples/package.yaml | grep -q 'is up-to-date' || exit 1
+            hpack pirouette-plutusir | grep -q 'is up-to-date' || exit 1
             ormolu --mode check $(find . -name '*.hs') || exit 1
           '';
           ## The derivation succeeds if the output is created.
