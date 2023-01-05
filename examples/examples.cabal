@@ -43,7 +43,6 @@ library
     , heredoc
     , hspec
     , lens
-    , microlens
     , mtl
     , optics-core
     , pirouette >=2.0.0
