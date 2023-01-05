@@ -14,7 +14,6 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
 import Data.Default
-import Data.Function
 import Data.List
 import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
@@ -205,6 +204,72 @@ isOutputWithoutDatum out = case outputOutputDatum out of
         (out ^. outputValueL)
         ()
   _ -> Nothing
+
+-- ** Functions to translate between different output types
+
+-- | Test if the output carries some inlined datum.
+isOutputWithInlineDatum ::
+  IsOutput output =>
+  output ->
+  Maybe output
+isOutputWithInlineDatum out =
+  case outputOutputDatum out of
+    Pl.OutputDatum _ -> Just out
+    _ -> Nothing
+
+-- | Test if the output carries some datum hash.
+isOutputWithDatumHash ::
+  IsOutput output =>
+  output ->
+  Maybe (ConcreteOutput (OwnerType output) Pl.DatumHash (ValueType output))
+isOutputWithDatumHash out =
+  case outputOutputDatum out of
+    Pl.OutputDatumHash hash ->
+      Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (Pl.addressStakingCredential . outputAddress $ out)
+          (out ^. outputValueL)
+          hash
+    _ -> Nothing
+
+-- | Test if the value carried by an output verifies a given predicate.
+isOutputWithValueSuchThat ::
+  IsOutput output =>
+  (ValueType output -> Bool) ->
+  output ->
+  Maybe output
+isOutputWithValueSuchThat predicate out
+  | predicate (out ^. outputValueL) = Just out
+  | otherwise = Nothing
+
+-- | Test if the datum carried by an output verifies a given predicate.
+isOutputWithDatumSuchThat ::
+  IsOutput output =>
+  (DatumType output -> Bool) ->
+  output ->
+  Maybe output
+isOutputWithDatumSuchThat predicate out
+  | predicate (out ^. outputDatumL) = Just out
+  | otherwise = Nothing
+
+-- | Test if the owner an output is a specific script. If it is, return an
+-- output with the validator type as its 'OwnerType' and the corresponding
+-- datum type as its `DatumType`.
+isScriptOutputFrom ::
+  (IsOutput output, Pl.FromData (Pl.DatumType a), Pl.ToData (DatumType output)) =>
+  Pl.TypedValidator a ->
+  output ->
+  Maybe (ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) (ValueType output))
+isScriptOutputFrom validator out =
+  case outputAddress out of
+    Pl.Address (Pl.ScriptCredential scriptHash) mStCred ->
+      if scriptHash == Pl.validatorHash validator
+        then do
+          ConcreteOutput validator mStCred (out ^. outputValueL)
+            <$> (Pl.fromBuiltinData . Pl.toBuiltinData $ out ^. outputDatumL)
+        else Nothing
+    _ -> Nothing
 
 -- | Test if the owner an output is a specific public key. If it is, return an
 -- output of the same 'DatumType', but with 'Pl.PubKeyHash' as its 'OwnerType'.
