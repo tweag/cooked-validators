@@ -14,6 +14,7 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
 import Data.Default
+import Data.Function
 import Data.List
 import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
@@ -23,6 +24,7 @@ import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Ledger.Ada as Pl
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
@@ -57,21 +59,20 @@ class Show o => IsOutput o where
   -- 'PubkeyHash'
   type OwnerType o
   type DatumType o
+  type ValueType o
   outputOwnerL :: Lens' o (OwnerType o)
   outputStakingCredentialL :: Lens' o (Maybe Pl.StakingCredential)
   outputDatumL :: Lens' o (DatumType o)
-  outputValueL :: Lens' o Pl.Value
+  outputValueL :: Lens' o (ValueType o)
   outputAddress :: o -> Pl.Address
   outputOutputDatum :: o -> Pl.OutputDatum
-
-outputValue :: IsOutput o => o -> Pl.Value
-outputValue = (^. outputValueL)
+  outputValue :: o -> Pl.Value
 
 outputTxOut :: IsOutput o => o -> Pl.TxOut
 outputTxOut o =
   Pl.TxOut
     (outputAddress o)
-    (o ^. outputValueL)
+    (outputValue o)
     (outputOutputDatum o)
     Nothing -- TODO for when we introduce reference scripts
 
@@ -79,15 +80,42 @@ outputTxOut o =
 
 -- | Outputs that can be used as transaction inputs
 data SpendableOutput o where
-  SpendableOutput :: IsOutput o => Pl.TxOutRef -> o -> SpendableOutput o
+  SpendableOutput ::
+    IsOutput o =>
+    { sOutTxOutRef :: Pl.TxOutRef,
+      sOutOutput :: o
+    } ->
+    SpendableOutput o
 
 deriving instance (Show (SpendableOutput o))
+
+sOutOutputL :: Lens' (SpendableOutput o) o
+sOutOutputL = lens sOutOutput (\sOut out -> sOut {sOutOutput = out})
+
+instance IsOutput o => IsOutput (SpendableOutput o) where
+  type OwnerType (SpendableOutput o) = OwnerType o
+  type DatumType (SpendableOutput o) = DatumType o
+  type ValueType (SpendableOutput o) = ValueType o
+  outputOwnerL = sOutOutputL % outputOwnerL
+  outputStakingCredentialL = sOutOutputL % outputStakingCredentialL
+  outputDatumL = sOutOutputL % outputDatumL
+  outputValueL = sOutOutputL % outputValueL
+  outputAddress = outputAddress . sOutOutput
+  outputOutputDatum = outputOutputDatum . sOutOutput
+  outputValue = outputValue . sOutOutput
+
+-- | Equality on 'SpendableOut's is defined only on the 'Pl.TxOutRef'
+-- component. If we have two 'SpendableOut's with the same 'Pl.TxOutRef', we're
+-- in deep trouble anyway...
+instance Eq (SpendableOutput o) where
+  (==) = (==) `on` sOutTxOutRef
 
 -- ** 'Pl.TxOut's are outputs
 
 instance IsOutput Pl.TxOut where
   type OwnerType Pl.TxOut = Pl.Credential
   type DatumType Pl.TxOut = Pl.OutputDatum
+  type ValueType Pl.TxOut = Pl.Value
   outputOwnerL =
     lensVL Pl.outAddress
       % lens
@@ -103,6 +131,7 @@ instance IsOutput Pl.TxOut where
   outputValueL = lensVL Pl.outValue
   outputAddress = Pl.txOutAddress
   outputOutputDatum = Pl.txOutDatum
+  outputValue = Pl.txOutValue
 
 -- ** A concrete type for outputs
 
@@ -130,28 +159,40 @@ instance ToOutputDatum () where
 instance ToOutputDatum Pl.DatumHash where
   toOutputDatum = Pl.OutputDatumHash
 
-data ConcreteOutput ownerType datumType where
+class ToValue a where
+  toValue :: a -> Pl.Value
+
+instance ToValue Pl.Value where
+  toValue = id
+
+instance ToValue Pl.Ada where
+  toValue = Pl.toValue
+
+data ConcreteOutput ownerType datumType valueType where
   ConcreteOutput ::
     { concreteOutputOwner :: ownerType,
       concreteOutputStakingCredential :: Maybe Pl.StakingCredential,
-      concreteOutputValue :: Pl.Value,
+      concreteOutputValue :: valueType,
       concreteOutputDatum :: datumType
       -- concreteOutputReferenceScript :: Maybe Pl.ScriptHash -- TODO for when we introduce reference scripts
     } ->
-    ConcreteOutput ownerType datumType
+    ConcreteOutput ownerType datumType valueType
 
-deriving instance (Show ownerType, Show datumType) => Show (ConcreteOutput ownerType datumType)
+deriving instance (Show ownerType, Show datumType, Show valueType) => Show (ConcreteOutput ownerType datumType valueType)
 
 instance
   ( Show ownerType,
     ToCredential ownerType,
     Show datumType,
-    ToOutputDatum datumType
+    ToOutputDatum datumType,
+    Show valueType,
+    ToValue valueType
   ) =>
-  IsOutput (ConcreteOutput ownerType datumType)
+  IsOutput (ConcreteOutput ownerType datumType valueType)
   where
-  type OwnerType (ConcreteOutput ownerType datumType) = ownerType
-  type DatumType (ConcreteOutput ownerType datumType) = datumType
+  type OwnerType (ConcreteOutput ownerType datumType valueType) = ownerType
+  type DatumType (ConcreteOutput ownerType datumType valueType) = datumType
+  type ValueType (ConcreteOutput ownerType datumType valueType) = valueType
   outputOwnerL = lens concreteOutputOwner (\out owner -> out {concreteOutputOwner = owner})
   outputStakingCredentialL = lens concreteOutputStakingCredential (\out mStCred -> out {concreteOutputStakingCredential = mStCred})
   outputDatumL = lens concreteOutputDatum (\out datum -> out {concreteOutputDatum = datum})
@@ -161,12 +202,23 @@ instance
       (toCredential $ concreteOutputOwner out)
       (concreteOutputStakingCredential out)
   outputOutputDatum = toOutputDatum . concreteOutputDatum
+  outputValue = toValue . concreteOutputValue
 
 -- ** A few special concrete outputs
 
-type PKOutput = ConcreteOutput Pl.PubKeyHash ()
+-- | A public key output without a datum
+type PKOutput = ConcreteOutput Pl.PubKeyHash () Pl.Value
 
-type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a)
+-- | A public key output that only has Ada and no datum
+type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada
+
+-- | A public key output where we don't know anything about the datum: It is a
+-- general 'Pl.OutputDatum'
+type PKOutputMaybeDatum = ConcreteOutput Pl.PubKeyHash Pl.OutputDatum Pl.Value
+
+-- | An output that belongs to a typed validator and has an inline datum of the
+-- appropriate type.
+type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) Pl.Value
 
 -- TODO et cetera
 
@@ -177,13 +229,13 @@ type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.Da
 isOutputWithoutDatum ::
   IsOutput output =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) ())
+  Maybe (ConcreteOutput (OwnerType output) () (ValueType output))
 isOutputWithoutDatum out = case outputOutputDatum out of
   Pl.NoOutputDatum ->
     Just $
       ConcreteOutput
         (out ^. outputOwnerL)
-        (Pl.addressStakingCredential . outputAddress $ out)
+        (out ^. outputStakingCredentialL)
         (out ^. outputValueL)
         ()
   _ -> Nothing
@@ -194,19 +246,36 @@ isPKOutputFrom ::
   IsOutput output =>
   Pl.PubKeyHash ->
   output ->
-  Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output))
+  Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output) (ValueType output))
 isPKOutputFrom pkh out = case outputAddress out of
-  Pl.Address (Pl.PubKeyCredential pkh') mStCred ->
+  Pl.Address (Pl.PubKeyCredential pkh') _mStCred ->
     if pkh == pkh'
       then
         Just $
           ConcreteOutput
             pkh
-            mStCred
+            (out ^. outputStakingCredentialL)
             (out ^. outputValueL)
             (out ^. outputDatumL)
       else Nothing
   _ -> Nothing
+
+-- | Test if the value on an output contains only Ada, and adapt the return type
+-- accordingly if it is so.
+isOnlyAdaOutput ::
+  IsOutput output =>
+  output ->
+  Maybe (ConcreteOutput (OwnerType output) (DatumType output) Pl.Ada)
+isOnlyAdaOutput out =
+  if Pl.isAdaOnlyValue (outputValue out)
+    then
+      Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (out ^. outputStakingCredentialL)
+          (Pl.fromValue $ outputValue out)
+          (out ^. outputDatumL)
+    else Nothing
 
 -- TODO et cetera
 
@@ -593,15 +662,33 @@ txSkelMintsValue =
 -- * Transaction outputs
 
 data TxSkelOut where
-  Pays :: IsOutput o => o -> TxSkelOut
+  Pays ::
+    ( IsOutput o,
+      Show (OwnerType o),
+      ToCredential (OwnerType o),
+      Show (DatumType o),
+      ToOutputDatum (DatumType o),
+      Show (ValueType o),
+      ToValue (ValueType o)
+    ) =>
+    {producedOutput :: o} ->
+    TxSkelOut
 
 deriving instance Show TxSkelOut
 
-makeLensesFor
-  [ ("outValue", "outValueL"),
-    ("recipientPubKeyHash", "recipientPubKeyHashAT")
-  ]
-  ''TxSkelOut
+txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
+txSkelOutToTxOut (Pays output) = outputTxOut output
+
+-- | This iso is dangerous for the following reason: TODO formulate
+-- explanation. TLDR: It depends on many instances in a non-trivial way.
+dangerousProducedOutputIso :: Iso' TxSkelOut Pl.TxOut
+dangerousProducedOutputIso = iso txSkelOutToTxOut Pays
+
+txSkelOutValueL :: Lens' TxSkelOut Pl.Value
+txSkelOutValueL = dangerousProducedOutputIso % outputValueL
+
+txSkelOutValue :: TxSkelOut -> Pl.Value
+txSkelOutValue = (^. txSkelOutValueL)
 
 -- txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
 -- txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
@@ -777,29 +864,15 @@ instance Monoid TxSkel where
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
 txSkelOutputData = undefined
 
--- | All 'TxOutRefs' of transaction inputs, resolved.
--- TODO
-txSkelUtxoIndex :: TxSkel -> Map Pl.TxOutRef Pl.TxOut
-txSkelUtxoIndex = undefined
-
--- -- | The value in all transaction inputs, plus the positive part of the minted
--- -- value. This is the left hand side of the "balancing equation":
--- --
--- -- > mints + inputs = fees + burns + outputs
--- txSkelInputValue :: TxSkel -> Pl.Value
--- txSkelInputValue skel@TxSkel {txSkelMints = mints} =
---   positivePart (txSkelMintsValue mints)
---     <> foldOf (consumedOutputsF % sOutValueL) skel
-
--- -- | The value in all transaction inputs, plus the negative parts of the minted
--- -- value. This is the right hand side of the "balancing equation":
--- --
--- -- > mints + inputs = fees + burns + outputs
--- txSkelOutputValue :: TxSkel -> Pl.Value
--- txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
---   negativePart (txSkelMintsValue mints)
---     <> foldOf (txSkelOutsL % folded % outValueL) skel
---     <> Pl.lovelaceValueOf (txSkelFee skel)
+-- | The value in all transaction inputs, plus the negative parts of the minted
+-- value. This is the right hand side of the "balancing equation":
+--
+-- > mints + inputs = fees + burns + outputs
+txSkelOutputValue :: TxSkel -> Pl.Value
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
+  negativePart (txSkelMintsValue mints)
+    <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
+    <> Pl.lovelaceValueOf (txSkelFee skel)
 
 -- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
 -- -- PK inputs on the transaction
