@@ -31,34 +31,31 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
         restore-keys: ${{ runner.os }}-
 
-    - name: Accessing the result cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ./*.out
-          ./*.res
-        key: result-cache-${{ github.sha }}
-
     - name: Build and test
       run: |
         nix flake check
         nix develop .#ci --command cabal update
         nix develop .#ci --command bash ci/run-tests.sh --ci
 
+    - name: Upload tests output as artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: plutus-libs-checks
+        path: |
+          ./*.out
+          ./*.res
+
   check-result:
     needs: build-and-test
     name: check-result
     runs-on: ubuntu-latest
     steps:
-    - name: Accessing the result cache
-      uses: actions/cache@v3
+    - name: Accessing tests output
+      uses: actions/download-artifact@v3
       with:
-        path: |
-          ./*.out
-          ./*.res
-        key: result-cache-${{ github.sha }}
+        name: plutus-libs-checks
 
-    - name: Check result
+    - name: Check outputs
       run: |
         is_ok=true
         for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
