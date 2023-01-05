@@ -221,11 +221,24 @@ class (MonadFail m) => MonadBlockChain m where
 --     Just o -> return o
 --     Nothing -> fail ("No output associated with: " ++ show outref)
 
--- | Return all UTxOs belonging to a particular pubkey that have no datum on them
-pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
+-- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
+-- value.
+pkUtxosMaybeDatum :: MonadBlockChain m => Pl.PubKeyHash -> m [SpendableOutput PKOutputMaybeDatum]
+pkUtxosMaybeDatum pkh =
+  mapMaybe
+    ( (uncurry SpendableOutput <$>)
+        . secondMaybe (isPKOutputFrom pkh)
+    )
+    <$> allUtxos
+
+-- | Return all UTxOs belonging to a particular pubkey that have no datum on
+-- them.
+pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [SpendableOutput PKOutput]
 pkUtxos pkh =
   mapMaybe
-    (secondMaybe $ isOutputWithoutDatum <=< isPKOutputFrom pkh)
+    ( (uncurry SpendableOutput <$>)
+        . secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh)
+    )
     <$> allUtxos
 
 -- | A little helper for all of the "utxosSuchThat"-like functions. Why is
