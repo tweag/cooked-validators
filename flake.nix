@@ -25,27 +25,44 @@
           '';
         };
 
-        devShells.default = (import ./shell.nix) {
-          inherit pkgs;
-          inherit haskellPackages;
-        };
-
-        ## Same as default without language server &c.
-        devShells.ci = pkgs.mkShell {
-          buildInputs = (with haskellPackages; [ ghc cabal-install hpack ])
-            ++ (with pkgs; [
+        devShells = let
+          ## Needed by `pirouette-plutusir` and `cooked`
+          LD_LIBRARY_PATH = with pkgs;
+            lib.strings.makeLibraryPath [ libsodium zlib xz ];
+        in {
+          default = pkgs.mkShell {
+            buildInputs = (with haskellPackages; [
+              ghc
+              cabal-install
+              haskell-language-server
+              hlint
+            ]) ++ (with pkgs; [
+              hpack
               libsodium
-              secp256k1
               pkg-config
+              secp256k1
               zlib
               xz
               postgresql # For pg_config
-              bash
             ]);
-          ## Needed by `pirouette-plutusir`
-          shellHook = ''
-            export LD_LIBRARY_PATH="${pkgs.libsodium}/lib:${pkgs.zlib}/lib:''${LD_LIBRARY_PATH:+:}"
-          '';
+            inherit LD_LIBRARY_PATH;
+          };
+
+          ## Same as default without language server &c.
+          ci = pkgs.mkShell {
+            buildInputs = (with haskellPackages; [ ghc cabal-install ])
+              ++ (with pkgs; [
+                hpack
+                libsodium
+                secp256k1
+                pkg-config
+                zlib
+                xz
+                postgresql # For pg_config
+                bash
+              ]);
+            inherit LD_LIBRARY_PATH;
+          };
         };
       });
 }
