@@ -14,14 +14,14 @@
         checks.default = pkgs.stdenv.mkDerivation {
           name = "ormolu/hpack checks";
           src = ./.;
-          buildInputs = with pkgs; [ findutils hpack ormolu ];
+          buildInputs = with pkgs; [ coreutils findutils hpack ormolu ];
           buildPhase = ''
+            set -o errexit # Fail when output is not 0
+            set -o xtrace # See when it fails
             hpack cooked-validators/package.yaml | grep -q 'is up-to-date'
             hpack examples/package.yaml | grep -q 'is up-to-date'
             hpack pirouette-plutusir | grep -q 'is up-to-date'
-            echo "[OK] Package specifications"
             ormolu --mode check $(find . -name '*.hs') || exit 1
-            echo "[OK] Formatting"
           '';
           ## The derivation succeeds if the output is created.
           installPhase = "mkdir -p $out";
