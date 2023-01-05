@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -x # Debug CI
 set -uo pipefail
 
@@ -23,12 +24,6 @@ while [[ $# -ne "0" ]]; do
     *) show_help; exit 1;;
   esac
 done
-
-# if $ci; then
-#   pushd ..
-#   cabal update
-#   popd || exit
-# fi
 
 ## Each step below runs a certain program and, when running in CI, creates
 ## two files: ${proj}-${step}.res and ${proj}-${step}.out
