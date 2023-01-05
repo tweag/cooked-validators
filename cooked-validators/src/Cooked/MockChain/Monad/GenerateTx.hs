@@ -18,7 +18,6 @@ import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
-import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
 
 data GenerateTxError
@@ -205,9 +204,17 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             (Pl.pNetworkId theParams)
             Pl.toCardanoTxOutDatum
             $ Pl.TxOut
-              (output ^. getting sOutAddressL)
-              (output ^. sOutValueL)
-              (output ^. getting sOutOutputDatumL)
+              (outputAddress output)
+              (outputValue output)
+              -- You might wonder why we don't have to make a case analysis on
+              -- inline datums vs. datum hashes here. It's because we assume
+              -- that 'outputOutputDatum' is implemented intelligently.
+              --
+              -- In the case of 'ConcreteOutput's, this means that the
+              -- 'ToOutputDatum' instance of the 'DatumType' must do the right
+              -- thing. For an example, look at the 'ToOutputDatum' instance for
+              -- 'TxSkelOutDatum'.
+              (outputOutputDatum output)
               Nothing -- What to do about reference scripts?
         )
 
