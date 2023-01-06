@@ -722,9 +722,9 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                    )
                 output of
                 Nothing -> Nothing
-                Just output' -> Just (i, output')
+                Just output' -> Just (fromIntegral i, output')
           )
-          $ zip [0 ..] outs
+          $ zip [0 :: Int ..] outs
 
       -- The index of the "best possible transaction output", as described
       -- above.

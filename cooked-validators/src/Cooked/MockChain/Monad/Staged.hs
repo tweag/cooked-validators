@@ -30,6 +30,7 @@ import qualified PlutusTx as Pl (FromData)
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
+import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -66,23 +67,14 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
-  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe Pl.TxOut)
+  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  UtxosSuchThat ::
-    (Pl.FromData a) =>
-    Pl.Address ->
-    (Maybe a -> Pl.Value -> Bool) ->
-    MockChainBuiltin [(SpendableOut, Maybe a)]
-  UtxosSuchThisAndThat ::
-    (Pl.FromData a) =>
-    (Pl.Address -> Bool) ->
-    (Maybe a -> Pl.Value -> Bool) ->
-    MockChainBuiltin [(SpendableOut, Maybe a)]
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
+  AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are only available in MonadMockChain, not MonadBlockChain:
   SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
   AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
@@ -154,12 +146,11 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin GetCurrentTime = currentTime
   interpBuiltin (AwaitTime t) = awaitTime t
-  interpBuiltin (UtxosSuchThat a p) = utxosSuchThat a p
-  interpBuiltin (UtxosSuchThisAndThat apred dpred) = utxosSuchThisAndThat apred dpred
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AskSigners = askSigners
   interpBuiltin GetParams = askParams
+  interpBuiltin AllUtxos = allUtxos
   interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
@@ -204,9 +195,8 @@ singletonBuiltin b = Instr (Builtin b) Return
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
-  utxosSuchThat a p = singletonBuiltin (UtxosSuchThat a p)
-  utxosSuchThisAndThat apred dpred = singletonBuiltin (UtxosSuchThisAndThat apred dpred)
   datumFromHash = singletonBuiltin . DatumFromHash
+  allUtxos = singletonBuiltin AllUtxos
   txOutByRef = singletonBuiltin . TxOutByRef
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot

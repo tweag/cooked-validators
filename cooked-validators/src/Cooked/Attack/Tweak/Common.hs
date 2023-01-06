@@ -217,33 +217,6 @@ mkAccumLTweak optic f initAcc = Tweak $ \mcst skel ->
 
 -- * Helpers to interact with 'MockChainSt'
 
--- | Like 'utxosSuchThat', but with the 'MockChainSt'ate as an explicit argument
-utxosSuchThatMcst ::
-  (Pl.FromData a) =>
-  MockChainSt ->
-  L.Address ->
-  UtxoPredicate a ->
-  [(SpendableOut, Maybe a)]
-utxosSuchThatMcst mcst addr select =
-  case runMockChainRaw def mcst (utxosSuchThat addr select) of
-    Left _ -> []
-    Right (utxos, _) -> utxos
-
--- | Like 'scriptUtxosSuchThat', but with the 'MockChainSt'ate as an explicit
--- argument
-scriptUtxosSuchThatMcst ::
-  (Pl.FromData (L.DatumType a)) =>
-  MockChainSt ->
-  L.TypedValidator a ->
-  (L.DatumType a -> L.Value -> Bool) ->
-  [(SpendableOut, L.DatumType a)]
-scriptUtxosSuchThatMcst mcst val select =
-  map (second fromJust) $
-    utxosSuchThatMcst
-      mcst
-      (L.validatorAddress val)
-      (maybe (const False) select)
-
 -- * Some more simple tweaks
 
 -- | Change some 'Value's in a 'TxSkel'. Returns a list of the increments by

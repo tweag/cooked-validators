@@ -5,7 +5,6 @@
 --  want to import just "Cooked" which re-exports this module and a few others too
 module Cooked.MockChain
   ( module X,
-    SpendableOut,
   )
 where
 
@@ -18,4 +17,3 @@ import Cooked.MockChain.Time as X
 import Cooked.MockChain.UtxoPredicate as X
 import Cooked.MockChain.UtxoState as X
 import Cooked.MockChain.Wallet as X
-import Cooked.Tx.Constraints.Type (SpendableOut)
