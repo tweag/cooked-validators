@@ -10,6 +10,7 @@
 
 module Cooked.InlineDatumsSpec where
 
+import Control.Arrow
 import Control.Monad
 import Cooked
 import Cooked.Tx.Constraints.Type
@@ -17,6 +18,9 @@ import Data.Default
 import qualified Data.Map as Map
 import qualified Debug.Trace as Debug
 import qualified Ledger.Ada as Pl
+import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
+import qualified Ledger.Tx.CardanoAPI.Internal as Pl (fromCardanoTxOutToPV2TxInfoTxOut)
+import qualified Ledger.Tx.Internal as Pl (getTxOut)
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -25,6 +29,7 @@ import qualified PlutusTx as Pl
 import qualified PlutusTx.Trace as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
+import Type.Reflection
 
 data SimpleContract
 
@@ -86,30 +91,28 @@ outputDatumValidator =
 -- a datum hash.
 listUtxosTestTrace ::
   ( MonadBlockChain m,
-    PaysScriptConstrs a,
+    Show (Pl.DatumType a),
+    Pl.ToData (Pl.DatumType a),
     Pl.FromData (Pl.DatumType a),
+    Typeable a,
     Default (Pl.DatumType a)
   ) =>
   Bool ->
   Pl.TypedValidator a ->
-  m [(SpendableOut, Either Pl.DatumHash (Pl.DatumType a))]
-listUtxosTestTrace useInlineDatum validator = do
-  _ <-
-    validateTxSkel'
+  m [(Pl.TxOut, Pl.TxOutRef)]
+listUtxosTestTrace useInlineDatum validator =
+  map (first (Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut)) . Pl.getCardanoTxOutRefs
+    <$> validateTxSkel
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelOuts =
-            [ paysScript
-                validator
-                ( let datum = def
-                   in if useInlineDatum
-                        then Right datum
-                        else Left . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                )
+            [ ( if useInlineDatum
+                  then paysScriptInlineDatum validator def
+                  else paysScript validator def
+              )
                 (Pl.lovelaceValueOf 3_000_000)
             ]
         }
-  scriptUtxosSuchThat validator (\_ _ -> True)
 
 -- | This defines two traces of two transactions each: @spendOutputTestTrace
 -- True@ will pay a validator with an inline datum and try spending the the UTxO
@@ -121,9 +124,11 @@ listUtxosTestTrace useInlineDatum validator = do
 spendOutputTestTrace ::
   forall a m.
   ( MonadBlockChain m,
-    PaysScriptConstrs a,
     SpendsScriptConstrs a,
+    Show (Pl.DatumType a),
+    Pl.ToData (Pl.DatumType a),
     Pl.FromData (Pl.DatumType a),
+    Typeable a,
     Default (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
@@ -131,17 +136,9 @@ spendOutputTestTrace ::
   Pl.TypedValidator a ->
   m ()
 spendOutputTestTrace useInlineDatum validator = do
-  (theUtxo, _) : _ <- listUtxosTestTrace useInlineDatum validator
+  (_, theTxOutRef) : _ <- listUtxosTestTrace useInlineDatum validator
   void $
     validateTxSkel
-      -- Here we'll have to provide the extra datum on the input if 'theUtxo'
-      -- only contains a datum hash.
-      ( if useInlineDatum
-          then Map.empty
-          else
-            let datum = Pl.Datum . Pl.toBuiltinData $ def @(Pl.DatumType a)
-             in Map.singleton (Pl.datumHash datum) datum
-      )
       mempty
         { txSkelOpts =
             def
@@ -150,8 +147,8 @@ spendOutputTestTrace useInlineDatum validator = do
               },
           txSkelIns =
             Map.singleton
-              theUtxo
-              (SpendsScript validator def)
+              theTxOutRef
+              TxSkelNoRedeemer
         }
 
 -- | This defines two traces of two transactions each: On the first transaction,
@@ -166,9 +163,11 @@ spendOutputTestTrace useInlineDatum validator = do
 -- of atransaction as inline datums or datum hashes.
 continuingOutputTestTrace ::
   ( MonadBlockChain m,
-    PaysScriptConstrs a,
     SpendsScriptConstrs a,
+    Show (Pl.DatumType a),
+    Pl.ToData (Pl.DatumType a),
     Pl.FromData (Pl.DatumType a),
+    Typeable a,
     Default (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
@@ -176,24 +175,21 @@ continuingOutputTestTrace ::
   Pl.TypedValidator a ->
   m ()
 continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
-  (theUtxo, _) : _ <- listUtxosTestTrace True validator
+  (theUtxo, theTxOutRef) : _ <- listUtxosTestTrace True validator
   void $
-    validateTxSkel'
+    validateTxSkel
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelIns =
             Map.singleton
-              theUtxo
-              (SpendsScript validator def),
+              theTxOutRef
+              TxSkelNoRedeemer,
           txSkelOuts =
-            [ paysScript
-                validator
-                ( let datum = def
-                   in if useInlineDatumOnSecondPayment
-                        then Right datum
-                        else Left . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                )
-                (sOutValue theUtxo)
+            [ ( if useInlineDatumOnSecondPayment
+                  then paysScriptInlineDatum validator def
+                  else paysScript validator def
+              )
+                (outputValue theUtxo)
             ]
         }
 
@@ -207,11 +203,15 @@ tests =
           -- just need some script to pay to.
           testCase "the datum is retrieved correctly" $
             assertBool "... it's not" $ case runMockChain (listUtxosTestTrace True (inputDatumValidator True)) of
-              Right ([(_, Right ())], _) -> True
+              Right ([(output, _)], _) -> case outputOutputDatum output of
+                Pl.OutputDatum _ -> True
+                _ -> False
               _ -> False,
           testCase "the datum hash is retrieved correctly" $
             assertBool "... it's not" $ case runMockChain (listUtxosTestTrace False (inputDatumValidator True)) of
-              Right ([(_, Left dh)], _) -> dh == (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ ())
+              Right ([(output, _)], _) -> case outputOutputDatum output of
+                Pl.OutputDatumHash _ -> True
+                _ -> False
               _ -> False
         ],
       testGroup
