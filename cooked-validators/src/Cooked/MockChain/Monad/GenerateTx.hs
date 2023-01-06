@@ -58,7 +58,7 @@ generateTxBodyContent ::
 generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
+  txOuts <- mapM txSkelOutToCardanoTxOut $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -197,26 +197,14 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
         toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
 
-    txSkelOutToTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToTxOut (Pays output) =
+    txSkelOutToCardanoTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+    txSkelOutToCardanoTxOut txSkelOut =
       left
         (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
         ( Pl.toCardanoTxOut
             (Pl.pNetworkId theParams)
             Pl.toCardanoTxOutDatum
-            $ Pl.TxOut
-              (outputAddress output)
-              (outputValue output)
-              -- You might wonder why we don't have to make a case analysis on
-              -- inline datums vs. datum hashes here. It's because we assume
-              -- that 'outputOutputDatum' is implemented intelligently.
-              --
-              -- In the case of 'ConcreteOutput's, this means that the
-              -- 'ToOutputDatum' instance of the 'DatumType' must do the right
-              -- thing. For an example, look at the 'ToOutputDatum' instance for
-              -- 'TxSkelOutDatum'.
-              (outputOutputDatum output)
-              Nothing -- What to do about reference scripts?
+            $ txSkelOutToTxOut txSkelOut
         )
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
