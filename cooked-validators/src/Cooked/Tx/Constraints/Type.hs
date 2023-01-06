@@ -73,7 +73,7 @@ class Show o => IsOutput o where
 
 -- | Return the output as it is seen by a validator. In particular the
 -- correctness of this specification will depend on the 'IsOutput' instance, so
--- make sure you get them (in particular the functions 'outputAddress',
+-- make sure you get these instances (in particular the functions 'outputAddress',
 -- 'outputOutputDatum', and 'outputValue') right!
 outputTxOut :: IsOutput o => o -> Pl.TxOut
 outputTxOut o =
