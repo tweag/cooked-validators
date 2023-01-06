@@ -42,6 +42,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Void (Void)
+import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Constraints as Pl
@@ -763,7 +764,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                  in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
                       then
                         Just -- (1)
-                          ( ins <> Map.fromSet (const TxSkelNoRedeemer) (Set.fromList $ map fst newInputs),
+                          ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
                             left ++ (bestTxOut & txSkelOutValueL .~ adjustedValue) : right
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
@@ -782,7 +783,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       if Pl.fromValue returnValue >= Pl.minAdaTxOut
         then
           Just -- (2)
-            ( ins <> Map.fromSet (const TxSkelNoRedeemer) (Set.fromList $ map fst newInputs),
+            ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
               outs ++ [paysPK balancePK returnValue]
             )
         else tryAdditionalInputs ins outs availableUtxos returnValue
@@ -801,8 +802,8 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
               newReturn = additionalValue <> return
               newIns =
                 ( ins
-                    <> Map.fromSet (const TxSkelNoRedeemer) (Set.fromList $ map fst newInputs)
-                    <> Map.singleton newTxOutRef TxSkelNoRedeemer
+                    <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs)
+                    <> Map.singleton newTxOutRef TxSkelNoRedeemerForPK
                 )
               newOuts = outs ++ [paysPK balancePK newReturn]
            in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut

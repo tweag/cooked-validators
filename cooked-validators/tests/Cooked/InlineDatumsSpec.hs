@@ -147,7 +147,7 @@ spendOutputTestTrace useInlineDatum validator = do
           txSkelIns =
             Map.singleton
               theTxOutRef
-              TxSkelNoRedeemer
+              TxSkelNoRedeemerForScript
         }
 
 -- | This defines two traces of two transactions each: On the first transaction,
@@ -182,7 +182,7 @@ continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
           txSkelIns =
             Map.singleton
               theTxOutRef
-              TxSkelNoRedeemer,
+              TxSkelNoRedeemerForScript,
           txSkelOuts =
             [ ( if useInlineDatumOnSecondPayment
                   then paysScriptInlineDatum validator def

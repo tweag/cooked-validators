@@ -894,8 +894,9 @@ type SpendsScriptConstrs a =
   )
 
 data TxSkelRedeemer where
-  TxSkelNoRedeemer :: TxSkelRedeemer
-  TxSkelRedeemer :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
+  TxSkelNoRedeemerForPK :: TxSkelRedeemer
+  TxSkelNoRedeemerForScript :: TxSkelRedeemer
+  TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
 
 deriving instance (Show TxSkelRedeemer)
 
@@ -1002,8 +1003,8 @@ txSkelOutValidators =
   Map.fromList
     . mapMaybe
       ( \txSkelOut ->
-          let typedValidator = txSkelOutValidator txSkelOut
-           in case typedValidator of
+          let validator = txSkelOutValidator txSkelOut
+           in case validator of
                 Nothing -> Nothing
                 Just script -> Just (Ledger.Scripts.validatorHash script, script)
       )

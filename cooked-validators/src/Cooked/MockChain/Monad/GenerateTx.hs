@@ -133,12 +133,12 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelInToTxIn (txOutRef, TxSkelNoRedeemer) =
+    txSkelInToTxIn (txOutRef, TxSkelNoRedeemerForPK) =
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelInToTxIn (txOutRef, TxSkelRedeemer redeemer) = do
+    txSkelInToTxIn (txOutRef, redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
@@ -184,7 +184,11 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
                 datum
-                (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
+                ( Pl.toCardanoScriptData $ case redeemer of
+                    TxSkelNoRedeemerForScript -> Pl.toBuiltinData Pl.unitRedeemer
+                    TxSkelRedeemerForScript red -> Pl.toBuiltinData red
+                    TxSkelNoRedeemerForPK -> error "'TxSkelNoRedeemerForPK' on script input. This cannot happen, as we excluded it with an earlier pattern match"
+                )
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
     -- Convert a list of 'SpendableOut' into a 'C.TxInsCollateral'
