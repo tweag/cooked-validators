@@ -126,6 +126,9 @@ class ToOutputDatum a where
 instance ToOutputDatum Pl.OutputDatum where
   toOutputDatum = id
 
+instance ToOutputDatum Pl.Datum where
+  toOutputDatum = Pl.OutputDatum
+
 instance ToOutputDatum () where
   toOutputDatum = const Pl.NoOutputDatum
 
@@ -214,6 +217,23 @@ isOutputWithoutDatum out = case outputOutputDatum out of
   _ -> Nothing
 
 -- ** Functions to translate between different output types
+
+-- | Test if the output carries some inlined datum (lose the type information
+-- about the datum in favour of Plutus' 'Datum' type).
+isOutputWithInlineDatumUntyped ::
+  IsOutput output =>
+  output ->
+  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output))
+isOutputWithInlineDatumUntyped out =
+  case outputOutputDatum out of
+    Pl.OutputDatum datum ->
+      Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (out ^. outputStakingCredentialL)
+          (out ^. outputValueL)
+          datum
+    _ -> Nothing
 
 -- | Test if the output carries some inlined datum.
 isOutputWithInlineDatum ::

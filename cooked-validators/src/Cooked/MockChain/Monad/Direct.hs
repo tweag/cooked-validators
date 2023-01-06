@@ -295,17 +295,18 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Right txBodyContent -> do
         slot <- currentSlot
         index <- gets mcstIndex
-        someCardanoTx <- undefined
-        -- runTransactionValidation
-        --   slot
-        --   params
-        --   index
-        --   [balancingWallet, collateralWallet]
-        --   txBodyContent
-        --   (txSkelInputData skel) -- TODO these live in the mcstData now
-        --   (txSkelOutputData skel)
-        --   (txSkelOutValidators skel)
-        --   (unsafeModTx $ txSkelOpts skel)
+        inputTxDatums <- txSkelInputDatums skel
+        someCardanoTx <-
+          runTransactionValidation
+            slot
+            params
+            index
+            [balancingWallet, collateralWallet]
+            txBodyContent
+            inputTxDatums
+            (txSkelOutputData skel)
+            (txSkelOutValidators skel)
+            (unsafeModTx $ txSkelOpts skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
@@ -467,6 +468,21 @@ txSkelInputValue :: Monad m => TxSkel -> MockChainT m Pl.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
   return $ foldMap Pl.txOutValue txSkelInputs
+
+-- | Look up the outputs the transaction consumes, and sum the value contained
+-- in them.
+txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
+txSkelInputDatums skel = do
+  txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
+  return $
+    mconcat .
+    (map (\d -> Map.singleton (Pl.datumHash d) d)) .
+    (map (^. outputDatumL)) .
+    (mapMaybe isOutputWithInlineDatumUntyped) $
+    txSkelInputs
+
+txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
+txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.Tx.Internal.getTxOut
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
