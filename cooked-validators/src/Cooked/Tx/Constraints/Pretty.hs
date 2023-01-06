@@ -33,7 +33,8 @@ import Test.Tasty.QuickCheck (NonZero (..))
 
 prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
 prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs fee) =
-  undefined
+  -- undefined
+  PP.viaShow "TODO"
   -- PP.vsep $
   --   "Transaction Skeleton:" :
   --   map
