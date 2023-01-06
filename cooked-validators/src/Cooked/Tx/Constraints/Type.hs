@@ -282,20 +282,23 @@ isOutputWithDatumSuchThat predicate out
   | otherwise = Nothing
 
 -- | Test if the owner an output is a specific script. If it is, return an
--- output with the validator type as its 'OwnerType' and the corresponding
--- datum type as its `DatumType`.
+-- output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
-  (IsOutput output, Pl.FromData (Pl.DatumType a), Pl.ToData (DatumType output)) =>
+  IsOutput output =>
   Pl.TypedValidator a ->
   output ->
-  Maybe (ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) (ValueType output))
+  Maybe (ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output))
 isScriptOutputFrom validator out =
   case outputAddress out of
     Pl.Address (Pl.ScriptCredential scriptHash) mStCred ->
       if scriptHash == Pl.validatorHash validator
-        then do
-          ConcreteOutput validator mStCred (out ^. outputValueL)
-            <$> (Pl.fromBuiltinData . Pl.toBuiltinData $ out ^. outputDatumL)
+        then
+          Just $
+            ConcreteOutput
+              validator
+              mStCred
+              (out ^. outputValueL)
+              (out ^. outputDatumL)
         else Nothing
     _ -> Nothing
 
