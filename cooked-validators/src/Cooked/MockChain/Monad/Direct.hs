@@ -4,9 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
@@ -16,7 +14,6 @@
 
 module Cooked.MockChain.Monad.Direct where
 
-import qualified Cardano.Api as Api
 import qualified Cardano.Api as C
 import Control.Applicative
 import Control.Arrow
@@ -24,10 +21,8 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
-import Cooked.MockChain.Misc
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.GenerateTx
-import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
@@ -41,17 +36,10 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Void (Void)
-import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
-import qualified Ledger.Constraints as Pl
-import qualified Ledger.Index as Pl
 import Ledger.Orphans ()
-import qualified Ledger.Params as Pl
-import qualified Ledger.Slot as Pl
 import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Tx as Pl hiding (TxOut)
 import qualified Ledger.Tx.CardanoAPI as Pl hiding (makeTransactionBody)
 import qualified Ledger.Tx.Internal
 import qualified Ledger.Validation as Pl
@@ -59,8 +47,6 @@ import qualified Ledger.Value as Value
 import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as PV2
 import qualified Plutus.V2.Ledger.Api as PV2
-import qualified Plutus.V2.Ledger.Tx as PV2
-import qualified PlutusTx as Pl
 import qualified PlutusTx.Numeric as Pl
 
 -- * Direct Emulation
@@ -475,12 +461,17 @@ txSkelInputValue skel = do
 txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
 txSkelInputDatums skel = do
   txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
-  return $
-    mconcat
-      . (map (\d -> Map.singleton (Pl.datumHash d) d))
-      . (map (^. outputDatumL))
-      . (mapMaybe isOutputWithInlineDatumUntyped)
-      $ txSkelInputs
+  return
+    . mconcat
+    $ mapMaybe
+      ( \output ->
+          case isOutputWithInlineDatumUntyped output of
+            Just output' ->
+              let datum = output' ^. outputDatumL
+               in Just $ Map.singleton (Pl.datumHash datum) datum
+            Nothing -> Nothing
+      )
+      txSkelInputs
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
