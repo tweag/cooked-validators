@@ -16,12 +16,11 @@ import Cooked
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
-import qualified Debug.Trace as Debug
+import Data.Maybe
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
 import qualified Ledger.Tx.CardanoAPI.Internal as Pl (fromCardanoTxOutToPV2TxInfoTxOut)
 import qualified Ledger.Tx.Internal as Pl (getTxOut)
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
@@ -197,23 +196,27 @@ tests :: TestTree
 tests =
   testGroup
     "inline datums vs. datum hashes"
-    [ testGroup
-        "from the point of view of (script)UtxosSuchThat"
-        [ -- The validator used in these test cases does not actually matter, we
-          -- just need some script to pay to.
-          testCase "the datum is retrieved correctly" $
-            assertBool "... it's not" $ case runMockChain (listUtxosTestTrace True (inputDatumValidator True)) of
-              Right ([(output, _)], _) -> case outputOutputDatum output of
-                Pl.OutputDatum _ -> True
-                _ -> False
-              _ -> False,
-          testCase "the datum hash is retrieved correctly" $
-            assertBool "... it's not" $ case runMockChain (listUtxosTestTrace False (inputDatumValidator True)) of
-              Right ([(output, _)], _) -> case outputOutputDatum output of
-                Pl.OutputDatumHash _ -> True
-                _ -> False
-              _ -> False
-        ],
+    [ testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
+        -- The validator used in these test cases does not actually matter, we
+        -- just need some script to pay to.
+        let theValidator = inputDatumValidator True
+         in [ testCase "the datum is retrieved correctly" $
+                assertBool "... it's not" $
+                  case runMockChain (listUtxosTestTrace True theValidator >> allUtxos) of
+                    Right (utxos, _endState) ->
+                      case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
+                        [Pl.OutputDatum _] -> True
+                        _ -> False
+                    _ -> False,
+              testCase "the datum hash is retrieved correctly" $
+                assertBool "... it's not" $
+                  case runMockChain (listUtxosTestTrace False theValidator >> allUtxos) of
+                    Right (utxos, _endState) ->
+                      case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
+                        [Pl.OutputDatumHash _] -> True
+                        _ -> False
+                    _ -> False
+            ],
       testGroup
         "from the point of view of scripts"
         [ testGroup
