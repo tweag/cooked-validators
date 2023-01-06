@@ -98,9 +98,9 @@ listUtxosTestTrace ::
   ) =>
   Bool ->
   Pl.TypedValidator a ->
-  m [(Pl.TxOut, Pl.TxOutRef)]
+  m [(Pl.TxOutRef, Pl.TxOut)]
 listUtxosTestTrace useInlineDatum validator =
-  map (first (Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut)) . Pl.getCardanoTxOutRefs
+  spOutsFromCardanoTx
     <$> validateTxSkel
       mempty
         { txSkelOpts = def {adjustUnbalTx = True},
@@ -135,7 +135,7 @@ spendOutputTestTrace ::
   Pl.TypedValidator a ->
   m ()
 spendOutputTestTrace useInlineDatum validator = do
-  (_, theTxOutRef) : _ <- listUtxosTestTrace useInlineDatum validator
+  (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
   void $
     validateTxSkel
       mempty
@@ -174,7 +174,7 @@ continuingOutputTestTrace ::
   Pl.TypedValidator a ->
   m ()
 continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
-  (theUtxo, theTxOutRef) : _ <- listUtxosTestTrace True validator
+  (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
   void $
     validateTxSkel
       mempty
@@ -188,7 +188,7 @@ continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
                   then paysScriptInlineDatum validator def
                   else paysScript validator def
               )
-                (outputValue theUtxo)
+                (outputValue theOutput)
             ]
         }
 

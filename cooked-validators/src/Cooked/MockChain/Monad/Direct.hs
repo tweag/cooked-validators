@@ -475,14 +475,11 @@ txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Da
 txSkelInputDatums skel = do
   txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
   return $
-    mconcat .
-    (map (\d -> Map.singleton (Pl.datumHash d) d)) .
-    (map (^. outputDatumL)) .
-    (mapMaybe isOutputWithInlineDatumUntyped) $
-    txSkelInputs
-
-txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
-txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.Tx.Internal.getTxOut
+    mconcat
+      . (map (\d -> Map.singleton (Pl.datumHash d) d))
+      . (map (^. outputDatumL))
+      . (mapMaybe isOutputWithInlineDatumUntyped)
+      $ txSkelInputs
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
