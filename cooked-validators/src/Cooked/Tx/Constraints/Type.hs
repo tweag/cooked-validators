@@ -16,6 +16,7 @@ module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
 import Data.Default
+import Data.Either.Combinators
 import Data.List
 import qualified Data.List.NonEmpty as NE
 import Data.Map (Map)
@@ -26,6 +27,7 @@ import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger.Ada as Pl
+import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Ledger.Value as Pl
@@ -694,16 +696,25 @@ txSkelMintsValue =
 
 -- * Transaction outputs
 
+class IsTxSkelOutAllowedOwner a where
+  toPKHOrValidator :: a -> Either Pl.PubKeyHash (Pl.Versioned Pl.Validator)
+
+instance IsTxSkelOutAllowedOwner Pl.PubKeyHash where
+  toPKHOrValidator = Left
+
+instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
+  toPKHOrValidator = Right . Pl.vValidatorScript
+
 data TxSkelOut where
   Pays ::
     ( IsOutput o,
       Show (OwnerType o),
+      IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
       Show (DatumType o),
       ToOutputDatum (DatumType o),
-      Show (ValueType o),
-      ToValue (ValueType o)
+      ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
     ) =>
     {producedOutput :: o} ->
     TxSkelOut
@@ -713,19 +724,20 @@ deriving instance Show TxSkelOut
 txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
 
--- | This iso is dangerous for the following reason: TODO formulate
--- explanation. TLDR: It depends on many instances in a non-trivial way.
-dangerousProducedOutputIso :: Iso' TxSkelOut Pl.TxOut
-dangerousProducedOutputIso = iso txSkelOutToTxOut Pays
-
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
-txSkelOutValueL = dangerousProducedOutputIso % outputValueL
+txSkelOutValueL =
+  lens
+    (\(Pays output) -> outputValue output)
+    (\(Pays output) newValue -> Pays $ output & outputValueL .~ newValue)
 
 txSkelOutValue :: TxSkelOut -> Pl.Value
 txSkelOutValue = (^. txSkelOutValueL)
 
 -- | If the output goes to a typed validator of some type a, return the
 -- validator.
+--
+-- TODO: I'll leave this function here for now, maybe it,s useful for pretty
+-- printing?
 txSkelOutTypedValidator ::
   forall a.
   Typeable a =>
@@ -744,7 +756,7 @@ txSkelOutTypedValidator (Pays output) =
 --   toVersionedValidator = Pl.vValidatorScript
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
-txSkelOutValidator (Pays output) = undefined
+txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
 -- txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
 -- txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
@@ -940,7 +952,7 @@ txSkelOutValidators =
           let typedValidator = txSkelOutValidator txSkelOut
            in case typedValidator of
                 Nothing -> Nothing
-                Just script -> Just (Pl.validatorHash script, script)
+                Just script -> Just (Ledger.Scripts.validatorHash script, script)
       )
     . txSkelOuts
 

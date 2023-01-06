@@ -304,6 +304,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         --   txBodyContent
         --   (txSkelInputData skel) -- TODO these live in the mcstData now
         --   (txSkelOutputData skel)
+        --   (txSkelOutValidators skel)
         --   (unsafeModTx $ txSkelOpts skel)
         when (autoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
@@ -364,10 +365,12 @@ runTransactionValidation ::
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
   Map Pl.DatumHash Pl.Datum ->
+  -- | The validators on transaction outputs.
+  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
   [RawModTx] ->
   MockChainT m Pl.SomeCardanoApiTx
-runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData rawModTx =
+runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData outputValidators rawModTx =
   let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
       cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
 
@@ -427,7 +430,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                 st
                   { mcstIndex = newUtxoIndex,
                     mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData,
-                    mcstValidators = mcstValidators st `Map.union` txSkelOutputValidators skel
+                    mcstValidators = mcstValidators st `Map.union` outputValidators
                   }
             )
 
