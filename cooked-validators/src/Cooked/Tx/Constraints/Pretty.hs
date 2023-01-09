@@ -48,22 +48,8 @@ prettyEnumNonEmpty :: Doc ann -> Doc ann -> [Doc ann] -> Maybe (Doc ann)
 prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
--- data TxSkel where
---   TxSkel ::
---     { txSkelLabel :: Set TxLabel,
---       txSkelOpts :: TxOpts,
---       txSkelMints :: TxSkelMints,
---       txSkelValidityRange :: Pl.POSIXTimeRange,
---       txSkelRequiredSigners :: Set Pl.PubKeyHash,
---       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
---       txSkelOuts :: [TxSkelOut],
---       txSkelFee :: Integer -- Fee in Lovelace
---     } ->
---     TxSkel
---   deriving (Show)
-
-prettyTxSkel :: TxSkel -> Doc ann
-prettyTxSkel (TxSkel lbl opts mints validityRange signers ins outs fee) =
+prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> TxSkel -> Doc ann
+prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs fee) =
   -- undefined
   PP.vsep $
     "Transaction Skeleton:" :
@@ -75,7 +61,8 @@ prettyTxSkel (TxSkel lbl opts mints validityRange signers ins outs fee) =
             prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
             Just $ "Validity interval:" <+> PP.pretty validityRange,
             prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
-            -- prettyEnumNonEmpty "Inputs:" "-" <$> mapNonEmpty prettyTxSkelIn (Map.toList ins),
+            -- TODO handle unsafe 'fromJust' better
+            prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
             prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
           ]
       )
