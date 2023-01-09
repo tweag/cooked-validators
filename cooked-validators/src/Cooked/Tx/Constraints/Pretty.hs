@@ -89,9 +89,9 @@ prettyTxSkel (TxSkel lbl opts mints validityRange signers ins outs fee) =
 prettyPubKeyHash :: Pl.PubKeyHash -> Doc ann
 prettyPubKeyHash pkh =
   case walletPKHashToId pkh of
-    Nothing -> "Pubkey" <+> prettyHash pkh
+    Nothing -> prettyHash pkh
     Just walletId ->
-      "Pubkey" <+> prettyHash pkh
+      prettyHash pkh
         <+> PP.parens ("wallet" <+> PP.viaShow walletId)
 
 -- prettyMints
