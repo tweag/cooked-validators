@@ -30,7 +30,7 @@ import Data.Default
 import Data.Function (on)
 import Data.List
 import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NEList
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
@@ -135,12 +135,12 @@ data BalanceStage
 
 data MockChainEnv = MockChainEnv
   { mceParams :: Pl.Params,
-    mceSigners :: NE.NonEmpty Wallet
+    mceSigners :: NEList.NonEmpty Wallet
   }
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def (wallet 1 NE.:| [])
+  def = MockChainEnv def (wallet 1 NEList.:| [])
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -250,12 +250,29 @@ utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadBlockChain (MockChainT m) where
+instance (Monad m) => MonadTweakChain (MockChainT m) where
+  txOutByRef outref = gets $ Map.lookup outref . utxoIndexToTxOutMap . mcstIndex
+
+  ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)
+
+  allUtxos = gets $ Map.toList . utxoIndexToTxOutMap . mcstIndex
+
+  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
+
+  currentSlot = gets mcstCurrentSlot
+
+  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
+
+  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
+
+  awaitTime t = do
+    sc <- asks $ Pl.pSlotConfig . mceParams
+    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
+    return $ Pl.slotToBeginPOSIXTime sc s
+
+instance MonadTweakChain m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    -- TODO We use the first signer as a default wallet for fees and
-    -- collaterals. These should become parameters of validateTxSkel in the
-    -- future
-    firstSigner NE.:| _ <- askSigners
+    let firstSigner NEList.:| _ = txSkelSigners skelUnbal
     let balancingWallet = firstSigner
     let balancingWalletPkh = walletPKHash firstSigner
     let collateralWallet = firstSigner
@@ -264,16 +281,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         then
           setFeeAndBalance
             balancingWalletPkh
-            -- We need to add the balancing wallet to the signers before
-            -- calculating the fees. The fees depend on the number of signers: they
-            -- make the transaction heavier.
-            ( skelUnbal
-                & txSkelRequiredSignersL
-                %~ (<> Set.singleton balancingWalletPkh)
-            )
+            skelUnbal
         else return skelUnbal
     collateralInputs <- calcCollateral collateralWallet -- TODO: Why is it OK to balance first and then add collateral?
-    params <- askParams
+    params <- asks mceParams
     managedData <- gets mcstDatums
     managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
     managedValidators <- gets mcstValidators
@@ -288,7 +299,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             slot
             params
             index
-            [balancingWallet, collateralWallet]
+            (NEList.toList $ txSkelSigners skel)
             txBodyContent
             inputTxDatums
             (txSkelOutputData skel)
@@ -298,34 +309,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
-  txOutByRef outref = gets $ Map.lookup outref . utxoIndexToTxOutMap . mcstIndex
-
-  ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
-
-  allUtxos = gets $ Map.toList . utxoIndexToTxOutMap . mcstIndex
-
-  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
-
-  currentSlot = gets mcstCurrentSlot
-
-  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
-
-  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
-
-  awaitTime t = do
-    sc <- slotConfig
-    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
-    return $ Pl.slotToBeginPOSIXTime sc s
-
-instance (Monad m) => MonadMockChain (MockChainT m) where
-  signingWith ws = local $ \env -> env {mceSigners = ws}
-
-  askSigners = asks mceSigners
-
-  askParams = asks mceParams
-
-  localParams f = local (\e -> e {mceParams = f (mceParams e)})
-
 runTransactionValidation ::
   (Monad m) =>
   -- | The current slot
@@ -334,9 +317,9 @@ runTransactionValidation ::
   Pl.Params ->
   -- | The currently known UTxOs
   Pl.UtxoIndex ->
-  -- | List of signers that have to be on the transaction in order for it to be
-  -- Phase 1 - valid. This will be the list that contains the ballancing wallet
-  -- and the collateral wallet.
+  -- | List of signers that were on the 'TxSkel'. This will at least have to
+  -- include all wallets that have to sign in order for the transaction to be
+  -- phase 1 - valid.
   [Wallet] ->
   -- | The transaction to validate. It should already be balanced and have
   -- appropriate collateral.

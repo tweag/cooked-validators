@@ -15,10 +15,12 @@
 module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
+import Cooked.MockChain.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.List
-import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Map.NonEmpty (NEMap)
@@ -676,7 +678,7 @@ txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
         (\(t, n) -> (p, r, t, n))
-          <$> NE.toList (NEMap.toList m)
+          <$> NEList.toList (NEMap.toList m)
     )
     . Map.toList
 
@@ -906,7 +908,7 @@ data TxSkel where
       txSkelOpts :: TxOpts,
       txSkelMints :: TxSkelMints,
       txSkelValidityRange :: Pl.POSIXTimeRange,
-      txSkelRequiredSigners :: Set Pl.PubKeyHash,
+      txSkelSigners :: NonEmpty Wallet,
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
@@ -919,7 +921,7 @@ makeLensesFor
     ("txSkelOpts", "txSkelOptsL"),
     ("txSkelMints", "txSkelMintsL"),
     ("txSkelValidityRange", "txSkelValidityRangeL"),
-    ("txSkelRequiredSigners", "txSkelRequiredSignersL"),
+    ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsCollateral", "txSkelInsCollateralL"),
     ("txSkelOuts", "txSkelOutsL"),
@@ -964,19 +966,6 @@ instance Semigroup TxSkel where
       (i1 <> i2)
       (o1 ++ o2)
       (f1 + f2)
-
-instance Monoid TxSkel where
-  mempty =
-    TxSkel
-      { txSkelLabel = Set.empty,
-        txSkelOpts = mempty,
-        txSkelMints = Map.empty,
-        txSkelValidityRange = Pl.always,
-        txSkelRequiredSigners = Set.empty,
-        txSkelIns = mempty,
-        txSkelOuts = [],
-        txSkelFee = 0
-      }
 
 -- | Return all data on transaction outputs.
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum

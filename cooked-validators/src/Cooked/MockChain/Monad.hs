@@ -29,28 +29,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * BlockChain Monad
 
--- | Base methods for interacting with a UTxO graph through "Cooked.Tx.Constraints".
---  The operations within 'MonadBlockChain' have an implementation over the 'Plutus.Contract.Contract'
---  monad and can be used to build the first layer of off-chain code that
---  needs to interact with code in the @Contract@ monad.
---
--- It is strongly recomended that you write your code polymorphic for some monad @m@:
---
--- > f :: (MonadBlockChain m) => m ()
---
--- This enables you to choose different interpretations at run time. The two immediately interesting
--- interpretations are running your code within the
--- 'Plutus.Contract.Contract' monad to generate and submit transactions and to
--- test the code by running it in the 'Cooked.MockChain.Monad.Direct.MockChain' monad, provided in this library.
-class (MonadFail m) => MonadBlockChain m where
-  -- | Generates and balances a transaction from a skeleton, then attemps to validate such
-  --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
-  --  To balance a transaction, we need access to the current UTxO state to choose
-  --  which inputs to add in case the output-side of the balancing equation is bigger.
-  --
-  --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
-  validateTxSkel :: TxSkel -> m Pl.CardanoTx
-
+class (MonadFail m) => MonadTweakChain m where
   -- | Returns a list of all currently known outputs
   allUtxos :: m [(Pl.TxOutRef, PV2.TxOut)]
 
@@ -83,6 +62,15 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
+class MonadTweakChain m => MonadBlockChain m where
+  -- | Generates and balances a transaction from a skeleton, then attemps to validate such
+  --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
+  --  To balance a transaction, we need access to the current UTxO state to choose
+  --  which inputs to add in case the output-side of the balancing equation is bigger.
+  --
+  --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
+  validateTxSkel :: TxSkel -> m Pl.CardanoTx
+
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
 --
 -- This is useful when writing endpoints and/or traces to fetch utxos of
@@ -97,7 +85,7 @@ txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
-pkUtxosMaybeDatum :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
+pkUtxosMaybeDatum :: MonadTweakChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
 pkUtxosMaybeDatum pkh =
   mapMaybe
     (secondMaybe (isPKOutputFrom pkh))
@@ -105,7 +93,7 @@ pkUtxosMaybeDatum pkh =
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
-pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
+pkUtxos :: MonadTweakChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
 pkUtxos pkh =
   mapMaybe
     (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
@@ -138,94 +126,49 @@ waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
--- ** Monad /Mock/ Chain: multiple identities
+-- -- ** Deriving further 'MonadBlockChain' instances
 
--- | The 'Plutus.Contract.Contract' monad has certain design decisions
--- that make it suboptimal for testing. Therefore, we divided the abstract
--- interface into those functions that have an interpretation in
--- 'Plutus.Contract.Contract' and those that do not.
---
--- For example, a function returning a value of type @Contract@ can be thought
--- of as an interaction with a plutus contract from a /single user/ point of view.
--- When testing, however, we might want to interact with a contract from multiple different users.
--- Changing the set of wallets that sign a transaction has no interpretation
--- in 'Plutus.Contract.Contract' and can only be used with the testing monads.
-class (MonadBlockChain m) => MonadMockChain m where
-  -- | Sets a list of wallets that will sign every transaction emitted
-  --  in the respective block
-  signingWith :: NE.NonEmpty Wallet -> m a -> m a
+-- -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
+-- -- for any 'MonadTrans'.
+-- --
+-- -- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
+-- --
+-- -- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+-- --
+-- -- and avoid the boilerplate of defining all the methods of the class yourself.
+-- newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
+--   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
-  -- | Returns the current set of signing wallets.
-  askSigners :: m (NE.NonEmpty Wallet)
+-- instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
+--   validateTxSkel = lift . validateTxSkel
+--   allUtxos = lift allUtxos
+--   txOutByRef = lift . txOutByRef
+--   datumFromHash = lift . datumFromHash
+--   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+--   currentSlot = lift currentSlot
+--   currentTime = lift currentTime
+--   awaitSlot = lift . awaitSlot
+--   awaitTime = lift . awaitTime
 
-  -- | Returns the protocol parameters of the mock chain, which includes
-  -- the slot config.
-  askParams :: m Pl.Params
+-- -- This might be assigned a more general type,
+-- -- but this type is more inference-friendly, and it also seems to communicate the idea better.
+-- unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
+-- f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
 
-  -- | Modify the parameters according to some function
-  localParams :: (Pl.Params -> Pl.Params) -> m a -> m a
+-- instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
+--   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
+--   askSigners = lift askSigners
+--   askParams = lift askParams
+--   localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
 
--- | Runs a given block of computations signing transactions as @w@.
-as :: (MonadMockChain m) => m a -> Wallet -> m a
-as ma w = signingWith (w NE.:| []) ma
+-- deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
--- | Flipped version of 'as'
-signs :: (MonadMockChain m) => Wallet -> m a -> m a
-signs = flip as
+-- deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadMockChain m) => MonadMockChain (WriterT w m)
 
--- | Return the 'Pl.SlotConfig' contained within the current 'Pl.Params'
-slotConfig :: (MonadMockChain m) => m Pl.SlotConfig
-slotConfig = Pl.pSlotConfig <$> askParams
+-- deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
--- | Set higher limits on transaction size and execution units.
--- This can be used to work around @MaxTxSizeUTxO@ and @ExUnitsTooBigUTxO@ errors.
--- Note that if you need this your Plutus script will probably not validate on Mainnet.
-allowBigTransactions :: (MonadMockChain m) => m a -> m a
-allowBigTransactions = localParams Pl.increaseTransactionLimits
+-- deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
 
--- ** Deriving further 'MonadBlockChain' instances
+-- deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
 
--- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
--- for any 'MonadTrans'.
---
--- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
---
--- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
---
--- and avoid the boilerplate of defining all the methods of the class yourself.
-newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
-  deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
-
-instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
-  validateTxSkel = lift . validateTxSkel
-  allUtxos = lift allUtxos
-  txOutByRef = lift . txOutByRef
-  datumFromHash = lift . datumFromHash
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
-  currentSlot = lift currentSlot
-  currentTime = lift currentTime
-  awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
-
--- This might be assigned a more general type,
--- but this type is more inference-friendly, and it also seems to communicate the idea better.
-unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
-f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
-
-instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
-  signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
-  askSigners = lift askSigners
-  askParams = lift askParams
-  localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
-
-deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
-
-deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadMockChain m) => MonadMockChain (WriterT w m)
-
-deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
-
-deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
-
-deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
-
-deriving via (AsTrans (StateT s) m) instance MonadMockChain m => MonadMockChain (StateT s m)
+-- deriving via (AsTrans (StateT s) m) instance MonadMockChain m => MonadMockChain (StateT s m)

@@ -12,10 +12,12 @@ import Cooked.Tx.Constraints.Type
 import Data.Char
 import Data.Default
 import Data.Either
+import qualified Data.List.NonEmpty as NEList
+import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
-import qualified Ledger as Pl hiding (mintingPolicyHash, unspentOutputs, validatorHash, TxOut)
+import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress, validatorHash)
 import qualified Ledger.Value as Pl
 import Optics.Core
@@ -26,7 +28,6 @@ import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import Test.QuickCheck (NonZero)
 import Test.Tasty.QuickCheck (NonZero (..))
-import Data.Map (Map)
 
 -- prettyEnum "Foo" "-" ["bar1", "bar2", "bar3"]
 --    Foo
@@ -59,20 +60,19 @@ prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 --     TxSkel
 --   deriving (Show)
 
-prettyTxSkel :: [Wallet] -> TxSkel -> Doc ann
-prettyTxSkel signers (TxSkel lbl opts mints validityRange reqSigners ins outs fee) =
+prettyTxSkel :: TxSkel -> Doc ann
+prettyTxSkel (TxSkel lbl opts mints validityRange signers ins outs fee) =
   -- undefined
   PP.vsep $
     "Transaction Skeleton:" :
     map
       ("-" <+>)
       ( catMaybes
-          [ prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> signers),
-            prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
+          [ prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
             -- fmap ("Opts:" <+>) (prettyOpts opts),
             prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
             Just $ "Validity interval:" <+> PP.pretty validityRange,
-            prettyEnumNonEmpty "Required signers:" "-" (prettyPubKeyHash <$> Set.toList reqSigners),
+            prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
             -- prettyEnumNonEmpty "Inputs:" "-" <$> mapNonEmpty prettyTxSkelIn (Map.toList ins),
             prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
           ]
