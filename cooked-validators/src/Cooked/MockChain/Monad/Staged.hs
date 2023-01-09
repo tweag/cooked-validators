@@ -20,17 +20,13 @@ import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Pretty
 import Cooked.Tx.Constraints.Type
-import qualified Data.List.NonEmpty as NE
 import qualified Ledger as Pl
-import qualified Ledger.Scripts as Pl
-import qualified PlutusTx as Pl (FromData)
+import qualified Plutus.V2.Ledger.Api as PV2
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
-import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -75,11 +71,6 @@ data MockChainBuiltin a where
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
-  -- the following are only available in MonadMockChain, not MonadBlockChain:
-  SigningWith :: NE.NonEmpty Wallet -> StagedMockChain a -> MockChainBuiltin a
-  AskSigners :: MockChainBuiltin (NE.NonEmpty Wallet)
-  GetParams :: MockChainBuiltin Pl.Params
-  LocalParams :: (Pl.Params -> Pl.Params) -> StagedMockChain a -> MockChainBuiltin a
   -- the following are not strictly blockchain specific, but they allow us to
   -- combine several traces into one and to signal failure.
 
@@ -133,14 +124,12 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
         msum $
           map
             ( \(skel', _) -> do
-                signers <- askSigners
-                lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ ValidateTxSkel skel'
+                lift $ lift $ tell $ prettyMockChainOp $ Builtin $ ValidateTxSkel skel'
                 tx <- validateTxSkel skel'
                 put later
                 return tx
             )
             (now mcst skel)
-  interpBuiltin (SigningWith ws act) = signingWith ws (interpLtl act)
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
@@ -148,30 +137,26 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
-  interpBuiltin AskSigners = askSigners
-  interpBuiltin GetParams = askParams
   interpBuiltin AllUtxos = allUtxos
-  interpBuiltin (LocalParams f act) = localParams f (interpLtl act)
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
-    signers <- askSigners
-    lift $ lift $ tell $ prettyMockChainOp signers $ Builtin $ Fail msg
+    lift $ lift $ tell $ prettyMockChainOp $ Builtin $ Fail msg
     fail msg
 
 -- ** Modalities
 
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
-type MonadModalMockChain m = (MonadMockChain m, MonadModal m, Modification m ~ UntypedTweak)
+type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak)
 
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
-somewhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+somewhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
 somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
-everywhere :: MonadModalMockChain m => Tweak b -> m a -> m a
+everywhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
 everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
@@ -185,7 +170,7 @@ everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 -- where @endpoint@ builds and validates a single transaction depending on the
 -- given @arguments@. Then `withTweak` says "I want to modify the transaction
 -- returned by this endpoint in the following way".
-withTweak :: MonadModalMockChain m => m x -> Tweak a -> m x
+withTweak :: MonadModalBlockChain m => m x -> Tweak a -> m x
 withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
@@ -193,8 +178,7 @@ withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
-instance MonadBlockChain StagedMockChain where
-  validateTxSkel = singletonBuiltin . ValidateTxSkel
+instance MonadTweakChain StagedMockChain where
   datumFromHash = singletonBuiltin . DatumFromHash
   allUtxos = singletonBuiltin AllUtxos
   txOutByRef = singletonBuiltin . TxOutByRef
@@ -204,24 +188,21 @@ instance MonadBlockChain StagedMockChain where
   awaitSlot = singletonBuiltin . AwaitSlot
   awaitTime = singletonBuiltin . AwaitTime
 
-instance MonadMockChain StagedMockChain where
-  signingWith ws act = singletonBuiltin (SigningWith ws act)
-  askSigners = singletonBuiltin AskSigners
-  askParams = singletonBuiltin GetParams
-  localParams f act = singletonBuiltin (LocalParams f act)
+instance MonadBlockChain StagedMockChain where
+  validateTxSkel = singletonBuiltin . ValidateTxSkel
 
 -- * Human Readable Traces
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: NE.NonEmpty Wallet -> MockChainOp a -> TraceDescr
-prettyMockChainOp signers (Builtin (ValidateTxSkel skel)) =
+prettyMockChainOp :: MockChainOp a -> TraceDescr
+prettyMockChainOp (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $
-      PP.vsep ["ValidateTxSkel", prettyTxSkel (NE.toList signers) skel]
-prettyMockChainOp _ (Builtin (Fail reason)) =
+      PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
+prettyMockChainOp (Builtin (Fail reason)) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ _ = mempty
+prettyMockChainOp _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).

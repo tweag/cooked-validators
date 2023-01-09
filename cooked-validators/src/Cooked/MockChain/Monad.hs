@@ -17,13 +17,10 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
-import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Kind
-import qualified Data.List.NonEmpty as NE
 import Data.Maybe
 import qualified Ledger as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 
@@ -126,49 +123,40 @@ waitNMilliSeconds n = do
   t <- currentTime
   awaitTime $ t + Pl.fromMilliSeconds n
 
--- -- ** Deriving further 'MonadBlockChain' instances
+-- ** Deriving further 'MonadBlockChain' instances
 
--- -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
--- -- for any 'MonadTrans'.
--- --
--- -- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
--- --
--- -- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
--- --
--- -- and avoid the boilerplate of defining all the methods of the class yourself.
--- newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
---   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
+-- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
+-- for any 'MonadTrans'.
+--
+-- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
+--
+-- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+--
+-- and avoid the boilerplate of defining all the methods of the class yourself.
+newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
+  deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
--- instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
---   validateTxSkel = lift . validateTxSkel
---   allUtxos = lift allUtxos
---   txOutByRef = lift . txOutByRef
---   datumFromHash = lift . datumFromHash
---   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
---   currentSlot = lift currentSlot
---   currentTime = lift currentTime
---   awaitSlot = lift . awaitSlot
---   awaitTime = lift . awaitTime
+instance (MonadTrans t, MonadTweakChain m, MonadFail (t m)) => MonadTweakChain (AsTrans t m) where
+  allUtxos = lift allUtxos
+  txOutByRef = lift . txOutByRef
+  datumFromHash = lift . datumFromHash
+  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+  currentSlot = lift currentSlot
+  currentTime = lift currentTime
+  awaitSlot = lift . awaitSlot
+  awaitTime = lift . awaitTime
 
--- -- This might be assigned a more general type,
--- -- but this type is more inference-friendly, and it also seems to communicate the idea better.
--- unliftOn :: (MonadTransControl t, Monad m, Monad (t m)) => (m (StT t a) -> m (StT t a)) -> t m a -> t m a
--- f `unliftOn` act = liftWith (\run -> f (run act)) >>= restoreT . pure
+instance (MonadTransControl t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
+  validateTxSkel = lift . validateTxSkel
 
--- instance (MonadTransControl t, MonadMockChain m, MonadFail (t m)) => MonadMockChain (AsTrans t m) where
---   signingWith wallets (AsTrans act) = AsTrans $ signingWith wallets `unliftOn` act
---   askSigners = lift askSigners
---   askParams = lift askParams
---   localParams f (AsTrans act) = AsTrans $ localParams f `unliftOn` act
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadTweakChain m) => MonadTweakChain (WriterT w m)
 
--- deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
--- deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadMockChain m) => MonadMockChain (WriterT w m)
+deriving via (AsTrans (ReaderT r) m) instance MonadTweakChain m => MonadTweakChain (ReaderT r m)
 
--- deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
--- deriving via (AsTrans (ReaderT r) m) instance MonadMockChain m => MonadMockChain (ReaderT r m)
+deriving via (AsTrans (StateT s) m) instance MonadTweakChain m => MonadTweakChain (StateT s m)
 
--- deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
-
--- deriving via (AsTrans (StateT s) m) instance MonadMockChain m => MonadMockChain (StateT s m)
+deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
