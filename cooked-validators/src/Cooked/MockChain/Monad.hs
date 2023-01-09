@@ -30,7 +30,7 @@ class (MonadFail m) => MonadTweakChain m where
   allUtxos :: m [(Pl.TxOutRef, PV2.TxOut)]
 
   -- | Returns the datum with the given hash, or 'Nothing' if there is none
-  datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
+  datumFromHash :: Pl.DatumHash -> m (Maybe (Pl.Datum, String))
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe PV2.TxOut)

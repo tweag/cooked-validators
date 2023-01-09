@@ -68,7 +68,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, String))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to

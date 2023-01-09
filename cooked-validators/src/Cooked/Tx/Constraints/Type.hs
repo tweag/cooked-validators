@@ -819,8 +819,10 @@ since 'txSkeloutToTxOut' is implemented in terms of 'outputTxOut'.
 -}
 
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> Pl.Datum
-txSkelOutDatumComplete (Pays output) = Pl.Datum . Pl.toBuiltinData $ output ^. outputDatumL
+txSkelOutDatumComplete :: TxSkelOut -> (Pl.Datum, String)
+txSkelOutDatumComplete (Pays output) =
+  let datum = output ^. outputDatumL
+   in (Pl.Datum . Pl.toBuiltinData $ datum, show datum)
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
@@ -920,14 +922,14 @@ txSkelTemplate =
     }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, String)
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
         % folded
         % to txSkelOutDatumComplete -- if you're wondering why to use this function, see the [note on TxSkelOut data]
     )
-    (\datum -> Map.singleton (Pl.datumHash datum) datum)
+    (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":

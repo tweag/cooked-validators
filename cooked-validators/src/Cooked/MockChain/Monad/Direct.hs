@@ -84,8 +84,7 @@ mcstToUtxoState s =
 
     datumHashToDatum :: Pl.DatumHash -> Maybe UtxoDatum
     datumHashToDatum datumHash = do
-      datumStr <- Map.lookup datumHash (mcstStrDatums s)
-      datum <- Map.lookup datumHash (mcstDatums s)
+      (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
       return $ UtxoDatum datum datumStr
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
@@ -94,8 +93,7 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash Pl.Datum,
-    mcstStrDatums :: Map Pl.DatumHash String,
+    mcstDatums :: Map Pl.DatumHash (Pl.Datum, String),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Pl.Slot
   }
@@ -234,10 +232,10 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty Map.empty def
+mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty Map.empty def
+mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
 
 instance Default MockChainSt where
   def = mockChainSt0
@@ -337,7 +335,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, String) ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -539,7 +537,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Pl.Params ->
   Pl.UTxO Pl.EmulatorEra ->
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, String) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
