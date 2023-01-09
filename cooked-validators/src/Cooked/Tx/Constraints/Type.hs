@@ -426,7 +426,7 @@ instance Default BalancingWallet where
 -- 'BalanceWithFirstSigner'.
 instance Semigroup BalancingWallet where
   x <> BalanceWithFirstSigner = x
-  x <> y = y
+  _ <> y = y
 
 instance Monoid BalancingWallet where
   mempty = def
