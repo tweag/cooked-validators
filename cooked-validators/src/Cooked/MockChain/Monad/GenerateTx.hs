@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -18,7 +19,6 @@ import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
-import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
 
 data GenerateTxError
@@ -58,7 +58,7 @@ generateTxBodyContent ::
 generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM txSkelOutToTxOut $ txSkelOuts skel
+  txOuts <- mapM txSkelOutToCardanoTxOut $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -133,12 +133,12 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelInToTxIn (txOutRef, TxSkelNoRedeemer) =
+    txSkelInToTxIn (txOutRef, TxSkelNoRedeemerForPK) =
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
         (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
         $ Pl.toCardanoTxIn txOutRef
-    txSkelInToTxIn (txOutRef, TxSkelRedeemer redeemer) = do
+    txSkelInToTxIn (txOutRef, redeemer) = do
       witness <- mkWitness
       bimap
         (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
@@ -184,7 +184,11 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
                 datum
-                (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
+                ( Pl.toCardanoScriptData $ case redeemer of
+                    TxSkelNoRedeemerForScript -> Pl.toBuiltinData Pl.unitRedeemer
+                    TxSkelRedeemerForScript red -> Pl.toBuiltinData red
+                    TxSkelNoRedeemerForPK -> error "'TxSkelNoRedeemerForPK' on script input. This cannot happen, as we excluded it with an earlier pattern match"
+                )
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
     -- Convert a list of 'SpendableOut' into a 'C.TxInsCollateral'
@@ -197,18 +201,14 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
         toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
 
-    txSkelOutToTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToTxOut (Pays output) =
+    txSkelOutToCardanoTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+    txSkelOutToCardanoTxOut txSkelOut =
       left
         (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
         ( Pl.toCardanoTxOut
             (Pl.pNetworkId theParams)
             Pl.toCardanoTxOutDatum
-            $ Pl.TxOut
-              (output ^. getting sOutAddressL)
-              (output ^. sOutValueL)
-              (output ^. getting sOutOutputDatumL)
-              Nothing -- What to do about reference scripts?
+            $ txSkelOutToTxOut txSkelOut
         )
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'

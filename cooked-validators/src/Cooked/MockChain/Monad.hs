@@ -7,7 +7,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -18,24 +17,15 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
-import Cooked.MockChain.Misc
-import Cooked.MockChain.UtxoPredicate
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
-import Data.Function (on)
 import Data.Kind
 import qualified Data.List.NonEmpty as NE
 import Data.Maybe
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Params as Pl
-import qualified Ledger.Slot as Pl
+import qualified Ledger as Pl
 import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Tx as Pl hiding (TxOut)
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress)
-import Optics.Core
-import qualified Plutus.V1.Ledger.Time as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx as Pl (FromData (fromBuiltinData))
+import qualified Ledger.Tx.CardanoAPI as Pl
+import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * BlockChain Monad
 
@@ -62,13 +52,13 @@ class (MonadFail m) => MonadBlockChain m where
   validateTxSkel :: TxSkel -> m Pl.CardanoTx
 
   -- | Returns a list of all currently known outputs
-  allUtxos :: m [(Pl.TxOutRef, Pl.TxOut)]
+  allUtxos :: m [(Pl.TxOutRef, PV2.TxOut)]
 
   -- | Returns the datum with the given hash, or 'Nothing' if there is none
   datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
 
   -- | Returns an output given a reference to it
-  txOutByRef :: Pl.TxOutRef -> m (Maybe Pl.TxOut)
+  txOutByRef :: Pl.TxOutRef -> m (Maybe PV2.TxOut)
 
   -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
   --  this is a proxy to 'Pl.ownPubKey'; when running in mock mode, the return value can be
@@ -93,139 +83,32 @@ class (MonadFail m) => MonadBlockChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
--- -- | Some values of type "SpendableOut" have no explicit datum in their
--- -- "ChainIndexTxOut" but the datum hash instead. When used in cooked
--- -- constraints, this results in a runtime error. This function modifies the
--- -- value to replace the datum hash by the datum by looking it up in the state
--- -- of the block chain.
--- --
--- -- Outputs obtained from a "CardanoTx" (using "getCardanoTxOutRefs") have datum
--- -- hashes instead of datums. If you want to use them in spend constraints, you
--- -- first have to preprocess them with this function.
--- --
--- -- As a user though, when writing endpoints and traces, you will prefer to use
--- -- the "spOutsFromCardanoTx" helper if you need to extract a "SpendableOut"
--- -- from a "CardanoTx" to use it in a spend constraint.
--- spOutResolveDatum ::
---   MonadBlockChain m =>
---   SpendableOut ->
---   m SpendableOut
--- spOutResolveDatum o =
---   case o ^? sOutDatumOrHashAT of
---     Just (datumHash, Nothing) ->
---       do
---         mDatum <- datumFromHash datumHash
---         case mDatum of
---           Nothing -> fail "datum hash not found in block chain state"
---           Just datum -> return $ o & sOutDatumOrHashAT .~ (datumHash, Just datum)
---     _ -> return o
+-- | Retrieve the ordered list of outputs of the given "CardanoTx".
+--
+-- This is useful when writing endpoints and/or traces to fetch utxos of
+-- interest right from the start and avoid querying the chain for them
+-- afterwards using 'allUtxos' or similar functions.
+spOutsFromCardanoTx :: Pl.CardanoTx -> [(Pl.TxOutRef, PV2.TxOut)]
+spOutsFromCardanoTx =
+  map (\(txOut, txOutRef) -> (txOutRef, txOutV2fromV1 txOut)) . Pl.getCardanoTxOutRefs
 
--- -- | Retrieve the ordered list of "SpendableOutput" corresponding to each
--- -- output of the given "CardanoTx". These "SpendableOutput" are processed to
--- -- remove unresolved datum hashes with "spOutResolveDatum" so that they can be
--- -- used in spending constraints.
--- --
--- -- This is useful when writing endpoints and/or traces to fetch utxos of
--- -- interest right from the start and avoid querying the chain for them
--- -- afterwards using "utxosSuchThat" functions.
--- spOutsFromCardanoTx :: MonadBlockChain m => Pl.CardanoTx -> m [SpendableOut]
--- spOutsFromCardanoTx cardanoTx =
---   forM (Pl.getCardanoTxOutRefs cardanoTx) $
---     \(txOut, txOutRef) ->
---       case cTxOutToCito txOut of
---         Just chainIndexTxOut -> spOutResolveDatum (SpendableOut txOutRef chainIndexTxOut)
---         Nothing -> fail "could not extract ChainIndexTxOut"
+txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
+txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 
--- -- | Retrieve a typed datum from a 'SpendableOut'. This function is useful if you
--- -- know the type of datum you expect on a 'SpendableOut' and you want to extract
--- -- the datum directly to the correct 'DatumType' for your validator.
--- --
--- -- This function has an ambiguous type, so it is probably necessary to
--- -- type-apply it to the type of your validator.
--- spOutGetDatum :: (Pl.FromData (Pl.DatumType a), MonadBlockChain m) => SpendableOut -> m (Pl.DatumType a)
--- spOutGetDatum spOut = do
---   mDatum <- datumFromSpOut spOut
---   case mDatum of
---     Nothing -> fail "there is no datum on this output"
---     Just datum -> parseDatum datum
---   where
---     parseDatum (Pl.Datum builtinData) =
---       case Pl.fromBuiltinData builtinData of
---         Just d -> return d
---         Nothing -> fail "could not parse datum to correct type"
+-- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
+-- value.
+pkUtxosMaybeDatum :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
+pkUtxosMaybeDatum pkh =
+  mapMaybe
+    (secondMaybe (isPKOutputFrom pkh))
+    <$> allUtxos
 
--- datumFromSpOut :: MonadBlockChain m => SpendableOut -> m (Maybe Pl.Datum)
--- datumFromSpOut (SpendableOut _ chainIndexTxOut) = datumFromTxOut chainIndexTxOut
-
--- datumFromTxOut :: MonadBlockChain m => Pl.ChainIndexTxOut -> m (Maybe Pl.Datum)
--- datumFromTxOut o =
---   case o ^? chainIndexTxOutDatumOrHashAT of
---     Nothing -> return Nothing
---     Just (_, Just datum) -> return $ Just datum
---     Just (datumHash, Nothing) -> datumFromHash datumHash
-
--- -- | Select public-key UTxOs that might contain some datum but no staking address.
--- -- This is just a simpler variant of 'utxosSuchThat'. If you care about staking credentials
--- -- you must use 'utxosSuchThat' directly.
--- pkUtxosSuchThat ::
---   forall a m.
---   (MonadBlockChain m, Pl.FromData a) =>
---   Pl.PubKeyHash ->
---   UtxoPredicate a ->
---   m [(SpendableOut, Maybe a)]
--- pkUtxosSuchThat pkh = utxosSuchThat (Pl.Address (Pl.PubKeyCredential pkh) Nothing)
-
--- -- | Select public-key UTxOs that do not contain some datum nor staking address.
--- -- This is just a simpler variant of 'pkUtxosSuchThat'.
--- pkUtxosSuchThatValue ::
---   (MonadBlockChain m) =>
---   Pl.PubKeyHash ->
---   (Pl.Value -> Bool) ->
---   m [SpendableOut]
--- pkUtxosSuchThatValue pkh predi =
---   map fst <$> pkUtxosSuchThat @() pkh (valueSat predi)
-
--- -- | Script UTxOs always have a datum, hence, can be selected easily with
--- --  a simpler variant of 'utxosSuchThat'. It is important to pass a value for type variable @a@
--- --  with an explicit type application to make sure the conversion to and from 'Pl.Datum' happens correctly.
--- scriptUtxosSuchThat ::
---   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
---   Pl.TypedValidator tv ->
---   -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
---   (Pl.DatumType tv -> Pl.Value -> Bool) ->
---   m [(SpendableOut, Pl.DatumType tv)]
--- scriptUtxosSuchThat v predicate =
---   map (second fromJust)
---     <$> utxosSuchThat
---       (Pl.validatorAddress v)
---       (maybe (const False) predicate)
-
--- -- | Same as above, but ignoring the StakingCredential in the address after filtering.
--- scriptUtxosSuchThatIgnoringSCred ::
---   (MonadBlockChain m, Pl.FromData (Pl.DatumType tv)) =>
---   Pl.TypedValidator tv ->
---   -- | Slightly different from 'UtxoPredicate': here we're guaranteed to have a datum present.
---   (Pl.DatumType tv -> Pl.Value -> Bool) ->
---   m [(SpendableOut, Pl.DatumType tv)]
--- scriptUtxosSuchThatIgnoringSCred v predicate =
---   map (second fromJust)
---     <$> utxosSuchThisAndThat
---       (((==) `on` Pl.addressCredential) (Pl.validatorAddress v))
---       (maybe (const False) predicate)
-
--- -- | Returns the output associated with a given reference
--- outFromOutRef :: (MonadBlockChain m) => Pl.TxOutRef -> m Pl.TxOut
--- outFromOutRef outref = do
---   mo <- txOutByRef outref
---   case mo of
---     Just o -> return o
---     Nothing -> fail ("No output associated with: " ++ show outref)
-
--- | Return all UTxOs belonging to a particular pubkey that have no datum on them
+-- | Return all UTxOs belonging to a particular pubkey that have no datum on
+-- them.
 pkUtxos :: MonadBlockChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
 pkUtxos pkh =
   mapMaybe
-    (secondMaybe $ isOutputWithoutDatum <=< isPKOutputFrom pkh)
+    (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
     <$> allUtxos
 
 -- | A little helper for all of the "utxosSuchThat"-like functions. Why is
