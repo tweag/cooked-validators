@@ -411,6 +411,26 @@ instance Semigroup BalanceOutputPolicy where
 instance Monoid BalanceOutputPolicy where
   mempty = def
 
+-- | Which wallet to use to provide outputs for balancing and collaterals.
+-- Either the first signer or an explicit wallet. In the second case, this
+-- wallet must be a signer of the transaction.
+data BalancingWallet
+  = BalanceWithFirstSigner
+  | BalanceWith Wallet
+  deriving (Eq, Ord, Show)
+
+instance Default BalancingWallet where
+  def = BalanceWithFirstSigner
+
+-- | This instance prioritizes the second wallet, unless it is
+-- 'BalanceWithFirstSigner'.
+instance Semigroup BalancingWallet where
+  x <> BalanceWithFirstSigner = x
+  x <> y = y
+
+instance Monoid BalancingWallet where
+  mempty = def
+
 -- | Wraps a function that will be applied to a transaction right before
 -- submitting it.
 newtype RawModTx
@@ -494,7 +514,13 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @AdjustExistingOutput@.
-    balanceOutputPolicy :: BalanceOutputPolicy
+    balanceOutputPolicy :: BalanceOutputPolicy,
+    -- | Which wallet to use to provide outputs for balancing and collaterals.
+    -- Either the first signer by default, or an explicit wallet. In the second
+    -- case, this wallet must be a signer of the transaction. This option WILL
+    -- NOT ensure that it is added in case it is not already present in the
+    -- list of signers.
+    balanceWallet :: BalancingWallet
   }
   deriving (Eq, Show)
 
@@ -507,7 +533,8 @@ instance Default TxOpts where
         forceOutputOrdering = True,
         unsafeModTx = [],
         balance = True,
-        balanceOutputPolicy = def
+        balanceOutputPolicy = def,
+        balanceWallet = def
       }
 
 -- | This instance always takes the non-default value on booleans, if either of
@@ -521,6 +548,7 @@ instance Semigroup TxOpts where
       unsafeModTx1
       balance1
       balanceOutputPolicy1
+      balanceWallet1
     )
     <> ( TxOpts
            adjustUnbalTx2
@@ -530,6 +558,7 @@ instance Semigroup TxOpts where
            unsafeModTx2
            balance2
            balanceOutputPolicy2
+           balanceWallet2
          ) =
       TxOpts
         (takeNonDefault (adjustUnbalTx def) adjustUnbalTx1 adjustUnbalTx2)
@@ -539,6 +568,7 @@ instance Semigroup TxOpts where
         (unsafeModTx1 ++ unsafeModTx2) -- this will apply the left modifications first. See the definitions of 'applyRawModOnUnbalancedTx' and 'applyRawModOnBalancedTx'
         (takeNonDefault (balance def) balance1 balance2)
         (balanceOutputPolicy1 <> balanceOutputPolicy2)
+        (balanceWallet1 <> balanceWallet2)
       where
         takeNonDefault d a b = if any (/= d) [a, b] then not d else d
 
