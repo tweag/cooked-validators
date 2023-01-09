@@ -102,7 +102,7 @@ listUtxosTestTrace ::
 listUtxosTestTrace useInlineDatum validator =
   spOutsFromCardanoTx
     <$> validateTxSkel
-      mempty
+      txSkelTemplate
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelOuts =
             [ ( if useInlineDatum
@@ -138,7 +138,7 @@ spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
   void $
     validateTxSkel
-      mempty
+      txSkelTemplate
         { txSkelOpts =
             def
               { adjustUnbalTx = True
@@ -177,7 +177,7 @@ continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
   (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
   void $
     validateTxSkel
-      mempty
+      txSkelTemplate
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelIns =
             Map.singleton

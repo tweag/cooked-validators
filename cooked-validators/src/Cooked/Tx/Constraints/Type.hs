@@ -959,6 +959,21 @@ makeLensesFor
   ]
   ''TxSkel
 
+-- | A convenience template where wallet 1 is the default signer of an
+-- otherwise empty transaction skeleton.
+txSkelTemplate :: TxSkel
+txSkelTemplate =
+  TxSkel
+    { txSkelLabel = Set.empty,
+      txSkelOpts = def,
+      txSkelMints = Map.empty,
+      txSkelValidityRange = Pl.always,
+      txSkelSigners = wallet 1 NEList.:| [],
+      txSkelIns = Map.empty,
+      txSkelOuts = [],
+      txSkelFee = 0
+    }
+
 -- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
 -- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
 -- contained in @a@ and all requirements contained in @b@. There are a few
