@@ -403,14 +403,6 @@ data BalanceOutputPolicy
 instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
--- | This instance always takes the non-default value, if either of the
--- arguments is non-default.
-instance Semigroup BalanceOutputPolicy where
-  a <> b = fromMaybe def (find (/= def) [a, b])
-
-instance Monoid BalanceOutputPolicy where
-  mempty = def
-
 -- | Which wallet to use to provide outputs for balancing and collaterals.
 -- Either the first signer or an explicit wallet. In the second case, this
 -- wallet must be a signer of the transaction.
@@ -421,15 +413,6 @@ data BalancingWallet
 
 instance Default BalancingWallet where
   def = BalanceWithFirstSigner
-
--- | This instance prioritizes the second wallet, unless it is
--- 'BalanceWithFirstSigner'.
-instance Semigroup BalancingWallet where
-  x <> BalanceWithFirstSigner = x
-  _ <> y = y
-
-instance Monoid BalancingWallet where
-  mempty = def
 
 -- | Wraps a function that will be applied to a transaction right before
 -- submitting it.
@@ -536,44 +519,6 @@ instance Default TxOpts where
         balanceOutputPolicy = def,
         balanceWallet = def
       }
-
--- | This instance always takes the non-default value on booleans, if either of
--- the arguments is non-default.
-instance Semigroup TxOpts where
-  ( TxOpts
-      adjustUnbalTx1
-      awaitTxConfirmed1
-      autoSlotIncrease1
-      forceOutputOrdering1
-      unsafeModTx1
-      balance1
-      balanceOutputPolicy1
-      balanceWallet1
-    )
-    <> ( TxOpts
-           adjustUnbalTx2
-           awaitTxConfirmed2
-           autoSlotIncrease2
-           forceOutputOrdering2
-           unsafeModTx2
-           balance2
-           balanceOutputPolicy2
-           balanceWallet2
-         ) =
-      TxOpts
-        (takeNonDefault (adjustUnbalTx def) adjustUnbalTx1 adjustUnbalTx2)
-        (takeNonDefault (awaitTxConfirmed def) awaitTxConfirmed1 awaitTxConfirmed2)
-        (takeNonDefault (autoSlotIncrease def) autoSlotIncrease1 autoSlotIncrease2)
-        (takeNonDefault (forceOutputOrdering def) forceOutputOrdering1 forceOutputOrdering2)
-        (unsafeModTx1 ++ unsafeModTx2) -- this will apply the left modifications first. See the definitions of 'applyRawModOnUnbalancedTx' and 'applyRawModOnBalancedTx'
-        (takeNonDefault (balance def) balance1 balance2)
-        (balanceOutputPolicy1 <> balanceOutputPolicy2)
-        (balanceWallet1 <> balanceWallet2)
-      where
-        takeNonDefault d a b = if any (/= d) [a, b] then not d else d
-
-instance Monoid TxOpts where
-  mempty = def
 
 -- * Description of the Minting
 
@@ -973,44 +918,6 @@ txSkelTemplate =
       txSkelOuts = [],
       txSkelFee = 0
     }
-
--- | The idea behind this 'Semigroup' instance is that for two 'TxSkel's @a@ and
--- @b@, the transaction(s) described by @a <> b@ should satisfy all requirements
--- contained in @a@ and all requirements contained in @b@. There are a few
--- wrinkles with regard to this:
---
--- - commutativity: @a <> b@ and @b <> a@ describe different transactions in
---   general. In particular,
---
---   - The output constraints of the right argument are appended to the end of
---     the list of transaction outputs. This matters because some transactions
---     rely on the ordering of outputs.
---
---   - The 'unsafeModTx' contained in the '_txSkelOpts' is also combined
---     non-commutatively. The modifications in the left argument will be applied
---     first.
---
--- - preference for non-defaults: All of the boolean options in '_txSkelOpts',
---   as well as 'collateral' and 'balanceOutputPolicy' combine in a way that if
---   either of the arguments has a non-default value, that value will be
---   kept. In the case of 'collateral', the sets of Collateral UTxOs will be
---   combined (see the 'Semigroup' definitions for 'Collateral' and
---   'BalanceOutputPolicy').
---
--- One property that should hold (TODO: write tests) is that
---
--- > a == x && b == y `implies` a <> b == x <> y
-instance Semigroup TxSkel where
-  (TxSkel l1 p1 m1 r1 s1 i1 o1 f1) <> (TxSkel l2 p2 m2 r2 s2 i2 o2 f2) =
-    TxSkel
-      (l1 <> l2)
-      (p1 <> p2)
-      (m1 <> m2)
-      (r1 `Pl.intersection` r2)
-      (s1 <> s2)
-      (i1 <> i2)
-      (o1 ++ o2)
-      (f1 + f2)
 
 -- | Return all data on transaction outputs.
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
