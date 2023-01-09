@@ -272,10 +272,12 @@ instance (Monad m) => MonadTweakChain (MockChainT m) where
 
 instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    let firstSigner NEList.:| _ = txSkelSigners skelUnbal
-    let balancingWallet = firstSigner
-    let balancingWalletPkh = walletPKHash firstSigner
-    let collateralWallet = firstSigner
+    let balancingWallet =
+          case balanceWallet . txSkelOpts $ skelUnbal of
+            BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
+            BalanceWith wallet -> wallet
+    let balancingWalletPkh = walletPKHash balancingWallet
+    let collateralWallet = balancingWallet
     skel <-
       if balance . txSkelOpts $ skelUnbal
         then
