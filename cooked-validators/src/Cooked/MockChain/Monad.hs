@@ -15,7 +15,6 @@ module Cooked.MockChain.Monad where
 
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
 import Cooked.Tx.Constraints.Type
 import Data.Kind
@@ -146,7 +145,7 @@ instance (MonadTrans t, MonadTweakChain m, MonadFail (t m)) => MonadTweakChain (
   awaitSlot = lift . awaitSlot
   awaitTime = lift . awaitTime
 
-instance (MonadTransControl t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
+instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadTweakChain m) => MonadTweakChain (WriterT w m)

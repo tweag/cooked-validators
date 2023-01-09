@@ -270,7 +270,7 @@ instance (Monad m) => MonadTweakChain (MockChainT m) where
     s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
     return $ Pl.slotToBeginPOSIXTime sc s
 
-instance MonadTweakChain m => MonadBlockChain (MockChainT m) where
+instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     let firstSigner NEList.:| _ = txSkelSigners skelUnbal
     let balancingWallet = firstSigner
