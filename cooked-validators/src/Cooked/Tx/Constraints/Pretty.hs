@@ -6,6 +6,7 @@
 
 module Cooked.Tx.Constraints.Pretty where
 
+import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.MockChain.Misc
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
@@ -16,6 +17,7 @@ import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
 import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress, validatorHash)
@@ -132,9 +134,29 @@ prettyTxSkelOut (Pays output) =
         Pl.NoOutputDatum -> []
     )
 
--- TODO
-prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> (Pl.TxOutRef, TxSkelRedeemer) -> Doc ann
-prettyTxSkelIn managedTxOuts (txOutRef, txSkelRedeemer) = undefined
+prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ann)
+prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
+  output <- Map.lookup txOutRef managedTxOuts
+  datumDoc <-
+    case outputOutputDatum output of
+      Pl.OutputDatum datum ->
+        do
+          datumStr <- Map.lookup (Pl.datumHash datum) managedDatums
+          return $ Just ("Datum (inlined):" <+> PP.pretty datumStr)
+      Pl.OutputDatumHash datumHash ->
+        do
+          datumStr <- Map.lookup datumHash managedDatums
+          return $ Just ("Datum (hashed):" <+> PP.pretty datumStr)
+      Pl.NoOutputDatum -> return Nothing
+  let redeemerDoc =
+        case txSkelRedeemer of
+          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> PP.viaShow redeemer)
+          _ -> Nothing
+  return $
+    prettyEnum
+      ("Spends from" <+> prettyAddress (outputAddress output))
+      "-"
+      (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc])
 
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9
