@@ -125,7 +125,7 @@ prettyTxSkelOut (Pays output) =
   prettyEnum
     ("Pays to" <+> prettyAddress (outputAddress output))
     "-"
-    ( "Value:" <+> PP.pretty (outputValue output) :
+    ( prettyValue (outputValue output) :
       case outputOutputDatum output of
         Pl.OutputDatum _datum -> ["Datum (inlined):" <+> PP.viaShow (output ^. outputDatumL)]
         Pl.OutputDatumHash _datum -> ["Datum (hashed):" <+> PP.viaShow (output ^. outputDatumL)]
@@ -139,10 +139,51 @@ prettyTxSkelIn managedTxOuts (txOutRef, txSkelRedeemer) = undefined
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9
 prettyHash :: (Show a) => a -> Doc ann
-prettyHash = PP.pretty . ('#' :) . take 6 . show
+prettyHash = PP.pretty . ('#' :) . take 7 . show
 
 prettyMintingPolicy :: Pl.MintingPolicy -> Doc ann
 prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash
+
+-- prettyValue example output:
+--
+-- Value:
+--   - Lovelace: 45_000_000
+--   - [Q] "hello": 3
+--   - #12bc3d "usertoken": 1
+--
+-- In case of an empty value (even though not an empty map):
+-- Empty value
+--
+prettyValue :: Pl.Value -> Doc ann
+prettyValue =
+  Maybe.fromMaybe "Empty value"
+    . prettyEnumNonEmpty "Value:" "-"
+    . map prettySingletonValue
+    . filter (\(_, _, n) -> n /= 0)
+    . Pl.flattenValue
+  where
+    prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> Doc ann
+    prettySingletonValue (symbol, name, amount) =
+      prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
+      where
+        prettyAssetClass
+          | symbol == Pl.CurrencySymbol "" = "Lovelace"
+          | symbol == quickCurrencySymbol = "[Q]" <+> PP.pretty name
+          | symbol == permanentCurrencySymbol = "[P]" <+> PP.pretty name
+          | otherwise = prettyHash symbol <+> PP.pretty name
+
+    -- prettyNumericUnderscore 23798423723
+    -- 23_798_423_723
+    prettyNumericUnderscore :: Integer -> Doc ann
+    prettyNumericUnderscore i
+      | 0 == i = "0"
+      | i > 0 = psnTerm "" 0 i
+      | otherwise = "-" <> psnTerm "" 0 (- i)
+      where
+        psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
+        psnTerm acc _ 0 = acc
+        psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+        psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
 -- | Prettifies a 'TxOpts'; returns 'Nothing' if we're looking at default options.
 -- prettyOpts :: TxOpts -> Maybe (Doc ann)
