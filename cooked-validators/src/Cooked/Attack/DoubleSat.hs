@@ -8,7 +8,7 @@ module Cooked.Attack.DoubleSat where
 
 import Control.Monad
 import Cooked.Attack.Tweak
-import Cooked.MockChain.Monad.Direct
+import Cooked.MockChain.Monad
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.List
@@ -47,7 +47,7 @@ data DoubleSatSplitMode = TryCombinations | AllSeparate
 -- | A triple of transaction inputs, transaction outputs, and minted value. This
 -- is what we can add to the transaction in order to try a double satisfaction
 -- attack.
-type DoubleSatDelta = (Map SpendableOut TxSkelIn, [TxSkelOut], TxSkelMints)
+type DoubleSatDelta = (Map L.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)
 
 instance {-# OVERLAPPING #-} Semigroup DoubleSatDelta where
   (i, o, m) <> (i', o', m') =
@@ -68,29 +68,43 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- value contained in new inputs to the transaction is then paid to the
 -- attacker.
 doubleSatAttack ::
-  Is k A_Fold =>
+  (MonadTweak m, Is k A_Fold) =>
   -- | Each focus of this optic is a potential reason to add some extra
   -- constraints.
   --
-  -- As an example, one could go through the 'PaysScript' outputs for
+  -- As an example, one could go through the 'paysScript' outputs for
   -- validators of type @t@ with the following traversal:
   --
-  -- > paysScriptTypeT @t
+  -- > txSkelOutsL % taversed % txSkelOutputToTypedValidatorP @t
   Optic' k is TxSkel a ->
   -- | Which inputs, outputs, and mints to add, for each of the foci. There
   -- might be different options for each focus, that's why the return value is a
   -- list.
   --
-  -- Continuing the example, for each of the focused 'PaysScript' outputs, you
-  -- might want to try adding some 'SpendsScript' inputs to the
+  -- Continuing the example, for each of the focused 'paysScript' outputs, you
+  -- might want to try adding some 'spendsScript' inputs to the
   -- transaction. Since it might be interesting to try different redeemers on
-  -- these extra 'SpendsScript' inputs, you can just provide a list of all the
-  -- options you want to try adding for a given 'PaysScript' that's already on
+  -- these extra 'spendsScript' inputs, you can just provide a list of all the
+  -- options you want to try adding for a given 'paysScript' that's already on
   -- the transaction.
-  (MockChainSt -> a -> [DoubleSatDelta]) ->
+  --
+  -- ###################################
+  --
+  -- ATTENTION: If you modify the state while computing these lists, the
+  -- behaviour of the 'doubleSatAttack' might be strange: Any modification of
+  -- the state that happens on any call to this function will be applied to all
+  -- returned transactions. For example, if you 'awaitTime' in any of these
+  -- computations, the 'doubleSatAttack' will wait for all returned
+  -- transactions.
+  --
+  -- TODO: Make this interface safer, for example by using (some kind of) an
+  -- 'UtxoState' argument.
+  --
+  -- ###################################
+  (a -> m [DoubleSatDelta]) ->
   -- | The wallet of the attacker, where any surplus is paid to.
   --
-  -- In the example, the extra value in the added 'SpendsScript' constraints
+  -- In the example, the extra value in the added 'spendsScript' constraints
   -- will be paid to the attacker.
   Wallet ->
   -- | Since there are potentially multiple triples of inputs, outputs, and
@@ -98,12 +112,12 @@ doubleSatAttack ::
   -- combine additions that were triggered by different foci.
   --
   -- In the example: Let's say that the unmodified transaction had three focused
-  -- 'PaysScript' outputs (let's denote them by a, b, and c), and that you want
-  -- to try 2, 3, and 5 additional 'SpendsScript' inputs for each of them,
+  -- 'paysScript' outputs (let's denote them by a, b, and c), and that you want
+  -- to try 2, 3, and 5 additional 'spendsScript' inputs for each of them,
   -- respectively (let's call those a1, a2, and b1, b2, b3, and c1, c2, c3, c4,
   -- c5).
   --
-  -- - If you want to try each additional 'SpendsScript' on its own modified
+  -- - If you want to try each additional 'spendsScript' on its own modified
   --   transaction, use 'AllSeparate'. Thus, there'll be 2+3+5=10 modified
   --   transactions. Namely, for each element of the list
   --
@@ -117,7 +131,7 @@ doubleSatAttack ::
   --   combinations where /at most/ three (one for each focus) extra constraints
   --   are added. One of these combinations is of course the one where nothing
   --   is added, and that one is omitted, which brings the grand total down to
-  --   71 modified transactions, the additional 'SpendsScript' inputs of which
+  --   71 modified transactions, the additional 'spendsScript' inputs of which
   --   are given by the following list:
   --
   -- > [ -- one additional input (the 10 cases from above)
@@ -144,15 +158,15 @@ doubleSatAttack ::
   --
   -- So you see that this attack can branch quite wildly. Use with caution!
   DoubleSatSplitMode ->
-  Tweak ()
+  m ()
 doubleSatAttack optic extra attacker mode = do
-  mcst <- mcstTweak
-  deltas <- map (extra mcst) <$> viewAllTweak optic
+  foci <- viewAllTweak optic
+  deltas <- mapM extra foci
   msum $
     map
       ( \delta -> do
           addDoubleSatDeltaTweak delta
-          let addedValue = deltaBalance delta
+          addedValue <- deltaBalance delta
           if addedValue `L.gt` mempty
             then addOutputTweak $ paysPK (walletPKHash attacker) addedValue
             else failingTweak
@@ -167,15 +181,17 @@ doubleSatAttack optic extra attacker mode = do
   addLabelTweak DoubleSatLbl
   where
     -- for each triple of additional inputs, outputs, and mints, calculate its balance
-    deltaBalance :: DoubleSatDelta -> L.Value
-    deltaBalance (inputs, outputs, mints) = inValue <> Pl.negate outValue <> mintValue
+    deltaBalance :: MonadTweak m => DoubleSatDelta -> m L.Value
+    deltaBalance (inputs, outputs, mints) = do
+      inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
+      return $ inValue <> Pl.negate outValue <> mintValue
       where
-        inValue = foldOf (traversed % sOutValueL) $ Map.keys inputs
-        outValue = foldOf (traversed % outValueL) outputs
+        -- inValue = foldOf (traversed % sOutValueL) $ Map.keys inputs
+        outValue = foldOf (traversed % txSkelOutValueL) outputs
         mintValue = txSkelMintsValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
-    addDoubleSatDeltaTweak :: DoubleSatDelta -> Tweak ()
+    addDoubleSatDeltaTweak :: MonadTweak m => DoubleSatDelta -> m ()
     addDoubleSatDeltaTweak (ins, outs, mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs
