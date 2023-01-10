@@ -18,6 +18,7 @@ import qualified Cardano.Api as C
 import Cooked.MockChain.Wallet
 import Data.Default
 import Data.Either.Combinators
+import Data.Function
 import Data.List
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NEList
@@ -731,6 +732,11 @@ deriving instance Show TxSkelOut
 -- [note on TxSkelOut data].
 txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
+
+-- | Since we care about whether the transaction outputsa are the same on-chain,
+-- this is sufficient:
+instance Eq TxSkelOut where
+  (==) = (==) `on` txSkelOutToTxOut
 
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
 txSkelOutValueL =
