@@ -11,6 +11,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Cooked.Tx.Constraints.Type where
 
@@ -911,13 +912,16 @@ makeLensesFor
 -- | A convenience template where wallet 1 is the default signer of an
 -- otherwise empty transaction skeleton.
 txSkelTemplate :: TxSkel
-txSkelTemplate =
+txSkelTemplate = txSkelSubmittedBy (wallet 1)
+
+txSkelSubmittedBy :: Wallet -> TxSkel
+txSkelSubmittedBy w =
   TxSkel
     { txSkelLabel = Set.empty,
       txSkelOpts = def,
       txSkelMints = Map.empty,
       txSkelValidityRange = Pl.always,
-      txSkelSigners = wallet 1 NEList.:| [],
+      txSkelSigners = w NEList.:| [],
       txSkelIns = Map.empty,
       txSkelOuts = [],
       txSkelFee = 0
