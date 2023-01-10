@@ -212,12 +212,15 @@ prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash
 --
 prettyValue :: Pl.Value -> Doc ann
 prettyValue =
-  Maybe.fromMaybe "Empty value"
-    . prettyEnumNonEmpty "Value:" "-"
+  prettySingletons
     . map prettySingletonValue
     . filter (\(_, _, n) -> n /= 0)
     . Pl.flattenValue
   where
+    prettySingletons :: [Doc ann] -> Doc ann
+    prettySingletons [] = "Empty value"
+    prettySingletons [doc] = doc
+    prettySingletons docs = prettyEnum "Value:" "-" docs
     prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> Doc ann
     prettySingletonValue (symbol, name, amount) =
       prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
