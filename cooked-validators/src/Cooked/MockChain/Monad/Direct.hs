@@ -598,7 +598,7 @@ data BalanceTxRes = BalanceTxRes
 -- that is: @inputs + mints == outputs + fee + burns@.
 calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m BalanceTxRes
 calcBalanceTx balanceStage balancePK skel = do
-  inValue <- txSkelInputValue skel -- transaction inputs + minted value
+  inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
   let outValue = txSkelOutputValue skel -- transaction outputs + fee + burned value
       difference = outValue <> Pl.negate inValue
       -- This is the value that must still be paid by 'balancePK' in order to
@@ -627,7 +627,12 @@ calcBalanceTx balanceStage balancePK skel = do
     Nothing ->
       throwError $
         MCEUnbalanceable
-          ("The wallet " ++ show balancePK ++ " does not own enough funds to pay for balancing.")
+          ( "The wallet "
+              ++ show balancePK
+              ++ " does not own enough funds to pay for balancing. It has to pay this: ("
+              ++ show missingValue
+              ++ ")"
+          )
           balanceStage
           skel
     Just bTxRes -> return bTxRes
