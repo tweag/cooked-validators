@@ -20,7 +20,7 @@ import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Tx.Constraints.Pretty
+import Cooked.Pretty
 import Cooked.Tx.Constraints.Type
 import Data.Map (Map)
 import qualified Ledger as Pl

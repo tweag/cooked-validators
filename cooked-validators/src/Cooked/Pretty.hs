@@ -1,31 +1,27 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Cooked.Tx.Constraints.Pretty where
+module Cooked.Pretty where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.MockChain.Misc
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
-import Data.Char
 import Data.Default
-import Data.Either
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes)
 import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
-import qualified Ledger.Typed.Scripts as Pl (DatumType, TypedValidator, validatorAddress, validatorHash)
 import qualified Ledger.Value as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx.IsData.Class as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import Test.QuickCheck (NonZero)
@@ -49,7 +45,7 @@ prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
 prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> TxSkel -> Doc ann
-prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs fee) =
+prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs _fee) =
   -- undefined
   prettyEnum
     "Transaction Skeleton:"
