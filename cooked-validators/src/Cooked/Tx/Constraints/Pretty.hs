@@ -116,8 +116,20 @@ prettyTxSkelOut (Pays output) =
     "-"
     ( prettyValue (outputValue output) :
       case outputOutputDatum output of
-        Pl.OutputDatum _datum -> ["Datum (inlined):" <+> PP.viaShow (output ^. outputDatumL)]
-        Pl.OutputDatumHash _datum -> ["Datum (hashed):" <+> PP.viaShow (output ^. outputDatumL)]
+        Pl.OutputDatum _datum ->
+          [ "Datum (inlined):"
+              <+> (PP.align . PP.pretty)
+                ( unwrapInlinedDatumStr . show $
+                    output ^. outputDatumL
+                )
+          ]
+        Pl.OutputDatumHash _datum ->
+          [ "Datum (hashed):"
+              <+> (PP.align . PP.pretty)
+                ( unwrapHashedDatumStr . show $
+                    output ^. outputDatumL
+                )
+          ]
         Pl.NoOutputDatum -> []
     )
 
@@ -128,12 +140,20 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
     case outputOutputDatum output of
       Pl.OutputDatum datum ->
         do
-          datumStr <- Map.lookup (Pl.datumHash datum) managedDatums
-          return $ Just ("Datum (inlined):" <+> PP.pretty datumStr)
+          (_, datumStr) <- Map.lookup (Pl.datumHash datum) managedDatums
+          return $
+            Just
+              ( "Datum (inlined):"
+                  <+> (PP.align . PP.pretty) (unwrapInlinedDatumStr datumStr)
+              )
       Pl.OutputDatumHash datumHash ->
         do
-          datumStr <- Map.lookup datumHash managedDatums
-          return $ Just ("Datum (hashed):" <+> PP.pretty datumStr)
+          (_, datumStr) <- Map.lookup datumHash managedDatums
+          return $
+            Just
+              ( "Datum (hashed):"
+                  <+> (PP.align . PP.pretty) (unwrapHashedDatumStr datumStr)
+              )
       Pl.NoOutputDatum -> return Nothing
   let redeemerDoc =
         case txSkelRedeemer of
@@ -144,6 +164,13 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
       ("Spends from" <+> prettyAddress (outputAddress output))
       "-"
       (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc])
+
+-- | Datum in transaction skeletons is of type 'TxSkelOutDatum'. We rely on the default 'Show' instance that will in turn rely on the 'Show' instance of the typed datum whose concrete type is unknown. This is a hacky way to get rid of the textual representation of the 'TxSkelOutDatum' constructor.
+--
+-- E.g. "TxSkelOutInlineDatum ("hello", 42) -> ("hello", 42)
+unwrapInlinedDatumStr, unwrapHashedDatumStr :: String -> String
+unwrapInlinedDatumStr = drop 21
+unwrapHashedDatumStr = drop 19
 
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9
