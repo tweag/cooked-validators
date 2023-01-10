@@ -4,20 +4,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.Pretty where
 
+import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.MockChain.UtxoState (UtxoDatum (utxoShow), UtxoState (utxoState), UtxoValueSet (utxoValueSet))
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Default
+import Data.Function (on)
+import qualified Data.List as List
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
+import qualified Ledger.Ada as Ada
 import qualified Ledger.Value as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
@@ -280,3 +286,51 @@ mPrettyTxOpts
       prettyUnsafeModTx :: [RawModTx] -> Doc ann
       prettyUnsafeModTx [] = "No transaction modifications"
       prettyUnsafeModTx xs = PP.pretty (length xs) <+> "transaction modifications"
+
+-- * Pretty-printing
+
+-- | Pretty prints a 'UtxoState'.
+prettyUtxoState :: UtxoState -> Doc ann
+prettyUtxoState =
+  prettyEnum "UTxO state:" "•"
+    . map (uncurry prettyAddressState . second utxoValueSet)
+    . Map.toList
+    . utxoState
+
+instance Show UtxoState where
+  show = show . prettyUtxoState
+
+-- | Pretty prints the state of an address, that is the list of utxos
+-- (including value and datum), grouped
+prettyAddressState :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
+prettyAddressState address payloads =
+  prettyEnum
+    (prettyAddress address)
+    "-"
+    ( mapMaybe prettyPayloadGrouped . List.group
+        . List.sortBy (compare `on` (Ada.fromValue . fst))
+        $ payloads
+    )
+
+-- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
+-- been grouped together when they are the same
+prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
+prettyPayloadGrouped [] = Nothing
+prettyPayloadGrouped ((value, mUtxoDatum) : rest) =
+  let lenRest = length rest
+      title
+        | lenRest == 0 = "×1 UTxO"
+        | otherwise = "×" <> PP.pretty (lenRest + 1) <+> "UTxOs"
+   in prettyEnumNonEmpty title "◦" (prettyPayload value mUtxoDatum)
+
+-- Returns `Nothing` if the value is empty to avoid having an empty document
+-- whose height is 1 in the `prettyprinter` library and would generate empty
+-- lines.
+prettyPayload :: Pl.Value -> Maybe UtxoDatum -> [Doc ann]
+prettyPayload value mDatum =
+  catMaybes
+    [ Just (prettyValue value),
+      -- TODO Upgrade UtxoState to carry information about whether the datum
+      -- is hashed or inlined
+      ("Datum:" <+>) . PP.align . PP.pretty . utxoShow <$> mDatum
+    ]
