@@ -22,6 +22,7 @@ import Data.Maybe
 import qualified Ledger as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
+import qualified PlutusTx as Pl
 
 -- * BlockChain Monad
 
@@ -94,6 +95,33 @@ pkUtxos pkh =
   mapMaybe
     (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
     <$> allUtxos
+
+outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe PV2.OutputDatum)
+outputDatumFromTxOutRef oref = do
+  mOut <- txOutByRef oref
+  case mOut of
+    Nothing -> return Nothing
+    Just out -> return . Just $ outputOutputDatum out
+
+datumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe Pl.Datum)
+datumFromTxOutRef oref = do
+  mOutputDatum <- outputDatumFromTxOutRef oref
+  case mOutputDatum of
+    Nothing -> return Nothing
+    Just PV2.NoOutputDatum -> return Nothing
+    Just (PV2.OutputDatum datum) -> return $ Just datum
+    Just (PV2.OutputDatumHash datumHash) -> do
+      mDatum <- datumFromHash datumHash
+      case mDatum of
+        Just datum -> return $ Just datum
+        Nothing -> return Nothing
+
+typedDatumFromTxOutRef :: (Pl.FromData a, MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef oref = do
+  mDatum <- datumFromTxOutRef oref
+  case mDatum of
+    Nothing -> return Nothing
+    Just (Pl.Datum datum) -> return $ Pl.fromBuiltinData datum
 
 -- | A little helper for all of the "utxosSuchThat"-like functions. Why is
 -- (something more general than) this not in Control.Arrow or somewhere similar?
