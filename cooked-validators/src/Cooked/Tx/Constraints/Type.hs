@@ -854,13 +854,13 @@ paysScriptInlineDatum validator datum value =
         (TxSkelOutInlineDatum datum)
     )
 
--- * Transaction skeletons
+-- * Redeemers for transaction inputs
 
 type SpendsScriptConstrs a =
   ( Pl.ToData (Pl.RedeemerType a),
     Show (Pl.RedeemerType a),
     Pl.Eq (Pl.RedeemerType a),
-    Typeable a
+    Typeable (Pl.RedeemerType a)
   )
 
 data TxSkelRedeemer where
@@ -869,6 +869,17 @@ data TxSkelRedeemer where
   TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
 
 deriving instance (Show TxSkelRedeemer)
+
+instance Eq TxSkelRedeemer where
+  TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
+  TxSkelNoRedeemerForScript == TxSkelNoRedeemerForScript = True
+  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
+    case typeOf r1 `eqTypeRep` typeOf r2 of
+      Just HRefl -> r1 Pl.== r2
+      Nothing -> False
+  _ == _ = False
+
+-- * Transaction skeletons
 
 data TxSkel where
   TxSkel ::
