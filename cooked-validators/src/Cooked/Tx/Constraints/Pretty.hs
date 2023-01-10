@@ -56,7 +56,7 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
     "-"
     ( catMaybes
         [ prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
-          -- fmap ("Opts:" <+>) (prettyOpts opts),
+          mPrettyTxOpts opts,
           prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
@@ -220,24 +220,48 @@ prettyValue =
         psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
         psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
--- | Prettifies a 'TxOpts'; returns 'Nothing' if we're looking at default options.
--- prettyOpts :: TxOpts -> Maybe (Doc ann)
--- prettyOpts opts = case mapMaybe cmpAgainstDefAndPrint fields of
---   [] -> Nothing
---   xs -> Just $ PP.sep $ map (PP.semi <+>) xs
---   where
---     cmpAgainstDefAndPrint :: Field TxOpts -> Maybe (Doc ann)
---     cmpAgainstDefAndPrint (Field fn f)
---       | f opts == f def = Nothing
---       | otherwise = Just $ PP.pretty fn <> PP.colon <+> PP.viaShow (f opts)
-
---     -- Internal: if you add fields to TxOpts, make sure to add them here.
---     fields :: [Field TxOpts]
---     fields =
---       [ Field "adjustUnbalTx" adjustUnbalTx,
---         Field "awaitTxConfirmed" awaitTxConfirmed,
---         Field "autoSlotIncrease" autoSlotIncrease,
---         Field "unsafeModTx" unsafeModTx,
---         Field "balance" balance,
---         Field "balanceOutputPolicy" balanceOutputPolicy
---       ]
+-- | Pretty-print, if non empty, a list of transaction skeleton options that
+-- have non default values. 'awaitRxConfirmed' and 'forceOutputOrdering'
+-- (deprecated TODO) are never printed.
+mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
+mPrettyTxOpts
+  TxOpts
+    { adjustUnbalTx,
+      autoSlotIncrease,
+      unsafeModTx,
+      balance,
+      balanceOutputPolicy,
+      balanceWallet
+    } =
+    prettyEnumNonEmpty "Options:" "-" $
+      catMaybes
+        [ prettyIfNot def prettyAdjustUnbalTx adjustUnbalTx,
+          prettyIfNot True prettyAutoSlotIncrease autoSlotIncrease,
+          prettyIfNot True prettyBalance balance,
+          prettyIfNot def prettyBalanceOutputPolicy balanceOutputPolicy,
+          prettyIfNot def prettyBalanceWallet balanceWallet,
+          prettyIfNot [] prettyUnsafeModTx unsafeModTx
+        ]
+    where
+      prettyIfNot :: Eq a => a -> (a -> Doc ann) -> a -> Maybe (Doc ann)
+      prettyIfNot defaultValue f x
+        | x == defaultValue = Nothing
+        | otherwise = Just $ f x
+      prettyAdjustUnbalTx :: Bool -> Doc ann
+      prettyAdjustUnbalTx True = "AdjustUnbalTx (min Ada per transaction)"
+      prettyAdjustUnbalTx False = "No AdjustUnbalTx"
+      prettyAutoSlotIncrease :: Bool -> Doc ann
+      prettyAutoSlotIncrease True = "Automatic slot increase"
+      prettyAutoSlotIncrease False = "No automatic slot increase"
+      prettyBalance :: Bool -> Doc ann
+      prettyBalance True = "Automatic balancing"
+      prettyBalance False = "No automatic balancing"
+      prettyBalanceOutputPolicy :: BalanceOutputPolicy -> Doc ann
+      prettyBalanceOutputPolicy AdjustExistingOutput = "Adjust existing outputs"
+      prettyBalanceOutputPolicy DontAdjustExistingOutput = "Don't adjust existing outputs"
+      prettyBalanceWallet :: BalancingWallet -> Doc ann
+      prettyBalanceWallet BalanceWithFirstSigner = "Balance with first signer"
+      prettyBalanceWallet (BalanceWith w) = "Balance with" <+> prettyPubKeyHash (walletPKHash w)
+      prettyUnsafeModTx :: [RawModTx] -> Doc ann
+      prettyUnsafeModTx [] = "No transaction modifications"
+      prettyUnsafeModTx xs = PP.pretty (length xs) <+> "transaction modifications"
