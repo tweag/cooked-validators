@@ -74,8 +74,8 @@ class MonadBlockChainWithoutValidation m => MonadBlockChain m where
 -- This is useful when writing endpoints and/or traces to fetch utxos of
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using 'allUtxos' or similar functions.
-spOutsFromCardanoTx :: Pl.CardanoTx -> [(Pl.TxOutRef, PV2.TxOut)]
-spOutsFromCardanoTx =
+utxosFromCardanoTx :: Pl.CardanoTx -> [(Pl.TxOutRef, PV2.TxOut)]
+utxosFromCardanoTx =
   map (\(txOut, txOutRef) -> (txOutRef, txOutV2fromV1 txOut)) . Pl.getCardanoTxOutRefs
 
 txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
@@ -84,18 +84,19 @@ txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
 pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
-pkUtxosMaybeDatum pkh =
-  mapMaybe
-    (secondMaybe (isPKOutputFrom pkh))
-    <$> allUtxos
+pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
 pkUtxos :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
-pkUtxos pkh =
-  mapMaybe
-    (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
-    <$> allUtxos
+pkUtxos pkh = filterUtxos (isOutputWithoutDatum <=< isPKOutputFrom pkh) <$> allUtxos
+
+filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(Pl.TxOutRef, output)]
+filteredUtxos predicate = filterUtxos predicate <$> allUtxos
+
+-- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
+filterUtxos :: (o1 -> Maybe o2) -> [(Pl.TxOutRef, o1)] -> [(Pl.TxOutRef, o2)]
+filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
 
 outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do
@@ -124,10 +125,12 @@ typedDatumFromTxOutRef oref = do
     Nothing -> return Nothing
     Just (Pl.Datum datum) -> return $ Pl.fromBuiltinData datum
 
--- | A little helper for all of the "utxosSuchThat"-like functions. Why is
--- (something more general than) this not in Control.Arrow or somewhere similar?
-secondMaybe :: (b -> Maybe c) -> (a, b) -> Maybe (a, c)
-secondMaybe f (x, y) = (x,) <$> f y
+valueFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe Pl.Value)
+valueFromTxOutRef oref = do
+  mOut <- txOutByRef oref
+  case mOut of
+    Nothing -> return Nothing
+    Just out -> return . Just $ outputValue out
 
 -- ** Slot and Time Management
 
