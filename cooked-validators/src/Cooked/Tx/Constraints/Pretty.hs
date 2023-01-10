@@ -51,21 +51,20 @@ prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> TxSkel -> Doc ann
 prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs fee) =
   -- undefined
-  PP.vsep $
-    "Transaction Skeleton:" :
-    map
-      ("-" <+>)
-      ( catMaybes
-          [ prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
-            -- fmap ("Opts:" <+>) (prettyOpts opts),
-            prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
-            Just $ "Validity interval:" <+> PP.pretty validityRange,
-            prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
-            -- TODO handle unsafe 'fromJust' better
-            prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
-            prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
-          ]
-      )
+  prettyEnum
+    "Transaction Skeleton:"
+    "-"
+    ( catMaybes
+        [ prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
+          -- fmap ("Opts:" <+>) (prettyOpts opts),
+          prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
+          Just $ "Validity interval:" <+> PP.pretty validityRange,
+          prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
+          -- TODO handle unsafe 'fromJust' better
+          prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
+          prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
+        ]
+    )
 
 -- prettyPubKeyHash
 --
