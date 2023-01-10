@@ -18,36 +18,40 @@ import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
+import Type.Reflection
 
--- | Redirect 'PaysScript's from one validator to another validator of the same
+-- | Redirect script outputs from one validator to another validator of the same
 -- type. Returns the list of outputs it redirected (as they were before the
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
 -- If no output is redirected, this tweak fails.
 --
--- Something like 'paysScriptTypeT' might be useful to construct the optics used
--- by this tweak.
+-- Something like @txSkelOutsL % traversed % txSkelOutputToTypedValidatorP@
+-- might be useful to construct the optics used by this tweak.
 redirectScriptOutputTweak ::
-  Is k A_Traversal =>
-  Optic' k is TxSkel (L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value) ->
+  ( MonadTweak m,
+    Is k A_Traversal,
+    Show (L.DatumType a),
+    Pl.ToData (L.DatumType a)
+  ) =>
+  Optic' k is TxSkel (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (L.TypedValidator a -> Maybe L.StakingCredential -> L.DatumType a -> L.Value -> Maybe (L.TypedValidator a)) ->
+  (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value -> Maybe (L.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  Tweak [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
+  m [ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value]
 redirectScriptOutputTweak optic change =
-  mkSelectTweak
+  overMaybeTweakSelecting
     optic
-    ( \_mcst (oldVal, mStakingCred, dat, money) ->
-        case change oldVal mStakingCred dat money of
-          Nothing -> Nothing
-          Just newVal -> Just (newVal, mStakingCred, dat, money)
+    ( \output -> case change output of
+        Nothing -> Nothing
+        Just newValidator -> Just $ output & outputOwnerL .~ newValidator
     )
 
 -- | A datum hijacking attack, simplified: This attack tries to substitute a
@@ -65,23 +69,28 @@ redirectScriptOutputTweak optic change =
 -- they occurred on the original transaction. If no output is redirected, this
 -- attack fails.
 datumHijackingAttack ::
-  forall a.
-  PaysScriptConstrs a =>
+  forall a m.
+  ( MonadTweak m,
+    Show (L.DatumType a),
+    Pl.ToData (L.DatumType a),
+    Typeable (L.DatumType a),
+    Typeable a
+  ) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
-  (L.TypedValidator a -> L.DatumType a -> L.Value -> Bool) ->
+  (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value -> Bool) ->
   -- | The selection predicate may match more than one output, restrict to the
   -- i-th of the output(s) (counting from the left, starting at zero) chosen by
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  Tweak [(L.TypedValidator a, Maybe L.StakingCredential, L.DatumType a, L.Value)]
+  m [ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value]
 datumHijackingAttack change select =
   let thief = datumHijackingTarget @a
    in do
         redirected <-
           redirectScriptOutputTweak
-            (paysScriptTypeT @a)
-            (\val _mStakingCred dat money -> if change val dat money then Just thief else Nothing)
+            (txSkelOutsL % traversed % txSkelOutputToTypedValidatorP @a)
+            (\output -> if change output then Just thief else Nothing)
             select
         addLabelTweak $ DatumHijackingLbl $ L.validatorAddress thief
         return redirected

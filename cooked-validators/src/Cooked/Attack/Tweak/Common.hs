@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
@@ -8,6 +10,7 @@ module Cooked.Attack.Tweak.Common where
 import Control.Monad
 import Cooked.MockChain.Monad
 import Cooked.Tx.Constraints.Type
+import Data.List
 import Data.Maybe
 import qualified Data.Set as Set
 import ListT (ListT)
@@ -103,12 +106,40 @@ overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,
--- as they were /before/ the tweak.
+-- as they were /before/ the tweak, and in the order in which they occurred on
+-- the original transaction.
 overMaybeTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> Maybe a) -> m [a]
-overMaybeTweak optic mChange = do
+overMaybeTweak optic mChange = overMaybeTweakSelecting optic mChange (const True)
+
+-- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
+-- if there are several identical foci, but you only want to modify some of
+-- them. This is where this 'Tweak' becomes useful: The @(Integer -> Bool)@
+-- argument can be used to select which of the modifiable foci should be
+-- actually modified.
+overMaybeTweakSelecting ::
+  forall a m k is.
+  (MonadTweak m, Is k A_Traversal) =>
+  Optic' k is TxSkel a ->
+  (a -> Maybe a) ->
+  (Integer -> Bool) ->
+  m [a]
+overMaybeTweakSelecting optic mChange select = do
   allFoci <- viewTweak $ partsOf optic
-  let evaluatedFoci = map (\a -> (a, mChange a)) allFoci
-  setTweak (partsOf optic) (fst <$> evaluatedFoci)
+  let evaluatedFoci :: [(a, Maybe a)]
+      evaluatedFoci =
+        snd $
+          mapAccumL
+            ( \i unmodifiedFocus ->
+                case mChange unmodifiedFocus of
+                  Just modifiedFocus ->
+                    if select i
+                      then (i + 1, (unmodifiedFocus, Just modifiedFocus))
+                      else (i + 1, (unmodifiedFocus, Nothing))
+                  Nothing -> (i, (unmodifiedFocus, Nothing))
+            )
+            0
+            allFoci
+  setTweak (partsOf optic) $ map (uncurry fromMaybe) evaluatedFoci -- If the second  component of the pair is @Just@, use it.
   return $
     mapMaybe
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
