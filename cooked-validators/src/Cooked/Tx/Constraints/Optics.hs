@@ -1,7 +1,6 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
@@ -10,12 +9,65 @@
 -- 'Cooked.Tx.Constraints.Type'.
 module Cooked.Tx.Constraints.Optics where
 
--- import Cooked.Tx.Constraints.Type
--- import qualified Data.Map as Map
--- import qualified Ledger as Pl
--- import qualified Ledger.Typed.Scripts as Pl
--- import Optics.Core
--- import Type.Reflection
+import Cooked.Tx.Constraints.Type
+import qualified Ledger.Value as Pl
+import Optics.Core
+import qualified PlutusTx as Pl
+import Type.Reflection
+
+-- | Decide if a transaction output has a certain owner and datum type.
+txSkelOutputP ::
+  forall ownerType datumType.
+  ( ToCredential ownerType,
+    Show ownerType,
+    IsTxSkelOutAllowedOwner ownerType,
+    Typeable ownerType,
+    Show datumType,
+    ToOutputDatum datumType,
+    Pl.ToData datumType,
+    Typeable datumType
+  ) =>
+  Prism' TxSkelOut (ConcreteOutput ownerType datumType Pl.Value)
+txSkelOutputP =
+  prism'
+    Pays
+    ( \(Pays output) ->
+        let datum = output ^. outputDatumL
+            owner = output ^. outputOwnerL
+         in case typeOf datum `eqTypeRep` typeRep @datumType of
+              Just HRefl -> case typeOf owner `eqTypeRep` typeRep @ownerType of
+                Just HRefl ->
+                  Just $
+                    ConcreteOutput
+                      owner
+                      (output ^. outputStakingCredentialL)
+                      (output ^. outputValueL)
+                      datum
+                Nothing -> Nothing
+              Nothing -> Nothing
+    )
+
+-- txSkelOutDatumTypeAT ::
+--   forall a.
+--   AffineTraversal' TxSkelOut (Pl.DatumType a)
+-- txSkelOutDatumTypeAT = atraversal (\(Pays output) ->  undefined
+
+-- -- | Decide if an output goes a typed validator of a specific type.
+-- txSkelOutTypedValidatorP ::
+--   forall a.
+--   (Typeable a, Show (Pl.DatumType a), Pl.ToData (Pl.DatumType a)) =>
+--   Prism' TxSkelOut (ConcreteOutput (Pl.TypedValidator a) (TxSkelOutDatum (Pl.DatumType a)) Pl.Value)
+-- txSkelOutTypedValidatorP =
+--   prism'
+--     Pays
+--     (\(Pays output) ->
+--       let validator = output ^. outputOwnerL
+--           datum = output ^. outputDatumL
+--        in case typeOf validator `eqTypeRep` typeRep @(Pl.TypedValidator a) of
+--             Just HRefl -> case typeOf datum `eqTypeRep` typeRep @(TxSkelOutDatum (Pl.DatumType a)) of
+--               Just HRefl -> Just $ ConcreteOutput validator (output ^. outputStakingCredentialL) datum (outputValue output)
+--               Nothing -> Nothing
+--             Nothing -> Nothing)
 
 -- -- * Working with transaction outputs
 

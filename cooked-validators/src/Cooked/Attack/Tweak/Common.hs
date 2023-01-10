@@ -8,6 +8,7 @@ module Cooked.Attack.Tweak.Common where
 import Control.Monad
 import Cooked.MockChain.Monad
 import Cooked.Tx.Constraints.Type
+import Data.Maybe
 import qualified Data.Set as Set
 import ListT (ListT)
 import qualified ListT
@@ -99,6 +100,19 @@ setTweak optic newValue = getTxSkel >>= putTxSkel . set optic newValue
 -- | The tweak that modifies a certain value in the 'TxSkel'.
 overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
+
+-- | Like 'overTweak', but only modifies foci on which the argument function
+-- returns @Just@ the new focus. Returns a list of the foci that were modified,
+-- as they were /before/ the tweak.
+overMaybeTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> Maybe a) -> m [a]
+overMaybeTweak optic mChange = do
+  allFoci <- viewTweak $ partsOf optic
+  let evaluatedFoci = map (\a -> (a, mChange a)) allFoci
+  setTweak (partsOf optic) (fst <$> evaluatedFoci)
+  return $
+    mapMaybe
+      (\(original, mNew) -> if isJust mNew then Just original else Nothing)
+      evaluatedFoci
 
 -- * Some more simple tweaks
 

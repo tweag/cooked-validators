@@ -719,6 +719,7 @@ data TxSkelOut where
       Show (DatumType o),
       ToOutputDatum (DatumType o),
       Pl.ToData (DatumType o), -- If this seems redundant with the 'ToOutputDatum' constraint, see the [note on TxSkelOut data].
+      Typeable (DatumType o),
       ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
     ) =>
     {producedOutput :: o} ->
@@ -739,22 +740,6 @@ txSkelOutValueL =
 
 txSkelOutValue :: TxSkelOut -> Pl.Value
 txSkelOutValue = (^. txSkelOutValueL)
-
--- | If the output goes to a typed validator of some type a, return the
--- validator.
---
--- TODO: I'll leave this function here for now, maybe it,s useful for pretty
--- printing?
-txSkelOutTypedValidator ::
-  forall a.
-  Typeable a =>
-  TxSkelOut ->
-  Maybe (Pl.TypedValidator a)
-txSkelOutTypedValidator (Pays output) =
-  let validator = output ^. outputOwnerL
-   in case typeOf validator `eqTypeRep` typeRep @(Pl.TypedValidator a) of
-        Just HRefl -> Just validator
-        Nothing -> Nothing
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
@@ -827,6 +812,7 @@ txSkelOutDatumComplete (Pays output) = Pl.Datum . Pl.toBuiltinData $ output ^. o
 paysScript ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -846,6 +832,7 @@ paysScript validator datum value =
 paysScriptInlineDatum ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
