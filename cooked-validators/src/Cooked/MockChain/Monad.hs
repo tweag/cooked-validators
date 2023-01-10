@@ -25,7 +25,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * BlockChain Monad
 
-class (MonadFail m) => MonadTweakChain m where
+class (MonadFail m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs
   allUtxos :: m [(Pl.TxOutRef, PV2.TxOut)]
 
@@ -58,7 +58,7 @@ class (MonadFail m) => MonadTweakChain m where
   -- waits until slot 2 and returns the value `POSIXTime 5`.
   awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
-class MonadTweakChain m => MonadBlockChain m where
+class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
   --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
   --  To balance a transaction, we need access to the current UTxO state to choose
@@ -81,7 +81,7 @@ txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
-pkUtxosMaybeDatum :: MonadTweakChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
+pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
 pkUtxosMaybeDatum pkh =
   mapMaybe
     (secondMaybe (isPKOutputFrom pkh))
@@ -89,7 +89,7 @@ pkUtxosMaybeDatum pkh =
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
-pkUtxos :: MonadTweakChain m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
+pkUtxos :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
 pkUtxos pkh =
   mapMaybe
     (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
@@ -135,7 +135,7 @@ waitNMilliSeconds n = do
 newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
   deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
 
-instance (MonadTrans t, MonadTweakChain m, MonadFail (t m)) => MonadTweakChain (AsTrans t m) where
+instance (MonadTrans t, MonadBlockChainWithoutValidation m, MonadFail (t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxos = lift allUtxos
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
@@ -148,14 +148,14 @@ instance (MonadTrans t, MonadTweakChain m, MonadFail (t m)) => MonadTweakChain (
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
 
-deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadTweakChain m) => MonadTweakChain (WriterT w m)
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (WriterT w m)
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
-deriving via (AsTrans (ReaderT r) m) instance MonadTweakChain m => MonadTweakChain (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 
-deriving via (AsTrans (StateT s) m) instance MonadTweakChain m => MonadTweakChain (StateT s m)
+deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)

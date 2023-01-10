@@ -250,7 +250,7 @@ utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadTweakChain (MockChainT m) where
+instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   txOutByRef outref = gets $ Map.lookup outref . utxoIndexToTxOutMap . mcstIndex
 
   ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)

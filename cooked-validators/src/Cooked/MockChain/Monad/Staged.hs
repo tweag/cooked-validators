@@ -178,7 +178,7 @@ withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
-instance MonadTweakChain StagedMockChain where
+instance MonadBlockChainWithoutValidation StagedMockChain where
   datumFromHash = singletonBuiltin . DatumFromHash
   allUtxos = singletonBuiltin AllUtxos
   txOutByRef = singletonBuiltin . TxOutByRef
