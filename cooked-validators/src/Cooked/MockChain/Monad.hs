@@ -159,3 +159,5 @@ deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockCha
 deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
+
+deriving via (AsTrans ListT m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m)
