@@ -55,7 +55,7 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
           mPrettyTxOpts opts,
           prettyEnumNonEmpty "Mints:" "-" (prettyMints <$> (mints ^. mintsListIso)),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
-          prettyEnumNonEmpty "Signers:" "-" (prettyPubKeyHash . walletPKHash <$> NEList.toList signers),
+          prettyEnumNonEmpty "Signers:" "-" (prettySigners opts signers),
           -- TODO handle unsafe 'fromJust' better
           prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
           prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
@@ -77,6 +77,25 @@ prettyPubKeyHash pkh =
     Just walletId ->
       prettyHash pkh
         <+> PP.parens ("wallet" <+> PP.viaShow walletId)
+
+-- | Same as 'prettyPubKeyHash' with a suffix mentionning this is the balancing
+-- wallet
+prettyBalancingWallet :: Wallet -> Doc ann
+prettyBalancingWallet w =
+  prettyPubKeyHash (walletPKHash w) <+> "[Balancing]"
+
+-- | Prints a list of pubkeys with a flag next to the balancing wallet
+prettySigners :: TxOpts -> NEList.NonEmpty Wallet -> [Doc ann]
+prettySigners TxOpts {balanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
+  prettyBalancingWallet firstSigner : (prettyPubKeyHash . walletPKHash <$> signers)
+prettySigners TxOpts {balanceWallet = BalanceWith balancingWallet} signers =
+  aux (NEList.toList signers)
+  where
+    aux :: [Wallet] -> [Doc ann]
+    aux [] = []
+    aux (s : ss)
+      | s == balancingWallet = prettyBalancingWallet balancingWallet : aux ss
+      | otherwise = prettyPubKeyHash (walletPKHash s) : aux ss
 
 -- prettyMints
 --
