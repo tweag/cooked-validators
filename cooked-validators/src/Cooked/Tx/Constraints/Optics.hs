@@ -12,6 +12,7 @@ module Cooked.Tx.Constraints.Optics where
 import Cooked.Tx.Constraints.Type
 import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified PlutusTx as Pl
 import Type.Reflection
 
@@ -46,6 +47,15 @@ txSkelOutputP =
                 Nothing -> Nothing
               Nothing -> Nothing
     )
+
+txSkelOutputToTypedValidatorP ::
+  ( Show (Pl.DatumType a),
+    Pl.ToData (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
+    Typeable a
+  ) =>
+  Prism' TxSkelOut (ConcreteOutput (Pl.TypedValidator a) (TxSkelOutDatum (Pl.DatumType a)) Pl.Value)
+txSkelOutputToTypedValidatorP = txSkelOutputP
 
 -- txSkelOutDatumTypeAT ::
 --   forall a.

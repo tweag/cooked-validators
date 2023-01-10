@@ -38,7 +38,7 @@ tamperDatumTweak change = do
     overMaybeTweak
       ( txSkelOutsL
           % traversed
-          % txSkelOutputP @(Pl.TypedValidator a) @(TxSkelOutDatum (Pl.DatumType a))
+          % txSkelOutputToTypedValidatorP @a
           % outputDatumL
       )
       change
