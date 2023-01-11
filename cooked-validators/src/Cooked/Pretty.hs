@@ -292,13 +292,29 @@ mPrettyTxOpts
 
 -- * Pretty-printing
 
--- | Pretty prints a 'UtxoState'.
+-- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
+-- pks, then scripts.
 prettyUtxoState :: UtxoState -> Doc ann
 prettyUtxoState =
   prettyEnum "UTxO state:" "•"
     . map (uncurry prettyAddressState . second utxoValueSet)
+    . List.sortBy addressOrdering
     . Map.toList
     . utxoState
+  where
+    addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
+    addressOrdering
+      (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
+      (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
+        case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
+          (Just i, Just j) -> compare i j
+          (Just _, Nothing) -> LT
+          (Nothing, Just _) -> GT
+          (Nothing, Nothing) -> compare a1 a2
+    addressOrdering
+      (Pl.Address (Pl.PubKeyCredential _) _, _)
+      (Pl.Address (Pl.ScriptCredential _) _, _) = LT
+    addressOrdering (a1, _) (a2, _) = compare a1 a2
 
 instance Show UtxoState where
   show = show . prettyUtxoState
