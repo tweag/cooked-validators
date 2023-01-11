@@ -6,7 +6,7 @@ packages:
 source-repository-package
   type: git
   location: https://github.com/tweag/pirouette.git
-  tag: 41fe7a5836469d1fecde69bf13482d54771926ca
+  tag: 6cebde8792b8a84cc9c4a1cecf9f90285173d662
   
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
