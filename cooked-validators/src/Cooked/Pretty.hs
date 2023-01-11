@@ -319,21 +319,19 @@ prettyAddressState address payloads =
 -- been grouped together when they are the same
 prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
 prettyPayloadGrouped [] = Nothing
-prettyPayloadGrouped ((value, mUtxoDatum) : rest) =
-  let lenRest = length rest
-      title
-        | lenRest == 0 = "×1 UTxO"
-        | otherwise = "×" <> PP.pretty (lenRest + 1) <+> "UTxOs"
-   in prettyEnumNonEmpty title "◦" (prettyPayload value mUtxoDatum)
+prettyPayloadGrouped [payload] = uncurry prettyPayload payload
+prettyPayloadGrouped (payload : rest) =
+  let cardinality = 1 + length rest
+   in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> uncurry prettyPayload payload
 
--- Returns `Nothing` if the value is empty to avoid having an empty document
--- whose height is 1 in the `prettyprinter` library and would generate empty
--- lines.
-prettyPayload :: Pl.Value -> Maybe UtxoDatum -> [Doc ann]
+prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
 prettyPayload value mDatum =
-  catMaybes
+  case catMaybes
     [ Just (prettyValue value),
       -- TODO Upgrade UtxoState to carry information about whether the datum
       -- is hashed or inlined
       ("Datum:" <+>) . PP.align . PP.pretty . utxoShow <$> mDatum
-    ]
+    ] of
+    [] -> Nothing
+    [doc] -> Just $ PP.align doc
+    docs -> Just . PP.align . PP.vsep $ docs
