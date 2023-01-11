@@ -46,7 +46,11 @@ utxoStateTotal = mconcat . map utxoValueSetTotal . M.elems . utxoState
 
 -- | A 'UtxoDatum' contains a datum which is @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
 -- but we also include @show x@ to be able to print this value in a more user friendly fashion.
-data UtxoDatum = UtxoDatum {utxoDatum :: Pl.Datum, utxoShow :: String}
+data UtxoDatum = UtxoDatum
+  { utxoDatum :: Pl.Datum,
+    utxoInlined :: Bool,
+    utxoShow :: String
+  }
   deriving (Eq, Ord)
 
 instance Show UtxoDatum where

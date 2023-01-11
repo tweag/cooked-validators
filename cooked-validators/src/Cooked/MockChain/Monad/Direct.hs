@@ -75,17 +75,18 @@ mcstToUtxoState s =
   where
     go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
     go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToDatumHash outputDatum >>= datumHashToDatum)])
+      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
 
-    outputDatumToDatumHash :: PV2.OutputDatum -> Maybe Pl.DatumHash
-    outputDatumToDatumHash PV2.NoOutputDatum = Nothing
-    outputDatumToDatumHash (PV2.OutputDatumHash dh) = Just dh
-    outputDatumToDatumHash (PV2.OutputDatum datum) = Just $ Pl.datumHash datum
-
-    datumHashToDatum :: Pl.DatumHash -> Maybe UtxoDatum
-    datumHashToDatum datumHash = do
-      (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
-      return $ UtxoDatum datum datumStr
+    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
+    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
+    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
+      do
+        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
+        return $ UtxoDatum datum False datumStr
+    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
+      do
+        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
+        return $ UtxoDatum datum True datumStr
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash

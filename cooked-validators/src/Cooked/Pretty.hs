@@ -10,7 +10,7 @@ module Cooked.Pretty where
 
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.MockChain.UtxoState (UtxoDatum (utxoShow), UtxoState (utxoState), UtxoValueSet (utxoValueSet))
+import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Default
@@ -346,8 +346,15 @@ prettyPayload value mDatum =
     [ Just (prettyValue value),
       -- TODO Upgrade UtxoState to carry information about whether the datum
       -- is hashed or inlined
-      ("Datum:" <+>) . PP.align . PP.pretty . utxoShow <$> mDatum
+      prettyPayloadDatum <$> mDatum
     ] of
     [] -> Nothing
     [doc] -> Just $ PP.align doc
     docs -> Just . PP.align . PP.vsep $ docs
+  where
+    prettyPayloadDatum :: UtxoDatum -> Doc ann
+    prettyPayloadDatum d =
+      "Datum"
+        <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
+        <> ":"
+        <+> (PP.pretty . (if utxoInlined d then unwrapInlinedDatumStr else unwrapHashedDatumStr) . utxoShow $ d)
