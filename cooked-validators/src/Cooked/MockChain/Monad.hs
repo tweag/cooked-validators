@@ -21,6 +21,7 @@ import Data.Kind
 import Data.Maybe
 import qualified Ledger as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
+import Optics.Core
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx as Pl
 
@@ -80,6 +81,10 @@ utxosFromCardanoTx =
 txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
 txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 
+-- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
+filterUtxos :: (o1 -> Maybe o2) -> [(Pl.TxOutRef, o1)] -> [(Pl.TxOutRef, o2)]
+filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
+
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
 pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
@@ -90,12 +95,33 @@ pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
 pkUtxos :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
 pkUtxos pkh = filterUtxos (isOutputWithoutDatum <=< isPKOutputFrom pkh) <$> allUtxos
 
+-- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
+-- complete datum from the state
+allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(Pl.TxOutRef, PV2.TxOut)]
+allUtxosWithDatums =
+  allUtxos
+    >>= mapM
+      ( \(oref, out) -> case outputOutputDatum out of
+          PV2.OutputDatumHash datumHash -> do
+            mDatum <- datumFromHash datumHash
+            case mDatum of
+              Nothing -> return (oref, out)
+              Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+          _ -> return (oref, out)
+      )
+
 filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(Pl.TxOutRef, output)]
 filteredUtxos predicate = filterUtxos predicate <$> allUtxos
 
--- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
-filterUtxos :: (o1 -> Maybe o2) -> [(Pl.TxOutRef, o1)] -> [(Pl.TxOutRef, o2)]
-filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
+-- | Like 'filteredUtxos', but will all resolvable datum hashes resolved. This
+-- means that the outputs are presented differently from how a script would see
+-- them; the information on whether there are inline datums or datum hashes is
+-- lost.
+filteredUtxosWithDatums ::
+  MonadBlockChainWithoutValidation m =>
+  (PV2.TxOut -> Maybe output) ->
+  m [(Pl.TxOutRef, output)]
+filteredUtxosWithDatums predicate = filterUtxos predicate <$> allUtxosWithDatums
 
 outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do
