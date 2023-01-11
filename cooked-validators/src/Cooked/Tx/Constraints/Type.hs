@@ -11,11 +11,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Cooked.Tx.Constraints.Type where
 
 import qualified Cardano.Api as C
+import Control.Monad
 import Cooked.MockChain.Wallet
 import Data.Default
 import Data.Either.Combinators
@@ -138,6 +138,9 @@ instance ToOutputDatum () where
 
 instance ToOutputDatum Pl.DatumHash where
   toOutputDatum = Pl.OutputDatumHash
+
+instance Pl.ToData a => ToOutputDatum (ResolvedOrInlineDatum a) where
+  toOutputDatum (ResolvedOrInlineDatum x) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ x
 
 class ToValue a where
   toValue :: a -> Pl.Value
@@ -285,6 +288,30 @@ isOutputWithDatumSuchThat predicate out
   | predicate (out ^. outputDatumL) = Just out
   | otherwise = Nothing
 
+-- | Wrapper type to make clear that the datum is a resolved or inline datum
+newtype ResolvedOrInlineDatum a = ResolvedOrInlineDatum a deriving (Show)
+
+-- | Test if an output has an inline datum of a certain type. In most
+-- applications, it will make sense to use this with 'filteredUtxosWithDatums',
+-- and not with 'filteredUtxos'.
+isOutputWithDatumOfType ::
+  forall a output.
+  ( Pl.FromData a,
+    IsOutput output
+  ) =>
+  output ->
+  Maybe (ConcreteOutput (OwnerType output) (ResolvedOrInlineDatum a) (ValueType output))
+isOutputWithDatumOfType out = case outputOutputDatum out of
+  Pl.OutputDatumHash _ -> Nothing
+  Pl.OutputDatum (Pl.Datum datum) ->
+    ConcreteOutput
+      (out ^. outputOwnerL)
+      (out ^. outputStakingCredentialL)
+      (out ^. outputValueL)
+      . ResolvedOrInlineDatum
+      <$> Pl.fromBuiltinData datum
+  Pl.NoOutputDatum -> Nothing
+
 -- | Test if the owner an output is a specific script. If it is, return an
 -- output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
@@ -305,6 +332,26 @@ isScriptOutputFrom validator out =
               (out ^. outputDatumL)
         else Nothing
     _ -> Nothing
+
+-- | like 'isScriptOutputFrom', but also makes sure that the output has an
+-- inline datum of the correct type. In most applications, it will make sense to
+-- use this with 'filteredUtxosWithDatums', and not with 'filteredUtxos'.
+isScriptOutputFrom' ::
+  forall a output.
+  ( IsOutput output,
+    Pl.FromData (Pl.DatumType a),
+    ToOutputDatum (DatumType output),
+    Show (DatumType output),
+    ToValue (ValueType output),
+    Show (ValueType output)
+  ) =>
+  Pl.TypedValidator a ->
+  output ->
+  Maybe (ConcreteOutput (Pl.TypedValidator a) (ResolvedOrInlineDatum (Pl.DatumType a)) (ValueType output))
+isScriptOutputFrom' validator =
+  -- what's all this madness witht the type annotations?
+  isScriptOutputFrom @output @a validator
+    >=> isOutputWithDatumOfType @(Pl.DatumType a) @(ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output))
 
 -- | Test if the owner an output is a specific public key. If it is, return an
 -- output of the same 'DatumType', but with 'Pl.PubKeyHash' as its 'OwnerType'.
