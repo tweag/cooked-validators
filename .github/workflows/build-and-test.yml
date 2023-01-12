@@ -1,3 +1,5 @@
+name: Build and test Plutus-libs
+
 on:
   push:
     branches:
