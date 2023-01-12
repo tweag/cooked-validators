@@ -6,6 +6,64 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module centralizes functions to pretty-print transaction skeletons,
+-- utxo states, addresses, pubkey hashes, values, etc.
+--
+-- = User guide:
+--
+-- * The functions in this module manipulate values of type 'Doc ()':
+-- pretty-printed documents.
+-- * To render a document 'doc' in IO, use 'putDocW n doc' (from
+-- "Prettyprinter") where 'n' is the desired width for linebreaks.
+-- * The 'Show' instance of 'Doc a' renders 80 characters long multiline
+-- strings 
+--
+-- == Pretty print a transaction skeleton
+--
+-- Use 'prettyTxSkel'
+--
+-- == Pretty print a 'UtxoState'
+--
+-- Use 'prettyUtxoState'
+--
+-- == Implement pretty-printing for datums
+--
+-- Datums are required to have a 'Pretty' instance ('pretty :: a -> Doc ann').
+--
+-- === Rely on 'Show' for trivial datum types
+-- 
+-- Use 'viaShow :: Show a => a -> Doc ann' from "Prettyprinter".
+-- 
+-- === Custom implementation
+--
+-- For non trivial datums, the default 'Show' is often poorly readable and
+-- one-lined. It is interesting to implement a more readable 'Pretty' instance
+-- using the following provided functions:
+--
+-- * 'prettyValue' for values
+-- * 'prettyAddress' for addresses (will display whether it is script or pubkey
+-- along with wallet number if applicable)
+-- * 'prettyPubKeyHash' for public key hashes (will also print the wallet
+-- number if applicable)
+-- * 'prettyEnum' to build nested lists: 'prettyEnum title bullet list'
+-- * '<+>' to concatenate docs with a breakable space inbetween
+-- * '<>' to concatenate docs with no space
+--
+-- For example:
+--
+-- @
+--     data Foo = Bar Pl.Value | Baz Pl.PubkeyHash Pl.Value
+--
+--     instance Pretty Foo where
+--       pretty (Bar value) = "Bar" <+> prettyValue value
+--       pretty (Baz pkh value) =
+--         prettyEnum
+--           "Baz"
+--           "-"
+--           [ "user:" <+> prettyPubKeyHash pkh,
+--             "deposit:" <+> prettyValue value ]
+-- @
+--
 module Cooked.Pretty where
 
 import Control.Arrow (second)
