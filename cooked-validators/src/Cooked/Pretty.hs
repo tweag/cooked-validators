@@ -179,9 +179,12 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZe
     <+> "->"
     <+> PP.viaShow amount
 
--- TODO print staking credentials
 prettyAddress :: Pl.Address -> Doc ann
-prettyAddress (Pl.Address addrCr _stakingCred) = prettyCredential addrCr
+prettyAddress (Pl.Address addrCr Nothing) = prettyCredential addrCr
+prettyAddress (Pl.Address addrCr (Just (Pl.StakingHash stakCr))) =
+  prettyCredential addrCr <+> PP.angles ("staking:" <+> prettyCredential stakCr)
+prettyAddress (Pl.Address addrCr (Just (Pl.StakingPtr p1 p2 p3))) =
+  prettyCredential addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
 
 prettyCredential :: Pl.Credential -> Doc ann
 prettyCredential (Pl.ScriptCredential vh) = "script" <+> prettyHash vh
