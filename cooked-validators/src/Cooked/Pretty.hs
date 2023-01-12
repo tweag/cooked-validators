@@ -63,7 +63,6 @@
 --           [ "user:" <+> prettyPubKeyHash pkh,
 --             "deposit:" <+> prettyValue value ]
 -- @
---
 module Cooked.Pretty where
 
 import Control.Arrow (second)
