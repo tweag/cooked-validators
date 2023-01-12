@@ -219,8 +219,8 @@ prettyValue =
       where
         prettyAssetClass
           | symbol == Pl.CurrencySymbol "" = "Lovelace"
-          | symbol == quickCurrencySymbol = "[Q]" <+> PP.pretty name
-          | symbol == permanentCurrencySymbol = "[P]" <+> PP.pretty name
+          | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
+          | symbol == permanentCurrencySymbol = "Perm" <+> PP.pretty name
           | otherwise = prettyHash symbol <+> PP.pretty name
 
     -- prettyNumericUnderscore 23798423723
