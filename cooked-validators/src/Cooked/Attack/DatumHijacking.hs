@@ -10,6 +10,7 @@
 
 module Cooked.Attack.DatumHijacking where
 
+import Control.Monad
 import Cooked.Attack.Tweak
 import Cooked.MockChain.RawUPLC
 import Cooked.Tx.Constraints.Optics
@@ -24,8 +25,6 @@ import Type.Reflection
 -- type. Returns the list of outputs it redirected (as they were before the
 -- modification), in the order in which they occurred on the original
 -- transaction.
---
--- If no output is redirected, this tweak fails.
 --
 -- Something like @txSkelOutsL % traversed % txSkelOutputToTypedValidatorP@
 -- might be useful to construct the optics used by this tweak.
@@ -84,16 +83,17 @@ datumHijackingAttack ::
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
   m [ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value]
-datumHijackingAttack change select =
-  let thief = datumHijackingTarget @a
-   in do
-        redirected <-
-          redirectScriptOutputTweak
-            (txSkelOutsL % traversed % txSkelOutputToTypedValidatorP @a)
-            (\output -> if change output then Just thief else Nothing)
-            select
-        addLabelTweak $ DatumHijackingLbl $ L.validatorAddress thief
-        return redirected
+datumHijackingAttack change select = do
+  redirected <-
+    redirectScriptOutputTweak
+      (txSkelOutsL % traversed % txSkelOutputToTypedValidatorP @a)
+      (\output -> if change output then Just thief else Nothing)
+      select
+  guard . not $ null redirected
+  addLabelTweak $ DatumHijackingLbl $ L.validatorAddress thief
+  return redirected
+  where
+    thief = datumHijackingTarget @a
 
 newtype DatumHijackingLbl = DatumHijackingLbl L.Address
   deriving (Show, Eq, Ord)

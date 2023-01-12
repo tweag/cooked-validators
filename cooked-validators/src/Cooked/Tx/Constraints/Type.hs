@@ -163,6 +163,8 @@ data ConcreteOutput ownerType datumType valueType where
 
 deriving instance (Show ownerType, Show datumType, Show valueType) => Show (ConcreteOutput ownerType datumType valueType)
 
+deriving instance (Eq ownerType, Eq datumType, Eq valueType) => Eq (ConcreteOutput ownerType datumType valueType)
+
 instance
   ( Show ownerType,
     ToCredential ownerType,
@@ -289,7 +291,7 @@ isOutputWithDatumSuchThat predicate out
   | otherwise = Nothing
 
 -- | Wrapper type to make clear that the datum is a resolved or inline datum
-newtype ResolvedOrInlineDatum a = ResolvedOrInlineDatum a deriving (Show)
+newtype ResolvedOrInlineDatum a = ResolvedOrInlineDatum a deriving (Show, Eq)
 
 -- | Test if an output has an inline datum of a certain type. In most
 -- applications, it will make sense to use this with 'filteredUtxosWithDatums',
@@ -798,32 +800,14 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
--- txSkelOutDatum :: TxSkelOut -> Maybe Pl.Datum
--- txSkelOutDatum PaysScript {..} = Just . Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum $ paysScriptDatum
--- txSkelOutDatum PaysPK {..} = Pl.Datum . Pl.toBuiltinData . unTxSkelOutDatum <$> paysPKDatum
-
--- recipientAddress :: TxSkelOut -> Pl.Address
--- recipientAddress PaysScript {..} = (Pl.validatorAddress recipientValidator) {Pl.addressStakingCredential = mStakeCred}
--- recipientAddress PaysPK {..} = Pl.Address (Pl.PubKeyCredential recipientPubKeyHash) mStakeCred
-
--- (PaysScript v1 sc1 d1 x1) == (PaysScript v2 sc2 d2 x2) =
---   case typeOf v1 `eqTypeRep` typeOf v2 of
---     Just HRefl -> d1 Pl.== d2 && (v1, sc1, x1) == (v2, sc2, x2)
---     Nothing -> False
--- (PaysPK h1 sc1 d1 x1) == (PaysPK h2 sc2 d2 x2) =
---   case typeOf d1 `eqTypeRep` typeOf d2 of
---     Just HRefl -> d1 Pl.== d2 && (h1, sc1, x1) == (h2, sc2, x2)
---     Nothing -> False
--- _ == _ = False
-
 paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
 paysPK pkh value = Pays (ConcreteOutput pkh Nothing value Pl.NoOutputDatum)
 
 -- | See the [note on TxSkelOut data]
 data TxSkelOutDatum a
-  = TxSkelOutDatumHash a
-  | TxSkelOutInlineDatum a
-  deriving (Show)
+  = TxSkelOutDatumHash {txSkelOutDatum :: a}
+  | TxSkelOutInlineDatum {txSkelOutDatum :: a}
+  deriving (Show, Eq)
 
 -- | See the [note on TxSkelOut data]
 instance Pl.ToData a => ToOutputDatum (TxSkelOutDatum a) where
