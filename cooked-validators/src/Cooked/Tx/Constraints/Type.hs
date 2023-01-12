@@ -941,7 +941,7 @@ data TxSkel where
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
     TxSkel
-  deriving (Show)
+  deriving (Show, Eq)
 
 makeLensesFor
   [ ("txSkelLabel", "txSkelLabelL"),

@@ -123,7 +123,7 @@ data MockChainError
   | MCECalcFee MockChainError
   | MCEUnknownOutRefError String Pl.TxOutRef
   | FailWith String
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Describes us which stage of the balancing process are we at. This is needed
 --  to distinguish the successive calls to balancing while computing fees from

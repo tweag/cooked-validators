@@ -69,22 +69,22 @@ tests =
         let a = paysPK (walletPKHash $ wallet 1) $ Pl.lovelaceValueOf 123
             b = paysPK (walletPKHash $ wallet 2) $ Pl.lovelaceValueOf 123
             c = paysPK (walletPKHash $ wallet 3) $ Pl.lovelaceValueOf 123
-            skel x y z = mempty {txSkelOuts = [x, y, z]}
+            skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
-                  (map (,()) [skel a b c, skel b a c])
-                  (runTweak (permutOutTweak $ KeepIdentity $ Just 2) def $ skel a b c),
+                  (map (Right . ((),)) [skel a b c, skel b a c])
+                  (runTweak (permutOutTweak $ KeepIdentity $ Just 2) $ skel a b c),
               testCase "KeepIdentity Nothing" $
                 assertSameSets
-                  (map (,()) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (runTweak (permutOutTweak $ KeepIdentity Nothing) def $ skel a b c),
+                  (map (Right . ((),)) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
+                  (runTweak (permutOutTweak $ KeepIdentity Nothing) $ skel a b c),
               testCase "OmitIdentity (Just 2)" $
                 assertSameSets
-                  (map (,()) [skel b a c])
-                  (runTweak (permutOutTweak $ OmitIdentity $ Just 2) def $ skel a b c),
+                  (map (Right . ((),)) [skel b a c])
+                  (runTweak (permutOutTweak $ OmitIdentity $ Just 2) $ skel a b c),
               testCase "OmitIdentity Nothing" $
                 assertSameSets
-                  (map (,()) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (runTweak (permutOutTweak $ OmitIdentity Nothing) def $ skel a b c)
+                  (map (Right . ((),)) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
+                  (runTweak (permutOutTweak $ OmitIdentity Nothing) $ skel a b c)
             ]
     ]
