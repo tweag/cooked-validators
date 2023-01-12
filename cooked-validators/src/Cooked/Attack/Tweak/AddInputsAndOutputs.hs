@@ -18,29 +18,29 @@ import Test.QuickCheck (NonZero (..))
 
 -- * Adding and removing transaction inputs
 
--- | Ensure that a given 'SpendableOut' is being spent with a given
--- 'TxSkelIn'. The return value will be @Just@ the added data, if anything
+-- | Ensure that a given 'Pl.TxOutRef' is being spent with a given
+-- 'TxSkelRedeemer'. The return value will be @Just@ the added data, if anything
 -- changed.
-ensureInputTweak :: SpendableOut -> TxSkelIn -> Tweak (Maybe (SpendableOut, TxSkelIn))
-ensureInputTweak sOut howConsumed = do
+ensureInputTweak :: MonadTweak m => Pl.TxOutRef -> TxSkelRedeemer -> m (Maybe (Pl.TxOutRef, TxSkelRedeemer))
+ensureInputTweak oref howConsumed = do
   presentInputs <- viewTweak txSkelInsL
-  if presentInputs Map.!? sOut == Just howConsumed
+  if presentInputs Map.!? oref == Just howConsumed
     then return Nothing
     else do
-      overTweak txSkelInsL (Map.insert sOut howConsumed)
-      return $ Just (sOut, howConsumed)
+      overTweak txSkelInsL (Map.insert oref howConsumed)
+      return $ Just (oref, howConsumed)
 
--- | Add an input to a transaction. If the given 'SpendableOut' is already being
+-- | Add an input to a transaction. If the given 'Pl.TxOutRef' is already being
 -- consumed by the transaction, fail.
-addInputTweak :: SpendableOut -> TxSkelIn -> Tweak ()
-addInputTweak sOut howConsumed = do
+addInputTweak :: MonadTweak m => Pl.TxOutRef -> TxSkelRedeemer -> m ()
+addInputTweak oref howConsumed = do
   presentInputs <- viewTweak txSkelInsL
-  guard (Map.notMember sOut presentInputs)
-  overTweak txSkelInsL (Map.insert sOut howConsumed)
+  guard (Map.notMember oref presentInputs)
+  overTweak txSkelInsL (Map.insert oref howConsumed)
 
 -- | Remove transaction inputs according to a given predicate. The returned list
 -- contains all removed inputs.
-removeInputTweak :: (SpendableOut -> TxSkelIn -> Bool) -> Tweak [(SpendableOut, TxSkelIn)]
+removeInputTweak :: MonadTweak m => (Pl.TxOutRef -> TxSkelRedeemer -> Bool) -> m [(Pl.TxOutRef, TxSkelRedeemer)]
 removeInputTweak removePred = do
   presentInputs <- viewTweak txSkelInsL
   let (removed, kept) = Map.partitionWithKey removePred presentInputs
@@ -51,7 +51,7 @@ removeInputTweak removePred = do
 
 -- | Ensure that a certain output is produced by a transaction. The return value
 -- will be @Just@ the added output, if there was any change.
-ensureOutputTweak :: TxSkelOut -> Tweak (Maybe TxSkelOut)
+ensureOutputTweak :: MonadTweak m => TxSkelOut -> m (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
   presentOutputs <- viewTweak txSkelOutsL
   if txSkelOut `elem` presentOutputs
@@ -60,12 +60,12 @@ ensureOutputTweak txSkelOut = do
       addOutputTweak txSkelOut
       return $ Just txSkelOut
 
-addOutputTweak :: TxSkelOut -> Tweak ()
+addOutputTweak :: MonadTweak m => TxSkelOut -> m ()
 addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 
 -- | Remove transaction outputs according to some predicate. The returned list
 -- contains all the removed outputs.
-removeOutputTweak :: (TxSkelOut -> Bool) -> Tweak [TxSkelOut]
+removeOutputTweak :: MonadTweak m => (TxSkelOut -> Bool) -> m [TxSkelOut]
 removeOutputTweak removePred = do
   presentOutputs <- viewTweak txSkelOutsL
   let (removed, kept) = partition removePred presentOutputs
@@ -77,14 +77,15 @@ removeOutputTweak removePred = do
 -- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under
 -- modification. As this is implemented in terms of 'addToTxSkelMints', the same
 -- caveats apply as do to that function!
-addMintTweak :: (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Tweak ()
+addMintTweak :: MonadTweak m => (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> m ()
 addMintTweak mint = overTweak txSkelMintsL $ addToTxSkelMints mint
 
 -- | Remove some entries from the 'TxSkelMints' of a transaction, according to
 -- some predicate. The returned list holds the removed entries.
 removeMintTweak ::
+  MonadTweak m =>
   ((Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Bool) ->
-  Tweak [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+  m [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
 removeMintTweak removePred = do
   presentMints <- viewTweak $ txSkelMintsL % mintsListIso
   let (removed, kept) = partition removePred presentMints

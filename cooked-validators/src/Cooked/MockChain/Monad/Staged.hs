@@ -84,7 +84,7 @@ data MockChainBuiltin a where
   -- | The failing operation
   Fail :: String -> MockChainBuiltin a
 
-type MockChainOp = LtlOp UntypedTweak MockChainBuiltin
+type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
@@ -97,18 +97,11 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance Semigroup UntypedTweak where
-  -- The right tweak is applied first
-  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
-
-instance Monoid UntypedTweak where
-  mempty = UntypedTweak doNothingTweak
-
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
-instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
+instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -116,20 +109,15 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
         . nowLaterList
     where
       interpretAndTell ::
-        UntypedTweak ->
-        [Ltl UntypedTweak] ->
-        StateT [Ltl UntypedTweak] InterpMockChain Pl.CardanoTx
-      interpretAndTell (UntypedTweak (Tweak now)) later = do
-        mcst <- lift get
-        msum $
-          map
-            ( \(skel', _) -> do
-                lift $ lift $ tell $ prettyMockChainOp $ Builtin $ ValidateTxSkel skel'
-                tx <- validateTxSkel skel'
-                put later
-                return tx
-            )
-            (now mcst skel)
+        UntypedTweak InterpMockChain ->
+        [Ltl (UntypedTweak InterpMockChain)] ->
+        StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Pl.CardanoTx
+      interpretAndTell (UntypedTweak now) later = do
+        (_, skel') <- lift $ runTweakInChain now skel
+        lift $ lift $ tell $ prettyMockChainOp $ Builtin $ ValidateTxSkel skel'
+        tx <- validateTxSkel skel'
+        put later
+        return tx
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
@@ -147,31 +135,31 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
 -- ** Modalities
 
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
-type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak)
+type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
--- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
--- apply at least once.
-somewhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
-somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
+-- -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
+-- -- apply at least once.
+-- somewhere :: MonadModalBlockChain m => Tweak f b -> m a -> m a
+-- somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
--- | Apply a 'Tweak' to every transaction in a given trace. This is also
--- successful if there are no transactions at all.
-everywhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
-everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
+-- -- | Apply a 'Tweak' to every transaction in a given trace. This is also
+-- -- successful if there are no transactions at all.
+-- everywhere :: MonadModalBlockChain m => Tweak f b -> m a -> m a
+-- everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
--- | Apply a 'Tweak' to the next transaction in the given trace. The order of
--- arguments is reversed compared to 'somewhere' and 'everywhere', because that
--- enables an idiom like
---
--- > do ...
--- >    endpoint arguments `withTweak` someModification
--- >    ...
---
--- where @endpoint@ builds and validates a single transaction depending on the
--- given @arguments@. Then `withTweak` says "I want to modify the transaction
--- returned by this endpoint in the following way".
-withTweak :: MonadModalBlockChain m => m x -> Tweak a -> m x
-withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
+-- -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
+-- -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
+-- -- enables an idiom like
+-- --
+-- -- > do ...
+-- -- >    endpoint arguments `withTweak` someModification
+-- -- >    ...
+-- --
+-- -- where @endpoint@ builds and validates a single transaction depending on the
+-- -- given @arguments@. Then `withTweak` says "I want to modify the transaction
+-- -- returned by this endpoint in the following way".
+-- withTweak :: MonadModalBlockChain m => m x -> Tweak f a -> m x
+-- withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 

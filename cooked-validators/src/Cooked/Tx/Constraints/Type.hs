@@ -19,6 +19,7 @@ import Control.Monad
 import Cooked.MockChain.Wallet
 import Data.Default
 import Data.Either.Combinators
+import Data.Function
 import Data.List
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NEList
@@ -767,6 +768,7 @@ data TxSkelOut where
       Show (DatumType o),
       ToOutputDatum (DatumType o),
       Pl.ToData (DatumType o), -- If this seems redundant with the 'ToOutputDatum' constraint, see the [note on TxSkelOut data].
+      Typeable (DatumType o),
       ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
     ) =>
     {producedOutput :: o} ->
@@ -779,6 +781,11 @@ deriving instance Show TxSkelOut
 txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
 
+-- | Since we care about whether the transaction outputsa are the same on-chain,
+-- this is sufficient:
+instance Eq TxSkelOut where
+  (==) = (==) `on` txSkelOutToTxOut
+
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
 txSkelOutValueL =
   lens
@@ -787,22 +794,6 @@ txSkelOutValueL =
 
 txSkelOutValue :: TxSkelOut -> Pl.Value
 txSkelOutValue = (^. txSkelOutValueL)
-
--- | If the output goes to a typed validator of some type a, return the
--- validator.
---
--- TODO: I'll leave this function here for now, maybe it,s useful for pretty
--- printing?
-txSkelOutTypedValidator ::
-  forall a.
-  Typeable a =>
-  TxSkelOut ->
-  Maybe (Pl.TypedValidator a)
-txSkelOutTypedValidator (Pays output) =
-  let validator = output ^. outputOwnerL
-   in case typeOf validator `eqTypeRep` typeRep @(Pl.TypedValidator a) of
-        Just HRefl -> Just validator
-        Nothing -> Nothing
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
@@ -875,6 +866,7 @@ txSkelOutDatumComplete (Pays output) = Pl.Datum . Pl.toBuiltinData $ output ^. o
 paysScript ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -894,6 +886,7 @@ paysScript validator datum value =
 paysScriptInlineDatum ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -909,13 +902,13 @@ paysScriptInlineDatum validator datum value =
         (TxSkelOutInlineDatum datum)
     )
 
--- * Transaction skeletons
+-- * Redeemers for transaction inputs
 
 type SpendsScriptConstrs a =
   ( Pl.ToData (Pl.RedeemerType a),
     Show (Pl.RedeemerType a),
     Pl.Eq (Pl.RedeemerType a),
-    Typeable a
+    Typeable (Pl.RedeemerType a)
   )
 
 data TxSkelRedeemer where
@@ -924,6 +917,17 @@ data TxSkelRedeemer where
   TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
 
 deriving instance (Show TxSkelRedeemer)
+
+instance Eq TxSkelRedeemer where
+  TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
+  TxSkelNoRedeemerForScript == TxSkelNoRedeemerForScript = True
+  (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
+    case typeOf r1 `eqTypeRep` typeOf r2 of
+      Just HRefl -> r1 Pl.== r2
+      Nothing -> False
+  _ == _ = False
+
+-- * Transaction skeletons
 
 data TxSkel where
   TxSkel ::
