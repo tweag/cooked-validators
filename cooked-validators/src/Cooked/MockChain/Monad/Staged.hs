@@ -147,29 +147,29 @@ runTweak tweak skel =
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
--- -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
--- -- apply at least once.
--- somewhere :: MonadModalBlockChain m => Tweak f b -> m a -> m a
--- somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
+-- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
+-- apply at least once.
+somewhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
+somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
--- -- | Apply a 'Tweak' to every transaction in a given trace. This is also
--- -- successful if there are no transactions at all.
--- everywhere :: MonadModalBlockChain m => Tweak f b -> m a -> m a
--- everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
+-- | Apply a 'Tweak' to every transaction in a given trace. This is also
+-- successful if there are no transactions at all.
+everywhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
+everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
--- -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
--- -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
--- -- enables an idiom like
--- --
--- -- > do ...
--- -- >    endpoint arguments `withTweak` someModification
--- -- >    ...
--- --
--- -- where @endpoint@ builds and validates a single transaction depending on the
--- -- given @arguments@. Then `withTweak` says "I want to modify the transaction
--- -- returned by this endpoint in the following way".
--- withTweak :: MonadModalBlockChain m => m x -> Tweak f a -> m x
--- withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
+-- | Apply a 'Tweak' to the next transaction in the given trace. The order of
+-- arguments is reversed compared to 'somewhere' and 'everywhere', because that
+-- enables an idiom like
+--
+-- > do ...
+-- >    endpoint arguments `withTweak` someModification
+-- >    ...
+--
+-- where @endpoint@ builds and validates a single transaction depending on the
+-- given @arguments@. Then `withTweak` says "I want to modify the transaction
+-- returned by this endpoint in the following way".
+withTweak :: MonadModalBlockChain m => m x -> Tweak InterpMockChain a -> m x
+withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
