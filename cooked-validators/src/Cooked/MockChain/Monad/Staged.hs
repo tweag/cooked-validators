@@ -69,7 +69,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, String))
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, Doc ()))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to
@@ -201,7 +201,7 @@ instance MonadBlockChain StagedMockChain where
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: Map Pl.TxOutRef PV2.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> MockChainOp a -> TraceDescr
+prettyMockChainOp :: Map Pl.TxOutRef PV2.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> MockChainOp a -> TraceDescr
 prettyMockChainOp managedTxOuts managedDatums (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $

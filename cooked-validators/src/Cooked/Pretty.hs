@@ -50,7 +50,7 @@ prettyEnumNonEmpty :: Doc ann -> Doc ann -> [Doc ann] -> Maybe (Doc ann)
 prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
-prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> TxSkel -> Doc ann
+prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> TxSkel -> Doc ()
 prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs _fee) =
   -- undefined
   prettyEnum
@@ -153,27 +153,19 @@ prettyTxSkelOut (Pays output) =
         Pl.NoOutputDatum -> []
     )
 
-prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ann)
+prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ())
 prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
   output <- Map.lookup txOutRef managedTxOuts
   datumDoc <-
     case outputOutputDatum output of
       Pl.OutputDatum datum ->
         do
-          (_, datumStr) <- Map.lookup (Pl.datumHash datum) managedDatums
-          return $
-            Just
-              ( "Datum (inlined):"
-                  <+> (PP.align . PP.pretty) (unwrapInlinedDatumStr datumStr)
-              )
+          (_, datumDoc) <- Map.lookup (Pl.datumHash datum) managedDatums
+          return $ Just ("Datum (inlined):" <+> PP.align datumDoc)
       Pl.OutputDatumHash datumHash ->
         do
-          (_, datumStr) <- Map.lookup datumHash managedDatums
-          return $
-            Just
-              ( "Datum (hashed):"
-                  <+> (PP.align . PP.pretty) (unwrapHashedDatumStr datumStr)
-              )
+          (_, datumDoc) <- Map.lookup datumHash managedDatums
+          return $ Just ("Datum (hashed):" <+> PP.align datumDoc)
       Pl.NoOutputDatum -> return Nothing
   let redeemerDoc =
         case txSkelRedeemer of
@@ -294,7 +286,7 @@ mPrettyTxOpts
 
 -- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
 -- pks, then scripts.
-prettyUtxoState :: UtxoState -> Doc ann
+prettyUtxoState :: UtxoState -> Doc ()
 prettyUtxoState =
   prettyEnum "UTxO state:" "•"
     . map (uncurry prettyAddressState . second utxoValueSet)
@@ -321,7 +313,7 @@ instance Show UtxoState where
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
-prettyAddressState :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
+prettyAddressState :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ()
 prettyAddressState address payloads =
   prettyEnum
     (prettyAddress address)
@@ -333,14 +325,14 @@ prettyAddressState address payloads =
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
 -- been grouped together when they are the same
-prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
+prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ())
 prettyPayloadGrouped [] = Nothing
 prettyPayloadGrouped [payload] = uncurry prettyPayload payload
 prettyPayloadGrouped (payload : rest) =
   let cardinality = 1 + length rest
    in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> uncurry prettyPayload payload
 
-prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
+prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ())
 prettyPayload value mDatum =
   case catMaybes
     [ Just (prettyValue value),
@@ -352,9 +344,9 @@ prettyPayload value mDatum =
     [doc] -> Just $ PP.align doc
     docs -> Just . PP.align . PP.vsep $ docs
   where
-    prettyPayloadDatum :: UtxoDatum -> Doc ann
+    prettyPayloadDatum :: UtxoDatum -> Doc ()
     prettyPayloadDatum d =
       "Datum"
         <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
         <> ":"
-        <+> (PP.pretty . (if utxoInlined d then unwrapInlinedDatumStr else unwrapHashedDatumStr) . utxoShow $ d)
+        <+> PP.align (utxoDoc d)

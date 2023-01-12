@@ -48,6 +48,7 @@ import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as PV2
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
+import Prettyprinter (Doc)
 
 -- * Direct Emulation
 
@@ -94,11 +95,24 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash (Pl.Datum, String),
+    mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Pl.Slot
   }
-  deriving (Show, Eq)
+  deriving (Show)
+
+-- | There is no natural 'Eq' instance for 'Doc' (pretty printed document)
+-- which we store for each datum in the state. The 'Eq' instance for 'Doc'
+-- ignores these pretty printed docs.
+instance Eq MockChainSt where
+  (MockChainSt index1 datums1 validators1 currentSlot1)
+    == (MockChainSt index2 datums2 validators2 currentSlot2) =
+      and
+        [ index1 == index2,
+          Map.map fst datums1 == Map.map fst datums2,
+          validators1 == validators2,
+          currentSlot1 == currentSlot2
+        ]
 
 -- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map that
 -- contains 'Plutus.V2.Ledger.Api.TxOut'.
@@ -336,7 +350,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash (Pl.Datum, String) ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -538,7 +552,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Pl.Params ->
   Pl.UTxO Pl.EmulatorEra ->
-  Map Pl.DatumHash (Pl.Datum, String) ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
