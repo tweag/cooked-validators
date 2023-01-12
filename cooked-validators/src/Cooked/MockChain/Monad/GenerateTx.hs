@@ -47,7 +47,7 @@ generateTxBodyContent ::
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
   -- | All of the currently known data, also coming from the 'MockChain'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, String) ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
   Map Pl.TxOutRef Pl.TxOut ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
@@ -181,7 +181,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
                   (GenerateTxErrorGeneral "txSkelIntoTxIn: Datum hash could not be resolved")
-                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> managedData Map.!? datumHash)
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum . fst <$> managedData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder

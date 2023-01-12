@@ -21,8 +21,9 @@ import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Tx.Constraints.Pretty
+import Cooked.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Map (Map)
 import qualified Ledger as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import Prettyprinter (Doc, (<+>))
@@ -69,7 +70,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, String))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to
@@ -114,8 +115,11 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         [Ltl (UntypedTweak InterpMockChain)] ->
         StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Pl.CardanoTx
       interpretAndTell (UntypedTweak now) later = do
+        mcst <- lift get
+        let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
+            managedDatums = mcstDatums mcst
         (_, skel') <- lift $ runTweakInChain now skel
-        lift $ lift $ tell $ prettyMockChainOp $ Builtin $ ValidateTxSkel skel'
+        lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ ValidateTxSkel skel'
         tx <- validateTxSkel skel'
         put later
         return tx
@@ -130,7 +134,10 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
-    lift $ lift $ tell $ prettyMockChainOp $ Builtin $ Fail msg
+    mcst <- lift get
+    let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
+        managedDatums = mcstDatums mcst
+    lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ Fail msg
     fail msg
 
 -- ** A little helper to run tweaks
@@ -193,14 +200,14 @@ instance MonadBlockChain StagedMockChain where
 
 -- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
 --  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: MockChainOp a -> TraceDescr
-prettyMockChainOp (Builtin (ValidateTxSkel skel)) =
+prettyMockChainOp :: Map Pl.TxOutRef PV2.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> MockChainOp a -> TraceDescr
+prettyMockChainOp managedTxOuts managedDatums (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $
-      PP.vsep ["ValidateTxSkel", prettyTxSkel skel]
-prettyMockChainOp (Builtin (Fail reason)) =
+      PP.vsep ["ValidateTxSkel", prettyTxSkel managedTxOuts managedDatums skel]
+prettyMockChainOp _ _ (Builtin (Fail reason)) =
   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ = mempty
+prettyMockChainOp _ _ _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
 --  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
