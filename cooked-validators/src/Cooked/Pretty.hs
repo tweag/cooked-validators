@@ -397,8 +397,6 @@ prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ())
 prettyPayload value mDatum =
   case catMaybes
     [ Just (prettyValue value),
-      -- TODO Upgrade UtxoState to carry information about whether the datum
-      -- is hashed or inlined
       prettyPayloadDatum <$> mDatum
     ] of
     [] -> Nothing
