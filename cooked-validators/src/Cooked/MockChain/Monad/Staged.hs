@@ -12,6 +12,7 @@
 module Cooked.MockChain.Monad.Staged where
 
 import Control.Applicative
+import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
@@ -131,6 +132,15 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (Fail msg) = do
     lift $ lift $ tell $ prettyMockChainOp $ Builtin $ Fail msg
     fail msg
+
+-- ** A little helper to run tweaks
+
+runTweak :: Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweak tweak skel =
+  map (right fst . fst)
+    . runWriterT
+    . runMockChainT
+    $ runTweakInChain tweak skel
 
 -- ** Modalities
 
