@@ -20,7 +20,7 @@
             hpack cooked-validators/package.yaml | grep -q 'is up-to-date' || exit 1
             hpack examples/package.yaml | grep -q 'is up-to-date' || exit 1
             hpack pirouette-plutusir/package.yaml | grep -q 'is up-to-date' || exit 1
-            ## NOTE: in case of formatting error, check the versions of 
+            ## NOTE: in case of formatting error, check the versions of
             ## ormolu and try replacing by ${pkgs.ormolu}/bin/ormolu
             ## https://discourse.nixos.org/t/nix-shell-buildinputs-ordering-issue/12885/8
             ormolu --mode check $(find . -name '*.hs') || exit 1
@@ -48,6 +48,7 @@
               secp256k1
               zlib
               xz
+              z3
               postgresql # For pg_config
             ]);
             inherit LD_LIBRARY_PATH;
@@ -62,6 +63,7 @@
                 pkg-config
                 zlib
                 xz
+                z3
                 postgresql # For pg_config
                 bash
               ]);
