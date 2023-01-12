@@ -179,12 +179,13 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZe
     <+> "->"
     <+> PP.viaShow amount
 
+-- TODO print staking credentials
 prettyAddress :: Pl.Address -> Doc ann
-prettyAddress (Pl.Address addrCr _stakingCred) =
-  -- TODO print staking credentials
-  case addrCr of
-    (Pl.ScriptCredential vh) -> "script" <+> prettyHash vh
-    (Pl.PubKeyCredential pkh) -> "pubkey" <+> prettyPubKeyHash pkh
+prettyAddress (Pl.Address addrCr _stakingCred) = prettyCredential addrCr
+
+prettyCredential :: Pl.Credential -> Doc ann
+prettyCredential (Pl.ScriptCredential vh) = "script" <+> prettyHash vh
+prettyCredential (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyPubKeyHash pkh
 
 prettyTxSkelOut :: TxSkelOut -> Doc ann
 prettyTxSkelOut (Pays output) =
