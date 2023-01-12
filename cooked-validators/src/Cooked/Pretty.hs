@@ -16,7 +16,7 @@
 -- * To render a document 'doc' in IO, use 'putDocW n doc' (from
 -- "Prettyprinter") where 'n' is the desired width for linebreaks.
 -- * The 'Show' instance of 'Doc a' renders 80 characters long multiline
--- strings 
+-- strings
 --
 -- == Pretty print a transaction skeleton
 --
@@ -31,9 +31,9 @@
 -- Datums are required to have a 'Pretty' instance ('pretty :: a -> Doc ann').
 --
 -- === Rely on 'Show' for trivial datum types
--- 
+--
 -- Use 'viaShow :: Show a => a -> Doc ann' from "Prettyprinter".
--- 
+--
 -- === Custom implementation
 --
 -- For non trivial datums, the default 'Show' is often poorly readable and
