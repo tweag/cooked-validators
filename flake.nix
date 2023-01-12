@@ -30,43 +30,30 @@
         };
 
         devShells = let
+          ## The minimal dependency set to build the project with `cabal`.
+          required = ([ haskellPackages.ghc ]) ++ (with pkgs; [
+            cabal-install
+            libsodium
+            secp256k1
+            pkg-config
+            zlib
+            xz
+            z3
+            postgresql # For pg_config
+          ]);
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
             lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
         in {
           default = pkgs.mkShell {
-            buildInputs = (with haskellPackages; [
-              ghc
-              cabal-install
-              haskell-language-server
-              hlint
-            ]) ++ (with pkgs; [
-              ormolu
-              hpack
-              libsodium
-              pkg-config
-              secp256k1
-              zlib
-              xz
-              z3
-              postgresql # For pg_config
-            ]);
+            buildInputs = required
+              ++ (with haskellPackages; [ haskell-language-server ])
+              ++ (with pkgs; [ ormolu hpack hlint ]);
             inherit LD_LIBRARY_PATH;
           };
 
-          ## Same as default without language server &c.
           ci = pkgs.mkShell {
-            buildInputs = (with haskellPackages; [ ghc cabal-install ])
-              ++ (with pkgs; [
-                libsodium
-                secp256k1
-                pkg-config
-                zlib
-                xz
-                z3
-                postgresql # For pg_config
-                bash
-              ]);
+            buildInputs = required;
             inherit LD_LIBRARY_PATH;
           };
         };
