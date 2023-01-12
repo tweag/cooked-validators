@@ -23,6 +23,7 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Default
 import Data.Map (Map)
 import qualified Ledger as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
@@ -140,13 +141,16 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
     lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ Fail msg
     fail msg
 
--- ** A little helper to run tweaks
+-- ** Helpers to run tweaks for use in tests for tweaks
 
 runTweak :: Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
-runTweak tweak skel =
+runTweak = runTweakFrom def def
+
+runTweakFrom :: MockChainEnv -> MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweakFrom mcenv mcst tweak skel =
   map (right fst . fst)
     . runWriterT
-    . runMockChainT
+    . runMockChainTRaw mcenv mcst
     $ runTweakInChain tweak skel
 
 -- ** Modalities
