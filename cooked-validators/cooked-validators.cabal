@@ -68,6 +68,7 @@ library
     , hashable
     , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl
@@ -75,7 +76,6 @@ library
     , optics-core
     , optics-th
     , optics-vl
-    , ordered-containers
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -133,6 +133,7 @@ test-suite spec
     , hashable
     , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl
@@ -140,7 +141,6 @@ test-suite spec
     , optics-core
     , optics-th
     , optics-vl
-    , ordered-containers
     , plutus-contract
     , plutus-core
     , plutus-ledger

@@ -49,6 +49,7 @@ dependencies:
   - tasty-quickcheck
   - text
   - transformers
+  - list-t
 
 library:
   source-dirs: src

@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,6 +9,7 @@
 module Cooked.Attack.Tweak.Common where
 
 import Control.Monad
+import Control.Monad.State
 import Cooked.MockChain.Monad
 import Cooked.Tx.Constraints.Type
 import Data.List
@@ -34,14 +36,13 @@ instance MonadBlockChainWithoutValidation m => MonadTweak (Tweak m) where
 -- and returns zero or more modified transactions, together with some additional
 -- values.
 --
--- Our intuition (and also the language of the comments pertaining to tweaks) is
--- that a tweak
+-- Our intuition (and also the language of the comments pertaining to 'Tweak's)
+-- is that a 'Tweak' @t@
 --
--- - /fails/ if it returns @[]@
+-- - /fails/ if @runTweakInChain t skel@ is @mzero@.
 --
--- - /modifies a transaction/, where the /unmodified transaction/ is the name we
---   give to the input 'TxSkel', and each of the 'TxSkel's in the output list is
---   a /modified transaction/
+-- - /returns/ the value in the first component of the pair returned by this
+--   function (which is also the value it returns in the monad @Tweak m@).
 --
 -- - /modifies/ a 'TxSkel'. Since it can use every method of
 --   'MonadBlockChainWithoutValidateTxSkel' to do so, this also includes
@@ -50,39 +51,26 @@ instance MonadBlockChainWithoutValidation m => MonadTweak (Tweak m) where
 runTweakInChain :: (MonadBlockChainWithoutValidation m, MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
 runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 
--- | Internal wrapper type for compatibility with the LTL modalities. You'll
--- probably never work with this type if you want to build and use tweaks.
-data UntypedTweak where
-  UntypedTweak :: Tweak a -> UntypedTweak
+-- | This is a wrapper type used in the implementation of the Staged monad. You
+-- will probably never use it while you're building 'Tweak's.
+data UntypedTweak m where
+  UntypedTweak :: Tweak m a -> UntypedTweak m
 
-instance Functor Tweak where
-  fmap f g = Tweak $ \mcst skel -> second f <$> getTweak g mcst skel
+instance Monad m => Semigroup (UntypedTweak m) where
+  -- The right tweak is applied first
+  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
 
-instance Applicative Tweak where
-  pure x = Tweak $ \_ skel -> [(skel, x)]
-  (<*>) = ap
-
-instance Monad Tweak where
-  Tweak g >>= h = Tweak $ \mcst skel ->
-    concatMap (\(skel', x) -> getTweak (h x) mcst skel') $ g mcst skel
-
-instance Alternative Tweak where
-  empty = Tweak $ \_ _ -> []
-  Tweak f <|> Tweak g = Tweak $ \mcst skel -> f mcst skel ++ g mcst skel
-
-instance MonadPlus Tweak
-
-instance MonadFail Tweak where
-  fail _ = empty
+instance Monad m => Monoid (UntypedTweak m) where
+  mempty = UntypedTweak $ return ()
 
 -- * A few fundamental tweaks
 
 -- | The never-applicable tweak.
-failingTweak :: Tweak a
-failingTweak = empty
+failingTweak :: MonadTweak m => m a
+failingTweak = mzero
 
 -- | The tweak that always applies and leaves the transaction unchanged.
-doNothingTweak :: Tweak ()
+doNothingTweak :: MonadTweak m => m ()
 doNothingTweak = return ()
 
 -- * Constructing Tweaks from Optics
