@@ -120,7 +120,7 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyEnumNonEmpty "Signers:" "-" (prettySigners opts signers),
           -- TODO handle unsafe 'fromJust' better
-          prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
+          prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn managedTxOuts managedDatums) $ Map.toList ins),
           prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
         ]
     )
