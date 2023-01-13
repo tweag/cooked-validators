@@ -3,7 +3,6 @@
 * [Documentation](#documentation)
 * [Projects](#projects)
 * [Developer Tools and Env](#developer-tools-and-environment)
-  - [__IMPORTANT:__ Setting up the nix cache](#important-configure-your-nix-cache)
   - [Updating Plutus](#updating-plutus)
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
@@ -37,11 +36,6 @@ A development environment can be obtained using `nix develop`.
 With the default environment, you can compile the projects
 with `cabal` and you also have access to Haskell development tools.
 A minimal development environment is provided by `nix develop .#ci`.
-
-### __IMPORTANT:__ Configure your nix cache!
-
-Plutus uses a custom GHC version. To avoid having to build this GHC, make sure you
-set up the IOG binary nix cache as instructed [here](https://input-output-hk.github.io/haskell.nix/tutorials/getting-started.html#setting-up-the-binary-cache).
 
 ### Seamless Integration with `direnv`
 
