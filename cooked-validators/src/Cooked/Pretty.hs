@@ -297,9 +297,10 @@ prettyValue =
         psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
         psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
--- | Pretty-print, if non empty, a list of transaction skeleton options that
--- have non default values. 'awaitRxConfirmed' and 'forceOutputOrdering'
--- (deprecated TODO) are never printed.
+-- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
+-- If no non-default options are in the list, return nothing.
+--  'awaitTxConfirmed' and 'forceOutputOrdering'
+-- (these are deprecated, TODO) are never printed.
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
