@@ -177,7 +177,7 @@ tests =
                 ( datumHijackingAttack @MockContract
                     ( \(ConcreteOutput v _ x d) ->
                         Pl.validatorHash val1 == Pl.validatorHash v
-                          && SecondLock Pl.== txSkelOutDatum d
+                          && d == TxSkelOutInlineDatum SecondLock
                           && bound `L.geq` x
                     )
                     select
@@ -229,7 +229,7 @@ tests =
               ( datumHijackingAttack @MockContract
                   ( \(ConcreteOutput v _ _ d) ->
                       Pl.validatorHash v == Pl.validatorHash carefulValidator
-                        && SecondLock Pl.== txSkelOutDatum d
+                        && d == TxSkelOutInlineDatum SecondLock
                   )
                   (const True)
               )
@@ -241,7 +241,7 @@ tests =
               ( datumHijackingAttack @MockContract
                   ( \(ConcreteOutput v _ _ d) ->
                       Pl.validatorHash v == Pl.validatorHash carelessValidator
-                        && SecondLock Pl.== txSkelOutDatum d
+                        && d == TxSkelOutInlineDatum SecondLock
                   )
                   (const True)
               )
