@@ -7,6 +7,7 @@
 
 module Cooked.Attack.Tweak.TamperDatum where
 
+import Control.Monad
 import Cooked.Attack.Tweak.Common
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
@@ -41,6 +42,7 @@ tamperDatumTweak change = do
           % txSkelOutputDatumTypeAT @a
       )
       change
+  guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
 

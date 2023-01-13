@@ -185,49 +185,49 @@ failingSingle =
           failingTwoBids
     ]
 
--- -- * failing attacks
+-- * failing attacks
 
--- simpleTraces :: (Alternative m, MonadBlockChain m) => m ()
--- simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
+simpleTraces :: (Alternative m, MonadBlockChain m) => m ()
+simpleTraces = noBids <|> oneBid <|> twoBids <|> twoAuctions
 
--- -- | Token duplication attack: Whenever we see a transaction that mints
--- -- something, try to mint one more token and pay it to the attacker. This should
--- -- be ruled out by the minting policy of the thread token.
--- tryDupTokens :: (Alternative m, MonadModalMockChain m) => m ()
--- tryDupTokens =
---   somewhere
---     ( dupTokenAttack
---         (\_ n -> n + 1) -- the modification of the minted value
---         (wallet 6) -- the attacker's wallet
---     )
---     simpleTraces
+-- | Token duplication attack: Whenever we see a transaction that mints
+-- something, try to mint one more token and pay it to the attacker. This should
+-- be ruled out by the minting policy of the thread token.
+tryDupTokens :: (Alternative m, MonadModalBlockChain m) => m ()
+tryDupTokens =
+  somewhere
+    ( dupTokenAttack
+        (\_ n -> n + 1) -- the modification of the minted value
+        (wallet 6) -- the attacker's wallet
+    )
+    simpleTraces
 
--- -- | Datum hijacking attack: Try to steal outputs from a validator.
--- tryDatumHijack :: (Alternative m, MonadModalMockChain m) => m ()
--- tryDatumHijack =
---   somewhere
---     ( datumHijackingAttack @A.Auction
---         ( \_ d _ -> case d of
---             -- try to steal all outputs that have the 'Bidding' datum, no matter
---             -- their validator or value.
---             A.Bidding {} -> True
---             -- try to steal during the 'SetDeadline' transaction. This
---             -- vulnerability existed before PR #161.
---             A.NoBids {} -> True
---             _ -> False
---         )
---         (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
---     )
---     simpleTraces
+-- | Datum hijacking attack: Try to steal outputs from a validator.
+tryDatumHijack :: (Alternative m, MonadModalBlockChain m) => m ()
+tryDatumHijack =
+  somewhere
+    ( datumHijackingAttack @A.Auction
+        ( \(ConcreteOutput _ _ _ txSkelOutDatum) -> case txSkelOutTypedDatum txSkelOutDatum of
+            -- try to steal all outputs that have the 'Bidding' datum, no matter
+            -- their validator or value.
+            Just A.Bidding {} -> True
+            -- try to steal during the 'SetDeadline' transaction. This
+            -- vulnerability existed before PR #161.
+            Just A.NoBids {} -> True
+            _ -> False
+        )
+        (0 ==) -- if there is more than one 'Bidding' output, try stealing only the first
+    )
+    simpleTraces
 
 -- -- | Double satisfaction attack. This attack tries to add extra 'Bid' inputs to
 -- -- transactions that already 'Bid'.
--- tryDoubleSat :: (Alternative m, MonadModalMockChain m) => m ()
+-- tryDoubleSat :: (Alternative m, MonadModalBlockChain m) => m ()
 -- tryDoubleSat =
 --   somewhere
 --     ( doubleSatAttack
 --         (spendsScriptTypeF @A.Auction)
---         ( \mcst (_, _, redeemer) ->
+--         ( \(_, _, redeemer) ->
 --             case redeemer of
 --               A.Bid (A.BidderInfo bid bidder) ->
 --                 let extraUtxos =
@@ -268,57 +268,57 @@ failingSingle =
 --     )
 --     simpleTraces
 
--- -- | datum tampering attack that tries to change the seller to wallet 6 on every
--- -- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
--- -- there are actual checks happening).
--- tryTamperDatum :: (Alternative m, MonadModalMockChain m) => m ()
--- tryTamperDatum =
---   somewhere
---     ( tamperDatumTweak @A.Auction
---         ( \case
---             A.NoBids seller minBid deadline ->
---               Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline
---             A.Bidding seller deadline bidderInfo ->
---               Just $ A.Bidding (walletPKHash $ wallet 6) deadline bidderInfo
---             _ -> Nothing
---         )
---     )
---     simpleTraces
+-- | datum tampering attack that tries to change the seller to wallet 6 on every
+-- datum but 'Offer' (which is any time we pay to the 'auctionValidator' and
+-- there are actual checks happening).
+tryTamperDatum :: (Alternative m, MonadModalBlockChain m) => m ()
+tryTamperDatum =
+  somewhere
+    ( tamperDatumTweak @A.AuctionState
+        ( \case
+            A.NoBids seller minBid deadline ->
+              Just $ A.NoBids (walletPKHash $ wallet 6) minBid deadline
+            A.Bidding seller deadline bidderInfo ->
+              Just $ A.Bidding (walletPKHash $ wallet 6) deadline bidderInfo
+            _ -> Nothing
+        )
+    )
+    simpleTraces
 
--- failingAttacks :: TestTree
--- failingAttacks =
---   testGroup
---     "failing attacks"
---     [ testCase "token duplication" $
---         testFailsFrom'
---           -- Ensure that the trace fails and gives back an error message satisfying a specific condition
---           ( isCekEvaluationFailureWithMsg
---               (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
---           )
---           testInit
---           tryDupTokens,
---       testCase "datum hijacking" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryDatumHijack,
---       testCase "datum tampering" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryTamperDatum,
---       testCase "double satisfaction" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           tryDoubleSat
---     ]
+failingAttacks :: TestTree
+failingAttacks =
+  testGroup
+    "failing attacks"
+    [ testCase "token duplication" $
+        testFailsFrom'
+          -- Ensure that the trace fails and gives back an error message satisfying a specific condition
+          ( isCekEvaluationFailureWithMsg
+              (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
+          )
+          testInit
+          tryDupTokens,
+      testCase "datum hijacking" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryDatumHijack,
+      testCase "datum tampering" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          tryTamperDatum
+          -- testCase "double satisfaction" $
+          --   testFailsFrom'
+          --     isCekEvaluationFailure
+          --     testInit
+          --     tryDoubleSat
+    ]
 
 -- -- * Known successful attacks and exploits
 
 -- -- | Try to mint an additional token of the token name "exampleTokenName"
 -- -- whenever anything is minted.
--- tryAddToken :: (Alternative m, MonadModalMockChain m) => m ()
+-- tryAddToken :: (Alternative m, MonadModalBlockChain m) => m ()
 -- tryAddToken =
 --   somewhere
 --     ( addTokenAttack
@@ -330,7 +330,7 @@ failingSingle =
 -- -- | This trace exploits the fact, discovered with the 'addTokenAttack' above,
 -- -- that one can mint extra tokens on the 'SetDeadline' transaction, in order to
 -- -- steal a bid from one auction with a separate auction.
--- exploitAddToken :: MonadModalMockChain m => m ()
+-- exploitAddToken :: MonadModalBlockChain m => m ()
 -- exploitAddToken = do
 --   -- Alice makes an offer (for a big amount of bananas).
 --   aliceOffer <- A.txOffer (banana 5) 50_000_000 `as` alice
@@ -388,7 +388,7 @@ failingSingle =
 -- -- user, and also strongly depends on the variety of the scenarios described by
 -- -- the 'simpleTraces'. We have here a double satisfaction scenario that simply
 -- -- didn't come up as one of the cases tried by the 'doubleSatAttack' above.
--- exploitDoubleSat :: MonadModalMockChain m => m ()
+-- exploitDoubleSat :: MonadModalBlockChain m => m ()
 -- exploitDoubleSat = do
 --   -- Alice opens two auctions and sets the deadlines (it does not matter that
 --   -- they both belong to her, this vulnerability applies to any two auctions)

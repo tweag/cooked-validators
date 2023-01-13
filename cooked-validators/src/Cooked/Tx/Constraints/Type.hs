@@ -873,12 +873,7 @@ txSkelOutToTxOut (Pays output) = outputTxOut output
 
 -- | See the [note on TxSkelOut data]
 txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, String)
-txSkelOutDatumComplete (Pays output) =
-  case output ^. outputDatumL of
-    TxSkelOutNoDatum -> Nothing
-    TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
-    TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
-    TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
+txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL
 
 -- | See the [note on TxSkelOut data]
 instance ToOutputDatum TxSkelOutDatum where
@@ -886,6 +881,16 @@ instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
+
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, String)
+txSkelOutUntypedDatum = \case
+  TxSkelOutNoDatum -> Nothing
+  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
+  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
+  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
+
+txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntypedDatum
 
 -- ** Smart constructors for transaction outputs
 
