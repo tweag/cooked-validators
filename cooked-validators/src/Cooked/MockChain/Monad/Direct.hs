@@ -48,6 +48,7 @@ import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as PV2
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
+import Prettyprinter (Doc)
 
 -- * Direct Emulation
 
@@ -75,18 +76,18 @@ mcstToUtxoState s =
   where
     go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
     go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToDatumHash outputDatum >>= datumHashToDatum)])
+      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
 
-    outputDatumToDatumHash :: PV2.OutputDatum -> Maybe Pl.DatumHash
-    outputDatumToDatumHash PV2.NoOutputDatum = Nothing
-    outputDatumToDatumHash (PV2.OutputDatumHash dh) = Just dh
-    outputDatumToDatumHash (PV2.OutputDatum datum) = Just $ Pl.datumHash datum
-
-    datumHashToDatum :: Pl.DatumHash -> Maybe UtxoDatum
-    datumHashToDatum datumHash = do
-      datumStr <- Map.lookup datumHash (mcstStrDatums s)
-      datum <- Map.lookup datumHash (mcstDatums s)
-      return $ UtxoDatum datum datumStr
+    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
+    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
+    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
+      do
+        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
+        return $ UtxoDatum datum False datumStr
+    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
+      do
+        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
+        return $ UtxoDatum datum True datumStr
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
@@ -94,12 +95,24 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash Pl.Datum,
-    mcstStrDatums :: Map Pl.DatumHash String,
+    mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Pl.Slot
   }
-  deriving (Show, Eq)
+  deriving (Show)
+
+-- | There is no natural 'Eq' instance for 'Doc' (pretty printed document)
+-- which we store for each datum in the state. The 'Eq' instance for 'Doc'
+-- ignores these pretty printed docs.
+instance Eq MockChainSt where
+  (MockChainSt index1 datums1 validators1 currentSlot1)
+    == (MockChainSt index2 datums2 validators2 currentSlot2) =
+      and
+        [ index1 == index2,
+          Map.map fst datums1 == Map.map fst datums2,
+          validators1 == validators2,
+          currentSlot1 == currentSlot2
+        ]
 
 -- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map that
 -- contains 'Plutus.V2.Ledger.Api.TxOut'.
@@ -234,10 +247,10 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty Map.empty def
+mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty Map.empty def
+mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
 
 instance Default MockChainSt where
   def = mockChainSt0
@@ -337,7 +350,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -539,7 +552,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Pl.Params ->
   Pl.UTxO Pl.EmulatorEra ->
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->

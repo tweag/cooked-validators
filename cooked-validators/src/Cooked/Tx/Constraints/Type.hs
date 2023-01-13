@@ -41,6 +41,8 @@ import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
+import Prettyprinter (Pretty, Doc)
+import qualified Prettyprinter as PP
 
 -- For Template Haskell reasons, the most intersting thing in this module (the
 -- definition of 'TxSkel') is at the very bottom of this file
@@ -717,6 +719,7 @@ data TxSkelOut where
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
       Show (DatumType o),
+      Pretty (DatumType o),
       ToOutputDatum (DatumType o),
       Pl.ToData (DatumType o), -- If this seems redundant with the 'ToOutputDatum' constraint, see the [note on TxSkelOut data].
       ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
@@ -786,13 +789,19 @@ data TxSkelOutDatum a
   | TxSkelOutInlineDatum a
   deriving (Show)
 
+-- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
+-- the datum it contains.
+instance Pretty a => Pretty (TxSkelOutDatum a) where
+  pretty (TxSkelOutDatumHash datum) = PP.pretty datum
+  pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
+
 -- | See the [note on TxSkelOut data]
-instance Pl.ToData a => ToOutputDatum (TxSkelOutDatum a) where
+instance (Pl.ToData a) => ToOutputDatum (TxSkelOutDatum a) where
   toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
 
 -- | See the [note on TxSkelOut data]
-instance Pl.ToData a => Pl.ToData (TxSkelOutDatum a) where
+instance (Pl.ToData a, Pretty a) => Pl.ToData (TxSkelOutDatum a) where
   toBuiltinData (TxSkelOutDatumHash datum) = Pl.toBuiltinData datum
   toBuiltinData (TxSkelOutInlineDatum datum) = Pl.toBuiltinData datum
 
@@ -819,14 +828,17 @@ since 'txSkeloutToTxOut' is implemented in terms of 'outputTxOut'.
 -}
 
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> Pl.Datum
-txSkelOutDatumComplete (Pays output) = Pl.Datum . Pl.toBuiltinData $ output ^. outputDatumL
+txSkelOutDatumComplete :: TxSkelOut -> (Pl.Datum, Doc ())
+txSkelOutDatumComplete (Pays output) =
+  let datum = output ^. outputDatumL
+   in (Pl.Datum . Pl.toBuiltinData $ datum, PP.pretty datum)
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
 paysScript ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -846,6 +858,7 @@ paysScript validator datum value =
 paysScriptInlineDatum ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -920,14 +933,14 @@ txSkelTemplate =
     }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash Pl.Datum
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, Doc ())
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
         % folded
         % to txSkelOutDatumComplete -- if you're wondering why to use this function, see the [note on TxSkelOut data]
     )
-    (\datum -> Map.singleton (Pl.datumHash datum) datum)
+    (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
 
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
