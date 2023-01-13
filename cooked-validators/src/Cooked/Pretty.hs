@@ -281,7 +281,7 @@ prettyValue =
         prettyAssetClass
           | symbol == Pl.CurrencySymbol "" = "Lovelace"
           | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
-          | symbol == permanentCurrencySymbol = "Perm" <+> PP.pretty name
+          | symbol == permanentCurrencySymbol = "Permanent" <+> PP.pretty name
           | otherwise = prettyHash symbol <+> PP.pretty name
 
     -- prettyNumericUnderscore 23798423723
