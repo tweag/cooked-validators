@@ -36,8 +36,7 @@ The rendered Haddock for the current `main` branch can be found at [https://twea
 A development environment can be obtained using `nix develop`.
 With the default environment, you can compile the projects
 with `cabal` and you also have access to Haskell development tools.
-You can use a minimal development environment that only provides
-the bare minimum to compile the projects with `nix develop .#ci`.
+A minimal development environment is provided by `nix develop .#ci`.
 
 ### __IMPORTANT:__ Configure your nix cache!
 
