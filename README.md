@@ -49,7 +49,7 @@ set up the IOG binary nix cache as instructed [here](https://input-output-hk.git
 We recommend using [`direnv`](https://github.com/nix-community/nix-direnv#integrating-with-a-existing-flake)
 to automatically bring in the nix dependencies when entering the project directory.
 
-Several editors have support for `direnv`. If you use emacs, we recomend using [`envrc-mode`](https://github.com/purcell/envrc).
+Several editors have support for `direnv`. If you use emacs, we recommend using [`envrc-mode`](https://github.com/purcell/envrc).
 
 ### Updating Plutus
 
