@@ -386,7 +386,7 @@ prettyAddressState address payloads =
     )
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
--- been grouped together when they are the same
+-- been grouped together when they belong to the same utxo
 prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ())
 prettyPayloadGrouped [] = Nothing
 prettyPayloadGrouped [payload] = uncurry prettyPayload payload
