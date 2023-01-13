@@ -99,7 +99,7 @@ tests =
                                  (L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3)))
                              ]
                     ),
-                  L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 -1) + (v3 -3))
+                  L.assetClassValue ac1 ((v1 - 1) + (v4 - 7)) <> L.assetClassValue ac2 ((v2 - 1) + (v3 - 3))
                 )
               ]
          in [ testCase "add one token in every asset class" $ skelExpected 2 2 4 8 @=? skelOut (\_ n -> n + 1),

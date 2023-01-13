@@ -204,7 +204,7 @@ prettyCurrencyAndAmount (symbol, tName, amount) = prettyToken tName amount
     prettySpacedNumber i
       | 0 == i = "0" -- this case should never be reached under normal use through 'mPrettyValue'
       | i > 0 = psnTerm "" 0 i
-      | otherwise = "-" <> psnTerm "" 0 (- i)
+      | otherwise = "-" <> psnTerm "" 0 (-i)
       where
         psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
         psnTerm acc _ 0 = acc
