@@ -257,7 +257,7 @@ prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash
 --
 -- Value:
 --   - Lovelace: 45_000_000
---   - [Q] "hello": 3
+--   - Quick "hello": 3
 --   - #12bc3d "usertoken": 1
 --
 -- In case of an empty value (even though not an empty map):
