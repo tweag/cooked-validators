@@ -127,7 +127,7 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
 
 -- prettyPubKeyHash
 --
--- If the pubkey is a know wallet
+-- If the pubkey is a known wallet
 -- #abcdef (wallet 3)
 --
 -- Otherwise
