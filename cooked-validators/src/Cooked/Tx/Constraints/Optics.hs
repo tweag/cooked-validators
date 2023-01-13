@@ -13,9 +13,7 @@ module Cooked.Tx.Constraints.Optics where
 import Cooked.Tx.Constraints.Type
 import qualified Ledger.Value as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx as Pl
 import Type.Reflection
 
 -- | Decide if a transaction output has a certain owner and datum type.

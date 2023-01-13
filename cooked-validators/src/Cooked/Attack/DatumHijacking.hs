@@ -19,6 +19,7 @@ import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
+import Prettyprinter
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -26,7 +27,7 @@ import Type.Reflection
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
--- Something like @txSkelOutsL % traversed % txSkelOutputToTypedValidatorP@
+-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(L.TypedValidator a)@
 -- might be useful to construct the optics used by this tweak.
 redirectScriptOutputTweak ::
   ( MonadTweak m,
@@ -71,6 +72,7 @@ datumHijackingAttack ::
   forall a m.
   ( MonadTweak m,
     Show (L.DatumType a),
+    Pretty (L.DatumType a),
     Pl.ToData (L.DatumType a),
     Typeable (L.DatumType a),
     Typeable a

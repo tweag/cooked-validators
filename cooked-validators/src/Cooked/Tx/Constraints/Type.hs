@@ -41,6 +41,8 @@ import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
 import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified PlutusTx.Prelude as Pl
+import Prettyprinter (Doc, Pretty)
+import qualified Prettyprinter as PP
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
@@ -792,7 +794,7 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
-type TxSkelOutDatumConstrs a = (Show a, Pl.ToData a, Pl.Eq a, Typeable a)
+type TxSkelOutDatumConstrs a = (Show a, Pretty a, Pl.ToData a, Pl.Eq a, Typeable a)
 
 -- | See the [note on TxSkelOut data]
 data TxSkelOutDatum where
@@ -824,6 +826,12 @@ instance Eq TxSkelOutDatum where
       Just HRefl -> datum1 Pl.== datum2
       Nothing -> False
   _ == _ = False
+
+-- -- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
+-- -- the datum it contains.
+-- instance Pretty a => Pretty (TxSkelOutDatum a) where
+--   pretty (TxSkelOutDatumHash datum) = PP.pretty datum
+--   pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
 
 {- [note on TxSkelOut data]
 
@@ -860,10 +868,10 @@ That is:
   like 'findDatum'.
 
 In summary: On the one hand, there is the function 'txSkelOutDatumComplete'
-which extracts the whole datum from a 'TxSkelOut', in order to save it in the
-simulated chain state. On the other hand, there is 'txSkelOutToTxOut', which
-will return the output as seen on the 'txInfo' by a validator, with the correct
-'Pl.OutputDatum' on it.
+which extracts the whole datum, with its pretty-printed representation, from a
+'TxSkelOut', in order to save it in the simulated chain state. On the other
+hand, there is 'txSkelOutToTxOut', which will return the output as seen on the
+'txInfo' by a validator, with the correct 'Pl.OutputDatum' on it.
 -}
 
 -- | The transaction output, as seen by a validator. In particular, see the
@@ -872,7 +880,7 @@ txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
 
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, String)
+txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, Doc ())
 txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL
 
 -- | See the [note on TxSkelOut data]
@@ -882,12 +890,12 @@ instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
 
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, String)
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, Doc ())
 txSkelOutUntypedDatum = \case
   TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
-  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
-  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, show x)
+  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
 
 txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
 txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntypedDatum
@@ -905,6 +913,7 @@ paysScript ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -926,6 +935,7 @@ paysScriptInlineDatum ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -949,6 +959,7 @@ paysScriptDatumHash ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -1041,7 +1052,7 @@ txSkelSubmittedBy w =
     }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, String)
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, Doc ())
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL

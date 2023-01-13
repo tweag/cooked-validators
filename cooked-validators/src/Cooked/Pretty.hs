@@ -6,6 +6,63 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module centralizes functions to pretty-print transaction skeletons,
+-- utxo states, addresses, pubkey hashes, values, etc.
+--
+-- = User guide:
+--
+-- * The functions in this module manipulate values of type 'Doc ()':
+-- pretty-printed documents.
+-- * To render a document 'doc' in IO, use 'putDocW n doc' (from
+-- "Prettyprinter") where 'n' is the desired width for linebreaks.
+-- * The 'Show' instance of 'Doc a' renders 80 characters long multiline
+-- strings
+--
+-- == Pretty print a transaction skeleton
+--
+-- Use 'prettyTxSkel'
+--
+-- == Pretty print a 'UtxoState'
+--
+-- Use 'prettyUtxoState'
+--
+-- == Implement pretty-printing for datums
+--
+-- Datums are required to have a 'Pretty' instance ('pretty :: a -> Doc ann').
+--
+-- === Rely on 'Show' for trivial datum types
+--
+-- Use 'viaShow :: Show a => a -> Doc ann' from "Prettyprinter".
+--
+-- === Custom implementation
+--
+-- For non-trivial datums, the default 'Show' is often poorly readable and
+-- one-lined. It is interesting to implement a more readable 'Pretty' instance
+-- using the following provided functions:
+--
+-- * 'prettyValue' for values
+-- * 'prettyAddress' for addresses (will display whether it is script or pubkey
+-- along with wallet number if applicable)
+-- * 'prettyPubKeyHash' for public key hashes (will also print the wallet
+-- number if applicable)
+-- * 'prettyEnum' to build nested lists: 'prettyEnum title bullet list'
+-- * '<+>' to concatenate docs with a breakable space inbetween
+-- * '<>' to concatenate docs with no space
+--
+-- For example:
+--
+-- @
+--     data Foo = Bar Pl.Value | Baz Pl.PubkeyHash Pl.Value
+--
+--     instance Pretty Foo where
+--       pretty (Bar value) = "Bar" <+> prettyValue value
+--       pretty (Baz pkh value) =
+--         prettyEnum
+--           "Baz"
+--           "-"
+--           [ "user:" <+> prettyPubKeyHash pkh,
+--             "deposit:" <+> prettyValue value ]
+-- @
 module Cooked.Pretty where
 
 import Control.Arrow (second)
@@ -50,7 +107,7 @@ prettyEnumNonEmpty :: Doc ann -> Doc ann -> [Doc ann] -> Maybe (Doc ann)
 prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
-prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> TxSkel -> Doc ann
+prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> TxSkel -> Doc ()
 prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs _fee) =
   -- undefined
   prettyEnum
@@ -63,14 +120,14 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyEnumNonEmpty "Signers:" "-" (prettySigners opts signers),
           -- TODO handle unsafe 'fromJust' better
-          prettyEnumNonEmpty "Inputs:" "-" (Maybe.fromJust . prettyTxSkelIn managedTxOuts managedDatums <$> Map.toList ins),
+          prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn managedTxOuts managedDatums) $ Map.toList ins),
           prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
         ]
     )
 
 -- prettyPubKeyHash
 --
--- If the pubkey is a know wallet
+-- If the pubkey is a known wallet
 -- #abcdef (wallet 3)
 --
 -- Otherwise
@@ -123,11 +180,15 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZe
     <+> PP.viaShow amount
 
 prettyAddress :: Pl.Address -> Doc ann
-prettyAddress (Pl.Address addrCr _stakingCred) =
-  -- TODO print staking credentials
-  case addrCr of
-    (Pl.ScriptCredential vh) -> "script" <+> prettyHash vh
-    (Pl.PubKeyCredential pkh) -> "pubkey" <+> prettyPubKeyHash pkh
+prettyAddress (Pl.Address addrCr Nothing) = prettyCredential addrCr
+prettyAddress (Pl.Address addrCr (Just (Pl.StakingHash stakCr))) =
+  prettyCredential addrCr <+> PP.angles ("staking:" <+> prettyCredential stakCr)
+prettyAddress (Pl.Address addrCr (Just (Pl.StakingPtr p1 p2 p3))) =
+  prettyCredential addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
+
+prettyCredential :: Pl.Credential -> Doc ann
+prettyCredential (Pl.ScriptCredential vh) = "script" <+> prettyHash vh
+prettyCredential (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyPubKeyHash pkh
 
 prettyTxSkelOut :: TxSkelOut -> Doc ann
 prettyTxSkelOut (Pays output) =
@@ -153,27 +214,19 @@ prettyTxSkelOut (Pays output) =
         Pl.NoOutputDatum -> []
     )
 
-prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, String) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ann)
+prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ())
 prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
   output <- Map.lookup txOutRef managedTxOuts
   datumDoc <-
     case outputOutputDatum output of
       Pl.OutputDatum datum ->
         do
-          (_, datumStr) <- Map.lookup (Pl.datumHash datum) managedDatums
-          return $
-            Just
-              ( "Datum (inlined):"
-                  <+> (PP.align . PP.pretty) (unwrapInlinedDatumStr datumStr)
-              )
+          (_, datumDoc) <- Map.lookup (Pl.datumHash datum) managedDatums
+          return $ Just ("Datum (inlined):" <+> PP.align datumDoc)
       Pl.OutputDatumHash datumHash ->
         do
-          (_, datumStr) <- Map.lookup datumHash managedDatums
-          return $
-            Just
-              ( "Datum (hashed):"
-                  <+> (PP.align . PP.pretty) (unwrapHashedDatumStr datumStr)
-              )
+          (_, datumDoc) <- Map.lookup datumHash managedDatums
+          return $ Just ("Datum (hashed):" <+> PP.align datumDoc)
       Pl.NoOutputDatum -> return Nothing
   let redeemerDoc =
         case txSkelRedeemer of
@@ -204,7 +257,7 @@ prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash
 --
 -- Value:
 --   - Lovelace: 45_000_000
---   - [Q] "hello": 3
+--   - Quick "hello": 3
 --   - #12bc3d "usertoken": 1
 --
 -- In case of an empty value (even though not an empty map):
@@ -227,8 +280,8 @@ prettyValue =
       where
         prettyAssetClass
           | symbol == Pl.CurrencySymbol "" = "Lovelace"
-          | symbol == quickCurrencySymbol = "[Q]" <+> PP.pretty name
-          | symbol == permanentCurrencySymbol = "[P]" <+> PP.pretty name
+          | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
+          | symbol == permanentCurrencySymbol = "Permanent" <+> PP.pretty name
           | otherwise = prettyHash symbol <+> PP.pretty name
 
     -- prettyNumericUnderscore 23798423723
@@ -244,9 +297,10 @@ prettyValue =
         psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
         psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
--- | Pretty-print, if non empty, a list of transaction skeleton options that
--- have non default values. 'awaitRxConfirmed' and 'forceOutputOrdering'
--- (deprecated TODO) are never printed.
+-- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
+-- If no non-default options are in the list, return nothing.
+--  'awaitTxConfirmed' and 'forceOutputOrdering'
+-- (these are deprecated, TODO) are never printed.
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
@@ -294,7 +348,7 @@ mPrettyTxOpts
 
 -- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
 -- pks, then scripts.
-prettyUtxoState :: UtxoState -> Doc ann
+prettyUtxoState :: UtxoState -> Doc ()
 prettyUtxoState =
   prettyEnum "UTxO state:" "•"
     . map (uncurry prettyAddressState . second utxoValueSet)
@@ -321,7 +375,7 @@ instance Show UtxoState where
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
-prettyAddressState :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
+prettyAddressState :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ()
 prettyAddressState address payloads =
   prettyEnum
     (prettyAddress address)
@@ -332,29 +386,27 @@ prettyAddressState address payloads =
     )
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
--- been grouped together when they are the same
-prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
+-- been grouped together when they belong to the same utxo
+prettyPayloadGrouped :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ())
 prettyPayloadGrouped [] = Nothing
 prettyPayloadGrouped [payload] = uncurry prettyPayload payload
 prettyPayloadGrouped (payload : rest) =
   let cardinality = 1 + length rest
    in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> uncurry prettyPayload payload
 
-prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
+prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ())
 prettyPayload value mDatum =
   case catMaybes
     [ Just (prettyValue value),
-      -- TODO Upgrade UtxoState to carry information about whether the datum
-      -- is hashed or inlined
       prettyPayloadDatum <$> mDatum
     ] of
     [] -> Nothing
     [doc] -> Just $ PP.align doc
     docs -> Just . PP.align . PP.vsep $ docs
   where
-    prettyPayloadDatum :: UtxoDatum -> Doc ann
+    prettyPayloadDatum :: UtxoDatum -> Doc ()
     prettyPayloadDatum d =
       "Datum"
         <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
         <> ":"
-        <+> (PP.pretty . (if utxoInlined d then unwrapInlinedDatumStr else unwrapHashedDatumStr) . utxoShow $ d)
+        <+> PP.align (utxoDoc d)

@@ -14,6 +14,7 @@ import Cooked.Tx.Constraints.Type
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import qualified PlutusTx as Pl
+import Prettyprinter
 import Type.Reflection
 
 -- | A tweak that tries to change the datum on outputs that go to scripts with a
@@ -25,6 +26,7 @@ tamperDatumTweak ::
   forall a m.
   ( MonadTweak m,
     Show a,
+    Pretty a,
     Pl.ToData a,
     Pl.FromData a,
     Typeable a

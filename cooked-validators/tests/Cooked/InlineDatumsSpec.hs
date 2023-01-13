@@ -30,6 +30,7 @@ import qualified PlutusTx as Pl
 import qualified PlutusTx.AssocMap as PlMap
 import qualified PlutusTx.Prelude as Pl
 import qualified PlutusTx.Trace as Pl
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 import Type.Reflection
@@ -37,6 +38,9 @@ import Type.Reflection
 data SimpleContract
 
 data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show)
+
+instance Pretty SimpleContractDatum where
+  pretty = viaShow
 
 instance Pl.Eq SimpleContractDatum where
   FirstPaymentDatum == FirstPaymentDatum = True
