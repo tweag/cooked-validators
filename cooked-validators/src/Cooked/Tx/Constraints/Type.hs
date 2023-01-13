@@ -978,6 +978,10 @@ data TxSkelRedeemer where
   TxSkelNoRedeemerForScript :: TxSkelRedeemer
   TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
 
+txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer _ = Nothing
+
 deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
