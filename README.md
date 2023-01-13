@@ -3,11 +3,11 @@
 * [Documentation](#documentation)
 * [Projects](#projects)
 * [Developer Tools and Env](#developer-tools-and-environment)
-  - [__IMPORTANT:__ Setting up the nix cache](#important-configure-your-nix-cache)
   - [Updating Plutus](#updating-plutus)
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
-These libraries are a research prototype under active development, they comes _as is_ with no guarantees whatosever. Check the [license](LICENSE) for details.
+These libraries are a research prototype under active development, they come
+_as is_ with no guarantees whatsoever. Check the [license](LICENSE) for details.
 
 ## Documentation
 
@@ -26,45 +26,23 @@ The rendered Haddock for the current `main` branch can be found at [https://twea
 
 - Example contracts and their test suites written using `cooked-validators`
 
-### [lang-pirouette](lang-pirouette)
+### [pirouette-plutusir](pirouette-plutusir)
 
 - _Experimental instantiation of [pirouette](https://github.com/tweag/pirouette) for PlutusIR_.
 
 ## Developer Tools and Environment
 
-A Nix shell development environment is provided.
-See [`nix-shell` docs](https://nixos.org/manual/nix/unstable/command-ref/nix-shell.html).
-All of the project dependencies, except for Plutus, are handled by nix. Plutus is handled by cabal.
-This results in a simpler nix setup that is easy to extend with different tools one might need.
-
-### __IMPORTANT:__ Configure your nix cache!
-
-Plutus uses a custom GHC version. To avoid having to build this GHC, make sure you
-set up the IOG binary nix cache as instructed [here](https://input-output-hk.github.io/haskell.nix/tutorials/getting-started.html#setting-up-the-binary-cache).
+A development environment can be obtained using `nix develop`.
+With the default environment, you can compile the projects
+with `cabal` and you also have access to Haskell development tools.
+A minimal development environment is provided by `nix develop .#ci`.
 
 ### Seamless Integration with `direnv`
 
-We recommend using `direnv` to automatically bring in the nix dependencies
-when entering the project directory. Just run `direnv allow` at the root of the repo.
-To cache the nix environment and make direnv load instantaneously, you can
-and use [nix-direnv](https://github.com/nix-community/nix-direnv#with-nix-env).
-Several editors have support for `direnv`. If you use emacs, we recomend using [`envrc-mode`](https://github.com/purcell/envrc).
+We recommend using [`direnv`](https://github.com/nix-community/nix-direnv#integrating-with-a-existing-flake)
+to automatically bring in the nix dependencies when entering the project directory.
 
-### Nixpkgs and HaskellNix pin
-
-In order to improve reproducibility, nixpkgs and [`haskell.nix`](https://input-output-hk.github.io/haskell.nix/) are pinned.
-See ["FAQ/Pinning Nixpkgs" wiki](https://nixos.wiki/wiki/FAQ/Pinning_Nixpkgs)
-
-Pinning is done using [`niv`](https://github.com/nmattia/niv). Updating them is simple:
-
-
-```
-nix-shell -p niv --run "niv update nixpkgs"
-nix-shell -p niv --run "niv update haskellNix"
-```
-
-Check out the `nix/sources.json` file, you might need to switch the branch.
-
+Several editors have support for `direnv`. If you use emacs, we recommend using [`envrc-mode`](https://github.com/purcell/envrc).
 
 ### Updating Plutus
 
