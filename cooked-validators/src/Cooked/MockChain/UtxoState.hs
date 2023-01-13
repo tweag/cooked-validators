@@ -2,23 +2,12 @@
 
 module Cooked.MockChain.UtxoState where
 
-import Control.Arrow (second)
-import Cooked.Currencies
-import Cooked.MockChain.Wallet
 import Data.Function (on)
-import qualified Data.Hashable as H
 import qualified Data.List as L
-import qualified Data.List as List (intersperse)
 import qualified Data.Map.Strict as M
-import Data.Maybe (catMaybes, mapMaybe)
 import qualified Ledger as Pl
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Numeric as Pl
-import Prettyprinter (Doc, (<+>))
-import qualified Prettyprinter as PP
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
@@ -57,14 +46,15 @@ utxoStateTotal = mconcat . map utxoValueSetTotal . M.elems . utxoState
 
 -- | A 'UtxoDatum' contains a datum which is @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
 -- but we also include @show x@ to be able to print this value in a more user friendly fashion.
-data UtxoDatum = UtxoDatum {utxoDatum :: Pl.Datum, utxoShow :: String}
+data UtxoDatum = UtxoDatum
+  { utxoDatum :: Pl.Datum,
+    utxoInlined :: Bool,
+    utxoShow :: String
+  }
   deriving (Eq, Ord)
 
 instance Show UtxoDatum where
   show = utxoShow
-
-instance Show UtxoState where
-  show = show . prettyUtxoState
 
 -- * Differences between two 'UtxoState'
 
@@ -131,122 +121,3 @@ utxoStateDiffTgt = UtxoState . M.foldlWithKey keepIfModOrIns M.empty
     keepIfModOrIns m addr (Inserted v) = M.insert addr v m
     keepIfModOrIns m addr (Modified _del ins unch) = M.insert addr (ins <> unch) m
     keepIfModOrIns m _ _ = m
-
--- * Pretty-printing
-
--- | Pretty prints a 'UtxoState'.
--- The entire point of producing a 'UtxoState' instead of a 'Pl.UtxoIndex' is to
--- provide the user a picture that is closer to their mental model of what is going
--- on. Hence, we must be able to display our 'UtxoState's in a human readable fashion.
-prettyUtxoState :: UtxoState -> Doc ann
-prettyUtxoState =
-  PP.vsep
-    . List.intersperse PP.emptyDoc
-    . map (uncurry prettyAddress . second utxoValueSet)
-    . M.toList
-    . utxoState
-
-prettyAddress :: Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> Doc ann
-prettyAddress address payloads =
-  PP.vsep
-    [ prettyAddressTypeAndHash address,
-      PP.indent 2
-        . PP.vsep
-        . map (("-" <>) . PP.indent 1)
-        . mapMaybe prettyPayloadGroup
-        . L.group
-        . L.sortBy (compare `on` (Ada.fromValue . fst))
-        $ payloads
-    ]
-
-prettyPayloadGroup :: [(Pl.Value, Maybe UtxoDatum)] -> Maybe (Doc ann)
-prettyPayloadGroup [] = Nothing
-prettyPayloadGroup ((vl, mutxo) : rest) =
-  let lenRest = length rest
-      lenInfo x
-        | lenRest == 0 = x
-        | otherwise = x <+> PP.parens ("x" <+> PP.pretty (lenRest + 1))
-   in lenInfo <$> prettyPayload vl mutxo
-
--- Returns `Nothing` if the value is empty to avoid having an empty document
--- whose height is 1 in the `prettyprinter` library and would generate empty
--- lines.
-prettyPayload :: Pl.Value -> Maybe UtxoDatum -> Maybe (Doc ann)
-prettyPayload value mDatum =
-  (\vs -> if null vs then Nothing else Just $ PP.vsep vs)
-    . catMaybes
-    $ [ mPrettyValue value,
-        (":" <>) . PP.indent 1 . PP.pretty . utxoShow <$> mDatum
-      ]
-
--- Returns `Nothing` if the value is empty to avoid having an empty document
--- whose height is 1, which would cause `prettyprinter` to generate empty
--- lines.
-mPrettyValue :: Pl.Value -> Maybe (Doc ann)
-mPrettyValue =
-  ( \vs ->
-      case vs of
-        [] -> Nothing
-        [v] -> Just v
-        _ -> Just $ PP.lbrace <> PP.indent 1 (PP.vsep vs) <> PP.space <> PP.rbrace
-  )
-    . map prettyCurrencyAndAmount
-    . filter (\(_, _, n) -> n /= 0)
-    . Pl.flattenValue
-
-prettyCurrencyAndAmount :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> Doc ann
-prettyCurrencyAndAmount (symbol, tName, amount) = prettySingletonValue symbol tName amount
-
-prettySpacedNumber :: Integer -> Doc ann
-prettySpacedNumber i
-  | 0 == i = "0" -- this case should never be reached under normal use through 'mPrettyValue'
-  | i > 0 = psnTerm "" 0 i
-  | otherwise = "-" <> psnTerm "" 0 (- i)
-  where
-    psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
-    psnTerm acc _ 0 = acc
-    psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-    psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
-
-prettySingletonValue :: Pl.CurrencySymbol -> Pl.TokenName -> Integer -> Doc ann
-prettySingletonValue symbol name n = prettyCurrency <+> prettyAmount
-  where
-    prettySymbol :: Pl.CurrencySymbol -> Doc ann
-    prettySymbol = PP.pretty . take 7 . show
-
-    prettyAmount = ":" <+> prettySpacedNumber n
-    prettyCurrency
-      | symbol == Pl.CurrencySymbol "" = "Lovelace"
-      | symbol == quickCurrencySymbol = withTok "Quick"
-      | symbol == permanentCurrencySymbol = withTok "Perm"
-      | otherwise = withTok (prettySymbol symbol)
-
-    withTok :: Doc ann -> Doc ann
-    withTok s = PP.parens (s <+> "$" <+> PP.pretty name)
-
-prettyAddressTypeAndHash :: Pl.Address -> Doc ann
-prettyAddressTypeAndHash (Pl.Address addrCr stakingCred) =
-  case addrCr of
-    (Pl.ScriptCredential vh) ->
-      prettyAux "script" vh <> prettyStakingCred stakingCred <> PP.colon
-    (Pl.PubKeyCredential pkh) ->
-      prettyAux "pubkey" pkh <> PP.space <> PP.semi <> PP.space <> prettyPubKeyCred pkh
-        <> maybe
-          PP.emptyDoc
-          ((PP.space <>) . PP.parens . ("wallet #" <>) . PP.pretty)
-          (walletPKHashToId pkh)
-        <> PP.colon
-  where
-    prettyAux :: Show hash => String -> hash -> Doc ann
-    prettyAux addressType hash =
-      mconcat
-        [ PP.pretty addressType,
-          PP.space,
-          PP.pretty . take 7 . show $ hash
-        ]
-    prettyStakingCred :: Maybe Pl.StakingCredential -> Doc ann
-    prettyStakingCred Nothing = PP.emptyDoc
-    prettyStakingCred (Just sc) = PP.space <> PP.semi <> PP.space <> (PP.pretty . take 7 . show . H.hash) sc
-
-    prettyPubKeyCred :: Pl.PubKeyHash -> Doc ann
-    prettyPubKeyCred pkh = PP.pretty $ take 7 $ show $ H.hash $ Pl.StakingHash $ Pl.PubKeyCredential pkh

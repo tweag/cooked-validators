@@ -75,18 +75,18 @@ mcstToUtxoState s =
   where
     go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
     go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToDatumHash outputDatum >>= datumHashToDatum)])
+      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
 
-    outputDatumToDatumHash :: PV2.OutputDatum -> Maybe Pl.DatumHash
-    outputDatumToDatumHash PV2.NoOutputDatum = Nothing
-    outputDatumToDatumHash (PV2.OutputDatumHash dh) = Just dh
-    outputDatumToDatumHash (PV2.OutputDatum datum) = Just $ Pl.datumHash datum
-
-    datumHashToDatum :: Pl.DatumHash -> Maybe UtxoDatum
-    datumHashToDatum datumHash = do
-      datumStr <- Map.lookup datumHash (mcstStrDatums s)
-      datum <- Map.lookup datumHash (mcstDatums s)
-      return $ UtxoDatum datum datumStr
+    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
+    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
+    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
+      do
+        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
+        return $ UtxoDatum datum False datumStr
+    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
+      do
+        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
+        return $ UtxoDatum datum True datumStr
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
@@ -94,8 +94,7 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash Pl.Datum,
-    mcstStrDatums :: Map Pl.DatumHash String,
+    mcstDatums :: Map Pl.DatumHash (Pl.Datum, String),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Pl.Slot
   }
@@ -123,7 +122,7 @@ data MockChainError
   | MCECalcFee MockChainError
   | MCEUnknownOutRefError String Pl.TxOutRef
   | FailWith String
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Describes us which stage of the balancing process are we at. This is needed
 --  to distinguish the successive calls to balancing while computing fees from
@@ -234,10 +233,10 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty Map.empty def
+mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty Map.empty def
+mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
 
 instance Default MockChainSt where
   def = mockChainSt0
@@ -337,7 +336,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, String) ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -539,7 +538,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Pl.Params ->
   Pl.UTxO Pl.EmulatorEra ->
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, String) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->

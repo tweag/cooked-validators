@@ -94,13 +94,14 @@ listUtxosTestTrace ::
     Pl.ToData (Pl.DatumType a),
     Pl.FromData (Pl.DatumType a),
     Typeable a,
-    Default (Pl.DatumType a)
+    Default (Pl.DatumType a),
+    Typeable (Pl.DatumType a)
   ) =>
   Bool ->
   Pl.TypedValidator a ->
   m [(Pl.TxOutRef, Pl.TxOut)]
 listUtxosTestTrace useInlineDatum validator =
-  spOutsFromCardanoTx
+  utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {adjustUnbalTx = True},
@@ -129,6 +130,7 @@ spendOutputTestTrace ::
     Pl.FromData (Pl.DatumType a),
     Typeable a,
     Default (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
   Bool ->
@@ -168,6 +170,7 @@ continuingOutputTestTrace ::
     Pl.FromData (Pl.DatumType a),
     Typeable a,
     Default (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
   Bool ->

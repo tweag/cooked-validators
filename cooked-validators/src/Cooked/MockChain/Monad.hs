@@ -33,7 +33,7 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   allUtxos :: m [(Pl.TxOutRef, PV2.TxOut)]
 
   -- | Returns the datum with the given hash, or 'Nothing' if there is none
-  datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
+  datumFromHash :: Pl.DatumHash -> m (Maybe (Pl.Datum, String))
 
   -- | Returns an output given a reference to it
   txOutByRef :: Pl.TxOutRef -> m (Maybe PV2.TxOut)
@@ -107,7 +107,7 @@ allUtxosWithDatums =
             mDatum <- datumFromHash datumHash
             case mDatum of
               Nothing -> return (oref, out)
-              Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+              Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
           _ -> return (oref, out)
       )
 
@@ -141,7 +141,7 @@ datumFromTxOutRef oref = do
     Just (PV2.OutputDatumHash datumHash) -> do
       mDatum <- datumFromHash datumHash
       case mDatum of
-        Just datum -> return $ Just datum
+        Just (datum, _) -> return $ Just datum
         Nothing -> return Nothing
 
 typedDatumFromTxOutRef :: (Pl.FromData a, MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe a)
