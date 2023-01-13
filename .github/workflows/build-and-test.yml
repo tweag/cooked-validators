@@ -1,4 +1,4 @@
-name: Build and test Plutus-libs
+name: Build and test
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and test
+    name: Build and run tests
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository code (from PR).
@@ -33,13 +33,13 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
         restore-keys: ${{ runner.os }}-
 
-    - name: Build and test
+    - name: Build and run tests
       run: |
         nix flake check
         nix develop .#ci --command cabal update
         nix develop .#ci --command bash ci/run-tests.sh --ci
 
-    - name: Upload tests output as artifacts
+    - name: Upload tests output
       uses: actions/upload-artifact@v3
       with:
         name: plutus-libs-checks
@@ -49,7 +49,7 @@ jobs:
 
   check-result:
     needs: build-and-test
-    name: check-result
+    name: Check tests output
     runs-on: ubuntu-latest
     steps:
     - name: Accessing tests output
@@ -57,7 +57,7 @@ jobs:
       with:
         name: plutus-libs-checks
 
-    - name: Check outputs
+    - name: Check tests output
       run: |
         is_ok=true
         for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
