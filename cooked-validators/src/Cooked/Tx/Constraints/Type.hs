@@ -796,7 +796,7 @@ instance Pretty a => Pretty (TxSkelOutDatum a) where
   pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
 
 -- | See the [note on TxSkelOut data]
-instance (Pl.ToData a, Pretty a) => ToOutputDatum (TxSkelOutDatum a) where
+instance (Pl.ToData a) => ToOutputDatum (TxSkelOutDatum a) where
   toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
 
