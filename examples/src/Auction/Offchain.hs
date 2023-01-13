@@ -33,7 +33,7 @@ txOffer seller lot minBid = do
     validateTxSkel $
       (txSkelSubmittedBy seller)
         { txSkelOpts = def {adjustUnbalTx = True},
-          txSkelOuts = [paysScriptInlineDatum A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot]
+          txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot]
         }
   return . head
     . mapMaybe
@@ -66,7 +66,7 @@ txSetDeadline submitter offerOref deadline = do
             ],
         txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript @A.Auction A.SetDeadline,
         txSkelOuts =
-          [ paysScriptInlineDatum
+          [ paysScript
               A.auctionValidator
               (A.NoBids seller minBid deadline)
               (lot <> theNft)
@@ -107,14 +107,14 @@ txBid submitter offerOref bid = do
         txSkelOuts =
           case previousBidder datum of
             Nothing ->
-              [ paysScriptInlineDatum
+              [ paysScript
                   A.auctionValidator
                   (A.Bidding seller deadline (A.BidderInfo bid (walletPKHash submitter)))
                   (lotPlusPreviousBidPlusNft <> Ada.lovelaceValueOf bid)
               ]
             Just (prevBid, prevBidder) ->
               [ paysPK prevBidder (Ada.lovelaceValueOf prevBid),
-                paysScriptInlineDatum
+                paysScript
                   A.auctionValidator
                   (A.Bidding seller deadline (A.BidderInfo bid (walletPKHash submitter)))
                   (lotPlusPreviousBidPlusNft <> Ada.lovelaceValueOf (bid - prevBid))

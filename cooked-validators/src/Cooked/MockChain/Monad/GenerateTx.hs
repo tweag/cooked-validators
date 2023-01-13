@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -209,7 +210,14 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
         ( Pl.toCardanoTxOut
             (Pl.pNetworkId theParams)
-            Pl.toCardanoTxOutDatum
+            ( \case
+                Pl.NoOutputDatum -> Right Pl.toCardanoTxOutNoDatum
+                Pl.OutputDatumHash hash ->
+                  case Map.lookup hash (txSkelOutputData skel) of
+                    Nothing -> Pl.toCardanoTxOutDatumHash hash
+                    Just (datum, _) -> Right $ Pl.toCardanoTxOutDatumInTx datum
+                Pl.OutputDatum datum -> Right $ Pl.toCardanoTxOutDatumInline datum
+            )
             $ txSkelOutToTxOut txSkelOut
         )
 
