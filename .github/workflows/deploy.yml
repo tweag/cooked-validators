@@ -1,3 +1,4 @@
+name: Publish cooked-validators documentation
 on:
   push:
     branches:
@@ -33,15 +34,11 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
         restore-keys: ${{ runner.os }}-
 
-    - name: Chmod haddock script
-      run: chmod u+x ci/build-haddock
-
     - name: Build documentation
       run: nix develop .#ci --command bash ci/build-haddock
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
-      if: ${{ github.ref == 'refs/heads/main' }}
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./docs
