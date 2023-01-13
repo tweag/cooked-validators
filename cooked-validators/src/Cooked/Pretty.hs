@@ -36,7 +36,7 @@
 --
 -- === Custom implementation
 --
--- For non trivial datums, the default 'Show' is often poorly readable and
+-- For non-trivial datums, the default 'Show' is often poorly readable and
 -- one-lined. It is interesting to implement a more readable 'Pretty' instance
 -- using the following provided functions:
 --
