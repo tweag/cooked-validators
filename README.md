@@ -7,7 +7,7 @@
   - [Updating Plutus](#updating-plutus)
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
-These libraries are a research prototype under active development, they comes
+These libraries are a research prototype under active development, they come
 _as is_ with no guarantees whatsoever. Check the [license](LICENSE) for details.
 
 ## Documentation
