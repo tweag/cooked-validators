@@ -26,6 +26,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Trace as Pl
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 import Type.Reflection
@@ -95,6 +96,7 @@ listUtxosTestTrace ::
     Pl.FromData (Pl.DatumType a),
     Typeable a,
     Default (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Typeable (Pl.DatumType a)
   ) =>
   Bool ->
@@ -131,6 +133,7 @@ spendOutputTestTrace ::
     Typeable a,
     Default (Pl.DatumType a),
     Typeable (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
   Bool ->
@@ -171,6 +174,7 @@ continuingOutputTestTrace ::
     Typeable a,
     Default (Pl.DatumType a),
     Typeable (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Default (Pl.RedeemerType a)
   ) =>
   Bool ->

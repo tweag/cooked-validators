@@ -31,6 +31,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Eq as Pl
 import qualified PlutusTx.Prelude as Pl
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -41,6 +42,9 @@ import Test.Tasty.HUnit
 -- the A validator.
 
 data ADatum = ADatum deriving (Show)
+
+instance Pretty ADatum where
+  pretty = viaShow
 
 instance Pl.Eq ADatum where
   ADatum == ADatum = True
@@ -75,6 +79,9 @@ aValidator =
     wrap = Pl.mkUntypedValidator @ADatum @ARedeemer
 
 data BDatum = BDatum deriving (Show)
+
+instance Pretty BDatum where
+  pretty = viaShow
 
 instance Pl.Eq BDatum where
   BDatum == BDatum = True

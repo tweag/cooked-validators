@@ -24,6 +24,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -36,6 +37,9 @@ import Test.Tasty.HUnit
 -- different recipient.
 
 data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
+
+instance Pretty MockDatum where
+  pretty = viaShow
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}

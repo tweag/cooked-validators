@@ -22,6 +22,7 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
+import Prettyprinter (Doc)
 
 data GenerateTxError
   = ToCardanoError String Pl.ToCardanoError
@@ -47,7 +48,7 @@ generateTxBodyContent ::
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
   -- | All of the currently known data, also coming from the 'MockChain'.
-  Map Pl.DatumHash (Pl.Datum, String) ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
   Map Pl.TxOutRef Pl.TxOut ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.

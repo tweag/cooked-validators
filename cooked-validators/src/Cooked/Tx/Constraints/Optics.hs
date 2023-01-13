@@ -14,6 +14,7 @@ import qualified Ledger.Value as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified PlutusTx as Pl
+import Prettyprinter
 import Type.Reflection
 
 -- | Decide if a transaction output has a certain owner and datum type.
@@ -23,6 +24,7 @@ txSkelOutputP ::
     Show ownerType,
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType,
+    Pretty datumType,
     Show datumType,
     ToOutputDatum datumType,
     Pl.ToData datumType,
@@ -50,6 +52,7 @@ txSkelOutputP =
 
 txSkelOutputToTypedValidatorP ::
   ( Show (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
     Pl.ToData (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Typeable a

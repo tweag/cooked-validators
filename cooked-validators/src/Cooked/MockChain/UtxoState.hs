@@ -8,6 +8,7 @@ import qualified Data.Map.Strict as M
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl
 import qualified PlutusTx.Numeric as Pl
+import Prettyprinter (Doc)
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
@@ -44,17 +45,26 @@ utxoValueSetTotal = mconcat . map fst . utxoValueSet
 utxoStateTotal :: UtxoState -> Pl.Value
 utxoStateTotal = mconcat . map utxoValueSetTotal . M.elems . utxoState
 
--- | A 'UtxoDatum' contains a datum which is @Datum $ Pl.toBuiltinData x@ for some @x :: X@,
--- but we also include @show x@ to be able to print this value in a more user friendly fashion.
+-- | A 'UtxoDatum' contains a datum which is @Datum $ Pl.toBuiltinData x@ for
+-- some @x :: X@, but we also include @pretty x@ to be able to print this value
+-- in a more user friendly fashion.
 data UtxoDatum = UtxoDatum
   { utxoDatum :: Pl.Datum,
     utxoInlined :: Bool,
-    utxoShow :: String
+    utxoDoc :: Doc ()
   }
-  deriving (Eq, Ord)
+
+-- We ignore the pretty-printed document when implementing ordering and
+-- equality since 'Doc' do not implement 'Eq' and 'Ord'.
+
+instance Eq UtxoDatum where
+  (UtxoDatum datum1 inlined1 _) == (UtxoDatum datum2 inlined2 _) = (datum1, inlined1) == (datum2, inlined2)
+
+instance Ord UtxoDatum where
+  compare (UtxoDatum datum1 inlined1 _) (UtxoDatum datum2 inlined2 _) = compare (datum1, inlined1) (datum2, inlined2)
 
 instance Show UtxoDatum where
-  show = utxoShow
+  show (UtxoDatum _ _ doc) = show doc
 
 -- * Differences between two 'UtxoState'
 
