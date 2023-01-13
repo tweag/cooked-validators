@@ -144,46 +144,46 @@ successfulSingle =
           twoAuctions
     ]
 
--- -- * Failing single-trace runs
+-- * Failing single-trace runs
 
--- failingOffer :: MonadBlockChain m => m ()
--- failingOffer =
---   void $
---     A.txOffer (banana 100) 20_000_000 `as` wallet 2
+failingOffer :: MonadBlockChain m => m ()
+failingOffer =
+  void $
+    A.txOffer (wallet 2) (banana 100) 20_000_000
 
--- forbiddenHammerToWithdraw :: MonadBlockChain m => m ()
--- forbiddenHammerToWithdraw = do
---   offerOref <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
---   A.txHammer offerOref `as` wallet 2
+forbiddenHammerToWithdraw :: MonadBlockChain m => m ()
+forbiddenHammerToWithdraw = do
+  offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
+  A.txHammer (wallet 2) offerOref
 
--- failingTwoBids :: MonadBlockChain m => m ()
--- failingTwoBids = do
---   t0 <- currentTime
---   let deadline = t0 + 60_000
---   offerOref <- A.txOffer (banana 2) 30_000_000 `as` wallet 1
---   A.txSetDeadline offerOref deadline
---   A.txBid offerOref 30_000_000 `as` wallet 2
---   A.txBid offerOref 30_000_000 `as` wallet 3
---   awaitTime (deadline + 1)
---   A.txHammer offerOref
+failingTwoBids :: MonadBlockChain m => m ()
+failingTwoBids = do
+  t0 <- currentTime
+  let deadline = t0 + 60_000
+  offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
+  A.txSetDeadline (wallet 1) offerOref deadline
+  A.txBid (wallet 2) offerOref 30_000_000
+  A.txBid (wallet 3) offerOref 30_000_000
+  awaitTime (deadline + 1)
+  A.txHammer (wallet 1) offerOref
 
--- failingSingle :: TestTree
--- failingSingle =
---   testGroup
---     "Single-trace runs that are expected to fail"
---     [ testCase "opening banana auction while owning too few bananas" $
---         testFailsFrom testInit failingOffer,
---       testCase "wrong user hammers to withdraw" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           forbiddenHammerToWithdraw,
---       testCase "second bid not higher than first" $
---         testFailsFrom'
---           isCekEvaluationFailure
---           testInit
---           failingTwoBids
---     ]
+failingSingle :: TestTree
+failingSingle =
+  testGroup
+    "Single-trace runs that are expected to fail"
+    [ testCase "opening banana auction while owning too few bananas" $
+        testFailsFrom testInit failingOffer,
+      testCase "wrong user hammers to withdraw" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          forbiddenHammerToWithdraw,
+      testCase "second bid not higher than first" $
+        testFailsFrom'
+          isCekEvaluationFailure
+          testInit
+          failingTwoBids
+    ]
 
 -- -- * failing attacks
 
