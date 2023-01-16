@@ -1007,6 +1007,7 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelSigners :: NonEmpty Wallet,
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
+      txSkelInsReference :: Set Pl.TxOutRef,
       txSkelOuts :: [TxSkelOut],
       txSkelFee :: Integer -- Fee in Lovelace
     } ->
@@ -1020,6 +1021,7 @@ makeLensesFor
     ("txSkelValidityRange", "txSkelValidityRangeL"),
     ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
+    ("txSkelInsReference", "txSkelInsReferenceL"),
     ("txSkelInsCollateral", "txSkelInsCollateralL"),
     ("txSkelOuts", "txSkelOutsL"),
     ("txSkelFee", "txSkelFeeL")
@@ -1040,6 +1042,7 @@ txSkelSubmittedBy w =
       txSkelValidityRange = Pl.always,
       txSkelSigners = w NEList.:| [],
       txSkelIns = Map.empty,
+      txSkelInsReference = Set.empty,
       txSkelOuts = [],
       txSkelFee = 0
     }

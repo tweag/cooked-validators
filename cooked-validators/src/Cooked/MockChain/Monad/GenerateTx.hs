@@ -62,7 +62,8 @@ generateTxBodyContent ::
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
-  txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
+  txInsReference <- txOutRefsToTxInsReference $ Set.toList (txSkelInsReference skel)
+  txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
   txOuts <- mapM txSkelOutToCardanoTxOut $ txSkelOuts skel
   txValidityRange <-
     left
@@ -102,8 +103,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         C.txInsCollateral = txInsCollateral,
         -- We don't yet support reference inputs. If you add this
         -- functionality, remember that both the 'txIns' and 'txInsReference'
-        -- fields have to change!
-        C.txInsReference = C.TxInsReferenceNone,
+        -- fields have to change! -- TODO Is this accurate?
+        C.txInsReference = txInsReference,
         C.txOuts = txOuts,
         C.txTotalCollateral = txTotalCollateral,
         -- WARN For now we are not dealing with return collateral
@@ -125,7 +126,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     throwOnNothing :: e -> Maybe a -> Either e a
     throwOnNothing err = maybe (Left err) Right
 
-    -- Convert a 'TxSkel' input, which consists of a 'SpendableOut' and a
+    -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
     -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
     -- you add reference inputs, don't forget to also update the
     -- 'txInsReference'!
@@ -196,10 +197,21 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                 )
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
-    -- Convert a list of 'SpendableOut' into a 'C.TxInsCollateral'
-    spOutsToTxInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
-    spOutsToTxInsCollateral =
-      left (ToCardanoError "spOutsToTxInCollateral")
+    -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsReference'
+    txOutRefsToTxInsReference :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsReference C.BuildTx C.BabbageEra)
+    txOutRefsToTxInsReference =
+      bimap
+        (ToCardanoError "txOutRefsToTxInsReference")
+        ( \case
+            [] -> C.TxInsReferenceNone
+            txIns -> C.TxInsReference C.ReferenceTxInsScriptsInlineDatumsInBabbageEra txIns
+        )
+        . mapM Pl.toCardanoTxIn
+
+    -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsCollateral'
+    txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
+    txOutRefsToTxSkelInsCollateral =
+      left (ToCardanoError "txOutRefsToTxInCollateral")
         . Pl.toCardanoTxInsCollateral
         . (toPKTxInput <$>)
       where
