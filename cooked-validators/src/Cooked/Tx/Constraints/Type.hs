@@ -63,7 +63,7 @@ import Type.Reflection
 -- some information about who owns the output (a public key, a script...?) and
 -- the datum (do we have an inline datum, a datum hash, nothing...?) to the type
 -- level.
-class Show o => IsOutput o where
+class IsAbstractOutput o where
   -- The owner type can be, in particular, a 'TypedValidator a' or a
   -- 'PubkeyHash'
   type OwnerType o
@@ -73,46 +73,6 @@ class Show o => IsOutput o where
   outputStakingCredentialL :: Lens' o (Maybe Pl.StakingCredential)
   outputDatumL :: Lens' o (DatumType o)
   outputValueL :: Lens' o (ValueType o)
-  outputAddress :: o -> Pl.Address
-  outputOutputDatum :: o -> Pl.OutputDatum
-  outputValue :: o -> Pl.Value
-
--- | Return the output as it is seen by a validator. In particular the
--- correctness of this specification will depend on the 'IsOutput' instance, so
--- make sure you get these instances (in particular the functions 'outputAddress',
--- 'outputOutputDatum', and 'outputValue') right!
-outputTxOut :: IsOutput o => o -> Pl.TxOut
-outputTxOut o =
-  Pl.TxOut
-    (outputAddress o)
-    (outputValue o)
-    (outputOutputDatum o)
-    Nothing -- TODO for when we introduce reference scripts
-
--- ** 'Pl.TxOut's are outputs
-
-instance IsOutput Pl.TxOut where
-  type OwnerType Pl.TxOut = Pl.Credential
-  type DatumType Pl.TxOut = Pl.OutputDatum
-  type ValueType Pl.TxOut = Pl.Value
-  outputOwnerL =
-    lensVL Pl.outAddress
-      % lens
-        Pl.addressCredential
-        (\addr cred -> addr {Pl.addressCredential = cred})
-  outputDatumL = lensVL Pl.outDatum
-  outputStakingCredentialL =
-    lens
-      (Pl.addressStakingCredential . Pl.txOutAddress)
-      ( \out mStCred ->
-          out {Pl.txOutAddress = (Pl.txOutAddress out) {Pl.addressStakingCredential = mStCred}}
-      )
-  outputValueL = lensVL Pl.outValue
-  outputAddress = Pl.txOutAddress
-  outputOutputDatum = Pl.txOutDatum
-  outputValue = Pl.txOutValue
-
--- ** A concrete type for outputs
 
 class ToCredential a where
   toCredential :: a -> Pl.Credential
@@ -153,6 +113,52 @@ instance ToValue Pl.Value where
 instance ToValue Pl.Ada where
   toValue = Pl.toValue
 
+-- | An output that can be translated into its on-chain representation
+type IsOutput o = (IsAbstractOutput o, ToCredential (OwnerType o), ToOutputDatum (DatumType o), ToValue (ValueType o))
+
+outputAddress :: IsOutput o => o -> Pl.Address
+outputAddress out = Pl.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
+
+outputOutputDatum :: IsOutput o => o -> Pl.OutputDatum
+outputOutputDatum = toOutputDatum . (^. outputDatumL)
+
+outputValue :: IsOutput o => o -> Pl.Value
+outputValue = toValue . (^. outputValueL)
+
+-- | Return the output as it is seen by a validator. In particular the
+-- correctness of this specification will depend on the 'IsOutput' instance, so
+-- make sure you get these instances (in particular the functions 'outputAddress',
+-- 'outputOutputDatum', and 'outputValue') right!
+outputTxOut :: IsOutput o => o -> Pl.TxOut
+outputTxOut o =
+  Pl.TxOut
+    (outputAddress o)
+    (outputValue o)
+    (outputOutputDatum o)
+    Nothing -- TODO for when we introduce reference scripts
+
+-- ** 'Pl.TxOut's are outputs
+
+instance IsAbstractOutput Pl.TxOut where
+  type OwnerType Pl.TxOut = Pl.Credential
+  type DatumType Pl.TxOut = Pl.OutputDatum
+  type ValueType Pl.TxOut = Pl.Value
+  outputOwnerL =
+    lensVL Pl.outAddress
+      % lens
+        Pl.addressCredential
+        (\addr cred -> addr {Pl.addressCredential = cred})
+  outputDatumL = lensVL Pl.outDatum
+  outputStakingCredentialL =
+    lens
+      (Pl.addressStakingCredential . Pl.txOutAddress)
+      ( \out mStCred ->
+          out {Pl.txOutAddress = (Pl.txOutAddress out) {Pl.addressStakingCredential = mStCred}}
+      )
+  outputValueL = lensVL Pl.outValue
+
+-- ** A concrete type for outputs
+
 data ConcreteOutput ownerType datumType valueType where
   ConcreteOutput ::
     { concreteOutputOwner :: ownerType,
@@ -167,16 +173,7 @@ deriving instance (Show ownerType, Show datumType, Show valueType) => Show (Conc
 
 deriving instance (Eq ownerType, Eq datumType, Eq valueType) => Eq (ConcreteOutput ownerType datumType valueType)
 
-instance
-  ( Show ownerType,
-    ToCredential ownerType,
-    Show datumType,
-    ToOutputDatum datumType,
-    Show valueType,
-    ToValue valueType
-  ) =>
-  IsOutput (ConcreteOutput ownerType datumType valueType)
-  where
+instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType) where
   type OwnerType (ConcreteOutput ownerType datumType valueType) = ownerType
   type DatumType (ConcreteOutput ownerType datumType valueType) = datumType
   type ValueType (ConcreteOutput ownerType datumType valueType) = valueType
@@ -184,12 +181,6 @@ instance
   outputStakingCredentialL = lens concreteOutputStakingCredential (\out mStCred -> out {concreteOutputStakingCredential = mStCred})
   outputDatumL = lens concreteOutputDatum (\out datum -> out {concreteOutputDatum = datum})
   outputValueL = lens concreteOutputValue (\out value -> out {concreteOutputValue = value})
-  outputAddress out =
-    Pl.Address
-      (toCredential $ concreteOutputOwner out)
-      (concreteOutputStakingCredential out)
-  outputOutputDatum = toOutputDatum . concreteOutputDatum
-  outputValue = toValue . concreteOutputValue
 
 -- ** A few special concrete outputs
 
@@ -274,7 +265,7 @@ isOutputWithDatumHash out =
 
 -- | Test if the value carried by an output verifies a given predicate.
 isOutputWithValueSuchThat ::
-  IsOutput output =>
+  IsAbstractOutput output =>
   (ValueType output -> Bool) ->
   output ->
   Maybe output
@@ -284,7 +275,7 @@ isOutputWithValueSuchThat predicate out
 
 -- | Test if the datum carried by an output verifies a given predicate.
 isOutputWithDatumSuchThat ::
-  IsOutput output =>
+  IsAbstractOutput output =>
   (DatumType output -> Bool) ->
   output ->
   Maybe output
@@ -764,8 +755,8 @@ instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
 
 data TxSkelOut where
   Pays ::
-    ( IsOutput o,
-      Show (OwnerType o),
+    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
+      IsOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
@@ -775,12 +766,12 @@ data TxSkelOut where
     {producedOutput :: o} ->
     TxSkelOut
 
-deriving instance Show TxSkelOut
-
 -- | Since we mostly care about whether the transaction outputs are the same
 -- on-chain, this is sufficient:
 instance Eq TxSkelOut where
   (==) = (==) `on` txSkelOutToTxOut
+
+deriving instance Show TxSkelOut
 
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
 txSkelOutValueL =
