@@ -827,11 +827,13 @@ instance Eq TxSkelOutDatum where
       Nothing -> False
   _ == _ = False
 
--- -- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
--- -- the datum it contains.
--- instance Pretty a => Pretty (TxSkelOutDatum a) where
---   pretty (TxSkelOutDatumHash datum) = PP.pretty datum
---   pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
+-- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
+-- the datum it contains.
+instance Pretty TxSkelOutDatum where
+  pretty TxSkelOutNoDatum = mempty
+  pretty (TxSkelOutDatumHash datum) = PP.pretty datum
+  pretty (TxSkelOutDatum datum) = PP.pretty datum
+  pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
 
 {- [note on TxSkelOut data]
 
