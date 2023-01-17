@@ -425,57 +425,41 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
 ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
 ensureTxSkelOutsMinAda = txSkelOutsL % traversed % txSkelOutValueL %~ ensureHasMinAda
 
--- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate. This goes
--- through all of the 'Pl.TxOutRef's on the 'txSkelIn's and looks them up in the
--- 'mcstIndex'. If any 'Pl.TxOutRef' can't be resolved, an error is thrown.
+-- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate.
 txSkelInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
-txSkelInputUtxos skel = do
-  let outRefs = Map.keys $ txSkelIns skel
-  txSkelUtxos <-
-    mapM
-      ( \oRef -> do
-          mOut <- gets $ Map.lookup oRef . Pl.getIndex . mcstIndex
-          out <- case mOut of
-            Nothing ->
-              throwError $
-                MCEUnknownOutRefError
-                  "txSkelInputUtxos: Transaction input unknown"
-                  oRef
-            Just out -> return out
-          return (oRef, out)
-      )
-      outRefs
-  return $ Map.fromList txSkelUtxos
+txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
 -- | Get all UTxOs that the TxSkel references from the 'MockChainSt'ate.
 txSkelReferenceInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
-txSkelReferenceInputUtxos skel = do
-  let outRefs = Set.toList $ txSkelInsReference skel
-  txSkelUtxos <-
-    mapM
+txSkelReferenceInputUtxos = lookupUtxos . Set.toList . txSkelInsReference
+
+-- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
+-- 'mcstIndex'. If any 'Pl.TxOutRef' can't be resolved, throw an error.
+lookupUtxos :: Monad m => [Pl.TxOutRef] -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxos outRefs =
+  Map.fromList
+    <$> mapM
       ( \oRef -> do
           mOut <- gets $ Map.lookup oRef . Pl.getIndex . mcstIndex
           out <- case mOut of
             Nothing ->
               throwError $
                 MCEUnknownOutRefError
-                  "txSkelReferenceInputUtxos: Transaction input unknown"
+                  "lookupUtxos: Transaction input unknown"
                   oRef
             Just out -> return out
           return (oRef, out)
       )
       outRefs
-  return $ Map.fromList txSkelUtxos
 
--- | Look up the outputs the transaction consumes, and sum the value contained
--- in them.
+-- | Look up the UTxOs the transaction consumes, and sum the value contained in
+-- them.
 txSkelInputValue :: Monad m => TxSkel -> MockChainT m Pl.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
   return $ foldMap Pl.txOutValue txSkelInputs
 
--- | Look up the outputs the transaction consumes, and sum the value contained
--- in them.
+-- | Look up the data on UTxOs the transaction consumes.
 txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
 txSkelInputDatums skel = do
   txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
@@ -490,23 +474,6 @@ txSkelInputDatums skel = do
             Nothing -> Nothing
       )
       txSkelInputs
-
--- | Look up the outputs the transaction consumes, and sum the value contained
--- in them.
-txSkelReferenceInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
-txSkelReferenceInputDatums skel = do
-  txSkelReferenceInputs <- map txOutV2fromV1 . Map.elems <$> txSkelReferenceInputUtxos skel
-  return
-    . mconcat
-    $ mapMaybe
-      ( \output ->
-          case isOutputWithInlineDatumUntyped output of
-            Just output' ->
-              let datum = output' ^. outputDatumL
-               in Just $ Map.singleton (Pl.datumHash datum) datum
-            Nothing -> Nothing
-      )
-      txSkelReferenceInputs
 
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
