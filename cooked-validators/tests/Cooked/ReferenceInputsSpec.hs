@@ -9,7 +9,14 @@
 
 module Cooked.ReferenceInputsSpec where
 
+import Control.Monad
+import Cooked
 import Cooked.Pretty
+import Cooked.Tx.Constraints.Type
+import Data.Default
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Ledger.Ada as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx
@@ -18,6 +25,7 @@ import qualified PlutusTx.Prelude as Pl
 import Prettyprinter (Pretty)
 import qualified Prettyprinter as PP
 import qualified Test.Tasty as Tasty
+import qualified Test.Tasty.HUnit as Tasty
 
 -- Foo and Bar are two dummy scripts to test reference inputs. They serve no
 -- purpose and make no real sense.
@@ -89,8 +97,42 @@ barTypedValidator =
         $$(Pl.compile [||barValidator||])
         $$(Pl.compile [||wrap||])
 
+trace1 :: MonadBlockChain m => m ()
+trace1 = do
+  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
+    utxosFromCardanoTx
+      <$> ( validateTxSkel $
+              ( txSkelSubmittedBy
+                  (wallet 2)
+              )
+                { txSkelOuts =
+                    [ paysScriptInlineDatum
+                        fooTypedValidator
+                        (FooDatum (walletPKHash (wallet 3)))
+                        (Pl.lovelaceValueOf 4_000_000),
+                      paysScript
+                        barTypedValidator
+                        ()
+                        (Pl.lovelaceValueOf 5_000_000)
+                    ]
+                }
+          )
+  void $
+    validateTxSkel $
+      ( txSkelSubmittedBy
+          (wallet 3)
+      )
+        { txSkelIns = Map.singleton txOutRefBar TxSkelNoRedeemerForScript,
+          txSkelInsReference = Set.singleton txOutRefFoo,
+          txSkelOuts =
+            [ paysPK
+                (walletPKHash (wallet 4))
+                (Pl.lovelaceValueOf 5_000_000)
+            ]
+        }
+
 tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    []
+    [Tasty.testCase "Can reference an input that can't be spent" (testSucceeds trace1)]
