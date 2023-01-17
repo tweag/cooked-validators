@@ -107,6 +107,7 @@ test-suite spec
       Cooked.AttackSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
+      Cooked.ReferenceInputsSpec
       Cooked.TestUtils
       Paths_cooked_validators
   autogen-modules:
