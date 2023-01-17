@@ -50,7 +50,7 @@ instance Pl.ValidatorTypes Foo where
 -- | Outputs can only be spent by pks whose hash is not the one in the datum.
 fooValidator :: FooDatum -> () -> Pl.ScriptContext -> Bool
 fooValidator (FooDatum pkh) _ (Pl.ScriptContext txInfo _) =
-  not $ elem pkh (Pl.txInfoSignatories txInfo)
+  Pl.not Pl.$ Pl.elem pkh (Pl.txInfoSignatories txInfo)
 
 fooTypedValidator :: Pl.TypedValidator Foo
 fooTypedValidator =
@@ -69,7 +69,7 @@ instance Pl.ValidatorTypes Bar where
 -- which they are mentioned (in an inlined datum).
 barValidator :: () -> () -> Pl.ScriptContext -> Bool
 barValidator _ _ (Pl.ScriptContext txInfo _) =
-  (not . null) (filter f (Pl.txInfoReferenceInputs txInfo))
+  (Pl.not . Pl.null) (Pl.filter f (Pl.txInfoReferenceInputs txInfo))
   where
     f :: Pl.TxInInfo -> Bool
     f
@@ -77,10 +77,9 @@ barValidator _ _ (Pl.ScriptContext txInfo _) =
           _
           (Pl.TxOut address _ (Pl.OutputDatum (Pl.Datum datum)) _)
         ) =
-        address == Pl.validatorAddress fooTypedValidator
-          && case Pl.fromBuiltinData @FooDatum datum of
-            Nothing -> False
-            Just (FooDatum pkh) -> elem pkh (Pl.txInfoSignatories txInfo)
+        case Pl.fromBuiltinData @FooDatum datum of
+          Nothing -> False
+          Just (FooDatum pkh) -> Pl.elem pkh (Pl.txInfoSignatories txInfo)
     f _ = False
 
 barTypedValidator :: Pl.TypedValidator Bar
