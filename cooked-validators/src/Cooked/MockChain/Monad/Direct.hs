@@ -309,6 +309,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         slot <- currentSlot
         index <- gets mcstIndex
         inputTxDatums <- txSkelInputDatums skel
+        referenceInputTxDatums <- txSkelReferenceInputDatums skel
         someCardanoTx <-
           runTransactionValidation
             slot
@@ -316,7 +317,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
             index
             (NEList.toList $ txSkelSigners skel)
             txBodyContent
-            inputTxDatums
+            (Map.union inputTxDatums referenceInputTxDatums)
             (txSkelOutputData skel)
             (txSkelOutValidators skel)
             (unsafeModTx $ txSkelOpts skel)
@@ -447,6 +448,26 @@ txSkelInputUtxos skel = do
       outRefs
   return $ Map.fromList txSkelUtxos
 
+-- | Get all UTxOs that the TxSkel references from the 'MockChainSt'ate.
+txSkelReferenceInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxos skel = do
+  let outRefs = Set.toList $ txSkelInsReference skel
+  txSkelUtxos <-
+    mapM
+      ( \oRef -> do
+          mOut <- gets $ Map.lookup oRef . Pl.getIndex . mcstIndex
+          out <- case mOut of
+            Nothing ->
+              throwError $
+                MCEUnknownOutRefError
+                  "txSkelReferenceInputUtxos: Transaction input unknown"
+                  oRef
+            Just out -> return out
+          return (oRef, out)
+      )
+      outRefs
+  return $ Map.fromList txSkelUtxos
+
 -- | Look up the outputs the transaction consumes, and sum the value contained
 -- in them.
 txSkelInputValue :: Monad m => TxSkel -> MockChainT m Pl.Value
@@ -471,6 +492,23 @@ txSkelInputDatums skel = do
       )
       txSkelInputs
 
+-- | Look up the outputs the transaction consumes, and sum the value contained
+-- in them.
+txSkelReferenceInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
+txSkelReferenceInputDatums skel = do
+  txSkelReferenceInputs <- map txOutV2fromV1 . Map.elems <$> txSkelReferenceInputUtxos skel
+  return
+    . mconcat
+    $ mapMaybe
+      ( \output ->
+          case isOutputWithInlineDatumUntyped output of
+            Just output' ->
+              let datum = output' ^. outputDatumL
+               in Just $ Map.singleton (Pl.datumHash datum) datum
+            Nothing -> Nothing
+      )
+      txSkelReferenceInputs
+
 -- | Sets the '_txSkelFee' according to our environment. The transaction fee
 -- gets set realistically, based on a fixpoint calculation taken from
 -- /plutus-apps/.
@@ -489,8 +527,9 @@ setFeeAndBalance balancePK skel0 = do
         . mcstIndex
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
+  txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
   mockChainParams <- asks mceParams
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxos <> balancePKUtxos of
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ Map.union txSkelUtxos txSkelReferencedUtxos <> balancePKUtxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
