@@ -309,7 +309,6 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         slot <- currentSlot
         index <- gets mcstIndex
         inputTxDatums <- txSkelInputDatums skel
-        referenceInputTxDatums <- txSkelReferenceInputDatums skel
         someCardanoTx <-
           runTransactionValidation
             slot
@@ -317,7 +316,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
             index
             (NEList.toList $ txSkelSigners skel)
             txBodyContent
-            (Map.union inputTxDatums referenceInputTxDatums)
+            inputTxDatums
             (txSkelOutputData skel)
             (txSkelOutValidators skel)
             (unsafeModTx $ txSkelOpts skel)
@@ -529,7 +528,7 @@ setFeeAndBalance balancePK skel0 = do
   txSkelUtxos <- txSkelInputUtxos skel
   txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
   mockChainParams <- asks mceParams
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ Map.union txSkelUtxos txSkelReferencedUtxos <> balancePKUtxos of
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
