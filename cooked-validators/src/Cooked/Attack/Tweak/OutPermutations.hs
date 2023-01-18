@@ -25,7 +25,7 @@ data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 --
 -- (In particular, this is clever enough to generate only the distinct
 -- permutations, even if some outputs are identical.)
-permutOutTweak :: PermutOutTweakMode -> Tweak ()
+permutOutTweak :: MonadTweak m => PermutOutTweakMode -> m ()
 permutOutTweak mode = do
   oldOut <- viewTweak txSkelOutsL
   msum $

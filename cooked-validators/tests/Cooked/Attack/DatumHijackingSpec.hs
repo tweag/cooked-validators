@@ -11,7 +11,6 @@ module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked.Attack
-import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Tx.Constraints.Type
 import Data.Default
@@ -25,6 +24,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -37,6 +37,9 @@ import Test.Tasty.HUnit
 -- different recipient.
 
 data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
+
+instance Pretty MockDatum where
+  pretty = viaShow
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}
@@ -58,26 +61,26 @@ instance Pl.ValidatorTypes MockContract where
 lockValue :: L.Value
 lockValue = L.lovelaceValueOf 12345678
 
-lockTxSkel :: SpendableOut -> Pl.TypedValidator MockContract -> TxSkel
+lockTxSkel :: Pl.TxOutRef -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
-  mempty
+  txSkelTemplate
     { txSkelOpts = def {adjustUnbalTx = True},
-      txSkelIns = Map.singleton o SpendsPK,
-      txSkelOuts = [paysScript v FirstLock lockValue]
+      txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
+      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue]
     }
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   me <- ownPaymentPubKeyHash
-  utxo : _ <- pkUtxosSuchThatValue me (`L.geq` lockValue)
-  void $ validateTxSkel $ lockTxSkel utxo v
+  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`L.geq` lockValue)
+  void $ validateTxSkel $ lockTxSkel oref v
 
-relockTxSkel :: Pl.TypedValidator MockContract -> SpendableOut -> TxSkel
+relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
 relockTxSkel v o =
-  mempty
+  txSkelTemplate
     { txSkelOpts = def {adjustUnbalTx = True},
-      txSkelIns = Map.singleton o $ SpendsScript v (),
-      txSkelOuts = [paysScript v SecondLock lockValue]
+      txSkelIns = Map.singleton o $ TxSkelRedeemerForScript @MockContract (),
+      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
     }
 
 txRelock ::
@@ -85,8 +88,16 @@ txRelock ::
   Pl.TypedValidator MockContract ->
   m ()
 txRelock v = do
-  utxo : _ <- scriptUtxosSuchThat v (\d _ -> FirstLock Pl.== d)
-  void $ validateTxSkel $ relockTxSkel v (fst utxo)
+  (oref, _) : _ <-
+    filteredUtxosWithDatums $
+      isScriptOutputFrom' v
+        >=> isOutputWithDatumSuchThat (ResolvedOrInlineDatum FirstLock ==)
+  void $ validateTxSkel $ relockTxSkel v oref
+
+datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
+datumHijackingTrace v = do
+  txLock v
+  txRelock v
 
 -- * Validators for the datum hijacking attack
 
@@ -141,13 +152,8 @@ carelessValidator =
   where
     wrap = Pl.mkUntypedValidator @MockDatum @()
 
-datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
-datumHijackingTrace v = do
-  txLock v
-  txRelock v
-
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = mempty {txSkelOuts = os}
+txSkelFromOuts os = txSkelTemplate {txSkelOuts = os}
 
 -- * TestTree for the datum hijacking attack
 
@@ -164,56 +170,58 @@ tests =
             x3 = L.lovelaceValueOf 9999
             skelIn =
               txSkelFromOuts
-                [ paysScript val1 SecondLock x1,
-                  paysScript val1 SecondLock x3,
-                  paysScript val2 SecondLock x1,
-                  paysScript val1 FirstLock x2,
-                  paysScript val1 SecondLock x2
+                [ paysScriptInlineDatum val1 SecondLock x1,
+                  paysScriptInlineDatum val1 SecondLock x3,
+                  paysScriptInlineDatum val2 SecondLock x1,
+                  paysScriptInlineDatum val1 FirstLock x2,
+                  paysScriptInlineDatum val1 SecondLock x2
                 ]
             skelOut bound select =
-              getTweak
+              runTweak
                 ( datumHijackingAttack @MockContract
-                    ( \v d x ->
+                    ( \(ConcreteOutput v _ x d) ->
                         Pl.validatorHash val1 == Pl.validatorHash v
-                          && SecondLock Pl.== d
+                          && d == TxSkelOutInlineDatum SecondLock
                           && bound `L.geq` x
                     )
                     select
                 )
-                def
                 skelIn
             skelExpected a b =
-              mempty
+              txSkelTemplate
                 { txSkelLabel =
                     Set.singleton . TxLabel . DatumHijackingLbl $
-                      Pl.validatorAddress thief
+                      Pl.validatorAddress thief,
+                  txSkelOuts =
+                    [ paysScriptInlineDatum val1 SecondLock x1,
+                      paysScriptInlineDatum a SecondLock x3,
+                      paysScriptInlineDatum val2 SecondLock x1,
+                      paysScriptInlineDatum val1 FirstLock x2,
+                      paysScriptInlineDatum b SecondLock x2
+                    ]
                 }
-                <> txSkelFromOuts
-                  [ paysScript val1 SecondLock x1,
-                    paysScript a SecondLock x3,
-                    paysScript val2 SecondLock x1,
-                    paysScript val1 FirstLock x2,
-                    paysScript b SecondLock x2
-                  ]
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
-                [ ( skelExpected thief val1,
-                    [(val1, Nothing, SecondLock, x3)]
-                  )
+                [ Right
+                    ( [ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock)],
+                      skelExpected thief val1
+                    )
                 ]
                   @=? skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
-                [ ( skelExpected thief thief,
-                    [ (val1, Nothing, SecondLock, x3),
-                      (val1, Nothing, SecondLock, x2)
-                    ]
-                  )
+                [ Right
+                    ( [ ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock),
+                        ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock)
+                      ],
+                      skelExpected thief thief
+                    )
                 ]
                   @=? skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
-                [ ( skelExpected val1 thief,
-                    [(val1, Nothing, SecondLock, x2)]
-                  )
+                [ Right
+                    ( [ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock)],
+                      skelExpected val1 thief
+                    )
                 ]
                   @=? skelOut x2 (1 ==)
             ],
@@ -223,9 +231,9 @@ tests =
           def
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  ( \v d _ ->
+                  ( \(ConcreteOutput v _ _ d) ->
                       Pl.validatorHash v == Pl.validatorHash carefulValidator
-                        && SecondLock Pl.== d
+                        && d == TxSkelOutInlineDatum SecondLock
                   )
                   (const True)
               )
@@ -235,9 +243,9 @@ tests =
         testSucceeds
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  ( \v d _ ->
+                  ( \(ConcreteOutput v _ _ d) ->
                       Pl.validatorHash v == Pl.validatorHash carelessValidator
-                        && SecondLock Pl.== d
+                        && d == TxSkelOutInlineDatum SecondLock
                   )
                   (const True)
               )

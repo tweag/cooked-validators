@@ -45,6 +45,7 @@ dependencies:
   - text
   - transformers
   - optics-core
+  - prettyprinter
 
 library:
   source-dirs: src

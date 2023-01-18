@@ -30,7 +30,7 @@ import Data.Default
 import Data.Function (on)
 import Data.List
 import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NEList
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
@@ -48,6 +48,7 @@ import Optics.Core
 import qualified Plutus.Script.Utils.V2.Scripts as PV2
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
+import Prettyprinter (Doc)
 
 -- * Direct Emulation
 
@@ -75,18 +76,18 @@ mcstToUtxoState s =
   where
     go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
     go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToDatumHash outputDatum >>= datumHashToDatum)])
+      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
 
-    outputDatumToDatumHash :: PV2.OutputDatum -> Maybe Pl.DatumHash
-    outputDatumToDatumHash PV2.NoOutputDatum = Nothing
-    outputDatumToDatumHash (PV2.OutputDatumHash dh) = Just dh
-    outputDatumToDatumHash (PV2.OutputDatum datum) = Just $ Pl.datumHash datum
-
-    datumHashToDatum :: Pl.DatumHash -> Maybe UtxoDatum
-    datumHashToDatum datumHash = do
-      datumStr <- Map.lookup datumHash (mcstStrDatums s)
-      datum <- Map.lookup datumHash (mcstDatums s)
-      return $ UtxoDatum datum datumStr
+    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
+    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
+    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
+      do
+        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
+        return $ UtxoDatum datum False datumStr
+    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
+      do
+        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
+        return $ UtxoDatum datum True datumStr
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
@@ -94,12 +95,24 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Pl.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash Pl.Datum,
-    mcstStrDatums :: Map Pl.DatumHash String,
+    mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Pl.Slot
   }
-  deriving (Show, Eq)
+  deriving (Show)
+
+-- | There is no natural 'Eq' instance for 'Doc' (pretty printed document)
+-- which we store for each datum in the state. The 'Eq' instance for 'Doc'
+-- ignores these pretty printed docs.
+instance Eq MockChainSt where
+  (MockChainSt index1 datums1 validators1 currentSlot1)
+    == (MockChainSt index2 datums2 validators2 currentSlot2) =
+      and
+        [ index1 == index2,
+          Map.map fst datums1 == Map.map fst datums2,
+          validators1 == validators2,
+          currentSlot1 == currentSlot2
+        ]
 
 -- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map that
 -- contains 'Plutus.V2.Ledger.Api.TxOut'.
@@ -123,7 +136,7 @@ data MockChainError
   | MCECalcFee MockChainError
   | MCEUnknownOutRefError String Pl.TxOutRef
   | FailWith String
-  deriving (Show)
+  deriving (Show, Eq)
 
 -- | Describes us which stage of the balancing process are we at. This is needed
 --  to distinguish the successive calls to balancing while computing fees from
@@ -135,12 +148,12 @@ data BalanceStage
 
 data MockChainEnv = MockChainEnv
   { mceParams :: Pl.Params,
-    mceSigners :: NE.NonEmpty Wallet
+    mceSigners :: NEList.NonEmpty Wallet
   }
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def (wallet 1 NE.:| [])
+  def = MockChainEnv def (wallet 1 NEList.:| [])
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -234,10 +247,10 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty Map.empty def
+mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty Map.empty def
+mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
 
 instance Default MockChainSt where
   def = mockChainSt0
@@ -250,30 +263,43 @@ utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadBlockChain (MockChainT m) where
+instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
+  txOutByRef outref = gets $ Map.lookup outref . utxoIndexToTxOutMap . mcstIndex
+
+  ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)
+
+  allUtxos = gets $ Map.toList . utxoIndexToTxOutMap . mcstIndex
+
+  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
+
+  currentSlot = gets mcstCurrentSlot
+
+  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
+
+  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
+
+  awaitTime t = do
+    sc <- asks $ Pl.pSlotConfig . mceParams
+    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
+    return $ Pl.slotToBeginPOSIXTime sc s
+
+instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    -- TODO We use the first signer as a default wallet for fees and
-    -- collaterals. These should become parameters of validateTxSkel in the
-    -- future
-    firstSigner NE.:| _ <- askSigners
-    let balancingWallet = firstSigner
-    let balancingWalletPkh = walletPKHash firstSigner
-    let collateralWallet = firstSigner
+    let balancingWallet =
+          case balanceWallet . txSkelOpts $ skelUnbal of
+            BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
+            BalanceWith wallet -> wallet
+    let balancingWalletPkh = walletPKHash balancingWallet
+    let collateralWallet = balancingWallet
     skel <-
       if balance . txSkelOpts $ skelUnbal
         then
           setFeeAndBalance
             balancingWalletPkh
-            -- We need to add the balancing wallet to the signers before
-            -- calculating the fees. The fees depend on the number of signers: they
-            -- make the transaction heavier.
-            ( skelUnbal
-                & txSkelRequiredSignersL
-                %~ (<> Set.singleton balancingWalletPkh)
-            )
+            skelUnbal
         else return skelUnbal
     collateralInputs <- calcCollateral collateralWallet -- TODO: Why is it OK to balance first and then add collateral?
-    params <- askParams
+    params <- asks mceParams
     managedData <- gets mcstDatums
     managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
     managedValidators <- gets mcstValidators
@@ -288,7 +314,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
             slot
             params
             index
-            [balancingWallet, collateralWallet]
+            (NEList.toList $ txSkelSigners skel)
             txBodyContent
             inputTxDatums
             (txSkelOutputData skel)
@@ -298,34 +324,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
-  txOutByRef outref = gets $ Map.lookup outref . utxoIndexToTxOutMap . mcstIndex
-
-  ownPaymentPubKeyHash = asks (walletPKHash . NE.head . mceSigners)
-
-  allUtxos = gets $ Map.toList . utxoIndexToTxOutMap . mcstIndex
-
-  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
-
-  currentSlot = gets mcstCurrentSlot
-
-  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
-
-  awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
-
-  awaitTime t = do
-    sc <- slotConfig
-    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
-    return $ Pl.slotToBeginPOSIXTime sc s
-
-instance (Monad m) => MonadMockChain (MockChainT m) where
-  signingWith ws = local $ \env -> env {mceSigners = ws}
-
-  askSigners = asks mceSigners
-
-  askParams = asks mceParams
-
-  localParams f = local (\e -> e {mceParams = f (mceParams e)})
-
 runTransactionValidation ::
   (Monad m) =>
   -- | The current slot
@@ -334,9 +332,9 @@ runTransactionValidation ::
   Pl.Params ->
   -- | The currently known UTxOs
   Pl.UtxoIndex ->
-  -- | List of signers that have to be on the transaction in order for it to be
-  -- Phase 1 - valid. This will be the list that contains the ballancing wallet
-  -- and the collateral wallet.
+  -- | List of signers that were on the 'TxSkel'. This will at least have to
+  -- include all wallets that have to sign in order for the transaction to be
+  -- phase 1 - valid.
   [Wallet] ->
   -- | The transaction to validate. It should already be balanced and have
   -- appropriate collateral.
@@ -352,7 +350,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -554,7 +552,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Pl.Params ->
   Pl.UTxO Pl.EmulatorEra ->
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
@@ -613,7 +611,7 @@ data BalanceTxRes = BalanceTxRes
 -- that is: @inputs + mints == outputs + fee + burns@.
 calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m BalanceTxRes
 calcBalanceTx balanceStage balancePK skel = do
-  inValue <- txSkelInputValue skel -- transaction inputs + minted value
+  inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
   let outValue = txSkelOutputValue skel -- transaction outputs + fee + burned value
       difference = outValue <> Pl.negate inValue
       -- This is the value that must still be paid by 'balancePK' in order to
@@ -642,7 +640,12 @@ calcBalanceTx balanceStage balancePK skel = do
     Nothing ->
       throwError $
         MCEUnbalanceable
-          ("The wallet " ++ show balancePK ++ " does not own enough funds to pay for balancing.")
+          ( "The wallet "
+              ++ show balancePK
+              ++ " does not own enough funds to pay for balancing. It has to pay this: ("
+              ++ show missingValue
+              ++ ")"
+          )
           balanceStage
           skel
     Just bTxRes -> return bTxRes

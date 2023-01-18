@@ -1,4 +1,5 @@
 import qualified Cooked.AttackSpec as AttackSpec
+import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 -- import qualified Cooked.BalanceSpec as Ba
 import qualified Cooked.LtlSpec as LtlSpec
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
@@ -21,6 +22,7 @@ tests =
       -- testGroup "Staged monad" StagedSpec.tests,
       -- testGroup "UtxoState" UtxoStateSpec.tests,
       -- testGroup "Wallet" WalletSpec.tests,
+      testGroup "Inline datums" [InlineDatumsSpec.tests],
       testGroup "Attack" AttackSpec.tests,
       testGroup "Ltl" LtlSpec.tests
     ]

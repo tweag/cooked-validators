@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -7,9 +8,11 @@ module Cooked.MockChain.Monad.GenerateTx where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import Control.Arrow
+import Cooked.MockChain.Wallet
 import Cooked.Tx.Constraints.Type
 import Data.Bifunctor
 import Data.Default
+import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -19,7 +22,9 @@ import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
+import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
+import Prettyprinter (Doc)
 
 data GenerateTxError
   = ToCardanoError String Pl.ToCardanoError
@@ -45,7 +50,7 @@ generateTxBodyContent ::
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
   -- | All of the currently known data, also coming from the 'MockChain'.
-  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
   Map Pl.TxOutRef Pl.TxOut ->
   -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
@@ -71,8 +76,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
       (ToCardanoError "translating the required signers")
       (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
       $ mapM
-        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash)
-        (Set.toList $ txSkelRequiredSigners skel)
+        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash)
+        (NEList.toList $ txSkelSigners skel)
   txTotalCollateral <-
     right
       ( C.TxTotalCollateral (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
@@ -179,7 +184,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
                   (GenerateTxErrorGeneral "txSkelIntoTxIn: Datum hash could not be resolved")
-                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> managedData Map.!? datumHash)
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum . fst <$> managedData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
@@ -207,7 +212,13 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
         ( Pl.toCardanoTxOut
             (Pl.pNetworkId theParams)
-            Pl.toCardanoTxOutDatum
+            ( const $ case txSkelOut of
+                Pays output -> case output ^. outputDatumL of
+                  TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+                  TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+                  TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+                  TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+            )
             $ txSkelOutToTxOut txSkelOut
         )
 
