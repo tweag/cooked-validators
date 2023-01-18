@@ -12,6 +12,7 @@
 module Cooked.MockChain.Monad.Staged where
 
 import Control.Applicative
+import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
@@ -22,6 +23,7 @@ import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Tx.Constraints.Type
+import Data.Default
 import Data.Map (Map)
 import qualified Ledger as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
@@ -85,7 +87,7 @@ data MockChainBuiltin a where
   -- | The failing operation
   Fail :: String -> MockChainBuiltin a
 
-type MockChainOp = LtlOp UntypedTweak MockChainBuiltin
+type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
 
 type StagedMockChain = Staged MockChainOp
 
@@ -98,18 +100,11 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance Semigroup UntypedTweak where
-  -- The right tweak is applied first
-  UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
-
-instance Monoid UntypedTweak where
-  mempty = UntypedTweak doNothingTweak
-
 instance MonadPlus m => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
-instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
+instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -117,22 +112,18 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
         . nowLaterList
     where
       interpretAndTell ::
-        UntypedTweak ->
-        [Ltl UntypedTweak] ->
-        StateT [Ltl UntypedTweak] InterpMockChain Pl.CardanoTx
-      interpretAndTell (UntypedTweak (Tweak now)) later = do
+        UntypedTweak InterpMockChain ->
+        [Ltl (UntypedTweak InterpMockChain)] ->
+        StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Pl.CardanoTx
+      interpretAndTell (UntypedTweak now) later = do
         mcst <- lift get
         let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
-        let managedDatums = mcstDatums mcst
-        msum $
-          map
-            ( \(skel', _) -> do
-                lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ ValidateTxSkel skel'
-                tx <- validateTxSkel skel'
-                put later
-                return tx
-            )
-            (now mcst skel)
+            managedDatums = mcstDatums mcst
+        (_, skel') <- lift $ runTweakInChain now skel
+        lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ ValidateTxSkel skel'
+        tx <- validateTxSkel skel'
+        put later
+        return tx
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
@@ -145,24 +136,36 @@ instance InterpLtl UntypedTweak MockChainBuiltin InterpMockChain where
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
     mcst <- lift get
-    let managedTxOuts = undefined
-    let managedDatums = mcstDatums mcst
+    let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
+        managedDatums = mcstDatums mcst
     lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ Fail msg
     fail msg
+
+-- ** Helpers to run tweaks for use in tests for tweaks
+
+runTweak :: Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweak = runTweakFrom def def
+
+runTweakFrom :: MockChainEnv -> MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweakFrom mcenv mcst tweak skel =
+  map (right fst . fst)
+    . runWriterT
+    . runMockChainTRaw mcenv mcst
+    $ runTweakInChain tweak skel
 
 -- ** Modalities
 
 -- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
-type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak)
+type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
-somewhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
+somewhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
 somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
-everywhere :: MonadModalBlockChain m => Tweak b -> m a -> m a
+everywhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
 everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
@@ -176,7 +179,7 @@ everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 -- where @endpoint@ builds and validates a single transaction depending on the
 -- given @arguments@. Then `withTweak` says "I want to modify the transaction
 -- returned by this endpoint in the following way".
-withTweak :: MonadModalBlockChain m => m x -> Tweak a -> m x
+withTweak :: MonadModalBlockChain m => m x -> Tweak InterpMockChain a -> m x
 withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances

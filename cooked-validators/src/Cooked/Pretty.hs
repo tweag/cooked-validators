@@ -200,16 +200,12 @@ prettyTxSkelOut (Pays output) =
         Pl.OutputDatum _datum ->
           [ "Datum (inlined):"
               <+> (PP.align . PP.pretty)
-                ( unwrapInlinedDatumStr . show $
-                    output ^. outputDatumL
-                )
+                (output ^. outputDatumL)
           ]
         Pl.OutputDatumHash _datum ->
           [ "Datum (hashed):"
               <+> (PP.align . PP.pretty)
-                ( unwrapHashedDatumStr . show $
-                    output ^. outputDatumL
-                )
+                (output ^. outputDatumL)
           ]
         Pl.NoOutputDatum -> []
     )
@@ -237,13 +233,6 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
       ("Spends from" <+> prettyAddress (outputAddress output))
       "-"
       (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc])
-
--- | Datum in transaction skeletons is of type 'TxSkelOutDatum'. We rely on the default 'Show' instance that will in turn rely on the 'Show' instance of the typed datum whose concrete type is unknown. This is a hacky way to get rid of the textual representation of the 'TxSkelOutDatum' constructor.
---
--- E.g. "TxSkelOutInlineDatum ("hello", 42) -> ("hello", 42)
-unwrapInlinedDatumStr, unwrapHashedDatumStr :: String -> String
-unwrapInlinedDatumStr = drop 21
-unwrapHashedDatumStr = drop 19
 
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9

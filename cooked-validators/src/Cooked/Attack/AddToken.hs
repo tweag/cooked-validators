@@ -19,6 +19,7 @@ import Test.QuickCheck.Modifiers (NonZero)
 -- This attack adds an 'AddTokenLbl' with the token name of the additional
 -- minted token(s). It returns additional value minted.
 addTokenAttack ::
+  MonadTweak m =>
   -- | For each policy that occurs in some 'Mints' constraint, return a list of
   -- token names together with how many tokens with that name should be
   -- minted.
@@ -33,7 +34,7 @@ addTokenAttack ::
   (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, NonZero Integer)]) ->
   -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
   Wallet ->
-  Tweak Pl.Value
+  m Pl.Value
 addTokenAttack extraTokens attacker = do
   oldMints <- viewTweak txSkelMintsL
   msum $

@@ -21,7 +21,10 @@ import Data.Kind
 import Data.Maybe
 import qualified Ledger as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
+import ListT
+import Optics.Core
 import qualified Plutus.V2.Ledger.Api as PV2
+import qualified PlutusTx as Pl
 import Prettyprinter (Doc)
 
 -- * BlockChain Monad
@@ -74,33 +77,88 @@ class MonadBlockChainWithoutValidation m => MonadBlockChain m where
 -- This is useful when writing endpoints and/or traces to fetch utxos of
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using 'allUtxos' or similar functions.
-spOutsFromCardanoTx :: Pl.CardanoTx -> [(Pl.TxOutRef, PV2.TxOut)]
-spOutsFromCardanoTx =
+utxosFromCardanoTx :: Pl.CardanoTx -> [(Pl.TxOutRef, PV2.TxOut)]
+utxosFromCardanoTx =
   map (\(txOut, txOutRef) -> (txOutRef, txOutV2fromV1 txOut)) . Pl.getCardanoTxOutRefs
 
 txOutV2fromV1 :: Pl.TxOut -> PV2.TxOut
 txOutV2fromV1 = Pl.fromCardanoTxOutToPV2TxInfoTxOut . Pl.getTxOut
 
+-- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
+filterUtxos :: (o1 -> Maybe o2) -> [(Pl.TxOutRef, o1)] -> [(Pl.TxOutRef, o2)]
+filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
+
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
 pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutputMaybeDatum)]
-pkUtxosMaybeDatum pkh =
-  mapMaybe
-    (secondMaybe (isPKOutputFrom pkh))
-    <$> allUtxos
+pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
 pkUtxos :: MonadBlockChainWithoutValidation m => Pl.PubKeyHash -> m [(Pl.TxOutRef, PKOutput)]
-pkUtxos pkh =
-  mapMaybe
-    (secondMaybe (isOutputWithoutDatum <=< isPKOutputFrom pkh))
-    <$> allUtxos
+pkUtxos pkh = filterUtxos (isOutputWithoutDatum <=< isPKOutputFrom pkh) <$> allUtxos
 
--- | A little helper for all of the "utxosSuchThat"-like functions. Why is
--- (something more general than) this not in Control.Arrow or somewhere similar?
-secondMaybe :: (b -> Maybe c) -> (a, b) -> Maybe (a, c)
-secondMaybe f (x, y) = (x,) <$> f y
+-- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
+-- complete datum from the state
+allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(Pl.TxOutRef, PV2.TxOut)]
+allUtxosWithDatums =
+  allUtxos
+    >>= mapM
+      ( \(oref, out) -> case outputOutputDatum out of
+          PV2.OutputDatumHash datumHash -> do
+            mDatum <- datumFromHash datumHash
+            case mDatum of
+              Nothing -> return (oref, out)
+              Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+          _ -> return (oref, out)
+      )
+
+filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(Pl.TxOutRef, output)]
+filteredUtxos predicate = filterUtxos predicate <$> allUtxos
+
+-- | Like 'filteredUtxos', but will all resolvable datum hashes resolved. This
+-- means that the outputs are presented differently from how a script would see
+-- them; the information on whether there are inline datums or datum hashes is
+-- lost.
+filteredUtxosWithDatums ::
+  MonadBlockChainWithoutValidation m =>
+  (PV2.TxOut -> Maybe output) ->
+  m [(Pl.TxOutRef, output)]
+filteredUtxosWithDatums predicate = filterUtxos predicate <$> allUtxosWithDatums
+
+outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe PV2.OutputDatum)
+outputDatumFromTxOutRef oref = do
+  mOut <- txOutByRef oref
+  case mOut of
+    Nothing -> return Nothing
+    Just out -> return . Just $ outputOutputDatum out
+
+datumFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe Pl.Datum)
+datumFromTxOutRef oref = do
+  mOutputDatum <- outputDatumFromTxOutRef oref
+  case mOutputDatum of
+    Nothing -> return Nothing
+    Just PV2.NoOutputDatum -> return Nothing
+    Just (PV2.OutputDatum datum) -> return $ Just datum
+    Just (PV2.OutputDatumHash datumHash) -> do
+      mDatum <- datumFromHash datumHash
+      case mDatum of
+        Just (datum, _) -> return $ Just datum
+        Nothing -> return Nothing
+
+typedDatumFromTxOutRef :: (Pl.FromData a, MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef oref = do
+  mDatum <- datumFromTxOutRef oref
+  case mDatum of
+    Nothing -> return Nothing
+    Just (Pl.Datum datum) -> return $ Pl.fromBuiltinData datum
+
+valueFromTxOutRef :: MonadBlockChainWithoutValidation m => Pl.TxOutRef -> m (Maybe Pl.Value)
+valueFromTxOutRef oref = do
+  mOut <- txOutByRef oref
+  case mOut of
+    Nothing -> return Nothing
+    Just out -> return . Just $ outputValue out
 
 -- ** Slot and Time Management
 
@@ -161,3 +219,5 @@ deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockCha
 deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
+
+deriving via (AsTrans ListT m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m)
