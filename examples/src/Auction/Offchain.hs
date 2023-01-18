@@ -64,7 +64,7 @@ txSetDeadline submitter offerOref deadline = do
                 NonZero 1
               )
             ],
-        txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript @A.Auction A.SetDeadline,
+        txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript A.SetDeadline,
         txSkelOuts =
           [ paysScript
               A.auctionValidator
@@ -102,7 +102,6 @@ txBid submitter offerOref bid = do
         txSkelIns =
           Map.singleton oref $
             TxSkelRedeemerForScript
-              @A.Auction
               (A.Bid (A.BidderInfo bid (walletPKHash submitter))),
         txSkelOuts =
           case previousBidder datum of
@@ -146,7 +145,7 @@ txHammer submitter offerOref = do
               { txSkelOpts = def {adjustUnbalTx = True},
                 txSkelIns =
                   Map.singleton offerOref $
-                    TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),
+                    TxSkelRedeemerForScript (A.Hammer offerOref),
                 txSkelOuts = [paysPK seller lot]
               }
     (oref, output) : _ -> do
@@ -161,7 +160,7 @@ txHammer submitter offerOref = do
             { txSkelOpts = def {adjustUnbalTx = True},
               txSkelIns =
                 Map.singleton oref $
-                  TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),
+                  TxSkelRedeemerForScript (A.Hammer offerOref),
               txSkelMints =
                 txSkelMintsFromList
                   [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,

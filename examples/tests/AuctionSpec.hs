@@ -238,7 +238,7 @@ tryDoubleSat =
                         ResolvedOrInlineDatum (A.NoBids seller minBid _deadline) ->
                           Just
                             ( Map.singleton oref $
-                                TxSkelRedeemerForScript @A.Auction
+                                TxSkelRedeemerForScript
                                   (A.Bid (A.BidderInfo minBid bidder)),
                               [],
                               mempty
@@ -246,7 +246,7 @@ tryDoubleSat =
                         ResolvedOrInlineDatum (A.Bidding seller _deadline (A.BidderInfo prevBid prevBidder)) ->
                           Just
                             ( Map.singleton oref $
-                                TxSkelRedeemerForScript @A.Auction
+                                TxSkelRedeemerForScript
                                   (A.Bid (A.BidderInfo (prevBid + 10_000_000) bidder)),
                               [],
                               mempty
@@ -416,7 +416,7 @@ exploitDoubleSat = do
     `withTweak` ( do
                     overTweak txSkelValidityRangeL (`L.intersection` Pl.to (t1 - 1))
                     addInputTweak theLastBidOref $
-                      TxSkelRedeemerForScript @A.Auction
+                      TxSkelRedeemerForScript
                         (A.Bid $ A.BidderInfo 50_000_000 (walletPKHash eve))
                     addOutputTweak $
                       paysScript

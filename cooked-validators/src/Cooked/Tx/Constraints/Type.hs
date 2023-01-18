@@ -983,17 +983,17 @@ paysScriptDatumHash validator datum value =
 
 -- * Redeemers for transaction inputs
 
-type SpendsScriptConstrs a =
-  ( Pl.ToData (Pl.RedeemerType a),
-    Show (Pl.RedeemerType a),
-    Pl.Eq (Pl.RedeemerType a),
-    Typeable (Pl.RedeemerType a)
+type SpendsScriptConstrs redeemer =
+  ( Pl.ToData redeemer,
+    Show redeemer,
+    Pl.Eq redeemer,
+    Typeable redeemer
   )
 
 data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
   TxSkelNoRedeemerForScript :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
+  TxSkelRedeemerForScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
 
 txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer

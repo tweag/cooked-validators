@@ -79,7 +79,7 @@ relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {adjustUnbalTx = True},
-      txSkelIns = Map.singleton o $ TxSkelRedeemerForScript @MockContract (),
+      txSkelIns = Map.singleton o $ TxSkelRedeemerForScript (),
       txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
     }
 

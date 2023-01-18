@@ -156,7 +156,7 @@ tests =
                   skelIn :: [Pl.TxOutRef] -> TxSkel
                   skelIn aOrefs =
                     txSkelTemplate
-                      { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript @AContract ARedeemer)) $ Set.fromList aOrefs,
+                      { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) $ Set.fromList aOrefs,
                         txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)]
                       }
 
@@ -179,13 +179,13 @@ tests =
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
                                       return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript @BContract BRedeemer1
+                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
                                           | (bOref, bOut) <- bUtxos,
                                             outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                         ]
                                     | aValue == Pl.lovelaceValueOf 3_000_000 ->
                                       return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript @BContract BRedeemer1
+                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
                                           | (bOref, bOut) <- bUtxos,
                                             outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
                                         ]
@@ -196,10 +196,10 @@ tests =
                                               let bValue = outputValue bOut
                                                in if
                                                       | bValue == Pl.lovelaceValueOf 6_000_000 ->
-                                                        [toDelta bOref $ TxSkelRedeemerForScript @BContract BRedeemer1]
+                                                        [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
                                                       | bValue == Pl.lovelaceValueOf 7_000_000 ->
-                                                        [ toDelta bOref $ TxSkelRedeemerForScript @BContract BRedeemer1,
-                                                          toDelta bOref $ TxSkelRedeemerForScript @BContract BRedeemer2
+                                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
+                                                          toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
                                                         ]
                                                       | otherwise -> []
                                           )
@@ -224,11 +224,11 @@ tests =
                         txSkelIns =
                           Map.fromList
                             ( ( \(bRedeemer, (bOref, _)) ->
-                                  (bOref, TxSkelRedeemerForScript @BContract bRedeemer)
+                                  (bOref, TxSkelRedeemerForScript bRedeemer)
                               )
                                 <$> bUtxos
                             )
-                            <> Map.fromSet (const (TxSkelRedeemerForScript @AContract ARedeemer)) (Set.fromList aOrefs),
+                            <> Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) (Set.fromList aOrefs),
                         txSkelOuts =
                           [ paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000),
                             paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bUtxos)
