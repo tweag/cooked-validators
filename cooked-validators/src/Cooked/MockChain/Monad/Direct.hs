@@ -732,6 +732,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
               case ( isPKOutputFrom balancePK
                        >=> isOnlyAdaOutput
                        >=> isOutputWithoutDatum
+                       >=> Just . toOutputWithReferenceScriptHash
                    )
                 output of
                 Nothing -> Nothing

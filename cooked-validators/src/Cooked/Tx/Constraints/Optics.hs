@@ -13,6 +13,7 @@ module Cooked.Tx.Constraints.Optics where
 import Cooked.Tx.Constraints.Type
 import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Type.Reflection
 
@@ -24,7 +25,7 @@ txSkelOutOwnerTypeP ::
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType
   ) =>
-  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value)
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays
@@ -38,7 +39,7 @@ txSkelOutOwnerTypeP =
                     (output ^. outputStakingCredentialL)
                     (output ^. outputValueL)
                     (output ^. outputDatumL)
-                    (output ^. outputReferenceScriptL)
+                    (toScript <$> output ^. outputReferenceScriptL)
               Nothing -> Nothing
     )
 
