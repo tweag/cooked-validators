@@ -20,6 +20,7 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
+import qualified Cooked.Pretty as Cooked
 import qualified Ledger.Ada as Ada
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
@@ -30,6 +31,8 @@ import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
+import Prettyprinter (Pretty, (<+>))
+import qualified Prettyprinter as PP
 import qualified Prelude as Haskell
 
 {-
@@ -184,6 +187,33 @@ instance Eq AuctionState where
   NoBids s m t == NoBids s' m' t' = s == s' && m == m' && t == t'
   Bidding s t b == Bidding s' t' b' = s == s' && t == t' && b == b'
   _ == _ = False
+
+-- | This will make the output of cooked-validators much more readable
+instance Pretty AuctionState where
+  pretty (Offer seller minBid) =
+    Cooked.prettyEnum
+      "Offer"
+      "-"
+      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
+        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid)
+      ]
+  pretty (NoBids seller minBid deadline) =
+    Cooked.prettyEnum
+      "NoBids"
+      "-"
+      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
+        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid),
+        "deadline" <+> PP.viaShow deadline
+      ]
+  pretty (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
+    Cooked.prettyEnum
+      "Bidding"
+      "-"
+      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
+        "deadline" <+> PP.viaShow deadline,
+        "previous bidder:" <+> Cooked.prettyPubKeyHash lastBidder,
+        "previous bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf lastBid)
+      ]
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
 data Action

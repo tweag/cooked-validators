@@ -7,6 +7,7 @@
 
 module Cooked.Attack.Tweak.TamperDatum where
 
+import Control.Monad
 import Cooked.Attack.Tweak.Common
 import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
@@ -24,26 +25,26 @@ import Type.Reflection
 tamperDatumTweak ::
   forall a m.
   ( MonadTweak m,
-    Typeable a,
-    Show (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a),
-    Typeable (Pl.DatumType a)
+    Show a,
+    Pretty a,
+    Pl.ToData a,
+    Pl.FromData a,
+    Typeable a
   ) =>
   -- | Use this function to return 'Just' the changed datum, if you want to
   -- perform a change, and 'Nothing', if you want to leave it as-is. All datums
   -- on outputs not paying to a validator of type @a@ are never touched.
-  (TxSkelOutDatum (Pl.DatumType a) -> Maybe (TxSkelOutDatum (Pl.DatumType a))) ->
-  m [TxSkelOutDatum (Pl.DatumType a)]
+  (a -> Maybe a) ->
+  m [a]
 tamperDatumTweak change = do
   beforeModification <-
     overMaybeTweak
       ( txSkelOutsL
           % traversed
-          % txSkelOutputToTypedValidatorP @a
-          % outputDatumL
+          % txSkelOutputDatumTypeAT @a
       )
       change
+  guard . not . null $ beforeModification
   addLabelTweak TamperDatumLbl
   return beforeModification
 

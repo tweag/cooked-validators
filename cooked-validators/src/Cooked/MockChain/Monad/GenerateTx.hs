@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -21,6 +22,7 @@ import qualified Ledger as Pl hiding (TxOut, validatorHash)
 import qualified Ledger.Ada as Pl
 import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
+import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter (Doc)
 
@@ -210,7 +212,13 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
         ( Pl.toCardanoTxOut
             (Pl.pNetworkId theParams)
-            Pl.toCardanoTxOutDatum
+            ( const $ case txSkelOut of
+                Pays output -> case output ^. outputDatumL of
+                  TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+                  TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+                  TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+                  TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+            )
             $ txSkelOutToTxOut txSkelOut
         )
 

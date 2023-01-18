@@ -769,11 +769,7 @@ data TxSkelOut where
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
-      Show (DatumType o),
-      Pretty (DatumType o),
-      ToOutputDatum (DatumType o),
-      Pl.ToData (DatumType o), -- If this seems redundant with the 'ToOutputDatum' constraint, see the [note on TxSkelOut data].
-      Typeable (DatumType o),
+      DatumType o ~ TxSkelOutDatum, -- see the [note on TxSkelOutData]
       ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
     ) =>
     {producedOutput :: o} ->
@@ -781,13 +777,8 @@ data TxSkelOut where
 
 deriving instance Show TxSkelOut
 
--- | The transaction output, as seen by a validator. In particular, see the
--- [note on TxSkelOut data].
-txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
-txSkelOutToTxOut (Pays output) = outputTxOut output
-
--- | Since we care about whether the transaction outputsa are the same on-chain,
--- this is sufficient:
+-- | Since we mostly care about whether the transaction outputs are the same
+-- on-chain, this is sufficient:
 instance Eq TxSkelOut where
   (==) = (==) `on` txSkelOutToTxOut
 
@@ -803,58 +794,119 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
-paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh value = Pays (ConcreteOutput pkh Nothing value Pl.NoOutputDatum)
+type TxSkelOutDatumConstrs a = (Show a, Pretty a, Pl.ToData a, Pl.Eq a, Typeable a)
 
 -- | See the [note on TxSkelOut data]
-data TxSkelOutDatum a
-  = TxSkelOutDatumHash {txSkelOutDatum :: a}
-  | TxSkelOutInlineDatum {txSkelOutDatum :: a}
-  deriving (Show, Eq)
+data TxSkelOutDatum where
+  -- | use no datum
+  TxSkelOutNoDatum :: TxSkelOutDatum
+  -- | only include the hash on the transaction
+  TxSkelOutDatumHash :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+  -- | use a 'Pl.OutputDatumHash' on the transaction output, but generate the
+  -- transaction in such a way that the complete datum is included in the
+  -- 'txInfoData' seen by validators
+  TxSkelOutDatum :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+  -- | use an inline datum
+  TxSkelOutInlineDatum :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+
+deriving instance Show TxSkelOutDatum
+
+instance Eq TxSkelOutDatum where
+  TxSkelOutNoDatum == TxSkelOutNoDatum = True
+  TxSkelOutDatumHash datum1 == TxSkelOutDatumHash datum2 =
+    case typeOf datum1 `eqTypeRep` typeOf datum2 of
+      Just HRefl -> datum1 Pl.== datum2
+      Nothing -> False
+  TxSkelOutDatum datum1 == TxSkelOutDatum datum2 =
+    case typeOf datum1 `eqTypeRep` typeOf datum2 of
+      Just HRefl -> datum1 Pl.== datum2
+      Nothing -> False
+  TxSkelOutInlineDatum datum1 == TxSkelOutInlineDatum datum2 =
+    case typeOf datum1 `eqTypeRep` typeOf datum2 of
+      Just HRefl -> datum1 Pl.== datum2
+      Nothing -> False
+  _ == _ = False
 
 -- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
 -- the datum it contains.
-instance Pretty a => Pretty (TxSkelOutDatum a) where
+instance Pretty TxSkelOutDatum where
+  pretty TxSkelOutNoDatum = mempty
   pretty (TxSkelOutDatumHash datum) = PP.pretty datum
+  pretty (TxSkelOutDatum datum) = PP.pretty datum
   pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
-
--- | See the [note on TxSkelOut data]
-instance (Pl.ToData a) => ToOutputDatum (TxSkelOutDatum a) where
-  toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
-
--- | See the [note on TxSkelOut data]
-instance (Pl.ToData a, Pretty a) => Pl.ToData (TxSkelOutDatum a) where
-  toBuiltinData (TxSkelOutDatumHash datum) = Pl.toBuiltinData datum
-  toBuiltinData (TxSkelOutInlineDatum datum) = Pl.toBuiltinData datum
 
 {- [note on TxSkelOut data]
 
-On transaction outputs, we have the option to use full datums (inline datums) or
-datum hashes. In the latter case, in order to simulate a run in which a later
-transaction consumes the output, the information about the complete datum would
-need to be known anyway, even if it is not part of the actual transaction on the
-chain.
+On transaction outputs, we have the option to use
 
-This is the purpose of the type 'TxSkelOutDatum': To record the complete datum,
-but also the decision whather to use a datum hash or an inline datum. The
-'ToOutputDatum' instance will ensure that, during transaction generation, the
-correct data is included on the transaction.
+1. no datum
+2. only a datum hash
+3. a "normal" datum
+4. an inline datum
 
-On the one hand, there is the function 'txSkelOutDatumComplete' which extracts
-the whole datum from a 'TxSkelOut', in order to save it in the
-'MockChainSt'ate. On the other side, there is the idiom
+These four options are also what the type 'TxSkelOutDatum' records. The
+following table explains their differences.
 
-> outputOutputDatum . txSkelOutToTxOut
+|                | in the simulated chain state | on the 'txInfoData' | 'Pl.OutputDatum' constructor seen by the validator |
+|----------------+------------------------------+---------------------+----------------------------------------------------|
+| no datum       | no                           | no                  | 'Pl.NoOutputDatum'                                 |
+|----------------+------------------------------+---------------------+----------------------------------------------------|
+| datum hash     | yes                          | no                  | 'Pl.OutputDatumHash'                               |
+|----------------+------------------------------+---------------------+----------------------------------------------------|
+| "normal" datum | yes                          | yes                 | 'Pl.OutputDatumHash'                               |
+|----------------+------------------------------+---------------------+----------------------------------------------------|
+| inline datum   | yes                          | no                  | 'Pl.OutputDatum'                                   |
+|----------------+------------------------------+---------------------+----------------------------------------------------|
 
-since 'txSkeloutToTxOut' is implemented in terms of 'outputTxOut'.
+That is:
+
+- Whenever there is a datum, we'll store it in the state of our simulated
+  chain. This will make it possible to retrieve it later, using functions such
+  as 'datumFromHash'.
+
+- Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will create
+  an output that scripts see on the 'txInfo' as having a datum hash. The
+  difference is whether that hash will be resolvable using validator functions
+  like 'findDatum'.
+
+In summary: On the one hand, there is the function 'txSkelOutDatumComplete'
+which extracts the whole datum, with its pretty-printed representation, from a
+'TxSkelOut', in order to save it in the simulated chain state. On the other
+hand, there is 'txSkelOutToTxOut', which will return the output as seen on the
+'txInfo' by a validator, with the correct 'Pl.OutputDatum' on it.
 -}
 
+-- | The transaction output, as seen by a validator. In particular, see the
+-- [note on TxSkelOut data].
+txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
+txSkelOutToTxOut (Pays output) = outputTxOut output
+
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> (Pl.Datum, Doc ())
-txSkelOutDatumComplete (Pays output) =
-  let datum = output ^. outputDatumL
-   in (Pl.Datum . Pl.toBuiltinData $ datum, PP.pretty datum)
+txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, Doc ())
+txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL
+
+-- | See the [note on TxSkelOut data]
+instance ToOutputDatum TxSkelOutDatum where
+  toOutputDatum TxSkelOutNoDatum = Pl.NoOutputDatum
+  toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+  toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+  toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
+
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, Doc ())
+txSkelOutUntypedDatum = \case
+  TxSkelOutNoDatum -> Nothing
+  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+
+txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntypedDatum
+
+-- ** Smart constructors for transaction outputs
+
+-- | Pay a certain value to a public key, without using a datum.
+paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
+paysPK pkh value = Pays (ConcreteOutput pkh Nothing value TxSkelOutNoDatum)
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
@@ -862,6 +914,7 @@ paysScript ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
     Pretty (Pl.DatumType a),
     Typeable a
   ) =>
@@ -875,7 +928,7 @@ paysScript validator datum value =
         validator
         Nothing
         value
-        (TxSkelOutDatumHash datum)
+        (TxSkelOutDatum datum)
     )
 
 -- | Like 'paysScript', but using an inline datum.
@@ -883,6 +936,7 @@ paysScriptInlineDatum ::
   ( Pl.ToData (Pl.DatumType a),
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
     Pretty (Pl.DatumType a),
     Typeable a
   ) =>
@@ -899,6 +953,30 @@ paysScriptInlineDatum validator datum value =
         (TxSkelOutInlineDatum datum)
     )
 
+-- | Like 'paysScript', but won't include the complete datum on the
+-- transaction. This is only useful if there's no script that checks the output
+-- datum.
+paysScriptDatumHash ::
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
+    Pretty (Pl.DatumType a),
+    Typeable a
+  ) =>
+  Pl.TypedValidator a ->
+  Pl.DatumType a ->
+  Pl.Value ->
+  TxSkelOut
+paysScriptDatumHash validator datum value =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        value
+        (TxSkelOutDatumHash datum)
+    )
+
 -- * Redeemers for transaction inputs
 
 type SpendsScriptConstrs a =
@@ -912,6 +990,10 @@ data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
   TxSkelNoRedeemerForScript :: TxSkelRedeemer
   TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
+
+txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
 
@@ -977,7 +1059,7 @@ txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
         % folded
-        % to txSkelOutDatumComplete -- if you're wondering why to use this function, see the [note on TxSkelOut data]
+        % afolding txSkelOutDatumComplete -- if you're wondering why to use this function, see the [note on TxSkelOut data]
     )
     (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
 

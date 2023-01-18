@@ -27,7 +27,7 @@ import Type.Reflection
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
--- Something like @txSkelOutsL % traversed % txSkelOutputToTypedValidatorP@
+-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(L.TypedValidator a)@
 -- might be useful to construct the optics used by this tweak.
 redirectScriptOutputTweak ::
   ( MonadTweak m,
@@ -35,17 +35,17 @@ redirectScriptOutputTweak ::
     Show (L.DatumType a),
     Pl.ToData (L.DatumType a)
   ) =>
-  Optic' k is TxSkel (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value) ->
+  Optic' k is TxSkel (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value -> Maybe (L.TypedValidator a)) ->
+  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value -> Maybe (L.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  m [ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value]
+  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value]
 redirectScriptOutputTweak optic change =
   overMaybeTweakSelecting
     optic
@@ -79,16 +79,16 @@ datumHijackingAttack ::
   ) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
-  (ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value -> Bool) ->
+  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value -> Bool) ->
   -- | The selection predicate may match more than one output, restrict to the
   -- i-th of the output(s) (counting from the left, starting at zero) chosen by
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  m [ConcreteOutput (L.TypedValidator a) (TxSkelOutDatum (L.DatumType a)) L.Value]
+  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value]
 datumHijackingAttack change select = do
   redirected <-
     redirectScriptOutputTweak
-      (txSkelOutsL % traversed % txSkelOutputToTypedValidatorP @a)
+      (txSkelOutsL % traversed % txSkelOutOwnerTypeP @(L.TypedValidator a))
       (\output -> if change output then Just thief else Nothing)
       select
   guard . not $ null redirected

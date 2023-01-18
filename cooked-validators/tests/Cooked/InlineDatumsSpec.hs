@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -19,12 +20,15 @@ import qualified Data.Map as Map
 import Data.Maybe
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
-import qualified Ledger.Tx.CardanoAPI.Internal as Pl (fromCardanoTxOutToPV2TxInfoTxOut)
 import qualified Ledger.Tx.Internal as Pl (getTxOut)
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
+import qualified PlutusTx
 import qualified PlutusTx as Pl
+import qualified PlutusTx.AssocMap as PlMap
+import qualified PlutusTx.Prelude as Pl
 import qualified PlutusTx.Trace as Pl
 import Prettyprinter
 import Test.Tasty
@@ -33,9 +37,22 @@ import Type.Reflection
 
 data SimpleContract
 
+data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show)
+
+instance Pretty SimpleContractDatum where
+  pretty = viaShow
+
+instance Pl.Eq SimpleContractDatum where
+  FirstPaymentDatum == FirstPaymentDatum = True
+  SecondPaymentDatum == SecondPaymentDatum = True
+  _ == _ = False
+
+PlutusTx.makeLift ''SimpleContractDatum
+PlutusTx.unstableMakeIsData ''SimpleContractDatum
+
 instance Pl.ValidatorTypes SimpleContract where
   type RedeemerType SimpleContract = ()
-  type DatumType SimpleContract = ()
+  type DatumType SimpleContract = SimpleContractDatum
 
 -- | This defines two validators: @inputDatumValidator True@ is a validator that
 -- only returns true if the UTxO it is asked to spend has an inline datum,
@@ -46,7 +63,7 @@ inputDatumValidator =
     $$(Pl.compile [||val||])
     $$(Pl.compile [||wrap||])
   where
-    val :: Bool -> () -> () -> Pl.ScriptContext -> Bool
+    val :: Bool -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
     val requireInlineDatum _ _ ctx =
       let Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutDatum = inDatum}) = Pl.findOwnInput ctx
        in if requireInlineDatum
@@ -59,48 +76,43 @@ inputDatumValidator =
               Pl.OutputDatum _ -> Pl.trace "I want a datum hash, but I got an inline datum" False
               Pl.NoOutputDatum -> Pl.trace "I want a datum hash, but I got neither a datum nor a hash" False
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator @SimpleContractDatum @()
 
--- | This defines two validators: @outputDatumValidator True@ is a validator
--- that only returns true if there's a continuing transaction output that has an
--- inline datum, @outputDatumValidator False@ only returns true if the output
--- has a datum hash.
-outputDatumValidator :: Bool -> Pl.TypedValidator SimpleContract
+data OutputDatumKind = OnlyHash | Datum | Inline
+
+PlutusTx.makeLift ''OutputDatumKind
+
+-- | This defines three validators: @outputDatumValidator OnlyHash@ is a
+-- validator that only returns true if there's a continuing transaction output
+-- that has a datum hash that's not included in the 'txInfoData', inline datum,
+-- @outputDatumValidator Datum@ requires an output datum with a hash that's in
+-- the 'txInfoData', and @outputDatumValidator Inline@ only returns true if the
+-- output has an inline datum.
+outputDatumValidator :: OutputDatumKind -> Pl.TypedValidator SimpleContract
 outputDatumValidator =
   Pl.mkTypedValidatorParam @SimpleContract
     $$(Pl.compile [||val||])
     $$(Pl.compile [||wrap||])
   where
-    val :: Bool -> () -> () -> Pl.ScriptContext -> Bool
-    val requireInlineDatum _ _ ctx =
+    val :: OutputDatumKind -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
+    val requiredOutputKind _ _ ctx =
       let [Pl.TxOut {Pl.txOutDatum = outDatum}] = Pl.getContinuingOutputs ctx
-       in if requireInlineDatum
-            then case outDatum of
-              Pl.OutputDatum _ -> True
-              Pl.OutputDatumHash _ -> Pl.trace "I want an inline datum, but I got a hash" False
-              Pl.NoOutputDatum -> Pl.trace "I want an inline datum, but I got neither a datum nor a hash" False
-            else case outDatum of
-              Pl.OutputDatumHash _ -> True
-              Pl.OutputDatum _ -> Pl.trace "I want a datum hash, but I got an inline datum" False
-              Pl.NoOutputDatum -> Pl.trace "I want a datum hash, but I got neither a datum nor a hash" False
+          txi = Pl.scriptContextTxInfo ctx
+       in case (requiredOutputKind, outDatum) of
+            (OnlyHash, Pl.OutputDatumHash h) -> Pl.isNothing (Pl.findDatum h txi)
+            (Datum, Pl.OutputDatumHash h) -> Pl.isJust (Pl.findDatum h txi)
+            (Inline, Pl.OutputDatum d) -> True
+            _ -> False
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator @SimpleContractDatum @()
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
 -- a datum hash.
 listUtxosTestTrace ::
-  ( MonadBlockChain m,
-    Show (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a),
-    Pl.FromData (Pl.DatumType a),
-    Typeable a,
-    Default (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
-    Typeable (Pl.DatumType a)
-  ) =>
+  (MonadBlockChain m) =>
   Bool ->
-  Pl.TypedValidator a ->
+  Pl.TypedValidator SimpleContract ->
   m [(Pl.TxOutRef, Pl.TxOut)]
 listUtxosTestTrace useInlineDatum validator =
   utxosFromCardanoTx
@@ -109,8 +121,8 @@ listUtxosTestTrace useInlineDatum validator =
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelOuts =
             [ ( if useInlineDatum
-                  then paysScriptInlineDatum validator def
-                  else paysScript validator def
+                  then paysScriptInlineDatum validator FirstPaymentDatum
+                  else paysScript validator FirstPaymentDatum
               )
                 (Pl.lovelaceValueOf 3_000_000)
             ]
@@ -125,30 +137,16 @@ listUtxosTestTrace useInlineDatum validator =
 -- _input data_ of a transaction as inline datums or datum hashes.
 spendOutputTestTrace ::
   forall a m.
-  ( MonadBlockChain m,
-    SpendsScriptConstrs a,
-    Show (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a),
-    Pl.FromData (Pl.DatumType a),
-    Typeable a,
-    Default (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
-    Default (Pl.RedeemerType a)
-  ) =>
+  (MonadBlockChain m) =>
   Bool ->
-  Pl.TypedValidator a ->
+  Pl.TypedValidator SimpleContract ->
   m ()
 spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelOpts =
-            def
-              { adjustUnbalTx = True
-              -- unsafeModTx = [RawModTxAfterBalancing Debug.traceShowId]
-              },
+        { txSkelOpts = def {adjustUnbalTx = True},
           txSkelIns =
             Map.singleton
               theTxOutRef
@@ -166,21 +164,11 @@ spendOutputTestTrace useInlineDatum validator = do
 -- This is used to test whether a validator will correctly see the _output data_
 -- of atransaction as inline datums or datum hashes.
 continuingOutputTestTrace ::
-  ( MonadBlockChain m,
-    SpendsScriptConstrs a,
-    Show (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a),
-    Pl.FromData (Pl.DatumType a),
-    Typeable a,
-    Default (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
-    Default (Pl.RedeemerType a)
-  ) =>
-  Bool ->
-  Pl.TypedValidator a ->
+  (MonadBlockChain m) =>
+  OutputDatumKind ->
+  Pl.TypedValidator SimpleContract ->
   m ()
-continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
+continuingOutputTestTrace datumKindOnSecondPayment validator = do
   (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
   void $
     validateTxSkel
@@ -191,9 +179,10 @@ continuingOutputTestTrace useInlineDatumOnSecondPayment validator = do
               theTxOutRef
               TxSkelNoRedeemerForScript,
           txSkelOuts =
-            [ ( if useInlineDatumOnSecondPayment
-                  then paysScriptInlineDatum validator def
-                  else paysScript validator def
+            [ ( case datumKindOnSecondPayment of
+                  OnlyHash -> paysScriptDatumHash validator SecondPaymentDatum
+                  Datum -> paysScript validator SecondPaymentDatum
+                  Inline -> paysScriptInlineDatum validator SecondPaymentDatum
               )
                 (outputValue theOutput)
             ]
@@ -203,7 +192,11 @@ tests :: TestTree
 tests =
   testGroup
     "inline datums vs. datum hashes"
-    [ testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
+    [ testCase "the first and second datums have different hashes" $
+        assertBool "... they do not" $
+          (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ FirstPaymentDatum)
+            /= (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ SecondPaymentDatum),
+      testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
         -- The validator used in these test cases does not actually matter, we
         -- just need some script to pay to.
         let theValidator = inputDatumValidator True
@@ -250,22 +243,40 @@ tests =
           testGroup
             "looking at transaction outputs"
             [ testGroup
-                "validator expects an inline datum..."
-                [ testCase "...and gets an inline datum, expecting success" $
+                "validator expects a regular datum..."
+                [ testCase "...and gets a regular datum, expecting success" $
                     testSucceeds $
-                      continuingOutputTestTrace True (outputDatumValidator True),
+                      continuingOutputTestTrace Datum (outputDatumValidator Datum),
+                  testCase "...and gets an inline datum, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace Inline (outputDatumValidator Datum),
                   testCase "...and gets a datum hash, expecting script failure" $
                     testFailsFrom' isCekEvaluationFailure def $
-                      continuingOutputTestTrace False (outputDatumValidator True)
+                      continuingOutputTestTrace OnlyHash (outputDatumValidator Datum)
+                ],
+              testGroup
+                "validator expects an inline datum..."
+                [ testCase "...and gets a regular datum, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace Datum (outputDatumValidator Inline),
+                  testCase "...and gets an inline datum, expecting success" $
+                    testSucceeds $
+                      continuingOutputTestTrace Inline (outputDatumValidator Inline),
+                  testCase "...and gets a datum hash, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace OnlyHash (outputDatumValidator Inline)
                 ],
               testGroup
                 "validator expects a datum hash..."
-                [ testCase "...and gets an inline datum, expecting script failure" $
+                [ testCase "...and gets a regular datum, expecting script failure" $
                     testFailsFrom' isCekEvaluationFailure def $
-                      continuingOutputTestTrace True (outputDatumValidator False),
+                      continuingOutputTestTrace Datum (outputDatumValidator OnlyHash),
+                  testCase "...and gets an inline datum, expecting script failure" $
+                    testFailsFrom' isCekEvaluationFailure def $
+                      continuingOutputTestTrace Inline (outputDatumValidator OnlyHash),
                   testCase "...and gets a datum hash, expecting success" $
                     testSucceeds $
-                      continuingOutputTestTrace False (outputDatumValidator False)
+                      continuingOutputTestTrace OnlyHash (outputDatumValidator OnlyHash)
                 ]
             ]
         ]
