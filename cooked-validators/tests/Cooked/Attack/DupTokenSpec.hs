@@ -10,7 +10,7 @@ import Cooked.Attack
 import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
-import Cooked.Tx.Constraints
+import Cooked.Tx.Constraints.Optics
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Set as Set

@@ -33,13 +33,9 @@ library
       Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing
-      Cooked.MockChain.Time
-      Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet
       Cooked.Pretty
-      Cooked.Tx.Balance
-      Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Optics
       Cooked.Tx.Constraints.Type
   other-modules:
