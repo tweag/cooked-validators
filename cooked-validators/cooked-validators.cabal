@@ -37,10 +37,10 @@ library
       Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet
+      Cooked.Pretty
       Cooked.Tx.Balance
       Cooked.Tx.Constraints
       Cooked.Tx.Constraints.Optics
-      Cooked.Tx.Constraints.Pretty
       Cooked.Tx.Constraints.Type
   other-modules:
       Paths_cooked_validators
@@ -68,6 +68,7 @@ library
     , hashable
     , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl
@@ -104,6 +105,7 @@ test-suite spec
       Cooked.Attack.Tweak.CommonSpec
       Cooked.Attack.Tweak.OutPermutationsSpec
       Cooked.AttackSpec
+      Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.TestUtils
       Paths_cooked_validators
@@ -131,6 +133,7 @@ test-suite spec
     , hashable
     , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl

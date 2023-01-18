@@ -47,6 +47,7 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
+    , prettyprinter
     , scientific
     , serialise >=0.2.3.0
     , streaming
@@ -98,6 +99,7 @@ test-suite spec
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
+    , prettyprinter
     , scientific
     , serialise >=0.2.3.0
     , streaming

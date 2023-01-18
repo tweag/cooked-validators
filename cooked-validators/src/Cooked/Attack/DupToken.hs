@@ -19,6 +19,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- transaction using 'addLabel'. Returns the 'Value' by which the minted value
 -- was increased.
 dupTokenAttack ::
+  MonadTweak m =>
   -- | A function describing how the amount of tokens specified by a 'Mints'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
@@ -30,14 +31,14 @@ dupTokenAttack ::
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  Tweak L.Value
+  m L.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
   addOutputTweak $ paysPK (walletPKHash attacker) totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement
   where
-    changeMintAmountsTweak :: Tweak Pl.Value
+    changeMintAmountsTweak :: MonadTweak m => m Pl.Value
     changeMintAmountsTweak = do
       oldMintsList <- viewTweak $ txSkelMintsL % mintsListIso
       let newMintsList =

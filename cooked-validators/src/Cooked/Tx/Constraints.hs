@@ -58,5 +58,5 @@ import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, txOutAddress)
 --       -- custom subtraction.
 --       res ++ List.deleteFirstsBy ((==) `on` Pl.addressCredential . Pl.txOutAddress) given res
 
-extractDatumStr :: TxSkel -> Map Pl.DatumHash String
-extractDatumStr = Map.map show . txSkelData
+-- extractDatumStr :: TxSkel -> Map Pl.DatumHash String
+-- extractDatumStr = Map.map show . txSkelData
