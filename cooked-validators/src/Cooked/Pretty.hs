@@ -77,7 +77,6 @@ import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
 import qualified Ledger.Ada as Ada
@@ -108,7 +107,7 @@ prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
 prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> TxSkel -> Doc ()
-prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs _fee) =
+prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs) =
   -- undefined
   prettyEnum
     "Transaction Skeleton:"

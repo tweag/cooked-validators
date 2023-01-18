@@ -1,5 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -38,11 +37,13 @@ data GenTxParams = GenTxParams
     --
     -- It is the duty of the caller to choose and set the collateral UTxOs.
     -- 'generateTxBodyContent' will not do it.
-    gtpCollateralIns :: Set Pl.TxOutRef
+    gtpCollateralIns :: Set Pl.TxOutRef,
+    -- | The transaction fee (in Lovelace)
+    gtpFee :: Fee
   }
 
 instance Default GenTxParams where
-  def = GenTxParams {gtpCollateralIns = mempty}
+  def = GenTxParams {gtpCollateralIns = mempty, gtpFee = 0}
 
 generateTxBodyContent ::
   -- | The parameters controlling the transaction generation.
@@ -107,8 +108,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         C.txOuts = txOuts,
         C.txTotalCollateral = txTotalCollateral,
         -- WARN For now we are not dealing with return collateral
-        C.txReturnCollateral = C.TxReturnCollateralNone,
-        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra . C.Lovelace $ txSkelFee skel,
+        C.txReturnCollateral = C.TxReturnCollateralNone, -- That's what plutus-apps does as well
+        C.txFee = C.TxFeeExplicit C.TxFeesExplicitInBabbageEra $ C.Lovelace $ feeLovelace gtpFee,
         C.txValidityRange = txValidityRange,
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well

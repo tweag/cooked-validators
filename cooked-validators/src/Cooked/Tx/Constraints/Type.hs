@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -1016,8 +1017,7 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelSigners :: NonEmpty Wallet,
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
-      txSkelOuts :: [TxSkelOut],
-      txSkelFee :: Integer -- Fee in Lovelace
+      txSkelOuts :: [TxSkelOut]
     } ->
     TxSkel
   deriving (Show, Eq)
@@ -1049,8 +1049,7 @@ txSkelSubmittedBy w =
       txSkelValidityRange = Pl.always,
       txSkelSigners = w NEList.:| [],
       txSkelIns = Map.empty,
-      txSkelOuts = [],
-      txSkelFee = 0
+      txSkelOuts = []
     }
 
 -- | Return all data on transaction outputs.
@@ -1063,15 +1062,17 @@ txSkelOutputData =
     )
     (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
 
+newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
+
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Pl.Value
-txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
+txSkelOutputValue :: TxSkel -> Fee -> Pl.Value
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
-    <> Pl.lovelaceValueOf (txSkelFee skel)
+    <> Pl.lovelaceValueOf (feeLovelace fees)
 
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =

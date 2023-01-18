@@ -291,19 +291,19 @@ instance Monad m => MonadBlockChain (MockChainT m) where
             BalanceWith wallet -> wallet
     let balancingWalletPkh = walletPKHash balancingWallet
     let collateralWallet = balancingWallet
-    skel <-
+    (skel, fee) <-
       if balance . txSkelOpts $ skelUnbal
         then
           setFeeAndBalance
             balancingWalletPkh
             skelUnbal
-        else return skelUnbal
+        else return (skelUnbal, Fee 0)
     collateralInputs <- calcCollateral collateralWallet -- TODO: Why is it OK to balance first and then add collateral?
     params <- asks mceParams
     managedData <- gets mcstDatums
     managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
     managedValidators <- gets mcstValidators
-    case generateTxBodyContent def {gtpCollateralIns = collateralInputs} params managedData managedTxOuts managedValidators skel of
+    case generateTxBodyContent def {gtpCollateralIns = collateralInputs, gtpFee = fee} params managedData managedTxOuts managedValidators skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
@@ -471,10 +471,21 @@ txSkelInputDatums skel = do
       )
       txSkelInputs
 
--- | Sets the '_txSkelFee' according to our environment. The transaction fee
--- gets set realistically, based on a fixpoint calculation taken from
--- /plutus-apps/.
-setFeeAndBalance :: Monad m => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
+-- | Balance the 'TxSkel' and compute the the fee. Balancing is the process of
+-- ensuring that the equation
+--
+-- > value in inputs + minted value = value in outputs + burned value + fee
+--
+-- holds. The fee depends on the transaction size, which might change during the
+-- process of balancing, because additional inputs belonging to the 'balancePK'
+-- might be added to ensure that transaction inputs can cover all of the
+-- outputs. This means that fee calculation and balancing are tied together. We
+-- follow /plutus-apps/ in breaking this mutual dependency with a fixpoint
+-- iteration, which should compute realistic fees.
+--
+--  This function also adjusts the transaction outputs to contain at least the
+--  minimum Ada amount, if the 'adjustUnbalTx' option is @True@.
+setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m (TxSkel, Fee)
 setFeeAndBalance balancePK skel0 = do
   let skel =
         if adjustUnbalTx $ txSkelOpts skel0
@@ -498,7 +509,7 @@ setFeeAndBalance balancePK skel0 = do
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
-      let startingFee = 3000000
+      let startingFee = Fee 3000000
       calcFee 5 startingFee cUtxoIndex mockChainParams skel
         `catchError` \case
           -- Impossible to balance the transaction
@@ -508,7 +519,7 @@ setFeeAndBalance balancePK skel0 = do
             -- since we work on "TxSkel". However, for now, the
             -- implementation of "Pl.minFee" is a constant of 10 lovelace.
             -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
-            let minFee = 10 -- forall tx. Pl.minFee tx = 10 lovelace
+            let minFee = Fee 10 -- forall tx. Pl.minFee tx = 10 lovelace
              in calcFee 5 minFee cUtxoIndex mockChainParams skel
           -- Impossible to generate the Cardano transaction at all
           e -> throwError e
@@ -518,19 +529,18 @@ setFeeAndBalance balancePK skel0 = do
     calcFee ::
       (Monad m) =>
       Int ->
-      Integer ->
+      Fee ->
       Pl.UTxO Pl.EmulatorEra ->
       Pl.Params ->
       TxSkel ->
-      MockChainT m TxSkel
+      MockChainT m (TxSkel, Fee)
     calcFee n fee cUtxoIndex parms skel = do
-      let skelWithFee = skel & txSkelFeeL .~ fee
-          bPol = balanceOutputPolicy $ txSkelOpts skel
-      attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
-      managedData <- gets mcstDatums
+      let bPol = balanceOutputPolicy $ txSkelOpts skel
+      attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skel fee
+      manageData <- gets mcstDatums
       managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
       managedValidators <- gets mcstValidators
-      case estimateTxSkelFee parms cUtxoIndex managedData managedTxOuts managedValidators attemptedSkel of
+      case estimateTxSkelFee parms cUtxoIndex manageData managedTxOuts managedValidators attemptedSkel fee of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -539,10 +549,10 @@ setFeeAndBalance balancePK skel0 = do
             -- Debug.Trace.traceM "Reached fixpoint:"
             -- Debug.Trace.traceM $ "- fee = " <> show fee
             -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-            pure attemptedSkel {txSkelFee = fee} -- reached fixpoint
+            pure (attemptedSkel, fee) -- reached fixpoint
           | n == 0 -> do
             -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-            pure attemptedSkel {txSkelFee = max newFee fee} -- maximum number of iterations
+            pure (attemptedSkel, max newFee fee) -- maximum number of iterations
           | otherwise -> do
             -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
             calcFee (n - 1) newFee cUtxoIndex parms skel
@@ -556,11 +566,12 @@ estimateTxSkelFee ::
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
-  Either MockChainError Integer
-estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel = do
+  Fee ->
+  Either MockChainError Fee
+estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel fee = do
   txBodyContent <-
     left MCEGenerationError $
-      generateTxBodyContent def params managedData managedTxOuts managedValidators skel
+      generateTxBodyContent def {gtpFee = fee} params managedData managedTxOuts managedValidators skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
     left
@@ -570,7 +581,7 @@ estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel =
       )
       $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
-    C.Lovelace fee -> pure fee
+    C.Lovelace fee -> pure $ Fee fee
 
 -- | Calculates the collateral for a transaction
 calcCollateral :: (Monad m) => Wallet -> MockChainT m (Set PV2.TxOutRef)
@@ -583,9 +594,9 @@ calcCollateral w = do
   -- investigated further for a better approach?
   return $ Set.fromList $ take 1 (fst <$> souts)
 
-balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
-balanceTxFromAux utxoPolicy stage balancePK txskel = do
-  bres <- calcBalanceTx stage balancePK txskel
+balanceTxFromAux :: (Monad m) => BalanceOutputPolicy -> BalanceStage -> Pl.PubKeyHash -> TxSkel -> Fee -> MockChainT m TxSkel
+balanceTxFromAux utxoPolicy stage balancePK txskel fee = do
+  bres <- calcBalanceTx stage balancePK txskel fee
   case applyBalanceTx balancePK bres txskel of
     Just txskel' -> return txskel'
     Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
@@ -609,10 +620,10 @@ data BalanceTxRes = BalanceTxRes
 -- | Calculate the changes needed to balance a transaction with money from a
 -- given wallet.  Every transaction that is sent to the chain must be balanced,
 -- that is: @inputs + mints == outputs + fee + burns@.
-calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> MockChainT m BalanceTxRes
-calcBalanceTx balanceStage balancePK skel = do
+calcBalanceTx :: Monad m => BalanceStage -> Pl.PubKeyHash -> TxSkel -> Fee -> MockChainT m BalanceTxRes
+calcBalanceTx balanceStage balancePK skel fee = do
   inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
-  let outValue = txSkelOutputValue skel -- transaction outputs + fee + burned value
+  let outValue = txSkelOutputValue skel fee -- transaction outputs + fee + burned value
       difference = outValue <> Pl.negate inValue
       -- This is the value that must still be paid by 'balancePK' in order to
       -- balance the transaction:
