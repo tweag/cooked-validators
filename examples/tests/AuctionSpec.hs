@@ -208,7 +208,7 @@ tryDatumHijack :: (Alternative m, MonadModalBlockChain m) => m ()
 tryDatumHijack =
   somewhere
     ( datumHijackingAttack @A.Auction
-        ( \(ConcreteOutput _ _ _ txSkelOutDatum) -> case txSkelOutTypedDatum txSkelOutDatum of
+        ( \(ConcreteOutput _ _ _ txSkelOutDatum _) -> case txSkelOutTypedDatum txSkelOutDatum of
             -- try to steal all outputs that have the 'Bidding' datum, no matter
             -- their validator or value.
             Just A.Bidding {} -> True

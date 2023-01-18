@@ -179,7 +179,7 @@ tests =
             skelOut bound select =
               runTweak
                 ( datumHijackingAttack @MockContract
-                    ( \(ConcreteOutput v _ x d) ->
+                    ( \(ConcreteOutput v _ x d _) ->
                         Pl.validatorHash val1 == Pl.validatorHash v
                           && d == TxSkelOutInlineDatum SecondLock
                           && bound `L.geq` x
@@ -203,15 +203,15 @@ tests =
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock)],
+                    ( [ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock) Nothing],
                       skelExpected thief val1
                     )
                 ]
                   @=? skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ Right
-                    ( [ ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock),
-                        ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock)
+                    ( [ ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock) Nothing,
+                        ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock) Nothing
                       ],
                       skelExpected thief thief
                     )
@@ -219,7 +219,7 @@ tests =
                   @=? skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock)],
+                    ( [ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock) Nothing],
                       skelExpected val1 thief
                     )
                 ]
@@ -231,7 +231,7 @@ tests =
           def
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  ( \(ConcreteOutput v _ _ d) ->
+                  ( \(ConcreteOutput v _ _ d _) ->
                       Pl.validatorHash v == Pl.validatorHash carefulValidator
                         && d == TxSkelOutInlineDatum SecondLock
                   )
@@ -243,7 +243,7 @@ tests =
         testSucceeds
           ( somewhere
               ( datumHijackingAttack @MockContract
-                  ( \(ConcreteOutput v _ _ d) ->
+                  ( \(ConcreteOutput v _ _ d _) ->
                       Pl.validatorHash v == Pl.validatorHash carelessValidator
                         && d == TxSkelOutInlineDatum SecondLock
                   )

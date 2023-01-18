@@ -73,6 +73,7 @@ class IsAbstractOutput o where
   outputStakingCredentialL :: Lens' o (Maybe Pl.StakingCredential)
   outputDatumL :: Lens' o (DatumType o)
   outputValueL :: Lens' o (ValueType o)
+  outputReferenceScriptL :: Lens' o (Maybe Pl.ScriptHash)
 
 class ToCredential a where
   toCredential :: a -> Pl.Credential
@@ -116,13 +117,13 @@ instance ToValue Pl.Ada where
 -- | An output that can be translated into its on-chain representation
 type IsOutput o = (IsAbstractOutput o, ToCredential (OwnerType o), ToOutputDatum (DatumType o), ToValue (ValueType o))
 
-outputAddress :: IsOutput o => o -> Pl.Address
+outputAddress :: (IsOutput o, ToCredential (OwnerType o)) => o -> Pl.Address
 outputAddress out = Pl.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
 
-outputOutputDatum :: IsOutput o => o -> Pl.OutputDatum
+outputOutputDatum :: (IsOutput o, ToOutputDatum (DatumType o)) => o -> Pl.OutputDatum
 outputOutputDatum = toOutputDatum . (^. outputDatumL)
 
-outputValue :: IsOutput o => o -> Pl.Value
+outputValue :: (IsOutput o, ToValue (ValueType o)) => o -> Pl.Value
 outputValue = toValue . (^. outputValueL)
 
 -- | Return the output as it is seen by a validator. In particular the
@@ -135,7 +136,7 @@ outputTxOut o =
     (outputAddress o)
     (outputValue o)
     (outputOutputDatum o)
-    Nothing -- TODO for when we introduce reference scripts
+    (o ^. outputReferenceScriptL)
 
 -- ** 'Pl.TxOut's are outputs
 
@@ -156,6 +157,7 @@ instance IsAbstractOutput Pl.TxOut where
           out {Pl.txOutAddress = (Pl.txOutAddress out) {Pl.addressStakingCredential = mStCred}}
       )
   outputValueL = lensVL Pl.outValue
+  outputReferenceScriptL = lensVL Pl.outReferenceScript
 
 -- ** A concrete type for outputs
 
@@ -164,8 +166,8 @@ data ConcreteOutput ownerType datumType valueType where
     { concreteOutputOwner :: ownerType,
       concreteOutputStakingCredential :: Maybe Pl.StakingCredential,
       concreteOutputValue :: valueType,
-      concreteOutputDatum :: datumType
-      -- concreteOutputReferenceScript :: Maybe Pl.ScriptHash -- TODO for when we introduce reference scripts
+      concreteOutputDatum :: datumType,
+      concreteOutputReferenceScript :: Maybe Pl.ScriptHash
     } ->
     ConcreteOutput ownerType datumType valueType
 
@@ -181,6 +183,7 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType) where
   outputStakingCredentialL = lens concreteOutputStakingCredential (\out mStCred -> out {concreteOutputStakingCredential = mStCred})
   outputDatumL = lens concreteOutputDatum (\out datum -> out {concreteOutputDatum = datum})
   outputValueL = lens concreteOutputValue (\out value -> out {concreteOutputValue = value})
+  outputReferenceScriptL = lens concreteOutputReferenceScript (\out mRefScript -> out {concreteOutputReferenceScript = mRefScript})
 
 -- ** A few special concrete outputs
 
@@ -216,6 +219,7 @@ isOutputWithoutDatum out = case outputOutputDatum out of
         (out ^. outputStakingCredentialL)
         (out ^. outputValueL)
         ()
+        (out ^. outputReferenceScriptL)
   _ -> Nothing
 
 -- ** Functions to translate between different output types
@@ -235,6 +239,7 @@ isOutputWithInlineDatumUntyped out =
           (out ^. outputStakingCredentialL)
           (out ^. outputValueL)
           datum
+          (out ^. outputReferenceScriptL)
     _ -> Nothing
 
 -- | Test if the output carries some inlined datum.
@@ -261,6 +266,7 @@ isOutputWithDatumHash out =
           (Pl.addressStakingCredential . outputAddress $ out)
           (out ^. outputValueL)
           hash
+          (out ^. outputReferenceScriptL)
     _ -> Nothing
 
 -- | Test if the value carried by an output verifies a given predicate.
@@ -305,6 +311,7 @@ isOutputWithDatumOfType out = case outputOutputDatum out of
       (out ^. outputValueL)
       . ResolvedOrInlineDatum
       <$> Pl.fromBuiltinData datum
+      <*> Just (out ^. outputReferenceScriptL)
   Pl.NoOutputDatum -> Nothing
 
 -- | Test if the owner an output is a specific script. If it is, return an
@@ -325,6 +332,7 @@ isScriptOutputFrom validator out =
               mStCred
               (out ^. outputValueL)
               (out ^. outputDatumL)
+              (out ^. outputReferenceScriptL)
         else Nothing
     _ -> Nothing
 
@@ -365,6 +373,7 @@ isPKOutputFrom pkh out = case outputAddress out of
             (out ^. outputStakingCredentialL)
             (out ^. outputValueL)
             (out ^. outputDatumL)
+            (out ^. outputReferenceScriptL)
       else Nothing
   _ -> Nothing
 
@@ -383,6 +392,7 @@ isOnlyAdaOutput out =
           (out ^. outputStakingCredentialL)
           (Pl.fromValue $ outputValue out)
           (out ^. outputDatumL)
+          (out ^. outputReferenceScriptL)
     else Nothing
 
 -- TODO et cetera
@@ -897,7 +907,7 @@ txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntype
 
 -- | Pay a certain value to a public key, without using a datum.
 paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh value = Pays (ConcreteOutput pkh Nothing value TxSkelOutNoDatum)
+paysPK pkh value = Pays (ConcreteOutput pkh Nothing value TxSkelOutNoDatum Nothing)
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
@@ -920,6 +930,7 @@ paysScript validator datum value =
         Nothing
         value
         (TxSkelOutDatum datum)
+        Nothing
     )
 
 -- | Like 'paysScript', but using an inline datum.
@@ -942,6 +953,7 @@ paysScriptInlineDatum validator datum value =
         Nothing
         value
         (TxSkelOutInlineDatum datum)
+        Nothing
     )
 
 -- | Like 'paysScript', but won't include the complete datum on the
@@ -966,6 +978,7 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
+        Nothing
     )
 
 -- * Redeemers for transaction inputs

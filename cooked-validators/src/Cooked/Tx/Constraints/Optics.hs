@@ -38,6 +38,7 @@ txSkelOutOwnerTypeP =
                     (output ^. outputStakingCredentialL)
                     (output ^. outputValueL)
                     (output ^. outputDatumL)
+                    (output ^. outputReferenceScriptL)
               Nothing -> Nothing
     )
 
