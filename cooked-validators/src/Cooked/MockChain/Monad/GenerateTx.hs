@@ -219,20 +219,18 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
 
     txSkelOutToCardanoTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToCardanoTxOut txSkelOut =
-      left
-        (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
-        ( Pl.toCardanoTxOut
-            (Pl.pNetworkId theParams)
-            ( const $ case txSkelOut of
-                Pays output -> case output ^. outputDatumL of
-                  TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
-                  TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                  TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
-                  TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
-            )
-            $ txSkelOutToTxOut txSkelOut
-        )
+    txSkelOutToCardanoTxOut (Pays output) =
+      left (ToCardanoError "txSkelOutToTxOut") $
+        C.TxOut
+          <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
+            <*> Pl.toCardanoTxOutValue (outputValue output)
+            <*> ( case output ^. outputDatumL of
+                    TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+                    TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+                    TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+                    TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+                )
+            <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)
