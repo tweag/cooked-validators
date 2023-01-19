@@ -11,13 +11,8 @@
 module Cooked.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
-import Cooked.Attack
-import Cooked.Attack.DoubleSat
-import Cooked.MockChain
-import Cooked.Output
-import Cooked.Skeleton
+import Cooked
 import Cooked.TestUtils
-import Cooked.Wallet
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe

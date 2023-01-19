@@ -1,10 +1,6 @@
 module Cooked.Attack.Tweak.CommonSpec (tests) where
 
-import Cooked.Attack.Tweak.Common
-import Cooked.MockChain
-import Cooked.MockChain.Testing
-import Cooked.Skeleton
-import Cooked.Wallet
+import Cooked
 import Data.Default
 import qualified Ledger.Ada as L
 import qualified Ledger.Value as L
