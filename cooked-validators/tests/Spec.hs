@@ -3,6 +3,7 @@ import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 -- import qualified Cooked.BalanceSpec as Ba
 import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
+import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 -- import qualified Cooked.MockChain.WalletSpec as WalletSpec
@@ -24,7 +25,8 @@ tests =
       -- testGroup "UtxoState" UtxoStateSpec.tests,
       -- testGroup "Wallet" WalletSpec.tests,
       testGroup "Inline datums" [InlineDatumsSpec.tests],
-      testGroup "Inline datums" [ReferenceInputsSpec.tests],
+      testGroup "Reference inputs" [ReferenceInputsSpec.tests],
+      testGroup "Reference scripts" [ReferenceScriptsSpec.tests],
       testGroup "Attack" AttackSpec.tests,
       testGroup "Ltl" LtlSpec.tests
     ]
