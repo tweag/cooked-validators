@@ -14,9 +14,9 @@ import Control.Arrow
 import Cooked.Attack
 import Cooked.Attack.DoubleSat
 import Cooked.MockChain
+import Cooked.Output
+import Cooked.Skeleton
 import Cooked.TestUtils
-import Cooked.Tx.Constraints.Optics
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe

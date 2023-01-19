@@ -9,8 +9,7 @@ module Cooked.Attack.Tweak.TamperDatum where
 
 import Control.Monad
 import Cooked.Attack.Tweak.Common
-import Cooked.Tx.Constraints.Optics
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import qualified PlutusTx as Pl
