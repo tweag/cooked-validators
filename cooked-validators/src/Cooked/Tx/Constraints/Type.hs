@@ -954,7 +954,28 @@ txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntype
 
 -- | Pay a certain value to a public key, without using a datum.
 paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh value = Pays (ConcreteOutput pkh Nothing value TxSkelOutNoDatum (Nothing @(Pl.TypedValidator Pl.Any)))
+paysPK pkh value =
+  Pays
+    ( ConcreteOutput
+        pkh
+        Nothing
+        value
+        TxSkelOutNoDatum
+        (Nothing @(Pl.TypedValidator Pl.Any))
+    )
+
+-- | Pay a certain value to a public key, without a datum, but including a
+-- reference script. This can be used to put reference scripts on chain.
+paysPKWithReferenceScript :: Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
+paysPKWithReferenceScript pkh value refScript =
+  Pays
+    ( ConcreteOutput
+        pkh
+        Nothing
+        value
+        TxSkelOutNoDatum
+        (Just refScript)
+    )
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
