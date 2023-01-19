@@ -14,7 +14,6 @@ module Cooked.InlineDatumsSpec where
 import Control.Arrow
 import Control.Monad
 import Cooked
-import Cooked.Skeleton
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe
