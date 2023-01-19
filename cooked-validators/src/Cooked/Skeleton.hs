@@ -17,8 +17,8 @@ module Cooked.Skeleton where
 
 import qualified Cardano.Api as C
 import Control.Monad
-import Cooked.MockChain.Wallet
 import Cooked.Output
+import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function

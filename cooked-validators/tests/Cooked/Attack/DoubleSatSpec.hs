@@ -17,6 +17,7 @@ import Cooked.MockChain
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.TestUtils
+import Cooked.Wallet
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe

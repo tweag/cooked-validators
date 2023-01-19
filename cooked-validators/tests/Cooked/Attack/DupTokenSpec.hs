@@ -11,6 +11,7 @@ import Cooked.Currencies
 import Cooked.Ltl
 import Cooked.MockChain
 import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Default
 import qualified Data.Set as Set
 import qualified Ledger.Ada as L

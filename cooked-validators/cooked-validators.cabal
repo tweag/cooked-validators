@@ -34,10 +34,10 @@ library
       Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState
-      Cooked.MockChain.Wallet
       Cooked.Output
       Cooked.Pretty
       Cooked.Skeleton
+      Cooked.Wallet
   other-modules:
       Paths_cooked_validators
   autogen-modules:
