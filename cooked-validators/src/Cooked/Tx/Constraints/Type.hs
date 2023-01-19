@@ -121,9 +121,11 @@ class ToScript a where
 instance ToScript (Pl.Versioned Pl.Script) where
   toScript = id
 
+instance ToScript (Pl.Versioned Pl.Validator) where
+  toScript (Pl.Versioned (Pl.Validator script) version) = Pl.Versioned script version
+
 instance ToScript (Pl.TypedValidator a) where
-  toScript val = case Pl.vValidatorScript val of
-    Pl.Versioned (Pl.Validator script) version -> Pl.Versioned script version
+  toScript = toScript . Pl.vValidatorScript
 
 class ToScriptHash a where
   toScriptHash :: a -> Pl.ScriptHash
@@ -134,8 +136,14 @@ instance ToScriptHash Pl.ScriptHash where
 instance ToScriptHash (Pl.Versioned Pl.Script) where
   toScriptHash = Pl.scriptHash
 
-instance ToScriptHash (Pl.TypedValidator a) where
+instance ToScriptHash (Pl.Versioned Pl.Validator) where
   toScriptHash = toScriptHash . toScript
+
+instance ToScriptHash Pl.ValidatorHash where
+  toScriptHash (Pl.ValidatorHash h) = Pl.ScriptHash h
+
+instance ToScriptHash (Pl.TypedValidator a) where
+  toScriptHash = toScriptHash . Pl.validatorHash
 
 -- | An output that can be translated into its script-perspective (as seen on the 'TxInfo') representation
 type IsOnchainOutput o =
@@ -1060,22 +1068,24 @@ type SpendsScriptConstrs redeemer =
 
 data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
-  TxSkelNoRedeemerForScript :: TxSkelRedeemer
   TxSkelRedeemerForScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForReferencedScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
 
 txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
   TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
-  TxSkelNoRedeemerForScript == TxSkelNoRedeemerForScript = True
   (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 Pl.== r2
       Nothing -> False
+  (TxSkelRedeemerForReferencedScript r1) == (TxSkelRedeemerForReferencedScript r2) =
+    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
   _ == _ = False
 
 -- * Transaction skeletons
