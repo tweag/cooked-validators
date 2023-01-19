@@ -197,18 +197,21 @@ prettyTxSkelOut (Pays output) =
     ("Pays to" <+> prettyAddress (outputAddress output))
     "-"
     ( prettyValue (outputValue output) :
-      case outputOutputDatum output of
-        Pl.OutputDatum _datum ->
-          [ "Datum (inlined):"
-              <+> (PP.align . PP.pretty)
-                (output ^. outputDatumL)
-          ]
-        Pl.OutputDatumHash _datum ->
-          [ "Datum (hashed):"
-              <+> (PP.align . PP.pretty)
-                (output ^. outputDatumL)
-          ]
-        Pl.NoOutputDatum -> []
+      catMaybes
+        [ case outputOutputDatum output of
+            Pl.OutputDatum _datum ->
+              Just $
+                "Datum (inlined):"
+                  <+> (PP.align . PP.pretty)
+                    (output ^. outputDatumL)
+            Pl.OutputDatumHash _datum ->
+              Just $
+                "Datum (hashed):"
+                  <+> (PP.align . PP.pretty)
+                    (output ^. outputDatumL)
+            Pl.NoOutputDatum -> Nothing,
+          getReferenceScriptDoc output
+        ]
     )
 
 prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ())
@@ -222,16 +225,23 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
     prettyEnum
       ("Spends from" <+> prettyAddress (outputAddress output))
       "-"
-      (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc])
+      (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc, getReferenceScriptDoc output])
 
 prettyTxSkelInReference :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> Pl.TxOutRef -> Maybe (Doc ())
 prettyTxSkelInReference managedTxOuts managedDatums txOutRef = do
   (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
+
   return $
     prettyEnum
-      ("Spends from" <+> prettyAddress (outputAddress output))
+      ("References output from" <+> prettyAddress (outputAddress output))
       "-"
-      (prettyValue (outputValue output) : Maybe.maybeToList datumDoc)
+      (prettyValue (outputValue output) : catMaybes [datumDoc, getReferenceScriptDoc output])
+
+getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => output -> Maybe (Doc ann)
+getReferenceScriptDoc output =
+  case output ^. outputReferenceScriptL of
+    Nothing -> Nothing
+    Just refScript -> Just $ "Reference script hash:" <+> prettyHash (toScriptHash refScript)
 
 lookupOutputWithDatumDoc ::
   Map Pl.TxOutRef Pl.TxOut ->
