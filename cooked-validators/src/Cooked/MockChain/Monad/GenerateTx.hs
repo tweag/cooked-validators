@@ -101,9 +101,6 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     C.TxBodyContent
       { C.txIns = txIns,
         C.txInsCollateral = txInsCollateral,
-        -- We don't yet support reference inputs. If you add this
-        -- functionality, remember that both the 'txIns' and 'txInsReference'
-        -- fields have to change! -- TODO Is this accurate?
         C.txInsReference = txInsReference,
         C.txOuts = txOuts,
         C.txTotalCollateral = txTotalCollateral,

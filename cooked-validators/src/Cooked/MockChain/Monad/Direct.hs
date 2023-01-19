@@ -15,6 +15,7 @@
 module Cooked.MockChain.Monad.Direct where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Api.Shelley as C
 import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except
@@ -36,6 +37,7 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import Ledger.Orphans ()
@@ -447,7 +449,11 @@ lookupUtxos outRefs =
                 MCEUnknownOutRefError
                   "lookupUtxos: Transaction input unknown"
                   oRef
-            Just out -> return out
+            Just out -> do
+              -- Debug.Trace.traceM $ case Pl.txOutReferenceScript out of
+              --   C.ReferenceScriptNone -> ""
+              --   C.ReferenceScript _ script -> "there is an actual script here"
+              return out
           return (oRef, out)
       )
       outRefs
@@ -493,8 +499,8 @@ setFeeAndBalance balancePK skel0 = do
         . mcstIndex
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
+  -- all UTxOs that the txSkel references.
   txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
-  mockChainParams <- asks mceParams
   case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
@@ -504,7 +510,7 @@ setFeeAndBalance balancePK skel0 = do
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = 3000000
-      calcFee 5 startingFee cUtxoIndex mockChainParams skel
+      calcFee 5 startingFee cUtxoIndex skel
         `catchError` \case
           -- Impossible to balance the transaction
           MCEUnbalanceable _ BalCalcFee _ ->
@@ -514,7 +520,7 @@ setFeeAndBalance balancePK skel0 = do
             -- implementation of "Pl.minFee" is a constant of 10 lovelace.
             -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
             let minFee = 10 -- forall tx. Pl.minFee tx = 10 lovelace
-             in calcFee 5 minFee cUtxoIndex mockChainParams skel
+             in calcFee 5 minFee cUtxoIndex skel
           -- Impossible to generate the Cardano transaction at all
           e -> throwError e
   where
@@ -525,17 +531,17 @@ setFeeAndBalance balancePK skel0 = do
       Int ->
       Integer ->
       Pl.UTxO Pl.EmulatorEra ->
-      Pl.Params ->
       TxSkel ->
       MockChainT m TxSkel
-    calcFee n fee cUtxoIndex parms skel = do
+    calcFee n fee cUtxoIndex skel = do
       let skelWithFee = skel & txSkelFeeL .~ fee
           bPol = balanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skelWithFee
       managedData <- gets mcstDatums
       managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
       managedValidators <- gets mcstValidators
-      case estimateTxSkelFee parms cUtxoIndex managedData managedTxOuts managedValidators attemptedSkel of
+      params <- asks mceParams
+      case estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators attemptedSkel of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -550,7 +556,7 @@ setFeeAndBalance balancePK skel0 = do
             pure attemptedSkel {txSkelFee = max newFee fee} -- maximum number of iterations
           | otherwise -> do
             -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-            calcFee (n - 1) newFee cUtxoIndex parms skel
+            calcFee (n - 1) newFee cUtxoIndex skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
@@ -562,10 +568,11 @@ estimateTxSkelFee ::
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
   Either MockChainError Integer
-estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel = do
+estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators skel = do
   txBodyContent <-
     left MCEGenerationError $
       generateTxBodyContent def params managedData managedTxOuts managedValidators skel
+  -- Debug.Trace.traceShowM txBodyContent
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
     left
@@ -573,7 +580,7 @@ estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel =
           Left err -> MCEValidationError err
           Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
       )
-      $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
+      $ Pl.makeTransactionBody params cUtxoIndex (Pl.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
     C.Lovelace fee -> pure fee
 
