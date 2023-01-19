@@ -7,9 +7,9 @@ module Cooked.MockChain.Monad.GenerateTx where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import Control.Arrow
-import Cooked.MockChain.Wallet
 import Cooked.Output
 import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Bifunctor
 import Data.Default
 import qualified Data.List.NonEmpty as NEList

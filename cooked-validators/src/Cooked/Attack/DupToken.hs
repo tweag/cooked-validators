@@ -4,8 +4,8 @@ module Cooked.Attack.DupToken where
 
 import Control.Monad
 import Cooked.Attack.Tweak
-import Cooked.MockChain.Wallet
 import Cooked.Skeleton
+import Cooked.Wallet
 import qualified Ledger as L
 import qualified Ledger.Scripts as Pl
 import qualified Ledger.Value as Pl

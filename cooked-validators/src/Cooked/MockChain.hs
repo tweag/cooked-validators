@@ -14,4 +14,3 @@ import Cooked.MockChain.Monad.Staged as X
 import Cooked.MockChain.RawUPLC as X
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.UtxoState as X
-import Cooked.MockChain.Wallet as X

@@ -2,8 +2,8 @@ module Cooked.Attack.AddToken where
 
 import Control.Monad
 import Cooked.Attack.Tweak
-import Cooked.MockChain.Wallet
 import Cooked.Skeleton
+import Cooked.Wallet
 import qualified Data.Map as Map
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl

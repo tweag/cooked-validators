@@ -9,6 +9,7 @@ import Cooked.MockChain
 import Cooked.MockChain.Testing
 import Cooked.Skeleton
 import Cooked.TestUtils
+import Cooked.Wallet
 import Data.Default
 import qualified Ledger.Ada as Pl
 import Test.Tasty

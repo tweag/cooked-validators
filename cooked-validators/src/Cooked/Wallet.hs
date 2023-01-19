@@ -4,9 +4,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Wallet where
+module Cooked.Wallet where
 
-import qualified Cardano.Api as C
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
 import Cooked.MockChain.Misc
@@ -84,7 +83,7 @@ newtype HACK = HACK {please :: CWCrypto.XPrv}
 --  to make a PR into plutus exporting the things we need. If you use this anyway,
 --  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic
 --  because @MockPrivateKey@ is not exported either; having a dedicated function makes
---  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.
+--  it easy to test that this works: check the @Cooked.WalletSpec@ test module.
 hackUnMockPrivateKey :: a -> CWCrypto.XPrv
 hackUnMockPrivateKey = please . unsafeCoerce
 
