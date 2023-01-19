@@ -122,7 +122,7 @@ trace1 = do
       ( txSkelSubmittedBy
           (wallet 3)
       )
-        { txSkelIns = Map.singleton txOutRefBar TxSkelNoRedeemerForScript,
+        { txSkelIns = Map.singleton txOutRefBar $ TxSkelRedeemerForScript (),
           txSkelInsReference = Set.singleton txOutRefFoo,
           txSkelOuts =
             [ paysPK
