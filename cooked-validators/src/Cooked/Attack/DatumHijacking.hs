@@ -12,7 +12,7 @@ module Cooked.Attack.DatumHijacking where
 
 import Control.Monad
 import Cooked.Attack.Tweak
-import Cooked.MockChain.RawUPLC
+import Cooked.RawUPLC
 import Cooked.Output
 import Cooked.Skeleton
 import qualified Ledger as L

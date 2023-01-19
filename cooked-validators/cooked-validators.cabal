@@ -30,11 +30,11 @@ library
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.GenerateTx
       Cooked.MockChain.Monad.Staged
-      Cooked.MockChain.RawUPLC
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState
       Cooked.Output
       Cooked.Pretty
+      Cooked.RawUPLC
       Cooked.Skeleton
       Cooked.Wallet
   other-modules:
