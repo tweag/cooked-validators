@@ -13,8 +13,8 @@ module Cooked.Attack.DatumHijacking where
 import Control.Monad
 import Cooked.Attack.Tweak
 import Cooked.MockChain.RawUPLC
-import Cooked.Tx.Constraints.Optics
-import Cooked.Tx.Constraints.Type
+import Cooked.Output
+import Cooked.Skeleton
 import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core

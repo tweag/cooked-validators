@@ -16,7 +16,8 @@ module Cooked.MockChain.Monad where
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Writer
-import Cooked.Tx.Constraints.Type
+import Cooked.Output
+import Cooked.Skeleton
 import Data.Kind
 import Data.Maybe
 import qualified Ledger as Pl

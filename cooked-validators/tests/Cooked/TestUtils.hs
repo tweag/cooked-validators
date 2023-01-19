@@ -3,7 +3,7 @@
 module Cooked.TestUtils where
 
 import Cooked.MockChain.Testing
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
 import Data.List
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl

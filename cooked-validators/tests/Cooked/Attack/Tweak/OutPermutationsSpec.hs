@@ -7,8 +7,8 @@ module Cooked.Attack.Tweak.OutPermutationsSpec (tests) where
 import Cooked.Attack
 import Cooked.MockChain
 import Cooked.MockChain.Testing
+import Cooked.Skeleton
 import Cooked.TestUtils
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Ledger.Ada as Pl
 import Test.Tasty

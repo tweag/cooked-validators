@@ -9,7 +9,7 @@ module Cooked.Attack.Tweak.AddInputsAndOutputs where
 
 import Control.Monad
 import Cooked.Attack.Tweak.Common
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
 import Data.List
 import qualified Data.Map as Map
 import qualified Ledger as Pl

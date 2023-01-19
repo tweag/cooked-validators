@@ -69,7 +69,8 @@ import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.MockChain.UtxoState
 import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.Output
+import Cooked.Skeleton
 import Data.Default
 import Data.Function (on)
 import qualified Data.List as List

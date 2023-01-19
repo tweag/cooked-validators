@@ -35,9 +35,9 @@ library
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState
       Cooked.MockChain.Wallet
+      Cooked.Output
       Cooked.Pretty
-      Cooked.Tx.Constraints.Optics
-      Cooked.Tx.Constraints.Type
+      Cooked.Skeleton
   other-modules:
       Paths_cooked_validators
   autogen-modules:
