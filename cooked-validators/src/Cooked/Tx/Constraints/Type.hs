@@ -1120,4 +1120,4 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, - n) else Nothing))
+negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, -n) else Nothing))

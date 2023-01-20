@@ -27,13 +27,7 @@
             ## NOTE: in case of formatting error, check the versions of
             ## ormolu and try replacing by ${pkgs.ormolu}/bin/ormolu
             ## https://discourse.nixos.org/t/nix-shell-buildinputs-ordering-issue/12885/8
-            # ormolu --mode check $(find . -name '*.hs') || exit 1
-            # m     m   mm   mmmmm  mm   m mmmmm  mm   m   mmm
-            # #  #  #   ##   #   "# #"m  #   #    #"m  # m"   "
-            # " #"# #  #  #  #mmmm" # #m #   #    # #m # #   mm
-            #  ## ##"  #mm#  #   "m #  # #   #    #  # # #    #
-            #  #   #  #    # #    " #   ## mm#mm  #   ##  "mmm"
-            ## Reactive ormolu before merging that PR!
+            ormolu --mode check $(find . -name '*.hs') || exit 1
           '';
           ## The derivation succeeds if the output is created.
           installPhase = "mkdir -p $out";

@@ -278,7 +278,7 @@ prettyValue =
     prettyNumericUnderscore i
       | 0 == i = "0"
       | i > 0 = psnTerm "" 0 i
-      | otherwise = "-" <> psnTerm "" 0 (- i)
+      | otherwise = "-" <> psnTerm "" 0 (-i)
       where
         psnTerm :: Doc ann -> Integer -> Integer -> Doc ann
         psnTerm acc _ 0 = acc
