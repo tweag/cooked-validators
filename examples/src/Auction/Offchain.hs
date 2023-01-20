@@ -77,12 +77,6 @@ previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
 previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
 
-resolveOutputDatum ::
-  MonadBlockChainWithoutValidation m =>
-  output ->
-  m (Maybe (ConcreteOutput (OwnerType output) L.Datum (ValueType output)))
-resolveOutputDatum = undefined
-
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
 txBid :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Integer -> m L.CardanoTx
