@@ -20,7 +20,7 @@ jobs:
         ## Some flake caching
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      
+
     ## Example from
     ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
@@ -60,12 +60,12 @@ jobs:
     - name: Check tests output
       run: |
         is_ok=true
-        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
+        for proj in "examples" "cooked-validators"; do
           for step in "cabal-build" "cabal-test"; do
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)
-            if [[ "$res" != "0" ]]; then 
+            if [[ "$res" != "0" ]]; then
               is_ok=false
             fi
           done
@@ -73,7 +73,7 @@ jobs:
 
         ## Because there will be a lot of tests, we print a summary of the results
         echo "Summary of results (1 is failure)"
-        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
+        for proj in "examples" "cooked-validators"; do
           echo "Summary for: $proj"
           cat ${proj}-*.res
         done
