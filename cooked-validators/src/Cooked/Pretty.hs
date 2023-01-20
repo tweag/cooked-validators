@@ -288,8 +288,7 @@ prettyValue =
 
 -- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
 -- If no non-default options are in the list, return nothing.
---  'awaitTxConfirmed' and 'forceOutputOrdering'
--- (these are deprecated, TODO) are never printed.
+--  'awaitTxConfirmed' is not printed.
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts

@@ -168,11 +168,6 @@ data TxOpts = TxOpts
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
     autoSlotIncrease :: Bool,
-    -- | Reorders the transaction outputs to fit the ordering of output
-    -- constraints. Those outputs are put at the very beginning of the list.
-    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    --  By default, this is set to @True@.
-    forceOutputOrdering :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
     -- potentially adjusted ('adjustUnbalTx') and balanced. This is prefixed
     -- with /unsafe/ to draw attention to the fact that modifying a transaction
@@ -218,7 +213,6 @@ instance Default TxOpts where
       { adjustUnbalTx = False,
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
-        forceOutputOrdering = True,
         unsafeModTx = [],
         balance = True,
         balanceOutputPolicy = def,
