@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Monad.Staged where
+module Cooked.MockChain.Staged where
 
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
@@ -17,8 +17,8 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Ltl
+import Cooked.MockChain.Direct
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Skeleton
