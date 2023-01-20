@@ -6,7 +6,7 @@
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
-module Cooked.Attack.Tweak.Common where
+module Cooked.Tweak.Common where
 
 import Control.Monad
 import Control.Monad.State

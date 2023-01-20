@@ -5,12 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.Attack.Tweak.TamperDatum where
+module Cooked.Tweak.TamperDatum where
 
 import Control.Monad
-import Cooked.Attack.Tweak.Common
 import Cooked.Skeleton
-import qualified Ledger.Typed.Scripts as Pl
+import Cooked.Tweak.Common
 import Optics.Core
 import qualified PlutusTx as Pl
 import Prettyprinter

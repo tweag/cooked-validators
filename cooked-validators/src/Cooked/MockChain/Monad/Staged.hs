@@ -16,13 +16,13 @@ import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
-import Cooked.Attack.Tweak.Common
 import Cooked.Ltl
 import Cooked.MockChain.Monad
 import Cooked.MockChain.Monad.Direct
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Skeleton
+import Cooked.Tweak.Common
 import Data.Default
 import Data.Map (Map)
 import qualified Ledger as Pl

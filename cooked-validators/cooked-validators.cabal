@@ -18,11 +18,6 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Attack.Tweak
-      Cooked.Attack.Tweak.AddInputsAndOutputs
-      Cooked.Attack.Tweak.Common
-      Cooked.Attack.Tweak.OutPermutations
-      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
@@ -36,6 +31,11 @@ library
       Cooked.Pretty
       Cooked.RawUPLC
       Cooked.Skeleton
+      Cooked.Tweak
+      Cooked.Tweak.AddInputsAndOutputs
+      Cooked.Tweak.Common
+      Cooked.Tweak.OutPermutations
+      Cooked.Tweak.TamperDatum
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators

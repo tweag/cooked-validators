@@ -1,8 +1,8 @@
 module Cooked.Attack.AddToken where
 
 import Control.Monad
-import Cooked.Attack.Tweak
 import Cooked.Skeleton
+import Cooked.Tweak
 import Cooked.Wallet
 import qualified Data.Map as Map
 import qualified Ledger as Pl
