@@ -485,11 +485,11 @@ txSkelInputDatums skel = do
 -- iteration, which should compute realistic fees.
 --
 --  This function also adjusts the transaction outputs to contain at least the
---  minimum Ada amount, if the 'adjustUnbalTx' option is @True@.
+--  minimum Ada amount, if the 'ensureMinAda option is @True@.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m (TxSkel, Fee)
 setFeeAndBalance balancePK skel0 = do
   let skel =
-        if adjustUnbalTx $ txSkelOpts skel0
+        if ensureMinAda $ txSkelOpts skel0
           then ensureTxSkelOutsMinAda skel0
           else skel0
   -- all UTxOs belonging to the balancing public key

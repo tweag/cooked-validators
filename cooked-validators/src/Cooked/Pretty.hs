@@ -292,7 +292,7 @@ prettyValue =
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
-    { adjustUnbalTx,
+    { ensureMinAda,
       autoSlotIncrease,
       unsafeModTx,
       balance,
@@ -301,7 +301,7 @@ mPrettyTxOpts
     } =
     prettyEnumNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyAdjustUnbalTx adjustUnbalTx,
+        [ prettyIfNot def prettyEnsureMinAda ensureMinAda,
           prettyIfNot True prettyAutoSlotIncrease autoSlotIncrease,
           prettyIfNot True prettyBalance balance,
           prettyIfNot def prettyBalanceOutputPolicy balanceOutputPolicy,
@@ -313,9 +313,9 @@ mPrettyTxOpts
       prettyIfNot defaultValue f x
         | x == defaultValue = Nothing
         | otherwise = Just $ f x
-      prettyAdjustUnbalTx :: Bool -> Doc ann
-      prettyAdjustUnbalTx True = "AdjustUnbalTx (min Ada per transaction)"
-      prettyAdjustUnbalTx False = "No AdjustUnbalTx"
+      prettyEnsureMinAda :: Bool -> Doc ann
+      prettyEnsureMinAda True = "Adjust to ensure min Ada per transaction"
+      prettyEnsureMinAda False = "Don't adjust to ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> Doc ann
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"

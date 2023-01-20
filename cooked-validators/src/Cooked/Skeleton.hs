@@ -153,7 +153,7 @@ data TxOpts = TxOpts
     --
     -- By default, this is set to @False@, given this is the default behavior in Plutus:
     -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
-    adjustUnbalTx :: Bool,
+    ensureMinAda :: Bool,
     -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
     --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
     --  If you /do NOT/ wish to do so, please set this to @False@.
@@ -169,7 +169,7 @@ data TxOpts = TxOpts
     --  By default, this is set to @True@.
     autoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('adjustUnbalTx') and balanced. This is prefixed
+    -- potentially adjusted ('ensureMinAda) and balanced. This is prefixed
     -- with /unsafe/ to draw attention to the fact that modifying a transaction
     -- at that stage might make it invalid. Still, this offers a hook for being
     -- able to alter a transaction in unforeseen ways. It is mostly used to test
@@ -210,7 +210,7 @@ data TxOpts = TxOpts
 instance Default TxOpts where
   def =
     TxOpts
-      { adjustUnbalTx = False,
+      { ensureMinAda = False,
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
         unsafeModTx = [],
