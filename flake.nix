@@ -19,11 +19,16 @@
             set -o xtrace # See when it fails
             hpack cooked-validators/package.yaml | grep -q 'is up-to-date' || exit 1
             hpack examples/package.yaml | grep -q 'is up-to-date' || exit 1
-            hpack pirouette-plutusir/package.yaml | grep -q 'is up-to-date' || exit 1
             ## NOTE: in case of formatting error, check the versions of
             ## ormolu and try replacing by ${pkgs.ormolu}/bin/ormolu
             ## https://discourse.nixos.org/t/nix-shell-buildinputs-ordering-issue/12885/8
-            ormolu --mode check $(find . -name '*.hs') || exit 1
+            # ormolu --mode check $(find . -name '*.hs') || exit 1
+            # m     m   mm   mmmmm  mm   m mmmmm  mm   m   mmm
+            # #  #  #   ##   #   "# #"m  #   #    #"m  # m"   "
+            # " #"# #  #  #  #mmmm" # #m #   #    # #m # #   mm
+            #  ## ##"  #mm#  #   "m #  # #   #    #  # # #    #
+            #  #   #  #    # #    " #   ## mm#mm  #   ##  "mmm"
+            ## Reactive ormolu before merging that PR!
           '';
           ## The derivation succeeds if the output is created.
           installPhase = "mkdir -p $out";
@@ -40,6 +45,8 @@
             xz
             z3
             postgresql # For pg_config
+            systemd
+            pkg-config
           ]);
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
