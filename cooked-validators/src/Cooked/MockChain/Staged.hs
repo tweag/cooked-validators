@@ -17,8 +17,8 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Ltl
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Cooked.MockChain.Monad
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Cooked.Skeleton

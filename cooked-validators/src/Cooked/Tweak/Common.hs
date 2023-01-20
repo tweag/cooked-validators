@@ -10,7 +10,7 @@ module Cooked.Tweak.Common where
 
 import Control.Monad
 import Control.Monad.State
-import Cooked.MockChain.Monad
+import Cooked.MockChain.BlockChain
 import Cooked.Skeleton
 import Data.List
 import Data.Maybe

@@ -21,9 +21,9 @@ library
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
-      Cooked.MockChain.Monad
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState

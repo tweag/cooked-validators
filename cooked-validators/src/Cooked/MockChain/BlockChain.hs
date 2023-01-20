@@ -11,7 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Monad where
+module Cooked.MockChain.BlockChain where
 
 import Control.Monad.Reader
 import Control.Monad.State

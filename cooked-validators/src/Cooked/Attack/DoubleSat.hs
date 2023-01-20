@@ -7,7 +7,7 @@
 module Cooked.Attack.DoubleSat where
 
 import Control.Monad
-import Cooked.MockChain.Monad
+import Cooked.MockChain.BlockChain
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Tweak

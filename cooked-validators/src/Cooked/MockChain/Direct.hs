@@ -21,8 +21,8 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.Monad
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
