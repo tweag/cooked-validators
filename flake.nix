@@ -2,7 +2,12 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   outputs = { self, nixpkgs, flake-utils, }:
-    flake-utils.lib.eachDefaultSystem (system:
+    with flake-utils.lib;
+    eachSystem [ system.x86_64-linux system.aarch64-linux ] (system:
+    ## Systemd isn't compatible with Darwin, so we can't use
+    ## as long as `systemd` is a dependency `eachDefaulSystem`.
+    ## TODO use the following line once systemd isn't needed
+    # flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         haskellPackages = pkgs.haskell.packages.ghc8107;
