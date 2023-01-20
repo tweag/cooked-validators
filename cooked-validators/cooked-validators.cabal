@@ -21,10 +21,10 @@ library
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.Direct
+      Cooked.MockChain.GenerateTx
       Cooked.MockChain.Monad
-      Cooked.MockChain.Monad.Direct
-      Cooked.MockChain.Monad.GenerateTx
-      Cooked.MockChain.Monad.Staged
+      Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState
       Cooked.Output

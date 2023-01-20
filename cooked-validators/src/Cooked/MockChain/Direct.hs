@@ -12,7 +12,7 @@
 
 {-# HLINT ignore "Use section" #-}
 
-module Cooked.MockChain.Monad.Direct where
+module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
 import Control.Applicative
@@ -21,8 +21,8 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton

@@ -2,7 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
-module Cooked.MockChain.Monad.GenerateTx where
+module Cooked.MockChain.GenerateTx where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
