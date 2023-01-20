@@ -7,8 +7,7 @@ module Auction.Offchain where
 
 import qualified Auction as A
 import Control.Monad
-import Cooked.MockChain
-import Cooked.Tx.Constraints.Type
+import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe
