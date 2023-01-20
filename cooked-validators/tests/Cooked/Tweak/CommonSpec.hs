@@ -1,4 +1,4 @@
-module Cooked.Attack.Tweak.CommonSpec (tests) where
+module Cooked.Tweak.CommonSpec (tests) where
 
 import Cooked
 import Data.Default

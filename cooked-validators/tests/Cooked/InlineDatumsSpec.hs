@@ -190,7 +190,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
 tests :: TestTree
 tests =
   testGroup
-    "inline datums vs. datum hashes"
+    "Inline datums vs. datum hashes"
     [ testCase "the first and second datums have different hashes" $
         assertBool "... they do not" $
           (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ FirstPaymentDatum)

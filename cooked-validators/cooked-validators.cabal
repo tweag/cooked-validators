@@ -97,12 +97,13 @@ test-suite spec
       Cooked.Attack.DatumHijackingSpec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
-      Cooked.Attack.Tweak.CommonSpec
-      Cooked.Attack.Tweak.OutPermutationsSpec
       Cooked.AttackSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.TestUtils
+      Cooked.Tweak.CommonSpec
+      Cooked.Tweak.OutPermutationsSpec
+      Cooked.TweakSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
