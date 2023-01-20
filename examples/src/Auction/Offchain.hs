@@ -31,7 +31,7 @@ txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
       (txSkelSubmittedBy seller)
-        { txSkelOpts = def {ensureMinAda = True},
+        { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot]
         }
   return . head
@@ -54,7 +54,7 @@ txSetDeadline submitter offerOref deadline = do
   Just lot <- valueFromTxOutRef offerOref
   validateTxSkel $
     (txSkelSubmittedBy submitter)
-      { txSkelOpts = def {ensureMinAda = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelMints =
           txSkelMintsFromList
             [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
@@ -97,7 +97,7 @@ txBid submitter offerOref bid = do
       lotPlusPreviousBidPlusNft = outputValue output
   validateTxSkel $
     (txSkelSubmittedBy submitter)
-      { txSkelOpts = def {ensureMinAda = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelIns =
           Map.singleton oref $
             TxSkelRedeemerForScript
@@ -142,7 +142,7 @@ txHammer submitter offerOref = do
         void $
           validateTxSkel $
             (txSkelSubmittedBy submitter)
-              { txSkelOpts = def {ensureMinAda = True},
+              { txSkelOpts = def {txOptEnsureMinAda = True},
                 txSkelIns =
                   Map.singleton offerOref $
                     TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),
@@ -157,7 +157,7 @@ txHammer submitter offerOref = do
       void $
         validateTxSkel $
           (txSkelSubmittedBy submitter)
-            { txSkelOpts = def {ensureMinAda = True},
+            { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelIns =
                 Map.singleton oref $
                   TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),

@@ -149,9 +149,9 @@ prettyBalancingWallet w =
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: TxOpts -> NEList.NonEmpty Wallet -> [Doc ann]
-prettySigners TxOpts {balanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
   prettyBalancingWallet firstSigner : (prettyPubKeyHash . walletPKHash <$> signers)
-prettySigners TxOpts {balanceWallet = BalanceWith balancingWallet} signers =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
   aux (NEList.toList signers)
   where
     aux :: [Wallet] -> [Doc ann]
@@ -292,21 +292,21 @@ prettyValue =
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
-    { ensureMinAda,
-      autoSlotIncrease,
-      unsafeModTx,
-      balance,
-      balanceOutputPolicy,
-      balanceWallet
+    { txOptEnsureMinAda,
+      txOptAutoSlotIncrease,
+      txOptUnsafeModTx,
+      txOptBalance,
+      txOptBalanceOutputPolicy,
+      txOptBalanceWallet
     } =
     prettyEnumNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyEnsureMinAda ensureMinAda,
-          prettyIfNot True prettyAutoSlotIncrease autoSlotIncrease,
-          prettyIfNot True prettyBalance balance,
-          prettyIfNot def prettyBalanceOutputPolicy balanceOutputPolicy,
-          prettyIfNot def prettyBalanceWallet balanceWallet,
-          prettyIfNot [] prettyUnsafeModTx unsafeModTx
+        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
+          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+          prettyIfNot True prettyBalance txOptBalance,
+          prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
+          prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx
         ]
     where
       prettyIfNot :: Eq a => a -> (a -> Doc ann) -> a -> Maybe (Doc ann)
