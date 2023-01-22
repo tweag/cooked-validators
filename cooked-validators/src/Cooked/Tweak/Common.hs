@@ -101,21 +101,21 @@ overPredTweak optic change condition = overMaybeTweak optic (\x -> if condition 
 -- as they were /before/ the tweak, and in the order in which they occurred on
 -- the original transaction.
 overMaybeTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> Maybe a) -> m [a]
-overMaybeTweak optic mChange = overMaybeTweakSelecting optic mChange (const True)
+overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True)
 
 -- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
 -- if there are several identical foci, but you only want to modify some of
 -- them. This is where this 'Tweak' becomes useful: The @(Integer -> Bool)@
 -- argument can be used to select which of the modifiable foci should be
 -- actually modified.
-overMaybeTweakSelecting ::
+overMaybeSelectingTweak ::
   forall a m k is.
   (MonadTweak m, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
   (Integer -> Bool) ->
   m [a]
-overMaybeTweakSelecting optic mChange select = do
+overMaybeSelectingTweak optic mChange select = do
   allFoci <- viewTweak $ partsOf optic
   let evaluatedFoci :: [(a, Maybe a)]
       evaluatedFoci =
