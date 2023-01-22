@@ -82,6 +82,7 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
     , scientific
     , streaming
     , tasty
@@ -148,6 +149,7 @@ test-suite spec
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
     , scientific
     , streaming
     , tasty

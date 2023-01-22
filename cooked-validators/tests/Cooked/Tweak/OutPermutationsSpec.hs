@@ -70,18 +70,18 @@ tests =
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   (map (Right . ((),)) [skel a b c, skel b a c])
-                  (runTweak (permutOutTweak $ KeepIdentity $ Just 2) $ skel a b c),
+                  (runTweak (allOutPermutsTweak $ KeepIdentity $ Just 2) $ skel a b c),
               testCase "KeepIdentity Nothing" $
                 assertSameSets
                   (map (Right . ((),)) [skel a b c, skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (runTweak (permutOutTweak $ KeepIdentity Nothing) $ skel a b c),
+                  (runTweak (allOutPermutsTweak $ KeepIdentity Nothing) $ skel a b c),
               testCase "OmitIdentity (Just 2)" $
                 assertSameSets
                   (map (Right . ((),)) [skel b a c])
-                  (runTweak (permutOutTweak $ OmitIdentity $ Just 2) $ skel a b c),
+                  (runTweak (allOutPermutsTweak $ OmitIdentity $ Just 2) $ skel a b c),
               testCase "OmitIdentity Nothing" $
                 assertSameSets
                   (map (Right . ((),)) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
-                  (runTweak (permutOutTweak $ OmitIdentity Nothing) $ skel a b c)
+                  (runTweak (allOutPermutsTweak $ OmitIdentity Nothing) $ skel a b c)
             ]
     ]
