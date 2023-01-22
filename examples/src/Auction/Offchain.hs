@@ -31,7 +31,7 @@ txOffer :: MonadBlockChain m => Wallet -> L.Value -> Integer -> m Pl.TxOutRef
 txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
-      txSkelTemplate
+      def
         { txSkelOpts = def {adjustUnbalTx = True},
           txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot],
           txSkelSigners = [seller]
@@ -55,7 +55,7 @@ txSetDeadline submitter offerOref deadline = do
   Just (A.Offer seller minBid) <- typedDatumFromTxOutRef @(Pl.DatumType A.Auction) offerOref
   Just lot <- valueFromTxOutRef offerOref
   validateTxSkel $
-    txSkelTemplate
+    def
       { txSkelOpts = def {adjustUnbalTx = True},
         txSkelSigners = [submitter],
         txSkelMints =
@@ -99,7 +99,7 @@ txBid submitter offerOref bid = do
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
   validateTxSkel $
-    txSkelTemplate
+    def
       { txSkelOpts = def {adjustUnbalTx = True},
         txSkelSigners = [submitter],
         txSkelIns =
@@ -145,7 +145,7 @@ txHammer submitter offerOref = do
         Just lot <- valueFromTxOutRef offerOref
         void $
           validateTxSkel $
-            txSkelTemplate
+            def
               { txSkelOpts = def {adjustUnbalTx = True},
                 txSkelSigners = [submitter],
                 txSkelIns =
@@ -161,7 +161,7 @@ txHammer submitter offerOref = do
           seller = A.getSeller datum
       void $
         validateTxSkel $
-          txSkelTemplate
+          def
             { txSkelOpts = def {adjustUnbalTx = True},
               txSkelSigners = [submitter],
               txSkelIns =
