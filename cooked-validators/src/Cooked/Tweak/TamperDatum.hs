@@ -47,4 +47,22 @@ tamperDatumTweak change = do
   addLabelTweak TamperDatumLbl
   return beforeModification
 
+-- | Similar as 'tamperDatumTweak' with a predicate and a transformation
+tamperDatumPredTweak ::
+  forall a m.
+  ( MonadTweak m,
+    Show a,
+    Pretty a,
+    Pl.ToData a,
+    Pl.FromData a,
+    Typeable a
+  ) =>
+  -- | Use this function to return 'Just' the changed datum, if you want to
+  -- perform a change, and 'Nothing', if you want to leave it as-is. All datums
+  -- on outputs not paying to a validator of type @a@ are never touched.
+  (a -> a) ->
+  (a -> Bool) ->
+  m [a]
+tamperDatumPredTweak = (tamperDatumTweak .) . ifMaybe
+
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
