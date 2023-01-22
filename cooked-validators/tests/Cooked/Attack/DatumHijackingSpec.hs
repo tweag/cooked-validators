@@ -61,7 +61,7 @@ lockValue = L.lovelaceValueOf 12345678
 
 lockTxSkel :: Pl.TxOutRef -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
-  txSkelTemplate
+  def
     { txSkelOpts = def {adjustUnbalTx = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
       txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue]
@@ -75,7 +75,7 @@ txLock v = do
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
 relockTxSkel v o =
-  txSkelTemplate
+  def
     { txSkelOpts = def {adjustUnbalTx = True},
       txSkelIns = Map.singleton o $ TxSkelRedeemerForScript @MockContract (),
       txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
@@ -151,7 +151,7 @@ carelessValidator =
     wrap = Pl.mkUntypedValidator @MockDatum @()
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = txSkelTemplate {txSkelOuts = os}
+txSkelFromOuts os = def {txSkelOuts = os}
 
 -- * TestTree for the datum hijacking attack
 
@@ -186,7 +186,7 @@ tests =
                 )
                 skelIn
             skelExpected a b =
-              txSkelTemplate
+              def
                 { txSkelLabel =
                     Set.singleton . TxLabel . DatumHijackingLbl $
                       Pl.validatorAddress thief,

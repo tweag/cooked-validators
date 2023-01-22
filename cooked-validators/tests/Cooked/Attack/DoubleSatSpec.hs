@@ -121,12 +121,12 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
+      validateTxSkel $ def {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
 
 tests :: TestTree
 tests =
@@ -151,7 +151,7 @@ tests =
                   -- be spent.
                   skelIn :: [Pl.TxOutRef] -> TxSkel
                   skelIn aOrefs =
-                    txSkelTemplate
+                    def
                       { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript @AContract ARedeemer)) $ Set.fromList aOrefs,
                         txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)]
                       }
@@ -215,7 +215,7 @@ tests =
                   -- with the specified redeemers.
                   skelExpected :: [Pl.TxOutRef] -> [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))] -> TxSkel
                   skelExpected aOrefs bUtxos =
-                    txSkelTemplate
+                    def
                       { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
                         txSkelIns =
                           Map.fromList

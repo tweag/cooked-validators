@@ -688,17 +688,17 @@ makeLensesFor
 
 -- | A convenience template where wallet 1 is the default signer of an
 -- otherwise empty transaction skeleton.
-txSkelTemplate :: TxSkel
-txSkelTemplate =
-  TxSkel
-    { txSkelLabel = Set.empty,
-      txSkelOpts = def,
-      txSkelMints = Map.empty,
-      txSkelValidityRange = Pl.always,
-      txSkelSigners = wallet 1 NEList.:| [],
-      txSkelIns = Map.empty,
-      txSkelOuts = []
-    }
+instance Default TxSkel where
+  def =
+    TxSkel
+      { txSkelLabel = Set.empty,
+        txSkelOpts = def,
+        txSkelMints = Map.empty,
+        txSkelValidityRange = Pl.always,
+        txSkelSigners = wallet 1 NEList.:| [],
+        txSkelIns = Map.empty,
+        txSkelOuts = []
+      }
 
 -- | Return all data on transaction outputs.
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, Doc ())
@@ -725,13 +725,7 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe
-      ( \txSkelOut ->
-          let validator = txSkelOutValidator txSkelOut
-           in case validator of
-                Nothing -> Nothing
-                Just script -> Just (Ledger.Scripts.validatorHash script, script)
-      )
+    . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
     . txSkelOuts
 
 -- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
@@ -768,7 +762,7 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, - n) else Nothing))
+negativePart = Pl.negate . over flattenValueI (filter $ (< 0) . snd)
 
 -- Various Optics on 'TxSkels' and all the other types defined in
 -- 'Cooked.Tx.Constraints.Type'.

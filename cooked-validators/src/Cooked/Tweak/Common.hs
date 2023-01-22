@@ -135,7 +135,10 @@ overMaybeTweakSelecting optic mChange select = do
 
 -- * Some more simple tweaks
 
--- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- given label will be added, forming a pair @(newlabel, oldlabel)@.
+-- | Add a label to a 'TxSkel'.
 addLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
-addLabelTweak newlabel = overTweak txSkelLabelL (Set.insert $ TxLabel newlabel)
+addLabelTweak = overTweak txSkelLabelL . Set.insert . TxLabel
+
+-- | Removes a label from a 'TxSkel'
+removeLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
+removeLabelTweak = overTweak txSkelLabelL . Set.delete . TxLabel

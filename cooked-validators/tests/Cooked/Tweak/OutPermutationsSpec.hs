@@ -66,7 +66,7 @@ tests =
         let a = paysPK (walletPKHash $ wallet 1) $ Pl.lovelaceValueOf 123
             b = paysPK (walletPKHash $ wallet 2) $ Pl.lovelaceValueOf 123
             c = paysPK (walletPKHash $ wallet 3) $ Pl.lovelaceValueOf 123
-            skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
+            skel x y z = def {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   (map (Right . ((),)) [skel a b c, skel b a c])
