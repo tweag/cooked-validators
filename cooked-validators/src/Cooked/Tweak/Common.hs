@@ -91,6 +91,11 @@ setTweak optic newValue = getTxSkel >>= putTxSkel . set optic newValue
 overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 
+-- | The tweak that modifies values satisfying a predicate in the 'TxSkel'.
+-- Returns a list of the foci that were modified prior to the modification.
+overPredTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> a) -> (a -> Bool) -> m [a]
+overPredTweak optic change condition = overMaybeTweak optic (\x -> if condition x then Just (change x) else Nothing)
+
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,
 -- as they were /before/ the tweak, and in the order in which they occurred on
