@@ -762,7 +762,7 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = Pl.negate . over flattenValueI (filter $ (< 0) . snd)
+negativePart = positivePart . Pl.negate
 
 -- Various Optics on 'TxSkels' and all the other types defined in
 -- 'Cooked.Tx.Constraints.Type'.

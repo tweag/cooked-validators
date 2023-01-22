@@ -14,7 +14,6 @@ import Cooked.MockChain.BlockChain
 import Cooked.Skeleton
 import Data.List
 import Data.Maybe
-import qualified Data.Set as Set
 import ListT (ListT)
 import qualified ListT
 import Optics.Core
@@ -132,13 +131,3 @@ overMaybeTweakSelecting optic mChange select = do
     mapMaybe
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
       evaluatedFoci
-
--- * Some more simple tweaks
-
--- | Add a label to a 'TxSkel'.
-addLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
-addLabelTweak = overTweak txSkelLabelL . Set.insert . TxLabel
-
--- | Removes a label from a 'TxSkel'
-removeLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
-removeLabelTweak = overTweak txSkelLabelL . Set.delete . TxLabel

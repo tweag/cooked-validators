@@ -10,6 +10,7 @@ module Cooked.Tweak.TamperDatum where
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
+import Cooked.Tweak.Labels
 import Optics.Core
 import qualified PlutusTx as Pl
 import Prettyprinter

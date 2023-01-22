@@ -34,6 +34,7 @@ library
       Cooked.Tweak
       Cooked.Tweak.AddInputsAndOutputs
       Cooked.Tweak.Common
+      Cooked.Tweak.Labels
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.TamperDatum
       Cooked.Wallet
