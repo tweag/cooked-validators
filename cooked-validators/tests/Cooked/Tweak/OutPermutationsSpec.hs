@@ -4,9 +4,12 @@
 
 module Cooked.Tweak.OutPermutationsSpec (tests) where
 
+import Control.Monad (join, replicateM)
 import Cooked
 import Cooked.TestUtils
 import Data.Default
+import Data.Either (rights)
+import Data.List (group, groupBy)
 import qualified Ledger.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -62,10 +65,8 @@ tests =
                       ]
                     )
                   ],
-      testGroup "tests for PermutOutTweakMode" $
-        let a = paysPK (walletPKHash $ wallet 1) $ Pl.lovelaceValueOf 123
-            b = paysPK (walletPKHash $ wallet 2) $ Pl.lovelaceValueOf 123
-            c = paysPK (walletPKHash $ wallet 3) $ Pl.lovelaceValueOf 123
+      testGroup "tests for PermutOutTweakMode:" $
+        let [a, b, c] = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 3]
             skel x y z = def {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
@@ -83,5 +84,20 @@ tests =
                 assertSameSets
                   (map (Right . ((),)) [skel a c b, skel b a c, skel b c a, skel c a b, skel c b a])
                   (runTweak (allOutPermutsTweak $ OmitIdentity Nothing) $ skel a b c)
+            ],
+      testGroup "tests for a single random outputs permutation:" $
+        let l = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 5]
+            runs = join $ replicateM 5 $ txSkelOuts . snd <$> rights (runTweak singleOutPermutTweak def {txSkelOuts = l})
+         in [ testCase "All permutations are indeed permutations" $
+                mapM_ (assertSameSets l) runs,
+              -- Note that depending on the behavior of the random generator, this test could fail
+              -- if one of the generated permutation happens to be the idendity
+              -- TODO: fix this by maybe ensuring this cannot happen
+              testCase "All permutations are different from the initial distribution" $
+                mapM_ (assertBool "Lists should be different" . (l /=)) runs--,
+              -- Same as before, it's theoretically possible that all generated permutations happen
+              -- to be the same, although very much unlikely
+              -- testCase "Permutations are not always the same" $
+              --   assertBool "There should have at least 2 different permutations" (length (group runs) > 1)
             ]
     ]
