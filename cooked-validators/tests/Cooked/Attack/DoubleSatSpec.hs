@@ -53,6 +53,9 @@ data ARedeemer = ARedeemer deriving (Show)
 instance Pl.Eq ARedeemer where
   ARedeemer == ARedeemer = True
 
+instance Pretty ARedeemer where
+  pretty = viaShow
+
 Pl.makeLift ''ARedeemer
 Pl.unstableMakeIsData ''ARedeemer
 
@@ -86,6 +89,9 @@ Pl.makeLift ''BDatum
 Pl.unstableMakeIsData ''BDatum
 
 data BRedeemer = BRedeemer1 | BRedeemer2 deriving (Show)
+
+instance Pretty BRedeemer where
+  pretty = viaShow
 
 instance Pl.Eq BRedeemer where
   BRedeemer1 == BRedeemer1 = True

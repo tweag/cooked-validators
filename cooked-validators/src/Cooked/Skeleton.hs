@@ -235,6 +235,7 @@ instance Default TxOpts where
 type MintsConstrs redeemer =
   ( Pl.ToData redeemer,
     Show redeemer,
+    Pretty redeemer,
     Typeable redeemer
   )
 
@@ -664,6 +665,7 @@ paysScriptDatumHash validator datum value =
 type SpendsScriptConstrs redeemer =
   ( Pl.ToData redeemer,
     Show redeemer,
+    Pretty redeemer,
     Pl.Eq redeemer,
     Typeable redeemer
   )

@@ -26,9 +26,9 @@
 --
 -- Use 'prettyUtxoState'
 --
--- == Implement pretty-printing for datums
+-- == Implement pretty-printing for datums and redeemers
 --
--- Datums are required to have a 'Pretty' instance ('pretty :: a -> Doc ann').
+-- Datums and redeemers are required to have a 'Pretty' instance ('pretty :: a -> Doc ann').
 --
 -- === Rely on 'Show' for trivial datum types
 --
@@ -36,7 +36,7 @@
 --
 -- === Custom implementation
 --
--- For non-trivial datums, the default 'Show' is often poorly readable and
+-- For non-trivial datums and redeemers, the default 'Show' is often poorly readable and
 -- one-lined. It is interesting to implement a more readable 'Pretty' instance
 -- using the following provided functions:
 --
@@ -175,7 +175,7 @@ prettyMints (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZe
   prettyMintingPolicy policy
     <+> PP.viaShow tokenName
     <+> "|"
-    <+> PP.viaShow redeemer
+    <+> PP.pretty redeemer
     <+> "->"
     <+> PP.viaShow amount
 
@@ -218,7 +218,7 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
   (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
   let redeemerDoc =
         case txSkelRedeemer of
-          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> PP.viaShow redeemer)
+          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> PP.pretty redeemer)
           _ -> Nothing
   return $
     prettyEnum
@@ -266,6 +266,9 @@ lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef = do
 -- #28a3d9
 prettyHash :: (Show a) => a -> Doc ann
 prettyHash = PP.pretty . ('#' :) . take 7 . show
+
+prettyTxOutRef :: Pl.TxOutRef -> Doc ann
+prettyTxOutRef (Pl.TxOutRef txId index) = prettyHash txId <> "!" <> PP.pretty index
 
 prettyMintingPolicy :: Pl.MintingPolicy -> Doc ann
 prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash

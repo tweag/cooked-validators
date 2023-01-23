@@ -148,6 +148,15 @@ data BidderInfo = BidderInfo
   }
   deriving (Haskell.Show)
 
+instance Pretty BidderInfo where
+  pretty (BidderInfo bid bidder) =
+    Cooked.prettyEnum
+      "BidderInfo"
+      "-"
+      [ "bid:" <+> PP.pretty bid,
+        "bidder:" <+> Cooked.prettyPubKeyHash bidder
+      ]
+
 PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
 
@@ -225,6 +234,11 @@ data Action
     --  'Offer' UTxO.
     Hammer Pl.TxOutRef
   deriving (Haskell.Show)
+
+instance Pretty Action where
+  pretty SetDeadline = "SetDeadline"
+  pretty (Bid bidderInfo) = "Bid" <+> PP.pretty bidderInfo
+  pretty (Hammer txOutRef) = "Hammer" <+> Cooked.prettyTxOutRef txOutRef
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
