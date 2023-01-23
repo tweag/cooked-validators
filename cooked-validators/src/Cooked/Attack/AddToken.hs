@@ -1,9 +1,9 @@
 module Cooked.Attack.AddToken where
 
 import Control.Monad
-import Cooked.Attack.Tweak
-import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
+import Cooked.Tweak
+import Cooked.Wallet
 import qualified Data.Map as Map
 import qualified Ledger as Pl
 import qualified Ledger.Value as Pl

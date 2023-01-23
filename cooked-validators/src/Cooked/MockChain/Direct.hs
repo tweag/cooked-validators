@@ -12,7 +12,7 @@
 
 {-# HLINT ignore "Use section" #-}
 
-module Cooked.MockChain.Monad.Direct where
+module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
 import Control.Applicative
@@ -21,11 +21,12 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
-import Cooked.MockChain.Monad
-import Cooked.MockChain.Monad.GenerateTx
+import Cooked.MockChain.BlockChain
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
-import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.Output
+import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
 import Data.List
@@ -223,7 +224,7 @@ runMockChainTFrom i0 =
   fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw def (mockChainSt0From i0)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment. The canonical
---  environment uses the default 'SlotConfig' and @[Cooked.MockChain.Wallet.wallet 1]@ as the sole
+--  environment uses the default 'SlotConfig' and @[Cooked.Wallet.wallet 1]@ as the sole
 --  wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
 runMockChainT = runMockChainTFrom def

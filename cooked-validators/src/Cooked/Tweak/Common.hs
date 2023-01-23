@@ -6,12 +6,12 @@
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
-module Cooked.Attack.Tweak.Common where
+module Cooked.Tweak.Common where
 
 import Control.Monad
 import Control.Monad.State
-import Cooked.MockChain.Monad
-import Cooked.Tx.Constraints.Type
+import Cooked.MockChain.BlockChain
+import Cooked.Skeleton
 import Data.List
 import Data.Maybe
 import qualified Data.Set as Set

@@ -14,7 +14,6 @@ module Cooked.InlineDatumsSpec where
 import Control.Arrow
 import Control.Monad
 import Cooked
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe
@@ -191,7 +190,7 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
 tests :: TestTree
 tests =
   testGroup
-    "inline datums vs. datum hashes"
+    "Inline datums vs. datum hashes"
     [ testCase "the first and second datums have different hashes" $
         assertBool "... they do not" $
           (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ FirstPaymentDatum)

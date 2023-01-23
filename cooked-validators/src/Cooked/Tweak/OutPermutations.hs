@@ -1,8 +1,8 @@
-module Cooked.Attack.Tweak.OutPermutations where
+module Cooked.Tweak.OutPermutations where
 
 import Control.Monad
-import Cooked.Attack.Tweak.Common
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
+import Cooked.Tweak.Common
 
 data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 

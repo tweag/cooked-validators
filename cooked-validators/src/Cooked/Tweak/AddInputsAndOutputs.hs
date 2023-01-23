@@ -5,11 +5,11 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Some 'Tweak's that add or remove inputs and outputs from transactions.
-module Cooked.Attack.Tweak.AddInputsAndOutputs where
+module Cooked.Tweak.AddInputsAndOutputs where
 
 import Control.Monad
-import Cooked.Attack.Tweak.Common
-import Cooked.Tx.Constraints.Type
+import Cooked.Skeleton
+import Cooked.Tweak.Common
 import Data.List
 import qualified Data.Map as Map
 import qualified Ledger as Pl

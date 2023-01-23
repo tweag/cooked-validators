@@ -18,26 +18,25 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Attack.Tweak
-      Cooked.Attack.Tweak.AddInputsAndOutputs
-      Cooked.Attack.Tweak.Common
-      Cooked.Attack.Tweak.OutPermutations
-      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
-      Cooked.MockChain.Misc
-      Cooked.MockChain.Monad
-      Cooked.MockChain.Monad.Direct
-      Cooked.MockChain.Monad.GenerateTx
-      Cooked.MockChain.Monad.Staged
-      Cooked.MockChain.RawUPLC
+      Cooked.MockChain.BlockChain
+      Cooked.MockChain.Direct
+      Cooked.MockChain.GenerateTx
+      Cooked.MockChain.Staged
       Cooked.MockChain.Testing
       Cooked.MockChain.UtxoState
-      Cooked.MockChain.Wallet
+      Cooked.Output
       Cooked.Pretty
-      Cooked.Tx.Constraints.Optics
-      Cooked.Tx.Constraints.Type
+      Cooked.RawUPLC
+      Cooked.Skeleton
+      Cooked.Tweak
+      Cooked.Tweak.AddInputsAndOutputs
+      Cooked.Tweak.Common
+      Cooked.Tweak.OutPermutations
+      Cooked.Tweak.TamperDatum
+      Cooked.Wallet
   other-modules:
       Paths_cooked_validators
   autogen-modules:
@@ -98,12 +97,13 @@ test-suite spec
       Cooked.Attack.DatumHijackingSpec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
-      Cooked.Attack.Tweak.CommonSpec
-      Cooked.Attack.Tweak.OutPermutationsSpec
       Cooked.AttackSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.TestUtils
+      Cooked.Tweak.CommonSpec
+      Cooked.Tweak.OutPermutationsSpec
+      Cooked.TweakSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

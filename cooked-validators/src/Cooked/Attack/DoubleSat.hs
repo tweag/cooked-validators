@@ -7,10 +7,11 @@
 module Cooked.Attack.DoubleSat where
 
 import Control.Monad
-import Cooked.Attack.Tweak
-import Cooked.MockChain.Monad
-import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.MockChain.BlockChain
+import Cooked.Output
+import Cooked.Skeleton
+import Cooked.Tweak
+import Cooked.Wallet
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
