@@ -17,6 +17,10 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3.3.0
 
+      - run: cat /proc/meminfo
+
+      - run: false
+
       - name: Install Nix
         uses: cachix/install-nix-action@v18
         with:
