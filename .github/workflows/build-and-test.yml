@@ -8,18 +8,15 @@ on:
 
 jobs:
 
-  cache-nix-ci-dependencies:
-    name: Cache Nix CI dependencies
+  cache-minimal-nix-dependencies:
+    name: Cache minimal Nix dependencies
+
     runs-on: ubuntu-latest
     needs: []
 
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3.3.0
-
-      - run: cat /proc/meminfo
-
-      - run: false
 
       - name: Install Nix
         uses: cachix/install-nix-action@v18
@@ -42,8 +39,9 @@ jobs:
 
   cache-all-nix-dependencies:
     name: Cache All Nix dependencies
+
     runs-on: ubuntu-latest
-    needs: cache-nix-ci-dependencies
+    needs: cache-minimal-nix-dependencies
 
     steps:
       - name: Check out repository code
@@ -70,16 +68,11 @@ jobs:
           ## we might want to consider building all the package dependencies?
           nix develop --print-build-logs --max-jobs 1 --command true
 
-  ## REVIEW: We could have `build-and-test` need `setup-nix-dependencies`. That
-  ## would save work that is currently duplicated. However, this would make the
-  ## CI quite slower because it would have to re-download things; it would also
-  ## need to first build all the devShells (and not only `ci`) before running
-  ## the rest.
-  ##
   build-and-test:
     name: Build and run tests
+
     runs-on: ubuntu-latest
-    needs: cache-nix-ci-dependencies
+    needs: cache-minimal-nix-dependencies
 
     steps:
     - name: Check out repository code (from PR).
@@ -126,6 +119,7 @@ jobs:
 
   check-result:
     name: Check tests output
+
     runs-on: ubuntu-latest
     needs: build-and-test
 
