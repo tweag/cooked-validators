@@ -96,11 +96,12 @@ fisherYates gen l =
     numerate = zip [1 ..]
     initial x = (Map.singleton 0 x,)
 
-generateRandomPermutation :: [a] -> [a]
-generateRandomPermutation l = fst $ fisherYates (mkStdGen $ length l) l
-
--- | This randomly permutes the outputs of a transaction
+-- | This randomly permutes the outputs of a transaction with a given seed
 -- Can be used to assess if a certain validator is order-dependant
--- TODO: To be tested, as I'm not sure of the semantics of the seed to mkStdGen
-singleOutPermutTweak :: MonadTweak m => m ()
-singleOutPermutTweak = overTweak txSkelOutsL generateRandomPermutation
+singleOutPermutTweak :: MonadTweak m => Int -> m ()
+singleOutPermutTweak seed = do
+  outputs <- viewTweak txSkelOutsL
+  let generateRandomPermutation = (fst .) . (fisherYates . mkStdGen)
+      outputs' = generateRandomPermutation seed outputs
+  guard $ outputs' /= outputs
+  setTweak txSkelOutsL outputs'

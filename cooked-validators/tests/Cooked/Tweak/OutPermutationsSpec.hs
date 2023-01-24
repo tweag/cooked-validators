@@ -87,17 +87,12 @@ tests =
             ],
       testGroup "tests for a single random outputs permutation:" $
         let l = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 5]
-            runs = join $ replicateM 5 $ txSkelOuts . snd <$> rights (runTweak singleOutPermutTweak def {txSkelOuts = l})
+            runs = txSkelOuts . snd <$> rights ((\i -> runTweak (singleOutPermutTweak i) def {txSkelOuts = l}) =<< [1 .. 5])
          in [ testCase "All permutations are indeed permutations" $
                 mapM_ (assertSameSets l) runs,
-              -- Note that depending on the behavior of the random generator, this test could fail
-              -- if one of the generated permutation happens to be the idendity
-              -- TODO: fix this by maybe ensuring this cannot happen
               testCase "All permutations are different from the initial distribution" $
-                mapM_ (assertBool "Lists should be different" . (l /=)) runs--,
-              -- Same as before, it's theoretically possible that all generated permutations happen
-              -- to be the same, although very much unlikely
-              -- testCase "Permutations are not always the same" $
-              --   assertBool "There should have at least 2 different permutations" (length (group runs) > 1)
+                mapM_ (assertBool "Lists should be different" . (l /=)) runs,
+              testCase "Permutations are different with different seeds" $
+                assertBool "There should have at least 2 different permutations" (length (group runs) == 5)
             ]
     ]
