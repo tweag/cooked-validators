@@ -1,4 +1,5 @@
-name: Publish cooked-validators documentation
+name: Deploy
+
 on:
   push:
     branches:
@@ -8,9 +9,12 @@ permissions:
   contents: write
 
 jobs:
+
   build-and-test:
     name: Documentation
+
     runs-on: ubuntu-latest
+
     steps:
     - name: Check out repository code (from PR).
       uses: actions/checkout@v3.3.0
@@ -18,8 +22,8 @@ jobs:
     - name: Install nix.
       uses: cachix/install-nix-action@v18
       with:
-        ## Some flake caching
         extra_nix_config: |
+          ## Access token to avoid triggering GitHub's rate limiting.
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Nix caches
