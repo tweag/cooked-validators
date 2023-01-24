@@ -101,7 +101,6 @@ fisherYates gen l =
 singleOutPermutTweak :: MonadTweak m => Int -> m ()
 singleOutPermutTweak seed = do
   outputs <- viewTweak txSkelOutsL
-  let generateRandomPermutation = (fst .) . (fisherYates . mkStdGen)
-      outputs' = generateRandomPermutation seed outputs
+  let outputs' = fst $ fisherYates (mkStdGen seed) outputs
   guard $ outputs' /= outputs
   setTweak txSkelOutsL outputs'

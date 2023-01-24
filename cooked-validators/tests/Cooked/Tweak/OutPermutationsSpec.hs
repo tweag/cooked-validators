@@ -88,11 +88,11 @@ tests =
       testGroup "tests for a single random outputs permutation:" $
         let l = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 5]
             runs = txSkelOuts . snd <$> rights ((\i -> runTweak (singleOutPermutTweak i) def {txSkelOuts = l}) =<< [1 .. 5])
-         in [ testCase "All permutations are indeed permutations" $
+         in [ testCase "All permutations contain the correct elements" $
                 mapM_ (assertSameSets l) runs,
               testCase "All permutations are different from the initial distribution" $
                 mapM_ (assertBool "Lists should be different" . (l /=)) runs,
               testCase "Permutations are different with different seeds" $
-                assertBool "There should have at least 2 different permutations" (length (group runs) == 5)
+                assertBool "There should be at least 2 different permutations" (length (group runs) == 5)
             ]
     ]
