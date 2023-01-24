@@ -11,7 +11,6 @@ import Cooked.MockChain
 import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
-import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Interval as Interval
@@ -32,17 +31,10 @@ txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
       (txSkelSubmittedBy seller)
-        { txSkelOpts = def {adjustUnbalTx = True},
+        { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot]
         }
-  return . head
-    . mapMaybe
-      ( \(oref, out) -> case isScriptOutputFrom A.auctionValidator out of
-          Nothing -> Nothing
-          Just _ -> Just oref
-      )
-    . utxosFromCardanoTx
-    $ tx
+  return . fst . (!! 0) . utxosFromCardanoTx $ tx
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
@@ -55,7 +47,7 @@ txSetDeadline submitter offerOref deadline = do
   Just lot <- valueFromTxOutRef offerOref
   validateTxSkel $
     (txSkelSubmittedBy submitter)
-      { txSkelOpts = def {adjustUnbalTx = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelMints =
           txSkelMintsFromList
             [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
@@ -92,7 +84,7 @@ txBid submitter offerOref bid = do
       lotPlusPreviousBidPlusNft = outputValue output
   validateTxSkel $
     (txSkelSubmittedBy submitter)
-      { txSkelOpts = def {adjustUnbalTx = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelIns =
           Map.singleton oref $
             TxSkelRedeemerForScript
@@ -136,7 +128,7 @@ txHammer submitter offerOref = do
         void $
           validateTxSkel $
             (txSkelSubmittedBy submitter)
-              { txSkelOpts = def {adjustUnbalTx = True},
+              { txSkelOpts = def {txOptEnsureMinAda = True},
                 txSkelIns =
                   Map.singleton offerOref $
                     TxSkelRedeemerForScript (A.Hammer offerOref),
@@ -151,7 +143,7 @@ txHammer submitter offerOref = do
       void $
         validateTxSkel $
           (txSkelSubmittedBy submitter)
-            { txSkelOpts = def {adjustUnbalTx = True},
+            { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelIns =
                 Map.singleton oref $
                   TxSkelRedeemerForScript (A.Hammer offerOref),
