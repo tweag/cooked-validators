@@ -153,28 +153,23 @@ data TxOpts = TxOpts
     --
     -- By default, this is set to @False@, given this is the default behavior in Plutus:
     -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
-    adjustUnbalTx :: Bool,
+    txOptEnsureMinAda :: Bool,
     -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
     --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
     --  If you /do NOT/ wish to do so, please set this to @False@.
     --
     --  /This has NO effect when running outside of 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
-    awaitTxConfirmed :: Bool,
+    txOptAwaitTxConfirmed :: Bool,
     -- | Whether to increase the slot counter automatically on this submission.
     -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
     -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
-    autoSlotIncrease :: Bool,
-    -- | Reorders the transaction outputs to fit the ordering of output
-    -- constraints. Those outputs are put at the very beginning of the list.
-    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    --  By default, this is set to @True@.
-    forceOutputOrdering :: Bool,
+    txOptAutoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('adjustUnbalTx') and balanced. This is prefixed
+    -- potentially adjusted ('txOptEnsureMinAda) and balanced. This is prefixed
     -- with /unsafe/ to draw attention to the fact that modifying a transaction
     -- at that stage might make it invalid. Still, this offers a hook for being
     -- able to alter a transaction in unforeseen ways. It is mostly used to test
@@ -188,7 +183,7 @@ data TxOpts = TxOpts
     -- default, this is set to the empty list.
     --
     -- The leftmost function in the list is applied first.
-    unsafeModTx :: [RawModTx],
+    txOptUnsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not. Balancing
     --  ensures that @input + mint = output + fees + burns@, if you decide to
     --  set @balance = false@ you will have trouble satisfying that equation by
@@ -197,32 +192,31 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
-    balance :: Bool,
+    txOptBalance :: Bool,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @AdjustExistingOutput@.
-    balanceOutputPolicy :: BalanceOutputPolicy,
+    txOptBalanceOutputPolicy :: BalanceOutputPolicy,
     -- | Which wallet to use to provide outputs for balancing and collaterals.
     -- Either the first signer by default, or an explicit wallet. In the second
     -- case, this wallet must be a signer of the transaction. This option WILL
     -- NOT ensure that it is added in case it is not already present in the
     -- list of signers.
-    balanceWallet :: BalancingWallet
+    txOptBalanceWallet :: BalancingWallet
   }
   deriving (Eq, Show)
 
 instance Default TxOpts where
   def =
     TxOpts
-      { adjustUnbalTx = False,
-        awaitTxConfirmed = True,
-        autoSlotIncrease = True,
-        forceOutputOrdering = True,
-        unsafeModTx = [],
-        balance = True,
-        balanceOutputPolicy = def,
-        balanceWallet = def
+      { txOptEnsureMinAda = False,
+        txOptAwaitTxConfirmed = True,
+        txOptAutoSlotIncrease = True,
+        txOptUnsafeModTx = [],
+        txOptBalance = True,
+        txOptBalanceOutputPolicy = def,
+        txOptBalanceWallet = def
       }
 
 -- * Description of the Minting

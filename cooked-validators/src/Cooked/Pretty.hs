@@ -149,9 +149,9 @@ prettyBalancingWallet w =
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: TxOpts -> NEList.NonEmpty Wallet -> [Doc ann]
-prettySigners TxOpts {balanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
   prettyBalancingWallet firstSigner : (prettyPubKeyHash . walletPKHash <$> signers)
-prettySigners TxOpts {balanceWallet = BalanceWith balancingWallet} signers =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
   aux (NEList.toList signers)
   where
     aux :: [Wallet] -> [Doc ann]
@@ -288,35 +288,34 @@ prettyValue =
 
 -- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
 -- If no non-default options are in the list, return nothing.
---  'awaitTxConfirmed' and 'forceOutputOrdering'
--- (these are deprecated, TODO) are never printed.
+--  'awaitTxConfirmed' is not printed.
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
-    { adjustUnbalTx,
-      autoSlotIncrease,
-      unsafeModTx,
-      balance,
-      balanceOutputPolicy,
-      balanceWallet
+    { txOptEnsureMinAda,
+      txOptAutoSlotIncrease,
+      txOptUnsafeModTx,
+      txOptBalance,
+      txOptBalanceOutputPolicy,
+      txOptBalanceWallet
     } =
     prettyEnumNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyAdjustUnbalTx adjustUnbalTx,
-          prettyIfNot True prettyAutoSlotIncrease autoSlotIncrease,
-          prettyIfNot True prettyBalance balance,
-          prettyIfNot def prettyBalanceOutputPolicy balanceOutputPolicy,
-          prettyIfNot def prettyBalanceWallet balanceWallet,
-          prettyIfNot [] prettyUnsafeModTx unsafeModTx
+        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
+          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+          prettyIfNot True prettyBalance txOptBalance,
+          prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
+          prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx
         ]
     where
       prettyIfNot :: Eq a => a -> (a -> Doc ann) -> a -> Maybe (Doc ann)
       prettyIfNot defaultValue f x
         | x == defaultValue = Nothing
         | otherwise = Just $ f x
-      prettyAdjustUnbalTx :: Bool -> Doc ann
-      prettyAdjustUnbalTx True = "AdjustUnbalTx (min Ada per transaction)"
-      prettyAdjustUnbalTx False = "No AdjustUnbalTx"
+      prettyEnsureMinAda :: Bool -> Doc ann
+      prettyEnsureMinAda True = "Adjust to ensure min Ada per transaction"
+      prettyEnsureMinAda False = "Don't adjust to ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> Doc ann
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
