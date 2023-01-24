@@ -21,6 +21,7 @@ import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
+import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -29,6 +30,9 @@ data MockContract
 instance Pl.ValidatorTypes MockContract where
   type RedeemerType MockContract = ()
   type DatumType MockContract = ()
+
+instance PrettyCooked () where
+  prettyCooked = PP.pretty
 
 -- | The validator that always agrees to the transaction
 yesValidator :: Pl.TypedValidator MockContract

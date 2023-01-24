@@ -36,8 +36,11 @@ import Test.Tasty.HUnit
 
 data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
-instance Pretty MockDatum where
-  pretty = viaShow
+instance PrettyCooked MockDatum where
+  prettyCooked = viaShow
+
+instance PrettyCooked () where
+  prettyCooked = viaShow
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}

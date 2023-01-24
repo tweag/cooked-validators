@@ -33,6 +33,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
+import qualified Prettyprinter as PP
 
 -- * Parameters and initial distributions
 

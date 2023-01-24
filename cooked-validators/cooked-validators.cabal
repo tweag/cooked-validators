@@ -29,6 +29,7 @@ library
       Cooked.MockChain.UtxoState
       Cooked.Output
       Cooked.Pretty
+      Cooked.Pretty.Class
       Cooked.RawUPLC
       Cooked.Skeleton
       Cooked.Tweak
