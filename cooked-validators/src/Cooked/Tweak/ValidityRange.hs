@@ -82,8 +82,8 @@ makeCurrentTimeInValidityRangeTweak = do
       guard $ before now vRange
       guard $ not $ isEmpty vRange
       later <- case ivFrom vRange of
-        LowerBound (Finite left) True -> return left
-        LowerBound (Finite left) False -> return $ left + POSIXTime 1
+        LowerBound (Finite left) isClosed ->
+          return $ left + POSIXTime (toInteger $ fromEnum $ not isClosed)
         _ -> fail "Invalid interval"
       void $ awaitTime later
       return later

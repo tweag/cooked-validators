@@ -113,6 +113,7 @@ test-suite spec
       Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
+      Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
       Paths_cooked_validators
   autogen-modules:
