@@ -91,11 +91,6 @@ setTweak optic newValue = getTxSkel >>= putTxSkel . set optic newValue
 overTweak :: (MonadTweak m, Is k A_Setter) => Optic' k is TxSkel a -> (a -> a) -> m ()
 overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 
--- | The tweak that modifies values satisfying a predicate in the 'TxSkel'.
--- Returns a list of the foci that were modified prior to the modification.
-overPredTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> a) -> (a -> Bool) -> m [a]
-overPredTweak optic = (overMaybeTweak optic .) . ifMaybe
-
 -- | Like 'overTweak', but only modifies foci on which the argument function
 -- returns @Just@ the new focus. Returns a list of the foci that were modified,
 -- as they were /before/ the tweak, and in the order in which they occurred on
@@ -137,7 +132,12 @@ overMaybeSelectingTweak optic mChange select = do
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
       evaluatedFoci
 
--- * Some helpers
-
-ifMaybe :: (a -> a) -> (a -> Bool) -> a -> Maybe a
-ifMaybe change condition x = if condition x then Just (change x) else Nothing
+-- | 'overMaybeTweak' requires a modification that can fail (targetting 'Maybe').
+-- Sometimes, it can prove more convenient to explicitly state which property
+-- the foci shoud satisfy to be eligible for a modification that cannot fail instead.
+-- 'selectP' provides a prism to make such a selection.
+-- The intended use case is 'overTweak (optic % selectP prop) mod'
+-- where 'optic' gives the candidate foci, 'prop' is the predicate to be satisfied
+-- by the foci, and 'mod' is the modification to be applied to the selected foci.
+selectP :: (a -> Bool) -> Prism' a a
+selectP prop = prism' id (\a -> if prop a then Just a else Nothing)

@@ -47,19 +47,4 @@ tamperDatumTweak change = do
   addLabelTweak TamperDatumLbl
   return beforeModification
 
--- | Similar as 'tamperDatumTweak' with a predicate and a transformation
-tamperDatumPredTweak ::
-  forall a m.
-  ( MonadTweak m,
-    Show a,
-    Pretty a,
-    Pl.ToData a,
-    Pl.FromData a,
-    Typeable a
-  ) =>
-  (a -> a) ->
-  (a -> Bool) ->
-  m [a]
-tamperDatumPredTweak = (tamperDatumTweak .) . ifMaybe
-
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
