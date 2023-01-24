@@ -32,7 +32,7 @@ txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
       def
-        { txSkelOpts = def {adjustUnbalTx = True},
+        { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot],
           txSkelSigners = [seller]
         }
@@ -56,7 +56,7 @@ txSetDeadline submitter offerOref deadline = do
   Just lot <- valueFromTxOutRef offerOref
   validateTxSkel $
     def
-      { txSkelOpts = def {adjustUnbalTx = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelSigners = [submitter],
         txSkelMints =
           txSkelMintsFromList
@@ -100,7 +100,7 @@ txBid submitter offerOref bid = do
       lotPlusPreviousBidPlusNft = outputValue output
   validateTxSkel $
     def
-      { txSkelOpts = def {adjustUnbalTx = True},
+      { txSkelOpts = def {txOptEnsureMinAda = True},
         txSkelSigners = [submitter],
         txSkelIns =
           Map.singleton oref $
@@ -146,7 +146,7 @@ txHammer submitter offerOref = do
         void $
           validateTxSkel $
             def
-              { txSkelOpts = def {adjustUnbalTx = True},
+              { txSkelOpts = def {txOptEnsureMinAda = True},
                 txSkelSigners = [submitter],
                 txSkelIns =
                   Map.singleton offerOref $
@@ -162,7 +162,7 @@ txHammer submitter offerOref = do
       void $
         validateTxSkel $
           def
-            { txSkelOpts = def {adjustUnbalTx = True},
+            { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelSigners = [submitter],
               txSkelIns =
                 Map.singleton oref $

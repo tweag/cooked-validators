@@ -287,13 +287,13 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     let balancingWallet =
-          case balanceWallet . txSkelOpts $ skelUnbal of
+          case txOptBalanceWallet . txSkelOpts $ skelUnbal of
             BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
             BalanceWith wallet -> wallet
     let balancingWalletPkh = walletPKHash balancingWallet
     let collateralWallet = balancingWallet
     (skel, fee) <-
-      if balance . txSkelOpts $ skelUnbal
+      if txOptBalance . txSkelOpts $ skelUnbal
         then
           setFeeAndBalance
             balancingWalletPkh
@@ -320,8 +320,8 @@ instance Monad m => MonadBlockChain (MockChainT m) where
             inputTxDatums
             (txSkelOutputData skel)
             (txSkelOutValidators skel)
-            (unsafeModTx $ txSkelOpts skel)
-        when (autoSlotIncrease $ txSkelOpts skel) $
+            (txOptUnsafeModTx $ txSkelOpts skel)
+        when (txOptAutoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
         return (Pl.CardanoApiTx someCardanoTx)
 
@@ -485,11 +485,11 @@ txSkelInputDatums skel = do
 -- iteration, which should compute realistic fees.
 --
 --  This function also adjusts the transaction outputs to contain at least the
---  minimum Ada amount, if the 'adjustUnbalTx' option is @True@.
+--  minimum Ada amount, if the 'txOptEnsureMinAda option is @True@.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m (TxSkel, Fee)
 setFeeAndBalance balancePK skel0 = do
   let skel =
-        if adjustUnbalTx $ txSkelOpts skel0
+        if txOptEnsureMinAda $ txSkelOpts skel0
           then ensureTxSkelOutsMinAda skel0
           else skel0
   -- all UTxOs belonging to the balancing public key
@@ -536,7 +536,7 @@ setFeeAndBalance balancePK skel0 = do
       TxSkel ->
       MockChainT m (TxSkel, Fee)
     calcFee n fee cUtxoIndex parms skel = do
-      let bPol = balanceOutputPolicy $ txSkelOpts skel
+      let bPol = txOptBalanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skel fee
       manageData <- gets mcstDatums
       managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
@@ -763,7 +763,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
     case mBestOutputIndex of
       Just i ->
         let (left, bestTxOut : right) = splitAt i outs
-         in case balanceOutputPolicy $ txSkelOpts skel of
+         in case txOptBalanceOutputPolicy $ txSkelOpts skel of
               AdjustExistingOutput ->
                 let bestTxOutValue = txSkelOutValue bestTxOut
                     adjustedValue = bestTxOutValue <> returnValue

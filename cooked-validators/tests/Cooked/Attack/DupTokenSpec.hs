@@ -60,7 +60,7 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
       let mints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName, amount)]
           mintedValue = txSkelMintsValue mints
        in def
-            { txSkelOpts = def {adjustUnbalTx = True},
+            { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelMints = mints,
               txSkelOuts = [paysPK (walletPKHash recipient) mintedValue]
             }
