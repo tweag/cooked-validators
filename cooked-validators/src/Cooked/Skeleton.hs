@@ -683,16 +683,13 @@ makeLensesFor
 -- | A convenience template where wallet 1 is the default signer of an
 -- otherwise empty transaction skeleton.
 txSkelTemplate :: TxSkel
-txSkelTemplate = txSkelSubmittedBy (wallet 1)
-
-txSkelSubmittedBy :: Wallet -> TxSkel
-txSkelSubmittedBy w =
+txSkelTemplate =
   TxSkel
     { txSkelLabel = Set.empty,
       txSkelOpts = def,
       txSkelMints = Map.empty,
       txSkelValidityRange = Pl.always,
-      txSkelSigners = w NEList.:| [],
+      txSkelSigners = wallet 1 NEList.:| [],
       txSkelIns = Map.empty,
       txSkelOuts = []
     }
