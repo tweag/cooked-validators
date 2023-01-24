@@ -169,7 +169,7 @@ data TxOpts = TxOpts
     --  By default, this is set to @True@.
     txOptAutoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('ensureMinAda) and balanced. This is prefixed
+    -- potentially adjusted ('txOptEnsureMinAda) and balanced. This is prefixed
     -- with /unsafe/ to draw attention to the fact that modifying a transaction
     -- at that stage might make it invalid. Still, this offers a hook for being
     -- able to alter a transaction in unforeseen ways. It is mostly used to test
