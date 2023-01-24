@@ -96,10 +96,11 @@ putRefScriptOnWalletOutput recipient referencedScript =
   fst . head . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
-        { txSkelOuts =
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts =
             [ paysPKWithReferenceScript
                 (walletPKHash recipient)
-                (Pl.lovelaceValueOf 20_000_000)
+                (Pl.lovelaceValueOf 1)
                 referencedScript
             ]
         }
@@ -113,12 +114,13 @@ putRefScriptOnScriptOutput recipient referencedScript =
   fst . head . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
-        { txSkelOuts =
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts =
             [ Pays $
                 ConcreteOutput
                   recipient
                   Nothing
-                  (Pl.lovelaceValueOf 20_000_000)
+                  (Pl.lovelaceValueOf 1)
                   (TxSkelOutDatum ())
                   (Just referencedScript)
             ]

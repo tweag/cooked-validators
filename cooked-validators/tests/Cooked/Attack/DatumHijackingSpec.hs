@@ -64,7 +64,7 @@ lockValue = L.lovelaceValueOf 12345678
 lockTxSkel :: Pl.TxOutRef -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
-    { txSkelOpts = def {adjustUnbalTx = True},
+    { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
       txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue]
     }
@@ -78,7 +78,7 @@ txLock v = do
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
 relockTxSkel v o =
   txSkelTemplate
-    { txSkelOpts = def {adjustUnbalTx = True},
+    { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ TxSkelRedeemerForScript (),
       txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
     }
