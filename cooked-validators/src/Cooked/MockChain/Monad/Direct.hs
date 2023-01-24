@@ -16,6 +16,7 @@ module Cooked.MockChain.Monad.Direct where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
+import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except
@@ -37,7 +38,6 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Debug.Trace
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import Ledger.Orphans ()
@@ -424,8 +424,35 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
 
           return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
 
-ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
-ensureTxSkelOutsMinAda = txSkelOutsL % traversed % txSkelOutValueL %~ ensureHasMinAda
+-- | Ensure that the transaction outputs have the necessary minimum amount of
+-- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
+-- @True@.
+ensureTxSkelOutsMinAda :: Monad m => TxSkel -> MockChainT m TxSkel
+ensureTxSkelOutsMinAda skel = do
+  theParams <- asks mceParams
+  case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
+    Left err -> throwError $ MCEGenerationError err
+    Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
+  where
+    ensureTxSkelOutHasMinAda :: Pl.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
+    ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
+      cardanoTxOut <- txSkelOutToCardanoTxOut theParams txSkelOut
+      let Pl.Lovelace oldAda = output ^. outputValueL % adaL
+          CardanoLedger.Coin requiredAda =
+            CardanoLedger.evaluateMinLovelaceOutput (Pl.emulatorPParams theParams)
+              . C.toShelleyTxOut C.ShelleyBasedEraBabbage
+              . C.toCtxUTxOTxOut
+              $ cardanoTxOut
+          updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Pl.Lovelace (max oldAda requiredAda)
+      -- The following iterative approach to calculate the minimum Ada amount
+      -- of a TxOut is necessary, because the additional value might make the
+      -- TxOut heavier.
+      --
+      -- It is inspired by
+      -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
+      if oldAda < requiredAda
+        then ensureTxSkelOutHasMinAda theParams updatedTxSkelOut
+        else return txSkelOut
 
 -- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate.
 txSkelInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
@@ -486,10 +513,10 @@ txSkelInputDatums skel = do
 -- /plutus-apps/.
 setFeeAndBalance :: Monad m => Pl.PubKeyHash -> TxSkel -> MockChainT m TxSkel
 setFeeAndBalance balancePK skel0 = do
-  let skel =
-        if adjustUnbalTx $ txSkelOpts skel0
-          then ensureTxSkelOutsMinAda skel0
-          else skel0
+  skel <-
+    if txOptEnsureMinAda . txSkelOpts $ skel0
+      then ensureTxSkelOutsMinAda skel0
+      else return skel0
   -- all UTxOs belonging to the balancing public key
   balancePKUtxos <-
     gets $

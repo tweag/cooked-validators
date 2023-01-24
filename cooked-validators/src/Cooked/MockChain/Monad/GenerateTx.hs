@@ -65,7 +65,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
   txInsReference <- txOutRefsToTxInsReference $ Set.toList (txSkelInsReference skel)
   txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM txSkelOutToCardanoTxOut $ txSkelOuts skel
+  txOuts <- mapM (txSkelOutToCardanoTxOut theParams) $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -256,20 +256,6 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
         toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
 
-    txSkelOutToCardanoTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToCardanoTxOut (Pays output) =
-      left (ToCardanoError "txSkelOutToTxOut") $
-        C.TxOut
-          <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
-            <*> Pl.toCardanoTxOutValue (outputValue output)
-            <*> ( case output ^. outputDatumL of
-                    TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
-                    TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                    TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
-                    TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
-                )
-            <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
-
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)
     txSkelMintsToTxMintValue mints =
@@ -324,3 +310,18 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                   SomeMintsRedeemer red -> Pl.toCardanoScriptData $ Pl.toBuiltinData red
               )
               Pl.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
+
+-- Convert a 'TxSkelOut' to the corresponding 'C.TxOut'.
+txSkelOutToCardanoTxOut :: Pl.Params -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+txSkelOutToCardanoTxOut theParams (Pays output) =
+  left (ToCardanoError "txSkelOutToTxOut") $
+    C.TxOut
+      <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
+        <*> Pl.toCardanoTxOutValue (outputValue output)
+        <*> ( case output ^. outputDatumL of
+                TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+                TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+                TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+                TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+            )
+        <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)

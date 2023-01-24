@@ -34,11 +34,11 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Ledger.Value as Pl
+import qualified Ledger.Value as Pl hiding (adaSymbol, adaToken)
 import Optics.Core
 import Optics.TH
 import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
+import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
 import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Prettyprinter (Doc, Pretty)
@@ -551,12 +551,12 @@ applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedT
 --
 -- TODO Refactor field names to avoid clashes on common terms such as "collateral" or "balance"
 data TxOpts = TxOpts
-  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
-    --  has the necessary minimum amount of Ada.
+  { -- | Performs an adjustment to unbalanced transactions, making sure every
+    -- UTxO that is produced has the necessary minimum amount of Ada.
     --
     -- By default, this is set to @False@, given this is the default behavior in Plutus:
     -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
-    adjustUnbalTx :: Bool,
+    txOptEnsureMinAda :: Bool,
     -- | When submitting a transaction for real (i.e., running in the 'Plutus.Contract.Contract' monad),
     --  it is common to call 'Plutus.Contract.Request.awaitTxConfirmed' after 'Plutus.Contract.Request.submitTxConstraints'.
     --  If you /do NOT/ wish to do so, please set this to @False@.
@@ -618,7 +618,7 @@ data TxOpts = TxOpts
 instance Default TxOpts where
   def =
     TxOpts
-      { adjustUnbalTx = False,
+      { txOptEnsureMinAda = False,
         awaitTxConfirmed = True,
         autoSlotIncrease = True,
         forceOutputOrdering = True,
@@ -1205,3 +1205,19 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
 negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, - n) else Nothing))
+
+-- | Focus the Ada part in a value. This is useful if you want to chcange only
+-- that part.
+adaL :: Lens' Pl.Value Pl.Ada
+adaL =
+  lens
+    Pl.fromValue
+    ( \value (Pl.Lovelace ada) ->
+        over
+          flattenValueI
+          (\l -> insertAssocList l (Pl.assetClass Pl.adaSymbol Pl.adaToken) ada)
+          value
+    )
+  where
+    insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
+    insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
