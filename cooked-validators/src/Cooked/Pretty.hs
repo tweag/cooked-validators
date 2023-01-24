@@ -68,8 +68,9 @@ module Cooked.Pretty where
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.MockChain.UtxoState
-import Cooked.MockChain.Wallet
-import Cooked.Tx.Constraints.Type
+import Cooked.Output
+import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
 import qualified Data.List as List
@@ -77,7 +78,6 @@ import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
 import qualified Ledger.Ada as Ada
@@ -108,8 +108,7 @@ prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
 prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> TxSkel -> Doc ()
-prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins insReference outs _fee) =
-  -- undefined
+prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins insReference outs) =
   prettyEnum
     "Transaction Skeleton:"
     "-"
@@ -150,9 +149,9 @@ prettyBalancingWallet w =
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: TxOpts -> NEList.NonEmpty Wallet -> [Doc ann]
-prettySigners TxOpts {balanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
   prettyBalancingWallet firstSigner : (prettyPubKeyHash . walletPKHash <$> signers)
-prettySigners TxOpts {balanceWallet = BalanceWith balancingWallet} signers =
+prettySigners TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
   aux (NEList.toList signers)
   where
     aux :: [Wallet] -> [Doc ann]
@@ -317,35 +316,34 @@ prettyValue =
 
 -- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
 -- If no non-default options are in the list, return nothing.
---  'awaitTxConfirmed' and 'forceOutputOrdering'
--- (these are deprecated, TODO) are never printed.
+--  'awaitTxConfirmed' is not printed.
 mPrettyTxOpts :: TxOpts -> Maybe (Doc ann)
 mPrettyTxOpts
   TxOpts
     { txOptEnsureMinAda,
-      autoSlotIncrease,
-      unsafeModTx,
-      balance,
-      balanceOutputPolicy,
-      balanceWallet
+      txOptAutoSlotIncrease,
+      txOptUnsafeModTx,
+      txOptBalance,
+      txOptBalanceOutputPolicy,
+      txOptBalanceWallet
     } =
     prettyEnumNonEmpty "Options:" "-" $
       catMaybes
-        [ prettyIfNot def prettyTxOptEnsureMinAda txOptEnsureMinAda,
-          prettyIfNot True prettyAutoSlotIncrease autoSlotIncrease,
-          prettyIfNot True prettyBalance balance,
-          prettyIfNot def prettyBalanceOutputPolicy balanceOutputPolicy,
-          prettyIfNot def prettyBalanceWallet balanceWallet,
-          prettyIfNot [] prettyUnsafeModTx unsafeModTx
+        [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
+          prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
+          prettyIfNot True prettyBalance txOptBalance,
+          prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
+          prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx
         ]
     where
       prettyIfNot :: Eq a => a -> (a -> Doc ann) -> a -> Maybe (Doc ann)
       prettyIfNot defaultValue f x
         | x == defaultValue = Nothing
         | otherwise = Just $ f x
-      prettyTxOptEnsureMinAda :: Bool -> Doc ann
-      prettyTxOptEnsureMinAda True = "TxOptEnsureMinAda (min Ada per transaction)"
-      prettyTxOptEnsureMinAda False = "No TxOptEnsureMinAda"
+      prettyEnsureMinAda :: Bool -> Doc ann
+      prettyEnsureMinAda True = "Adjust to ensure min Ada per transaction"
+      prettyEnsureMinAda False = "Don't adjust to ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> Doc ann
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"

@@ -5,9 +5,10 @@ import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.MinAdaSpec as MinAdaSpec
 import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
 import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
+import qualified Cooked.TweakSpec as TweakSpec
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
--- import qualified Cooked.MockChain.WalletSpec as WalletSpec
+-- import qualified Cooked.WalletSpec as WalletSpec
 -- import qualified Cooked.OutputReorderingSpec as OutputReorderingSpec
 -- import qualified Cooked.QuickValueSpec as QuickValueSpec
 import Test.Tasty
@@ -25,10 +26,11 @@ tests =
       -- testGroup "Staged monad" StagedSpec.tests,
       -- testGroup "UtxoState" UtxoStateSpec.tests,
       -- testGroup "Wallet" WalletSpec.tests,
-      testGroup "auto adjusting transactions" [MinAdaSpec.tests],
-      testGroup "Inline datums" [InlineDatumsSpec.tests],
-      testGroup "Reference inputs" [ReferenceInputsSpec.tests],
-      testGroup "Reference scripts" [ReferenceScriptsSpec.tests],
-      testGroup "Attack" AttackSpec.tests,
-      testGroup "Ltl" LtlSpec.tests
+      MinAdaSpec.tests,
+      InlineDatumsSpec.tests,
+      ReferenceInputsSpec.tests,
+      ReferenceScriptsSpec.tests,
+      AttackSpec.tests,
+      TweakSpec.tests,
+      LtlSpec.tests
     ]

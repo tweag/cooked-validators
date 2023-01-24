@@ -4,12 +4,12 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Wallet where
+module Cooked.Wallet where
 
-import qualified Cardano.Api as C
+import qualified Cardano.Api as Api
+import qualified Cardano.Api.Shelley as Api
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
-import Cooked.MockChain.Misc
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
@@ -19,7 +19,10 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as CW
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Crypto
+import qualified Ledger.Tx.CardanoAPI.Internal as Pl
 import qualified Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Tx as Pl (OutputDatum (..))
+import qualified PlutusTx as Pl
 import Unsafe.Coerce
 
 -- * MockChain Wallets
@@ -84,7 +87,7 @@ newtype HACK = HACK {please :: CWCrypto.XPrv}
 --  to make a PR into plutus exporting the things we need. If you use this anyway,
 --  make sure that you only apply it to @MockPrivateKey@; the function is polymorphic
 --  because @MockPrivateKey@ is not exported either; having a dedicated function makes
---  it easy to test that this works: check the @Cooked.MockChain.WalletSpec@ test module.
+--  it easy to test that this works: check the @Cooked.WalletSpec@ test module.
 hackUnMockPrivateKey :: a -> CWCrypto.XPrv
 hackUnMockPrivateKey = please . unsafeCoerce
 
@@ -182,6 +185,27 @@ initialTxFor initDist
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
 
     initDist' = M.toList $ distribution initDist
+
+    toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
+    toPlTxOut addr value datum = toPlTxOut' addr value datum'
+      where
+        datum' = maybe Pl.NoOutputDatum (Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData) datum
+
+    toPlTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Pl.TxOut
+    toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
+
+    toCardanoTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Api.TxOut Api.CtxTx Api.BabbageEra
+    toCardanoTxOut' addr value datum = Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
+      where
+        fromRight' x = case x of
+          Left err -> error $ show err
+          Right res -> res
+        cAddr = fromRight' $ Pl.toCardanoAddressInEra theNetworkId addr
+        cValue = fromRight' $ Pl.toCardanoTxOutValue value
+        cDatum = fromRight' $ Pl.toCardanoTxOutDatum datum
+
+    theNetworkId :: Api.NetworkId
+    theNetworkId = Api.Testnet $ Api.NetworkMagic 42 -- TODO PORT what's magic?
 
 valuesForWallet :: InitialDistribution -> Wallet -> [Pl.Value]
 valuesForWallet d w = fromMaybe [] $ w `M.lookup` distribution d

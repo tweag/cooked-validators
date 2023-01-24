@@ -5,7 +5,6 @@ module Cooked.MinAdaSpec where
 
 import Control.Monad
 import Cooked
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Ledger.Ada as Pl
 import qualified Ledger.Index as Pl

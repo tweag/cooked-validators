@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -10,7 +11,6 @@ module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
 import Cooked
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -173,9 +173,10 @@ useReferenceScript spendingSubmitter theScript = do
           }
   void $
     validateTxSkel
-      (txSkelSubmittedBy spendingSubmitter)
+      txSkelTemplate
         { txSkelIns = Map.singleton oref $ TxSkelRedeemerForReferencedScript (),
-          txSkelInsReference = Set.singleton scriptOref
+          txSkelInsReference = Set.singleton scriptOref,
+          txSkelSigners = [spendingSubmitter]
         }
 
 tests :: TestTree

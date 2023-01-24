@@ -12,9 +12,6 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Cooked
-import Cooked.Attack
-import Cooked.Tx.Constraints.Optics
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import Data.List (isPrefixOf)
 import qualified Data.Map as Map

@@ -6,12 +6,7 @@
 module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
-import Cooked.Attack
-import Cooked.Currencies
-import Cooked.Ltl
-import Cooked.MockChain
-import Cooked.Tx.Constraints
-import Cooked.Tx.Constraints.Type
+import Cooked
 import Data.Default
 import qualified Data.Set as Set
 import qualified Ledger.Ada as L

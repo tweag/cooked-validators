@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -11,8 +12,6 @@ module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
 import Cooked
-import Cooked.Pretty
-import Cooked.Tx.Constraints.Type
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -101,34 +100,31 @@ trace1 :: MonadBlockChain m => m ()
 trace1 = do
   (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
     utxosFromCardanoTx
-      <$> ( validateTxSkel $
-              ( txSkelSubmittedBy
-                  (wallet 2)
-              )
-                { txSkelOuts =
-                    [ paysScriptInlineDatum
-                        fooTypedValidator
-                        (FooDatum (walletPKHash (wallet 3)))
-                        (Pl.lovelaceValueOf 4_000_000),
-                      paysScript
-                        barTypedValidator
-                        ()
-                        (Pl.lovelaceValueOf 5_000_000)
-                    ]
-                }
-          )
+      <$> validateTxSkel
+        txSkelTemplate
+          { txSkelOuts =
+              [ paysScriptInlineDatum
+                  fooTypedValidator
+                  (FooDatum (walletPKHash (wallet 3)))
+                  (Pl.lovelaceValueOf 4_000_000),
+                paysScript
+                  barTypedValidator
+                  ()
+                  (Pl.lovelaceValueOf 5_000_000)
+              ],
+            txSkelSigners = [wallet 2]
+          }
   void $
-    validateTxSkel $
-      ( txSkelSubmittedBy
-          (wallet 3)
-      )
+    validateTxSkel
+      txSkelTemplate
         { txSkelIns = Map.singleton txOutRefBar $ TxSkelRedeemerForScript (),
           txSkelInsReference = Set.singleton txOutRefFoo,
           txSkelOuts =
             [ paysPK
                 (walletPKHash (wallet 4))
                 (Pl.lovelaceValueOf 5_000_000)
-            ]
+            ],
+          txSkelSigners = [wallet 3]
         }
 
 tests :: Tasty.TestTree

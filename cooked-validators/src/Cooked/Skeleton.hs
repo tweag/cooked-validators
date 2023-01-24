@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -12,11 +13,12 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Tx.Constraints.Type where
+module Cooked.Skeleton where
 
 import qualified Cardano.Api as C
 import Control.Monad
-import Cooked.MockChain.Wallet
+import Cooked.Output
+import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
@@ -56,400 +58,6 @@ import Type.Reflection
 -- - an 'L' for lenses
 --
 -- - an 'AT' for affine traversals
-
--- * 'IsOnchainOutput': UTxOs that can be used as transaction outputs
-
--- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
--- some information about who owns the output (a public key, a script...?) and
--- the datum (do we have an inline datum, a datum hash, nothing...?) to the type
--- level.
-class IsAbstractOutput o where
-  -- The owner type can be, in particular, a 'TypedValidator a' or a
-  -- 'PubkeyHash'
-  type OwnerType o
-  type DatumType o
-  type ValueType o
-  type ReferenceScriptType o
-  outputOwnerL :: Lens' o (OwnerType o)
-  outputStakingCredentialL :: Lens' o (Maybe Pl.StakingCredential)
-  outputDatumL :: Lens' o (DatumType o)
-  outputValueL :: Lens' o (ValueType o)
-  outputReferenceScriptL :: Lens' o (Maybe (ReferenceScriptType o))
-
-class ToCredential a where
-  toCredential :: a -> Pl.Credential
-
-instance ToCredential Pl.Credential where
-  toCredential = id
-
-instance ToCredential (Pl.TypedValidator a) where
-  toCredential = Pl.ScriptCredential . Pl.validatorHash
-
-instance ToCredential Pl.PubKeyHash where
-  toCredential = Pl.PubKeyCredential
-
-class ToOutputDatum a where
-  toOutputDatum :: a -> Pl.OutputDatum
-
-instance ToOutputDatum Pl.OutputDatum where
-  toOutputDatum = id
-
-instance ToOutputDatum Pl.Datum where
-  toOutputDatum = Pl.OutputDatum
-
-instance ToOutputDatum () where
-  toOutputDatum = const Pl.NoOutputDatum
-
-instance ToOutputDatum Pl.DatumHash where
-  toOutputDatum = Pl.OutputDatumHash
-
-instance Pl.ToData a => ToOutputDatum (ResolvedOrInlineDatum a) where
-  toOutputDatum (ResolvedOrInlineDatum x) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ x
-
-class ToValue a where
-  toValue :: a -> Pl.Value
-
-instance ToValue Pl.Value where
-  toValue = id
-
-instance ToValue Pl.Ada where
-  toValue = Pl.toValue
-
-class ToScript a where
-  toScript :: a -> Pl.Versioned Pl.Script
-
-instance ToScript (Pl.Versioned Pl.Script) where
-  toScript = id
-
-instance ToScript (Pl.Versioned Pl.Validator) where
-  toScript (Pl.Versioned (Pl.Validator script) version) = Pl.Versioned script version
-
-instance ToScript (Pl.TypedValidator a) where
-  toScript = toScript . Pl.vValidatorScript
-
-class ToScriptHash a where
-  toScriptHash :: a -> Pl.ScriptHash
-
-instance ToScriptHash Pl.ScriptHash where
-  toScriptHash = id
-
-instance ToScriptHash (Pl.Versioned Pl.Script) where
-  toScriptHash = Pl.scriptHash
-
-instance ToScriptHash (Pl.Versioned Pl.Validator) where
-  toScriptHash = toScriptHash . toScript
-
-instance ToScriptHash Pl.ValidatorHash where
-  toScriptHash (Pl.ValidatorHash h) = Pl.ScriptHash h
-
-instance ToScriptHash (Pl.TypedValidator a) where
-  toScriptHash = toScriptHash . Pl.validatorHash
-
--- | An output that can be translated into its script-perspective (as seen on the 'TxInfo') representation
-type IsOnchainOutput o =
-  ( IsAbstractOutput o,
-    ToCredential (OwnerType o),
-    ToOutputDatum (DatumType o),
-    ToValue (ValueType o),
-    ToScriptHash (ReferenceScriptType o)
-  )
-
-outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Pl.Address
-outputAddress out = Pl.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
-
-outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Pl.OutputDatum
-outputOutputDatum = toOutputDatum . (^. outputDatumL)
-
-outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Pl.Value
-outputValue = toValue . (^. outputValueL)
-
-outputReferenceScript :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
-outputReferenceScript = (toScriptHash <$>) . (^. outputReferenceScriptL)
-
--- | Return the output as it is seen by a validator. In particular the
--- correctness of this specification will depend on the 'IsOnchainOutput' instance, so
--- make sure you get these instances (in particular the functions 'outputAddress',
--- 'outputOutputDatum', and 'outputValue') right!
-outputTxOut :: IsOnchainOutput o => o -> Pl.TxOut
-outputTxOut o =
-  Pl.TxOut
-    (outputAddress o)
-    (outputValue o)
-    (outputOutputDatum o)
-    (outputReferenceScript o)
-
--- ** 'Pl.TxOut's are outputs
-
-instance IsAbstractOutput Pl.TxOut where
-  type OwnerType Pl.TxOut = Pl.Credential
-  type DatumType Pl.TxOut = Pl.OutputDatum
-  type ValueType Pl.TxOut = Pl.Value
-  type ReferenceScriptType Pl.TxOut = Pl.ScriptHash
-  outputOwnerL =
-    lensVL Pl.outAddress
-      % lens
-        Pl.addressCredential
-        (\addr cred -> addr {Pl.addressCredential = cred})
-  outputDatumL = lensVL Pl.outDatum
-  outputStakingCredentialL =
-    lens
-      (Pl.addressStakingCredential . Pl.txOutAddress)
-      ( \out mStCred ->
-          out {Pl.txOutAddress = (Pl.txOutAddress out) {Pl.addressStakingCredential = mStCred}}
-      )
-  outputValueL = lensVL Pl.outValue
-  outputReferenceScriptL = lensVL Pl.outReferenceScript
-
--- ** A concrete type for outputs
-
-data ConcreteOutput ownerType datumType valueType referenceScriptType where
-  ConcreteOutput ::
-    { concreteOutputOwner :: ownerType,
-      concreteOutputStakingCredential :: Maybe Pl.StakingCredential,
-      concreteOutputValue :: valueType,
-      concreteOutputDatum :: datumType,
-      concreteOutputReferenceScript :: Maybe referenceScriptType
-    } ->
-    ConcreteOutput ownerType datumType valueType referenceScriptType
-
-deriving instance (Show ownerType, Show datumType, Show valueType, Show referenceScriptType) => Show (ConcreteOutput ownerType datumType valueType referenceScriptType)
-
-deriving instance (Eq ownerType, Eq datumType, Eq valueType, Eq referenceScriptType) => Eq (ConcreteOutput ownerType datumType valueType referenceScriptType)
-
-instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenceScriptType) where
-  type OwnerType (ConcreteOutput ownerType datumType valueType referenceScriptType) = ownerType
-  type DatumType (ConcreteOutput ownerType datumType valueType referenceScriptType) = datumType
-  type ValueType (ConcreteOutput ownerType datumType valueType referenceScriptType) = valueType
-  type ReferenceScriptType (ConcreteOutput ownerType datumType valueType referenceScriptType) = referenceScriptType
-  outputOwnerL = lens concreteOutputOwner (\out owner -> out {concreteOutputOwner = owner})
-  outputStakingCredentialL = lens concreteOutputStakingCredential (\out mStCred -> out {concreteOutputStakingCredential = mStCred})
-  outputDatumL = lens concreteOutputDatum (\out datum -> out {concreteOutputDatum = datum})
-  outputValueL = lens concreteOutputValue (\out value -> out {concreteOutputValue = value})
-  outputReferenceScriptL = lens concreteOutputReferenceScript (\out mRefScript -> out {concreteOutputReferenceScript = mRefScript})
-
--- ** A few special concrete outputs
-
--- | A public key output without a datum
-type PKOutput = ConcreteOutput Pl.PubKeyHash () Pl.Value Pl.ScriptHash
-
--- | A public key output that only has Ada and no datum
-type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada Pl.ScriptHash
-
--- | A public key output where we don't know anything about the datum: It is a
--- general 'Pl.OutputDatum'
-type PKOutputMaybeDatum = ConcreteOutput Pl.PubKeyHash Pl.OutputDatum Pl.Value Pl.ScriptHash
-
--- | An output that belongs to a typed validator and has an inline datum of the
--- appropriate type.
-type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) Pl.Value Pl.ScriptHash
-
--- TODO et cetera
-
--- ** Functions to translate between different output types
-
-toOutputWithReferenceScriptHash ::
-  (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) =>
-  output ->
-  ConcreteOutput (OwnerType output) (DatumType output) (ValueType output) Pl.ScriptHash
-toOutputWithReferenceScriptHash out =
-  ConcreteOutput
-    (out ^. outputOwnerL)
-    (out ^. outputStakingCredentialL)
-    (out ^. outputValueL)
-    (out ^. outputDatumL)
-    (toScriptHash <$> out ^. outputReferenceScriptL)
-
--- | Test if there is no datum on an output. If there is no datum, return an
--- output with the same 'OwnerType', but with @()@ as its 'DatumType'.
-isOutputWithoutDatum ::
-  IsOnchainOutput output =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) () (ValueType output) (ReferenceScriptType output))
-isOutputWithoutDatum out = case outputOutputDatum out of
-  Pl.NoOutputDatum ->
-    Just $
-      ConcreteOutput
-        (out ^. outputOwnerL)
-        (out ^. outputStakingCredentialL)
-        (out ^. outputValueL)
-        ()
-        (out ^. outputReferenceScriptL)
-  _ -> Nothing
-
--- ** Functions to translate between different output types
-
--- | Test if the output carries some inlined datum (lose the type information
--- about the datum in favour of Plutus' 'Datum' type).
-isOutputWithInlineDatumUntyped ::
-  IsOnchainOutput output =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
-isOutputWithInlineDatumUntyped out =
-  case outputOutputDatum out of
-    Pl.OutputDatum datum ->
-      Just $
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          (out ^. outputValueL)
-          datum
-          (out ^. outputReferenceScriptL)
-    _ -> Nothing
-
--- | Test if the output carries some inlined datum.
-isOutputWithInlineDatum ::
-  IsOnchainOutput output =>
-  output ->
-  Maybe output
-isOutputWithInlineDatum out =
-  case outputOutputDatum out of
-    Pl.OutputDatum _ -> Just out
-    _ -> Nothing
-
--- | Test if the output carries some datum hash.
-isOutputWithDatumHash ::
-  IsOnchainOutput output =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.DatumHash (ValueType output) (ReferenceScriptType output))
-isOutputWithDatumHash out =
-  case outputOutputDatum out of
-    Pl.OutputDatumHash hash ->
-      Just $
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (Pl.addressStakingCredential . outputAddress $ out)
-          (out ^. outputValueL)
-          hash
-          (out ^. outputReferenceScriptL)
-    _ -> Nothing
-
--- | Test if the value carried by an output verifies a given predicate.
-isOutputWithValueSuchThat ::
-  IsAbstractOutput output =>
-  (ValueType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithValueSuchThat predicate out
-  | predicate (out ^. outputValueL) = Just out
-  | otherwise = Nothing
-
--- | Test if the datum carried by an output verifies a given predicate.
-isOutputWithDatumSuchThat ::
-  IsAbstractOutput output =>
-  (DatumType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithDatumSuchThat predicate out
-  | predicate (out ^. outputDatumL) = Just out
-  | otherwise = Nothing
-
--- | Wrapper type to make clear that the datum is a resolved or inline datum
-newtype ResolvedOrInlineDatum a = ResolvedOrInlineDatum a deriving (Show, Eq)
-
--- | Test if an output has an inline datum of a certain type. In most
--- applications, it will make sense to use this with 'filteredUtxosWithDatums',
--- and not with 'filteredUtxos'.
-isOutputWithDatumOfType ::
-  forall a output.
-  ( Pl.FromData a,
-    IsOnchainOutput output
-  ) =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) (ResolvedOrInlineDatum a) (ValueType output) (ReferenceScriptType output))
-isOutputWithDatumOfType out = case outputOutputDatum out of
-  Pl.OutputDatumHash _ -> Nothing
-  Pl.OutputDatum (Pl.Datum datum) ->
-    ConcreteOutput
-      (out ^. outputOwnerL)
-      (out ^. outputStakingCredentialL)
-      (out ^. outputValueL)
-      . ResolvedOrInlineDatum
-      <$> Pl.fromBuiltinData datum
-      <*> Just (out ^. outputReferenceScriptL)
-  Pl.NoOutputDatum -> Nothing
-
--- | Test if the owner an output is a specific script. If it is, return an
--- output with the validator type as its 'OwnerType'.
-isScriptOutputFrom ::
-  IsOnchainOutput output =>
-  Pl.TypedValidator a ->
-  output ->
-  Maybe (ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) (ReferenceScriptType output))
-isScriptOutputFrom validator out =
-  case outputAddress out of
-    Pl.Address (Pl.ScriptCredential scriptHash) mStCred ->
-      if scriptHash == Pl.validatorHash validator
-        then
-          Just $
-            ConcreteOutput
-              validator
-              mStCred
-              (out ^. outputValueL)
-              (out ^. outputDatumL)
-              (out ^. outputReferenceScriptL)
-        else Nothing
-    _ -> Nothing
-
--- | like 'isScriptOutputFrom', but also makes sure that the output has an
--- inline datum of the correct type. In most applications, it will make sense to
--- use this with 'filteredUtxosWithDatums', and not with 'filteredUtxos'.
-isScriptOutputFrom' ::
-  forall a output.
-  ( IsOnchainOutput output,
-    Pl.FromData (Pl.DatumType a),
-    ToOutputDatum (DatumType output),
-    Show (DatumType output),
-    ToValue (ValueType output),
-    Show (ValueType output)
-  ) =>
-  Pl.TypedValidator a ->
-  output ->
-  Maybe (ConcreteOutput (Pl.TypedValidator a) (ResolvedOrInlineDatum (Pl.DatumType a)) (ValueType output) (ReferenceScriptType output))
-isScriptOutputFrom' validator =
-  -- what's all this madness witht the type annotations?
-  isScriptOutputFrom @output @a validator
-    >=> isOutputWithDatumOfType @(Pl.DatumType a) @(ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) _)
-
--- | Test if the owner an output is a specific public key. If it is, return an
--- output of the same 'DatumType', but with 'Pl.PubKeyHash' as its 'OwnerType'.
-isPKOutputFrom ::
-  IsOnchainOutput output =>
-  Pl.PubKeyHash ->
-  output ->
-  Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output) (ValueType output) (ReferenceScriptType output))
-isPKOutputFrom pkh out = case outputAddress out of
-  Pl.Address (Pl.PubKeyCredential pkh') _mStCred ->
-    if pkh == pkh'
-      then
-        Just $
-          ConcreteOutput
-            pkh
-            (out ^. outputStakingCredentialL)
-            (out ^. outputValueL)
-            (out ^. outputDatumL)
-            (out ^. outputReferenceScriptL)
-      else Nothing
-  _ -> Nothing
-
--- | Test if the value on an output contains only Ada, and adapt the return type
--- accordingly if it is so.
-isOnlyAdaOutput ::
-  IsOnchainOutput output =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) (DatumType output) Pl.Ada (ReferenceScriptType output))
-isOnlyAdaOutput out =
-  if Pl.isAdaOnlyValue (outputValue out)
-    then
-      Just $
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          (Pl.fromValue $ outputValue out)
-          (out ^. outputDatumL)
-          (out ^. outputReferenceScriptL)
-    else Nothing
-
--- TODO et cetera
 
 -- * Transaction labels
 
@@ -563,21 +171,16 @@ data TxOpts = TxOpts
     --
     --  /This has NO effect when running outside of 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
-    awaitTxConfirmed :: Bool,
+    txOptAwaitTxConfirmed :: Bool,
     -- | Whether to increase the slot counter automatically on this submission.
     -- This is useful for modelling transactions that could be submitted in parallel in reality, so there
     -- should be no explicit ordering of what comes first. One good example is in the Crowdfunding use case contract.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     --  By default, this is set to @True@.
-    autoSlotIncrease :: Bool,
-    -- | Reorders the transaction outputs to fit the ordering of output
-    -- constraints. Those outputs are put at the very beginning of the list.
-    -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
-    --  By default, this is set to @True@.
-    forceOutputOrdering :: Bool,
+    txOptAutoSlotIncrease :: Bool,
     -- | Applies an arbitrary modification to a transaction after it has been
-    -- potentially adjusted ('adjustUnbalTx') and balanced. This is prefixed
+    -- potentially adjusted ('txOptEnsureMinAda) and balanced. This is prefixed
     -- with /unsafe/ to draw attention to the fact that modifying a transaction
     -- at that stage might make it invalid. Still, this offers a hook for being
     -- able to alter a transaction in unforeseen ways. It is mostly used to test
@@ -591,7 +194,7 @@ data TxOpts = TxOpts
     -- default, this is set to the empty list.
     --
     -- The leftmost function in the list is applied first.
-    unsafeModTx :: [RawModTx],
+    txOptUnsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not. Balancing
     --  ensures that @input + mint = output + fees + burns@, if you decide to
     --  set @balance = false@ you will have trouble satisfying that equation by
@@ -600,18 +203,18 @@ data TxOpts = TxOpts
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @True@.
-    balance :: Bool,
+    txOptBalance :: Bool,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- /This has NO effect when running in 'Plutus.Contract.Contract'/.
     -- By default, this is set to @AdjustExistingOutput@.
-    balanceOutputPolicy :: BalanceOutputPolicy,
+    txOptBalanceOutputPolicy :: BalanceOutputPolicy,
     -- | Which wallet to use to provide outputs for balancing and collaterals.
     -- Either the first signer by default, or an explicit wallet. In the second
     -- case, this wallet must be a signer of the transaction. This option WILL
     -- NOT ensure that it is added in case it is not already present in the
     -- list of signers.
-    balanceWallet :: BalancingWallet
+    txOptBalanceWallet :: BalancingWallet
   }
   deriving (Eq, Show)
 
@@ -619,13 +222,12 @@ instance Default TxOpts where
   def =
     TxOpts
       { txOptEnsureMinAda = False,
-        awaitTxConfirmed = True,
-        autoSlotIncrease = True,
-        forceOutputOrdering = True,
-        unsafeModTx = [],
-        balance = True,
-        balanceOutputPolicy = def,
-        balanceWallet = def
+        txOptAwaitTxConfirmed = True,
+        txOptAutoSlotIncrease = True,
+        txOptUnsafeModTx = [],
+        txOptBalance = True,
+        txOptBalanceOutputPolicy = def,
+        txOptBalanceWallet = def
       }
 
 -- * Description of the Minting
@@ -1099,8 +701,7 @@ data TxSkel where
       txSkelSigners :: NonEmpty Wallet,
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       txSkelInsReference :: Set Pl.TxOutRef,
-      txSkelOuts :: [TxSkelOut],
-      txSkelFee :: Integer -- Fee in Lovelace
+      txSkelOuts :: [TxSkelOut]
     } ->
     TxSkel
   deriving (Show, Eq)
@@ -1122,20 +723,16 @@ makeLensesFor
 -- | A convenience template where wallet 1 is the default signer of an
 -- otherwise empty transaction skeleton.
 txSkelTemplate :: TxSkel
-txSkelTemplate = txSkelSubmittedBy (wallet 1)
-
-txSkelSubmittedBy :: Wallet -> TxSkel
-txSkelSubmittedBy w =
+txSkelTemplate =
   TxSkel
     { txSkelLabel = Set.empty,
       txSkelOpts = def,
       txSkelMints = Map.empty,
       txSkelValidityRange = Pl.always,
-      txSkelSigners = w NEList.:| [],
+      txSkelSigners = wallet 1 NEList.:| [],
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
-      txSkelOuts = [],
-      txSkelFee = 0
+      txSkelOuts = []
     }
 
 -- | Return all data on transaction outputs.
@@ -1148,15 +745,17 @@ txSkelOutputData =
     )
     (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
 
+newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
+
 -- | The value in all transaction inputs, plus the negative parts of the minted
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Pl.Value
-txSkelOutputValue skel@TxSkel {txSkelMints = mints} =
+txSkelOutputValue :: TxSkel -> Fee -> Pl.Value
+txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
-    <> Pl.lovelaceValueOf (txSkelFee skel)
+    <> Pl.lovelaceValueOf (feeLovelace fees)
 
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
@@ -1221,3 +820,61 @@ adaL =
   where
     insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
     insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
+
+-- Various Optics on 'TxSkels' and all the other types defined in
+-- 'Cooked.Tx.Constraints.Type'.
+
+-- | Decide if a transaction output has a certain owner and datum type.
+txSkelOutOwnerTypeP ::
+  forall ownerType.
+  ( ToCredential ownerType,
+    Show ownerType,
+    IsTxSkelOutAllowedOwner ownerType,
+    Typeable ownerType
+  ) =>
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script))
+txSkelOutOwnerTypeP =
+  prism'
+    Pays
+    ( \(Pays output) ->
+        let owner = output ^. outputOwnerL
+         in case typeOf owner `eqTypeRep` typeRep @ownerType of
+              Just HRefl ->
+                Just $
+                  ConcreteOutput
+                    owner
+                    (output ^. outputStakingCredentialL)
+                    (output ^. outputValueL)
+                    (output ^. outputDatumL)
+                    (toScript <$> output ^. outputReferenceScriptL)
+              Nothing -> Nothing
+    )
+
+txSkelOutputDatumTypeAT ::
+  (Pl.FromData a, Typeable a) =>
+  AffineTraversal' TxSkelOut a
+txSkelOutputDatumTypeAT =
+  atraversal
+    ( \txSkelOut -> case txSkelOutDatumComplete txSkelOut of
+        Nothing -> Left txSkelOut
+        Just (Pl.Datum datum, _) -> case Pl.fromBuiltinData datum of
+          Just tyDatum -> Right tyDatum
+          Nothing -> Left txSkelOut
+    )
+    ( \(Pays output) newTyDatum ->
+        Pays $
+          over
+            outputDatumL
+            ( \case
+                TxSkelOutNoDatum -> TxSkelOutNoDatum
+                TxSkelOutDatum tyDatum -> TxSkelOutDatum $ replaceDatumOnCorrectType tyDatum newTyDatum
+                TxSkelOutDatumHash tyDatum -> TxSkelOutDatumHash $ replaceDatumOnCorrectType tyDatum newTyDatum
+                TxSkelOutInlineDatum tyDatum -> TxSkelOutInlineDatum $ replaceDatumOnCorrectType tyDatum newTyDatum
+            )
+            output
+    )
+  where
+    replaceDatumOnCorrectType :: (Typeable b, Typeable a) => b -> a -> b
+    replaceDatumOnCorrectType old new = case typeOf old `eqTypeRep` typeOf new of
+      Just HRefl -> new
+      Nothing -> old

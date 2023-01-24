@@ -10,9 +10,7 @@
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
-import Cooked.Attack
-import Cooked.MockChain
-import Cooked.Tx.Constraints.Type
+import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set

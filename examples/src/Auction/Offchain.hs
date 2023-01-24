@@ -1,14 +1,14 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Auction.Offchain where
 
 import qualified Auction as A
 import Control.Monad
-import Cooked.MockChain
-import Cooked.Tx.Constraints.Type
+import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Ledger as L
@@ -30,9 +30,10 @@ txOffer :: MonadBlockChain m => Wallet -> L.Value -> Integer -> m Pl.TxOutRef
 txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
-      (txSkelSubmittedBy seller)
+      txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot]
+          txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot],
+          txSkelSigners = [seller]
         }
   return . fst . (!! 0) . utxosFromCardanoTx $ tx
 
@@ -46,8 +47,9 @@ txSetDeadline submitter offerOref deadline = do
   Just (A.Offer seller minBid) <- typedDatumFromTxOutRef @(Pl.DatumType A.Auction) offerOref
   Just lot <- valueFromTxOutRef offerOref
   validateTxSkel $
-    (txSkelSubmittedBy submitter)
+    txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
+        txSkelSigners = [submitter],
         txSkelMints =
           txSkelMintsFromList
             [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
@@ -83,8 +85,9 @@ txBid submitter offerOref bid = do
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
   validateTxSkel $
-    (txSkelSubmittedBy submitter)
+    txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
+        txSkelSigners = [submitter],
         txSkelIns =
           Map.singleton oref $
             TxSkelRedeemerForScript
@@ -127,8 +130,9 @@ txHammer submitter offerOref = do
         Just lot <- valueFromTxOutRef offerOref
         void $
           validateTxSkel $
-            (txSkelSubmittedBy submitter)
+            txSkelTemplate
               { txSkelOpts = def {txOptEnsureMinAda = True},
+                txSkelSigners = [submitter],
                 txSkelIns =
                   Map.singleton offerOref $
                     TxSkelRedeemerForScript (A.Hammer offerOref),
@@ -142,8 +146,9 @@ txHammer submitter offerOref = do
           seller = A.getSeller datum
       void $
         validateTxSkel $
-          (txSkelSubmittedBy submitter)
+          txSkelTemplate
             { txSkelOpts = def {txOptEnsureMinAda = True},
+              txSkelSigners = [submitter],
               txSkelIns =
                 Map.singleton oref $
                   TxSkelRedeemerForScript (A.Hammer offerOref),

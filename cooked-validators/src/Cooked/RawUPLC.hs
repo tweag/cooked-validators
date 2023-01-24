@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Cooked.MockChain.RawUPLC where
+module Cooked.RawUPLC where
 
 import qualified Data.ByteString as BS
 import qualified Flat
