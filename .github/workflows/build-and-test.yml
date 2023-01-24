@@ -64,8 +64,7 @@ jobs:
         run: |
           ## REVIEW: There might be a way to just build all the devShells? Also,
           ## we might want to consider building all the package dependencies?
-          nix develop .#ci --command true
-          nix develop      --command true
+          nix develop -L --command true
 
   ## REVIEW: We could have `build-and-test` need `setup-nix-dependencies`. That
   ## would save work that is currently duplicated. However, this would make the
