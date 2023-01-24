@@ -7,9 +7,47 @@ on:
   pull_request:
 
 jobs:
+
+  cache-nix-dependencies:
+    name: Cache Nix dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3.3.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          ## Some flake caching
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Nix caches
+        uses: cachix/cachix-action@v11
+        with:
+          name: tweag-plutus-libs
+          ## This auth token will give write access to the cache, meaning that
+          ## everything that happens in CI will be
+          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+
+      - name: Build Nix environment
+        run: |
+          ## REVIEW: There might be a way to just build all the devShells? Also,
+          ## we might want to consider building all the package dependencies?
+          nix develop      --command true
+          nix develop .#ci --command true
+
+  ## REVIEW: We could have `build-and-test` need `setup-nix-dependencies`. That
+  ## would save work that is currently duplicated. However, this would make the
+  ## CI quite slower because it would have to re-download things; it would also
+  ## need to first build all the devShells (and not only `ci`) before running
+  ## the rest.
+  ##
   build-and-test:
     name: Build and run tests
     runs-on: ubuntu-latest
+
     steps:
     - name: Check out repository code (from PR).
       uses: actions/checkout@v3.3.0
@@ -20,7 +58,13 @@ jobs:
         ## Some flake caching
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      
+
+    - name: Setup Nix caches
+      uses: cachix/cachix-action@v11
+      with:
+        name: tweag-plutus-libs
+        ## No auth token: read-only access.
+
     ## Example from
     ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
@@ -51,6 +95,7 @@ jobs:
     needs: build-and-test
     name: Check tests output
     runs-on: ubuntu-latest
+
     steps:
     - name: Accessing tests output
       uses: actions/download-artifact@v3
@@ -65,7 +110,7 @@ jobs:
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)
-            if [[ "$res" != "0" ]]; then 
+            if [[ "$res" != "0" ]]; then
               is_ok=false
             fi
           done
@@ -83,4 +128,3 @@ jobs:
         else
           exit 1
         fi
-

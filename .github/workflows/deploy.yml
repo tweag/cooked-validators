@@ -21,7 +21,13 @@ jobs:
         ## Some flake caching
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      
+
+    - name: Setup Nix caches
+      uses: cachix/cachix-action@v11
+      with:
+        name: tweag-plutus-libs
+        ## No auth token: read-only access.
+
     ## Example from
     ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
