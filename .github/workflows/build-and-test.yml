@@ -37,7 +37,7 @@ jobs:
 
       - name: Build Nix CI environment
         run: |
-          nix develop .#ci --command true
+          nix build .#devShells.x86_64-linux.ci
 
   cache-all-nix-dependencies:
     name: Cache all Nix dependencies
@@ -68,7 +68,8 @@ jobs:
         run: |
           ## REVIEW: There might be a way to just build all the devShells? Also,
           ## we might want to consider building all the package dependencies?
-          nix develop --print-build-logs --max-jobs 1 --command true
+          nix build .#devShells.x86_64-linux.ci
+          nix build .#devShells.x86_64-linux.default
 
   build-and-test:
     name: Build and run tests
