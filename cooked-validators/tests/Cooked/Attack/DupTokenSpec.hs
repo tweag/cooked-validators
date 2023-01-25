@@ -59,7 +59,7 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
     skel =
       let mints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName, amount)]
           mintedValue = txSkelMintsValue mints
-       in def
+       in txSkelTemplate
             { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelMints = mints,
               txSkelOuts = [paysPK (walletPKHash recipient) mintedValue]
@@ -78,7 +78,7 @@ tests =
             ac1 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol1) tName1
             ac2 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol2) tName2
             skelIn =
-              def
+              txSkelTemplate
                 { txSkelMints =
                     txSkelMintsFromList
                       [ (pol1, NoMintsRedeemer, tName1, NonZero 5),
@@ -94,7 +94,7 @@ tests =
               let increment = L.assetClassValue ac1 (v1 - 5) <> L.assetClassValue ac2 (v2 - 7)
                in [ Right
                       ( increment,
-                        def
+                        txSkelTemplate
                           { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                             txSkelMints =
                               txSkelMintsFromList
@@ -140,7 +140,7 @@ tests =
             ac1 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol) tName1
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
-              def
+              txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, NonZero 1)],
                   txSkelOuts =
                     [ paysPK
@@ -151,7 +151,7 @@ tests =
             skelExpected =
               [ Right
                   ( L.assetClassValue ac1 1,
-                    def
+                    txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, NonZero 2)],
                         txSkelOuts =

@@ -14,7 +14,7 @@ tests =
     "building blocks for tweaks"
     [ testGroup "overMaybeSelectingTweak" $
         let skel =
-              def
+              txSkelTemplate
                 { txSkelOuts =
                     [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 123),
                       paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 234),
@@ -33,7 +33,7 @@ tests =
               testCase "select applied modification by index" $
                 [ Right
                     ( [L.lovelaceValueOf 345],
-                      def
+                      txSkelTemplate
                         { txSkelOuts =
                             [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 123),
                               paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 234),
@@ -58,7 +58,7 @@ tests =
                     ( [ L.lovelaceValueOf 123,
                         L.lovelaceValueOf 345
                       ],
-                      def
+                      txSkelTemplate
                         { txSkelOuts =
                             [ paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 789),
                               paysPK (walletPKHash $ wallet 1) (L.lovelaceValueOf 234),

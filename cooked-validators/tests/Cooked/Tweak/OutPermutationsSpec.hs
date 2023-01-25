@@ -67,7 +67,7 @@ tests =
                   ],
       testGroup "tests for PermutOutTweakMode:" $
         let [a, b, c] = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 3]
-            skel x y z = def {txSkelOuts = [x, y, z]}
+            skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
                   (map (Right . ((),)) [skel a b c, skel b a c])
@@ -87,7 +87,7 @@ tests =
             ],
       testGroup "tests for a single random outputs permutation:" $
         let l = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 5]
-            runs = txSkelOuts . snd <$> rights ((\i -> runTweak (singleOutPermutTweak i) def {txSkelOuts = l}) =<< [1 .. 5])
+            runs = txSkelOuts . snd <$> rights ((\i -> runTweak (singleOutPermutTweak i) txSkelTemplate {txSkelOuts = l}) =<< [1 .. 5])
          in [ testCase "All permutations contain the correct elements" $
                 mapM_ (assertSameSets l) runs,
               testCase "All permutations are different from the initial distribution" $

@@ -682,17 +682,17 @@ makeLensesFor
 
 -- | A convenience template where wallet 1 is the default signer of an
 -- otherwise empty transaction skeleton.
-instance Default TxSkel where
-  def =
-    TxSkel
-      { txSkelLabel = Set.empty,
-        txSkelOpts = def,
-        txSkelMints = Map.empty,
-        txSkelValidityRange = Pl.always,
-        txSkelSigners = wallet 1 NEList.:| [],
-        txSkelIns = Map.empty,
-        txSkelOuts = []
-      }
+txSkelTemplate :: TxSkel
+txSkelTemplate =
+  TxSkel
+    { txSkelLabel = Set.empty,
+      txSkelOpts = def,
+      txSkelMints = Map.empty,
+      txSkelValidityRange = Pl.always,
+      txSkelSigners = wallet 1 NEList.:| [],
+      txSkelIns = Map.empty,
+      txSkelOuts = []
+    }
 
 -- | Return all data on transaction outputs.
 txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, Doc ())
