@@ -35,17 +35,17 @@ redirectScriptOutputTweak ::
     Show (L.DatumType a),
     Pl.ToData (L.DatumType a)
   ) =>
-  Optic' k is TxSkel (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value) ->
+  Optic' k is TxSkel (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script)) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value -> Maybe (L.TypedValidator a)) ->
+  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script) -> Maybe (L.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value]
+  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script)]
 redirectScriptOutputTweak optic change =
   overMaybeSelectingTweak
     optic
@@ -79,12 +79,12 @@ datumHijackingAttack ::
   ) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
-  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value -> Bool) ->
+  (ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script) -> Bool) ->
   -- | The selection predicate may match more than one output, restrict to the
   -- i-th of the output(s) (counting from the left, starting at zero) chosen by
   -- the selection predicate with this predicate.
   (Integer -> Bool) ->
-  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value]
+  m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script)]
 datumHijackingAttack change select = do
   redirected <-
     redirectScriptOutputTweak

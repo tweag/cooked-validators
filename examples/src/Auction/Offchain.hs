@@ -11,7 +11,6 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
-import Data.Maybe
 import qualified Ledger as L
 import qualified Ledger.Ada as Ada
 import qualified Ledger.Interval as Interval
@@ -36,14 +35,7 @@ txOffer seller lot minBid = do
           txSkelOuts = [paysScript A.auctionValidator (A.Offer (walletPKHash seller) minBid) lot],
           txSkelSigners = [seller]
         }
-  return . head
-    . mapMaybe
-      ( \(oref, out) -> case isScriptOutputFrom A.auctionValidator out of
-          Nothing -> Nothing
-          Just _ -> Just oref
-      )
-    . utxosFromCardanoTx
-    $ tx
+  return . fst . (!! 0) . utxosFromCardanoTx $ tx
 
 -- | Start an auction by setting the bidding deadline. This transaction consumes
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
@@ -66,7 +58,7 @@ txSetDeadline submitter offerOref deadline = do
                 NonZero 1
               )
             ],
-        txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript @A.Auction A.SetDeadline,
+        txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript A.SetDeadline,
         txSkelOuts =
           [ paysScript
               A.auctionValidator
@@ -78,12 +70,6 @@ txSetDeadline submitter offerOref deadline = do
 previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
 previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
-
-resolveOutputDatum ::
-  MonadBlockChainWithoutValidation m =>
-  output ->
-  m (Maybe (ConcreteOutput (OwnerType output) L.Datum (ValueType output)))
-resolveOutputDatum = undefined
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
@@ -105,7 +91,6 @@ txBid submitter offerOref bid = do
         txSkelIns =
           Map.singleton oref $
             TxSkelRedeemerForScript
-              @A.Auction
               (A.Bid (A.BidderInfo bid (walletPKHash submitter))),
         txSkelOuts =
           case previousBidder datum of
@@ -150,7 +135,7 @@ txHammer submitter offerOref = do
                 txSkelSigners = [submitter],
                 txSkelIns =
                   Map.singleton offerOref $
-                    TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),
+                    TxSkelRedeemerForScript (A.Hammer offerOref),
                 txSkelOuts = [paysPK seller lot]
               }
     (oref, output) : _ -> do
@@ -166,7 +151,7 @@ txHammer submitter offerOref = do
               txSkelSigners = [submitter],
               txSkelIns =
                 Map.singleton oref $
-                  TxSkelRedeemerForScript @A.Auction (A.Hammer offerOref),
+                  TxSkelRedeemerForScript (A.Hammer offerOref),
               txSkelMints =
                 txSkelMintsFromList
                   [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
