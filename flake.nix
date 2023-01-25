@@ -1,6 +1,7 @@
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
+
   outputs = { self, nixpkgs, flake-utils, }:
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -58,4 +59,11 @@
           };
         };
       });
+
+  nixConfig = {
+    extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
+    extra-trusted-public-keys = [
+      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
+    ];
+  };
 }

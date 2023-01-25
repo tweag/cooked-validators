@@ -1,4 +1,6 @@
-name: Build and test
+---
+
+name: CI
 
 on:
   push:
@@ -7,9 +9,73 @@ on:
   pull_request:
 
 jobs:
+
+  cache-minimal-nix-dependencies:
+    name: Cache minimal Nix dependencies
+
+    runs-on: ubuntu-latest
+    needs: []
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3.3.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          extra_nix_config: |
+            ## Access token to avoid triggering GitHub's rate limiting.
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Nix caches
+        uses: cachix/cachix-action@v11
+        with:
+          name: tweag-plutus-libs
+          ## This auth token will give write access to the cache, meaning that
+          ## everything that happens in CI will be pushed at the end of the job.
+          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+
+      - name: Build Nix CI environment
+        run: |
+          nix develop .#ci --command true
+
+  cache-all-nix-dependencies:
+    name: Cache all Nix dependencies
+
+    runs-on: ubuntu-latest
+    needs: cache-minimal-nix-dependencies
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3.3.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          extra_nix_config: |
+            ## Access token to avoid triggering GitHub's rate limiting.
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Nix caches
+        uses: cachix/cachix-action@v11
+        with:
+          name: tweag-plutus-libs
+          ## This auth token will give write access to the cache, meaning that
+          ## everything that happens in CI will be pushed at the end of the job.
+          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+
+      - name: Build all Nix environments
+        run: |
+          ## REVIEW: There might be a way to just build all the devShells? Also,
+          ## we might want to consider building all the package dependencies?
+          nix develop --print-build-logs --max-jobs 1 --command true
+
   build-and-test:
     name: Build and run tests
+
     runs-on: ubuntu-latest
+    needs: cache-minimal-nix-dependencies
+
     steps:
     - name: Check out repository code (from PR).
       uses: actions/checkout@v3.3.0
@@ -17,10 +83,16 @@ jobs:
     - name: Install nix.
       uses: cachix/install-nix-action@v18
       with:
-        ## Some flake caching
         extra_nix_config: |
+          ## Access token to avoid triggering GitHub's rate limiting.
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      
+
+    - name: Setup Nix caches
+      uses: cachix/cachix-action@v11
+      with:
+        name: tweag-plutus-libs
+        ## No auth token: read-only access.
+
     ## Example from
     ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
@@ -48,9 +120,11 @@ jobs:
           ./*.res
 
   check-result:
-    needs: build-and-test
     name: Check tests output
+
     runs-on: ubuntu-latest
+    needs: build-and-test
+
     steps:
     - name: Accessing tests output
       uses: actions/download-artifact@v3
@@ -65,7 +139,7 @@ jobs:
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)
-            if [[ "$res" != "0" ]]; then 
+            if [[ "$res" != "0" ]]; then
               is_ok=false
             fi
           done
@@ -83,4 +157,3 @@ jobs:
         else
           exit 1
         fi
-
