@@ -1,3 +1,5 @@
+name: Build and test
+
 on:
   push:
     branches:
@@ -6,72 +8,64 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and test
+    name: Build and run tests
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository code (from PR).
-      uses: actions/checkout@v2.4.0
+      uses: actions/checkout@v3.3.0
 
     - name: Install nix.
-      uses: cachix/install-nix-action@v15
+      uses: cachix/install-nix-action@v18
       with:
-        nix_path: nixpkgs=channel:nixos-unstable
-      # Would using cachix help in anyway? I think we are not building anything, we're
-      # only fetching things from cache.nixos.org and iohk.cachix.org
-      # - uses: cachix/cachix-action@v10
-      #   with:
-      #     name: plutus-libs
-      #     authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      
+        ## Some flake caching
+        extra_nix_config: |
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+    ## Example from
+    ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
+          ~/.cabal/packages
           ~/.cabal/store
           dist-newstyle
-        key: cabal-cache-0-${{ github.sha }}
-        restore-keys: |
-          cabal-cache-0-
+        key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+        restore-keys: ${{ runner.os }}-
 
-    - name: Accessing the result cache
-      uses: actions/cache@v2
+    - name: Build and run tests
+      run: |
+        nix flake check
+        nix develop .#ci --command cabal update
+        nix develop .#ci --command bash ci/run-tests.sh --ci
+
+    - name: Upload tests output
+      uses: actions/upload-artifact@v3
       with:
+        name: plutus-libs-checks
         path: |
           ./*.out
           ./*.res
-        key: result-cache-${{ github.sha }}
-
-    - name: Chmod test script.
-      run: |
-        chmod u+x ci/run-tests.sh
-
-    - name: Build and test
-      uses: ./.github/actions/nix-run
-      with:
-        command: ./ci/run-tests.sh --ci
 
   check-result:
     needs: build-and-test
-    name: check-result
+    name: Check tests output
     runs-on: ubuntu-latest
     steps:
-    - name: Accessing the result cache
-      uses: actions/cache@v2
+    - name: Accessing tests output
+      uses: actions/download-artifact@v3
       with:
-        path: |
-          ./*.out
-          ./*.res
-        key: result-cache-${{ github.sha }}
+        name: plutus-libs-checks
 
-    - name: Check result
+    - name: Check tests output
       run: |
         is_ok=true
-        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
-          for step in "hpack" "ormolu" "cabal-build" "cabal-test"; do
+        for proj in "examples" "cooked-validators"; do
+          for step in "cabal-build" "cabal-test"; do
             echo "!! [$proj]: output from $step"
             cat $proj-$step.out
             res=$(cat $proj-$step.res | cut -d':' -f2)
-            if [[ "$res" != "0" ]]; then 
+            if [[ "$res" != "0" ]]; then
               is_ok=false
             fi
           done
@@ -79,7 +73,7 @@ jobs:
 
         ## Because there will be a lot of tests, we print a summary of the results
         echo "Summary of results (1 is failure)"
-        for proj in "examples" "cooked-validators" "pirouette-plutusir"; do
+        for proj in "examples" "cooked-validators"; do
           echo "Summary for: $proj"
           cat ${proj}-*.res
         done
