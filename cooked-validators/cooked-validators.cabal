@@ -51,6 +51,7 @@ library
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-shelley
     , cardano-wallet-core
     , containers
     , data-default
@@ -100,6 +101,9 @@ test-suite spec
       Cooked.AttackSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
+      Cooked.MinAdaSpec
+      Cooked.ReferenceInputsSpec
+      Cooked.ReferenceScriptsSpec
       Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
@@ -116,6 +120,7 @@ test-suite spec
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-shelley
     , cardano-wallet-core
     , containers
     , cooked-validators

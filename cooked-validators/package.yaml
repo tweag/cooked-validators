@@ -13,6 +13,7 @@ dependencies:
   - bytestring
   - cardano-api
   - cardano-crypto
+  - cardano-ledger-shelley
   - cardano-wallet-core
   - containers
   - data-default
@@ -25,6 +26,7 @@ dependencies:
   - hashable
   - hedgehog-quickcheck
   - lens
+  - list-t
   - memory
   - monad-control
   - mtl
@@ -49,7 +51,6 @@ dependencies:
   - tasty-quickcheck
   - text
   - transformers
-  - list-t
 
 library:
   source-dirs: src

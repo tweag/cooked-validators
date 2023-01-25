@@ -108,8 +108,7 @@ prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
 prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> TxSkel -> Doc ()
-prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins outs) =
-  -- undefined
+prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins insReference outs) =
   prettyEnum
     "Transaction Skeleton:"
     "-"
@@ -121,6 +120,7 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
           prettyEnumNonEmpty "Signers:" "-" (prettySigners opts signers),
           -- TODO handle unsafe 'fromJust' better
           prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn managedTxOuts managedDatums) $ Map.toList ins),
+          prettyEnumNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference managedTxOuts managedDatums) $ Set.toList insReference),
           prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
         ]
     )
@@ -196,22 +196,58 @@ prettyTxSkelOut (Pays output) =
     ("Pays to" <+> prettyAddress (outputAddress output))
     "-"
     ( prettyValue (outputValue output) :
-      case outputOutputDatum output of
-        Pl.OutputDatum _datum ->
-          [ "Datum (inlined):"
-              <+> (PP.align . PP.pretty)
-                (output ^. outputDatumL)
-          ]
-        Pl.OutputDatumHash _datum ->
-          [ "Datum (hashed):"
-              <+> (PP.align . PP.pretty)
-                (output ^. outputDatumL)
-          ]
-        Pl.NoOutputDatum -> []
+      catMaybes
+        [ case outputOutputDatum output of
+            Pl.OutputDatum _datum ->
+              Just $
+                "Datum (inlined):"
+                  <+> (PP.align . PP.pretty)
+                    (output ^. outputDatumL)
+            Pl.OutputDatumHash _datum ->
+              Just $
+                "Datum (hashed):"
+                  <+> (PP.align . PP.pretty)
+                    (output ^. outputDatumL)
+            Pl.NoOutputDatum -> Nothing,
+          getReferenceScriptDoc output
+        ]
     )
 
 prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ())
 prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
+  (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
+  let redeemerDoc =
+        case txSkelRedeemer of
+          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> PP.viaShow redeemer)
+          _ -> Nothing
+  return $
+    prettyEnum
+      ("Spends from" <+> prettyAddress (outputAddress output))
+      "-"
+      (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc, getReferenceScriptDoc output])
+
+prettyTxSkelInReference :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> Pl.TxOutRef -> Maybe (Doc ())
+prettyTxSkelInReference managedTxOuts managedDatums txOutRef = do
+  (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
+
+  return $
+    prettyEnum
+      ("References output from" <+> prettyAddress (outputAddress output))
+      "-"
+      (prettyValue (outputValue output) : catMaybes [datumDoc, getReferenceScriptDoc output])
+
+getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => output -> Maybe (Doc ann)
+getReferenceScriptDoc output =
+  case output ^. outputReferenceScriptL of
+    Nothing -> Nothing
+    Just refScript -> Just $ "Reference script hash:" <+> prettyHash (toScriptHash refScript)
+
+lookupOutputWithDatumDoc ::
+  Map Pl.TxOutRef Pl.TxOut ->
+  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Pl.TxOutRef ->
+  Maybe (Pl.TxOut, Maybe (Doc ()))
+lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
   datumDoc <-
     case outputOutputDatum output of
@@ -224,15 +260,7 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
           (_, datumDoc) <- Map.lookup datumHash managedDatums
           return $ Just ("Datum (hashed):" <+> PP.align datumDoc)
       Pl.NoOutputDatum -> return Nothing
-  let redeemerDoc =
-        case txSkelRedeemer of
-          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> PP.viaShow redeemer)
-          _ -> Nothing
-  return $
-    prettyEnum
-      ("Spends from" <+> prettyAddress (outputAddress output))
-      "-"
-      (prettyValue (outputValue output) : catMaybes [redeemerDoc, datumDoc])
+  return (output, datumDoc)
 
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9

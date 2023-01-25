@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -12,6 +13,7 @@ import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
 import Data.Default
+import Data.Foldable
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -64,8 +66,9 @@ generateTxBodyContent ::
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
-  txInsCollateral <- spOutsToTxInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM txSkelOutToCardanoTxOut $ txSkelOuts skel
+  txInsReference <- txOutRefsToTxInsReference $ Set.toList (txSkelInsReference skel)
+  txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
+  txOuts <- mapM (txSkelOutToCardanoTxOut theParams) $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -102,10 +105,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     C.TxBodyContent
       { C.txIns = txIns,
         C.txInsCollateral = txInsCollateral,
-        -- We don't yet support reference inputs. If you add this
-        -- functionality, remember that both the 'txIns' and 'txInsReference'
-        -- fields have to change!
-        C.txInsReference = C.TxInsReferenceNone,
+        C.txInsReference = txInsReference,
         C.txOuts = txOuts,
         C.txTotalCollateral = txTotalCollateral,
         -- WARN For now we are not dealing with return collateral
@@ -127,7 +127,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     throwOnNothing :: e -> Maybe a -> Either e a
     throwOnNothing err = maybe (Left err) Right
 
-    -- Convert a 'TxSkel' input, which consists of a 'SpendableOut' and a
+    -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
     -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
     -- you add reference inputs, don't forget to also update the
     -- 'txInsReference'!
@@ -140,32 +140,85 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
             C.BuildTx
             (C.Witness C.WitCtxTxIn C.BabbageEra)
         )
-    txSkelInToTxIn (txOutRef, TxSkelNoRedeemerForPK) =
+    txSkelInToTxIn (txOutRef, txSkelRedeemer) = do
+      witness <- mkWitness txSkelRedeemer
       bimap
-        (ToCardanoError "txSkelIntoTxIn, translating 'SpendsPK' outRef")
-        (,C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)
-        $ Pl.toCardanoTxIn txOutRef
-    txSkelInToTxIn (txOutRef, redeemer) = do
-      witness <- mkWitness
-      bimap
-        (ToCardanoError "txSkelIntoTxIn, translating 'SpendsScript' outRef")
+        (ToCardanoError "txSkelIntoTxIn, translating TxOutRef")
         (,C.BuildTxWith witness)
         $ Pl.toCardanoTxIn txOutRef
       where
-        mkWitness :: Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)
-        mkWitness = do
+        resolveScriptOutputOwnerAndDatum ::
+          Either
+            GenerateTxError
+            ( Pl.ValidatorHash,
+              Pl.Versioned Pl.Validator,
+              C.ScriptDatum C.WitCtxTxIn
+            )
+        resolveScriptOutputOwnerAndDatum = do
           txOut <-
             throwOnNothing
-              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown txOutRef")
+              (GenerateTxErrorGeneral "txSkelInToTxIn: Unknown txOutRef")
               (Map.lookup txOutRef managedTxOuts)
           validatorHash <-
-            case txOut of
-              Pl.TxOut (Pl.Address (Pl.ScriptCredential validatorHash) _) _ _ _ -> Right validatorHash
-              _ -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: tx output is not a script output")
+            case outputAddress txOut of
+              (Pl.Address (Pl.ScriptCredential validatorHash) _) -> Right validatorHash
+              _ -> Left (GenerateTxErrorGeneral "txSkelInToTxIn: Output is not a script output")
           validator <-
             throwOnNothing
-              (GenerateTxErrorGeneral "txSkelIntoTxIn: Unknown validator")
+              (GenerateTxErrorGeneral "txSkelInToTxIn: Unknown validator")
               (Map.lookup validatorHash managedValidators)
+          datum <-
+            case outputOutputDatum txOut of
+              Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelInToTxIn: No datum found on script output")
+              Pl.OutputDatum _datum -> Right C.InlineScriptDatum
+              Pl.OutputDatumHash datumHash ->
+                throwOnNothing
+                  (GenerateTxErrorGeneral "txSkelInToTxIn: Datum hash could not be resolved")
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum . fst <$> managedData Map.!? datumHash)
+          return (validatorHash, validator, datum)
+
+        mkWitness :: TxSkelRedeemer -> Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)
+        mkWitness TxSkelNoRedeemerForPK = Right $ C.KeyWitness C.KeyWitnessForSpending
+        mkWitness (TxSkelRedeemerForReferencedScript redeemer) = do
+          (validatorHash, validator, datum) <- resolveScriptOutputOwnerAndDatum
+          validatorOref <-
+            throwOnNothing
+              (GenerateTxErrorGeneral "txSkelInToTxIn: Can't find reference script. In order to use a reference script, you must include the output where it is stored in the 'txSkelInsReference'.")
+              $ find
+                ( \oref -> case Map.lookup oref managedTxOuts of
+                    Nothing -> False
+                    Just output -> case output ^. outputReferenceScriptL of
+                      Nothing -> False
+                      Just scriptHash -> scriptHash == toScriptHash validator
+                )
+                (txSkelInsReference skel)
+          validatorTxIn <-
+            left
+              (ToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits")
+              $ Pl.toCardanoTxIn validatorOref
+          scriptHash <-
+            left
+              (ToCardanoError "txSkelInToTxIn: could not convert script hash of referenced script")
+              (Pl.toCardanoScriptHash validatorHash)
+          let scriptWitnessBuilder = case validator of
+                Pl.Versioned _ Pl.PlutusV1 ->
+                  C.PlutusScriptWitness
+                    C.PlutusScriptV1InBabbage
+                    C.PlutusScriptV1
+                    (C.PReferenceScript validatorTxIn (Just scriptHash))
+                Pl.Versioned _ Pl.PlutusV2 ->
+                  C.PlutusScriptWitness
+                    C.PlutusScriptV2InBabbage
+                    C.PlutusScriptV2
+                    (C.PReferenceScript validatorTxIn (Just scriptHash))
+          return $
+            C.ScriptWitness C.ScriptWitnessForSpending $
+              scriptWitnessBuilder
+                datum
+                (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
+                Pl.zeroExecutionUnits -- We can't guess that yet, no?
+        mkWitness (TxSkelRedeemerForScript redeemer) = do
+          (_validatorHash, validator, datum) <- resolveScriptOutputOwnerAndDatum
           scriptWitnessBuilder <-
             case validator of
               Pl.Versioned (Pl.Validator script) Pl.PlutusV1 ->
@@ -178,51 +231,33 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                   (ToCardanoError "txSkelIntoTxIn, translating to Cardano API PlutusV2 script")
                   (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
                   (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
-          let (Pl.TxOut _ _ outputDatum _) = txOut
-          datum <-
-            case outputDatum of
-              Pl.NoOutputDatum -> Left (GenerateTxErrorGeneral "txSkelIntoTxIn: No datum found on script output")
-              Pl.OutputDatum _datum -> Right C.InlineScriptDatum
-              Pl.OutputDatumHash datumHash ->
-                throwOnNothing
-                  (GenerateTxErrorGeneral "txSkelIntoTxIn: Datum hash could not be resolved")
-                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum . fst <$> managedData Map.!? datumHash)
           return $
             C.ScriptWitness C.ScriptWitnessForSpending $
               scriptWitnessBuilder
                 datum
-                ( Pl.toCardanoScriptData $ case redeemer of
-                    TxSkelNoRedeemerForScript -> Pl.toBuiltinData Pl.unitRedeemer
-                    TxSkelRedeemerForScript red -> Pl.toBuiltinData red
-                    TxSkelNoRedeemerForPK -> error "'TxSkelNoRedeemerForPK' on script input. This cannot happen, as we excluded it with an earlier pattern match"
-                )
+                (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
                 Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
-    -- Convert a list of 'SpendableOut' into a 'C.TxInsCollateral'
-    spOutsToTxInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
-    spOutsToTxInsCollateral =
-      left (ToCardanoError "spOutsToTxInCollateral")
+    -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsReference'
+    txOutRefsToTxInsReference :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsReference C.BuildTx C.BabbageEra)
+    txOutRefsToTxInsReference =
+      bimap
+        (ToCardanoError "txOutRefsToTxInsReference")
+        ( \case
+            [] -> C.TxInsReferenceNone
+            txIns -> C.TxInsReference C.ReferenceTxInsScriptsInlineDatumsInBabbageEra txIns
+        )
+        . mapM Pl.toCardanoTxIn
+
+    -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsCollateral'
+    txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
+    txOutRefsToTxSkelInsCollateral =
+      left (ToCardanoError "txOutRefsToTxInCollateral")
         . Pl.toCardanoTxInsCollateral
         . (toPKTxInput <$>)
       where
         toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
         toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
-
-    txSkelOutToCardanoTxOut :: TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-    txSkelOutToCardanoTxOut txSkelOut =
-      left
-        (ToCardanoError "txSkelOutToTxOut, translating 'Pays'")
-        ( Pl.toCardanoTxOut
-            (Pl.pNetworkId theParams)
-            ( const $ case txSkelOut of
-                Pays output -> case output ^. outputDatumL of
-                  TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
-                  TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                  TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
-                  TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
-            )
-            $ txSkelOutToTxOut txSkelOut
-        )
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)
@@ -278,3 +313,18 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                   SomeMintsRedeemer red -> Pl.toCardanoScriptData $ Pl.toBuiltinData red
               )
               Pl.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
+
+-- Convert a 'TxSkelOut' to the corresponding 'C.TxOut'.
+txSkelOutToCardanoTxOut :: Pl.Params -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+txSkelOutToCardanoTxOut theParams (Pays output) =
+  left (ToCardanoError "txSkelOutToTxOut") $
+    C.TxOut
+      <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
+        <*> Pl.toCardanoTxOutValue (outputValue output)
+        <*> ( case output ^. outputDatumL of
+                TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+                TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+                TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+                TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+            )
+        <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)

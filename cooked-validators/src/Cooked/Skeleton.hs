@@ -36,17 +36,28 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Ledger.Value as Pl
+import qualified Ledger.Value as Pl hiding (adaSymbol, adaToken)
 import Optics.Core
 import Optics.TH
 import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut)
+import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
 import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Prettyprinter (Doc, Pretty)
 import qualified Prettyprinter as PP
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
+
+-- For Template Haskell reasons, the most intersting thing in this module (the
+-- definition of 'TxSkel') is at the very bottom of this file
+--
+-- We'll use TH to generate optics for the types in this file, and the naming
+-- convention will be that the optic's names will be the corresponding field's
+-- names, followed by
+--
+-- - an 'L' for lenses
+--
+-- - an 'AT' for affine traversals
 
 -- * Transaction labels
 
@@ -148,8 +159,8 @@ applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedT
 --
 -- TODO Refactor field names to avoid clashes on common terms such as "collateral" or "balance"
 data TxOpts = TxOpts
-  { -- | Performs an adjustment to unbalanced txs, making sure every UTxO that is produced
-    --  has the necessary minimum amount of Ada.
+  { -- | Performs an adjustment to unbalanced transactions, making sure every
+    -- UTxO that is produced has the necessary minimum amount of Ada.
     --
     -- By default, this is set to @False@, given this is the default behavior in Plutus:
     -- https://github.com/input-output-hk/plutus-apps/issues/143#issuecomment-1013012744
@@ -410,23 +421,24 @@ instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
 
 data TxSkelOut where
   Pays ::
-    ( IsOutput o,
-      Show (OwnerType o),
+    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
+      IsOnchainOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum, -- see the [note on TxSkelOutData]
-      ValueType o ~ Pl.Value -- needed for the 'txSkelOutValueL'
+      ValueType o ~ Pl.Value, -- needed for the 'txSkelOutValueL'
+      ToScript (ReferenceScriptType o)
     ) =>
     {producedOutput :: o} ->
     TxSkelOut
-
-deriving instance Show TxSkelOut
 
 -- | Since we mostly care about whether the transaction outputs are the same
 -- on-chain, this is sufficient:
 instance Eq TxSkelOut where
   (==) = (==) `on` txSkelOutToTxOut
+
+deriving instance Show TxSkelOut
 
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
 txSkelOutValueL =
@@ -552,7 +564,28 @@ txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntype
 
 -- | Pay a certain value to a public key, without using a datum.
 paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh value = Pays (ConcreteOutput pkh Nothing value TxSkelOutNoDatum)
+paysPK pkh value =
+  Pays
+    ( ConcreteOutput
+        pkh
+        Nothing
+        value
+        TxSkelOutNoDatum
+        (Nothing @(Pl.TypedValidator Pl.Any))
+    )
+
+-- | Pay a certain value to a public key, without a datum, but including a
+-- reference script. This can be used to put reference scripts on chain.
+paysPKWithReferenceScript :: Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
+paysPKWithReferenceScript pkh value refScript =
+  Pays
+    ( ConcreteOutput
+        pkh
+        Nothing
+        value
+        TxSkelOutNoDatum
+        (Just refScript)
+    )
 
 -- | Pays a script a certain value with a certain datum, which will be included
 -- as a datum hash on the transaction.
@@ -575,6 +608,7 @@ paysScript validator datum value =
         Nothing
         value
         (TxSkelOutDatum datum)
+        (Nothing @(Pl.TypedValidator Pl.Any))
     )
 
 -- | Like 'paysScript', but using an inline datum.
@@ -597,6 +631,7 @@ paysScriptInlineDatum validator datum value =
         Nothing
         value
         (TxSkelOutInlineDatum datum)
+        (Nothing @(Pl.TypedValidator Pl.Any))
     )
 
 -- | Like 'paysScript', but won't include the complete datum on the
@@ -621,35 +656,38 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
+        (Nothing @(Pl.TypedValidator Pl.Any))
     )
 
 -- * Redeemers for transaction inputs
 
-type SpendsScriptConstrs a =
-  ( Pl.ToData (Pl.RedeemerType a),
-    Show (Pl.RedeemerType a),
-    Pl.Eq (Pl.RedeemerType a),
-    Typeable (Pl.RedeemerType a)
+type SpendsScriptConstrs redeemer =
+  ( Pl.ToData redeemer,
+    Show redeemer,
+    Pl.Eq redeemer,
+    Typeable redeemer
   )
 
 data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
-  TxSkelNoRedeemerForScript :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: SpendsScriptConstrs a => Pl.RedeemerType a -> TxSkelRedeemer
+  TxSkelRedeemerForScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForReferencedScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
 
 txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
 
 instance Eq TxSkelRedeemer where
   TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
-  TxSkelNoRedeemerForScript == TxSkelNoRedeemerForScript = True
   (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 Pl.== r2
       Nothing -> False
+  (TxSkelRedeemerForReferencedScript r1) == (TxSkelRedeemerForReferencedScript r2) =
+    TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
   _ == _ = False
 
 -- * Transaction skeletons
@@ -662,6 +700,7 @@ data TxSkel where
       txSkelValidityRange :: Pl.POSIXTimeRange,
       txSkelSigners :: NonEmpty Wallet,
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
+      txSkelInsReference :: Set Pl.TxOutRef,
       txSkelOuts :: [TxSkelOut]
     } ->
     TxSkel
@@ -674,6 +713,7 @@ makeLensesFor
     ("txSkelValidityRange", "txSkelValidityRangeL"),
     ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
+    ("txSkelInsReference", "txSkelInsReferenceL"),
     ("txSkelInsCollateral", "txSkelInsCollateralL"),
     ("txSkelOuts", "txSkelOutsL"),
     ("txSkelFee", "txSkelFeeL")
@@ -691,6 +731,7 @@ txSkelTemplate =
       txSkelValidityRange = Pl.always,
       txSkelSigners = wallet 1 NEList.:| [],
       txSkelIns = Map.empty,
+      txSkelInsReference = Set.empty,
       txSkelOuts = []
     }
 
@@ -764,6 +805,22 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 negativePart :: Pl.Value -> Pl.Value
 negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, -n) else Nothing))
 
+-- | Focus the Ada part in a value. This is useful if you want to chcange only
+-- that part.
+adaL :: Lens' Pl.Value Pl.Ada
+adaL =
+  lens
+    Pl.fromValue
+    ( \value (Pl.Lovelace ada) ->
+        over
+          flattenValueI
+          (\l -> insertAssocList l (Pl.assetClass Pl.adaSymbol Pl.adaToken) ada)
+          value
+    )
+  where
+    insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
+    insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
+
 -- Various Optics on 'TxSkels' and all the other types defined in
 -- 'Cooked.Tx.Constraints.Type'.
 
@@ -775,7 +832,7 @@ txSkelOutOwnerTypeP ::
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType
   ) =>
-  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value)
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays
@@ -789,6 +846,7 @@ txSkelOutOwnerTypeP =
                     (output ^. outputStakingCredentialL)
                     (output ^. outputValueL)
                     (output ^. outputDatumL)
+                    (toScript <$> output ^. outputReferenceScriptL)
               Nothing -> Nothing
     )
 

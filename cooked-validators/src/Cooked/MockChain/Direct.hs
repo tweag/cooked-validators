@@ -15,6 +15,8 @@
 module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Api.Shelley as C
+import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except
@@ -423,40 +425,75 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
 
           return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
 
-ensureTxSkelOutsMinAda :: TxSkel -> TxSkel
-ensureTxSkelOutsMinAda = txSkelOutsL % traversed % txSkelOutValueL %~ ensureHasMinAda
+-- | Ensure that the transaction outputs have the necessary minimum amount of
+-- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
+-- @True@.
+ensureTxSkelOutsMinAda :: Monad m => TxSkel -> MockChainT m TxSkel
+ensureTxSkelOutsMinAda skel = do
+  theParams <- asks mceParams
+  case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
+    Left err -> throwError $ MCEGenerationError err
+    Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
+  where
+    ensureTxSkelOutHasMinAda :: Pl.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
+    ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
+      cardanoTxOut <- txSkelOutToCardanoTxOut theParams txSkelOut
+      let Pl.Lovelace oldAda = output ^. outputValueL % adaL
+          CardanoLedger.Coin requiredAda =
+            CardanoLedger.evaluateMinLovelaceOutput (Pl.emulatorPParams theParams)
+              . C.toShelleyTxOut C.ShelleyBasedEraBabbage
+              . C.toCtxUTxOTxOut
+              $ cardanoTxOut
+          updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Pl.Lovelace (max oldAda requiredAda)
+      -- The following iterative approach to calculate the minimum Ada amount
+      -- of a TxOut is necessary, because the additional value might make the
+      -- TxOut heavier.
+      --
+      -- It is inspired by
+      -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
+      if oldAda < requiredAda
+        then ensureTxSkelOutHasMinAda theParams updatedTxSkelOut
+        else return txSkelOut
 
--- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate. This goes
--- through all of the 'Pl.TxOutRef's on the 'txSkelIn's and looks them up in the
--- 'mcstIndex'. If any 'Pl.TxOutRef' can't be resolved, an error is thrown.
+-- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate.
 txSkelInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
-txSkelInputUtxos skel = do
-  let outRefs = Map.keys $ txSkelIns skel
-  txSkelUtxos <-
-    mapM
+txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
+
+-- | Get all UTxOs that the TxSkel references from the 'MockChainSt'ate.
+txSkelReferenceInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxos = lookupUtxos . Set.toList . txSkelInsReference
+
+-- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
+-- 'mcstIndex'. If any 'Pl.TxOutRef' can't be resolved, throw an error.
+lookupUtxos :: Monad m => [Pl.TxOutRef] -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxos outRefs =
+  Map.fromList
+    <$> mapM
       ( \oRef -> do
           mOut <- gets $ Map.lookup oRef . Pl.getIndex . mcstIndex
           out <- case mOut of
             Nothing ->
               throwError $
                 MCEUnknownOutRefError
-                  "txSkelInputUtxos: Transaction input unknown"
+                  "lookupUtxos: Transaction input unknown"
                   oRef
-            Just out -> return out
+            Just out -> do
+              -- Debug.Trace.traceM $ case Pl.txOutReferenceScript out of
+              --   C.ReferenceScriptNone -> ""
+              --   C.ReferenceScript _ script -> "there is an actual script here"
+              return out
           return (oRef, out)
       )
       outRefs
-  return $ Map.fromList txSkelUtxos
 
--- | Look up the outputs the transaction consumes, and sum the value contained
--- in them.
+-- | Look up the UTxOs the transaction consumes, and sum the value contained in
+-- them.
 txSkelInputValue :: Monad m => TxSkel -> MockChainT m Pl.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
   return $ foldMap Pl.txOutValue txSkelInputs
 
--- | Look up the outputs the transaction consumes, and sum the value contained
--- in them.
+-- | Look up the data on UTxOs the transaction consumes.
 txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
 txSkelInputDatums skel = do
   txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
@@ -488,10 +525,11 @@ txSkelInputDatums skel = do
 --  minimum Ada amount, if the 'txOptEnsureMinAda option is @True@.
 setFeeAndBalance :: (Monad m) => Pl.PubKeyHash -> TxSkel -> MockChainT m (TxSkel, Fee)
 setFeeAndBalance balancePK skel0 = do
-  let skel =
-        if txOptEnsureMinAda $ txSkelOpts skel0
-          then ensureTxSkelOutsMinAda skel0
-          else skel0
+  -- do the min Ada adjustment if it's requested
+  skel <-
+    if txOptEnsureMinAda . txSkelOpts $ skel0
+      then ensureTxSkelOutsMinAda skel0
+      else return skel0
   -- all UTxOs belonging to the balancing public key
   balancePKUtxos <-
     gets $
@@ -501,8 +539,9 @@ setFeeAndBalance balancePK skel0 = do
         . mcstIndex
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
-  mockChainParams <- asks mceParams
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelUtxos <> balancePKUtxos of
+  -- all UTxOs that the txSkel references.
+  txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
+  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
@@ -511,7 +550,7 @@ setFeeAndBalance balancePK skel0 = do
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
       let startingFee = Fee 3000000
-      calcFee 5 startingFee cUtxoIndex mockChainParams skel
+      calcFee 5 startingFee cUtxoIndex skel
         `catchError` \case
           -- Impossible to balance the transaction
           MCEUnbalanceable _ BalCalcFee _ ->
@@ -521,7 +560,7 @@ setFeeAndBalance balancePK skel0 = do
             -- implementation of "Pl.minFee" is a constant of 10 lovelace.
             -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
             let minFee = Fee 10 -- forall tx. Pl.minFee tx = 10 lovelace
-             in calcFee 5 minFee cUtxoIndex mockChainParams skel
+             in calcFee 5 minFee cUtxoIndex skel
           -- Impossible to generate the Cardano transaction at all
           e -> throwError e
   where
@@ -532,16 +571,16 @@ setFeeAndBalance balancePK skel0 = do
       Int ->
       Fee ->
       Pl.UTxO Pl.EmulatorEra ->
-      Pl.Params ->
       TxSkel ->
       MockChainT m (TxSkel, Fee)
-    calcFee n fee cUtxoIndex parms skel = do
+    calcFee n fee cUtxoIndex skel = do
       let bPol = txOptBalanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skel fee
       manageData <- gets mcstDatums
       managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
       managedValidators <- gets mcstValidators
-      case estimateTxSkelFee parms cUtxoIndex manageData managedTxOuts managedValidators attemptedSkel fee of
+      theParams <- asks mceParams
+      case estimateTxSkelFee theParams cUtxoIndex manageData managedTxOuts managedValidators attemptedSkel fee of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -556,7 +595,7 @@ setFeeAndBalance balancePK skel0 = do
             pure (attemptedSkel, max newFee fee) -- maximum number of iterations
           | otherwise -> do
             -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-            calcFee (n - 1) newFee cUtxoIndex parms skel
+            calcFee (n - 1) newFee cUtxoIndex skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
@@ -569,7 +608,7 @@ estimateTxSkelFee ::
   TxSkel ->
   Fee ->
   Either MockChainError Fee
-estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel fee = do
+estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators skel fee = do
   txBodyContent <-
     left MCEGenerationError $
       generateTxBodyContent def {gtpFee = fee} params managedData managedTxOuts managedValidators skel
@@ -580,7 +619,7 @@ estimateTxSkelFee params utxo managedData managedTxOuts managedValidators skel f
           Left err -> MCEValidationError err
           Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
       )
-      $ Pl.makeTransactionBody params utxo (Pl.CardanoBuildTx txBodyContent)
+      $ Pl.makeTransactionBody params cUtxoIndex (Pl.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
     C.Lovelace fee -> pure $ Fee fee
 
@@ -739,6 +778,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
               case ( isPKOutputFrom balancePK
                        >=> isOnlyAdaOutput
                        >=> isOutputWithoutDatum
+                       >=> Just . toOutputWithReferenceScriptHash
                    )
                 output of
                 Nothing -> Nothing
