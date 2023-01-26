@@ -27,7 +27,7 @@ jobs:
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Nix caches
-      uses: cachix/cachix-action@v11
+      uses: cachix/cachix-action@v12
       with:
         name: tweag-plutus-libs
         ## No auth token: read-only access.
