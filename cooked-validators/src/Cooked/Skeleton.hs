@@ -879,3 +879,8 @@ txSkelOutputDatumTypeAT =
     replaceDatumOnCorrectType old new = case typeOf old `eqTypeRep` typeOf new of
       Just HRefl -> new
       Nothing -> old
+
+data SkelContext = SkelContext
+  { skelContextTxOuts :: Map Pl.TxOutRef Pl.TxOut,
+    skelContextDatumDocs :: Map Pl.DatumHash (Pl.Datum, DocCooked)
+  }

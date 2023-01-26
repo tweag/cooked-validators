@@ -10,6 +10,7 @@ import Control.Monad
 import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
+import Cooked.Pretty
 import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
@@ -145,8 +146,8 @@ testAllSatisfiesFrom ::
   prop
 testAllSatisfiesFrom f = testSatisfiesFrom' (testAll go)
   where
-    go :: (Either MockChainError (a, UtxoState), TraceDescr) -> prop
-    go (prop, tr) = testCounterexample (show tr) (f prop)
+    go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
+    go (prop, mcLog) = testCounterexample (renderMockChainLog mcLog) (f prop)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes, both of which
 -- are successful and have their resulting states related by a given predicate. A typical
@@ -165,9 +166,9 @@ testBinaryRelatedBy rel = testSatisfiesFrom' $ \case
   [(ra, ta), (rb, tb)] -> case (ra, rb) of
     (Right resA, Right resB) -> rel (snd resA) (snd resB)
     (Left errA, Right _) ->
-      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", show errA, "\n", show ta]
+      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", show errA, "\n", renderMockChainLog ta]
     (Right _, Left errB) ->
-      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", show errB, "\n", show tb]
+      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", show errB, "\n", renderMockChainLog tb]
     (Left errA, Left errB) ->
       testFailureMsg $
         concat
@@ -176,9 +177,9 @@ testBinaryRelatedBy rel = testSatisfiesFrom' $ \case
             "; ",
             show errB,
             "\n First: ",
-            show ta,
+            renderMockChainLog ta,
             "\nSecond: ",
-            show tb
+            renderMockChainLog tb
           ]
   xs -> testFailureMsg $ "Expected exactly two outcomes, received: " ++ show (length xs)
 
@@ -199,13 +200,13 @@ testOneEquivClass ::
 testOneEquivClass rel = testSatisfiesFrom' $ \case
   [] -> testFailureMsg "Expected two of more outcomes, received: 0"
   [_] -> testFailureMsg "Expected two of more outcomes, received: 1"
-  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", show errX, "\n", show tx]
+  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", show errX, "\n", renderMockChainLog tx]
   ((Right resX, _) : xs) -> go (snd resX) xs
   where
     -- we can flag a success here because 'xs' above is guarnateed to have at least
     -- one element since we ruled out the empty and the singleton lists in the \case
     go _resX [] = testSuccess
-    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", show errY, "\n", show ty]
+    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", show errY, "\n", renderMockChainLog ty]
     go resX ((Right (_, resY), _) : ys) = testConjoin [rel resX resY, go resX ys]
 
 -- | Asserts that the results produced by running the given 'StagedMockChain' from
@@ -217,7 +218,7 @@ testOneEquivClass rel = testSatisfiesFrom' $ \case
 -- it can be useful in building some custom predicates. Check 'testAllSatisfiesFrom'
 -- or 'testBinaryRelatedBy' for examples on using this.
 testSatisfiesFrom' ::
-  ([(Either MockChainError (a, UtxoState), TraceDescr)] -> prop) ->
+  ([(Either MockChainError (a, UtxoState), MockChainLog)] -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop

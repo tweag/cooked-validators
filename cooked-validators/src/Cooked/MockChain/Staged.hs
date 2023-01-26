@@ -20,16 +20,12 @@ import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty
+import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import Data.Map (Map)
 import qualified Ledger as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
-import Prettyprinter (Doc, (<+>))
-import qualified Prettyprinter as PP
-import qualified Prettyprinter.Render.String as PP
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -39,17 +35,23 @@ import qualified Prettyprinter.Render.String as PP
 interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
-  [(res, TraceDescr)]
+  [(res, MockChainLog)]
 interpretAndRunWith f smc = runWriterT $ f $ interpret smc
 
 interpretAndRun ::
   StagedMockChain a ->
-  [(Either MockChainError (a, UtxoState), TraceDescr)]
+  [(Either MockChainError (a, UtxoState), MockChainLog)]
 interpretAndRun = interpretAndRunWith runMockChainT
+
+data MockChainLogEntry
+  = MockChainLogValidateTxSkel SkelContext TxSkel
+  | MockChainLogFail String
+
+type MockChainLog = [MockChainLogEntry]
 
 -- | The semantic domain in which 'StagedMockChain' gets interpreted; see
 --  the 'interpret' function for more.
-type InterpMockChain = MockChainT (WriterT TraceDescr [])
+type InterpMockChain = MockChainT (WriterT MockChainLog [])
 
 -- | The 'interpret' function gives semantics to our traces. One
 --  'StagedMockChain' computation yields a potential list of 'MockChainT'
@@ -71,7 +73,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, Doc ()))
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to
@@ -120,7 +122,13 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
             managedDatums = mcstDatums mcst
         (_, skel') <- lift $ runTweakInChain now skel
-        lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ ValidateTxSkel skel'
+        lift $
+          lift $
+            tell
+              [ MockChainLogValidateTxSkel
+                  (SkelContext managedTxOuts managedDatums)
+                  skel'
+              ]
         tx <- validateTxSkel skel'
         put later
         return tx
@@ -135,10 +143,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
-    mcst <- lift get
-    let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
-        managedDatums = mcstDatums mcst
-    lift $ lift $ tell $ prettyMockChainOp managedTxOuts managedDatums $ Builtin $ Fail msg
+    lift $ lift $ tell [MockChainLogFail msg]
     fail msg
 
 -- ** Helpers to run tweaks for use in tests for tweaks
@@ -199,39 +204,3 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel
-
--- * Human Readable Traces
-
--- | Generates a 'TraceDescr'iption for the given operation; we're mostly interested in seeing
---  the transactions that were validated, so many operations have no description.
-prettyMockChainOp :: Map Pl.TxOutRef PV2.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> MockChainOp a -> TraceDescr
-prettyMockChainOp managedTxOuts managedDatums (Builtin (ValidateTxSkel skel)) =
-  trSingleton $
-    PP.hang 2 $
-      PP.vsep ["ValidateTxSkel", prettyTxSkel managedTxOuts managedDatums skel]
-prettyMockChainOp _ _ (Builtin (Fail reason)) =
-  trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
-prettyMockChainOp _ _ _ = mempty
-
--- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
---  two reasons (check 'ShowS' if you're confused about how this works, its the same idea).
---    1) Naturally, these make for efficient concatenation
---    2) More importantly, this makes it easy to define the empty 'TraceDescr'
---       as @TraceDescr id@ instead of relying on 'PP.emptyDoc', which generates
---       empty lines when used with 'PP.vsep'. This avoids generating these empty lines
-newtype TraceDescr = TraceDescr {trApp :: [Doc ()] -> [Doc ()]}
-
-trSingleton :: Doc ann -> TraceDescr
-trSingleton d = TraceDescr (void d :)
-
-instance Show TraceDescr where
-  show (TraceDescr gen) =
-    let tr = gen []
-        numbered = zipWith (\n d -> PP.pretty n <> ")" <+> PP.align d) [1 :: Integer ..] tr
-     in PP.renderString . PP.layoutPretty PP.defaultLayoutOptions $ PP.vsep numbered
-
-instance Semigroup TraceDescr where
-  x <> y = TraceDescr $ trApp x . trApp y
-
-instance Monoid TraceDescr where
-  mempty = TraceDescr id

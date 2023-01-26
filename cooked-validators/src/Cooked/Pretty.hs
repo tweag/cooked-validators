@@ -56,6 +56,7 @@ module Cooked.Pretty where
 
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -77,6 +78,7 @@ import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
+import qualified Prettyprinter.Render.String as PP
 import Test.QuickCheck (NonZero)
 import Test.Tasty.QuickCheck (NonZero (..))
 
@@ -97,8 +99,29 @@ prettyEnumNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe (DocCooked)
 prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
-prettyTxSkel :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, DocCooked) -> TxSkel -> DocCooked
-prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange signers ins insReference outs) =
+prettyEnumerate :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
+prettyEnumerate title bullet items =
+  PP.vsep
+    [ title,
+      PP.indent 2 . PP.vsep $
+        zipWith (\index item -> PP.pretty index <> bullet <+> PP.align item) [1 :: Int ..] items
+    ]
+
+renderMockChainLog :: MockChainLog -> String
+renderMockChainLog = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyMockChainLog
+
+prettyMockChainLog :: MockChainLog -> DocCooked
+prettyMockChainLog =
+  prettyEnumerate "MockChain run:" "."
+    . map prettyMockChainLogEntry
+
+prettyMockChainLogEntry :: MockChainLogEntry -> DocCooked
+prettyMockChainLogEntry (MockChainLogValidateTxSkel skelContext skel) =
+  prettyTxSkel skelContext skel
+prettyMockChainLogEntry (MockChainLogFail msg) = "Fail:" <+> PP.pretty msg
+
+prettyTxSkel :: SkelContext -> TxSkel -> DocCooked
+prettyTxSkel skelContext (TxSkel lbl opts mints validityRange signers ins insReference outs) =
   prettyEnum
     "Transaction Skeleton:"
     "-"
@@ -109,8 +132,8 @@ prettyTxSkel managedTxOuts managedDatums (TxSkel lbl opts mints validityRange si
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyEnumNonEmpty "Signers:" "-" (prettySigners opts signers),
           -- TODO handle unsafe 'fromJust' better
-          prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn managedTxOuts managedDatums) $ Map.toList ins),
-          prettyEnumNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference managedTxOuts managedDatums) $ Set.toList insReference),
+          prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn skelContext) $ Map.toList ins),
+          prettyEnumNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference skelContext) $ Set.toList insReference),
           prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut <$> outs)
         ]
     )
@@ -201,9 +224,9 @@ prettyTxSkelOut (Pays output) =
         ]
     )
 
-prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, DocCooked) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (DocCooked)
-prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
-  (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
+prettyTxSkelIn :: SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (DocCooked)
+prettyTxSkelIn skelContext (txOutRef, txSkelRedeemer) = do
+  (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
   let redeemerDoc =
         case txSkelRedeemer of
           TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> prettyCooked redeemer)
@@ -214,10 +237,9 @@ prettyTxSkelIn managedTxOuts managedDatums (txOutRef, txSkelRedeemer) = do
       "-"
       (prettyCooked (outputValue output) : catMaybes [redeemerDoc, datumDoc, getReferenceScriptDoc output])
 
-prettyTxSkelInReference :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, DocCooked) -> Pl.TxOutRef -> Maybe DocCooked
-prettyTxSkelInReference managedTxOuts managedDatums txOutRef = do
-  (output, datumDoc) <- lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef
-
+prettyTxSkelInReference :: SkelContext -> Pl.TxOutRef -> Maybe DocCooked
+prettyTxSkelInReference skelContext txOutRef = do
+  (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
   return $
     prettyEnum
       ("References output from" <+> prettyCooked (outputAddress output))
@@ -231,11 +253,10 @@ getReferenceScriptDoc output =
     Just refScript -> Just $ "Reference script hash:" <+> prettyHash (toScriptHash refScript)
 
 lookupOutputWithDatumDoc ::
-  Map Pl.TxOutRef Pl.TxOut ->
-  Map Pl.DatumHash (Pl.Datum, DocCooked) ->
+  SkelContext ->
   Pl.TxOutRef ->
   Maybe (Pl.TxOut, Maybe DocCooked)
-lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef = do
+lookupOutputWithDatumDoc (SkelContext managedTxOuts managedDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
   datumDoc <-
     case outputOutputDatum output of
