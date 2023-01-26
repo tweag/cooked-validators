@@ -14,16 +14,16 @@
 module Cooked.Currencies where
 
 import qualified Ledger
-import qualified Ledger as Pl
-import qualified Ledger.Typed.Scripts as Scripts
+import qualified PlutusTx
 import qualified Ledger.Value as Pl
 import qualified Ledger.Value as Value
+import qualified Ledger.Typed.Scripts as Scripts
 import qualified Plutus.Script.Utils.V1.Scripts as Validation
-import qualified Plutus.V1.Ledger.Scripts as V1
-import qualified PlutusTx
 import qualified PlutusTx.Builtins.Class as Pl
+import qualified Plutus.V1.Ledger.Scripts as V1
 import PlutusTx.Prelude hiding (Applicative (..))
 import qualified Prelude as Haskell
+import qualified Ledger as Pl
 
 -- * Quick Values
 
