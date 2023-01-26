@@ -33,8 +33,10 @@
                         ${pkgs.hpack}/bin/hpack --force "$file"
                     done
                   '';
-                }; in "${hpack-dir}/bin/hpack-dir";
-              files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|(^package\\.yaml$)|(/package\\.yaml$)";
+                };
+              in "${hpack-dir}/bin/hpack-dir";
+              files =
+                "(\\.l?hs(-boot)?$)|(\\.cabal$)|(^package\\.yaml$)|(/package\\.yaml$)";
               pass_filenames = false;
             };
           };
@@ -50,15 +52,19 @@
             secp256k1
             pkg-config
             zlib
-            xz z3 postgresql # For pg_config
+            xz
+            z3
+            postgresql # For pg_config
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
-          LD_LIBRARY_PATH = with pkgs; lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
+          LD_LIBRARY_PATH = with pkgs;
+            lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
         in {
           ci = pkgs.mkShell {
             inherit buildInputs;
-            inherit LD_LIBRARY_PATH; };
+            inherit LD_LIBRARY_PATH;
+          };
 
           default = pkgs.mkShell {
             buildInputs = buildInputs
@@ -74,6 +80,8 @@
 
   nixConfig = {
     extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
-    extra-trusted-public-keys = [ "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc=" ];
+    extra-trusted-public-keys = [
+      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
+    ];
   };
 }
