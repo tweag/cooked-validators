@@ -33,18 +33,16 @@ dependencies:
   - mtl
   - plutus-contract
   - plutus-core
-  - plutus-ledger
-  - plutus-ledger-api
   - plutus-pab
   - plutus-tx
   - plutus-tx-plugin
   - plutus-use-cases
+  - text
   - plutus-script-utils
   - playground-common
   - scientific
   - serialise >= 0.2.3.0
   - streaming
-  - text
   - transformers
   - optics-core
 
@@ -60,7 +58,5 @@ tests:
   spec:
     source-dirs: tests
     main: Spec.hs
-    dependencies:
-      - examples
     ghc-options:
       -threaded
