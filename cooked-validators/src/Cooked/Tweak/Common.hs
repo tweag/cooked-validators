@@ -132,7 +132,7 @@ overMaybeSelectingTweak optic mChange select = do
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
       evaluatedFoci
 
--- | 'overMaybeTweak' requires a modification that can fail (targetting 'Maybe').
+-- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
 -- Sometimes, it can prove more convenient to explicitly state which property
 -- the foci shoud satisfy to be eligible for a modification that cannot fail instead.
 -- 'selectP' provides a prism to make such a selection.
