@@ -30,6 +30,10 @@ validityRangeSatisfiesTweak = (<$> getValidityRangeTweak)
 isValidAtTweak :: MonadTweak m => POSIXTime -> m Bool
 isValidAtTweak = validityRangeSatisfiesTweak . member
 
+-- | Checks if the current validity range includes the current time
+isValidNowTweak :: MonadTweak m => m Bool
+isValidNowTweak = currentTime >>= isValidAtTweak
+
 -- | Checks if a given range is included in the validity range of a transaction
 isValidDuringTweak :: MonadTweak m => POSIXTimeRange -> m Bool
 isValidDuringTweak = validityRangeSatisfiesTweak . flip contains
