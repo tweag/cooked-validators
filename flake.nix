@@ -33,7 +33,9 @@
                     find . -type f -name package.yaml | while read -r file; do
                         ${pkgs.hpack}/bin/hpack --force "$file"
                     done
-                  ''; }; in "${hpack-dir}/bin/hpack-dir";
+                  '';
+                };
+              in "${hpack-dir}/bin/hpack-dir";
               files = "(\\.l?hs(-boot)?$)|(^[^/]+\\.cabal$)|(^package\\.yaml$)";
               pass_filenames = false;
             };
@@ -49,7 +51,8 @@
             libsodium
             secp256k1
             pkg-config
-            zlib xz
+            zlib
+            xz
             z3
             postgresql # For pg_config
           ]);
