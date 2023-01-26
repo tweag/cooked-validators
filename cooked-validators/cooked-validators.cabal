@@ -101,14 +101,15 @@ test-suite spec
       Cooked.AttackSpec.Common
       Cooked.AttackSpec.DatumHijacking
       Cooked.AttackSpec.DoubleSat
+      Cooked.AttackSpec.DupToken
       Cooked.AttackSpec.OutPermutations
       Cooked.AttackSpec.Util
       Cooked.BalanceSpec
       Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
-      Cooked.OutputReorderingSpec
       Cooked.MockChain.WalletSpec
+      Cooked.OutputReorderingSpec
       Cooked.QuickValueSpec
       Cooked.TestUtils
       Paths_cooked_validators
@@ -126,12 +127,12 @@ test-suite spec
     , cardano-wallet-core
     , containers
     , cooked-validators
-    , something-else
     , data-default
     , deepseq
     , either
     , flat
     , foldl
+    , freer-extras
     , freer-simple
     , hashable
     , lens
@@ -146,6 +147,7 @@ test-suite spec
     , plutus-ledger-constraints
     , plutus-pab
     , plutus-script-utils
+    , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
     , scientific
