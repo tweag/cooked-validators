@@ -29,14 +29,14 @@
                 hpack-dir = pkgs.writeShellApplication {
                   name = "hpack-dir";
                   text = ''
+                    set -e
                     find . -type f -name package.yaml | while read -r file; do
                         ${pkgs.hpack}/bin/hpack --force "$file"
                     done
                   '';
                 };
               in "${hpack-dir}/bin/hpack-dir";
-              files =
-                "(\\.l?hs(-boot)?$)|(\\.cabal$)|(^package\\.yaml$)|(/package\\.yaml$)";
+              files = "(\\.l?hs(-boot)?$)|(^[^/]+\\.cabal$)|(^package\\.yaml$)";
               pass_filenames = false;
             };
           };
