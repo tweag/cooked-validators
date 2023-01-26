@@ -103,6 +103,8 @@ test-suite spec
       Cooked.AttackSpec.DoubleSat
       Cooked.AttackSpec.DupToken
       Cooked.AttackSpec.OutPermutations
+      Cooked.AttackSpec.Util
+      Cooked.BalanceSpec
       Cooked.LtlSpec
       Cooked.MockChain.Monad.StagedSpec
       Cooked.MockChain.UtxoStateSpec
@@ -130,9 +132,9 @@ test-suite spec
     , either
     , flat
     , foldl
-    , hashable
     , freer-extras
     , freer-simple
+    , hashable
     , lens
     , memory
     , monad-control
@@ -144,7 +146,7 @@ test-suite spec
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
-    , something-useless
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
