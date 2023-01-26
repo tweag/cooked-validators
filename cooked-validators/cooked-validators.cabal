@@ -25,14 +25,16 @@ library
       Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
+      Cooked.MockChain
+      Cooked.MockChain.Constraints
       Cooked.MockChain.Monad
       Cooked.MockChain.Monad.Contract
       Cooked.MockChain.Monad.Direct
       Cooked.MockChain.Monad.Staged
       Cooked.MockChain.RawUPLC
-      Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.Testing
       Cooked.MockChain.Time
+      Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
       Cooked.MockChain.UtxoState.Testing
       Cooked.MockChain.Wallet
@@ -136,6 +138,11 @@ test-suite spec
     , lens
     , memory
     , monad-control
+    , mtl
+    , optics-core
+    , plutus-contract
+    , plutus-core
+    , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
