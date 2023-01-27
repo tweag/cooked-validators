@@ -1,14 +1,10 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TupleSections #-}
-
 module Cooked.Tweak.OutPermutations where
 
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Data.Map (Map)
-import Data.Map qualified as Map
 import System.Random
+import System.Random.Shuffle
 
 data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 
@@ -80,27 +76,11 @@ nonIdentityPermutations l = removeFirst l $ distinctPermutations l
     removeFirst _ [] = []
     removeFirst x (y : ys) = if x == y then ys else y : removeFirst x ys
 
--- * Random shuffle algorithm taken from https://wiki.haskell.org/Random_shuffle
-
-fisherYatesStep :: RandomGen g => (Map Int a, g) -> (Int, a) -> (Map Int a, g)
-fisherYatesStep (m, gen) (i, x) = ((Map.insert j x . Map.insert i (m Map.! j)) m, gen')
-  where
-    (j, gen') = randomR (0, i) gen
-
-fisherYates :: RandomGen g => g -> [a] -> ([a], g)
-fisherYates gen [] = ([], gen)
-fisherYates gen l =
-  toElems $ foldl fisherYatesStep (initial (head l) gen) (numerate (tail l))
-  where
-    toElems (x, y) = (Map.elems x, y)
-    numerate = zip [1 ..]
-    initial x = (Map.singleton 0 x,)
-
 -- | This randomly permutes the outputs of a transaction with a given seed
 -- Can be used to assess if a certain validator is order-dependant
 singleOutPermutTweak :: MonadTweak m => Int -> m ()
 singleOutPermutTweak seed = do
   outputs <- viewTweak txSkelOutsL
-  let outputs' = fst $ fisherYates (mkStdGen seed) outputs
+  let outputs' = shuffle' outputs (length outputs) (mkStdGen seed)
   guard $ outputs' /= outputs
   setTweak txSkelOutsL outputs'
