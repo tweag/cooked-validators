@@ -44,8 +44,9 @@ interpretAndRun ::
 interpretAndRun = interpretAndRunWith runMockChainT
 
 data MockChainLogEntry
-  = MockChainLogValidateTxSkel SkelContext TxSkel
-  | MockChainLogFail String
+  = MCLogSubmittedTxSkel SkelContext TxSkel
+  | MCLogNewTx Pl.TxId
+  | MCLogFail String
 
 type MockChainLog = [MockChainLogEntry]
 
@@ -125,11 +126,15 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         lift $
           lift $
             tell
-              [ MockChainLogValidateTxSkel
+              [ MCLogSubmittedTxSkel
                   (SkelContext managedTxOuts managedDatums)
                   skel'
               ]
         tx <- validateTxSkel skel'
+        lift $
+          lift $
+            tell
+              [ MCLogNewTx (Pl.getCardanoTxId tx)]
         put later
         return tx
   interpBuiltin (TxOutByRef o) = txOutByRef o
@@ -143,7 +148,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
-    lift $ lift $ tell [MockChainLogFail msg]
+    lift $ lift $ tell [MCLogFail msg]
     fail msg
 
 -- ** Helpers to run tweaks for use in tests for tweaks
