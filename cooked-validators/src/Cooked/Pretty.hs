@@ -331,7 +331,7 @@ instance PrettyCooked Pl.Value where
 
 -- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
 -- If no non-default options are in the list, return nothing.
-mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe (DocCooked)
+mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
   TxOpts
@@ -352,13 +352,13 @@ mPrettyTxOpts
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx
         ]
     where
-      prettyIfNot :: Eq a => a -> (a -> DocCooked) -> a -> Maybe (DocCooked)
+      prettyIfNot :: Eq a => a -> (a -> DocCooked) -> a -> Maybe DocCooked
       prettyIfNot defaultValue f x
-        | x == defaultValue = Nothing
+        | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
         | otherwise = Just $ f x
       prettyEnsureMinAda :: Bool -> DocCooked
-      prettyEnsureMinAda True = "Adjust to ensure min Ada per transaction"
-      prettyEnsureMinAda False = "Don't adjust to ensure min Ada per transaction"
+      prettyEnsureMinAda True = "Ensure min Ada per transaction"
+      prettyEnsureMinAda False = "Do not ensure min Ada per transaction"
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
@@ -366,14 +366,18 @@ mPrettyTxOpts
       prettyBalance True = "Automatic balancing"
       prettyBalance False = "No automatic balancing"
       prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
-      prettyBalanceOutputPolicy AdjustExistingOutput = "Adjust existing outputs"
-      prettyBalanceOutputPolicy DontAdjustExistingOutput = "Don't adjust existing outputs"
+      prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
+      prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
       prettyBalanceWallet :: BalancingWallet -> DocCooked
       prettyBalanceWallet BalanceWithFirstSigner = "Balance with first signer"
       prettyBalanceWallet (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
       prettyUnsafeModTx :: [RawModTx] -> DocCooked
       prettyUnsafeModTx [] = "No transaction modifications"
-      prettyUnsafeModTx xs = PP.pretty (length xs) <+> "transaction modifications"
+      prettyUnsafeModTx xs =
+        let n = length xs
+         in PP.pretty n
+              <+> "transaction"
+              <+> PP.plural "modification" "modifications" n
 
 -- * Pretty-printing
 
