@@ -60,6 +60,8 @@ ensureOutputTweak txSkelOut = do
       addOutputTweak txSkelOut
       return $ Just txSkelOut
 
+-- | Add a transaction output, at the end of the current list of outputs,
+-- thus retaining the order in which they have been specified.
 addOutputTweak :: MonadTweak m => TxSkelOut -> m ()
 addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 

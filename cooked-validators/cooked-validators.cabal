@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.6.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 
@@ -34,6 +34,7 @@ library
       Cooked.Tweak
       Cooked.Tweak.AddInputsAndOutputs
       Cooked.Tweak.Common
+      Cooked.Tweak.Labels
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.TamperDatum
       Cooked.Wallet
@@ -82,6 +83,8 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
+    , random-shuffle
     , scientific
     , streaming
     , tasty
@@ -152,6 +155,8 @@ test-suite spec
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
+    , random-shuffle
     , scientific
     , streaming
     , tasty

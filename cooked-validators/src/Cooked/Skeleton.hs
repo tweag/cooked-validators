@@ -505,16 +505,16 @@ On transaction outputs, we have the option to use
 These four options are also what the type 'TxSkelOutDatum' records. The
 following table explains their differences.
 
-|                | in the simulated chain state | on the 'txInfoData' | 'Pl.OutputDatum' constructor seen by the validator |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| no datum       | no                           | no                  | 'Pl.NoOutputDatum'                                 |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| datum hash     | yes                          | no                  | 'Pl.OutputDatumHash'                               |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| "normal" datum | yes                          | yes                 | 'Pl.OutputDatumHash'                               |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| inline datum   | yes                          | no                  | 'Pl.OutputDatum'                                   |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
+\|                | in the simulated chain state | on the 'txInfoData' | 'Pl.OutputDatum' constructor seen by the validator |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| no datum       | no                           | no                  | 'Pl.NoOutputDatum'                                 |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| datum hash     | yes                          | no                  | 'Pl.OutputDatumHash'                               |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| "normal" datum | yes                          | yes                 | 'Pl.OutputDatumHash'                               |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| inline datum   | yes                          | no                  | 'Pl.OutputDatum'                                   |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
 
 That is:
 
@@ -760,13 +760,7 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe
-      ( \txSkelOut ->
-          let validator = txSkelOutValidator txSkelOut
-           in case validator of
-                Nothing -> Nothing
-                Just script -> Just (Ledger.Scripts.validatorHash script, script)
-      )
+    . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
     . txSkelOuts
 
 -- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
@@ -803,7 +797,7 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, -n) else Nothing))
+negativePart = positivePart . Pl.negate
 
 -- | Focus the Ada part in a value. This is useful if you want to chcange only
 -- that part.
