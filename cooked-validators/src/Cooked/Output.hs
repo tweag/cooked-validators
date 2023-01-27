@@ -11,11 +11,11 @@
 module Cooked.Output where
 
 import Control.Monad
-import qualified Ledger.Ada as Pl
-import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Tx as Pl
 

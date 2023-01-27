@@ -14,10 +14,10 @@ import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Ledger as L hiding (validatorHash)
-import qualified Ledger.Ada as L
-import qualified Ledger.Value as L
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import qualified Plutus.V1.Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
@@ -56,8 +56,8 @@ instance Pl.ValidatorTypes MockContract where
 
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
-lockValue :: L.Value
-lockValue = L.lovelaceValueOf 12345678
+lockValue :: Pl.Value
+lockValue = Pl.lovelaceValueOf 12345678
 
 lockTxSkel :: Pl.TxOutRef -> Pl.TypedValidator MockContract -> TxSkel
 lockTxSkel o v =
@@ -70,7 +70,7 @@ lockTxSkel o v =
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   me <- ownPaymentPubKeyHash
-  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`L.geq` lockValue)
+  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -105,9 +105,9 @@ outputDatum :: Pl.TxInfo -> Pl.TxOut -> Maybe MockDatum
 outputDatum txi o = case Pl.txOutDatum o of
   Pl.NoOutputDatum -> Nothing
   Pl.OutputDatumHash h -> do
-    L.Datum d <- Pl.findDatum h txi
+    Pl.Datum d <- Pl.findDatum h txi
     Pl.fromBuiltinData d
-  Pl.OutputDatum (L.Datum d) -> Pl.fromBuiltinData d
+  Pl.OutputDatum (Pl.Datum d) -> Pl.fromBuiltinData d
 
 {-# INLINEABLE mkMockValidator #-}
 mkMockValidator :: (Pl.ScriptContext -> [Pl.TxOut]) -> MockDatum -> () -> Pl.ScriptContext -> Bool
@@ -136,7 +136,7 @@ carefulValidator =
     $$(Pl.compile [||mkCarefulValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator
 
 {-# INLINEABLE mkCarelessValidator #-}
 mkCarelessValidator :: MockDatum -> () -> Pl.ScriptContext -> Bool
@@ -148,7 +148,7 @@ carelessValidator =
     $$(Pl.compile [||mkCarelessValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator @MockDatum @()
+    wrap = Pl.mkUntypedValidator
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
 txSkelFromOuts os = txSkelTemplate {txSkelOuts = os}
@@ -163,9 +163,9 @@ tests =
         let val1 = carelessValidator
             val2 = carefulValidator
             thief = datumHijackingTarget @MockContract
-            x1 = L.lovelaceValueOf 10001
-            x2 = L.lovelaceValueOf 10000
-            x3 = L.lovelaceValueOf 9999
+            x1 = Pl.lovelaceValueOf 10001
+            x2 = Pl.lovelaceValueOf 10000
+            x3 = Pl.lovelaceValueOf 9999
             skelIn =
               txSkelFromOuts
                 [ paysScriptInlineDatum val1 SecondLock x1,
@@ -178,9 +178,12 @@ tests =
               runTweak
                 ( datumHijackingAttack @MockContract
                     ( \(ConcreteOutput v _ x d _) ->
-                        Pl.validatorHash val1 == Pl.validatorHash v
-                          && d == TxSkelOutInlineDatum SecondLock
-                          && bound `L.geq` x
+                        Pl.validatorHash val1
+                          == Pl.validatorHash v
+                          && d
+                          == TxSkelOutInlineDatum SecondLock
+                          && bound
+                          `Pl.geq` x
                     )
                     select
                 )

@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.6.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 
@@ -52,6 +52,7 @@ library
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
+    , cardano-node-emulator
     , cardano-wallet-core
     , containers
     , data-default
@@ -121,6 +122,7 @@ test-suite spec
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
+    , cardano-node-emulator
     , cardano-wallet-core
     , containers
     , cooked-validators

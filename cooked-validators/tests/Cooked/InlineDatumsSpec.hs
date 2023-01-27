@@ -17,9 +17,10 @@ import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe
-import qualified Ledger.Ada as Pl
 import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
 import qualified Ledger.Tx.Internal as Pl (getTxOut)
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -75,7 +76,7 @@ inputDatumValidator =
               Pl.OutputDatum _ -> Pl.trace "I want a datum hash, but I got an inline datum" False
               Pl.NoOutputDatum -> Pl.trace "I want a datum hash, but I got neither a datum nor a hash" False
 
-    wrap = Pl.mkUntypedValidator @SimpleContractDatum @()
+    wrap = Pl.mkUntypedValidator
 
 data OutputDatumKind = OnlyHash | Datum | Inline
 
@@ -103,7 +104,7 @@ outputDatumValidator =
             (Inline, Pl.OutputDatum d) -> True
             _ -> False
 
-    wrap = Pl.mkUntypedValidator @SimpleContractDatum @()
+    wrap = Pl.mkUntypedValidator
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use

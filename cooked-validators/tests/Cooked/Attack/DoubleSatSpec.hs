@@ -18,9 +18,10 @@ import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import qualified Debug.Trace
-import qualified Ledger.Ada as Pl
 import Ledger.Typed.Scripts
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -72,7 +73,7 @@ aValidator =
     $$(Pl.compile [||mkAValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator @ADatum @ARedeemer
+    wrap = Pl.mkUntypedValidator
 
 data BDatum = BDatum deriving (Show)
 
@@ -111,7 +112,7 @@ bValidator =
     $$(Pl.compile [||mkBValidator||])
     $$(Pl.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator @BDatum @BRedeemer
+    wrap = Pl.mkUntypedValidator
 
 -- | In the initial state of the Mockchain, the A and B validators each own
 -- a few UTxOs, with different values
@@ -174,32 +175,32 @@ tests =
                                 Just aValue <- valueFromTxOutRef aOref
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
-                                      return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                        ]
+                                        return
+                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                            | (bOref, bOut) <- bUtxos,
+                                              outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                          ]
                                     | aValue == Pl.lovelaceValueOf 3_000_000 ->
-                                      return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
-                                        ]
+                                        return
+                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                            | (bOref, bOut) <- bUtxos,
+                                              outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                          ]
                                     | aValue == Pl.lovelaceValueOf 4_000_000 ->
-                                      return $
-                                        concatMap
-                                          ( \(bOref, bOut) ->
-                                              let bValue = outputValue bOut
-                                               in if
-                                                      | bValue == Pl.lovelaceValueOf 6_000_000 ->
-                                                        [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
-                                                      | bValue == Pl.lovelaceValueOf 7_000_000 ->
-                                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
-                                                          toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
-                                                        ]
-                                                      | otherwise -> []
-                                          )
-                                          bUtxos
+                                        return $
+                                          concatMap
+                                            ( \(bOref, bOut) ->
+                                                let bValue = outputValue bOut
+                                                 in if
+                                                        | bValue == Pl.lovelaceValueOf 6_000_000 ->
+                                                            [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
+                                                        | bValue == Pl.lovelaceValueOf 7_000_000 ->
+                                                            [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
+                                                              toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
+                                                            ]
+                                                        | otherwise -> []
+                                            )
+                                            bUtxos
                                     | otherwise -> return []
                             )
                             (wallet 6)

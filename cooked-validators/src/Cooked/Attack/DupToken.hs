@@ -6,10 +6,11 @@ import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
-import qualified Ledger as L
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Typed as Pl
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
@@ -26,12 +27,12 @@ dupTokenAttack ::
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
   -- amount. If it does *not* increase the minted amount, the amount will be
   -- left unchanged.
-  (L.AssetClass -> Integer -> Integer) ->
+  (Pl.AssetClass -> Integer -> Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  m L.Value
+  m Pl.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
   addOutputTweak $ paysPK (walletPKHash attacker) totalIncrement
@@ -43,10 +44,10 @@ dupTokenAttack change attacker = do
       oldMintsList <- viewTweak $ txSkelMintsL % mintsListIso
       let newMintsList =
             map
-              ( \(policy, redeemer, tName, NonZero oldAmount) ->
+              ( \(Pl.Versioned policy version, redeemer, tName, NonZero oldAmount) ->
                   let ac = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash policy) tName
                       newAmount = change ac oldAmount
-                   in (policy, redeemer, tName, NonZero $ max newAmount oldAmount)
+                   in (Pl.Versioned policy version, redeemer, tName, NonZero $ max newAmount oldAmount)
               )
               oldMintsList
       guard $ newMintsList /= oldMintsList

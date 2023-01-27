@@ -6,7 +6,6 @@ import Cooked.MockChain.Testing
 import Cooked.Skeleton
 import Data.List
 import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V1.Ledger.Time as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -19,7 +18,8 @@ assertSubset l r =
     ( map
         ( \x ->
             assertBool
-              ( "not a subset:\n\n" ++ show x
+              ( "not a subset:\n\n"
+                  ++ show x
                   ++ "\n\nis not an element of\n\n"
                   ++ show r
               )

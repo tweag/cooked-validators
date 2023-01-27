@@ -1,12 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Cooked.MockChain.UtxoState where
 
 import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
-import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc)
 

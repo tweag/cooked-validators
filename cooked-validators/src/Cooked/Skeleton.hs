@@ -32,13 +32,13 @@ import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Ledger.Ada as Pl
 import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Ledger.Value as Pl hiding (adaSymbol, adaToken)
 import Optics.Core
 import Optics.TH
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
 import qualified Plutus.V2.Ledger.Tx as Pl
@@ -505,16 +505,16 @@ On transaction outputs, we have the option to use
 These four options are also what the type 'TxSkelOutDatum' records. The
 following table explains their differences.
 
-|                | in the simulated chain state | on the 'txInfoData' | 'Pl.OutputDatum' constructor seen by the validator |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| no datum       | no                           | no                  | 'Pl.NoOutputDatum'                                 |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| datum hash     | yes                          | no                  | 'Pl.OutputDatumHash'                               |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| "normal" datum | yes                          | yes                 | 'Pl.OutputDatumHash'                               |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
-| inline datum   | yes                          | no                  | 'Pl.OutputDatum'                                   |
-|----------------+------------------------------+---------------------+----------------------------------------------------|
+\|                | in the simulated chain state | on the 'txInfoData' | 'Pl.OutputDatum' constructor seen by the validator |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| no datum       | no                           | no                  | 'Pl.NoOutputDatum'                                 |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| datum hash     | yes                          | no                  | 'Pl.OutputDatumHash'                               |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| "normal" datum | yes                          | yes                 | 'Pl.OutputDatumHash'                               |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
+\| inline datum   | yes                          | no                  | 'Pl.OutputDatum'                                   |
+\|----------------+------------------------------+---------------------+----------------------------------------------------|
 
 That is:
 

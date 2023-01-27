@@ -79,11 +79,10 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
-import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Value as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -166,12 +165,12 @@ prettySigners TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers 
 -- #abcdef "Foo" -> 500
 -- #123456 "Bar" | Redeemer -> 1000
 prettyMints :: (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Doc ann
-prettyMints (Pl.Versioned policy _, NoMintsRedeemer, tokenName, NonZero amount) =
+prettyMints (policy, NoMintsRedeemer, tokenName, NonZero amount) =
   prettyMintingPolicy policy
     <+> PP.viaShow tokenName
     <+> "->"
     <+> PP.viaShow amount
-prettyMints (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZero amount) =
+prettyMints (policy, SomeMintsRedeemer redeemer, tokenName, NonZero amount) =
   prettyMintingPolicy policy
     <+> PP.viaShow tokenName
     <+> "|"
@@ -195,22 +194,22 @@ prettyTxSkelOut (Pays output) =
   prettyEnum
     ("Pays to" <+> prettyAddress (outputAddress output))
     "-"
-    ( prettyValue (outputValue output) :
-      catMaybes
-        [ case outputOutputDatum output of
-            Pl.OutputDatum _datum ->
-              Just $
-                "Datum (inlined):"
-                  <+> (PP.align . PP.pretty)
-                    (output ^. outputDatumL)
-            Pl.OutputDatumHash _datum ->
-              Just $
-                "Datum (hashed):"
-                  <+> (PP.align . PP.pretty)
-                    (output ^. outputDatumL)
-            Pl.NoOutputDatum -> Nothing,
-          getReferenceScriptDoc output
-        ]
+    ( prettyValue (outputValue output)
+        : catMaybes
+          [ case outputOutputDatum output of
+              Pl.OutputDatum _datum ->
+                Just $
+                  "Datum (inlined):"
+                    <+> (PP.align . PP.pretty)
+                      (output ^. outputDatumL)
+              Pl.OutputDatumHash _datum ->
+                Just $
+                  "Datum (hashed):"
+                    <+> (PP.align . PP.pretty)
+                      (output ^. outputDatumL)
+              Pl.NoOutputDatum -> Nothing,
+            getReferenceScriptDoc output
+          ]
     )
 
 prettyTxSkelIn :: Map Pl.TxOutRef Pl.TxOut -> Map Pl.DatumHash (Pl.Datum, Doc ()) -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (Doc ())
@@ -267,7 +266,7 @@ lookupOutputWithDatumDoc managedTxOuts managedDatums txOutRef = do
 prettyHash :: (Show a) => a -> Doc ann
 prettyHash = PP.pretty . ('#' :) . take 7 . show
 
-prettyMintingPolicy :: Pl.MintingPolicy -> Doc ann
+prettyMintingPolicy :: Pl.Versioned Pl.MintingPolicy -> Doc ann
 prettyMintingPolicy = prettyHash . Pl.mintingPolicyHash
 
 -- prettyValue example output:
@@ -396,7 +395,8 @@ prettyAddressState address payloads =
   prettyEnum
     (prettyAddress address)
     "-"
-    ( mapMaybe prettyPayloadGrouped . List.group
+    ( mapMaybe prettyPayloadGrouped
+        . List.group
         . List.sortBy (compare `on` (Ada.fromValue . fst))
         $ payloads
     )
@@ -424,5 +424,5 @@ prettyPayload value mDatum =
     prettyPayloadDatum d =
       "Datum"
         <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
-        <> ":"
+          <> ":"
         <+> PP.align (utxoDoc d)

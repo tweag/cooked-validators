@@ -9,12 +9,11 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Set as Set
-import qualified Ledger.Ada as L
-import qualified Ledger.Scripts as L
-import qualified Ledger.Typed.Scripts as L
-import qualified Ledger.Value as L
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
@@ -32,7 +31,7 @@ mkCarefulPolicy tName allowedAmount _ ctx
     txi = Pl.scriptContextTxInfo ctx
 
     amnt :: Maybe Integer
-    amnt = case L.flattenValue (Pl.txInfoMint txi) of
+    amnt = case Pl.flattenValue (Pl.txInfoMint txi) of
       [(cs, tn, a)] | cs Pl.== Pl.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
       _ -> Nothing
 
@@ -71,12 +70,12 @@ tests =
     "token duplication attack"
     [ testGroup "unit tests on a 'TxSkel'" $
         let attacker = wallet 6
-            tName1 = L.tokenName "MockToken1"
-            tName2 = L.tokenName "MockToken2"
+            tName1 = Pl.tokenName "MockToken1"
+            tName2 = Pl.tokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol1) tName1
-            ac2 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol2) tName2
+            ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol1) tName1
+            ac2 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol2) tName2
             skelIn =
               txSkelTemplate
                 { txSkelMints =
@@ -85,13 +84,13 @@ tests =
                         (pol2, NoMintsRedeemer, tName2, NonZero 7)
                       ],
                   txSkelOuts =
-                    [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                      paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2)
+                    [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
+                      paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2)
                     ]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
-              let increment = L.assetClassValue ac1 (v1 - 5) <> L.assetClassValue ac2 (v2 - 7)
+              let increment = Pl.assetClassValue ac1 (v1 - 5) <> Pl.assetClassValue ac2 (v2 - 7)
                in [ Right
                       ( increment,
                         txSkelTemplate
@@ -102,8 +101,8 @@ tests =
                                   (pol2, NoMintsRedeemer, tName2, NonZero v2)
                                 ],
                             txSkelOuts =
-                              [ paysPK (walletPKHash (wallet 1)) (L.assetClassValue ac1 1 <> L.lovelaceValueOf 1234),
-                                paysPK (walletPKHash (wallet 2)) (L.assetClassValue ac2 2),
+                              [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
+                                paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2),
                                 paysPK (walletPKHash attacker) increment
                               ]
                           }
@@ -117,7 +116,7 @@ tests =
                 skelExpected 10 7 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
       testCase "careful minting policy" $
-        let tName = L.tokenName "MockToken"
+        let tName = Pl.tokenName "MockToken"
             pol = carefulPolicy tName 1
          in testFailsFrom'
               isCekEvaluationFailure
@@ -127,7 +126,7 @@ tests =
                   (dupTokenTrace pol tName (NonZero 1) (wallet 1))
               ),
       testCase "careless minting policy" $
-        let tName = L.tokenName "MockToken"
+        let tName = Pl.tokenName "MockToken"
             pol = carelessPolicy
          in testSucceeds $
               somewhere
@@ -136,8 +135,8 @@ tests =
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
             pol = carelessPolicy
-            tName1 = L.tokenName "mintedToken"
-            ac1 = L.assetClass (L.mpsSymbol $ Pl.mintingPolicyHash pol) tName1
+            tName1 = Pl.tokenName "mintedToken"
+            ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol) tName1
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
               txSkelTemplate
@@ -145,22 +144,22 @@ tests =
                   txSkelOuts =
                     [ paysPK
                         (walletPKHash (wallet 1))
-                        (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2)
+                        (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2)
                     ]
                 }
             skelExpected =
               [ Right
-                  ( L.assetClassValue ac1 1,
+                  ( Pl.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, NonZero 2)],
                         txSkelOuts =
                           [ paysPK
                               (walletPKHash (wallet 1))
-                              (L.assetClassValue ac1 1 <> L.assetClassValue ac2 2),
+                              (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2),
                             paysPK
                               (walletPKHash attacker)
-                              (L.assetClassValue ac1 1)
+                              (Pl.assetClassValue ac1 1)
                           ]
                       }
                   )

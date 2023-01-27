@@ -6,9 +6,9 @@ module Cooked.MinAdaSpec where
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Ledger.Ada as Pl
 import qualified Ledger.Index as Pl
 import Optics.Core ((^.))
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Test.Tasty
@@ -55,13 +55,13 @@ tests =
   testGroup
     "automatic minAda adjustment of transaction outputs"
     [ testCase "adjusted transaction passes" $ testSucceeds paymentWithMinAda,
-      testCase "adjusted transaction contains minimal amount" $
-        testFailsFrom'
+      testCase "adjusted transaction contains minimal amount"
+        $ testFailsFrom'
           ( \case
               MCEValidationError (Pl.Phase1, _) -> testSuccess
               MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
               _ -> testFailure
           )
           def
-          $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
+        $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
     ]

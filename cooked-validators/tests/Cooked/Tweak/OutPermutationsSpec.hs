@@ -7,7 +7,7 @@ module Cooked.Tweak.OutPermutationsSpec (tests) where
 import Cooked
 import Cooked.TestUtils
 import Data.Default
-import qualified Ledger.Ada as Pl
+import qualified Plutus.Script.Utils.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

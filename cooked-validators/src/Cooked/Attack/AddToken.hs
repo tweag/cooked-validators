@@ -5,9 +5,9 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
 import qualified Data.Map as Map
-import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
-import qualified Ledger.Value as Value
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero)
 
@@ -47,7 +47,7 @@ addTokenAttack extraTokens attacker = do
                       increment =
                         txSkelMintsValue newMints
                           <> Pl.negate (txSkelMintsValue oldMints)
-                   in if increment `Value.geq` mempty
+                   in if increment `Pl.geq` mempty
                         then do
                           setTweak txSkelMintsL newMints
                           addOutputTweak $ paysPK (walletPKHash attacker) increment
