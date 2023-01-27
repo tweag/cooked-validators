@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Cooked.MockChain.UtxoState where
 
 import Data.Function (on)

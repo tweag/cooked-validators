@@ -28,7 +28,7 @@ The rendered Haddock for the current `main` branch can be found at [https://twea
 
 ### [pirouette-plutusir](pirouette-plutusir)
 
-- Instantiation of [pirouette](https://github.com/tweag/pirouette) for PlutusIR_.
+- _Experimental instantiation of [pirouette](https://github.com/tweag/pirouette) for PlutusIR_.
 
 ## Developer Tools and Environment
 
