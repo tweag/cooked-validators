@@ -11,6 +11,7 @@
 
 module Cooked.MockChain.Staged where
 
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
@@ -26,6 +27,7 @@ import Cooked.Tweak.Common
 import Data.Default
 import Data.Map (Map)
 import qualified Ledger as Pl
+import qualified Ledger.Tx as Ledger
 import qualified Plutus.V2.Ledger.Api as PV2
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -65,15 +67,18 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
+  GetParams :: MockChainBuiltin Emulator.Params
+  ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
-  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
+  TxOutByRefLedger :: Pl.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, Doc ()))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
-  AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
+  AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
+  UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to
   -- combine several traces into one and to signal failure.
 
@@ -84,8 +89,11 @@ data MockChainBuiltin a where
     StagedMockChain a ->
     StagedMockChain a ->
     MockChainBuiltin a
-  -- | The failing operation
+  -- | MonadFail Operations
   Fail :: String -> MockChainBuiltin a
+  -- | MonadError Operations
+  ThrowError :: MockChainError -> MockChainBuiltin a
+  CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
 
 type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
 
@@ -95,9 +103,6 @@ instance Alternative StagedMockChain where
   empty = Instr (Builtin Empty) Return
   a <|> b = Instr (Builtin (Alt a b)) Return
 
-instance MonadFail StagedMockChain where
-  fail msg = Instr (Builtin (Fail msg)) Return
-
 -- * 'InterpLtl' instance
 
 instance MonadPlus m => MonadPlus (MockChainT m) where
@@ -105,6 +110,8 @@ instance MonadPlus m => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
+  interpBuiltin GetParams = getParams
+  interpBuiltin (ValidatorFromHash valHash) = validatorFromHash valHash
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -124,16 +131,19 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         tx <- validateTxSkel skel'
         put later
         return tx
-  interpBuiltin (TxOutByRef o) = txOutByRef o
+  interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin GetCurrentTime = currentTime
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
-  interpBuiltin AllUtxos = allUtxos
+  interpBuiltin AllUtxosLedger = allUtxosLedger
+  interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
+  interpBuiltin (ThrowError err) = undefined
+  interpBuiltin (CatchError f handler) = undefined
   interpBuiltin (Fail msg) = do
     mcst <- lift get
     let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
@@ -187,10 +197,20 @@ withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
+instance MonadFail StagedMockChain where
+  fail = singletonBuiltin . Fail
+
+instance MonadError MockChainError StagedMockChain where
+  throwError = singletonBuiltin . ThrowError
+  catchError f handler = singletonBuiltin $ CatchError f handler
+
 instance MonadBlockChainWithoutValidation StagedMockChain where
+  getParams = singletonBuiltin GetParams
+  validatorFromHash = singletonBuiltin . ValidatorFromHash
   datumFromHash = singletonBuiltin . DatumFromHash
-  allUtxos = singletonBuiltin AllUtxos
-  txOutByRef = singletonBuiltin . TxOutByRef
+  allUtxosLedger = singletonBuiltin AllUtxosLedger
+  utxosAtLedger = singletonBuiltin . UtxosAtLedger
+  txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot
   currentTime = singletonBuiltin GetCurrentTime
@@ -209,8 +229,8 @@ prettyMockChainOp managedTxOuts managedDatums (Builtin (ValidateTxSkel skel)) =
   trSingleton $
     PP.hang 2 $
       PP.vsep ["ValidateTxSkel", prettyTxSkel managedTxOuts managedDatums skel]
-prettyMockChainOp _ _ (Builtin (Fail reason)) =
-  trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
+-- prettyMockChainOp _ _ (Builtin (Fail reason)) =
+--   trSingleton $ PP.hang 2 $ PP.vsep ["Fail", PP.pretty reason]
 prettyMockChainOp _ _ _ = mempty
 
 -- | A 'TraceDescr' is a list of 'Doc' encoded as a difference list for
