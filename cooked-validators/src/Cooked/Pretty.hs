@@ -56,6 +56,8 @@ module Cooked.Pretty where
 
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.MockChain.Direct
+import Cooked.MockChain.GenerateTx (GenerateTxError (..))
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Output
@@ -105,6 +107,41 @@ prettyEnumerate title bullet items =
       PP.indent 2 . PP.vsep $
         zipWith (\index item -> PP.pretty index <> bullet <+> PP.align item) [1 :: Int ..] items
     ]
+
+instance PrettyCooked MockChainError where
+  prettyCookedOpt _ (MCEValidationError plutusError) =
+    PP.vsep ["Validation error", PP.indent 2 (PP.pretty plutusError)]
+  -- Here we don't print the skel because we lack its context and this error is
+  -- printed alongside the skeleton when a test fails
+  prettyCookedOpt _ (MCEUnbalanceable msg balanceStage _) =
+    prettyEnum
+      "Unbalanceable"
+      "-"
+      [PP.pretty msg, prettyBalanceStage balanceStage]
+    where
+      prettyBalanceStage BalCalcFee = "Fee calculation stage"
+      prettyBalanceStage BalFinalizing = "Finalizing stage"
+  prettyCookedOpt _ MCENoSuitableCollateral =
+    "No suitable collateral"
+  prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
+    prettyEnum
+      "Transaction generation error:"
+      "-"
+      [PP.pretty msg, PP.pretty cardanoError]
+  prettyCookedOpt _ (MCEGenerationError (GenerateTxErrorGeneral msg)) =
+    prettyEnum
+      "Transaction generation error:"
+      "-"
+      [PP.pretty msg]
+  prettyCookedOpt opts (MCECalcFee err) =
+    PP.vsep ["Fee calculation error:", PP.indent 2 (prettyCookedOpt opts err)]
+  prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
+    prettyEnum
+      "Unknown transaction output ref:"
+      "-"
+      [PP.pretty msg, prettyCookedOpt opts txOutRef]
+  prettyCookedOpt _ (FailWith msg) =
+    "Failed with:" <+> PP.pretty msg
 
 renderMockChainLog :: PrettyCookedOpts -> MockChainLog -> String
 renderMockChainLog opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyMockChainLog opts
