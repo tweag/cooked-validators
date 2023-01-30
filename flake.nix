@@ -35,9 +35,7 @@
                     done
                   '';
                 };
-              in "${hpack-dir}/bin/hpack-dir";
-              files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|((^|/)package\\.yaml$)";
-              pass_filenames = false;
+              in "${hpack-dir}/bin/hpack-dir"; files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|((^|/)package\\.yaml$)"; pass_filenames = false;
             };
           };
         };
@@ -62,8 +60,7 @@
             lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
         in {
           ci = pkgs.mkShell {
-            inherit buildInputs;
-            inherit LD_LIBRARY_PATH;
+            inherit buildInputs; inherit LD_LIBRARY_PATH;
           };
 
           default = pkgs.mkShell {
