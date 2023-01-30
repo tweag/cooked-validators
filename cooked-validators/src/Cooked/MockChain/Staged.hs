@@ -69,10 +69,9 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
+  GetParams :: MockChainBuiltin Pl.Params
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
-  GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
-  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
@@ -136,11 +135,10 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
               [MCLogNewTx (Pl.getCardanoTxId tx)]
         put later
         return tx
+  interpBuiltin GetParams = params
   interpBuiltin (TxOutByRef o) = txOutByRef o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
-  interpBuiltin GetCurrentTime = currentTime
-  interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AllUtxos = allUtxos
@@ -201,10 +199,9 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxos = singletonBuiltin AllUtxos
   txOutByRef = singletonBuiltin . TxOutByRef
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
+  params = singletonBuiltin GetParams
   currentSlot = singletonBuiltin GetCurrentSlot
-  currentTime = singletonBuiltin GetCurrentTime
   awaitSlot = singletonBuiltin . AwaitSlot
-  awaitTime = singletonBuiltin . AwaitTime
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

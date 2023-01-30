@@ -75,7 +75,6 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     left
       (ToCardanoError "translating the transaction validity range")
       . Pl.toCardanoValidityRange
-      . Emulator.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
       $ txSkelValidityRange skel
   txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-
@@ -277,8 +276,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         witnessMap :: Either GenerateTxError (Map C.PolicyId (C.ScriptWitness C.WitCtxMint C.BabbageEra))
         witnessMap =
-          right mconcat $
-            mapM
+          right mconcat
+            $ mapM
               ( \(policy, redeemer, _tName, _amount) ->
                   Map.singleton
                     <$> left
@@ -286,7 +285,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                       (Pl.toCardanoPolicyId (Pl.mintingPolicyHash policy))
                     <*> mkMintWitness policy redeemer
               )
-              $ txSkelMintsToList mints
+            $ txSkelMintsToList mints
 
         mkMintWitness ::
           Pl.Versioned Pl.MintingPolicy ->

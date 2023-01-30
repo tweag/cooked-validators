@@ -45,11 +45,14 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
   ownPaymentPubKeyHash :: m PV2.PubKeyHash
 
+  -- | Returns the chain parameters
+  params :: m Pl.Params
+
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
   -- | Returns the current time
-  currentTime :: m Ledger.POSIXTime
+  currentTime :: m Pl.POSIXTime
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
@@ -61,7 +64,7 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   --
   -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
   -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: Ledger.POSIXTime -> m Ledger.POSIXTime
+  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -172,11 +175,6 @@ waitNSlots n = do
   c <- currentSlot
   awaitSlot $ c + fromIntegral n
 
-waitNMilliSeconds :: (MonadBlockChain m) => Ledger.DiffMilliSeconds -> m Ledger.POSIXTime
-waitNMilliSeconds n = do
-  t <- currentTime
-  awaitTime $ t + Ledger.fromMilliSeconds n
-
 -- ** Deriving further 'MonadBlockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
@@ -195,10 +193,9 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, MonadFail (t m)) => 
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+  params = lift params
   currentSlot = lift currentSlot
-  currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
 
 instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
