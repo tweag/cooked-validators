@@ -95,7 +95,7 @@ prettyEnum title bullet items =
         map (bullet <+>) items
     ]
 
-prettyEnumNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe (DocCooked)
+prettyEnumNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
 prettyEnumNonEmpty _ _ [] = Nothing
 prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
 
@@ -174,13 +174,13 @@ prettyMockChainLog opts =
           : entries
         )
         | pcOptPrintTxHashes opts =
-          go
-            ( "Validated"
-                <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                <+> prettyTxSkel opts skelContext skel :
-              acc
-            )
-            entries
+            go
+              ( "Validated"
+                  <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
+                  <+> prettyTxSkel opts skelContext skel
+                  : acc
+              )
+              entries
         | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
     go
       acc
@@ -282,25 +282,25 @@ prettyTxSkelOut opts (Pays output) =
   prettyEnum
     ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
     "-"
-    ( prettyCookedOpt opts (outputValue output) :
-      catMaybes
-        [ case outputOutputDatum output of
-            Pl.OutputDatum _datum ->
-              Just $
-                "Datum (inlined):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.OutputDatumHash _datum ->
-              Just $
-                "Datum (hashed):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.NoOutputDatum -> Nothing,
-          getReferenceScriptDoc opts output
-        ]
+    ( prettyCookedOpt opts (outputValue output)
+        : catMaybes
+          [ case outputOutputDatum output of
+              Pl.OutputDatum _datum ->
+                Just $
+                  "Datum (inlined):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.OutputDatumHash _datum ->
+                Just $
+                  "Datum (hashed):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.NoOutputDatum -> Nothing,
+            getReferenceScriptDoc opts output
+          ]
     )
 
-prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe (DocCooked)
+prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
   (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
   let redeemerDoc =
@@ -399,7 +399,7 @@ instance PrettyCooked Pl.Value where
       prettyNumericUnderscore i
         | 0 == i = "0"
         | i > 0 = psnTerm "" 0 i
-        | otherwise = "-" <> psnTerm "" 0 (- i)
+        | otherwise = "-" <> psnTerm "" 0 (-i)
         where
           psnTerm :: DocCooked -> Integer -> Integer -> DocCooked
           psnTerm acc _ 0 = acc
@@ -484,7 +484,7 @@ prettyUtxoState opts =
 
 -- TODO find a way to use options
 instance Show UtxoState where
-  show = show . (prettyUtxoState def)
+  show = show . prettyUtxoState def
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
@@ -493,21 +493,22 @@ prettyAddressState opts address payloads =
   prettyEnum
     (prettyCookedOpt opts address)
     "-"
-    ( mapMaybe (prettyPayloadGrouped opts) . List.group
+    ( mapMaybe (prettyPayloadGrouped opts)
+        . List.group
         . List.sortBy (compare `on` (Ada.fromValue . fst))
         $ payloads
     )
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
 -- been grouped together when they belong to the same utxo
-prettyPayloadGrouped :: PrettyCookedOpts -> [(Pl.Value, Maybe UtxoDatum)] -> Maybe (DocCooked)
+prettyPayloadGrouped :: PrettyCookedOpts -> [(Pl.Value, Maybe UtxoDatum)] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
 prettyPayloadGrouped opts [payload] = uncurry (prettyPayload opts) payload
 prettyPayloadGrouped opts (payload : rest) =
   let cardinality = 1 + length rest
    in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> uncurry (prettyPayload opts) payload
 
-prettyPayload :: PrettyCookedOpts -> Pl.Value -> Maybe UtxoDatum -> Maybe (DocCooked)
+prettyPayload :: PrettyCookedOpts -> Pl.Value -> Maybe UtxoDatum -> Maybe DocCooked
 prettyPayload opts value mDatum =
   case catMaybes
     [ Just (prettyCookedOpt opts value),
@@ -521,5 +522,5 @@ prettyPayload opts value mDatum =
     prettyPayloadDatum d =
       "Datum"
         <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
-        <> ":"
+          <> ":"
         <+> PP.align (utxoDoc d)

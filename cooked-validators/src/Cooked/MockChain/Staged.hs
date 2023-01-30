@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -134,7 +133,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         lift $
           lift $
             tell
-              [ MCLogNewTx (Pl.getCardanoTxId tx)]
+              [MCLogNewTx (Pl.getCardanoTxId tx)]
         put later
         return tx
   interpBuiltin (TxOutByRef o) = txOutByRef o

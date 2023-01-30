@@ -181,9 +181,12 @@ tests =
               runTweak
                 ( datumHijackingAttack @MockContract
                     ( \(ConcreteOutput v _ x d _) ->
-                        Pl.validatorHash val1 == Pl.validatorHash v
-                          && d == TxSkelOutInlineDatum SecondLock
-                          && bound `L.geq` x
+                        Pl.validatorHash val1
+                          == Pl.validatorHash v
+                          && d
+                          == TxSkelOutInlineDatum SecondLock
+                          && bound
+                          `L.geq` x
                     )
                     select
                 )

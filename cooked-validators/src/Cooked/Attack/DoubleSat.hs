@@ -177,7 +177,9 @@ doubleSatAttack optic extra attacker mode = do
           TryCombinations ->
             nubBy sameDeltas $
               map joinDeltas $
-                tail $ allCombinations $ map (mempty :) deltas
+                tail $
+                  allCombinations $
+                    map (mempty :) deltas
       )
   addLabelTweak DoubleSatLbl
   where

@@ -275,16 +275,16 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         witnessMap :: Either GenerateTxError (Map C.PolicyId (C.ScriptWitness C.WitCtxMint C.BabbageEra))
         witnessMap =
-          right mconcat $
-            mapM
+          right mconcat
+            $ mapM
               ( \(policy, redeemer, _tName, _amount) ->
                   Map.singleton
                     <$> left
                       (ToCardanoError "txSkelMintsToTxMintValue, calculating the witness map")
                       (Pl.toCardanoPolicyId (Pl.mintingPolicyHash policy))
-                      <*> mkMintWitness policy redeemer
+                    <*> mkMintWitness policy redeemer
               )
-              $ txSkelMintsToList mints
+            $ txSkelMintsToList mints
 
         mkMintWitness ::
           Pl.Versioned Pl.MintingPolicy ->
@@ -320,11 +320,11 @@ txSkelOutToCardanoTxOut theParams (Pays output) =
   left (ToCardanoError "txSkelOutToTxOut") $
     C.TxOut
       <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
-        <*> Pl.toCardanoTxOutValue (outputValue output)
-        <*> ( case output ^. outputDatumL of
-                TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
-                TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-                TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
-                TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
-            )
-        <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
+      <*> Pl.toCardanoTxOutValue (outputValue output)
+      <*> ( case output ^. outputDatumL of
+              TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
+              TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
+              TxSkelOutDatum datum -> Right . Pl.toCardanoTxOutDatumInTx . Pl.Datum . Pl.toBuiltinData $ datum
+              TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
+          )
+      <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)

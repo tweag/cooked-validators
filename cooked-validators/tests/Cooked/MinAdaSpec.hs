@@ -16,7 +16,7 @@ import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
-instance PrettyCooked ([Integer]) where
+instance PrettyCooked [Integer] where
   prettyCooked = PP.pretty
 
 heavyDatum :: [Integer]
@@ -60,8 +60,8 @@ tests =
   testGroup
     "automatic minAda adjustment of transaction outputs"
     [ testCase "adjusted transaction passes" $ testSucceeds def paymentWithMinAda,
-      testCase "adjusted transaction contains minimal amount" $
-        testFailsFrom'
+      testCase "adjusted transaction contains minimal amount"
+        $ testFailsFrom'
           def
           ( \case
               MCEValidationError (Pl.Phase1, _) -> testSuccess
@@ -69,5 +69,5 @@ tests =
               _ -> testFailure
           )
           def
-          $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
+        $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
     ]

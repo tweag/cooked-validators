@@ -268,12 +268,12 @@ PlutusTx.unstableMakeIsData ''Action
 mkPolicy :: Pl.TxOutRef -> Pl.ScriptContext -> Bool
 mkPolicy offerOref ctx
   | amnt == 1 =
-    traceIfFalse
-      "Offer UTxO not consumed"
-      (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
+      traceIfFalse
+        "Offer UTxO not consumed"
+        (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
   -- no further checks here since 'validSetDeadline' checks the remaining conditions
   | amnt == -1 =
-    True -- no further checks here; 'validHammer' checks everything
+      True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
     txi = Pl.scriptContextTxInfo ctx
@@ -423,8 +423,10 @@ validBid datum bid bidder ctx =
           "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
           ( any
               ( \o ->
-                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                    && Pl.txOutValue o `Value.geq` v
+                  outputAuctionState txi o
+                    == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o
+                    `Value.geq` v
               )
               (Pl.getContinuingOutputs ctx)
           )
@@ -501,7 +503,8 @@ validHammer threadCS datum offerOref ctx =
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
-                  `receives` ( lockedValue <> Pl.negate theNFT
+                  `receives` ( lockedValue
+                                 <> Pl.negate theNFT
                                  <> Pl.negate (Ada.lovelaceValueOf lastBid)
                              )
               )

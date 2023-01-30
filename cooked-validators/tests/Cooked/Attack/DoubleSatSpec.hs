@@ -180,32 +180,32 @@ tests =
                                 Just aValue <- valueFromTxOutRef aOref
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
-                                      return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                        ]
+                                        return
+                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                            | (bOref, bOut) <- bUtxos,
+                                              outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                          ]
                                     | aValue == Pl.lovelaceValueOf 3_000_000 ->
-                                      return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
-                                        ]
+                                        return
+                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                            | (bOref, bOut) <- bUtxos,
+                                              outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                          ]
                                     | aValue == Pl.lovelaceValueOf 4_000_000 ->
-                                      return $
-                                        concatMap
-                                          ( \(bOref, bOut) ->
-                                              let bValue = outputValue bOut
-                                               in if
-                                                      | bValue == Pl.lovelaceValueOf 6_000_000 ->
-                                                        [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
-                                                      | bValue == Pl.lovelaceValueOf 7_000_000 ->
-                                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
-                                                          toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
-                                                        ]
-                                                      | otherwise -> []
-                                          )
-                                          bUtxos
+                                        return $
+                                          concatMap
+                                            ( \(bOref, bOut) ->
+                                                let bValue = outputValue bOut
+                                                 in if
+                                                        | bValue == Pl.lovelaceValueOf 6_000_000 ->
+                                                            [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
+                                                        | bValue == Pl.lovelaceValueOf 7_000_000 ->
+                                                            [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
+                                                              toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
+                                                            ]
+                                                        | otherwise -> []
+                                            )
+                                            bUtxos
                                     | otherwise -> return []
                             )
                             (wallet 6)
