@@ -15,10 +15,8 @@ library
       Crowdfunding
       Crowdfunding.Offchain
       PMultiSigStateful
-      PMultiSigStateful.DatumHijacking
       PMultiSigStateful.ToUPLC
       Split
-      Split.OffChain
       Split.ToUPLC
   other-modules:
       Paths_examples
@@ -38,11 +36,6 @@ library
     , either
     , flat
     , foldl
-    , freer-extras
-    , freer-simple
-    , heredoc
-    , hspec
-    , lens
     , mtl
     , optics-core
     , pirouette >=2.0.0
@@ -53,9 +46,6 @@ library
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
-    , plutus-script-utils
-    , plutus-tx
-    , plutus-tx-plugin
     , plutus-use-cases
     , scientific
     , serialise >=0.2.3.0
@@ -75,8 +65,8 @@ test-suite spec
       AuctionSpec
       CrowdfundingSpec
       PMultiSigStatefulSpec
-      SplitSpec
       SplitUPLCSpec
+      SplitSpec
       UseCaseCrowdfundingSpec
       Paths_examples
   autogen-modules:
@@ -94,28 +84,17 @@ test-suite spec
     , data-default
     , either
     , examples
-    , flat
-    , foldl
-    , freer-extras
-    , freer-simple
-    , heredoc
-    , hspec
-    , lens
-    , mtl
-    , optics-core
-    , pirouette >=2.0.0
-    , pirouette-plutusir
     , playground-common
     , plutus-contract
-    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
+    , plutus-core
     , plutus-script-utils
     , plutus-tx
-    , plutus-tx-plugin
     , plutus-use-cases
     , scientific
+    , plutus-tx-plugin
     , serialise >=0.2.3.0
     , streaming
     , tasty
