@@ -142,17 +142,11 @@ instance PrettyCooked MockChainError where
   prettyCookedOpt _ (FailWith msg) =
     "Failed with:" <+> PP.pretty msg
 
-renderMockChainLog :: PrettyCookedOpts -> MockChainLog -> String
-renderMockChainLog opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyMockChainLog opts
-
-renderUtxoState :: PrettyCookedOpts -> UtxoState -> String
-renderUtxoState opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyUtxoState opts
-
-renderMockChainError :: PrettyCookedOpts -> MockChainError -> String
-renderMockChainError opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyCookedOpt opts
-
-renderEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> String
-renderEndState opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyEndState opts
+-- | Use this to convert a pretty-printer to a regular show function using
+-- default layout options. This is used in "Testing" because Tasty uses
+-- strings.
+renderString :: (a -> DocCooked) -> a -> String
+renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
 prettyEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> DocCooked
 prettyEndState opts (res, state) =

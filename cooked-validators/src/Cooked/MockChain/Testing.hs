@@ -11,7 +11,7 @@ import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Pretty.Class (PrettyCookedOpts)
+import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
@@ -99,7 +99,7 @@ testSucceedsFrom' ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderMockChainError pcOpts) (uncurry prop))
+testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderString (prettyCookedOpt pcOpts)) (uncurry prop))
 
 -- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from some initial distribution
@@ -121,7 +121,7 @@ testFailsFrom' ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderEndState pcOpts))
+testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyEndState pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
 -- This is particularly important when writing negative tests. For example, if we are simulating
@@ -131,13 +131,13 @@ testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFai
 -- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
 isCekEvaluationFailure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
 isCekEvaluationFailure _ (MCEValidationError (_, ScriptFailure _)) = testSuccess
-isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderMockChainError pcOpts e
+isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific error message in the error.
 isCekEvaluationFailureWithMsg :: (IsProp prop) => PrettyCookedOpts -> (String -> Bool) -> MockChainError -> prop
 isCekEvaluationFailureWithMsg _ f (MCEValidationError (_, ScriptFailure (EvaluationError msgs _)))
   | any (f . T.unpack) msgs = testSuccess
-isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderMockChainError pcOpts e
+isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Ensure that all results produced by the set of traces encoded by the 'StagedMockChain'
 -- satisfy the given predicate. If you wish to build custom predicates
@@ -153,7 +153,7 @@ testAllSatisfiesFrom ::
 testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
   where
     go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
-    go (prop, mcLog) = testCounterexample (renderMockChainLog pcOpts mcLog) (f prop)
+    go (prop, mcLog) = testCounterexample (renderString (prettyMockChainLog pcOpts) mcLog) (f prop)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes, both of which
 -- are successful and have their resulting states related by a given predicate. A typical
@@ -173,20 +173,20 @@ testBinaryRelatedBy pcOpts rel = testSatisfiesFrom' $ \case
   [(ra, ta), (rb, tb)] -> case (ra, rb) of
     (Right resA, Right resB) -> rel (snd resA) (snd resB)
     (Left errA, Right _) ->
-      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", renderMockChainError pcOpts errA, "\n", renderMockChainLog pcOpts ta]
+      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", renderString (prettyCookedOpt pcOpts) errA, "\n", renderString (prettyMockChainLog pcOpts) ta]
     (Right _, Left errB) ->
-      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", renderMockChainError pcOpts errB, "\n", renderMockChainLog pcOpts tb]
+      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", renderString (prettyCookedOpt pcOpts) errB, "\n", renderString (prettyMockChainLog pcOpts) tb]
     (Left errA, Left errB) ->
       testFailureMsg $
         concat
           [ "Expected two outcomes, both failed with:",
-            renderMockChainError pcOpts errA,
+            renderString (prettyCookedOpt pcOpts) errA,
             "; ",
-            renderMockChainError pcOpts errB,
+            renderString (prettyCookedOpt pcOpts) errB,
             "\n First: ",
-            renderMockChainLog pcOpts ta,
+            renderString (prettyMockChainLog pcOpts) ta,
             "\nSecond: ",
-            renderMockChainLog pcOpts tb
+            renderString (prettyMockChainLog pcOpts) tb
           ]
   xs -> testFailureMsg $ "Expected exactly two outcomes, received: " ++ show (length xs)
 
@@ -208,13 +208,13 @@ testOneEquivClass ::
 testOneEquivClass pcOpts rel = testSatisfiesFrom' $ \case
   [] -> testFailureMsg "Expected two of more outcomes, received: 0"
   [_] -> testFailureMsg "Expected two of more outcomes, received: 1"
-  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderMockChainError pcOpts errX, "\n", renderMockChainLog pcOpts tx]
+  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errX, "\n", renderString (prettyMockChainLog pcOpts) tx]
   ((Right resX, _) : xs) -> go (snd resX) xs
   where
     -- we can flag a success here because 'xs' above is guarnateed to have at least
     -- one element since we ruled out the empty and the singleton lists in the \case
     go _resX [] = testSuccess
-    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderMockChainError pcOpts errY, "\n", renderMockChainLog pcOpts ty]
+    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errY, "\n", renderString (prettyMockChainLog pcOpts) ty]
     go resX ((Right (_, resY), _) : ys) = testConjoin [rel resX resY, go resX ys]
 
 -- | Asserts that the results produced by running the given 'StagedMockChain' from
