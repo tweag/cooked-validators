@@ -12,7 +12,7 @@ tests :: TestTree
 tests =
   testGroup
     "building blocks for tweaks"
-    [ testGroup "overMaybeTweakSelecting" $
+    [ testGroup "overMaybeSelectingTweak" $
         let skel =
               txSkelTemplate
                 { txSkelOuts =
@@ -24,7 +24,7 @@ tests =
          in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test
                 [Right ([], skel)]
                   @=? runTweak
-                    ( overMaybeTweakSelecting
+                    ( overMaybeSelectingTweak
                         (txSkelOutsL % traversed % txSkelOutValueL)
                         (const Nothing)
                         (const True)
@@ -43,7 +43,7 @@ tests =
                     )
                 ]
                   @=? runTweak
-                    ( overMaybeTweakSelecting
+                    ( overMaybeSelectingTweak
                         (txSkelOutsL % traversed % txSkelOutValueL)
                         ( \value ->
                             if value `L.geq` L.lovelaceValueOf 200
@@ -68,7 +68,7 @@ tests =
                     )
                 ]
                   @=? runTweak
-                    ( overMaybeTweakSelecting
+                    ( overMaybeSelectingTweak
                         (txSkelOutsL % traversed % txSkelOutValueL)
                         (const $ Just $ L.lovelaceValueOf 789)
                         (`elem` [0, 2])

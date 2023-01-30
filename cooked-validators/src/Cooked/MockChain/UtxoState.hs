@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Cooked.MockChain.UtxoState where
 
 import Cooked.Pretty.Class (DocCooked)

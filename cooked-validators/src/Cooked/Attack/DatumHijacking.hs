@@ -47,7 +47,7 @@ redirectScriptOutputTweak ::
   (Integer -> Bool) ->
   m [ConcreteOutput (L.TypedValidator a) TxSkelOutDatum L.Value (L.Versioned L.Script)]
 redirectScriptOutputTweak optic change =
-  overMaybeTweakSelecting
+  overMaybeSelectingTweak
     optic
     ( \output -> case change output of
         Nothing -> Nothing

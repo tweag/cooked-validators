@@ -1,8 +1,9 @@
 #!/bin/bash -e
+set -o xtrace
 cabal update
 cabal haddock \
   --haddock-hyperlink-source \
   --haddock-html-location='http://hackage.haskell.org/packages/archive/$pkg/latest/doc/html' \
   cooked-validators
 mkdir -p docs
-cp -R dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
+cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs

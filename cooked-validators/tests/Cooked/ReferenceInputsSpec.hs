@@ -39,7 +39,7 @@ import qualified Test.Tasty.HUnit as Tasty
 
 data Foo
 
-data FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
+newtype FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
 
 instance PrettyCooked FooDatum where
   prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyCookedOpt opts pkh
