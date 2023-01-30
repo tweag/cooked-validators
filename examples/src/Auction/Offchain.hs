@@ -20,6 +20,11 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
+toSlotRange :: MonadBlockChain m => Pl.POSIXTime -> m Pl.SlotRange
+toSlotRange t = do
+  config <- L.pSlotConfig <$> params
+  return $ Interval.to $ Pl.posixTimeToEnclosingSlot config t
+
 -- | Make an offer. There are no checks with this transaction. Anyone is allowed
 -- to pay the 'auctionValidator' with something they want to sell, using the
 -- 'Offer' datum to specify the seller of the auction.
@@ -83,6 +88,7 @@ txBid submitter offerOref bid = do
       Just deadline = A.getBidDeadline datum
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
+  validityInterval <- toSlotRange deadline
   validateTxSkel $
     txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
@@ -106,7 +112,7 @@ txBid submitter offerOref bid = do
                   (A.Bidding seller deadline (A.BidderInfo bid (walletPKHash submitter)))
                   (lotPlusPreviousBidPlusNft <> Ada.lovelaceValueOf (bid - prevBid))
               ],
-        txSkelValidityRange = Pl.to (deadline - 1)
+        txSkelValidityRange = validityInterval
       }
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
@@ -143,6 +149,7 @@ txHammer submitter offerOref = do
       let ResolvedOrInlineDatum datum = output ^. outputDatumL
           Just deadline = A.getBidDeadline datum
           seller = A.getSeller datum
+      validityInterval <- toSlotRange deadline
       void $
         validateTxSkel $
           txSkelTemplate
@@ -169,5 +176,5 @@ txHammer submitter offerOref = do
                      in [ paysPK lastBidder lot,
                           paysPK seller (Ada.lovelaceValueOf lastBid)
                         ],
-              txSkelValidityRange = Pl.from deadline
+              txSkelValidityRange = validityInterval
             }

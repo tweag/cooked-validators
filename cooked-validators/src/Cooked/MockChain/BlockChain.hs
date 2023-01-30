@@ -91,6 +91,8 @@ txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
 filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
 
+-- | 
+
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
 pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => PV2.PubKeyHash -> m [(PV2.TxOutRef, PKOutputMaybeDatum)]
@@ -174,6 +176,8 @@ waitNSlots n = do
   when (n < 0) $ fail "waitNSlots: negative argument"
   c <- currentSlot
   awaitSlot $ c + fromIntegral n
+
+
 
 -- ** Deriving further 'MonadBlockChain' instances
 
