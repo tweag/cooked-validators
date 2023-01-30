@@ -18,7 +18,7 @@
 -- == Requirements on datum and redeemers
 --
 -- Datums and redeemers are required to have a 'PrettyCooked' instance.
--- 
+--
 -- For trivial datatypes, you can rely on Show by using 'viaShow' from
 -- "Prettyprinter": 'prettyCooked = Prettyprinter.viaShow'.
 --
@@ -51,7 +51,6 @@
 -- "Cooked.MockChain.Testing".
 --
 -- To do it manually, use 'prettyTxSkel' or 'prettyUtxoState'.
---
 module Cooked.Pretty where
 
 import Control.Arrow (second)
@@ -145,6 +144,22 @@ instance PrettyCooked MockChainError where
 
 renderMockChainLog :: PrettyCookedOpts -> MockChainLog -> String
 renderMockChainLog opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyMockChainLog opts
+
+renderUtxoState :: PrettyCookedOpts -> UtxoState -> String
+renderUtxoState opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyUtxoState opts
+
+renderMockChainError :: PrettyCookedOpts -> MockChainError -> String
+renderMockChainError opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyCookedOpt opts
+
+renderEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> String
+renderEndState opts = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . prettyEndState opts
+
+prettyEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> DocCooked
+prettyEndState opts (res, state) =
+  prettyEnum
+    "End state:"
+    "-"
+    ["Returned value:" <+> PP.viaShow res, prettyUtxoState opts state]
 
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has

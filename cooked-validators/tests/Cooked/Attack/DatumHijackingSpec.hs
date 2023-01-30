@@ -228,7 +228,8 @@ tests =
             ],
       testCase "careful validator" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           def
           ( somewhere
               ( datumHijackingAttack @MockContract
@@ -242,6 +243,7 @@ tests =
           ),
       testCase "careless validator" $
         testSucceeds
+          def
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \(ConcreteOutput v _ _ d _) ->

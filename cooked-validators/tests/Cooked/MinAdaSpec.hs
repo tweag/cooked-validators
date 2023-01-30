@@ -1,6 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Cooked.MinAdaSpec where
 
@@ -59,9 +59,10 @@ tests :: TestTree
 tests =
   testGroup
     "automatic minAda adjustment of transaction outputs"
-    [ testCase "adjusted transaction passes" $ testSucceeds paymentWithMinAda,
+    [ testCase "adjusted transaction passes" $ testSucceeds def paymentWithMinAda,
       testCase "adjusted transaction contains minimal amount" $
         testFailsFrom'
+          def
           ( \case
               MCEValidationError (Pl.Phase1, _) -> testSuccess
               MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess

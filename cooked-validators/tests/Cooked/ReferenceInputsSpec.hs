@@ -134,4 +134,4 @@ tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    [Tasty.testCase "Can reference an input that can't be spent" (testSucceeds trace1)]
+    [Tasty.testCase "Can reference an input that can't be spent" (testSucceeds def trace1)]

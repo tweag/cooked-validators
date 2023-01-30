@@ -192,6 +192,7 @@ tests =
             theRefScriptHash = toScriptHash theRefScript
          in [ testCase "on a public key output" $
                 testSucceedsFrom'
+                  def
                   ( \mScriptHash _ ->
                       testCounterexample "the script hash on the retrieved output is wrong" $
                         Just theRefScriptHash .==. mScriptHash
@@ -201,6 +202,7 @@ tests =
                     >>= retrieveRefScriptHash,
               testCase "on a script output" $
                 testSucceedsFrom'
+                  def
                   ( \mScriptHash _ ->
                       testCounterexample "the script hash on the retrieved output is wrong" $
                         Just theRefScriptHash .==. mScriptHash
@@ -213,14 +215,16 @@ tests =
         "checking the presence of reference scripts on the TxInfo"
         [ testCase "fail if wrong reference script" $
             testFailsFrom'
+              def
               ( isCekEvaluationFailureWithMsg
+                  def
                   (== "there is no reference input with the correct script hash")
               )
               def
               $ putRefScriptOnWalletOutput (wallet 3) noValidator
                 >>= checkReferenceScriptOnOref (toScriptHash yesValidator),
           testCase "succeed if correct reference script" $
-            testSucceeds $
+            testSucceeds def $
               putRefScriptOnWalletOutput (wallet 3) yesValidator
                 >>= checkReferenceScriptOnOref (toScriptHash yesValidator)
         ],
@@ -228,6 +232,7 @@ tests =
         "using reference scripts"
         [ testCase "fail from transaction generation for missing reference scripts" $
             testFailsFrom'
+              def
               ( \case
                   MCEGenerationError _ -> testSuccess
                   MCECalcFee (MCEGenerationError _) -> testSuccess
@@ -253,6 +258,7 @@ tests =
                       },
           testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'" $
             testFailsFrom'
+              def
               ( \case
                   MCEValidationError (Pl.Phase1, _) -> testSuccess
                   MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
@@ -281,13 +287,15 @@ tests =
           testCase
             "fail if referenced script's requirement is violated"
             $ testFailsFrom'
+              def
               ( isCekEvaluationFailureWithMsg
+                  def
                   (== "the required signer is missing")
               )
               def
               $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
           testCase "succeed if referenced script's requirement is met" $
-            testSucceeds $
+            testSucceeds def $
               useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1))
         ]
     ]

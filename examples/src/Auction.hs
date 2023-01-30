@@ -31,7 +31,7 @@ import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
-import Prettyprinter (Pretty, (<+>))
+import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
 import qualified Prelude as Haskell
 
@@ -149,12 +149,12 @@ data BidderInfo = BidderInfo
   deriving (Haskell.Show)
 
 instance Cooked.PrettyCooked BidderInfo where
-  prettyCooked (BidderInfo bid bidder) =
+  prettyCookedOpt opts (BidderInfo bid bidder) =
     Cooked.prettyEnum
       "BidderInfo"
       "-"
       [ "bid:" <+> PP.pretty bid,
-        "bidder:" <+> Cooked.prettyCooked bidder
+        "bidder:" <+> Cooked.prettyCookedOpt opts bidder
       ]
 
 PlutusTx.makeLift ''BidderInfo
@@ -199,29 +199,29 @@ instance Eq AuctionState where
 
 -- | This will make the output of cooked-validators much more readable
 instance Cooked.PrettyCooked AuctionState where
-  prettyCooked (Offer seller minBid) =
+  prettyCookedOpt opts (Offer seller minBid) =
     Cooked.prettyEnum
       "Offer"
       "-"
-      [ "seller:" <+> Cooked.prettyCooked seller,
-        "minimum bid:" <+> Cooked.prettyCooked (Ada.lovelaceValueOf minBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid)
       ]
-  prettyCooked(NoBids seller minBid deadline) =
+  prettyCookedOpt opts (NoBids seller minBid deadline) =
     Cooked.prettyEnum
       "NoBids"
       "-"
-      [ "seller:" <+> Cooked.prettyCooked seller,
-        "minimum bid:" <+> Cooked.prettyCooked (Ada.lovelaceValueOf minBid),
-        "deadline" <+> PP.viaShow deadline
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid),
+        "deadline" <+> PP.pretty deadline
       ]
-  prettyCooked (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
+  prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
     Cooked.prettyEnum
       "Bidding"
       "-"
-      [ "seller:" <+> Cooked.prettyCooked seller,
-        "deadline" <+> PP.viaShow deadline,
-        "previous bidder:" <+> Cooked.prettyCooked lastBidder,
-        "previous bid:" <+> Cooked.prettyCooked (Ada.lovelaceValueOf lastBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "deadline" <+> PP.pretty deadline,
+        "previous bidder:" <+> Cooked.prettyCookedOpt opts lastBidder,
+        "previous bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf lastBid)
       ]
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
@@ -236,9 +236,9 @@ data Action
   deriving (Haskell.Show)
 
 instance Cooked.PrettyCooked Action where
-  prettyCooked SetDeadline = "SetDeadline"
-  prettyCooked (Bid bidderInfo) = "Bid" <+> Cooked.prettyCooked bidderInfo
-  prettyCooked (Hammer txOutRef) = "Hammer" <+> Cooked.prettyCooked txOutRef
+  prettyCookedOpt _ SetDeadline = "SetDeadline"
+  prettyCookedOpt opts (Bid bidderInfo) = "Bid" <+> Cooked.prettyCookedOpt opts bidderInfo
+  prettyCookedOpt opts (Hammer txOutRef) = "Hammer" <+> Cooked.prettyCookedOpt opts txOutRef
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
