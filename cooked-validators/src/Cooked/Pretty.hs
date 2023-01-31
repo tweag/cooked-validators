@@ -153,7 +153,7 @@ prettyEndState opts (res, state) =
   prettyItemize
     "End state:"
     "-"
-    ["Returned value:" <+> PP.viaShow res, prettyUtxoState opts state]
+    ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
 
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
