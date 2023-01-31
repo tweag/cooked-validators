@@ -78,46 +78,46 @@ jobs:
     needs: cache-minimal-nix-dependencies
 
     steps:
-    - name: Check out repository code (from PR).
-      uses: actions/checkout@v3.3.0
+      - name: Check out repository code (from PR).
+        uses: actions/checkout@v3.3.0
 
-    - name: Install Nix
-      uses: cachix/install-nix-action@v18
-      with:
-        extra_nix_config: |
-          ## Access token to avoid triggering GitHub's rate limiting.
-          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          extra_nix_config: |
+            ## Access token to avoid triggering GitHub's rate limiting.
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup Nix caches
-      uses: cachix/cachix-action@v12
-      with:
-        name: tweag-plutus-libs
-        ## No auth token: read only cache.
+      - name: Setup Nix caches
+        uses: cachix/cachix-action@v12
+        with:
+          name: tweag-plutus-libs
+          ## No auth token: read only cache.
 
-    ## Example from
-    ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
-    - name: Accessing the cabal cache.
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cabal/packages
-          ~/.cabal/store
-          dist-newstyle
-        key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
-        restore-keys: ${{ runner.os }}-
+      ## Example from
+      ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
+      - name: Accessing the cabal cache.
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+          restore-keys: ${{ runner.os }}-
 
-    - name: Build and run tests
-      run: |
-        nix develop .#ci --command cabal update
-        nix develop .#ci --command bash ci/run-tests.sh --ci
+      - name: Build and run tests
+        run: |
+          nix develop .#ci --command cabal update
+          nix develop .#ci --command bash ci/run-tests.sh --ci
 
-    - name: Upload tests output
-      uses: actions/upload-artifact@v3
-      with:
-        name: plutus-libs-checks
-        path: |
-          ./*.out
-          ./*.res
+      - name: Upload tests output
+        uses: actions/upload-artifact@v3
+        with:
+          name: plutus-libs-checks
+          path: |
+            ./*.out
+            ./*.res
 
   check-result:
     name: Check tests output
@@ -126,37 +126,38 @@ jobs:
     needs: build-and-test
 
     steps:
-    - name: Accessing tests output
-      uses: actions/download-artifact@v3
-      with:
-        name: plutus-libs-checks
+      - name: Accessing tests output
+        uses: actions/download-artifact@v3
+        with:
+          name: plutus-libs-checks
 
-    - name: Check tests output
-      run: |
-        is_ok=true
-        for proj in "examples" "cooked-validators"; do
-          for step in "cabal-build" "cabal-test"; do
-            echo "!! [$proj]: output from $step"
-            cat $proj-$step.out
-            res=$(cat $proj-$step.res | cut -d':' -f2)
-            if [[ "$res" != "0" ]]; then
-              is_ok=false
-            fi
+      - name: Check tests output
+        run: |
+          is_ok=true
+          for proj in "examples" "cooked-validators"; do
+            for step in "cabal-build" "cabal-test"; do
+              echo "!! [$proj]: output from $step"
+              cat $proj-$step.out
+              res=$(cat $proj-$step.res | cut -d':' -f2)
+              if [[ "$res" != "0" ]]; then
+                is_ok=false
+              fi
+            done
           done
-        done
 
-        ## Because there will be a lot of tests, we print a summary of the results
-        echo "Summary of results (1 is failure)"
-        for proj in "examples" "cooked-validators"; do
-          echo "Summary for: $proj"
-          cat ${proj}-*.res
-        done
+          ## Because there will be a lot of tests, we print a summary of the
+          ## results
+          echo "Summary of results (1 is failure)"
+          for proj in "examples" "cooked-validators"; do
+            echo "Summary for: $proj"
+            cat ${proj}-*.res
+          done
 
-        if $is_ok; then
-          exit 0
-        else
-          exit 1
-        fi
+          if $is_ok; then
+            exit 0
+          else
+            exit 1
+          fi
 
   run-and-cache-flake-checks:
     name: Run and cache flake checks
