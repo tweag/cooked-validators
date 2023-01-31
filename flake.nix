@@ -75,9 +75,8 @@
           };
 
           default = pkgs.mkShell {
-            buildInputs = buildInputs
-              ++ (with hpkgs; [ haskell-language-server ])
-              ++ (with pkgs; [ ormolu hpack hlint ]);
+            buildInputs = buildInputs ++ (with pkgs; [ ormolu hpack hlint ])
+              ++ (with hpkgs; [ haskell-language-server ]);
             inherit (pre-commit) shellHook;
             inherit LD_LIBRARY_PATH;
             inherit LANG;
