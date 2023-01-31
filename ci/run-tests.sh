@@ -5,8 +5,7 @@ set -uo pipefail
 show_help() {
   cat <<EOF
 usage: ./ci/run-tests.sh [--ci]
-  Note the script is ran from the repo root; Running without --ci
-  will run "ormolu --mode inplace" and fix offending files.
+  Note the script is ran from the repo root.
   Options:
     --ci      Informs the script it is running in CI; this means
               we will save the test results as a file (named <project>-cabal-test.{res,out})
@@ -33,7 +32,7 @@ done
 ## The point of this is that when running in CI, we will execute all these steps
 ## but we "succeed" iff the build is ok. Another job will then check the resulting
 ## files for their exit codes. This is ugly but it ensures that the cabal build
-## gets cached even if tests or ormolu fails, which means we save a lot of time
+## gets cached even if tests fail, which means we save a lot of time
 ## (and CI runner money) in the long run.
 
 ## Runs the cabal build for a project
