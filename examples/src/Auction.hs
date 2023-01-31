@@ -150,7 +150,7 @@ data BidderInfo = BidderInfo
 
 instance Cooked.PrettyCooked BidderInfo where
   prettyCookedOpt opts (BidderInfo bid bidder) =
-    Cooked.prettyEnum
+    Cooked.prettyItemize
       "BidderInfo"
       "-"
       [ "bid:" <+> PP.pretty bid,
@@ -200,14 +200,14 @@ instance Eq AuctionState where
 -- | This will make the output of cooked-validators much more readable
 instance Cooked.PrettyCooked AuctionState where
   prettyCookedOpt opts (Offer seller minBid) =
-    Cooked.prettyEnum
+    Cooked.prettyItemize
       "Offer"
       "-"
       [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
         "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid)
       ]
   prettyCookedOpt opts (NoBids seller minBid deadline) =
-    Cooked.prettyEnum
+    Cooked.prettyItemize
       "NoBids"
       "-"
       [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
@@ -215,7 +215,7 @@ instance Cooked.PrettyCooked AuctionState where
         "deadline" <+> PP.pretty deadline
       ]
   prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
-    Cooked.prettyEnum
+    Cooked.prettyItemize
       "Bidding"
       "-"
       [ "seller:" <+> Cooked.prettyCookedOpt opts seller,

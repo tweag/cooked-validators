@@ -33,14 +33,14 @@
 --       prettyCookedOpt pcOpts (Bar value) =
 --         "Bar" <+> prettyCookedOpt pcOpts value
 --       prettyCookedOpt pcOpts (Baz pkh value) =
---         prettyEnum
+--         prettyItemize
 --           "Baz"
 --           "-"
 --           [ "user:" <+> prettyCookedOpt pcOpts pkh,
 --             "deposit:" <+> prettyCookedOpt pcOpts value ]
 -- @
 --
--- The 'prettyEnum' function is useful to nicely lay down nested lists of
+-- The 'prettyItemize' function is useful to nicely lay down nested lists of
 -- elements. Since we manipulate regular 'Doc' values, any function from
 -- "Prettyprinter" can be used to implement your printers.
 --
@@ -82,22 +82,22 @@ import qualified Prettyprinter.Render.String as PP
 import Test.QuickCheck (NonZero)
 import Test.Tasty.QuickCheck (NonZero (..))
 
--- prettyEnum "Foo" "-" ["bar1", "bar2", "bar3"]
+-- prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
 --    Foo
 --      - bar1
 --      - bar2
 --      - bar3
-prettyEnum :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
-prettyEnum title bullet items =
+prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
+prettyItemize title bullet items =
   PP.vsep
     [ title,
       PP.indent 2 . PP.vsep $
         map (bullet <+>) items
     ]
 
-prettyEnumNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
-prettyEnumNonEmpty _ _ [] = Nothing
-prettyEnumNonEmpty title bullet items = Just $ prettyEnum title bullet items
+prettyItemizeNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
+prettyItemizeNonEmpty _ _ [] = Nothing
+prettyItemizeNonEmpty title bullet items = Just $ prettyItemize title bullet items
 
 prettyEnumerate :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
 prettyEnumerate title bullet items =
@@ -113,7 +113,7 @@ instance PrettyCooked MockChainError where
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
   prettyCookedOpt _ (MCEUnbalanceable msg balanceStage _) =
-    prettyEnum
+    prettyItemize
       "Unbalanceable"
       "-"
       [PP.pretty msg, prettyBalanceStage balanceStage]
@@ -123,19 +123,19 @@ instance PrettyCooked MockChainError where
   prettyCookedOpt _ MCENoSuitableCollateral =
     "No suitable collateral"
   prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
-    prettyEnum
+    prettyItemize
       "Transaction generation error:"
       "-"
       [PP.pretty msg, PP.pretty cardanoError]
   prettyCookedOpt _ (MCEGenerationError (GenerateTxErrorGeneral msg)) =
-    prettyEnum
+    prettyItemize
       "Transaction generation error:"
       "-"
       [PP.pretty msg]
   prettyCookedOpt opts (MCECalcFee err) =
     PP.vsep ["Fee calculation error:", PP.indent 2 (prettyCookedOpt opts err)]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
-    prettyEnum
+    prettyItemize
       "Unknown transaction output ref:"
       "-"
       [PP.pretty msg, prettyCookedOpt opts txOutRef]
@@ -150,7 +150,7 @@ renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions
 
 prettyEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> DocCooked
 prettyEndState opts (res, state) =
-  prettyEnum
+  prettyItemize
     "End state:"
     "-"
     ["Returned value:" <+> PP.viaShow res, prettyUtxoState opts state]
@@ -198,19 +198,19 @@ prettyMockChainLog opts =
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints validityRange signers ins insReference outs) =
-  prettyEnum
+  prettyItemize
     "transaction skeleton:"
     "-"
     ( catMaybes
-        [ prettyEnumNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
+        [ prettyItemizeNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
-          prettyEnumNonEmpty "Mints:" "-" (prettyMints opts <$> (mints ^. mintsListIso)),
+          prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> (mints ^. mintsListIso)),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
-          prettyEnumNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
+          prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
           -- TODO handle unsafe 'fromJust' better
-          prettyEnumNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn opts skelContext) $ Map.toList ins),
-          prettyEnumNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
-          prettyEnumNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs)
+          prettyItemizeNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn opts skelContext) $ Map.toList ins),
+          prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
+          prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs)
         ]
     )
 
@@ -279,7 +279,7 @@ instance PrettyCooked Pl.Credential where
 
 prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
 prettyTxSkelOut opts (Pays output) =
-  prettyEnum
+  prettyItemize
     ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
     "-"
     ( prettyCookedOpt opts (outputValue output) :
@@ -308,7 +308,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
           TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> prettyCookedOpt opts redeemer)
           _ -> Nothing
   return $
-    prettyEnum
+    prettyItemize
       ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
       (prettyCookedOpt opts (outputValue output) : catMaybes [redeemerDoc, datumDoc, getReferenceScriptDoc opts output])
@@ -317,7 +317,7 @@ prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Pl.TxOutRef -> May
 prettyTxSkelInReference opts skelContext txOutRef = do
   (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
   return $
-    prettyEnum
+    prettyItemize
       ("References output from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
       (prettyCookedOpt opts (outputValue output) : catMaybes [datumDoc, getReferenceScriptDoc opts output])
@@ -382,7 +382,7 @@ instance PrettyCooked Pl.Value where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
       prettySingletons [doc] = doc
-      prettySingletons docs = prettyEnum "Value:" "-" docs
+      prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
         prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
@@ -419,7 +419,7 @@ mPrettyTxOpts
       txOptBalanceOutputPolicy,
       txOptBalanceWallet
     } =
-    prettyEnumNonEmpty "Options:" "-" $
+    prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
         [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
           prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
@@ -462,7 +462,7 @@ mPrettyTxOpts
 -- pks, then scripts.
 prettyUtxoState :: PrettyCookedOpts -> UtxoState -> DocCooked
 prettyUtxoState opts =
-  prettyEnum "UTxO state:" "•"
+  prettyItemize "UTxO state:" "•"
     . map (uncurry (prettyAddressState opts) . second utxoValueSet)
     . List.sortBy addressOrdering
     . Map.toList
@@ -490,7 +490,7 @@ instance Show UtxoState where
 -- (including value and datum), grouped
 prettyAddressState :: PrettyCookedOpts -> Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> DocCooked
 prettyAddressState opts address payloads =
-  prettyEnum
+  prettyItemize
     (prettyCookedOpt opts address)
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
