@@ -67,9 +67,12 @@
           };
 
           default = pkgs.mkShell {
-            buildInputs = buildInputs
-              ++ (with hpkgs; [ haskell-language-server ])
-              ++ (with pkgs; [ ormolu hpack hlint ]);
+            ## NOTE: `pkgs.ormolu` must appear before `hpkgs.haskell-language-server`
+            ## in the `buildInputs`, so as to take precedence. This ensures that the
+            ## version of Ormolu available in the path is that of nixpkgs and not the
+            ## one pinned by HLS.
+            buildInputs = buildInputs ++ (with pkgs; [ ormolu hpack hlint ])
+              ++ (with hpkgs; [ haskell-language-server ]);
             inherit (pre-commit) shellHook;
             inherit LD_LIBRARY_PATH;
           };
