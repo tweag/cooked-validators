@@ -27,6 +27,7 @@
             ## NOTE: in case of formatting error, check the versions of
             ## ormolu and try replacing by ${pkgs.ormolu}/bin/ormolu
             ## https://discourse.nixos.org/t/nix-shell-buildinputs-ordering-issue/12885/8
+            ormolu --version
             ormolu --mode check $(find . -name '*.hs') || exit 1
           '';
           ## The derivation succeeds if the output is created.

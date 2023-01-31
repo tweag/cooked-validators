@@ -174,12 +174,12 @@ initialDistribution' = (def <>) . distributionFromList
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist
   | not $ validInitialDistribution initDist =
-      error "Not all UTxOs have at least minAda; this initial distribution is unusable"
+    error "Not all UTxOs have at least minAda; this initial distribution is unusable"
   | otherwise =
-      mempty
-        { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
-          Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-        }
+    mempty
+      { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+        Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
+      }
   where
     -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
