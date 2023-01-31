@@ -29,6 +29,7 @@ import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
+import qualified Prettyprinter as PP
 import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
@@ -123,17 +124,19 @@ successfulSingle :: TestTree
 successfulSingle =
   testGroup
     "Successful single-trace runs"
-    [ testCase "hammer to withdraw" $ testSucceedsFrom testInit hammerToWithdraw,
-      testCase "zero bids" $ testSucceedsFrom testInit noBids,
-      testCase "one bid" $ testSucceedsFrom testInit oneBid,
+    [ testCase "hammer to withdraw" $ testSucceedsFrom def testInit hammerToWithdraw,
+      testCase "zero bids" $ testSucceedsFrom def testInit noBids,
+      testCase "one bid" $ testSucceedsFrom def testInit oneBid,
       testCase "two bids on the same auction" $
         testSucceedsFrom'
+          def
           (\_ s -> testBool $ 7 == bananasIn (holdingInState s (wallet 3)))
           testInit
           twoBids,
       testCase
         "two concurrent auctions"
         $ testSucceedsFrom'
+          def
           ( \_ s ->
               testBool (7 == bananasIn (holdingInState s (wallet 2)))
                 .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
@@ -170,15 +173,17 @@ failingSingle =
   testGroup
     "Single-trace runs that are expected to fail"
     [ testCase "opening banana auction while owning too few bananas" $
-        testFailsFrom testInit failingOffer,
+        testFailsFrom def testInit failingOffer,
       testCase "wrong user hammers to withdraw" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           forbiddenHammerToWithdraw,
       testCase "second bid not higher than first" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           failingTwoBids
     ]
@@ -283,25 +288,30 @@ failingAttacks =
     "failing attacks"
     [ testCase "token duplication" $
         testFailsFrom'
+          def
           -- Ensure that the trace fails and gives back an error message satisfying a specific condition
           ( isCekEvaluationFailureWithMsg
+              def
               (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
           )
           testInit
           tryDupTokens,
       testCase "datum hijacking" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryDatumHijack,
       testCase "datum tampering" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryTamperDatum,
       testCase "double satisfaction" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryDoubleSat
     ]
@@ -446,17 +456,20 @@ successfulAttacks =
       expectFail
       [ testCase "adding extra tokens" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             tryAddToken,
         testCase "exploit extra tokens to steal a bid" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             exploitAddToken,
         testCase "exploit double satisfaction to steal a bid" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             exploitDoubleSat
       ]
@@ -481,6 +494,7 @@ bidderAlternative :: TestTree
 bidderAlternative =
   testCase "change in possessions independent of bidder" $
     testBinaryRelatedBy
+      def
       ( \a b ->
           testBool $
             holdingInState a (wallet 1) == holdingInState b (wallet 1)

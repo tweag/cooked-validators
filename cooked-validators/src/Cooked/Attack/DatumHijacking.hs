@@ -12,6 +12,7 @@ module Cooked.Attack.DatumHijacking where
 
 import Control.Monad
 import Cooked.Output
+import Cooked.Pretty.Class
 import Cooked.RawUPLC
 import Cooked.Skeleton
 import Cooked.Tweak
@@ -19,7 +20,6 @@ import qualified Ledger as L
 import qualified Ledger.Typed.Scripts as L
 import Optics.Core
 import qualified PlutusTx as Pl
-import Prettyprinter
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -72,7 +72,7 @@ datumHijackingAttack ::
   forall a m.
   ( MonadTweak m,
     Show (L.DatumType a),
-    Pretty (L.DatumType a),
+    PrettyCooked (L.DatumType a),
     Pl.ToData (L.DatumType a),
     Typeable (L.DatumType a),
     Typeable a

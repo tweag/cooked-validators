@@ -120,7 +120,8 @@ tests =
         let tName = L.tokenName "MockToken"
             pol = carefulPolicy tName 1
          in testFailsFrom'
-              isCekEvaluationFailure
+              def
+              (isCekEvaluationFailure def)
               def
               ( somewhere
                   (dupTokenAttack (\_ n -> n + 1) (wallet 6))
@@ -129,7 +130,7 @@ tests =
       testCase "careless minting policy" $
         let tName = L.tokenName "MockToken"
             pol = carelessPolicy
-         in testSucceeds $
+         in testSucceeds def $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName (NonZero 1) (wallet 1)),

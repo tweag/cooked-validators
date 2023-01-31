@@ -8,6 +8,7 @@ import Cooked.Ltl as X
 import Cooked.MockChain as X
 import Cooked.Output as X
 import Cooked.Pretty as X
+import Cooked.Pretty.Class as X
 import Cooked.RawUPLC as X
 import Cooked.Skeleton as X
 import Cooked.Tweak as X

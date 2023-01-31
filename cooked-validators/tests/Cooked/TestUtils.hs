@@ -19,7 +19,8 @@ assertSubset l r =
     ( map
         ( \x ->
             assertBool
-              ( "not a subset:\n\n" ++ show x
+              ( "not a subset:\n\n"
+                  ++ show x
                   ++ "\n\nis not an element of\n\n"
                   ++ show r
               )

@@ -20,7 +20,7 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
-import qualified Cooked.Pretty as Cooked
+import qualified Cooked
 import qualified Ledger.Ada as Ada
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
@@ -31,7 +31,7 @@ import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
-import Prettyprinter (Pretty, (<+>))
+import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
 import qualified Prelude as Haskell
 
@@ -148,6 +148,15 @@ data BidderInfo = BidderInfo
   }
   deriving (Haskell.Show)
 
+instance Cooked.PrettyCooked BidderInfo where
+  prettyCookedOpt opts (BidderInfo bid bidder) =
+    Cooked.prettyItemize
+      "BidderInfo"
+      "-"
+      [ "bid:" <+> PP.pretty bid,
+        "bidder:" <+> Cooked.prettyCookedOpt opts bidder
+      ]
+
 PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
 
@@ -189,30 +198,30 @@ instance Eq AuctionState where
   _ == _ = False
 
 -- | This will make the output of cooked-validators much more readable
-instance Pretty AuctionState where
-  pretty (Offer seller minBid) =
-    Cooked.prettyEnum
+instance Cooked.PrettyCooked AuctionState where
+  prettyCookedOpt opts (Offer seller minBid) =
+    Cooked.prettyItemize
       "Offer"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid)
       ]
-  pretty (NoBids seller minBid deadline) =
-    Cooked.prettyEnum
+  prettyCookedOpt opts (NoBids seller minBid deadline) =
+    Cooked.prettyItemize
       "NoBids"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid),
-        "deadline" <+> PP.viaShow deadline
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid),
+        "deadline" <+> PP.pretty deadline
       ]
-  pretty (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
-    Cooked.prettyEnum
+  prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
+    Cooked.prettyItemize
       "Bidding"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "deadline" <+> PP.viaShow deadline,
-        "previous bidder:" <+> Cooked.prettyPubKeyHash lastBidder,
-        "previous bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf lastBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "deadline" <+> PP.pretty deadline,
+        "previous bidder:" <+> Cooked.prettyCookedOpt opts lastBidder,
+        "previous bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf lastBid)
       ]
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
@@ -225,6 +234,11 @@ data Action
     --  'Offer' UTxO.
     Hammer Pl.TxOutRef
   deriving (Haskell.Show)
+
+instance Cooked.PrettyCooked Action where
+  prettyCookedOpt _ SetDeadline = "SetDeadline"
+  prettyCookedOpt opts (Bid bidderInfo) = "Bid" <+> Cooked.prettyCookedOpt opts bidderInfo
+  prettyCookedOpt opts (Hammer txOutRef) = "Hammer" <+> Cooked.prettyCookedOpt opts txOutRef
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
@@ -409,8 +423,10 @@ validBid datum bid bidder ctx =
           "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
           ( any
               ( \o ->
-                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                    && Pl.txOutValue o `Value.geq` v
+                  outputAuctionState txi o
+                    == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o
+                    `Value.geq` v
               )
               (Pl.getContinuingOutputs ctx)
           )
@@ -487,7 +503,8 @@ validHammer threadCS datum offerOref ctx =
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
-                  `receives` ( lockedValue <> Pl.negate theNFT
+                  `receives` ( lockedValue
+                                 <> Pl.negate theNFT
                                  <> Pl.negate (Ada.lovelaceValueOf lastBid)
                              )
               )

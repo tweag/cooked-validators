@@ -8,12 +8,12 @@
 module Cooked.Tweak.TamperDatum where
 
 import Control.Monad
+import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
 import Optics.Core
 import qualified PlutusTx as Pl
-import Prettyprinter
 import Type.Reflection
 
 -- | A tweak that tries to change the datum on outputs that go to scripts with a
@@ -25,7 +25,7 @@ tamperDatumTweak ::
   forall a m.
   ( MonadTweak m,
     Show a,
-    Pretty a,
+    PrettyCooked a,
     Pl.ToData a,
     Pl.FromData a,
     Typeable a

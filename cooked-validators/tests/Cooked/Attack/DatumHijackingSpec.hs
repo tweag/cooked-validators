@@ -36,8 +36,11 @@ import Test.Tasty.HUnit
 
 data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
-instance Pretty MockDatum where
-  pretty = viaShow
+instance PrettyCooked MockDatum where
+  prettyCooked = viaShow
+
+instance PrettyCooked () where
+  prettyCooked = viaShow
 
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}
@@ -178,9 +181,12 @@ tests =
               runTweak
                 ( datumHijackingAttack @MockContract
                     ( \(ConcreteOutput v _ x d _) ->
-                        Pl.validatorHash val1 == Pl.validatorHash v
-                          && d == TxSkelOutInlineDatum SecondLock
-                          && bound `L.geq` x
+                        Pl.validatorHash val1
+                          == Pl.validatorHash v
+                          && d
+                          == TxSkelOutInlineDatum SecondLock
+                          && bound
+                          `L.geq` x
                     )
                     select
                 )
@@ -225,7 +231,8 @@ tests =
             ],
       testCase "careful validator" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           def
           ( somewhere
               ( datumHijackingAttack @MockContract
@@ -239,6 +246,7 @@ tests =
           ),
       testCase "careless validator" $
         testSucceeds
+          def
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \(ConcreteOutput v _ _ d _) ->
