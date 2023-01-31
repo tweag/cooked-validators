@@ -50,17 +50,20 @@
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
             lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
+          LANG = "C.UTF-8";
         in {
           default = pkgs.mkShell {
             buildInputs = required
               ++ (with haskellPackages; [ haskell-language-server ])
               ++ (with pkgs; [ ormolu hpack hlint ]);
             inherit LD_LIBRARY_PATH;
+            inherit LANG;
           };
 
           ci = pkgs.mkShell {
             buildInputs = required;
             inherit LD_LIBRARY_PATH;
+            inherit LANG;
           };
         };
       });
