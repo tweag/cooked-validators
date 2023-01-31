@@ -1,38 +1,52 @@
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
-  outputs = { self, nixpkgs, flake-utils, }:
+  outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        haskellPackages = pkgs.haskell.packages.ghc8107;
+        hpkgs = pkgs.haskell.packages.ghc8107;
+
+        pre-commit = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            nixfmt.enable = true;
+            ormolu.enable = true;
+
+            ## FIXME: The upstream `hpack` hook is completely broken, so we
+            ## write our own, heavily inspired by theirs but introducing some
+            ## fixes. The bugs have been reported at
+            ##
+            ## https://github.com/cachix/pre-commit-hooks.nix/issues/235
+            ##
+            ## and we should simply update pre-commit-hooks, remove all this and
+            ## replace it by `hpack.enable = true` once they are fixed.
+            hpack-fixed = {
+              enable = true;
+              entry = let
+                hpack-dir = pkgs.writeShellApplication {
+                  name = "hpack-dir";
+                  text = ''
+                    set -e
+                    find . -type f -name package.yaml | while read -r file; do
+                        ${pkgs.hpack}/bin/hpack --force "$file"
+                    done
+                  '';
+                };
+              in "${hpack-dir}/bin/hpack-dir";
+              files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|((^|/)package\\.yaml$)";
+              pass_filenames = false;
+            };
+          };
+        };
       in {
         formatter = pkgs.nixfmt;
 
-        ## `cabal test` is not run here because it requires internet
-        ## to fetch the dependencies
-        checks.default = pkgs.stdenv.mkDerivation {
-          name = "ormolu/hpack checks";
-          src = ./.;
-          buildInputs = with pkgs; [ coreutils findutils hpack ormolu ];
-          buildPhase = ''
-            set -o xtrace # See when it fails
-            hpack cooked-validators/package.yaml | grep -q 'is up-to-date' || exit 1
-            hpack examples/package.yaml | grep -q 'is up-to-date' || exit 1
-            hpack pirouette-plutusir/package.yaml | grep -q 'is up-to-date' || exit 1
-            ## NOTE: in case of formatting error, check the versions of
-            ## ormolu and try replacing by ${pkgs.ormolu}/bin/ormolu
-            ## https://discourse.nixos.org/t/nix-shell-buildinputs-ordering-issue/12885/8
-            ormolu --mode check $(find . -name '*.hs') || exit 1
-          '';
-          ## The derivation succeeds if the output is created.
-          installPhase = "mkdir -p $out";
-        };
-
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
-          required = ([ haskellPackages.ghc ]) ++ (with pkgs; [
+          buildInputs = ([ hpkgs.ghc ]) ++ (with pkgs; [
             cabal-install
             libsodium
             secp256k1
@@ -42,22 +56,26 @@
             z3
             postgresql # For pg_config
           ]);
+
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
             lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
         in {
-          default = pkgs.mkShell {
-            buildInputs = required
-              ++ (with haskellPackages; [ haskell-language-server ])
-              ++ (with pkgs; [ ormolu hpack hlint ]);
+          ci = pkgs.mkShell {
+            inherit buildInputs;
             inherit LD_LIBRARY_PATH;
           };
 
-          ci = pkgs.mkShell {
-            buildInputs = required;
+          default = pkgs.mkShell {
+            buildInputs = buildInputs
+              ++ (with hpkgs; [ haskell-language-server ])
+              ++ (with pkgs; [ ormolu hpack hlint ]);
+            inherit (pre-commit) shellHook;
             inherit LD_LIBRARY_PATH;
           };
         };
+
+        checks = { inherit pre-commit; };
       });
 
   nixConfig = {
