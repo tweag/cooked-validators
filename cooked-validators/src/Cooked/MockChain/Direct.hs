@@ -26,11 +26,10 @@ import Control.Monad.Reader
 import Control.Monad.State.Strict
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
-import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
+import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
-import Data.Bifunctor (bimap)
 import Data.Default
 import qualified Data.List.NonEmpty as NEList
 import Data.Map.Strict (Map)
@@ -236,18 +235,17 @@ utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
 
-instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
+instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
-
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
-
   txOutByRefLedger outref = gets $ Map.lookup outref . Ledger.getIndex . mcstIndex
+  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
+  utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
+instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
   ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)
 
   allUtxosLedger = gets $ Map.toList . Ledger.getIndex . mcstIndex
-
-  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
 
   currentSlot = gets mcstCurrentSlot
 

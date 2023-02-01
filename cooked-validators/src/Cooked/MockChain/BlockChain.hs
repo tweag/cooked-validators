@@ -66,22 +66,12 @@ data BalanceStage
   | BalFinalizing
   deriving (Show, Eq)
 
-class (MonadFail m, MonadError MockChainError m) => MonadBlockChainWithoutValidation m where
+class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
   -- | Returns the paramters of the chain.
   getParams :: m Emulator.Params
 
-  -- | Returns a list of all currently known outputs
-  allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
-
   -- | Return a list of all UTxOs at a certain address.
-  --
-  -- This has a defalut implementation in terms of 'allUtxos'; write an explicit
-  -- implementation for cases like the 'Contract' monad that don't support
-  -- retreiving all UTxOs.
   utxosAtLedger :: PV2.Address -> m [(PV2.TxOutRef, Ledger.TxOut)]
-  utxosAtLedger address =
-    filter ((== address) . outputAddress . txOutV2FromLedger . snd)
-      <$> allUtxosLedger
 
   -- | Returns the datum with the given hash, along with its pretty-printed
   -- representation, or 'Nothing' if there is none
@@ -94,6 +84,10 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainWithoutValida
 
   -- | Returns an output given a reference to it
   txOutByRefLedger :: PV2.TxOutRef -> m (Maybe Ledger.TxOut)
+
+class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
+  -- | Returns a list of all currently known outputs.
+  allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
   --  this is a proxy to 'PV2.ownPubKey'; when running in mock mode, the return value can be
@@ -130,10 +124,10 @@ class MonadBlockChainWithoutValidation m => MonadBlockChain m where
 allUtxos :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
 allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
 
-utxosAt :: MonadBlockChainWithoutValidation m => PV2.Address -> m [(PV2.TxOutRef, PV2.TxOut)]
+utxosAt :: MonadBlockChainBalancing m => PV2.Address -> m [(PV2.TxOutRef, PV2.TxOut)]
 utxosAt address = fmap (second txOutV2FromLedger) <$> utxosAtLedger address
 
-txOutByRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.TxOut)
+txOutByRef :: MonadBlockChainBalancing m => PV2.TxOutRef -> m (Maybe PV2.TxOut)
 txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
@@ -151,11 +145,6 @@ txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 -- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
 filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
 filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
-
--- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
--- value.
-pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => PV2.PubKeyHash -> m [(PV2.TxOutRef, PKOutputMaybeDatum)]
-pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
 
 -- | Return all UTxOs belonging to a particular pubkey that have no datum on
 -- them.
@@ -244,13 +233,15 @@ instance (MonadTransControl t, MonadError MockChainError m, Monad (t m)) => Mona
   throwError = lift . throwError
   catchError act f = liftWith (\run -> catchError (run act) (run . f)) >>= restoreT . return
 
-instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
+instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainBalancing (AsTrans t m) where
   getParams = lift getParams
   validatorFromHash = lift . validatorFromHash
-  allUtxosLedger = lift allUtxosLedger
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+
+instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
+  allUtxosLedger = lift allUtxosLedger
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
@@ -260,13 +251,19 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadEr
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
 
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainBalancing m) => MonadBlockChainBalancing (WriterT w m)
+
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (WriterT w m)
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
+deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ReaderT r m)
+
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+
+deriving via (AsTrans (StateT s) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
 
@@ -281,13 +278,15 @@ deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChai
 -- 'MonadBlockChainWithoutValidation' and 'MonadBlockChain' instances for
 -- 'ListT', instead of more black magic...
 
-instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
+instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
   getParams = lift getParams
   validatorFromHash = lift . validatorFromHash
-  allUtxosLedger = lift allUtxosLedger
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+
+instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
+  allUtxosLedger = lift allUtxosLedger
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime

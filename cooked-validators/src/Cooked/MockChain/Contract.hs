@@ -35,9 +35,8 @@ instance Contract.AsContractError e => MonadError MockChainError (Contract w s e
           act
       )
 
-instance Contract.AsContractError e => MonadBlockChainWithoutValidation (Contract w s e) where
+instance Contract.AsContractError e => MonadBlockChainBalancing (Contract w s e) where
   getParams = Contract.getParams
-  allUtxosLedger = throwError $ OtherMockChainError "allUtxosLedger can not be used in the Contract monad"
   utxosAtLedger address = do
     theNetworkId <- Emulator.pNetworkId <$> getParams
     let mCardanoAddress = Ledger.toCardanoAddressInEra theNetworkId address
@@ -63,6 +62,9 @@ instance Contract.AsContractError e => MonadBlockChainWithoutValidation (Contrac
       Just decoratedTxOut -> case Ledger.toTxOut theNetworkId decoratedTxOut of
         Left err -> throwError $ OtherMockChainError err
         Right txOut -> return . Just $ txOut
+
+instance Contract.AsContractError e => MonadBlockChainWithoutValidation (Contract w s e) where
+  allUtxosLedger = throwError $ OtherMockChainError "allUtxosLedger can not be used in the Contract monad"
   ownPaymentPubKeyHash = Ledger.unPaymentPubKeyHash <$> Contract.ownFirstPaymentPubKeyHash
   currentTime = fst <$> Contract.currentNodeClientTimeRange
   currentSlot = Contract.currentNodeClientSlot

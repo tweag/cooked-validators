@@ -195,10 +195,6 @@ type PKOutput = ConcreteOutput Pl.PubKeyHash () Pl.Value Pl.ScriptHash
 -- | A public key output that only has Ada and no datum
 type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada Pl.ScriptHash
 
--- | A public key output where we don't know anything about the datum: It is a
--- general 'Pl.OutputDatum'
-type PKOutputMaybeDatum = ConcreteOutput Pl.PubKeyHash Pl.OutputDatum Pl.Value Pl.ScriptHash
-
 -- | An output that belongs to a typed validator and has an inline datum of the
 -- appropriate type.
 type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) Pl.Value Pl.ScriptHash

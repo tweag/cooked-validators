@@ -204,13 +204,15 @@ instance MonadError MockChainError StagedMockChain where
   throwError = singletonBuiltin . ThrowError
   catchError f handler = singletonBuiltin $ CatchError f handler
 
-instance MonadBlockChainWithoutValidation StagedMockChain where
+instance MonadBlockChainBalancing StagedMockChain where
   getParams = singletonBuiltin GetParams
   validatorFromHash = singletonBuiltin . ValidatorFromHash
   datumFromHash = singletonBuiltin . DatumFromHash
-  allUtxosLedger = singletonBuiltin AllUtxosLedger
   utxosAtLedger = singletonBuiltin . UtxosAtLedger
   txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
+
+instance MonadBlockChainWithoutValidation StagedMockChain where
+  allUtxosLedger = singletonBuiltin AllUtxosLedger
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot
   currentTime = singletonBuiltin GetCurrentTime
