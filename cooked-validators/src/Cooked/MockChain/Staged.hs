@@ -142,8 +142,8 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
-  interpBuiltin (ThrowError err) = undefined
-  interpBuiltin (CatchError f handler) = undefined
+  interpBuiltin (ThrowError err) = throwError err
+  interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
   interpBuiltin (Fail msg) = do
     mcst <- lift get
     let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
