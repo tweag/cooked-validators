@@ -26,10 +26,6 @@ The rendered Haddock for the current `main` branch can be found at [https://twea
 
 - Example contracts and their test suites written using `cooked-validators`
 
-### [pirouette-plutusir](pirouette-plutusir)
-
-- _Experimental instantiation of [pirouette](https://github.com/tweag/pirouette) for PlutusIR_.
-
 ## Developer Tools and Environment
 
 A development environment can be obtained using `nix develop`.
