@@ -11,13 +11,15 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
-import qualified Ledger as L
-import qualified Ledger.Ada as Ada
 import qualified Ledger.Interval as Interval
+import qualified Ledger.Tx as L
 import qualified Ledger.Tx as Pl
-import qualified Ledger.Value as Value
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import Plutus.Script.Utils.Value (Value)
+import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
@@ -26,7 +28,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- 'Offer' datum to specify the seller of the auction.
 --
 -- This transaction returns the 'Pl.TxOutRef' of the 'Offer' UTxO it creates.
-txOffer :: MonadBlockChain m => Wallet -> L.Value -> Integer -> m Pl.TxOutRef
+txOffer :: MonadBlockChain m => Wallet -> Value -> Integer -> m Pl.TxOutRef
 txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
@@ -41,7 +43,7 @@ txOffer seller lot minBid = do
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
 -- validator. It also mints the thread NFT that ensures the authenticity of the
 -- auction from that point on.
-txSetDeadline :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> L.POSIXTime -> m Pl.CardanoTx
+txSetDeadline :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Pl.POSIXTime -> m Pl.CardanoTx
 txSetDeadline submitter offerOref deadline = do
   let theNft = A.threadToken offerOref
   Just (A.Offer seller minBid) <- typedDatumFromTxOutRef @(Pl.DatumType A.Auction) offerOref
@@ -67,7 +69,7 @@ txSetDeadline submitter offerOref deadline = do
           ]
       }
 
-previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
+previousBidder :: A.AuctionState -> Maybe (Integer, Pl.PubKeyHash)
 previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
 

@@ -313,7 +313,7 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
 -- | Calculates the collateral for a transaction
 calcCollateral :: MonadBlockChainWithoutValidation m => Wallet -> m (Set PV2.TxOutRef)
 calcCollateral w = do
-  souts <- pkUtxos (walletPKHash w)
+  souts <- filterUtxos (isOutputWithoutDatum >=> isOnlyAdaOutput) <$> utxosAt (walletAddress w)
   when (null souts) $
     throwError MCENoSuitableCollateral
   -- TODO We only keep one element of the list because we are limited on

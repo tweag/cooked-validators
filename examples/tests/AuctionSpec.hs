@@ -19,14 +19,13 @@ import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger as L
-import qualified Ledger.Ada as Ada
 import qualified Ledger.Tx as Pl
-import qualified Ledger.Value as Pl
-import qualified Ledger.Value as Value
 import Optics.Core
 import qualified Plutus.Contract.Constraints as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
@@ -39,20 +38,20 @@ import Test.Tasty.HUnit
 -- Just so we have something to sell in our auction that's not Ada:
 -- Have a banana.
 
-bananaAssetClass :: Value.AssetClass
+bananaAssetClass :: Pl.AssetClass
 bananaAssetClass = permanentAssetClass "Banana"
 
 -- | Value representing a number of bananas
-banana :: Integer -> Value.Value
-banana = Value.assetClassValue bananaAssetClass
+banana :: Integer -> Pl.Value
+banana = Pl.assetClassValue bananaAssetClass
 
 -- | How many bananas are in the given value? This is a left inverse of 'banana'.
-bananasIn :: Value.Value -> Integer
-bananasIn v = Value.assetClassValueOf v bananaAssetClass
+bananasIn :: Pl.Value -> Integer
+bananasIn v = Pl.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
+testInit = initialDistribution' [(i, [Ada.lovelaceValueOf 20_000_000, banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
@@ -114,7 +113,7 @@ twoAuctions = do
 
 -- | helper function to compute what the given wallet owns in the
 -- given state
-holdingInState :: UtxoState -> Wallet -> L.Value
+holdingInState :: UtxoState -> Wallet -> Pl.Value
 holdingInState (UtxoState m) w
   | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
   | otherwise = mempty
