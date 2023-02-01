@@ -295,14 +295,11 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
   let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
       cardanoIndex = either (error . show) id $ Ledger.fromPlutusIndex utxoIndex
 
-      cardanoTxModified :: C.Tx C.BabbageEra
-      cardanoTxModified = applyRawModOnBalancedTx rawModTx cardanoTx
-
       -- "Ledger.CardanoTx" is a plutus-apps type "Tx BabbageEra" is a
       -- cardano-api type with the information we need. This wraps the latter
       -- inside the former.
       txWrapped :: Ledger.CardanoTx
-      txWrapped = Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx cardanoTxModified
+      txWrapped = Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx cardanoTx
 
       mValidationError :: Either Ledger.ValidationErrorInPhase Ledger.ValidationSuccess
       mValidationError = Emulator.validateCardanoTx theParams theSlot cardanoIndex txWrapped
@@ -332,4 +329,4 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
               }
         )
 
-      return (Ledger.CardanoApiEmulatorEraTx cardanoTxModified)
+      return (Ledger.CardanoApiEmulatorEraTx cardanoTx)

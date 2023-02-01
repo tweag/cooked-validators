@@ -362,7 +362,8 @@ generateTx genTxParams params datums txOuts validators skel = do
       -- The new name (which is more fitting as well) is
       -- 'createAndValidateTransactionBody'.
       (C.makeTransactionBody txBodyContent)
-  return $ foldl' txAddSignature cardanoTxUnsigned (txSkelSigners skel)
+  let cardanoTxSigned = foldl' txAddSignature cardanoTxUnsigned (txSkelSigners skel)
+  return $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skel) cardanoTxSigned
   where
     txAddSignature :: C.Tx C.BabbageEra -> Wallet -> C.Tx C.BabbageEra
     txAddSignature tx wal = case Ledger.addCardanoTxSignature
