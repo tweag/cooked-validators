@@ -2,6 +2,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
@@ -40,17 +41,22 @@ import Prettyprinter (Doc)
 -- * BlockChain Monad
 
 -- | The errors that can be produced by the 'MockChainT' monad
-data MockChainError
-  = MCEValidationError Ledger.ValidationErrorInPhase
-  | MCEUnbalanceable String BalanceStage TxSkel
-  | MCENoSuitableCollateral
-  | MCEGenerationError GenerateTxError
-  | MCECalcFee MockChainError
-  | MCEUnknownOutRefError String PV2.TxOutRef
-  | MCEUnknownValidator String PV2.ValidatorHash
-  | MCEUnknownDatum String PV2.DatumHash
-  | FailWith String
-  deriving (Show, Eq)
+data MockChainError where
+  MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
+  MCEUnbalanceable :: String -> BalanceStage -> TxSkel -> MockChainError
+  MCENoSuitableCollateral :: MockChainError
+  MCEGenerationError :: GenerateTxError -> MockChainError
+  MCECalcFee :: MockChainError -> MockChainError
+  MCEUnknownOutRefError :: String -> PV2.TxOutRef -> MockChainError
+  MCEUnknownValidator :: String -> PV2.ValidatorHash -> MockChainError
+  MCEUnknownDatum :: String -> PV2.DatumHash -> MockChainError
+  FailWith :: String -> MockChainError
+  OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
+
+deriving instance Show MockChainError
+
+instance Eq MockChainError where
+  (==) = undefined
 
 -- | Describes us which stage of the balancing process are we at. This is needed
 --  to distinguish the successive calls to balancing while computing fees from
