@@ -19,6 +19,7 @@ import Cooked.Wallet
 import Data.Default
 import Data.Function
 import Data.List
+import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -34,6 +35,48 @@ import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc)
+
+balancedTxSkel :: MonadBlockChainWithoutValidation m => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
+balancedTxSkel skelUnbal = do
+  let balancingWallet =
+        case txOptBalanceWallet . txSkelOpts $ skelUnbal of
+          BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
+          BalanceWith bWallet -> bWallet
+  let collateralWallet = balancingWallet
+  (skel, fee) <-
+    if txOptBalance . txSkelOpts $ skelUnbal
+      then
+        setFeeAndBalance
+          balancingWallet
+          skelUnbal
+      else return (skelUnbal, Fee 0)
+  collateralInputs <- calcCollateral collateralWallet -- TODO: Why is it OK to balance first and then add collateral?
+  return (skel, fee, collateralInputs)
+
+-- | Take the output of 'balancedTxSkel' and turn it into an actual Cardano
+-- transaction.
+balancedTx :: MonadBlockChainWithoutValidation m => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
+balancedTx (skel, fee, collateralInputs) = do
+  params <- getParams
+  consumedData <- Map.map fst <$> txSkelInputData skel
+  consumedOrReferencedTxOuts <- do
+    ins <- txSkelInputUtxosPV2 skel
+    insRef <- txSkelReferenceInputUtxosPV2 skel
+    insCollateral <-
+      Map.fromList
+        <$> mapM
+          ( \oref -> do
+              mTxOut <- txOutByRef oref
+              case mTxOut of
+                Nothing -> throwError $ OtherMockChainError "unkown collateral input TxOutRef"
+                Just txOut -> return (oref, txOut)
+          )
+          (Set.toList collateralInputs)
+    return $ ins <> insRef <> insCollateral
+  consumedValidators <- txSkelInputValidators skel
+  case generateTx def {gtpCollateralIns = collateralInputs, gtpFee = fee} params consumedData consumedOrReferencedTxOuts consumedValidators skel of
+    Left err -> throwError . MCEGenerationError $ err
+    Right tx -> return tx
 
 -- | Ensure that the transaction outputs have the necessary minimum amount of
 -- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
@@ -217,7 +260,7 @@ setFeeAndBalance balanceWallet skel0 = do
       m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
       attemptedSkel <- balanceTxFromAux BalCalcFee (walletPKHash balanceWallet) skel fee
-      managedData <- txSkelInputData skel
+      managedData <- Map.map fst <$> txSkelInputData skel
       managedTxOuts <- do
         ins <- txSkelInputUtxosPV2 skel
         insRef <- txSkelReferenceInputUtxosPV2 skel
@@ -246,7 +289,7 @@ setFeeAndBalance balanceWallet skel0 = do
 estimateTxSkelFee ::
   Emulator.Params ->
   Emulator.UTxO Emulator.EmulatorEra ->
-  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Map Pl.DatumHash Pl.Datum ->
   Map PV2.TxOutRef PV2.TxOut ->
   Map PV2.ValidatorHash (Pl.Versioned PV2.Validator) ->
   TxSkel ->

@@ -24,7 +24,6 @@ import qualified Plutus.V1.Ledger.Api as Pl hiding (TxOut)
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import Unsafe.Coerce (unsafeCoerce)
-import qualified Wallet.API as Pl
 
 -- * MockChain Wallets
 
@@ -97,11 +96,6 @@ walletStakingSK = fmap hackUnMockPrivateKey . CW.mwStakeKey
 
 toPKHMap :: [Wallet] -> M.Map Pl.PubKeyHash Wallet
 toPKHMap ws = M.fromList [(walletPKHash w, w) | w <- ws]
-
--- * Signs a transaction
-
-txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature w = Pl.addSignature' (walletSK w)
 
 -- * Initial distribution of funds
 
