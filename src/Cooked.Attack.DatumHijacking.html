@@ -10,264 +10,352 @@
 </span><span id="line-10"></span><span>
 </span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.DatumHijacking</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-12"></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Attack.Tweak.html"><span class="hs-identifier">Cooked.Attack.Tweak</span></a></span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.RawUPLC.html"><span class="hs-identifier">Cooked.MockChain.RawUPLC</span></a></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.html"><span class="hs-identifier">Cooked.Tx.Constraints</span></a></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.V1.Ledger.Credential</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-comment">-- | Redirect 'PaysScript's from one validator to another validator of the same</span><span>
-</span><span id="line-23"></span><span class="hs-comment">-- type. Returns the list of outputs it redirected (as they were before the</span><span>
-</span><span id="line-24"></span><span class="hs-comment">-- modification), in the order in which they occurred on the original</span><span>
-</span><span id="line-25"></span><span class="hs-comment">-- transaction.</span><span>
-</span><span id="line-26"></span><span class="hs-comment">--</span><span>
-</span><span id="line-27"></span><span class="hs-comment">-- If no output is redirected, this tweak fails.</span><span>
-</span><span id="line-28"></span><span class="hs-comment">--</span><span>
-</span><span id="line-29"></span><span class="hs-comment">-- Something like 'paysScriptCoinstraintTypeP' might be useful to construct the</span><span>
-</span><span id="line-30"></span><span class="hs-comment">-- optics used by this tweak.</span><span>
-</span><span id="line-31"></span><span id="local-6989586621679573323"><span id="local-6989586621679573324"><span id="local-6989586621679573325"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-type">redirectScriptOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-32"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679573325"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-33"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679573325"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573324"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-34"></span><span>  </span><span class="hs-comment">-- | Return @Just@ the new validator, or @Nothing@ if you want to leave this</span><span>
-</span><span id="line-35"></span><span>  </span><span class="hs-comment">-- output unchanged.</span><span>
-</span><span id="line-36"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-37"></span><span>  </span><span class="hs-comment">-- | The redirection described by the previous argument might apply to more</span><span>
-</span><span id="line-38"></span><span>  </span><span class="hs-comment">-- than one of the script outputs of the transaction. Use this predicate to</span><span>
-</span><span id="line-39"></span><span>  </span><span class="hs-comment">-- select which of the redirectable script outputs to actually redirect. We</span><span>
-</span><span id="line-40"></span><span>  </span><span class="hs-comment">-- count the redirectable script outputs from the left to the right, starting</span><span>
-</span><span id="line-41"></span><span>  </span><span class="hs-comment">-- with zero.</span><span>
-</span><span id="line-42"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-43"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573323"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span></span><span>
-</span><span id="line-44"></span><span id="redirectScriptOutputTweak"><span class="annot"><span class="annottext">redirectScriptOutputTweak :: Optic'
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Output.html"><span class="hs-identifier">Cooked.Output</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.RawUPLC.html"><span class="hs-identifier">Cooked.RawUPLC</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Type.Reflection</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | Redirect script outputs from one validator to another validator of the same</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- type. Returns the list of outputs it redirected (as they were before the</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- modification), in the order in which they occurred on the original</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- transaction.</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(L.TypedValidator a)@</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- might be useful to construct the optics used by this tweak.</span><span>
+</span><span id="line-32"></span><span id="local-6989586621679511924"><span id="local-6989586621679511927"><span id="local-6989586621679511928"><span id="local-6989586621679511929"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-type">redirectScriptOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511929"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-34"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679511928"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">A_Traversal</span></span><span class="hs-special">,</span><span>
+</span><span id="line-35"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.ToData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679511928"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511924"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Script</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-comment">-- | Return @Just@ the new validator, or @Nothing@ if you want to leave this</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-comment">-- output unchanged.</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Script</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-comment">-- | The redirection described by the previous argument might apply to more</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-comment">-- than one of the script outputs of the transaction. Use this predicate to</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-comment">-- select which of the redirectable script outputs to actually redirect. We</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-comment">-- count the redirectable script outputs from the left to the right, starting</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-comment">-- with zero.</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-48"></span><span>  </span><span class="annot"><a href="#local-6989586621679511929"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511927"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Script</span></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span></span></span><span>
+</span><span id="line-49"></span><span id="redirectScriptOutputTweak"><span class="annot"><span class="annottext">redirectScriptOutputTweak :: Optic'
   k
   is
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
--&gt; (TypedValidator a
-    -&gt; Maybe StakingCredential
-    -&gt; DatumType a
-    -&gt; Value
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; (ConcreteOutput
+      (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
     -&gt; Maybe (TypedValidator a))
 -&gt; (Integer -&gt; Bool)
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var hs-var">redirectScriptOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679573263"><span class="annot"><span class="annottext">Optic'
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var hs-var">redirectScriptOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679511854"><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-</span><a href="#local-6989586621679573263"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679573262"><span class="annot"><span class="annottext">TypedValidator a
--&gt; Maybe StakingCredential
--&gt; DatumType a
--&gt; Value
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+</span><a href="#local-6989586621679511854"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679511853"><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe (TypedValidator a)
-</span><a href="#local-6989586621679573262"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">Optic'
+</span><a href="#local-6989586621679511853"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
--&gt; (MockChainSt
-    -&gt; (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; (ConcreteOutput
+      (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
     -&gt; Maybe
-         (TypedValidator a, Maybe StakingCredential, DatumType a, Value))
+         (ConcreteOutput
+            (TypedValidator a) TxSkelOutDatum Value (Versioned Script)))
 -&gt; (Integer -&gt; Bool)
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind).
-Is k A_Traversal =&gt;
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+forall a (m :: * -&gt; *) k (is :: IxList).
+(MonadTweak m, Is k A_Traversal) =&gt;
 Optic' k is TxSkel a
--&gt; (MockChainSt -&gt; a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; Tweak [a]
-</span><a href="Cooked.Attack.Tweak.Common.html#mkSelectTweak"><span class="hs-identifier hs-var">mkSelectTweak</span></a></span><span>
-</span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">Optic'
+-&gt; (a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; m [a]
+</span><a href="Cooked.Tweak.Common.html#overMaybeSelectingTweak"><span class="hs-identifier hs-var">overMaybeSelectingTweak</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-</span><a href="#local-6989586621679573263"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679573260"><span class="annot"><span class="annottext">MockChainSt
-</span><a href="#local-6989586621679573260"><span class="hs-identifier hs-var">_mcst</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573259"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573259"><span class="hs-identifier hs-var">oldVal</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573258"><span class="annot"><span class="annottext">Maybe StakingCredential
-</span><a href="#local-6989586621679573258"><span class="hs-identifier hs-var">mStakingCred</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573257"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679573257"><span class="hs-identifier hs-var">dat</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573256"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573256"><span class="hs-identifier hs-var">money</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-48"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
--&gt; Maybe StakingCredential
--&gt; DatumType a
--&gt; Value
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+</span><a href="#local-6989586621679511854"><span class="hs-identifier hs-var">optic</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679511851"><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+</span><a href="#local-6989586621679511851"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe (TypedValidator a)
-</span><a href="#local-6989586621679573262"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573259"><span class="hs-identifier hs-var">oldVal</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
-</span><a href="#local-6989586621679573258"><span class="hs-identifier hs-var">mStakingCred</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679573257"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573256"><span class="hs-identifier hs-var">money</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-49"></span><span>          </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
+</span><a href="#local-6989586621679511853"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+</span><a href="#local-6989586621679511851"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-53"></span><span>        </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-forall (a :: OpticKind). Maybe a
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-50"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679573255"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573255"><span class="hs-identifier hs-var">newVal</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+</span><span id="line-54"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679511850"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679511850"><span class="hs-identifier hs-var">newValidator</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe
-     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-forall (a :: OpticKind). a -&gt; Maybe a
-</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573255"><span class="hs-identifier hs-var">newVal</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
-</span><a href="#local-6989586621679573258"><span class="hs-identifier hs-var">mStakingCred</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679573257"><span class="hs-identifier hs-var">dat</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573256"><span class="hs-identifier hs-var">money</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-51"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-52"></span><span>
-</span><span id="line-53"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
-</span><span id="line-54"></span><span class="hs-comment">-- different recipient on 'PaysScript' constraints, but leaves the datum as it</span><span>
-</span><span id="line-55"></span><span class="hs-comment">-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in</span><span>
-</span><span id="line-56"></span><span class="hs-comment">-- places where something like 'getContinuingOutputs' should be used. If this</span><span>
-</span><span id="line-57"></span><span class="hs-comment">-- attack goes through, however, a &quot;proper&quot; datum hijacking attack that modifies</span><span>
-</span><span id="line-58"></span><span class="hs-comment">-- the datum in a way that (the relevant part of) the</span><span>
-</span><span id="line-59"></span><span class="hs-comment">-- 'toBuiltinData'-translation stays the same will also work.</span><span>
-</span><span id="line-60"></span><span class="hs-comment">--</span><span>
-</span><span id="line-61"></span><span class="hs-comment">-- A 'DatumHijackingLbl' with the hash of the &quot;thief&quot; validator is added to the</span><span>
-</span><span id="line-62"></span><span class="hs-comment">-- labels of the 'TxSkel' using 'addLabel'.</span><span>
-</span><span id="line-63"></span><span class="hs-comment">--</span><span>
-</span><span id="line-64"></span><span class="hs-comment">-- This attack returns the list of outputs it redirected, in the order in which</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- they occurred on the original transaction. If no output is redirected, this</span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- attack fails.</span><span>
-</span><span id="line-67"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-68"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679573253"><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-69"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-70"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
-</span><span id="line-71"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
-</span><span id="line-72"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-73"></span><span>  </span><span class="hs-comment">-- | The selection predicate may match more than one output, restrict to the</span><span>
-</span><span id="line-74"></span><span>  </span><span class="hs-comment">-- i-th of the output(s) (counting from the left, starting at zero) chosen by</span><span>
-</span><span id="line-75"></span><span>  </span><span class="hs-comment">-- the selection predicate with this predicate.</span><span>
-</span><span id="line-76"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-77"></span><span>  </span><span class="annot"><a href="Cooked.Attack.Tweak.Common.html#Tweak"><span class="hs-identifier hs-type">Tweak</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-78"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: (TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool)
+     (ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+ -&gt; Maybe
+      (ConcreteOutput
+         (TypedValidator a) TxSkelOutDatum Value (Versioned Script)))
+-&gt; ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+-&gt; Maybe
+     (ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+</span><a href="#local-6989586621679511851"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+-&gt; (ConcreteOutput
+      (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+    -&gt; ConcreteOutput
+         (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+  (TypedValidator a)
+  (TypedValidator a)
+forall o. IsAbstractOutput o =&gt; Lens' o (OwnerType o)
+</span><a href="Cooked.Output.html#outputOwnerL"><span class="hs-identifier hs-var">outputOwnerL</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+  (TypedValidator a)
+  (TypedValidator a)
+-&gt; TypedValidator a
+-&gt; ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+-&gt; ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+forall k (is :: IxList) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679511850"><span class="hs-identifier hs-var">newValidator</span></a></span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- different recipient on 'PaysScript' constraints, but leaves the datum as it</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- places where something like 'getContinuingOutputs' should be used. If this</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- attack goes through, however, a &quot;proper&quot; datum hijacking attack that modifies</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- the datum in a way that (the relevant part of) the</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- 'toBuiltinData'-translation stays the same will also work.</span><span>
+</span><span id="line-64"></span><span class="hs-comment">--</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- A 'DatumHijackingLbl' with the hash of the &quot;thief&quot; validator is added to the</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- labels of the 'TxSkel' using 'addLabel'.</span><span>
+</span><span id="line-67"></span><span class="hs-comment">--</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- This attack returns the list of outputs it redirected, in the order in which</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- they occurred on the original transaction. If no output is redirected, this</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- attack fails.</span><span>
+</span><span id="line-71"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679511845"><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679511844"><span class="annot"><a href="#local-6989586621679511844"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511844"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-74"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Pl.ToData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Script</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-comment">-- | The selection predicate may match more than one output, restrict to the</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-comment">-- i-th of the output(s) (counting from the left, starting at zero) chosen by</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-comment">-- the selection predicate with this predicate.</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-87"></span><span>  </span><span class="annot"><a href="#local-6989586621679511844"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Script</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-88"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: (ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+ -&gt; Bool)
 -&gt; (Integer -&gt; Bool)
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span id="local-6989586621679573252"><span class="annot"><span class="annottext">TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool
-</span><a href="#local-6989586621679573252"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679573251"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679573251"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679573250"><span class="annot"><span class="annottext">thief :: TypedValidator a
-</span><a href="#local-6989586621679573250"><span class="hs-identifier hs-var hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-forall (a :: OpticKind). TypedValidator a
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-var">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-80"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-81"></span><span>        </span><span id="local-6989586621679573248"><span class="annot"><span class="annottext">[(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-</span><a href="#local-6989586621679573248"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-82"></span><span>          </span><span class="annot"><span class="annottext">Optic'
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span id="local-6989586621679511842"><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+-&gt; Bool
+</span><a href="#local-6989586621679511842"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679511841"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679511841"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-89"></span><span>  </span><span id="local-6989586621679511840"><span class="annot"><span class="annottext">[ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+</span><a href="#local-6989586621679511840"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-90"></span><span>    </span><span class="annot"><span class="annottext">Optic'
   A_Traversal
-  '[]
+  NoIx
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
--&gt; (TypedValidator a
-    -&gt; Maybe StakingCredential
-    -&gt; DatumType a
-    -&gt; Value
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; (ConcreteOutput
+      (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
     -&gt; Maybe (TypedValidator a))
 -&gt; (Integer -&gt; Bool)
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-forall (k :: OpticKind) (is :: IxList) (a :: OpticKind).
-Is k A_Traversal =&gt;
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+forall (m :: * -&gt; *) k a (is :: IxList).
+(MonadTweak m, Is k A_Traversal, Show (DatumType a),
+ ToData (DatumType a)) =&gt;
 Optic'
   k
   is
   TxSkel
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
--&gt; (TypedValidator a
-    -&gt; Maybe StakingCredential
-    -&gt; DatumType a
-    -&gt; Value
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; (ConcreteOutput
+      (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
     -&gt; Maybe (TypedValidator a))
 -&gt; (Integer -&gt; Bool)
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
 </span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var">redirectScriptOutputTweak</span></a></span><span>
-</span><span id="line-83"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
-</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-var">paysScriptConstraintsT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel PaysScriptConstraint
+</span><span id="line-91"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
+</span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
 -&gt; Optic
-     A_Prism
-     '[]
-     PaysScriptConstraint
-     PaysScriptConstraint
-     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
--&gt; Optic'
-     A_Traversal
-     '[]
-     TxSkel
-     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-forall (k :: OpticKind) (m :: OpticKind) (l :: OpticKind)
-       (ks :: IxList) (is :: IxList) (js :: IxList) (s :: OpticKind)
-       (t :: OpticKind) (u :: OpticKind) (v :: OpticKind) (a :: OpticKind)
-       (b :: OpticKind).
+     A_Traversal NoIx [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
+-&gt; Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
 (Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">PaysScriptConstrs a =&gt;
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span> </span><span class="annot"><span class="annottext">Optic A_Traversal NoIx TxSkel TxSkel TxSkelOut TxSkelOut
+-&gt; Optic
+     A_Prism
+     NoIx
+     TxSkelOut
+     TxSkelOut
+     (ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+     (ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+-&gt; Optic'
+     A_Traversal
+     NoIx
+     TxSkel
+     (ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+forall k m l (ks :: IxList) (is :: IxList) (js :: IxList) s t u v a
+       b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(ToCredential (TypedValidator a), Show (TypedValidator a),
+ IsTxSkelOutAllowedOwner (TypedValidator a),
+ Typeable (TypedValidator a)) =&gt;
 Optic
   A_Prism
-  '[]
-  PaysScriptConstraint
-  PaysScriptConstraint
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-forall (a :: OpticKind).
-PaysScriptConstrs a =&gt;
+  NoIx
+  TxSkelOut
+  TxSkelOut
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+  (ConcreteOutput
+     (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
+forall ownerType.
+(ToCredential ownerType, Show ownerType,
+ IsTxSkelOutAllowedOwner ownerType, Typeable ownerType) =&gt;
 Prism'
-  PaysScriptConstraint
-  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
-</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-var">paysScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679573253"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-84"></span><span>            </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679573244"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573244"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679573243"><span class="annot"><span class="annottext">Maybe StakingCredential
-</span><a href="#local-6989586621679573243"><span class="hs-identifier hs-var">_mStakingCred</span></a></span></span><span> </span><span id="local-6989586621679573242"><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679573242"><span class="hs-identifier hs-var">dat</span></a></span></span><span> </span><span id="local-6989586621679573241"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573241"><span class="hs-identifier hs-var">money</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; DatumType a -&gt; Value -&gt; Bool
-</span><a href="#local-6989586621679573252"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573244"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
-</span><a href="#local-6989586621679573242"><span class="hs-identifier hs-var">dat</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679573241"><span class="hs-identifier hs-var">money</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Maybe (TypedValidator a)
-forall (a :: OpticKind). a -&gt; Maybe a
+  TxSkelOut
+  (ConcreteOutput ownerType TxSkelOutDatum Value (Versioned Script))
+</span><a href="Cooked.Skeleton.html#txSkelOutOwnerTypeP"><span class="hs-identifier hs-var">txSkelOutOwnerTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679511835"><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+</span><a href="#local-6989586621679511835"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+-&gt; Bool
+</span><a href="#local-6989586621679511842"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+  (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
+</span><a href="#local-6989586621679511835"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Maybe (TypedValidator a)
+forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573250"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
-forall (a :: OpticKind). Maybe a
+</span><a href="#local-6989586621679511834"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
+forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
-</span><span id="line-85"></span><span>            </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679573251"><span class="hs-identifier hs-var">select</span></a></span><span>
-</span><span id="line-86"></span><span>        </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; Tweak ()
-forall (x :: OpticKind). LabelConstrs x =&gt; x -&gt; Tweak ()
-</span><a href="Cooked.Attack.Tweak.Common.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHijackingLbl -&gt; Tweak ()) -&gt; DatumHijackingLbl -&gt; Tweak ()
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
+</span><span id="line-93"></span><span>      </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679511841"><span class="hs-identifier hs-var">select</span></a></span><span>
+</span><span id="line-94"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m ()
+forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
+</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; (Bool -&gt; Bool) -&gt; Bool -&gt; m ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; Bool -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+-&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+</span><a href="#local-6989586621679511840"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; m ()
+forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
+</span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHijackingLbl -&gt; m ()) -&gt; DatumHijackingLbl -&gt; m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Address -&gt; DatumHijackingLbl
 </span><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span><span> </span><span class="annot"><span class="annottext">(Address -&gt; DatumHijackingLbl) -&gt; Address -&gt; DatumHijackingLbl
-forall (a :: OpticKind) b. (a -&gt; b) -&gt; a -&gt; b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Address
-forall (a :: OpticKind). TypedValidator a -&gt; Address
+forall a. TypedValidator a -&gt; Address
 </span><span class="hs-identifier hs-var">L.validatorAddress</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679573250"><span class="hs-identifier hs-var">thief</span></a></span><span>
-</span><span id="line-87"></span><span>        </span><span class="annot"><span class="annottext">[(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
--&gt; Tweak
-     [(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-forall (m :: OpticKind -&gt; OpticKind) (a :: OpticKind).
-Monad m =&gt;
-a -&gt; m a
-</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[(TypedValidator a, Maybe StakingCredential, DatumType a, Value)]
-</span><a href="#local-6989586621679573248"><span class="hs-identifier hs-var">redirected</span></a></span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Address</span></span><span>
-</span><span id="line-90"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679573232"><span id="local-6989586621679573234"><span id="local-6989586621679573236"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
+</span><a href="#local-6989586621679511834"><span class="hs-identifier hs-var">thief</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><span class="annottext">[ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+-&gt; m [ConcreteOutput
+        (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">[ConcreteOutput
+   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
+</span><a href="#local-6989586621679511840"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-98"></span><span>    </span><span id="local-6989586621679511834"><span class="annot"><span class="annottext">thief :: TypedValidator a
+</span><a href="#local-6989586621679511834"><span class="hs-identifier hs-var hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+forall a. TypedValidator a
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-var">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679511845"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Address</span></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679511821"><span id="local-6989586621679511823"><span id="local-6989586621679511825"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
 [DatumHijackingLbl] -&gt; ShowS
 DatumHijackingLbl -&gt; String
 (Int -&gt; DatumHijackingLbl -&gt; ShowS)
 -&gt; (DatumHijackingLbl -&gt; String)
 -&gt; ([DatumHijackingLbl] -&gt; ShowS)
 -&gt; Show DatumHijackingLbl
-forall (a :: OpticKind).
+forall a.
 (Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
 showList :: [DatumHijackingLbl] -&gt; ShowS
 $cshowList :: [DatumHijackingLbl] -&gt; ShowS
@@ -275,42 +363,78 @@ show :: DatumHijackingLbl -&gt; String
 $cshow :: DatumHijackingLbl -&gt; String
 showsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
 $cshowsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679573227"><span id="local-6989586621679573229"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679511816"><span id="local-6989586621679511818"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; Eq DatumHijackingLbl
-forall (a :: OpticKind).
-(a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 /= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 $c/= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 == :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 $c== :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-91"></span><span>
-</span><span id="line-92"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is a sufficient target for</span><span>
-</span><span id="line-93"></span><span class="hs-comment">-- the datum hijacking attack since we only want to show feasibility of the</span><span>
-</span><span id="line-94"></span><span class="hs-comment">-- attack.</span><span>
-</span><span id="line-95"></span><span id="local-6989586621679573326"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-type">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679573326"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-96"></span><span id="datumHijackingTarget"><span class="annot"><span class="annottext">datumHijackingTarget :: TypedValidator a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679511800"><span id="local-6989586621679511802"><span id="local-6989586621679511804"><span id="local-6989586621679511806"><span id="local-6989586621679511808"><span id="local-6989586621679511810"><span id="local-6989586621679511812"><span class="annot"><span class="annottext">Eq DatumHijackingLbl
+Eq DatumHijackingLbl
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl)
+-&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl)
+-&gt; Ord DatumHijackingLbl
+DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering
+DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
+$cmin :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
+max :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
+$cmax :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; DatumHijackingLbl
+&gt;= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+$c&gt;= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+&gt; :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+$c&gt; :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+&lt;= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+$c&lt;= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+&lt; :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+$c&lt; :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+compare :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering
+$ccompare :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering
+$cp1Ord :: Eq DatumHijackingLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is a sufficient target for</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- the datum hijacking attack since we only want to show feasibility of the</span><span>
+</span><span id="line-105"></span><span class="hs-comment">-- attack.</span><span>
+</span><span id="line-106"></span><span id="local-6989586621679511884"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-type">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679511884"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-107"></span><span id="datumHijackingTarget"><span class="annot"><span class="annottext">datumHijackingTarget :: TypedValidator a
 </span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-var hs-var">datumHijackingTarget</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-forall (a :: OpticKind).
+forall a.
 Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-</span><a href="Cooked.MockChain.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompiledCodeIn
+</span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompiledCodeIn
   DefaultUni
   DefaultFun
   (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
-forall (uni :: OpticKind -&gt; OpticKind) (fun :: OpticKind)
-       (a :: OpticKind).
+forall (uni :: * -&gt; *) fun a.
 (Closed uni, Everywhere uni Flat, Flat fun,
  Everywhere uni PrettyConst, GShow uni, Pretty fun) =&gt;
 CompiledCodeIn uni fun a -&gt; Program NamedDeBruijn uni fun ()
 </span><span class="hs-identifier hs-var">Pl.getPlc</span></span><span> </span><span class="hs-special">$$(</span><span class="annot"><span class="hs-identifier hs-type">Pl.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">tgt</span><span class="hs-special">||]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-97"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-98"></span><span>    </span><span class="annot"><a href="#local-6989586621679573223"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-99"></span><span>    </span><span id="local-6989586621679573223"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
-</span><a href="#local-6989586621679573223"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
+</span><span id="line-108"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-109"></span><span>    </span><span class="annot"><a href="#local-6989586621679511796"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.BuiltinData</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>    </span><span id="local-6989586621679511796"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
+</span><a href="#local-6989586621679511796"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-100"></span></pre></body></html>
+</span><span id="line-111"></span></pre></body></html>
