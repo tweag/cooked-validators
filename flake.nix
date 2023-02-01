@@ -4,7 +4,11 @@
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
   outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
-    flake-utils.lib.eachDefaultSystem (system:
+    ## Systemd isn't compatible with Darwin, so we can't use `eachDefaultSystem`
+    ## as long as `systemd` is a dependency.
+    ## TODO: go back to `eachDefaultSystem` once systemd isn't needed anymore.
+    with flake-utils.lib;
+    eachSystem [ system.x86_64-linux system.aarch64-linux ] (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         hpkgs = pkgs.haskell.packages.ghc8107;
@@ -55,15 +59,19 @@
             xz
             z3
             postgresql # For pg_config
+            systemd
+            pkg-config
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
             lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
+          LANG = "C.UTF-8";
         in {
           ci = pkgs.mkShell {
             inherit buildInputs;
             inherit LD_LIBRARY_PATH;
+            inherit LANG;
           };
 
           default = pkgs.mkShell {
@@ -75,16 +83,10 @@
               ++ (with hpkgs; [ haskell-language-server ]);
             inherit (pre-commit) shellHook;
             inherit LD_LIBRARY_PATH;
+            inherit LANG;
           };
         };
 
         checks = { inherit pre-commit; };
       });
-
-  nixConfig = {
-    extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
-    extra-trusted-public-keys = [
-      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
-    ];
-  };
 }

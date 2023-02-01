@@ -75,7 +75,7 @@ run_cabal_test() {
   return $cabal_res
 }
 
-projects=("cooked-validators" "examples" "pirouette-plutusir")
+projects=("cooked-validators" "examples")
 overall_ok=true
 
 for p in "${projects[@]}"; do

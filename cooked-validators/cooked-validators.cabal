@@ -18,32 +18,27 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Attack.Tweak
-      Cooked.Attack.Tweak.AddConstraints
-      Cooked.Attack.Tweak.Common
-      Cooked.Attack.Tweak.OutPermutations
-      Cooked.Attack.Tweak.TamperDatum
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
-      Cooked.MockChain.Constraints
-      Cooked.MockChain.Monad
-      Cooked.MockChain.Monad.Contract
-      Cooked.MockChain.Monad.Direct
-      Cooked.MockChain.Monad.Staged
-      Cooked.MockChain.RawUPLC
+      Cooked.MockChain.BlockChain
+      Cooked.MockChain.Direct
+      Cooked.MockChain.GenerateTx
+      Cooked.MockChain.Staged
       Cooked.MockChain.Testing
-      Cooked.MockChain.Time
-      Cooked.MockChain.UtxoPredicate
       Cooked.MockChain.UtxoState
-      Cooked.MockChain.UtxoState.Testing
-      Cooked.MockChain.Wallet
-      Cooked.Tx.Balance
-      Cooked.Tx.Constraints
-      Cooked.Tx.Constraints.Optics
-      Cooked.Tx.Constraints.Pretty
-      Cooked.Tx.Constraints.Type
-      Example
+      Cooked.Output
+      Cooked.Pretty
+      Cooked.Pretty.Class
+      Cooked.RawUPLC
+      Cooked.Skeleton
+      Cooked.Tweak
+      Cooked.Tweak.AddInputsAndOutputs
+      Cooked.Tweak.Common
+      Cooked.Tweak.Labels
+      Cooked.Tweak.OutPermutations
+      Cooked.Tweak.TamperDatum
+      Cooked.Wallet
   other-modules:
       Paths_cooked_validators
   autogen-modules:
@@ -58,6 +53,7 @@ library
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-shelley
     , cardano-wallet-core
     , containers
     , data-default
@@ -68,11 +64,16 @@ library
     , freer-extras
     , freer-simple
     , hashable
+    , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl
+    , nonempty-containers
     , optics-core
+    , optics-th
+    , optics-vl
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -83,6 +84,8 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
+    , random-shuffle
     , scientific
     , streaming
     , tasty
@@ -96,22 +99,19 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Cooked.Attack.DatumHijackingSpec
+      Cooked.Attack.DoubleSatSpec
+      Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
-      Cooked.AttackSpec.AddConstraints
-      Cooked.AttackSpec.Common
-      Cooked.AttackSpec.DatumHijacking
-      Cooked.AttackSpec.DoubleSat
-      Cooked.AttackSpec.DupToken
-      Cooked.AttackSpec.OutPermutations
-      Cooked.AttackSpec.Util
-      Cooked.BalanceSpec
+      Cooked.InlineDatumsSpec
       Cooked.LtlSpec
-      Cooked.MockChain.Monad.StagedSpec
-      Cooked.MockChain.UtxoStateSpec
-      Cooked.MockChain.WalletSpec
-      Cooked.OutputReorderingSpec
-      Cooked.QuickValueSpec
+      Cooked.MinAdaSpec
+      Cooked.ReferenceInputsSpec
+      Cooked.ReferenceScriptsSpec
       Cooked.TestUtils
+      Cooked.Tweak.CommonSpec
+      Cooked.Tweak.OutPermutationsSpec
+      Cooked.TweakSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
@@ -124,6 +124,7 @@ test-suite spec
     , bytestring
     , cardano-api
     , cardano-crypto
+    , cardano-ledger-shelley
     , cardano-wallet-core
     , containers
     , cooked-validators
@@ -135,11 +136,16 @@ test-suite spec
     , freer-extras
     , freer-simple
     , hashable
+    , hedgehog-quickcheck
     , lens
+    , list-t
     , memory
     , monad-control
     , mtl
+    , nonempty-containers
     , optics-core
+    , optics-th
+    , optics-vl
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -150,6 +156,8 @@ test-suite spec
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
+    , random
+    , random-shuffle
     , scientific
     , streaming
     , tasty

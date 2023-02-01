@@ -12,14 +12,6 @@ library
   exposed-modules:
       Auction
       Auction.Offchain
-      Crowdfunding
-      Crowdfunding.Offchain
-      PMultiSigStateful
-      PMultiSigStateful.DatumHijacking
-      PMultiSigStateful.ToUPLC
-      Split
-      Split.OffChain
-      Split.ToUPLC
   other-modules:
       Paths_examples
   autogen-modules:
@@ -45,8 +37,6 @@ library
     , lens
     , mtl
     , optics-core
-    , pirouette >=2.0.0
-    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core
@@ -57,6 +47,7 @@ library
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
+    , prettyprinter
     , scientific
     , serialise >=0.2.3.0
     , streaming
@@ -73,11 +64,6 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       AuctionSpec
-      CrowdfundingSpec
-      PMultiSigStatefulSpec
-      SplitSpec
-      SplitUPLCSpec
-      UseCaseCrowdfundingSpec
       Paths_examples
   autogen-modules:
       Paths_examples
@@ -103,8 +89,6 @@ test-suite spec
     , lens
     , mtl
     , optics-core
-    , pirouette >=2.0.0
-    , pirouette-plutusir
     , playground-common
     , plutus-contract
     , plutus-core
@@ -115,6 +99,7 @@ test-suite spec
     , plutus-tx
     , plutus-tx-plugin
     , plutus-use-cases
+    , prettyprinter
     , scientific
     , serialise >=0.2.3.0
     , streaming

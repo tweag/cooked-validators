@@ -20,16 +20,19 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
-import qualified Ledger as Pl
+import qualified Cooked
 import qualified Ledger.Ada as Ada
-import qualified Ledger.Interval as Interval
-import Ledger.Scripts as Pl
-import Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Value as Value
-import qualified Plutus.Script.Utils.V1.Scripts as Pl
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
+import qualified Plutus.V1.Ledger.Interval as Interval
+import qualified Plutus.V1.Ledger.Value as Value
+import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
+import Prettyprinter ((<+>))
+import qualified Prettyprinter as PP
 import qualified Prelude as Haskell
 
 {-
@@ -145,6 +148,15 @@ data BidderInfo = BidderInfo
   }
   deriving (Haskell.Show)
 
+instance Cooked.PrettyCooked BidderInfo where
+  prettyCookedOpt opts (BidderInfo bid bidder) =
+    Cooked.prettyItemize
+      "BidderInfo"
+      "-"
+      [ "bid:" <+> PP.pretty bid,
+        "bidder:" <+> Cooked.prettyCookedOpt opts bidder
+      ]
+
 PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
 
@@ -185,6 +197,33 @@ instance Eq AuctionState where
   Bidding s t b == Bidding s' t' b' = s == s' && t == t' && b == b'
   _ == _ = False
 
+-- | This will make the output of cooked-validators much more readable
+instance Cooked.PrettyCooked AuctionState where
+  prettyCookedOpt opts (Offer seller minBid) =
+    Cooked.prettyItemize
+      "Offer"
+      "-"
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid)
+      ]
+  prettyCookedOpt opts (NoBids seller minBid deadline) =
+    Cooked.prettyItemize
+      "NoBids"
+      "-"
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid),
+        "deadline" <+> PP.pretty deadline
+      ]
+  prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
+    Cooked.prettyItemize
+      "Bidding"
+      "-"
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "deadline" <+> PP.pretty deadline,
+        "previous bidder:" <+> Cooked.prettyCookedOpt opts lastBidder,
+        "previous bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf lastBid)
+      ]
+
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
 data Action
   = -- | redeemer to set the deadline of the auction
@@ -195,6 +234,11 @@ data Action
     --  'Offer' UTxO.
     Hammer Pl.TxOutRef
   deriving (Haskell.Show)
+
+instance Cooked.PrettyCooked Action where
+  prettyCookedOpt _ SetDeadline = "SetDeadline"
+  prettyCookedOpt opts (Bid bidderInfo) = "Bid" <+> Cooked.prettyCookedOpt opts bidderInfo
+  prettyCookedOpt opts (Hammer txOutRef) = "Hammer" <+> Cooked.prettyCookedOpt opts txOutRef
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
@@ -274,7 +318,8 @@ threadTokenAssetClassFromOref offerOref =
 threadCurrencySymbol :: Pl.CurrencySymbol
 threadCurrencySymbol = Pl.scriptCurrencySymbol threadTokenPolicy
 
--- | Compute the token name of the thread token of an auction from its offer Utxo.
+-- | Compute the token name of the thread token of an auction from its offer
+-- Utxo. This must be a 32-byte string, apparently.
 {-# INLINEABLE tokenNameFromTxOutRef #-}
 tokenNameFromTxOutRef :: Pl.TxOutRef -> Pl.TokenName
 tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
@@ -285,7 +330,7 @@ tokenNameFromTxOutRef (Pl.TxOutRef (Pl.TxId tid) i) =
   -- strings. See this issue on plutus-apps for some background:
   --
   -- https://github.com/input-output-hk/plutus-apps/issues/498
-  Value.TokenName $ appendByteString tid $ appendByteString "-" $ encodeInteger i
+  Value.TokenName . takeByteString 32 . sha2_256 $ tid <> "-" <> encodeInteger i
   where
     -- we know that the numbers (indices of transaction outputs) we're working
     -- with here are non-negative.
@@ -310,10 +355,13 @@ threadTokenOnChain threadCS offerOref = Value.assetClassValue (Value.AssetClass 
 -- | Extract an auction state from an output (if it has one)
 {-# INLINEABLE outputAuctionState #-}
 outputAuctionState :: Pl.TxInfo -> Pl.TxOut -> Maybe AuctionState
-outputAuctionState txi o = do
-  h <- Pl.txOutDatum o
-  Pl.Datum d <- Pl.findDatum h txi
-  PlutusTx.fromBuiltinData d
+outputAuctionState txi o =
+  case Pl.txOutDatum o of
+    Pl.NoOutputDatum -> Nothing
+    Pl.OutputDatumHash h -> do
+      Pl.Datum d <- Pl.findDatum h txi
+      PlutusTx.fromBuiltinData d
+    Pl.OutputDatum (Pl.Datum d) -> PlutusTx.fromBuiltinData d
 
 -- | Test that the value paid to the given public key address is at
 -- least the given value
@@ -375,8 +423,10 @@ validBid datum bid bidder ctx =
           "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
           ( any
               ( \o ->
-                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                    && Pl.txOutValue o `Value.geq` v
+                  outputAuctionState txi o
+                    == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o
+                    `Value.geq` v
               )
               (Pl.getContinuingOutputs ctx)
           )
@@ -453,7 +503,8 @@ validHammer threadCS datum offerOref ctx =
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
-                  `receives` ( lockedValue <> Pl.negate theNFT
+                  `receives` ( lockedValue
+                                 <> Pl.negate theNFT
                                  <> Pl.negate (Ada.lovelaceValueOf lastBid)
                              )
               )
@@ -485,4 +536,4 @@ auctionValidator' =
     wrap = Scripts.mkUntypedValidator @AuctionState @Action
 
 auctionValidator :: Scripts.TypedValidator Auction
-auctionValidator = auctionValidator' $ ValParams $ Pl.scriptCurrencySymbol threadTokenPolicy
+auctionValidator = auctionValidator' $ ValParams threadCurrencySymbol

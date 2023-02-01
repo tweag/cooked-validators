@@ -7,10 +7,12 @@ module Cooked.MockChain.Testing where
 
 import qualified Control.Exception as E
 import Control.Monad
-import Cooked.MockChain.Monad.Direct
-import Cooked.MockChain.Monad.Staged
+import Cooked.MockChain.Direct
+import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
-import Cooked.MockChain.Wallet
+import Cooked.Pretty
+import Cooked.Pretty.Class
+import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
 import Debug.Trace
@@ -68,54 +70,58 @@ a .||. b = testDisjoin [a, b]
 
 -- | Ensure that all results produced by the staged mockchain /succeed/, starting
 -- from the default initial distribution
-testSucceeds :: (IsProp prop) => StagedMockChain a -> prop
-testSucceeds = testSucceedsFrom def
+testSucceeds :: (IsProp prop) => PrettyCookedOpts -> StagedMockChain a -> prop
+testSucceeds pcOpts = testSucceedsFrom pcOpts def
 
 -- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from the default initial distribution
-testFails :: (IsProp prop, Show a) => StagedMockChain a -> prop
-testFails = testFailsFrom def
+testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> StagedMockChain a -> prop
+testFails pcOpts = testFailsFrom pcOpts def
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution but doesn't impose any additional condition on success.
 -- Use 'testSucceedsFrom'' for that.
 testSucceedsFrom ::
   (IsProp prop) =>
+  PrettyCookedOpts ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom = testSucceedsFrom' (\_ _ -> testSuccess)
+testSucceedsFrom pcOpts = testSucceedsFrom' pcOpts (\_ _ -> testSuccess)
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution. Additionally impose a condition over the
 -- resulting state and value.
 testSucceedsFrom' ::
   (IsProp prop) =>
+  PrettyCookedOpts ->
   (a -> UtxoState -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testSucceedsFrom' prop = testAllSatisfiesFrom (either (testFailureMsg . show) (uncurry prop))
+testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderString (prettyCookedOpt pcOpts)) (uncurry prop))
 
 -- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from some initial distribution
 testFailsFrom ::
   (IsProp prop, Show a) =>
+  PrettyCookedOpts ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom = testFailsFrom' (const testSuccess)
+testFailsFrom pcOpts = testFailsFrom' pcOpts (const testSuccess)
 
 -- | Ensure that all results produced by the staged mockchain /fail/ starting
 -- from some initial distribution, moreover, ensures that a certain predicate
 -- over the error holds.
 testFailsFrom' ::
   (IsProp prop, Show a) =>
+  PrettyCookedOpts ->
   (MockChainError -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom' predi = testAllSatisfiesFrom (either predi (testFailureMsg . show))
+testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyEndState pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
 -- This is particularly important when writing negative tests. For example, if we are simulating
@@ -123,15 +129,15 @@ testFailsFrom' predi = testAllSatisfiesFrom (either predi (testFailureMsg . show
 -- yielding a test that fails for reasons such as @ValueLessThanMinAda@ or @ValueNotPreserved@, which
 -- does not rule out the attack being caught by the validator script. For these scenarios it is
 -- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
-isCekEvaluationFailure :: (IsProp prop) => MockChainError -> prop
-isCekEvaluationFailure (MCEValidationError (_, ScriptFailure _)) = testSuccess
-isCekEvaluationFailure e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ show e
+isCekEvaluationFailure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
+isCekEvaluationFailure _ (MCEValidationError (_, ScriptFailure _)) = testSuccess
+isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific error message in the error.
-isCekEvaluationFailureWithMsg :: (IsProp prop) => (String -> Bool) -> MockChainError -> prop
-isCekEvaluationFailureWithMsg f (MCEValidationError (_, ScriptFailure (EvaluationError msgs _)))
+isCekEvaluationFailureWithMsg :: (IsProp prop) => PrettyCookedOpts -> (String -> Bool) -> MockChainError -> prop
+isCekEvaluationFailureWithMsg _ f (MCEValidationError (_, ScriptFailure (EvaluationError msgs _)))
   | any (f . T.unpack) msgs = testSuccess
-isCekEvaluationFailureWithMsg _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ show e
+isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Ensure that all results produced by the set of traces encoded by the 'StagedMockChain'
 -- satisfy the given predicate. If you wish to build custom predicates
@@ -139,14 +145,15 @@ isCekEvaluationFailureWithMsg _ e = testFailureMsg $ "Expected 'CekEvaluationFai
 testAllSatisfiesFrom ::
   forall prop a.
   (IsProp prop) =>
+  PrettyCookedOpts ->
   (Either MockChainError (a, UtxoState) -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testAllSatisfiesFrom f = testSatisfiesFrom' (testAll go)
+testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
   where
-    go :: (Either MockChainError (a, UtxoState), TraceDescr) -> prop
-    go (prop, tr) = testCounterexample (show tr) (f prop)
+    go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
+    go (prop, mcLog) = testCounterexample (renderString (prettyMockChainLog pcOpts) mcLog) (f prop)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes, both of which
 -- are successful and have their resulting states related by a given predicate. A typical
@@ -157,28 +164,29 @@ testAllSatisfiesFrom f = testSatisfiesFrom' (testAll go)
 -- >   execOption1 x <|> execOption2 x
 testBinaryRelatedBy ::
   (IsProp prop) =>
+  PrettyCookedOpts ->
   (UtxoState -> UtxoState -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testBinaryRelatedBy rel = testSatisfiesFrom' $ \case
+testBinaryRelatedBy pcOpts rel = testSatisfiesFrom' $ \case
   [(ra, ta), (rb, tb)] -> case (ra, rb) of
     (Right resA, Right resB) -> rel (snd resA) (snd resB)
     (Left errA, Right _) ->
-      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", show errA, "\n", show ta]
+      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", renderString (prettyCookedOpt pcOpts) errA, "\n", renderString (prettyMockChainLog pcOpts) ta]
     (Right _, Left errB) ->
-      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", show errB, "\n", show tb]
+      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", renderString (prettyCookedOpt pcOpts) errB, "\n", renderString (prettyMockChainLog pcOpts) tb]
     (Left errA, Left errB) ->
       testFailureMsg $
         concat
           [ "Expected two outcomes, both failed with:",
-            show errA,
+            renderString (prettyCookedOpt pcOpts) errA,
             "; ",
-            show errB,
+            renderString (prettyCookedOpt pcOpts) errB,
             "\n First: ",
-            show ta,
+            renderString (prettyMockChainLog pcOpts) ta,
             "\nSecond: ",
-            show tb
+            renderString (prettyMockChainLog pcOpts) tb
           ]
   xs -> testFailureMsg $ "Expected exactly two outcomes, received: " ++ show (length xs)
 
@@ -192,20 +200,21 @@ testBinaryRelatedBy rel = testSatisfiesFrom' $ \case
 -- to the same equivalence class. This function does /not/ check each pointwise case.
 testOneEquivClass ::
   (IsProp prop) =>
+  PrettyCookedOpts ->
   (UtxoState -> UtxoState -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testOneEquivClass rel = testSatisfiesFrom' $ \case
+testOneEquivClass pcOpts rel = testSatisfiesFrom' $ \case
   [] -> testFailureMsg "Expected two of more outcomes, received: 0"
   [_] -> testFailureMsg "Expected two of more outcomes, received: 1"
-  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", show errX, "\n", show tx]
+  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errX, "\n", renderString (prettyMockChainLog pcOpts) tx]
   ((Right resX, _) : xs) -> go (snd resX) xs
   where
     -- we can flag a success here because 'xs' above is guarnateed to have at least
     -- one element since we ruled out the empty and the singleton lists in the \case
     go _resX [] = testSuccess
-    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", show errY, "\n", show ty]
+    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errY, "\n", renderString (prettyMockChainLog pcOpts) ty]
     go resX ((Right (_, resY), _) : ys) = testConjoin [rel resX resY, go resX ys]
 
 -- | Asserts that the results produced by running the given 'StagedMockChain' from
@@ -217,7 +226,7 @@ testOneEquivClass rel = testSatisfiesFrom' $ \case
 -- it can be useful in building some custom predicates. Check 'testAllSatisfiesFrom'
 -- or 'testBinaryRelatedBy' for examples on using this.
 testSatisfiesFrom' ::
-  ([(Either MockChainError (a, UtxoState), TraceDescr)] -> prop) ->
+  ([(Either MockChainError (a, UtxoState), MockChainLog)] -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop

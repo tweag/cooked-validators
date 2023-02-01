@@ -16,8 +16,6 @@ dependencies:
   - tasty-quickcheck
   - tasty-expected-failure
   - heredoc
-  - pirouette >= 2.0.0
-  - pirouette-plutusir
   # Dependencies of the example contracts, these come from the client
   - aeson
   - bytestring
@@ -47,6 +45,7 @@ dependencies:
   - text
   - transformers
   - optics-core
+  - prettyprinter
 
 library:
   source-dirs: src

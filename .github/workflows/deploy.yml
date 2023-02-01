@@ -1,5 +1,4 @@
-name: Deploy
-
+name: Publish cooked-validators documentation
 on:
   push:
     branches:
@@ -22,16 +21,10 @@ jobs:
     - name: Install nix.
       uses: cachix/install-nix-action@v18
       with:
+        ## Some flake caching
         extra_nix_config: |
-          ## Access token to avoid triggering GitHub's rate limiting.
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-    - name: Setup Nix caches
-      uses: cachix/cachix-action@v12
-      with:
-        name: tweag-plutus-libs
-        ## No auth token: read-only access.
-
+      
     ## Example from
     ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
     - name: Accessing the cabal cache.
