@@ -1,48 +1,61 @@
-name: Publish cooked-validators documentation
+---
+
+name: Publish documentation
+
 on:
   push:
     branches:
       - main
+    tags:
+      - '*'
 
+## REVIEW: Why do we need this?
 permissions:
   contents: write
 
 jobs:
 
-  build-and-test:
+  publish-documentation:
     name: Documentation
 
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out repository code (from PR).
-      uses: actions/checkout@v3.3.0
+      - name: Check out repository code
+        uses: actions/checkout@v3.3.0
 
-    - name: Install nix.
-      uses: cachix/install-nix-action@v18
-      with:
-        ## Some flake caching
-        extra_nix_config: |
-          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      
-    ## Example from
-    ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
-    - name: Accessing the cabal cache.
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cabal/packages
-          ~/.cabal/store
-          dist-newstyle
-        key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
-        restore-keys: ${{ runner.os }}-
+      - name: Install Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          extra_nix_config: |
+            ## Access token to avoid triggering GitHub's rate limiting.
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build documentation
-      run: nix develop .#ci --command bash ci/build-haddock
+      - name: Setup Nix caches
+        uses: cachix/cachix-action@v12
+        with:
+          name: tweag-plutus-libs
+          ## No auth token: read only cache.
 
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v3
-      if: ${{ github.ref == 'refs/heads/main' }}
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs
+      ## Example from
+      ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
+      - name: Accessing the Cabal cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+          restore-keys: ${{ runner.os }}-
+
+      - name: Build documentation
+        run: |
+          nix develop .#ci --command bash ci/build-haddock
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }}
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
