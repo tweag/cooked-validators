@@ -31,13 +31,6 @@ With the default environment, you can compile the projects
 with `cabal` and you also have access to Haskell development tools.
 A minimal development environment is provided by `nix develop .#ci`.
 
-### Seamless Integration with `direnv`
-
-We recommend using [`direnv`](https://github.com/nix-community/nix-direnv#integrating-with-a-existing-flake)
-to automatically bring in the nix dependencies when entering the project directory.
-
-Several editors have support for `direnv`. If you use emacs, we recommend using [`envrc-mode`](https://github.com/purcell/envrc).
-
 ### Updating Plutus
 
 Are you a contributor and would you like to bump the Plutus version we
