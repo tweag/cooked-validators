@@ -77,10 +77,3 @@ In order to bump plutus, you must:
     ```
    In this case, we're running with `plutus-apps` at tag `v2021-11-05`.
 6. Run `cabal build all` and grab a coffee, this will take a while.
-
-### Pre-commit Hooks and CI
-
-Our ci runs `ormolu` and `cabal test` for each of our subprojects.
-In order to help avoid CI failures due to formatting problems, we recommend
-that you install the [pre-commit hook for running ormolu](ci/ormolu-pre-commit-hook.sh).
-To do so, simply copy (or link) the script into `.git/hooks/pre-commit`.
