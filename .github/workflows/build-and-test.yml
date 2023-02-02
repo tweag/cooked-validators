@@ -121,9 +121,10 @@ jobs:
       ##
       - name: Build and run tests
         run: |
-          nix develop .#ci --command cabal update
           nix develop .#ci --command bash -c '
             set -xuo
+
+            cabal update
 
             cabal_builds_all_ok=true
 
