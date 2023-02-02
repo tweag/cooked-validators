@@ -1,9 +1,8 @@
-# Tweag Plutus Libraries
+> **Warning**
+>
+> This is a development version of the next iteration of `cooked-validators`, with full support of Plutus V2 features. Refer to [version 1.0.0](https://github.com/tweag/plutus-libs/releases/tag/v1.0.0) for the latest stable version, which only supports Plutus V1.
 
-* [Documentation](#documentation)
-* [Projects](#projects)
-* [Developer Tools and Env](#developer-tools-and-environment)
-  - [Updating Plutus](#updating-plutus)
+# Tweag Plutus Libraries
 
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
 These libraries are a research prototype under active development, they come
@@ -26,23 +25,12 @@ The rendered Haddock for the current `main` branch can be found at [https://twea
 
 - Example contracts and their test suites written using `cooked-validators`
 
-### [pirouette-plutusir](pirouette-plutusir)
-
-- _Experimental instantiation of [pirouette](https://github.com/tweag/pirouette) for PlutusIR_.
-
 ## Developer Tools and Environment
 
 A development environment can be obtained using `nix develop`.
 With the default environment, you can compile the projects
 with `cabal` and you also have access to Haskell development tools.
 A minimal development environment is provided by `nix develop .#ci`.
-
-### Seamless Integration with `direnv`
-
-We recommend using [`direnv`](https://github.com/nix-community/nix-direnv#integrating-with-a-existing-flake)
-to automatically bring in the nix dependencies when entering the project directory.
-
-Several editors have support for `direnv`. If you use emacs, we recommend using [`envrc-mode`](https://github.com/purcell/envrc).
 
 ### Updating Plutus
 
