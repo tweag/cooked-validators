@@ -3,11 +3,6 @@ This is a development version of the next iteration of `cooked-validators`, with
 
 # Tweag Plutus Libraries
 
-* [Documentation](#documentation)
-* [Projects](#projects)
-* [Developer Tools and Env](#developer-tools-and-environment)
-  - [Updating Plutus](#updating-plutus)
-
 This repository contains our collection of the libraries for developing and auditing [Plutus](https://github.com/input-output-hk/plutus) contracts.
 These libraries are a research prototype under active development, they come
 _as is_ with no guarantees whatsoever. Check the [license](LICENSE) for details.
