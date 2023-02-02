@@ -105,6 +105,7 @@ test-suite spec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.MinAdaSpec
+      Cooked.MockChain.ContractSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.TestUtils

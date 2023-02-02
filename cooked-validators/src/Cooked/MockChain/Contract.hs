@@ -1,5 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
@@ -19,23 +20,39 @@ import qualified Data.Text as Text
 import qualified Ledger.Address as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
-import Plutus.Contract (Contract (..))
+import Optics.Core
+import Plutus.Contract (AsContractError, Contract (..), ContractError)
 import qualified Plutus.Contract as Contract
+import Prettyprinter (emptyDoc)
 
-instance Contract.AsContractError e => MonadFail (Contract w s e) where
+instance AsContractError e => MonadFail (Contract w s e) where
   fail = Contract.throwError @e . Lens.review Contract._OtherContractError . Text.pack
 
-instance Contract.AsContractError e => MonadError MockChainError (Contract w s e) where
-  throwError = Contract.throwError @e . Lens.review Contract._OtherContractError . Text.pack . show -- TODO maybe use pretty printing for MockChain Error, and have @render . pretty@, instead of @Text.pack . show@?
+class AsMockChainError e where
+  mockChainErrorP :: Prism' e MockChainError
+
+instance AsMockChainError ContractError where
+  mockChainErrorP =
+    prism'
+      (Lens.review Contract._OtherContractError . Text.pack . show) -- TODO use pretty printing for errors?
+      (const Nothing)
+
+instance AsMockChainError e => MonadError MockChainError (Contract w s e) where
+  throwError = Contract.throwError @e . review mockChainErrorP
   catchError act handler =
     Contract.handleError
-      handler
-      ( Contract.mapError
-          (OtherMockChainError . (Lens.^? Contract._ContractError))
-          act
+      ( \case
+          Left err -> Contract.throwError err
+          Right mcErr -> handler mcErr
       )
+      $ Contract.mapError
+        ( \err -> case err ^? mockChainErrorP of
+            Nothing -> Left err
+            Just mcErr -> Right mcErr
+        )
+        act
 
-instance Contract.AsContractError e => MonadBlockChainBalancing (Contract w s e) where
+instance (AsMockChainError e, AsContractError e) => MonadBlockChainBalancing (Contract w s e) where
   getParams = Contract.getParams
   utxosAtLedger address = do
     theNetworkId <- Emulator.pNetworkId <$> getParams
@@ -53,7 +70,7 @@ instance Contract.AsContractError e => MonadBlockChainBalancing (Contract w s e)
           Left err -> throwError $ OtherMockChainError err
           Right txOuts -> return txOuts
   validatorFromHash = Contract.validatorFromHash
-  datumFromHash dHash = fmap (,"Datum pretty printing in the Contract monad not implemented") <$> Contract.datumFromHash dHash
+  datumFromHash dHash = fmap (,emptyDoc) <$> Contract.datumFromHash dHash
   txOutByRefLedger oref = do
     theNetworkId <- Emulator.pNetworkId <$> getParams
     mDecoratedTxOut <- Contract.txOutFromRef oref
@@ -63,7 +80,7 @@ instance Contract.AsContractError e => MonadBlockChainBalancing (Contract w s e)
         Left err -> throwError $ OtherMockChainError err
         Right txOut -> return . Just $ txOut
 
-instance Contract.AsContractError e => MonadBlockChainWithoutValidation (Contract w s e) where
+instance (AsMockChainError e, AsContractError e) => MonadBlockChainWithoutValidation (Contract w s e) where
   allUtxosLedger = throwError $ OtherMockChainError "allUtxosLedger can not be used in the Contract monad"
   ownPaymentPubKeyHash = Ledger.unPaymentPubKeyHash <$> Contract.ownFirstPaymentPubKeyHash
   currentTime = fst <$> Contract.currentNodeClientTimeRange
@@ -71,7 +88,7 @@ instance Contract.AsContractError e => MonadBlockChainWithoutValidation (Contrac
   awaitTime = Contract.awaitTime
   awaitSlot = Contract.awaitSlot
 
-instance Contract.AsContractError e => MonadBlockChain (Contract w s e) where
+instance (AsMockChainError e, AsContractError e) => MonadBlockChain (Contract w s e) where
   validateTxSkel skelUnbal = do
     (skel, fee, collateralInputs) <- balancedTxSkel skelUnbal
     tx <- balancedTx (skel, fee, collateralInputs)

@@ -154,17 +154,19 @@ pkUtxos pkh = filterUtxos (isOutputWithoutDatum <=< isPKOutputFrom pkh) <$> allU
 -- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
 -- complete datum from the state
 allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
-allUtxosWithDatums =
-  allUtxos
-    >>= mapM
-      ( \(oref, out) -> case outputOutputDatum out of
-          PV2.OutputDatumHash datumHash -> do
-            mDatum <- datumFromHash datumHash
-            case mDatum of
-              Nothing -> return (oref, out)
-              Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
-          _ -> return (oref, out)
-      )
+allUtxosWithDatums = allUtxos >>= resolveDatums
+
+resolveDatums :: MonadBlockChainBalancing m => [(PV2.TxOutRef, PV2.TxOut)] -> m [(PV2.TxOutRef, PV2.TxOut)]
+resolveDatums =
+  mapM
+    ( \(oref, out) -> case outputOutputDatum out of
+        PV2.OutputDatumHash datumHash -> do
+          mDatum <- datumFromHash datumHash
+          case mDatum of
+            Nothing -> return (oref, out)
+            Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+        _ -> return (oref, out)
+    )
 
 filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(PV2.TxOutRef, output)]
 filteredUtxos predicate = filterUtxos predicate <$> allUtxos
