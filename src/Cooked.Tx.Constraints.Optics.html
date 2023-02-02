@@ -1,0 +1,1292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- | Various Optics on 'TxSkels', constraints, and all the other types defined</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- in 'Cooked.Tx.Constraints.Type'.</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Tx.Constraints.Optics</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html"><span class="hs-identifier">Cooked.Tx.Constraints.Type</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Ada</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Credential</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Value</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">L</span></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Prelude</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Type.Reflection</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- A few remarks:</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- There's a recurring pattern here to work around the existential type</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- variables in the constructors in &quot;Cooked.Tx.Constraints.Type&quot;: Define a type</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- that corresponds to the image of the constructor an then use that type as the</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- target of the optics. So, if you find a single-constructor type in this</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- module that you would like some explanation for, look at the comments for the</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- types 'MiscConstraint' and 'OutConstraint' in &quot;Cooked.Tx.Constraints.Type&quot;.</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- The naming convention for optics in this module is as follows: Lenses have</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- names that end in 'L', Prisms end in 'P', traversals in 'T', affine</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- traversals in 'AT', isos in 'I'. There are not yet and optics of other types</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- here.</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- * Picking apart 'TxSkel's</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">data</span><span> </span><span id="TxLabel"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679568702"><span id="TxLabel"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#LabelConstrs"><span class="hs-identifier hs-type">LabelConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568702"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679568702"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#txLabelL"><span class="hs-identifier hs-type">txLabelL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span>
+</span><span id="line-44"></span><span id="txLabelL"><span class="annot"><span class="annottext">txLabelL :: Lens' TxSkel TxLabel
+</span><a href="Cooked.Tx.Constraints.Optics.html#txLabelL"><span class="hs-identifier hs-var hs-var">txLabelL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxLabel)
+-&gt; (TxSkel -&gt; TxLabel -&gt; TxSkel) -&gt; Lens' TxSkel TxLabel
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span id="local-6989586621679568697"><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568697"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxLabel
+forall x. LabelConstrs x =&gt; Maybe x -&gt; TxLabel
+</span><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-var">TxLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568697"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568696"><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568696"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span id="local-6989586621679568695"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568695"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#TxLabel"><span class="hs-identifier hs-type">TxLabel</span></a></span><span> </span><span id="local-6989586621679568694"><span class="annot"><a href="#local-6989586621679568694"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+forall x.
+LabelConstrs x =&gt;
+Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+</span><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568694"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568696"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568695"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#txOptsL"><span class="hs-identifier hs-type">txOptsL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxOpts"><span class="hs-identifier hs-type">TxOpts</span></a></span><span>
+</span><span id="line-50"></span><span id="txOptsL"><span class="annot"><span class="annottext">txOptsL :: Lens' TxSkel TxOpts
+</span><a href="Cooked.Tx.Constraints.Optics.html#txOptsL"><span class="hs-identifier hs-var hs-var">txOptsL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; TxOpts)
+-&gt; (TxSkel -&gt; TxOpts -&gt; TxSkel) -&gt; Lens' TxSkel TxOpts
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; TxOpts
+</span><a href="Cooked.Tx.Constraints.Type.html#txOpts"><span class="hs-identifier hs-var hs-var">txOpts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span id="local-6989586621679568691"><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568691"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568690"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568690"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679568689"><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568689"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+forall x.
+LabelConstrs x =&gt;
+Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+</span><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568691"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568689"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568690"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#txConstraintsL"><span class="hs-identifier hs-type">txConstraintsL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span>
+</span><span id="line-53"></span><span id="txConstraintsL"><span class="annot"><span class="annottext">txConstraintsL :: Lens' TxSkel Constraints
+</span><a href="Cooked.Tx.Constraints.Optics.html#txConstraintsL"><span class="hs-identifier hs-var hs-var">txConstraintsL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>  </span><span class="annot"><span class="annottext">(TxSkel -&gt; Constraints)
+-&gt; (TxSkel -&gt; Constraints -&gt; TxSkel) -&gt; Lens' TxSkel Constraints
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><span class="annottext">TxSkel -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#txConstraints"><span class="hs-identifier hs-var hs-var">txConstraints</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span id="local-6989586621679568686"><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568686"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679568685"><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568685"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679568684"><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568684"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+forall x.
+LabelConstrs x =&gt;
+Maybe x -&gt; TxOpts -&gt; Constraints -&gt; TxSkel
+</span><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-var">TxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe x
+</span><a href="#local-6989586621679568686"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">TxOpts
+</span><a href="#local-6989586621679568685"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="annot"><span class="annottext">Constraints
+</span><a href="#local-6989586621679568684"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-type">constraintPairI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Constraints"><span class="hs-identifier hs-type">Constraints</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span id="constraintPairI"><span class="annot"><span class="annottext">constraintPairI :: Iso' Constraints ([MiscConstraint], [OutConstraint])
+</span><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-var hs-var">constraintPairI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Constraints -&gt; ([MiscConstraint], [OutConstraint]))
+-&gt; (([MiscConstraint], [OutConstraint]) -&gt; Constraints)
+-&gt; Iso' Constraints ([MiscConstraint], [OutConstraint])
+forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
+</span><span class="hs-identifier hs-var">iso</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679568681"><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679568681"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-type">:=&gt;:</span></a></span><span> </span><span id="local-6989586621679568679"><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679568679"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[MiscConstraint]
+</span><a href="#local-6989586621679568681"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[OutConstraint]
+</span><a href="#local-6989586621679568679"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">([MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints)
+-&gt; ([MiscConstraint], [OutConstraint]) -&gt; Constraints
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">[MiscConstraint] -&gt; [OutConstraint] -&gt; Constraints
+</span><a href="Cooked.Tx.Constraints.Type.html#%3A%3D%3E%3A"><span class="hs-operator hs-var">(:=&gt;:)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-type">outConstraintsL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-62"></span><span id="outConstraintsL"><span class="annot"><span class="annottext">outConstraintsL :: Lens' TxSkel [OutConstraint]
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var hs-var">outConstraintsL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel Constraints
+</span><a href="Cooked.Tx.Constraints.Optics.html#txConstraintsL"><span class="hs-identifier hs-var">txConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel Constraints
+-&gt; Iso' Constraints ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     TxSkel
+     TxSkel
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+</span><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-var">constraintPairI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  TxSkel
+  TxSkel
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+     [OutConstraint]
+     [OutConstraint]
+-&gt; Lens' TxSkel [OutConstraint]
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+  [OutConstraint]
+  [OutConstraint]
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#outConstraintT"><span class="hs-identifier hs-type">outConstraintT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span>
+</span><span id="line-65"></span><span id="outConstraintT"><span class="annot"><span class="annottext">outConstraintT :: Traversal' TxSkel OutConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintT"><span class="hs-identifier hs-var hs-var">outConstraintT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [OutConstraint]
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintsL"><span class="hs-identifier hs-var">outConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [OutConstraint]
+-&gt; Optic
+     A_Traversal
+     NoIx
+     [OutConstraint]
+     [OutConstraint]
+     OutConstraint
+     OutConstraint
+-&gt; Traversal' TxSkel OutConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  [OutConstraint]
+  [OutConstraint]
+  OutConstraint
+  OutConstraint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-type">miscConstraintsL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-68"></span><span id="miscConstraintsL"><span class="annot"><span class="annottext">miscConstraintsL :: Lens' TxSkel [MiscConstraint]
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var hs-var">miscConstraintsL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel Constraints
+</span><a href="Cooked.Tx.Constraints.Optics.html#txConstraintsL"><span class="hs-identifier hs-var">txConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel Constraints
+-&gt; Iso' Constraints ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     TxSkel
+     TxSkel
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Iso' Constraints ([MiscConstraint], [OutConstraint])
+</span><a href="Cooked.Tx.Constraints.Optics.html#constraintPairI"><span class="hs-identifier hs-var">constraintPairI</span></a></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  TxSkel
+  TxSkel
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+-&gt; Optic
+     A_Lens
+     NoIx
+     ([MiscConstraint], [OutConstraint])
+     ([MiscConstraint], [OutConstraint])
+     [MiscConstraint]
+     [MiscConstraint]
+-&gt; Lens' TxSkel [MiscConstraint]
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Lens
+  NoIx
+  ([MiscConstraint], [OutConstraint])
+  ([MiscConstraint], [OutConstraint])
+  [MiscConstraint]
+  [MiscConstraint]
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintT"><span class="hs-identifier hs-type">miscConstraintT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span>
+</span><span id="line-71"></span><span id="miscConstraintT"><span class="annot"><span class="annottext">miscConstraintT :: Traversal' TxSkel MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintT"><span class="hs-identifier hs-var hs-var">miscConstraintT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [MiscConstraint]
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintsL"><span class="hs-identifier hs-var">miscConstraintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [MiscConstraint]
+-&gt; Optic
+     A_Traversal
+     NoIx
+     [MiscConstraint]
+     [MiscConstraint]
+     MiscConstraint
+     MiscConstraint
+-&gt; Traversal' TxSkel MiscConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Optic
+  A_Traversal
+  NoIx
+  [MiscConstraint]
+  [MiscConstraint]
+  MiscConstraint
+  MiscConstraint
+forall (t :: * -&gt; *) a b.
+Traversable t =&gt;
+Traversal (t a) (t b) a b
+</span><span class="hs-identifier hs-var">traversed</span></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- * Picking apart 'MiscConstraint's</span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-keyword">data</span><span> </span><span id="MintsConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679568669"><span id="MintsConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MintsConstrs"><span class="hs-identifier hs-type">MintsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679568669"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.MintingPolicy</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-80"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintP"><span class="hs-identifier hs-type">mintsConstraintP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span>
+</span><span id="line-84"></span><span id="mintsConstraintP"><span class="annot"><span class="annottext">mintsConstraintP :: Prism' MiscConstraint MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintP"><span class="hs-identifier hs-var hs-var">mintsConstraintP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-85"></span><span>  </span><span class="annot"><span class="annottext">(MintsConstraint -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe MintsConstraint)
+-&gt; Prism' MiscConstraint MintsConstraint
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-87"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span id="local-6989586621679568665"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568665"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568664"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568664"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679568663"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568663"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
+forall a.
+MintsConstrs a =&gt;
+Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-var">Mints</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568665"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568664"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568663"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-90"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Mints"><span class="hs-identifier hs-type">Mints</span></a></span><span> </span><span id="local-6989586621679568661"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568661"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568660"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568660"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span id="local-6989586621679568659"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568659"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">MintsConstraint -&gt; Maybe MintsConstraint
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(MintsConstraint -&gt; Maybe MintsConstraint)
+-&gt; MintsConstraint -&gt; Maybe MintsConstraint
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+forall a.
+MintsConstrs a =&gt;
+Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568661"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568660"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568659"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-91"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe MintsConstraint
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-type">mintsConstraintsT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span>
+</span><span id="line-95"></span><span id="mintsConstraintsT"><span class="annot"><span class="annottext">mintsConstraintsT :: Traversal' TxSkel MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintsT"><span class="hs-identifier hs-var hs-var">mintsConstraintsT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintT"><span class="hs-identifier hs-var">miscConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+-&gt; Prism' MiscConstraint MintsConstraint
+-&gt; Traversal' TxSkel MintsConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Prism' MiscConstraint MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintP"><span class="hs-identifier hs-var">mintsConstraintP</span></a></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="hs-keyword">data</span><span> </span><span id="SpendsScriptConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-98"></span><span>  </span><span id="local-6989586621679568657"><span id="SpendsScriptConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568657"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568657"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-101"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679568657"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-102"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-103"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span></span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintP"><span class="hs-identifier hs-type">spendsScriptConstraintP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span>
+</span><span id="line-106"></span><span id="spendsScriptConstraintP"><span class="annot"><span class="annottext">spendsScriptConstraintP :: Prism' MiscConstraint SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintP"><span class="hs-identifier hs-var hs-var">spendsScriptConstraintP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-107"></span><span>  </span><span class="annot"><span class="annottext">(SpendsScriptConstraint -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe SpendsScriptConstraint)
+-&gt; Prism' MiscConstraint SpendsScriptConstraint
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-108"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-109"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span id="local-6989586621679568654"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568654"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568653"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568653"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568652"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568652"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; MiscConstraint
+forall a.
+SpendsConstrs a =&gt;
+TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-var">SpendsScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568654"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568653"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568652"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-110"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-112"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsScript"><span class="hs-identifier hs-type">SpendsScript</span></a></span><span> </span><span id="local-6989586621679568650"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568650"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568649"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568649"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568648"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568648"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SpendsScriptConstraint -&gt; Maybe SpendsScriptConstraint
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(SpendsScriptConstraint -&gt; Maybe SpendsScriptConstraint)
+-&gt; SpendsScriptConstraint -&gt; Maybe SpendsScriptConstraint
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+forall a.
+SpendsConstrs a =&gt;
+TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568650"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568649"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568648"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-113"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe SpendsScriptConstraint
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-114"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- | This prism only has a focus on 'SpendsScriptConstraint's of a given type.</span><span>
+</span><span id="line-117"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintTypeP"><span class="hs-identifier hs-type">spendsScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679568646"><span class="annot"><a href="#local-6989586621679568646"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-119"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsConstrs"><span class="hs-identifier hs-type">SpendsConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568646"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-120"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.RedeemerType</span></span><span> </span><span class="annot"><a href="#local-6989586621679568646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span id="spendsScriptConstraintTypeP"><span class="annot"><span class="annottext">spendsScriptConstraintTypeP :: Prism'
+  SpendsScriptConstraint
+  (TypedValidator a, RedeemerType a, SpendableOut)
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintTypeP"><span class="hs-identifier hs-var hs-var">spendsScriptConstraintTypeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-122"></span><span>  </span><span class="annot"><span class="annottext">((TypedValidator a, RedeemerType a, SpendableOut)
+ -&gt; SpendsScriptConstraint)
+-&gt; (SpendsScriptConstraint
+    -&gt; Maybe (TypedValidator a, RedeemerType a, SpendableOut))
+-&gt; Prism'
+     SpendsScriptConstraint
+     (TypedValidator a, RedeemerType a, SpendableOut)
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-123"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679568645"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568645"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568644"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568644"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568643"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568643"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+forall a.
+SpendsConstrs a =&gt;
+TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568645"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568644"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568643"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-124"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span id="local-6989586621679568642"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568642"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568641"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568641"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568640"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568640"><span class="hs-identifier hs-var">o</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-125"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; TypeRep (TypedValidator a)
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568642"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">TypeRep (TypedValidator a)
+-&gt; TypeRep (TypedValidator a)
+-&gt; Maybe (TypedValidator a :~~: TypedValidator a)
+forall k1 k2 (a :: k1) (b :: k2).
+TypeRep a -&gt; TypeRep b -&gt; Maybe (a :~~: b)
+</span><span class="hs-operator hs-var">`eqTypeRep`</span></span><span> </span><span class="annot"><span class="annottext">Typeable (TypedValidator a) =&gt; TypeRep (TypedValidator a)
+forall k (a :: k). Typeable a =&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeRep</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568646"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-126"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a :~~: TypedValidator a
+</span><span class="hs-identifier hs-var">HRefl</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TypedValidator a, RedeemerType a, SpendableOut)
+-&gt; Maybe (TypedValidator a, RedeemerType a, SpendableOut)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568642"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+RedeemerType a
+</span><a href="#local-6989586621679568641"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568640"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>          </span><span class="annot"><span class="annottext">Maybe (TypedValidator a :~~: TypedValidator a)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (TypedValidator a, RedeemerType a, SpendableOut)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-128"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintsT"><span class="hs-identifier hs-type">spendsScriptConstraintsT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span>
+</span><span id="line-131"></span><span id="spendsScriptConstraintsT"><span class="annot"><span class="annottext">spendsScriptConstraintsT :: Traversal' TxSkel SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintsT"><span class="hs-identifier hs-var hs-var">spendsScriptConstraintsT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintT"><span class="hs-identifier hs-var">miscConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+-&gt; Prism' MiscConstraint SpendsScriptConstraint
+-&gt; Traversal' TxSkel SpendsScriptConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Prism' MiscConstraint SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintP"><span class="hs-identifier hs-var">spendsScriptConstraintP</span></a></span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#spendableOutL"><span class="hs-identifier hs-type">spendableOutL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span>
+</span><span id="line-134"></span><span id="spendableOutL"><span class="annot"><span class="annottext">spendableOutL :: Lens' SpendsScriptConstraint SpendableOut
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendableOutL"><span class="hs-identifier hs-var hs-var">spendableOutL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-135"></span><span>  </span><span class="annot"><span class="annottext">(SpendsScriptConstraint -&gt; SpendableOut)
+-&gt; (SpendsScriptConstraint
+    -&gt; SpendableOut -&gt; SpendsScriptConstraint)
+-&gt; Lens' SpendsScriptConstraint SpendableOut
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-136"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-137"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568633"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568633"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568633"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568632"><span class="annot"><span class="annottext">SpendsScriptConstraint
+</span><a href="#local-6989586621679568632"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679568631"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568631"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">SpendsScriptConstraint
+</span><a href="#local-6989586621679568632"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-140"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span id="local-6989586621679568630"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568630"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568629"><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568629"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+forall a.
+SpendsConstrs a =&gt;
+TypedValidator a
+-&gt; RedeemerType a -&gt; SpendableOut -&gt; SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-var">SpendsScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568630"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">RedeemerType a
+</span><a href="#local-6989586621679568629"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568631"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#spendsPKConstraintP"><span class="hs-identifier hs-type">spendsPKConstraintP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span>
+</span><span id="line-144"></span><span id="spendsPKConstraintP"><span class="annot"><span class="annottext">spendsPKConstraintP :: Prism' MiscConstraint SpendableOut
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsPKConstraintP"><span class="hs-identifier hs-var hs-var">spendsPKConstraintP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-145"></span><span>  </span><span class="annot"><span class="annottext">(SpendableOut -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe SpendableOut)
+-&gt; Prism' MiscConstraint SpendableOut
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-146"></span><span>    </span><span class="annot"><span class="annottext">SpendableOut -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-var">SpendsPK</span></a></span><span>
+</span><span id="line-147"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-148"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendsPK"><span class="hs-identifier hs-type">SpendsPK</span></a></span><span> </span><span id="local-6989586621679568626"><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568626"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SpendableOut -&gt; Maybe SpendableOut
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">SpendableOut
+</span><a href="#local-6989586621679568626"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-149"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe SpendableOut
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-150"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#signedByP"><span class="hs-identifier hs-type">signedByP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">L.PubKeyHash</span></span><span class="hs-special">]</span><span>
+</span><span id="line-153"></span><span id="signedByP"><span class="annot"><span class="annottext">signedByP :: Prism' MiscConstraint [PubKeyHash]
+</span><a href="Cooked.Tx.Constraints.Optics.html#signedByP"><span class="hs-identifier hs-var hs-var">signedByP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-154"></span><span>  </span><span class="annot"><span class="annottext">([PubKeyHash] -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe [PubKeyHash])
+-&gt; Prism' MiscConstraint [PubKeyHash]
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-155"></span><span>    </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-var">SignedBy</span></a></span><span>
+</span><span id="line-156"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-157"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SignedBy"><span class="hs-identifier hs-type">SignedBy</span></a></span><span> </span><span id="local-6989586621679568623"><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679568623"><span class="hs-identifier hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[PubKeyHash] -&gt; Maybe [PubKeyHash]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[PubKeyHash]
+</span><a href="#local-6989586621679568623"><span class="hs-identifier hs-var">signers</span></a></span><span>
+</span><span id="line-158"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe [PubKeyHash]
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-159"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-160"></span><span>
+</span><span id="line-161"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#beforeP"><span class="hs-identifier hs-type">beforeP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.POSIXTime</span></span><span>
+</span><span id="line-162"></span><span id="beforeP"><span class="annot"><span class="annottext">beforeP :: Prism' MiscConstraint POSIXTime
+</span><a href="Cooked.Tx.Constraints.Optics.html#beforeP"><span class="hs-identifier hs-var hs-var">beforeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-163"></span><span>  </span><span class="annot"><span class="annottext">(POSIXTime -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe POSIXTime)
+-&gt; Prism' MiscConstraint POSIXTime
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-164"></span><span>    </span><span class="annot"><span class="annottext">POSIXTime -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-var">Before</span></a></span><span>
+</span><span id="line-165"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-166"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#Before"><span class="hs-identifier hs-type">Before</span></a></span><span> </span><span id="local-6989586621679568620"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679568620"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Maybe POSIXTime
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679568620"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-167"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe POSIXTime
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-168"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#afterP"><span class="hs-identifier hs-type">afterP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.POSIXTime</span></span><span>
+</span><span id="line-171"></span><span id="afterP"><span class="annot"><span class="annottext">afterP :: Prism' MiscConstraint POSIXTime
+</span><a href="Cooked.Tx.Constraints.Optics.html#afterP"><span class="hs-identifier hs-var hs-var">afterP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-172"></span><span>  </span><span class="annot"><span class="annottext">(POSIXTime -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe POSIXTime)
+-&gt; Prism' MiscConstraint POSIXTime
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-173"></span><span>    </span><span class="annot"><span class="annottext">POSIXTime -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-var">After</span></a></span><span>
+</span><span id="line-174"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-175"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#After"><span class="hs-identifier hs-type">After</span></a></span><span> </span><span id="local-6989586621679568617"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679568617"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Maybe POSIXTime
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679568617"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-176"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe POSIXTime
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-177"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-178"></span><span>
+</span><span id="line-179"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#validateInP"><span class="hs-identifier hs-type">validateInP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.POSIXTimeRange</span></span><span>
+</span><span id="line-180"></span><span id="validateInP"><span class="annot"><span class="annottext">validateInP :: Prism' MiscConstraint POSIXTimeRange
+</span><a href="Cooked.Tx.Constraints.Optics.html#validateInP"><span class="hs-identifier hs-var hs-var">validateInP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-181"></span><span>  </span><span class="annot"><span class="annottext">(POSIXTimeRange -&gt; MiscConstraint)
+-&gt; (MiscConstraint -&gt; Maybe POSIXTimeRange)
+-&gt; Prism' MiscConstraint POSIXTimeRange
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-182"></span><span>    </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-var">ValidateIn</span></a></span><span>
+</span><span id="line-183"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-184"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#ValidateIn"><span class="hs-identifier hs-type">ValidateIn</span></a></span><span> </span><span id="local-6989586621679568614"><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679568614"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange -&gt; Maybe POSIXTimeRange
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">POSIXTimeRange
+</span><a href="#local-6989586621679568614"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-185"></span><span>        </span><span class="annot"><span class="annottext">MiscConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe POSIXTimeRange
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-186"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-187"></span><span>
+</span><span id="line-188"></span><span class="hs-comment">-- * Picking apart 'OutConstraint's</span><span>
+</span><span id="line-189"></span><span>
+</span><span id="line-190"></span><span class="hs-keyword">data</span><span> </span><span id="PaysScriptConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-var">PaysScriptConstraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-191"></span><span>  </span><span id="local-6989586621679568613"><span id="PaysScriptConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-var">PaysScriptConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-192"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568613"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-193"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568613"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-194"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-195"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679568613"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-196"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-197"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span></span><span>
+</span><span id="line-198"></span><span>
+</span><span id="line-199"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintP"><span class="hs-identifier hs-type">paysScriptConstraintP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span>
+</span><span id="line-200"></span><span id="paysScriptConstraintP"><span class="annot"><span class="annottext">paysScriptConstraintP :: Prism' OutConstraint PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintP"><span class="hs-identifier hs-var hs-var">paysScriptConstraintP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-201"></span><span>  </span><span class="annot"><span class="annottext">(PaysScriptConstraint -&gt; OutConstraint)
+-&gt; (OutConstraint -&gt; Maybe PaysScriptConstraint)
+-&gt; Prism' OutConstraint PaysScriptConstraint
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-202"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-203"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span id="local-6989586621679568610"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568610"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568609"><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568609"><span class="hs-identifier hs-var">sc</span></a></span></span><span> </span><span id="local-6989586621679568608"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568608"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679568607"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568607"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; Maybe StakingCredential -&gt; DatumType a -&gt; Value -&gt; OutConstraint
+forall a.
+PaysScriptConstrs a =&gt;
+TypedValidator a
+-&gt; Maybe StakingCredential -&gt; DatumType a -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-var">PaysScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568610"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568609"><span class="hs-identifier hs-var">sc</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568608"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568607"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-204"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-205"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-206"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679568605"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568605"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568604"><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568604"><span class="hs-identifier hs-var">sc</span></a></span></span><span> </span><span id="local-6989586621679568603"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568603"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679568602"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568602"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(PaysScriptConstraint -&gt; Maybe PaysScriptConstraint)
+-&gt; PaysScriptConstraint -&gt; Maybe PaysScriptConstraint
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; Maybe StakingCredential
+-&gt; DatumType a
+-&gt; Value
+-&gt; PaysScriptConstraint
+forall a.
+PaysScriptConstrs a =&gt;
+TypedValidator a
+-&gt; Maybe StakingCredential
+-&gt; DatumType a
+-&gt; Value
+-&gt; PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-var">PaysScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568605"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568604"><span class="hs-identifier hs-var">sc</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568603"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568602"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-207"></span><span>        </span><span class="annot"><span class="annottext">OutConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe PaysScriptConstraint
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-208"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-209"></span><span>
+</span><span id="line-210"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-type">paysScriptConstraintsT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span>
+</span><span id="line-211"></span><span id="paysScriptConstraintsT"><span class="annot"><span class="annottext">paysScriptConstraintsT :: Traversal' TxSkel PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintsT"><span class="hs-identifier hs-var hs-var">paysScriptConstraintsT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintT"><span class="hs-identifier hs-var">outConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+-&gt; Prism' OutConstraint PaysScriptConstraint
+-&gt; Traversal' TxSkel PaysScriptConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Prism' OutConstraint PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintP"><span class="hs-identifier hs-var">paysScriptConstraintP</span></a></span><span>
+</span><span id="line-212"></span><span>
+</span><span id="line-213"></span><span class="hs-comment">-- | This prism only has a focus on 'PaysScriptConstraint's of a given type.</span><span>
+</span><span id="line-214"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-type">paysScriptConstraintTypeP</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-215"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679568599"><span class="annot"><a href="#local-6989586621679568599"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-216"></span><span>  </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScriptConstrs"><span class="hs-identifier hs-type">PaysScriptConstrs</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568599"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-217"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakingCredential</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.DatumType</span></span><span> </span><span class="annot"><a href="#local-6989586621679568599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span class="hs-special">)</span><span>
+</span><span id="line-218"></span><span id="paysScriptConstraintTypeP"><span class="annot"><span class="annottext">paysScriptConstraintTypeP :: Prism'
+  PaysScriptConstraint
+  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysScriptConstraintTypeP"><span class="hs-identifier hs-var hs-var">paysScriptConstraintTypeP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-219"></span><span>  </span><span class="annot"><span class="annottext">((TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+ -&gt; PaysScriptConstraint)
+-&gt; (PaysScriptConstraint
+    -&gt; Maybe
+         (TypedValidator a, Maybe StakingCredential, DatumType a, Value))
+-&gt; Prism'
+     PaysScriptConstraint
+     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-220"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679568598"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568598"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568597"><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568597"><span class="hs-identifier hs-var">sc</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568596"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568596"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568595"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568595"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; Maybe StakingCredential
+-&gt; DatumType a
+-&gt; Value
+-&gt; PaysScriptConstraint
+forall a.
+PaysScriptConstrs a =&gt;
+TypedValidator a
+-&gt; Maybe StakingCredential
+-&gt; DatumType a
+-&gt; Value
+-&gt; PaysScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-var">PaysScriptConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568598"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568597"><span class="hs-identifier hs-var">sc</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568596"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568595"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-221"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysScriptConstraint"><span class="hs-identifier hs-type">PaysScriptConstraint</span></a></span><span> </span><span id="local-6989586621679568594"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568594"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568593"><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568593"><span class="hs-identifier hs-var">sc</span></a></span></span><span> </span><span id="local-6989586621679568592"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568592"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679568591"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568591"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-222"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; TypeRep (TypedValidator a)
+forall a. Typeable a =&gt; a -&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeOf</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568594"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">TypeRep (TypedValidator a)
+-&gt; TypeRep (TypedValidator a)
+-&gt; Maybe (TypedValidator a :~~: TypedValidator a)
+forall k1 k2 (a :: k1) (b :: k2).
+TypeRep a -&gt; TypeRep b -&gt; Maybe (a :~~: b)
+</span><span class="hs-operator hs-var">`eqTypeRep`</span></span><span> </span><span class="annot"><span class="annottext">Typeable (TypedValidator a) =&gt; TypeRep (TypedValidator a)
+forall k (a :: k). Typeable a =&gt; TypeRep a
+</span><span class="hs-identifier hs-var">typeRep</span></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679568599"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-223"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">TypedValidator a :~~: TypedValidator a
+</span><span class="hs-identifier hs-var">HRefl</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+-&gt; Maybe
+     (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568594"><span class="hs-identifier hs-var">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568593"><span class="hs-identifier hs-var">sc</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">DatumType a
+DatumType a
+</span><a href="#local-6989586621679568592"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568591"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-224"></span><span>          </span><span class="annot"><span class="annottext">Maybe (TypedValidator a :~~: TypedValidator a)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe
+  (TypedValidator a, Maybe StakingCredential, DatumType a, Value)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-225"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-226"></span><span>
+</span><span id="line-227"></span><span class="hs-keyword">data</span><span> </span><span id="PaysPKWithDatumConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-var">PaysPKWithDatumConstraint</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-228"></span><span>  </span><span id="local-6989586621679568590"><span id="PaysPKWithDatumConstraint"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-var">PaysPKWithDatumConstraint</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-229"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ToData</span></span><span> </span><span class="annot"><a href="#local-6989586621679568590"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679568590"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679568590"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="annot"><a href="#local-6989586621679568590"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-230"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.PubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-231"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.StakePubKeyHash</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-232"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679568590"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-233"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-234"></span><span>    </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span></span><span>
+</span><span id="line-235"></span><span>
+</span><span id="line-236"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#paysPKWithDatumConstraintP"><span class="hs-identifier hs-type">paysPKWithDatumConstraintP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Prism'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span>
+</span><span id="line-237"></span><span id="paysPKWithDatumConstraintP"><span class="annot"><span class="annottext">paysPKWithDatumConstraintP :: Prism' OutConstraint PaysPKWithDatumConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysPKWithDatumConstraintP"><span class="hs-identifier hs-var hs-var">paysPKWithDatumConstraintP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-238"></span><span>  </span><span class="annot"><span class="annottext">(PaysPKWithDatumConstraint -&gt; OutConstraint)
+-&gt; (OutConstraint -&gt; Maybe PaysPKWithDatumConstraint)
+-&gt; Prism' OutConstraint PaysPKWithDatumConstraint
+forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
+</span><span class="hs-identifier hs-var">prism'</span></span><span>
+</span><span id="line-239"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-240"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span> </span><span id="local-6989586621679568587"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568587"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679568586"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568586"><span class="hs-identifier hs-var">sh</span></a></span></span><span> </span><span id="local-6989586621679568585"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568585"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679568584"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568584"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+-&gt; Maybe StakePubKeyHash -&gt; Maybe a -&gt; Value -&gt; OutConstraint
+forall a.
+(ToData a, Eq a, Show a, Typeable a) =&gt;
+PubKeyHash
+-&gt; Maybe StakePubKeyHash -&gt; Maybe a -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-var">PaysPKWithDatum</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568587"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568586"><span class="hs-identifier hs-var">sh</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568585"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568584"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-241"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-242"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-243"></span><span>        </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679568582"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568582"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679568581"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568581"><span class="hs-identifier hs-var">sh</span></a></span></span><span> </span><span id="local-6989586621679568580"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568580"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679568579"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568579"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PaysPKWithDatumConstraint -&gt; Maybe PaysPKWithDatumConstraint
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(PaysPKWithDatumConstraint -&gt; Maybe PaysPKWithDatumConstraint)
+-&gt; PaysPKWithDatumConstraint -&gt; Maybe PaysPKWithDatumConstraint
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+-&gt; Maybe StakePubKeyHash
+-&gt; Maybe a
+-&gt; Value
+-&gt; PaysPKWithDatumConstraint
+forall a.
+(ToData a, Eq a, Show a, Typeable a) =&gt;
+PubKeyHash
+-&gt; Maybe StakePubKeyHash
+-&gt; Maybe a
+-&gt; Value
+-&gt; PaysPKWithDatumConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-var">PaysPKWithDatumConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568582"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568581"><span class="hs-identifier hs-var">sh</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568580"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568579"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-244"></span><span>        </span><span class="annot"><span class="annottext">OutConstraint
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe PaysPKWithDatumConstraint
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-245"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-246"></span><span>
+</span><span id="line-247"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#paysPKWithDatumConstraintsT"><span class="hs-identifier hs-type">paysPKWithDatumConstraintsT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Traversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span>
+</span><span id="line-248"></span><span id="paysPKWithDatumConstraintsT"><span class="annot"><span class="annottext">paysPKWithDatumConstraintsT :: Traversal' TxSkel PaysPKWithDatumConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysPKWithDatumConstraintsT"><span class="hs-identifier hs-var hs-var">paysPKWithDatumConstraintsT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintT"><span class="hs-identifier hs-var">outConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+-&gt; Prism' OutConstraint PaysPKWithDatumConstraint
+-&gt; Traversal' TxSkel PaysPKWithDatumConstraint
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Prism' OutConstraint PaysPKWithDatumConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#paysPKWithDatumConstraintP"><span class="hs-identifier hs-var">paysPKWithDatumConstraintP</span></a></span><span>
+</span><span id="line-249"></span><span>
+</span><span id="line-250"></span><span class="hs-comment">-- * Extracting 'L.Value's from different types</span><span>
+</span><span id="line-251"></span><span>
+</span><span id="line-252"></span><span class="hs-keyword">class</span><span> </span><span id="HasValue"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-var">HasValue</span></a></span></span><span> </span><span id="local-6989586621679568771"><span class="annot"><a href="#local-6989586621679568771"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-253"></span><span>  </span><span id="valueL"><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-type">valueL</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="#local-6989586621679568771"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-254"></span><span>
+</span><span id="line-255"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.ChainIndexTxOut</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-256"></span><span>  </span><span id="local-6989586621679568574"><span class="annot"><span class="annottext">valueL :: Lens' ChainIndexTxOut Value
+</span><a href="#local-6989586621679568574"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-257"></span><span>    </span><span class="annot"><span class="annottext">(ChainIndexTxOut -&gt; Value)
+-&gt; (ChainIndexTxOut -&gt; Value -&gt; ChainIndexTxOut)
+-&gt; Lens' ChainIndexTxOut Value
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-258"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-259"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">L.PublicKeyChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568572"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568572"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568572"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-260"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">L.ScriptChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Either ValidatorHash Validator
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Either DatumHash Datum
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568570"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568570"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568570"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-261"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-262"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568569"><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679568569"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span id="local-6989586621679568568"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568568"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ChainIndexTxOut
+</span><a href="#local-6989586621679568569"><span class="hs-identifier hs-var">o</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-263"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">L.PublicKeyChainIndexTxOut</span></span><span> </span><span id="local-6989586621679568567"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679568567"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; ChainIndexTxOut
+</span><span class="hs-identifier hs-var">L.PublicKeyChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679568567"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568568"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-264"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">L.ScriptChainIndexTxOut</span></span><span> </span><span id="local-6989586621679568566"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679568566"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679568565"><span class="annot"><span class="annottext">Either ValidatorHash Validator
+</span><a href="#local-6989586621679568565"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568564"><span class="annot"><span class="annottext">Either DatumHash Datum
+</span><a href="#local-6989586621679568564"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Address
+-&gt; Either ValidatorHash Validator
+-&gt; Either DatumHash Datum
+-&gt; Value
+-&gt; ChainIndexTxOut
+</span><span class="hs-identifier hs-var">L.ScriptChainIndexTxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679568566"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Either ValidatorHash Validator
+</span><a href="#local-6989586621679568565"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Either DatumHash Datum
+</span><a href="#local-6989586621679568564"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568568"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-265"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-266"></span><span>
+</span><span id="line-267"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#SpendableOut"><span class="hs-identifier hs-type">SpendableOut</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-268"></span><span>  </span><span id="local-6989586621679568562"><span class="annot"><span class="annottext">valueL :: Lens' SpendableOut Value
+</span><a href="#local-6989586621679568562"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens SpendableOut SpendableOut ChainIndexTxOut ChainIndexTxOut
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span> </span><span class="annot"><span class="annottext">Lens SpendableOut SpendableOut ChainIndexTxOut ChainIndexTxOut
+-&gt; Lens' ChainIndexTxOut Value -&gt; Lens' SpendableOut Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' ChainIndexTxOut Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span>
+</span><span id="line-269"></span><span>
+</span><span id="line-270"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#OutConstraint"><span class="hs-identifier hs-type">OutConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-271"></span><span>  </span><span id="local-6989586621679568560"><span class="annot"><span class="annottext">valueL :: Lens' OutConstraint Value
+</span><a href="#local-6989586621679568560"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-272"></span><span>    </span><span class="annot"><span class="annottext">(OutConstraint -&gt; Value)
+-&gt; (OutConstraint -&gt; Value -&gt; OutConstraint)
+-&gt; Lens' OutConstraint Value
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-273"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-274"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568559"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568559"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568559"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-275"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568558"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568558"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568558"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-276"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-277"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568557"><span class="annot"><span class="annottext">OutConstraint
+</span><a href="#local-6989586621679568557"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679568556"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568556"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">OutConstraint
+</span><a href="#local-6989586621679568557"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-278"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-type">PaysScript</span></a></span><span> </span><span id="local-6989586621679568555"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568555"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679568554"><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568554"><span class="hs-identifier hs-var">sc</span></a></span></span><span> </span><span id="local-6989586621679568553"><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568553"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+-&gt; Maybe StakingCredential -&gt; DatumType a -&gt; Value -&gt; OutConstraint
+forall a.
+PaysScriptConstrs a =&gt;
+TypedValidator a
+-&gt; Maybe StakingCredential -&gt; DatumType a -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#PaysScript"><span class="hs-identifier hs-var">PaysScript</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679568555"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679568554"><span class="hs-identifier hs-var">sc</span></a></span><span> </span><span class="annot"><span class="annottext">DatumType a
+</span><a href="#local-6989586621679568553"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568556"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-279"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-type">PaysPKWithDatum</span></a></span><span> </span><span id="local-6989586621679568552"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568552"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679568551"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568551"><span class="hs-identifier hs-var">sh</span></a></span></span><span> </span><span id="local-6989586621679568550"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568550"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+-&gt; Maybe StakePubKeyHash -&gt; Maybe a -&gt; Value -&gt; OutConstraint
+forall a.
+(ToData a, Eq a, Show a, Typeable a) =&gt;
+PubKeyHash
+-&gt; Maybe StakePubKeyHash -&gt; Maybe a -&gt; Value -&gt; OutConstraint
+</span><a href="Cooked.Tx.Constraints.Type.html#PaysPKWithDatum"><span class="hs-identifier hs-var">PaysPKWithDatum</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568552"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568551"><span class="hs-identifier hs-var">sh</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568550"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568556"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-280"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-281"></span><span>
+</span><span id="line-282"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-283"></span><span>  </span><span id="local-6989586621679568548"><span class="annot"><span class="annottext">valueL :: Lens' MintsConstraint Value
+</span><a href="#local-6989586621679568548"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-284"></span><span>    </span><span class="annot"><span class="annottext">(MintsConstraint -&gt; Value)
+-&gt; (MintsConstraint -&gt; Value -&gt; MintsConstraint)
+-&gt; Lens' MintsConstraint Value
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-285"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-286"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568547"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568547"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568547"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-287"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-288"></span><span>      </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568546"><span class="annot"><span class="annottext">MintsConstraint
+</span><a href="#local-6989586621679568546"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679568545"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568545"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MintsConstraint
+</span><a href="#local-6989586621679568546"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-289"></span><span>          </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-type">MintsConstraint</span></a></span><span> </span><span id="local-6989586621679568544"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568544"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679568543"><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568543"><span class="hs-identifier hs-var">ps</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+forall a.
+MintsConstrs a =&gt;
+Maybe a -&gt; [MintingPolicy] -&gt; Value -&gt; MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#MintsConstraint"><span class="hs-identifier hs-var">MintsConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568544"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">[MintingPolicy]
+</span><a href="#local-6989586621679568543"><span class="hs-identifier hs-var">ps</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568545"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-290"></span><span>      </span><span class="hs-special">)</span><span>
+</span><span id="line-291"></span><span>
+</span><span id="line-292"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#SpendsScriptConstraint"><span class="hs-identifier hs-type">SpendsScriptConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-293"></span><span>  </span><span id="local-6989586621679568541"><span class="annot"><span class="annottext">valueL :: Lens' SpendsScriptConstraint Value
+</span><a href="#local-6989586621679568541"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Lens' SpendsScriptConstraint SpendableOut
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendableOutL"><span class="hs-identifier hs-var">spendableOutL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' SpendsScriptConstraint SpendableOut
+-&gt; Lens' SpendableOut Value -&gt; Lens' SpendsScriptConstraint Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' SpendableOut Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span>
+</span><span id="line-294"></span><span>
+</span><span id="line-295"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#HasValue"><span class="hs-identifier hs-type">HasValue</span></a></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-296"></span><span>  </span><span id="local-6989586621679568539"><span class="annot"><span class="annottext">valueL :: Lens' PaysPKWithDatumConstraint Value
+</span><a href="#local-6989586621679568539"><span class="hs-identifier hs-var hs-var hs-var hs-var">valueL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-297"></span><span>    </span><span class="annot"><span class="annottext">(PaysPKWithDatumConstraint -&gt; Value)
+-&gt; (PaysPKWithDatumConstraint
+    -&gt; Value -&gt; PaysPKWithDatumConstraint)
+-&gt; Lens' PaysPKWithDatumConstraint Value
+forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><span id="line-298"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679568538"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568538"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568538"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-299"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-type">PaysPKWithDatumConstraint</span></a></span><span> </span><span id="local-6989586621679568537"><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568537"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679568536"><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568536"><span class="hs-identifier hs-var">msh</span></a></span></span><span> </span><span id="local-6989586621679568535"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568535"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679568534"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568534"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+-&gt; Maybe StakePubKeyHash
+-&gt; Maybe a
+-&gt; Value
+-&gt; PaysPKWithDatumConstraint
+forall a.
+(ToData a, Eq a, Show a, Typeable a) =&gt;
+PubKeyHash
+-&gt; Maybe StakePubKeyHash
+-&gt; Maybe a
+-&gt; Value
+-&gt; PaysPKWithDatumConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#PaysPKWithDatumConstraint"><span class="hs-identifier hs-var">PaysPKWithDatumConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash
+</span><a href="#local-6989586621679568537"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe StakePubKeyHash
+</span><a href="#local-6989586621679568536"><span class="hs-identifier hs-var">msh</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679568535"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568534"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-300"></span><span>
+</span><span id="line-301"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#valueAT"><span class="hs-identifier hs-type">valueAT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#MiscConstraint"><span class="hs-identifier hs-type">MiscConstraint</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-302"></span><span id="valueAT"><span class="annot"><span class="annottext">valueAT :: AffineTraversal' MiscConstraint Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueAT"><span class="hs-identifier hs-var hs-var">valueAT</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-303"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Prism' MiscConstraint SpendsScriptConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsScriptConstraintP"><span class="hs-identifier hs-var">spendsScriptConstraintP</span></a></span><span> </span><span class="annot"><span class="annottext">Prism' MiscConstraint SpendsScriptConstraint
+-&gt; Lens' SpendsScriptConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' SpendsScriptConstraint Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-304"></span><span>    </span><span class="annot"><span class="annottext">AffineTraversal' MiscConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+forall k l (is :: [*]) s a (js :: [*]).
+(Is k An_AffineTraversal, Is l An_AffineTraversal) =&gt;
+Optic' k is s a -&gt; Optic' l js s a -&gt; AffineTraversal' s a
+</span><a href="#local-6989586621679568532"><span class="hs-operator hs-var">`unsafeOr`</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Prism' MiscConstraint MintsConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#mintsConstraintP"><span class="hs-identifier hs-var">mintsConstraintP</span></a></span><span> </span><span class="annot"><span class="annottext">Prism' MiscConstraint MintsConstraint
+-&gt; Lens' MintsConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' MintsConstraint Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-305"></span><span>    </span><span class="annot"><span class="annottext">AffineTraversal' MiscConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+-&gt; AffineTraversal' MiscConstraint Value
+forall k l (is :: [*]) s a (js :: [*]).
+(Is k An_AffineTraversal, Is l An_AffineTraversal) =&gt;
+Optic' k is s a -&gt; Optic' l js s a -&gt; AffineTraversal' s a
+</span><a href="#local-6989586621679568532"><span class="hs-operator hs-var">`unsafeOr`</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Prism' MiscConstraint SpendableOut
+</span><a href="Cooked.Tx.Constraints.Optics.html#spendsPKConstraintP"><span class="hs-identifier hs-var">spendsPKConstraintP</span></a></span><span> </span><span class="annot"><span class="annottext">Prism' MiscConstraint SpendableOut
+-&gt; Lens' SpendableOut Value
+-&gt; AffineTraversal' MiscConstraint Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' SpendableOut Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-306"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-307"></span><span>    </span><span class="hs-comment">-- In the best of all possible worlds, I'd write this:</span><span>
+</span><span id="line-308"></span><span>    </span><span class="hs-comment">-- &gt; unsafeOr = singular . adjoin</span><span>
+</span><span id="line-309"></span><span>    </span><span class="hs-comment">-- Alas, @adjoin@ only is available in optics-core &gt;= 0.4, which we can not</span><span>
+</span><span id="line-310"></span><span>    </span><span class="hs-comment">-- use at the moment, because of the compiler and cabal versions from IOHK</span><span>
+</span><span id="line-311"></span><span>    </span><span class="hs-comment">-- that we use (at least that is what I think is going on).</span><span>
+</span><span id="line-312"></span><span>    </span><span id="local-6989586621679568749"><span id="local-6989586621679568751"><span id="local-6989586621679568752"><span id="local-6989586621679568753"><span id="local-6989586621679568754"><span id="local-6989586621679568756"><span class="annot"><a href="#local-6989586621679568532"><span class="hs-identifier hs-type">unsafeOr</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-313"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679568756"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineTraversal</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679568754"><span class="hs-identifier hs-type">l</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineTraversal</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-314"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679568756"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568753"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568752"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568751"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-315"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679568754"><span class="hs-identifier hs-type">l</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568749"><span class="hs-identifier hs-type">js</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568752"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568751"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-316"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">AffineTraversal'</span></span><span> </span><span class="annot"><a href="#local-6989586621679568752"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679568751"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span></span></span><span>
+</span><span id="line-317"></span><span>    </span><span id="local-6989586621679568532"><span class="annot"><span class="annottext">unsafeOr :: Optic' k is s a -&gt; Optic' l js s a -&gt; AffineTraversal' s a
+</span><a href="#local-6989586621679568532"><span class="hs-identifier hs-var hs-var">unsafeOr</span></a></span></span><span> </span><span id="local-6989586621679568531"><span class="annot"><span class="annottext">Optic' k is s a
+</span><a href="#local-6989586621679568531"><span class="hs-identifier hs-var">o1</span></a></span></span><span> </span><span id="local-6989586621679568530"><span class="annot"><span class="annottext">Optic' l js s a
+</span><a href="#local-6989586621679568530"><span class="hs-identifier hs-var">o2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' k is s a
+-&gt; ((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+-&gt; AffineTraversal' s a
+forall k (is :: [*]) s t a b r.
+Is k An_AffineTraversal =&gt;
+Optic k is s t a b
+-&gt; ((s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; r) -&gt; r
+</span><span class="hs-identifier hs-var">withAffineTraversal</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is s a
+</span><a href="#local-6989586621679568531"><span class="hs-identifier hs-var">o1</span></a></span><span> </span><span class="annot"><span class="annottext">(((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+ -&gt; AffineTraversal' s a)
+-&gt; ((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+-&gt; AffineTraversal' s a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568528"><span class="annot"><span class="annottext">s -&gt; Either s a
+</span><a href="#local-6989586621679568528"><span class="hs-identifier hs-var">m1</span></a></span></span><span> </span><span id="local-6989586621679568527"><span class="annot"><span class="annottext">s -&gt; a -&gt; s
+</span><a href="#local-6989586621679568527"><span class="hs-identifier hs-var">u1</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-318"></span><span>      </span><span class="annot"><span class="annottext">Optic' l js s a
+-&gt; ((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+-&gt; AffineTraversal' s a
+forall k (is :: [*]) s t a b r.
+Is k An_AffineTraversal =&gt;
+Optic k is s t a b
+-&gt; ((s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; r) -&gt; r
+</span><span class="hs-identifier hs-var">withAffineTraversal</span></span><span> </span><span class="annot"><span class="annottext">Optic' l js s a
+</span><a href="#local-6989586621679568530"><span class="hs-identifier hs-var">o2</span></a></span><span> </span><span class="annot"><span class="annottext">(((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+ -&gt; AffineTraversal' s a)
+-&gt; ((s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a)
+-&gt; AffineTraversal' s a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568526"><span class="annot"><span class="annottext">s -&gt; Either s a
+</span><a href="#local-6989586621679568526"><span class="hs-identifier hs-var">m2</span></a></span></span><span> </span><span id="local-6989586621679568525"><span class="annot"><span class="annottext">s -&gt; a -&gt; s
+</span><a href="#local-6989586621679568525"><span class="hs-identifier hs-var">u2</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-319"></span><span>        </span><span class="annot"><span class="annottext">(s -&gt; Either s a) -&gt; (s -&gt; a -&gt; s) -&gt; AffineTraversal' s a
+forall s t a b.
+(s -&gt; Either t a) -&gt; (s -&gt; b -&gt; t) -&gt; AffineTraversal s t a b
+</span><span class="hs-identifier hs-var">atraversal</span></span><span>
+</span><span id="line-320"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679568523"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568523"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">s -&gt; Either s a
+</span><a href="#local-6989586621679568528"><span class="hs-identifier hs-var">m1</span></a></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568523"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-321"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="annot"><span class="annottext">s
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">s -&gt; Either s a
+</span><a href="#local-6989586621679568526"><span class="hs-identifier hs-var">m2</span></a></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568523"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-322"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span class="annot"><span class="annottext">s
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">s -&gt; Either s a
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568523"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-323"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679568522"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568522"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either s a
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568522"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-324"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679568521"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568521"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either s a
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568521"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-325"></span><span>          </span><span class="hs-special">)</span><span>
+</span><span id="line-326"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679568520"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568520"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679568519"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568519"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">s -&gt; a -&gt; s
+</span><a href="#local-6989586621679568525"><span class="hs-identifier hs-var">u2</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">s -&gt; a -&gt; s
+</span><a href="#local-6989586621679568527"><span class="hs-identifier hs-var">u1</span></a></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679568520"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568519"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679568519"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-327"></span><span>
+</span><span id="line-328"></span><span class="hs-comment">-- | The combined value contained in all 'MiscConstraints' of a 'TxSkel'.</span><span>
+</span><span id="line-329"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#txSkelInValue"><span class="hs-identifier hs-type">txSkelInValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-330"></span><span id="txSkelInValue"><span class="annot"><span class="annottext">txSkelInValue :: TxSkel -&gt; Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#txSkelInValue"><span class="hs-identifier hs-var hs-var">txSkelInValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel Value -&gt; TxSkel -&gt; Value
+forall k a (is :: [*]) s.
+(Is k A_Fold, Monoid a) =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#miscConstraintT"><span class="hs-identifier hs-var">miscConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel MiscConstraint
+-&gt; AffineTraversal' MiscConstraint Value
+-&gt; Optic' A_Traversal NoIx TxSkel Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">AffineTraversal' MiscConstraint Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueAT"><span class="hs-identifier hs-var">valueAT</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-331"></span><span>
+</span><span id="line-332"></span><span class="hs-comment">-- | The combined value contained in all 'OutConstraints' of a 'TxSkel'.</span><span>
+</span><span id="line-333"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#txSkelOutValue"><span class="hs-identifier hs-type">txSkelOutValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Tx.Constraints.Type.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-334"></span><span id="txSkelOutValue"><span class="annot"><span class="annottext">txSkelOutValue :: TxSkel -&gt; Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#txSkelOutValue"><span class="hs-identifier hs-var hs-var">txSkelOutValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Optic' A_Traversal NoIx TxSkel Value -&gt; TxSkel -&gt; Value
+forall k a (is :: [*]) s.
+(Is k A_Fold, Monoid a) =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">foldOf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+</span><a href="Cooked.Tx.Constraints.Optics.html#outConstraintT"><span class="hs-identifier hs-var">outConstraintT</span></a></span><span> </span><span class="annot"><span class="annottext">Traversal' TxSkel OutConstraint
+-&gt; Lens' OutConstraint Value
+-&gt; Optic' A_Traversal NoIx TxSkel Value
+forall k m l (ks :: [*]) (is :: [*]) (js :: [*]) s t u v a b.
+(Is k m, Is l m, m ~ Join k l, ks ~ Append is js) =&gt;
+Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">Lens' OutConstraint Value
+forall a. HasValue a =&gt; Lens' a Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#valueL"><span class="hs-identifier hs-var">valueL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-335"></span><span>
+</span><span id="line-336"></span><span class="hs-comment">-- * Picking apart 'Value's</span><span>
+</span><span id="line-337"></span><span>
+</span><span id="line-338"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#flattenValueI"><span class="hs-identifier hs-type">flattenValueI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">L.AssetClass</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-339"></span><span id="flattenValueI"><span class="annot"><span class="annottext">flattenValueI :: Iso' Value [(AssetClass, Integer)]
+</span><a href="Cooked.Tx.Constraints.Optics.html#flattenValueI"><span class="hs-identifier hs-var hs-var">flattenValueI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-340"></span><span>  </span><span class="annot"><span class="annottext">(Value -&gt; [(AssetClass, Integer)])
+-&gt; ([(AssetClass, Integer)] -&gt; Value)
+-&gt; Iso' Value [(AssetClass, Integer)]
+forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
+</span><span class="hs-identifier hs-var">iso</span></span><span>
+</span><span id="line-341"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName, Integer) -&gt; (AssetClass, Integer))
+-&gt; [(CurrencySymbol, TokenName, Integer)]
+-&gt; [(AssetClass, Integer)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679568514"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679568514"><span class="hs-identifier hs-var">cSymbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568513"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679568513"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568512"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568512"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">L.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679568514"><span class="hs-identifier hs-var">cSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679568513"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568512"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [(AssetClass, Integer)])
+-&gt; (Value -&gt; [(CurrencySymbol, TokenName, Integer)])
+-&gt; Value
+-&gt; [(AssetClass, Integer)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
+</span><span class="hs-identifier hs-var">L.flattenValue</span></span><span class="hs-special">)</span><span>
+</span><span id="line-342"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; (AssetClass, Integer) -&gt; Value)
+-&gt; Value -&gt; [(AssetClass, Integer)] -&gt; Value
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679568507"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568507"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679568506"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568506"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568505"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568505"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679568507"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><span class="hs-identifier hs-var">L.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568506"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568505"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-343"></span><span>
+</span><span id="line-344"></span><span class="hs-comment">-- | The portion of a 'L.Value' that is not Ada.</span><span>
+</span><span id="line-345"></span><span class="annot"><a href="Cooked.Tx.Constraints.Optics.html#nonAdaValue"><span class="hs-identifier hs-type">nonAdaValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">L.Value</span></span><span>
+</span><span id="line-346"></span><span id="nonAdaValue"><span class="annot"><span class="annottext">nonAdaValue :: Value -&gt; Value
+</span><a href="Cooked.Tx.Constraints.Optics.html#nonAdaValue"><span class="hs-identifier hs-var hs-var">nonAdaValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
+-&gt; ([(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
+-&gt; Value
+-&gt; Value
+forall k (is :: [*]) s t a b.
+Is k A_Setter =&gt;
+Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
+</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
+</span><a href="Cooked.Tx.Constraints.Optics.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((AssetClass, Integer) -&gt; (AssetClass, Integer))
+-&gt; [(AssetClass, Integer)] -&gt; [(AssetClass, Integer)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">(((AssetClass, Integer) -&gt; (AssetClass, Integer))
+ -&gt; [(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
+-&gt; ((AssetClass, Integer) -&gt; (AssetClass, Integer))
+-&gt; [(AssetClass, Integer)]
+-&gt; [(AssetClass, Integer)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679568501"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568501"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679568500"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568500"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568501"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; AssetClass -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568499"><span class="hs-identifier hs-var">adaAssetClass</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568501"><span class="hs-identifier hs-var">ac</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679568501"><span class="hs-identifier hs-var">ac</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679568500"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-347"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-348"></span><span>    </span><span id="local-6989586621679568499"><span class="annot"><span class="annottext">adaAssetClass :: AssetClass
+</span><a href="#local-6989586621679568499"><span class="hs-identifier hs-var hs-var">adaAssetClass</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">L.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><span class="hs-identifier hs-var">L.adaSymbol</span></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><span class="hs-identifier hs-var">L.adaToken</span></span><span>
+</span><span id="line-349"></span></pre></body></html>
