@@ -8,9 +8,9 @@ import Control.Monad (join, replicateM)
 import Cooked
 import Cooked.TestUtils
 import Data.Default
-import qualified Plutus.Script.Utils.Ada as Pl
 import Data.Either (rights)
 import Data.List (group, groupBy)
+import qualified Plutus.Script.Utils.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

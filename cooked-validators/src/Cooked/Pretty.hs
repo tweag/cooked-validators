@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 -- | This module centralizes functions to pretty-print transaction skeletons,
 -- utxo states, addresses, pubkey hashes, values, etc.
@@ -174,13 +174,13 @@ prettyMockChainLog opts =
           : entries
         )
         | pcOptPrintTxHashes opts =
-          go
-            ( "Validated"
-                <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                <+> prettyTxSkel opts skelContext skel :
-              acc
-            )
-            entries
+            go
+              ( "Validated"
+                  <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
+                  <+> prettyTxSkel opts skelContext skel
+                  : acc
+              )
+              entries
         | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
     go
       acc
@@ -282,22 +282,22 @@ prettyTxSkelOut opts (Pays output) =
   prettyItemize
     ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
     "-"
-    ( prettyCookedOpt opts (outputValue output) :
-      catMaybes
-        [ case outputOutputDatum output of
-            Pl.OutputDatum _datum ->
-              Just $
-                "Datum (inlined):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.OutputDatumHash _datum ->
-              Just $
-                "Datum (hashed):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.NoOutputDatum -> Nothing,
-          getReferenceScriptDoc opts output
-        ]
+    ( prettyCookedOpt opts (outputValue output)
+        : catMaybes
+          [ case outputOutputDatum output of
+              Pl.OutputDatum _datum ->
+                Just $
+                  "Datum (inlined):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.OutputDatumHash _datum ->
+                Just $
+                  "Datum (hashed):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.NoOutputDatum -> Nothing,
+            getReferenceScriptDoc opts output
+          ]
     )
 
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe DocCooked
