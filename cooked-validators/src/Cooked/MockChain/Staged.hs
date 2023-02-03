@@ -10,9 +10,11 @@
 
 module Cooked.MockChain.Staged where
 
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
+import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Ltl
@@ -23,13 +25,11 @@ import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import qualified Ledger.Tx as Ledger
-import qualified Cardano.Node.Emulator as Emulator
-import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified Ledger.Slot as Ledger
-import qualified Plutus.V2.Ledger.Api as Pl
-import Control.Monad.Reader
+import qualified Ledger.Tx as Ledger
 import qualified Ledger.Typed.Scripts as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.V2.Ledger.Tx as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -86,7 +86,6 @@ data MockChainBuiltin a where
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
-
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -94,14 +93,11 @@ data MockChainBuiltin a where
     StagedMockChain a ->
     StagedMockChain a ->
     MockChainBuiltin a
-
   -- for the 'MonadFail' instance
   Fail :: String -> MockChainBuiltin a
-
   -- for the 'MonadError MockChainError' instance
   ThrowError :: MockChainError -> MockChainBuiltin a
   CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
-
 
 type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
 

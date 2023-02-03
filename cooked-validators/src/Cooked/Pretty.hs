@@ -56,6 +56,7 @@ module Cooked.Pretty where
 
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx (GenerateTxError (..))
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
@@ -80,7 +81,6 @@ import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
 import Test.QuickCheck (NonZero)
 import Test.Tasty.QuickCheck (NonZero (..))
-import Cooked.MockChain.BlockChain
 
 -- prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
 --    Foo

@@ -7,8 +7,8 @@ module Cooked.MockChain.Testing where
 
 import qualified Control.Exception as E
 import Control.Monad
-import Cooked.MockChain.Direct
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
