@@ -328,5 +328,4 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
-
       return (Ledger.CardanoApiEmulatorEraTx cardanoTx)

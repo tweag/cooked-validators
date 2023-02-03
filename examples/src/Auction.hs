@@ -269,12 +269,12 @@ PlutusTx.unstableMakeIsData ''Action
 mkPolicy :: Pl.TxOutRef -> Pl.ScriptContext -> Bool
 mkPolicy offerOref ctx
   | amnt == 1 =
-      traceIfFalse
-        "Offer UTxO not consumed"
-        (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
+    traceIfFalse
+      "Offer UTxO not consumed"
+      (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
   -- no further checks here since 'validSetDeadline' checks the remaining conditions
   | amnt == -1 =
-      True -- no further checks here; 'validHammer' checks everything
+    True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
     txi = Pl.scriptContextTxInfo ctx
