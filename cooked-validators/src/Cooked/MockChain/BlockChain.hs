@@ -142,39 +142,52 @@ utxosFromCardanoTx =
 txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
--- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
-filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
-filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
+-- | try to resolve the datum om the output: If there's an inline datum, take
+-- that; if there's a datum hash look the corresponding datum up (returning
+-- @Nothing@) if it can't be found; if there's no datum or hash at all, return
+-- @Nothing@.
+resolveDatum ::
+  (IsOnchainOutput out, MonadBlockChainBalancing m) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) PV2.Datum (ValueType out) (ReferenceScriptType out)))
+resolveDatum out =
+  case outputOutputDatum out of
+    PV2.OutputDatumHash datumHash -> do
+      mDatum <- datumFromHash datumHash
+      case mDatum of
+        Nothing -> return Nothing
+        Just (datum, _) ->
+          return . Just $
+            ConcreteOutput
+              (out ^. outputOwnerL)
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              datum
+              (out ^. outputReferenceScriptL)
+    PV2.OutputDatum datum ->
+      return . Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (out ^. outputStakingCredentialL)
+          (out ^. outputValueL)
+          datum
+          (out ^. outputReferenceScriptL)
+    PV2.NoOutputDatum -> return Nothing
 
--- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
--- complete datum from the state
-allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
-allUtxosWithDatums = allUtxos >>= resolveDatums
+liftConverter :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
+liftConverter f l =
+  catMaybes
+    <$> mapM
+      ( \(a, b) -> do
+          mc <- f b
+          case mc of
+            Nothing -> return Nothing
+            Just c -> return $ Just (a, c)
+      )
+      l
 
-resolveDatums :: MonadBlockChainBalancing m => [(PV2.TxOutRef, PV2.TxOut)] -> m [(PV2.TxOutRef, PV2.TxOut)]
-resolveDatums =
-  mapM
-    ( \(oref, out) -> case outputOutputDatum out of
-        PV2.OutputDatumHash datumHash -> do
-          mDatum <- datumFromHash datumHash
-          case mDatum of
-            Nothing -> return (oref, out)
-            Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
-        _ -> return (oref, out)
-    )
-
-filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(PV2.TxOutRef, output)]
-filteredUtxos predicate = filterUtxos predicate <$> allUtxos
-
--- | Like 'filteredUtxos', but will all resolvable datum hashes resolved. This
--- means that the outputs are presented differently from how a script would see
--- them; the information on whether there are inline datums or datum hashes is
--- lost.
-filteredUtxosWithDatums ::
-  MonadBlockChainWithoutValidation m =>
-  (PV2.TxOut -> Maybe output) ->
-  m [(PV2.TxOutRef, output)]
-filteredUtxosWithDatums predicate = filterUtxos predicate <$> allUtxosWithDatums
+liftFilter :: Applicative m => (b -> Maybe c) -> [(a, b)] -> m [(a, c)]
+liftFilter f = pure . mapMaybe (\(a, b) -> (a,) <$> f b)
 
 outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do
