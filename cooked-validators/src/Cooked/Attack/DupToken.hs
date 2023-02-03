@@ -10,7 +10,6 @@ import Optics.Core
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.V1.Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 

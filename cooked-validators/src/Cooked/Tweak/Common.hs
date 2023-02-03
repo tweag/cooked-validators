@@ -14,7 +14,6 @@ import Cooked.MockChain.BlockChain
 import Cooked.Skeleton
 import Data.List
 import Data.Maybe
-import qualified Data.Set as Set
 import ListT (ListT)
 import qualified ListT
 import Optics.Core
@@ -97,21 +96,21 @@ overTweak optic change = getTxSkel >>= putTxSkel . over optic change
 -- as they were /before/ the tweak, and in the order in which they occurred on
 -- the original transaction.
 overMaybeTweak :: (MonadTweak m, Is k A_Traversal) => Optic' k is TxSkel a -> (a -> Maybe a) -> m [a]
-overMaybeTweak optic mChange = overMaybeTweakSelecting optic mChange (const True)
+overMaybeTweak optic mChange = overMaybeSelectingTweak optic mChange (const True)
 
 -- | Sometimes 'overMaybeTweak' modifies too many foci. This might be the case
 -- if there are several identical foci, but you only want to modify some of
 -- them. This is where this 'Tweak' becomes useful: The @(Integer -> Bool)@
 -- argument can be used to select which of the modifiable foci should be
 -- actually modified.
-overMaybeTweakSelecting ::
+overMaybeSelectingTweak ::
   forall a m k is.
   (MonadTweak m, Is k A_Traversal) =>
   Optic' k is TxSkel a ->
   (a -> Maybe a) ->
   (Integer -> Bool) ->
   m [a]
-overMaybeTweakSelecting optic mChange select = do
+overMaybeSelectingTweak optic mChange select = do
   allFoci <- viewTweak $ partsOf optic
   let evaluatedFoci :: [(a, Maybe a)]
       evaluatedFoci =
@@ -133,9 +132,12 @@ overMaybeTweakSelecting optic mChange select = do
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
       evaluatedFoci
 
--- * Some more simple tweaks
-
--- | Add a label to a 'TxSkel'. If there is already a pre-existing label, the
--- given label will be added, forming a pair @(newlabel, oldlabel)@.
-addLabelTweak :: (MonadTweak m, LabelConstrs x) => x -> m ()
-addLabelTweak newlabel = overTweak txSkelLabelL (Set.insert $ TxLabel newlabel)
+-- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
+-- Sometimes, it can prove more convenient to explicitly state which property
+-- the foci shoud satisfy to be eligible for a modification that cannot fail instead.
+-- 'selectP' provides a prism to make such a selection.
+-- The intended use case is 'overTweak (optic % selectP prop) mod'
+-- where 'optic' gives the candidate foci, 'prop' is the predicate to be satisfied
+-- by the foci, and 'mod' is the modification to be applied to the selected foci.
+selectP :: (a -> Bool) -> Prism' a a
+selectP prop = prism' id (\a -> if prop a then Just a else Nothing)

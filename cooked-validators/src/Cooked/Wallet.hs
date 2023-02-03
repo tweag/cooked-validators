@@ -24,7 +24,6 @@ import qualified Plutus.V1.Ledger.Api as Pl hiding (TxOut)
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import Unsafe.Coerce (unsafeCoerce)
-import qualified Wallet.API as Pl
 
 -- * MockChain Wallets
 

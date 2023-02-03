@@ -12,15 +12,14 @@ module Cooked.Attack.DatumHijacking where
 
 import Control.Monad
 import Cooked.Output
+import Cooked.Pretty.Class
 import Cooked.RawUPLC
 import Cooked.Skeleton
 import Cooked.Tweak
 import Optics.Core
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx as Pl
-import Prettyprinter
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -48,7 +47,7 @@ redirectScriptOutputTweak ::
   (Integer -> Bool) ->
   m [ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script)]
 redirectScriptOutputTweak optic change =
-  overMaybeTweakSelecting
+  overMaybeSelectingTweak
     optic
     ( \output -> case change output of
         Nothing -> Nothing
@@ -73,7 +72,7 @@ datumHijackingAttack ::
   forall a m.
   ( MonadTweak m,
     Show (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
     Pl.ToData (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Typeable a

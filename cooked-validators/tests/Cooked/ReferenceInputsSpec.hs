@@ -40,10 +40,13 @@ import qualified Test.Tasty.HUnit as Tasty
 
 data Foo
 
-data FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
+newtype FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
 
-instance Pretty FooDatum where
-  pretty (FooDatum pkh) = "FooDatum" PP.<+> prettyPubKeyHash pkh
+instance PrettyCooked FooDatum where
+  prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyCookedOpt opts pkh
+
+instance PrettyCooked () where
+  prettyCooked = PP.pretty
 
 instance Pl.Eq FooDatum where
   FooDatum pkh1 == FooDatum pkh2 = pkh1 == pkh2
@@ -132,4 +135,4 @@ tests :: Tasty.TestTree
 tests =
   Tasty.testGroup
     "Reference inputs"
-    [Tasty.testCase "Can reference an input that can't be spent" (testSucceeds trace1)]
+    [Tasty.testCase "Can reference an input that can't be spent" (testSucceeds def trace1)]

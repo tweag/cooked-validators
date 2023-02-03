@@ -171,7 +171,7 @@ valueFromTxOutRef oref = do
 -- and trying to exercise certain branches of certain validators; make sure you also read
 -- the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
-waitNSlots :: (MonadBlockChain m) => Integer -> m Ledger.Slot
+waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
 waitNSlots n = do
   when (n < 0) $ fail "waitNSlots: negative argument"
   c <- currentSlot

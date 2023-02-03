@@ -18,17 +18,19 @@ import qualified Data.Map as Map
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Data.Set as Set
-import qualified Ledger as L
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Tx as Pl
-import qualified Ledger.Value as Pl
-import qualified Ledger.Value as Value
 import Optics.Core
 import qualified Plutus.Contract.Constraints as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import Plutus.Script.Utils.Value (Value)
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
+import qualified Prettyprinter as PP
 import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
@@ -52,7 +54,7 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
+testInit = initialDistribution' [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
@@ -114,7 +116,7 @@ twoAuctions = do
 
 -- | helper function to compute what the given wallet owns in the
 -- given state
-holdingInState :: UtxoState -> Wallet -> L.Value
+holdingInState :: UtxoState -> Wallet -> Value
 holdingInState (UtxoState m) w
   | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
   | otherwise = mempty
@@ -123,17 +125,19 @@ successfulSingle :: TestTree
 successfulSingle =
   testGroup
     "Successful single-trace runs"
-    [ testCase "hammer to withdraw" $ testSucceedsFrom testInit hammerToWithdraw,
-      testCase "zero bids" $ testSucceedsFrom testInit noBids,
-      testCase "one bid" $ testSucceedsFrom testInit oneBid,
+    [ testCase "hammer to withdraw" $ testSucceedsFrom def testInit hammerToWithdraw,
+      testCase "zero bids" $ testSucceedsFrom def testInit noBids,
+      testCase "one bid" $ testSucceedsFrom def testInit oneBid,
       testCase "two bids on the same auction" $
         testSucceedsFrom'
+          def
           (\_ s -> testBool $ 7 == bananasIn (holdingInState s (wallet 3)))
           testInit
           twoBids,
       testCase
         "two concurrent auctions"
         $ testSucceedsFrom'
+          def
           ( \_ s ->
               testBool (7 == bananasIn (holdingInState s (wallet 2)))
                 .&&. testBool (8 == bananasIn (holdingInState s (wallet 4)))
@@ -170,15 +174,17 @@ failingSingle =
   testGroup
     "Single-trace runs that are expected to fail"
     [ testCase "opening banana auction while owning too few bananas" $
-        testFailsFrom testInit failingOffer,
+        testFailsFrom def testInit failingOffer,
       testCase "wrong user hammers to withdraw" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           forbiddenHammerToWithdraw,
       testCase "second bid not higher than first" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           failingTwoBids
     ]
@@ -283,25 +289,30 @@ failingAttacks =
     "failing attacks"
     [ testCase "token duplication" $
         testFailsFrom'
+          def
           -- Ensure that the trace fails and gives back an error message satisfying a specific condition
           ( isCekEvaluationFailureWithMsg
+              def
               (\msg -> "not minting or burning" `isPrefixOf` msg || "Hammer does not burn" `isPrefixOf` msg)
           )
           testInit
           tryDupTokens,
       testCase "datum hijacking" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryDatumHijack,
       testCase "datum tampering" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryTamperDatum,
       testCase "double satisfaction" $
         testFailsFrom'
-          isCekEvaluationFailure
+          def
+          (isCekEvaluationFailure def)
           testInit
           tryDoubleSat
     ]
@@ -411,7 +422,7 @@ exploitDoubleSat = do
   -- money to herself, effectively stealing Bob's bid on the first auction.
   A.txBid eve offer2 70_000_000
     `withTweak` ( do
-                    overTweak txSkelValidityRangeL (`L.intersection` Pl.to (t1 - 1))
+                    overTweak txSkelValidityRangeL (`Pl.intersection` Pl.to (t1 - 1))
                     addInputTweak theLastBidOref $
                       TxSkelRedeemerForScript
                         (A.Bid $ A.BidderInfo 50_000_000 (walletPKHash eve))
@@ -446,17 +457,20 @@ successfulAttacks =
       expectFail
       [ testCase "adding extra tokens" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             tryAddToken,
         testCase "exploit extra tokens to steal a bid" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             exploitAddToken,
         testCase "exploit double satisfaction to steal a bid" $
           testFailsFrom'
-            isCekEvaluationFailure
+            def
+            (isCekEvaluationFailure def)
             testInit
             exploitDoubleSat
       ]
@@ -481,6 +495,7 @@ bidderAlternative :: TestTree
 bidderAlternative =
   testCase "change in possessions independent of bidder" $
     testBinaryRelatedBy
+      def
       ( \a b ->
           testBool $
             holdingInState a (wallet 1) == holdingInState b (wallet 1)

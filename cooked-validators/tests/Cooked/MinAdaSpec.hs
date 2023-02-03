@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 
@@ -11,8 +12,12 @@ import Optics.Core ((^.))
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
+
+instance PrettyCooked [Integer] where
+  prettyCooked = PP.pretty
 
 heavyDatum :: [Integer]
 heavyDatum = take 100 [0 ..]
@@ -54,9 +59,10 @@ tests :: TestTree
 tests =
   testGroup
     "automatic minAda adjustment of transaction outputs"
-    [ testCase "adjusted transaction passes" $ testSucceeds paymentWithMinAda,
-      testCase "adjusted transaction contains minimal amount"
-        $ testFailsFrom'
+    [ testCase "adjusted transaction passes" $ testSucceeds def paymentWithMinAda,
+      testCase "adjusted transaction contains minimal amount" $
+        testFailsFrom'
+          def
           ( \case
               MCEValidationError (Pl.Phase1, _) -> testSuccess
               MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess

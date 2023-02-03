@@ -1,12 +1,12 @@
 module Cooked.MockChain.UtxoState where
 
+import Cooked.Pretty.Class (DocCooked)
 import Data.Function (on)
 import qualified Data.List as L
 import qualified Data.Map.Strict as M
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
-import Prettyprinter (Doc)
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
@@ -49,7 +49,7 @@ utxoStateTotal = mconcat . map utxoValueSetTotal . M.elems . utxoState
 data UtxoDatum = UtxoDatum
   { utxoDatum :: Pl.Datum,
     utxoInlined :: Bool,
-    utxoDoc :: Doc ()
+    utxoDoc :: DocCooked
   }
 
 -- We ignore the pretty-printed document when implementing ordering and

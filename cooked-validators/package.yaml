@@ -45,6 +45,8 @@ dependencies:
   - plutus-tx
   - plutus-tx-plugin
   - prettyprinter
+  - random
+  - random-shuffle
   - scientific
   - streaming
   - tasty

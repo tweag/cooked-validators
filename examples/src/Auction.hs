@@ -20,8 +20,9 @@
 -- | Arrange an auction with a preset deadline and minimum bid.
 module Auction where
 
-import qualified Cooked.Pretty as Cooked
-import qualified Ledger.Ada as Ada
+import qualified Cooked
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
 import qualified Plutus.V1.Ledger.Interval as Interval
@@ -31,7 +32,7 @@ import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Numeric as Pl
 import PlutusTx.Prelude
-import Prettyprinter (Pretty, (<+>))
+import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
 import qualified Prelude as Haskell
 
@@ -97,16 +98,16 @@ that they end up at the correct validator V,
 - the minting policy P has to know the address of V, which is the hash of V's
   (compiled and normalised) source code. In particular, there is no way to
   compute this address on-chain, which means that this can only be accomplished
-  by parameterising the P the address of V.
+  by parameterising P with the address of V.
 
 - Conversely, the validator V needs to know the 'CurrencySymbol' of the thread
   token, which is the hash of the (compiled and normalised) code of P.
 
 So, each of the two scripts P and V has to have the other's hash as a parameter,
-and have it known at compile time. This is is patently an impossible cycle.
+and have it known at compile time. This is patently an impossible cycle.
 
 The only generic solution that we know of is to turn any initial payment of
-freshly minted tokens to the validator into a two-transaction process: The first
+freshly minted tokens to the validator into a process that involves two transactions: The first
 transaction does not involve any checks at all, does not mint any tokens that
 should be locked in the validator script, and creates "unchecked" UTxOs (Here,
 these are the UTxOs with the 'Offer' datum). The second transaction consumes
@@ -147,6 +148,15 @@ data BidderInfo = BidderInfo
     bidder :: Pl.PubKeyHash
   }
   deriving (Haskell.Show)
+
+instance Cooked.PrettyCooked BidderInfo where
+  prettyCookedOpt opts (BidderInfo bid bidder) =
+    Cooked.prettyItemize
+      "BidderInfo"
+      "-"
+      [ "bid:" <+> PP.pretty bid,
+        "bidder:" <+> Cooked.prettyCookedOpt opts bidder
+      ]
 
 PlutusTx.makeLift ''BidderInfo
 PlutusTx.unstableMakeIsData ''BidderInfo
@@ -189,30 +199,30 @@ instance Eq AuctionState where
   _ == _ = False
 
 -- | This will make the output of cooked-validators much more readable
-instance Pretty AuctionState where
-  pretty (Offer seller minBid) =
-    Cooked.prettyEnum
+instance Cooked.PrettyCooked AuctionState where
+  prettyCookedOpt opts (Offer seller minBid) =
+    Cooked.prettyItemize
       "Offer"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid)
       ]
-  pretty (NoBids seller minBid deadline) =
-    Cooked.prettyEnum
+  prettyCookedOpt opts (NoBids seller minBid deadline) =
+    Cooked.prettyItemize
       "NoBids"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "minimum bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf minBid),
-        "deadline" <+> PP.viaShow deadline
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid),
+        "deadline" <+> PP.pretty deadline
       ]
-  pretty (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
-    Cooked.prettyEnum
+  prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
+    Cooked.prettyItemize
       "Bidding"
       "-"
-      [ "seller:" <+> Cooked.prettyPubKeyHash seller,
-        "deadline" <+> PP.viaShow deadline,
-        "previous bidder:" <+> Cooked.prettyPubKeyHash lastBidder,
-        "previous bid:" <+> Cooked.prettyValue (Ada.lovelaceValueOf lastBid)
+      [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
+        "deadline" <+> PP.pretty deadline,
+        "previous bidder:" <+> Cooked.prettyCookedOpt opts lastBidder,
+        "previous bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf lastBid)
       ]
 
 -- | Actions to be taken in an auction. This will be the 'RedeemerType'.
@@ -225,6 +235,11 @@ data Action
     --  'Offer' UTxO.
     Hammer Pl.TxOutRef
   deriving (Haskell.Show)
+
+instance Cooked.PrettyCooked Action where
+  prettyCookedOpt _ SetDeadline = "SetDeadline"
+  prettyCookedOpt opts (Bid bidderInfo) = "Bid" <+> Cooked.prettyCookedOpt opts bidderInfo
+  prettyCookedOpt opts (Hammer txOutRef) = "Hammer" <+> Cooked.prettyCookedOpt opts txOutRef
 
 instance Eq Action where
   {-# INLINEABLE (==) #-}
@@ -254,12 +269,12 @@ PlutusTx.unstableMakeIsData ''Action
 mkPolicy :: Pl.TxOutRef -> Pl.ScriptContext -> Bool
 mkPolicy offerOref ctx
   | amnt == 1 =
-    traceIfFalse
-      "Offer UTxO not consumed"
-      (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
+      traceIfFalse
+        "Offer UTxO not consumed"
+        (any (\i -> Pl.txInInfoOutRef i == offerOref) $ Pl.txInfoInputs txi)
   -- no further checks here since 'validSetDeadline' checks the remaining conditions
   | amnt == -1 =
-    True -- no further checks here; 'validHammer' checks everything
+      True -- no further checks here; 'validHammer' checks everything
   | otherwise = trace "not minting or burning the right amount" False
   where
     txi = Pl.scriptContextTxInfo ctx
@@ -409,8 +424,10 @@ validBid datum bid bidder ctx =
           "Validator does not lock lot, bid, and thread token with the correct 'Bidding' datum"
           ( any
               ( \o ->
-                  outputAuctionState txi o == Just (Bidding seller deadline (BidderInfo bid bidder))
-                    && Pl.txOutValue o `Value.geq` v
+                  outputAuctionState txi o
+                    == Just (Bidding seller deadline (BidderInfo bid bidder))
+                    && Pl.txOutValue o
+                    `Value.geq` v
               )
               (Pl.getContinuingOutputs ctx)
           )
@@ -487,7 +504,8 @@ validHammer threadCS datum offerOref ctx =
             && traceIfFalse
               "last bidder must get the lot"
               ( lastBidder
-                  `receives` ( lockedValue <> Pl.negate theNFT
+                  `receives` ( lockedValue
+                                 <> Pl.negate theNFT
                                  <> Pl.negate (Ada.lovelaceValueOf lastBid)
                              )
               )
@@ -516,7 +534,7 @@ auctionValidator' =
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.mkUntypedValidator @AuctionState @Action
+    wrap = Scripts.mkUntypedValidator
 
 auctionValidator :: Scripts.TypedValidator Auction
 auctionValidator = auctionValidator' $ ValParams threadCurrencySymbol

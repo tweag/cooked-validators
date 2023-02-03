@@ -18,6 +18,7 @@ module Cooked.Skeleton where
 import qualified Cardano.Api as C
 import Control.Monad
 import Cooked.Output
+import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
@@ -43,8 +44,6 @@ import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
 import qualified Plutus.V2.Ledger.Tx as Pl
 import qualified PlutusTx.Prelude as Pl
-import Prettyprinter (Doc, Pretty)
-import qualified Prettyprinter as PP
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
@@ -235,6 +234,7 @@ instance Default TxOpts where
 type MintsConstrs redeemer =
   ( Pl.ToData redeemer,
     Show redeemer,
+    PrettyCooked redeemer,
     Typeable redeemer
   )
 
@@ -452,7 +452,7 @@ txSkelOutValue = (^. txSkelOutValueL)
 txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
-type TxSkelOutDatumConstrs a = (Show a, Pretty a, Pl.ToData a, Pl.Eq a, Typeable a)
+type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Pl.ToData a, Pl.Eq a, Typeable a)
 
 -- | See the [note on TxSkelOut data]
 data TxSkelOutDatum where
@@ -485,13 +485,13 @@ instance Eq TxSkelOutDatum where
       Nothing -> False
   _ == _ = False
 
--- | The 'Pretty' instance for 'TxSkelOutDatum' relays the pretty-printing of
+-- | The 'PrettyCooked' instance for 'TxSkelOutDatum' relays the pretty-printing of
 -- the datum it contains.
-instance Pretty TxSkelOutDatum where
-  pretty TxSkelOutNoDatum = mempty
-  pretty (TxSkelOutDatumHash datum) = PP.pretty datum
-  pretty (TxSkelOutDatum datum) = PP.pretty datum
-  pretty (TxSkelOutInlineDatum datum) = PP.pretty datum
+instance PrettyCooked TxSkelOutDatum where
+  prettyCooked TxSkelOutNoDatum = mempty
+  prettyCooked (TxSkelOutDatumHash datum) = prettyCooked datum
+  prettyCooked (TxSkelOutDatum datum) = prettyCooked datum
+  prettyCooked (TxSkelOutInlineDatum datum) = prettyCooked datum
 
 {- [note on TxSkelOut data]
 
@@ -540,7 +540,7 @@ txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
 
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, Doc ())
+txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, DocCooked)
 txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL
 
 -- | See the [note on TxSkelOut data]
@@ -550,12 +550,12 @@ instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
 
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, Doc ())
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, DocCooked)
 txSkelOutUntypedDatum = \case
   TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
-  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
-  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, PP.pretty x)
+  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
+  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
+  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
 
 txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
 txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntypedDatum
@@ -594,7 +594,7 @@ paysScript ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -617,7 +617,7 @@ paysScriptInlineDatum ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -642,7 +642,7 @@ paysScriptDatumHash ::
     Show (Pl.DatumType a),
     Typeable (Pl.DatumType a),
     Pl.Eq (Pl.DatumType a),
-    Pretty (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
     Typeable a
   ) =>
   Pl.TypedValidator a ->
@@ -664,6 +664,7 @@ paysScriptDatumHash validator datum value =
 type SpendsScriptConstrs redeemer =
   ( Pl.ToData redeemer,
     Show redeemer,
+    PrettyCooked redeemer,
     Pl.Eq redeemer,
     Typeable redeemer
   )
@@ -736,7 +737,7 @@ txSkelTemplate =
     }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, Doc ())
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, DocCooked)
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
@@ -760,13 +761,7 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe
-      ( \txSkelOut ->
-          let validator = txSkelOutValidator txSkelOut
-           in case validator of
-                Nothing -> Nothing
-                Just script -> Just (Ledger.Scripts.validatorHash script, script)
-      )
+    . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
     . txSkelOuts
 
 -- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
@@ -803,7 +798,7 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = over flattenValueI (mapMaybe (\(ac, n) -> if n < 0 then Just (ac, -n) else Nothing))
+negativePart = positivePart . Pl.negate
 
 -- | Focus the Ada part in a value. This is useful if you want to chcange only
 -- that part.
@@ -878,3 +873,8 @@ txSkelOutputDatumTypeAT =
     replaceDatumOnCorrectType old new = case typeOf old `eqTypeRep` typeOf new of
       Just HRefl -> new
       Nothing -> old
+
+data SkelContext = SkelContext
+  { skelContextTxOuts :: Map Pl.TxOutRef Pl.TxOut,
+    skelContextDatumDocs :: Map Pl.DatumHash (Pl.Datum, DocCooked)
+  }
