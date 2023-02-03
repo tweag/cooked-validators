@@ -72,8 +72,9 @@ lockTxSkel o v =
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
-  me <- ownPaymentPubKeyHash
-  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
+  (oref, _) : _ <-
+    utxosAt (walletAddress $ wallet 1)
+      >>= liftFilter (isOutputWithValueSuchThat (`Pl.geq` lockValue))
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -90,9 +91,10 @@ txRelock ::
   m ()
 txRelock v = do
   (oref, _) : _ <-
-    filteredUtxosWithDatums $
-      isScriptOutputFrom' v
-        >=> isOutputWithDatumSuchThat (ResolvedOrInlineDatum FirstLock ==)
+    utxosAt (Pl.validatorAddress v)
+      >>= liftConverter resolveDatum
+      >>= liftFilter (isOutputWithInlineDatumOfType @MockDatum)
+      >>= liftFilter (isOutputWithDatumSuchThat (FirstLock ==))
   void $ validateTxSkel $ relockTxSkel v oref
 
 datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()

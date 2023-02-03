@@ -5,12 +5,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Cooked.Output where
 
-import Control.Monad
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
@@ -219,20 +217,19 @@ isOutputWithoutDatum out = case outputOutputDatum out of
 
 -- | Test if the output carries some inlined datum (lose the type information
 -- about the datum in favour of Plutus' 'Datum' type).
-isOutputWithInlineDatumUntyped ::
-  IsOnchainOutput output =>
+isOutputWithInlineDatumOfType ::
+  (Pl.FromData a, IsOnchainOutput output) =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
-isOutputWithInlineDatumUntyped out =
+  Maybe (ConcreteOutput (OwnerType output) a (ValueType output) (ReferenceScriptType output))
+isOutputWithInlineDatumOfType out =
   case outputOutputDatum out of
-    Pl.OutputDatum datum ->
-      Just $
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          (out ^. outputValueL)
-          datum
-          (out ^. outputReferenceScriptL)
+    Pl.OutputDatum (Pl.Datum datum) ->
+      ConcreteOutput
+        (out ^. outputOwnerL)
+        (out ^. outputStakingCredentialL)
+        (out ^. outputValueL)
+        <$> Pl.fromBuiltinData datum
+        <*> Just (out ^. outputReferenceScriptL)
     _ -> Nothing
 
 -- | Test if the output carries some inlined datum.
