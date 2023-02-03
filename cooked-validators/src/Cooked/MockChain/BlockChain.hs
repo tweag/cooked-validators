@@ -93,11 +93,6 @@ filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
 pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => PV2.PubKeyHash -> m [(PV2.TxOutRef, PKOutputMaybeDatum)]
 pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
 
--- | Return all UTxOs belonging to a particular pubkey that have no datum on
--- them.
-pkUtxos :: MonadBlockChainWithoutValidation m => PV2.PubKeyHash -> m [(PV2.TxOutRef, PKOutput)]
-pkUtxos pkh = filterUtxos (isOutputWithoutDatum <=< isPKOutputFrom pkh) <$> allUtxos
-
 -- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
 -- complete datum from the state
 allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]

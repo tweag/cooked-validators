@@ -189,9 +189,6 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
 
 -- ** A few special concrete outputs
 
--- | A public key output without a datum
-type PKOutput = ConcreteOutput Pl.PubKeyHash () Pl.Value Pl.ScriptHash
-
 -- | A public key output that only has Ada and no datum
 type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada Pl.ScriptHash
 
