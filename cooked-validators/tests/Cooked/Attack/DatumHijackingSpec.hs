@@ -92,7 +92,7 @@ txRelock ::
 txRelock v = do
   (oref, _) : _ <-
     utxosAt (Pl.validatorAddress v)
-      >>= liftConverter resolveDatum
+      >>= liftLookup resolveDatum
       >>= liftFilter (isOutputWithInlineDatumOfType @MockDatum)
       >>= liftFilter (isOutputWithDatumSuchThat (FirstLock ==))
   void $ validateTxSkel $ relockTxSkel v oref

@@ -174,8 +174,8 @@ resolveDatum out =
           (out ^. outputReferenceScriptL)
     PV2.NoOutputDatum -> return Nothing
 
-liftConverter :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
-liftConverter f l =
+liftLookup :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
+liftLookup f l =
   catMaybes
     <$> mapM
       ( \(a, b) -> do

@@ -78,7 +78,7 @@ txBid submitter offerOref bid = do
   [(oref, output)] <-
     utxosAt (Pl.validatorAddress A.auctionValidator)
       >>= liftFilter (isOutputWithValueSuchThat (`Value.geq` theNft))
-      >>= liftConverter resolveDatum
+      >>= liftLookup resolveDatum
       >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
   let datum = output ^. outputDatumL
       Just deadline = A.getBidDeadline datum
@@ -120,7 +120,7 @@ txHammer submitter offerOref = do
   utxos <-
     utxosAt (Pl.validatorAddress A.auctionValidator)
       >>= liftFilter (isOutputWithValueSuchThat (`Value.geq` theNft))
-      >>= liftConverter resolveDatum
+      >>= liftLookup resolveDatum
       >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
   case utxos of
     [] ->

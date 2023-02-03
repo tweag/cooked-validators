@@ -236,7 +236,7 @@ tryDoubleSat =
               Just (A.Bid (A.BidderInfo bid bidder)) -> do
                 extraUtxos <-
                   utxosAt (Pl.validatorAddress A.auctionValidator)
-                    >>= liftConverter resolveDatum
+                    >>= liftLookup resolveDatum
                     >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
                 return $
                   mapMaybe
