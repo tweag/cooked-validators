@@ -458,7 +458,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       -- All transaction outputs that are ada-only, datum-free, and belong to
       -- 'balancePK', together with the index of the corresponding 'TxSkelOut'
       -- in 'outs'.
-      candidateOutputsWithIndices :: [(Int, PKAdaOnlyOutput)]
+      candidateOutputsWithIndices :: [(Int, ConcreteOutput PV2.PubKeyHash () Pl.Ada PV2.ScriptHash)]
       candidateOutputsWithIndices =
         mapMaybe
           ( \(i, Pays output) ->
