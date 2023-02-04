@@ -18,7 +18,6 @@ import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import qualified Cardano.Node.Emulator.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
@@ -582,16 +581,16 @@ setFeeAndBalance balancePK skel0 = do
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
-              -- Debug.Trace.traceM "Reached fixpoint:"
-              -- Debug.Trace.traceM $ "- fee = " <> show fee
-              -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-              pure (attemptedSkel, fee) -- reached fixpoint
+            -- Debug.Trace.traceM "Reached fixpoint:"
+            -- Debug.Trace.traceM $ "- fee = " <> show fee
+            -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+            pure (attemptedSkel, fee) -- reached fixpoint
           | n == 0 -> do
-              -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-              pure (attemptedSkel, max newFee fee) -- maximum number of iterations
+            -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+            pure (attemptedSkel, max newFee fee) -- maximum number of iterations
           | otherwise -> do
-              -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-              calcFee (n - 1) newFee cUtxoIndex skel
+            -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+            calcFee (n - 1) newFee cUtxoIndex skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19

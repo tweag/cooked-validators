@@ -8,7 +8,6 @@ module Cooked.MockChain.GenerateTx where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import Control.Arrow
 import Cooked.Output
 import Cooked.Skeleton
@@ -276,8 +275,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         witnessMap :: Either GenerateTxError (Map C.PolicyId (C.ScriptWitness C.WitCtxMint C.BabbageEra))
         witnessMap =
-          right mconcat
-            $ mapM
+          right mconcat $
+            mapM
               ( \(policy, redeemer, _tName, _amount) ->
                   Map.singleton
                     <$> left
@@ -285,7 +284,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                       (Pl.toCardanoPolicyId (Pl.mintingPolicyHash policy))
                     <*> mkMintWitness policy redeemer
               )
-            $ txSkelMintsToList mints
+              $ txSkelMintsToList mints
 
         mkMintWitness ::
           Pl.Versioned Pl.MintingPolicy ->

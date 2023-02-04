@@ -10,6 +10,7 @@
 
 module Cooked.MockChain.Staged where
 
+import qualified Cardano.Node.Emulator.Params as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
@@ -69,7 +70,7 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 data MockChainBuiltin a where
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
-  GetParams :: MockChainBuiltin Pl.Params
+  GetParams :: MockChainBuiltin Emulator.Params
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))

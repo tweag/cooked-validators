@@ -13,6 +13,7 @@
 
 module Cooked.MockChain.BlockChain where
 
+import qualified Cardano.Node.Emulator.Params as Emulator
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Writer
@@ -46,25 +47,15 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   ownPaymentPubKeyHash :: m PV2.PubKeyHash
 
   -- | Returns the chain parameters
-  params :: m Pl.Params
+  params :: m Emulator.Params
 
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
-
-  -- | Returns the current time
-  currentTime :: m Pl.POSIXTime
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
   --  is larger than the argument.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
-
-  -- | Wait until the slot where the given time falls into and return latest time
-  -- we know has passed.
-  --
-  -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
-  -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -90,8 +81,6 @@ txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 -- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
 filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
 filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
-
--- | 
 
 -- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
 -- value.
@@ -176,8 +165,6 @@ waitNSlots n = do
   when (n < 0) $ fail "waitNSlots: negative argument"
   c <- currentSlot
   awaitSlot $ c + fromIntegral n
-
-
 
 -- ** Deriving further 'MonadBlockChain' instances
 
