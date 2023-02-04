@@ -2,7 +2,7 @@ module Cooked.Tweak.ValidityRangeSpec (tests) where
 
 import Control.Monad (join)
 import Cooked (MonadTweak, awaitSlot, currentSlot, runTweak, txSkelTemplate)
-import Cooked.Tweak.ValidityRange (addToValidityRangeTweak, centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeValidityRangeNowTweak, setValidityRangeTweak)
+import Cooked.Tweak.ValidityRange (addToValidityRangeTweak, centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeCurrentTimeInValidityRangeTweak, makeValidityRangeNowTweak, setValidityRangeTweak)
 import Data.Default (def)
 import Data.Either (rights)
 import Data.Function (on)
@@ -51,10 +51,26 @@ checkAddToValidityRange = do
     assertBool "interval intersection is wrong" $
       b && b1 && b2 && not b3 && b4
 
+checkMoveCurrentSlot :: MonadTweak m => m Assertion
+checkMoveCurrentSlot = do
+  setValidityRangeTweak $ toSlotRange 10 20
+  makeCurrentTimeInValidityRangeTweak
+  b1 <- isValidNowTweak
+  setValidityRangeTweak $ toSlotRange 30 60
+  makeCurrentTimeInValidityRangeTweak
+  b2 <- isValidNowTweak
+  setValidityRangeTweak $ toSlotRange 80 100
+  makeCurrentTimeInValidityRangeTweak
+  b3 <- isValidNowTweak
+  return $
+    assertBool "Time shift did not occur" $
+      b1 && b2 && b3
+
 tests :: TestTree
 tests =
   testGroup
     "Validity range tweaks"
     [ testCase "Validity inclusion" $ getSingleResult checkIsValidDuring,
-      testCase "Validity intersection" $ getSingleResult checkAddToValidityRange
+      testCase "Validity intersection" $ getSingleResult checkAddToValidityRange,
+      testCase "Time shifting in validity range" $ getSingleResult checkMoveCurrentSlot
     ]
