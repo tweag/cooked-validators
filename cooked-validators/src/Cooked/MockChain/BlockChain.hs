@@ -13,7 +13,6 @@
 
 module Cooked.MockChain.BlockChain where
 
-import qualified Cardano.Node.Emulator.Params as Emulator
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Writer
@@ -45,9 +44,6 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   --  this is a proxy to 'PV2.ownPubKey'; when running in mock mode, the return value can be
   --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
   ownPaymentPubKeyHash :: m PV2.PubKeyHash
-
-  -- | Returns the chain parameters
-  params :: m Emulator.Params
 
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
@@ -184,7 +180,6 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, MonadFail (t m)) => 
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
-  params = lift params
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
 

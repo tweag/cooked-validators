@@ -2,40 +2,41 @@
 module Cooked.Tweak.ValidityRange where
 
 import Control.Monad (guard, void)
-import Cooked (awaitTime, currentTime)
+import Cooked (awaitSlot, currentSlot)
 import Cooked.Skeleton (txSkelValidityRangeL)
 import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
-import Plutus.V1.Ledger.Interval (Extended (..), LowerBound (..), always, before, contains, intersection, interval, isEmpty, ivFrom, member, never, singleton)
-import Plutus.V2.Ledger.Api (POSIXTime (..), POSIXTimeRange)
+import Ledger.Slot (Slot (Slot), SlotRange)
+import Plutus.V1.Ledger.Interval (before, contains, intersection, interval, isEmpty, member, never, singleton)
+import Plutus.V2.Ledger.Api (Extended (Finite), LowerBound (LowerBound), always, ivFrom)
 
-getValidityRangeTweak :: MonadTweak m => m POSIXTimeRange
+getValidityRangeTweak :: MonadTweak m => m SlotRange
 getValidityRangeTweak = viewTweak txSkelValidityRangeL
 
 -- | Changes the current validity range, returning the old one
-setValidityRangeTweak :: MonadTweak m => POSIXTimeRange -> m POSIXTimeRange
+setValidityRangeTweak :: MonadTweak m => SlotRange -> m SlotRange
 setValidityRangeTweak newRange = do
   oldRange <- getValidityRangeTweak
   setTweak txSkelValidityRangeL newRange
   return oldRange
 
 -- | Ensures the skeleton makes for an unconstrained validity range
-setAlwaysValidRangeTweak :: MonadTweak m => m POSIXTimeRange
+setAlwaysValidRangeTweak :: MonadTweak m => m SlotRange
 setAlwaysValidRangeTweak = setValidityRangeTweak always
 
 -- | Checks if the validity range satisfies a certain predicate
-validityRangeSatisfiesTweak :: MonadTweak m => (POSIXTimeRange -> Bool) -> m Bool
+validityRangeSatisfiesTweak :: MonadTweak m => (SlotRange -> Bool) -> m Bool
 validityRangeSatisfiesTweak = (<$> getValidityRangeTweak)
 
 -- | Checks if a given time belongs to the validity range of a transaction
-isValidAtTweak :: MonadTweak m => POSIXTime -> m Bool
+isValidAtTweak :: MonadTweak m => Slot -> m Bool
 isValidAtTweak = validityRangeSatisfiesTweak . member
 
 -- | Checks if the current validity range includes the current time
 isValidNowTweak :: MonadTweak m => m Bool
-isValidNowTweak = currentTime >>= isValidAtTweak
+isValidNowTweak = currentSlot >>= isValidAtTweak
 
 -- | Checks if a given range is included in the validity range of a transaction
-isValidDuringTweak :: MonadTweak m => POSIXTimeRange -> m Bool
+isValidDuringTweak :: MonadTweak m => SlotRange -> m Bool
 isValidDuringTweak = validityRangeSatisfiesTweak . flip contains
 
 -- | Checks if the validity range is empty
@@ -48,7 +49,7 @@ hasFullTimeRangeTweak = validityRangeSatisfiesTweak (always ==)
 
 -- | Adds a constraint to the current validity range
 -- Returns the old range, and fails is the resulting interval is empty
-addToValidityRangeTweak :: MonadTweak m => POSIXTimeRange -> m POSIXTimeRange
+addToValidityRangeTweak :: MonadTweak m => SlotRange -> m SlotRange
 addToValidityRangeTweak newRange = do
   oldRange <- viewTweak txSkelValidityRangeL
   let combinedRange = intersection newRange oldRange
@@ -57,28 +58,28 @@ addToValidityRangeTweak newRange = do
   return oldRange
 
 -- | Centers the validity range around a value with a certain radius
-centerAroundValidityRangeTweak :: MonadTweak m => POSIXTime -> Integer -> m POSIXTimeRange
+centerAroundValidityRangeTweak :: MonadTweak m => Slot -> Integer -> m SlotRange
 centerAroundValidityRangeTweak t r = do
-  let radius = POSIXTime r
+  let radius = Slot r
       left = t - radius
       right = t + radius
       newRange = interval left right
   setValidityRangeTweak newRange
 
 -- | Makes a transaction range equal to a singleton
-makeValidityRangeSingleton :: MonadTweak m => POSIXTime -> m POSIXTimeRange
+makeValidityRangeSingleton :: MonadTweak m => Slot -> m SlotRange
 makeValidityRangeSingleton = setValidityRangeTweak . singleton
 
 -- | Makes the transaction validity range comply with the current time
-makeValidityRangeNowTweak :: MonadTweak m => m POSIXTimeRange
-makeValidityRangeNowTweak = currentTime >>= makeValidityRangeSingleton
+makeValidityRangeNowTweak :: MonadTweak m => m SlotRange
+makeValidityRangeNowTweak = currentSlot >>= makeValidityRangeSingleton
 
 -- | Makes current time comply with the current validity range
 -- returns the new current time after the modification
 -- fails if current time is already after the validity range
-makeCurrentTimeInValidityRangeTweak :: MonadTweak m => m POSIXTime
+makeCurrentTimeInValidityRangeTweak :: MonadTweak m => m Slot
 makeCurrentTimeInValidityRangeTweak = do
-  now <- currentTime
+  now <- currentSlot
   vRange <- getValidityRangeTweak
   if member now vRange
     then return now
@@ -87,7 +88,7 @@ makeCurrentTimeInValidityRangeTweak = do
       guard $ not $ isEmpty vRange
       later <- case ivFrom vRange of
         LowerBound (Finite left) isClosed ->
-          return $ left + POSIXTime (toInteger $ fromEnum $ not isClosed)
+          return $ left + Slot (toInteger $ fromEnum $ not isClosed)
         _ -> fail "Invalid interval"
-      void $ awaitTime later
+      void $ awaitSlot later
       return later
