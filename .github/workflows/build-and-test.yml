@@ -110,7 +110,7 @@ jobs:
 
       ## Steps below run a certain program and creates two files:
       ## `${proj}-${step}.res` and `${proj}-${step}.out`. The former contains a
-      ## string encoding the return code of the tool whereas the later contains
+      ## string encoding the return code of the tool whereas the latter contains
       ## a human-readable description of what happened.
       ##
       ## The point of this is that we will execute these steps but we "succeed"
