@@ -137,7 +137,7 @@ txAddSignature w = Pl.addSignature' (walletSK w)
 --  and permanent values. (Remember: 1 Ada = 1000000 Lovelace)
 --
 --  Check the corresponding @Default InitialDistribution@ instance for the default value.
-newtype InitialDistribution = InitialDistribution {distribution :: Map Wallet [Pl.Value]}
+newtype InitialDistribution = InitialDistribution {unInitialDistribution :: Map Wallet [Pl.Value]}
   deriving (Eq, Show)
 
 instance Semigroup InitialDistribution where
@@ -172,7 +172,7 @@ initialTxFor initDist =
     -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
 
-    initDist' = Map.toList $ distribution initDist
+    initDist' = Map.toList $ unInitialDistribution initDist
 
     toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
     toPlTxOut addr value datum = toPlTxOut' addr value datum'
