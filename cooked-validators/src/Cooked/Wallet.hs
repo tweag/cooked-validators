@@ -4,6 +4,12 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module defines convenient wrappers for mock chain wallets (around
+-- Plutus mock wallets) and initial distributions (that is the initial state
+-- associating a list of UTxOs with some initial values to each known wallet).
+-- It also exposes a convenient API to construct wallets and distributions,
+-- manipulate them, and fetch information (such as public/private keys and
+-- staking keys).
 module Cooked.Wallet where
 
 import qualified Cardano.Api as Cardano
