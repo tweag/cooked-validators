@@ -3,8 +3,6 @@ verbatim:
 
 name: cooked-validators
 version: 0.2.0
-extra-source-files:
-  - README.md
 
 dependencies:
   - QuickCheck
