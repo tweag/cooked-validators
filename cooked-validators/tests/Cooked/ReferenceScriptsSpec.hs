@@ -14,9 +14,10 @@ import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Ledger.Ada as Pl
 import qualified Ledger.Index as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx as Pl
@@ -44,7 +45,7 @@ yesValidator =
     val :: () -> () -> Pl.ScriptContext -> Bool
     val _ _ _ = True
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator
 
 -- | The validator that never agrees to the transaction
 noValidator :: Pl.TypedValidator MockContract
@@ -56,7 +57,7 @@ noValidator =
     val :: () -> () -> Pl.ScriptContext -> Bool
     val _ _ _ = False
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator
 
 -- | This validator ensures that the given public key signs the transaction.
 requireSignerValidator :: Pl.PubKeyHash -> Pl.TypedValidator MockContract
@@ -70,7 +71,7 @@ requireSignerValidator =
       Pl.traceIfFalse "the required signer is missing" Pl.$
         Pl.elem pkh (Pl.txInfoSignatories txInfo)
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator
 
 -- | This validator ensures that there is a transaction input that has a
 -- reference script with the given hash.
@@ -89,7 +90,7 @@ requireRefScriptValidator =
           )
           (Pl.txInfoReferenceInputs txInfo)
 
-    wrap = Pl.mkUntypedValidator @() @()
+    wrap = Pl.mkUntypedValidator
 
 putRefScriptOnWalletOutput ::
   MonadBlockChain m =>

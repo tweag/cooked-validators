@@ -11,11 +11,11 @@
 module Cooked.Output where
 
 import Control.Monad
-import qualified Ledger.Ada as Pl
-import qualified Ledger.Value as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Tx as Pl
 
@@ -188,9 +188,6 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
   outputReferenceScriptL = lens concreteOutputReferenceScript (\out mRefScript -> out {concreteOutputReferenceScript = mRefScript})
 
 -- ** A few special concrete outputs
-
--- | A public key output without a datum
-type PKOutput = ConcreteOutput Pl.PubKeyHash () Pl.Value Pl.ScriptHash
 
 -- | A public key output that only has Ada and no datum
 type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada Pl.ScriptHash

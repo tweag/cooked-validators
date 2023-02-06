@@ -10,7 +10,7 @@ import Cooked.TestUtils
 import Data.Default
 import Data.Either (rights)
 import Data.List (group, groupBy)
-import qualified Ledger.Ada as Pl
+import qualified Plutus.Script.Utils.Ada as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

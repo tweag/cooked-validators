@@ -11,13 +11,12 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
-import qualified Ledger as L
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Interval as Interval
-import qualified Ledger.Tx as Pl
-import qualified Ledger.Value as Value
+import qualified Ledger.Tx as Ledger
 import Optics.Core
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Typed as Pl
+import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
@@ -26,7 +25,7 @@ import Test.QuickCheck.Modifiers (NonZero (..))
 -- 'Offer' datum to specify the seller of the auction.
 --
 -- This transaction returns the 'Pl.TxOutRef' of the 'Offer' UTxO it creates.
-txOffer :: MonadBlockChain m => Wallet -> L.Value -> Integer -> m Pl.TxOutRef
+txOffer :: MonadBlockChain m => Wallet -> Pl.Value -> Integer -> m Pl.TxOutRef
 txOffer seller lot minBid = do
   tx <-
     validateTxSkel $
@@ -41,7 +40,7 @@ txOffer seller lot minBid = do
 -- the provided 'Offer' Utxo and returns a 'NoBids' UTxO to the auction
 -- validator. It also mints the thread NFT that ensures the authenticity of the
 -- auction from that point on.
-txSetDeadline :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> L.POSIXTime -> m Pl.CardanoTx
+txSetDeadline :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Pl.POSIXTime -> m Ledger.CardanoTx
 txSetDeadline submitter offerOref deadline = do
   let theNft = A.threadToken offerOref
   Just (A.Offer seller minBid) <- typedDatumFromTxOutRef @(Pl.DatumType A.Auction) offerOref
@@ -67,13 +66,13 @@ txSetDeadline submitter offerOref deadline = do
           ]
       }
 
-previousBidder :: A.AuctionState -> Maybe (Integer, L.PubKeyHash)
+previousBidder :: A.AuctionState -> Maybe (Integer, Pl.PubKeyHash)
 previousBidder (A.Bidding _ _ (A.BidderInfo bid bidder)) = Just (bid, bidder)
 previousBidder _ = Nothing
 
 -- | Bid a certain amount of Lovelace on the auction with the given 'Offer'
 -- UTxO. If there was a previous bidder, they will receive their money back.
-txBid :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Integer -> m L.CardanoTx
+txBid :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Integer -> m Ledger.CardanoTx
 txBid submitter offerOref bid = do
   let theNft = A.threadToken offerOref
   [(oref, output)] <-
@@ -107,7 +106,7 @@ txBid submitter offerOref bid = do
                   (A.Bidding seller deadline (A.BidderInfo bid (walletPKHash submitter)))
                   (lotPlusPreviousBidPlusNft <> Ada.lovelaceValueOf (bid - prevBid))
               ],
-        txSkelValidityRange = Interval.to (deadline - 1)
+        txSkelValidityRange = Pl.to (deadline - 1)
       }
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
@@ -170,5 +169,5 @@ txHammer submitter offerOref = do
                      in [ paysPK lastBidder lot,
                           paysPK seller (Ada.lovelaceValueOf lastBid)
                         ],
-              txSkelValidityRange = Interval.from deadline
+              txSkelValidityRange = Pl.from deadline
             }

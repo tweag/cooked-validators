@@ -15,9 +15,9 @@ import Cooked.Wallet
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Ledger as L
-import qualified Ledger.Value as L
 import Optics.Core
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 
 {- Note: What is a double satisfaction attack?
@@ -48,7 +48,7 @@ data DoubleSatSplitMode = TryCombinations | AllSeparate
 -- | A triple of transaction inputs, transaction outputs, and minted value. This
 -- is what we can add to the transaction in order to try a double satisfaction
 -- attack.
-type DoubleSatDelta = (Map L.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)
+type DoubleSatDelta = (Map Pl.TxOutRef TxSkelRedeemer, [TxSkelOut], TxSkelMints)
 
 instance {-# OVERLAPPING #-} Semigroup DoubleSatDelta where
   (i, o, m) <> (i', o', m') =
@@ -168,7 +168,7 @@ doubleSatAttack optic extra attacker mode = do
       ( \delta -> do
           addDoubleSatDeltaTweak delta
           addedValue <- deltaBalance delta
-          if addedValue `L.gt` mempty
+          if addedValue `Pl.gt` mempty
             then addOutputTweak $ paysPK (walletPKHash attacker) addedValue
             else failingTweak
       )
@@ -184,7 +184,7 @@ doubleSatAttack optic extra attacker mode = do
   addLabelTweak DoubleSatLbl
   where
     -- for each triple of additional inputs, outputs, and mints, calculate its balance
-    deltaBalance :: MonadTweak m => DoubleSatDelta -> m L.Value
+    deltaBalance :: MonadTweak m => DoubleSatDelta -> m Pl.Value
     deltaBalance (inputs, outputs, mints) = do
       inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> Pl.negate outValue <> mintValue

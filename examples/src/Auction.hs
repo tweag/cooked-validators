@@ -21,7 +21,8 @@
 module Auction where
 
 import qualified Cooked
-import qualified Ledger.Ada as Ada
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
 import qualified Plutus.V1.Ledger.Interval as Interval
@@ -533,7 +534,7 @@ auctionValidator' =
     $$(PlutusTx.compile [||validate||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Scripts.mkUntypedValidator @AuctionState @Action
+    wrap = Scripts.mkUntypedValidator
 
 auctionValidator :: Scripts.TypedValidator Auction
 auctionValidator = auctionValidator' $ ValParams threadCurrencySymbol

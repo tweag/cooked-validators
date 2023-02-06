@@ -6,7 +6,6 @@ import Cooked.MockChain.Testing
 import Cooked.Skeleton
 import Data.List
 import qualified Ledger as Pl
-import qualified Ledger.Value as Pl
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V1.Ledger.Time as Pl
 import qualified PlutusTx.Prelude as Pl
