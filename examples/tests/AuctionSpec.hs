@@ -18,15 +18,16 @@ import qualified Data.Map as Map
 import qualified Data.Map.Strict as M
 import Data.Maybe
 import qualified Data.Set as Set
-import qualified Ledger as L
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Tx as Pl
-import qualified Ledger.Value as Pl
-import qualified Ledger.Value as Value
 import Optics.Core
 import qualified Plutus.Contract.Constraints as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V1.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import Plutus.Script.Utils.Value (Value)
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import qualified Prettyprinter as PP
@@ -53,7 +54,7 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit = initialDistribution' [(i, [minAda <> banana 5]) | i <- knownWallets]
+testInit = initialDistribution' [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
@@ -115,7 +116,7 @@ twoAuctions = do
 
 -- | helper function to compute what the given wallet owns in the
 -- given state
-holdingInState :: UtxoState -> Wallet -> L.Value
+holdingInState :: UtxoState -> Wallet -> Value
 holdingInState (UtxoState m) w
   | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
   | otherwise = mempty
@@ -421,7 +422,7 @@ exploitDoubleSat = do
   -- money to herself, effectively stealing Bob's bid on the first auction.
   A.txBid eve offer2 70_000_000
     `withTweak` ( do
-                    overTweak txSkelValidityRangeL (`L.intersection` Pl.to (t1 - 1))
+                    overTweak txSkelValidityRangeL (`Pl.intersection` Pl.to (t1 - 1))
                     addInputTweak theLastBidOref $
                       TxSkelRedeemerForScript
                         (A.Bid $ A.BidderInfo 50_000_000 (walletPKHash eve))

@@ -17,6 +17,9 @@ module Cooked.MockChain.Direct where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
+import qualified Cardano.Node.Emulator.Params as Emulator
+import qualified Cardano.Node.Emulator.TimeSlot as Emulator
+import qualified Cardano.Node.Emulator.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except
@@ -39,17 +42,20 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
+import qualified Ledger.Blockchain as Ledger
+import qualified Ledger.Index as Ledger
 import Ledger.Orphans ()
-import qualified Ledger.TimeSlot as Pl
-import qualified Ledger.Tx.CardanoAPI as Pl hiding (makeTransactionBody)
-import qualified Ledger.Tx.Internal
-import qualified Ledger.Validation as Pl
-import qualified Ledger.Value as Value
+import qualified Ledger.Slot as Ledger
+import qualified Ledger.Tx as Ledger
+import qualified Ledger.Tx.CardanoAPI as Ledger
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as PV2
+import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as PV2
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Prettyprinter (Doc)
 
@@ -97,10 +103,10 @@ mcstToUtxoState s =
 --  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
-  { mcstIndex :: Pl.UtxoIndex,
+  { mcstIndex :: Ledger.UtxoIndex,
     mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
-    mcstCurrentSlot :: Pl.Slot
+    mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show)
 
@@ -119,20 +125,15 @@ instance Eq MockChainSt where
 
 -- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map that
 -- contains 'Plutus.V2.Ledger.Api.TxOut'.
-utxoIndexToTxOutMap :: Pl.UtxoIndex -> Map PV2.TxOutRef PV2.TxOut
-utxoIndexToTxOutMap (Pl.UtxoIndex utxoMap) =
-  Map.map
-    ( Pl.fromCardanoTxOutToPV2TxInfoTxOut
-        . Ledger.Tx.Internal.getTxOut
-    )
-    utxoMap
+utxoIndexToTxOutMap :: Ledger.UtxoIndex -> Map PV2.TxOutRef PV2.TxOut
+utxoIndexToTxOutMap (Ledger.UtxoIndex utxoMap) = Map.map txOutV2FromLedger utxoMap
 
-instance Default Pl.Slot where
-  def = Pl.Slot 0
+instance Default Ledger.Slot where
+  def = Ledger.Slot 0
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError
-  = MCEValidationError Pl.ValidationErrorInPhase
+  = MCEValidationError Ledger.ValidationErrorInPhase
   | MCEUnbalanceable String BalanceStage TxSkel
   | MCENoSuitableCollateral
   | MCEGenerationError GenerateTxError
@@ -150,7 +151,7 @@ data BalanceStage
   deriving (Show, Eq)
 
 data MockChainEnv = MockChainEnv
-  { mceParams :: Pl.Params,
+  { mceParams :: Emulator.Params,
     mceSigners :: NEList.NonEmpty Wallet
   }
   deriving (Show)
@@ -258,10 +259,10 @@ mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
 instance Default MockChainSt where
   def = mockChainSt0
 
-utxoIndex0From :: InitialDistribution -> Pl.UtxoIndex
-utxoIndex0From i0 = Pl.initialise [[Pl.Valid $ Pl.EmulatorTx $ initialTxFor i0]]
+utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
+utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initialTxFor i0]]
 
-utxoIndex0 :: Pl.UtxoIndex
+utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
 
 -- ** Direct Interpretation of Operations
@@ -277,14 +278,14 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = asks (Pl.slotToEndPOSIXTime . Pl.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
+  currentTime = asks (Emulator.slotToEndPOSIXTime . Emulator.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
   awaitTime t = do
-    sc <- asks $ Pl.pSlotConfig . mceParams
-    s <- awaitSlot (1 + Pl.posixTimeToEnclosingSlot sc t)
-    return $ Pl.slotToBeginPOSIXTime sc s
+    sc <- asks $ Emulator.pSlotConfig . mceParams
+    s <- awaitSlot (1 + Emulator.posixTimeToEnclosingSlot sc t)
+    return $ Emulator.slotToBeginPOSIXTime sc s
 
 instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
@@ -325,16 +326,16 @@ instance Monad m => MonadBlockChain (MockChainT m) where
             (txOptUnsafeModTx $ txSkelOpts skel)
         when (txOptAutoSlotIncrease $ txSkelOpts skel) $
           modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-        return (Pl.CardanoApiTx someCardanoTx)
+        return (Ledger.CardanoApiTx someCardanoTx)
 
 runTransactionValidation ::
   (Monad m) =>
   -- | The current slot
-  Pl.Slot ->
+  Ledger.Slot ->
   -- | The parameters of the MockChain
-  Pl.Params ->
+  Emulator.Params ->
   -- | The currently known UTxOs
-  Pl.UtxoIndex ->
+  Ledger.UtxoIndex ->
   -- | List of signers that were on the 'TxSkel'. This will at least have to
   -- include all wallets that have to sign in order for the transaction to be
   -- phase 1 - valid.
@@ -358,10 +359,10 @@ runTransactionValidation ::
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
   [RawModTx] ->
-  MockChainT m Pl.SomeCardanoApiTx
+  MockChainT m Ledger.SomeCardanoApiTx
 runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData producedData outputValidators rawModTx =
-  let cardanoIndex :: Pl.UTxO Pl.EmulatorEra
-      cardanoIndex = either (error . show) id $ Pl.fromPlutusIndex utxoIndex
+  let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
+      cardanoIndex = either (error . show) id $ Ledger.fromPlutusIndex utxoIndex
 
       cardanoTx, cardanoTxSigned, cardanoTxModified :: C.Tx C.BabbageEra
       cardanoTx =
@@ -377,38 +378,38 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
         where
           txAddSignatureAPI :: Wallet -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
           txAddSignatureAPI w tx = case signedTx of
-            Pl.CardanoApiTx (Pl.CardanoApiEmulatorEraTx tx') -> tx'
-            Pl.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
+            Ledger.CardanoApiTx (Ledger.CardanoApiEmulatorEraTx tx') -> tx'
+            Ledger.EmulatorTx _ -> error "Expected CardanoApiTx but got EmulatorTx"
             -- looking at the implementation of Pl.addCardanoTxSignature
             -- it never changes the constructor used, so the above branch
             -- shall never happen
             where
               signedTx =
-                Pl.addCardanoTxSignature
+                Ledger.addCardanoTxSignature
                   (walletSK w)
-                  (Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx tx)
+                  (Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx tx)
       cardanoTxModified = applyRawModOnBalancedTx rawModTx cardanoTxSigned
 
       -- "Pl.CardanoTx" is a plutus-apps type
       -- "Tx BabbageEra" is a cardano-api type with the information we need
       -- This wraps the latter inside the former
-      txWrapped :: Pl.CardanoTx
-      txWrapped = Pl.CardanoApiTx $ Pl.CardanoApiEmulatorEraTx cardanoTxModified
+      txWrapped :: Ledger.CardanoTx
+      txWrapped = Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx cardanoTxModified
 
-      mValidationError :: Maybe Pl.ValidationErrorInPhase
-      mValidationError = Pl.validateCardanoTx parms slot cardanoIndex txWrapped
+      mValidationError :: Either Ledger.ValidationErrorInPhase Ledger.ValidationSuccess
+      mValidationError = Emulator.validateCardanoTx parms slot cardanoIndex txWrapped
 
-      newUtxoIndex :: Pl.UtxoIndex
+      newUtxoIndex :: Ledger.UtxoIndex
       newUtxoIndex = case mValidationError of
-        Just (Pl.Phase1, _) -> utxoIndex
-        Just (Pl.Phase2, _) ->
+        Left (Ledger.Phase1, _) -> utxoIndex
+        Left (Ledger.Phase2, _) ->
           -- Despite its name, this actually deletes the collateral Utxos from
           -- the index
-          Pl.insertCollateral txWrapped utxoIndex
-        Nothing -> Pl.insert txWrapped utxoIndex
+          Ledger.insertCollateral txWrapped utxoIndex
+        Right _ -> Ledger.insert txWrapped utxoIndex
    in case mValidationError of
-        Just err -> throwError (MCEValidationError err)
-        Nothing -> do
+        Left err -> throwError (MCEValidationError err)
+        Right _ -> do
           -- Validation succeeded; now we update the UTxO index, the managed
           -- datums, and the managed Validators. The new mcstIndex is just
           -- `newUtxoIndex`; the new mcstDatums is computed by removing the
@@ -423,7 +424,7 @@ runTransactionValidation slot parms utxoIndex signers txBodyContent consumedData
                   }
             )
 
-          return (Pl.CardanoApiEmulatorEraTx cardanoTxModified)
+          return (Ledger.CardanoApiEmulatorEraTx cardanoTxModified)
 
 -- | Ensure that the transaction outputs have the necessary minimum amount of
 -- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
@@ -435,12 +436,12 @@ ensureTxSkelOutsMinAda skel = do
     Left err -> throwError $ MCEGenerationError err
     Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
   where
-    ensureTxSkelOutHasMinAda :: Pl.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
+    ensureTxSkelOutHasMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
     ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
       cardanoTxOut <- txSkelOutToCardanoTxOut theParams txSkelOut
       let Pl.Lovelace oldAda = output ^. outputValueL % adaL
           CardanoLedger.Coin requiredAda =
-            CardanoLedger.evaluateMinLovelaceOutput (Pl.emulatorPParams theParams)
+            CardanoLedger.evaluateMinLovelaceOutput (Emulator.emulatorPParams theParams)
               . C.toShelleyTxOut C.ShelleyBasedEraBabbage
               . C.toCtxUTxOTxOut
               $ cardanoTxOut
@@ -456,21 +457,21 @@ ensureTxSkelOutsMinAda skel = do
         else return txSkelOut
 
 -- | Get all UTxOs that the TxSkel consumes from the 'MockChainSt'ate.
-txSkelInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+txSkelInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Ledger.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
 -- | Get all UTxOs that the TxSkel references from the 'MockChainSt'ate.
-txSkelReferenceInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxos :: Monad m => TxSkel -> MockChainT m (Map Pl.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos = lookupUtxos . Set.toList . txSkelInsReference
 
 -- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
 -- 'mcstIndex'. If any 'Pl.TxOutRef' can't be resolved, throw an error.
-lookupUtxos :: Monad m => [Pl.TxOutRef] -> MockChainT m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxos :: Monad m => [Pl.TxOutRef] -> MockChainT m (Map Pl.TxOutRef Ledger.TxOut)
 lookupUtxos outRefs =
   Map.fromList
     <$> mapM
       ( \oRef -> do
-          mOut <- gets $ Map.lookup oRef . Pl.getIndex . mcstIndex
+          mOut <- gets $ Map.lookup oRef . Ledger.getIndex . mcstIndex
           out <- case mOut of
             Nothing ->
               throwError $
@@ -491,12 +492,12 @@ lookupUtxos outRefs =
 txSkelInputValue :: Monad m => TxSkel -> MockChainT m Pl.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
-  return $ foldMap Pl.txOutValue txSkelInputs
+  return $ foldMap (Pl.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
 txSkelInputDatums :: Monad m => TxSkel -> MockChainT m (Map PV2.DatumHash PV2.Datum)
 txSkelInputDatums skel = do
-  txSkelInputs <- map txOutV2fromV1 . Map.elems <$> txSkelInputUtxos skel
+  txSkelInputs <- map txOutV2FromLedger . Map.elems <$> txSkelInputUtxos skel
   return
     . mconcat
     $ mapMaybe
@@ -534,14 +535,14 @@ setFeeAndBalance balancePK skel0 = do
   balancePKUtxos <-
     gets $
       Map.filter
-        ((PV2.PubKeyCredential balancePK ==) . Pl.addressCredential . Pl.txOutAddress)
-        . Pl.getIndex
+        ((PV2.PubKeyCredential balancePK ==) . Pl.addressCredential . Pl.txOutAddress . txOutV2FromLedger)
+        . Ledger.getIndex
         . mcstIndex
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
   -- all UTxOs that the txSkel references.
   txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
-  case Pl.fromPlutusIndex $ Pl.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
+  case Ledger.fromPlutusIndex $ Ledger.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
@@ -570,7 +571,7 @@ setFeeAndBalance balancePK skel0 = do
       (Monad m) =>
       Int ->
       Fee ->
-      Pl.UTxO Pl.EmulatorEra ->
+      Emulator.UTxO Emulator.EmulatorEra ->
       TxSkel ->
       MockChainT m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
@@ -600,8 +601,8 @@ setFeeAndBalance balancePK skel0 = do
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee ::
-  Pl.Params ->
-  Pl.UTxO Pl.EmulatorEra ->
+  Emulator.Params ->
+  Emulator.UTxO Emulator.EmulatorEra ->
   Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
@@ -619,14 +620,19 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
           Left err -> MCEValidationError err
           Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
       )
-      $ Pl.makeTransactionBody params cUtxoIndex (Pl.CardanoBuildTx txBodyContent)
-  case C.evaluateTransactionFee (Pl.pProtocolParams params) txBody nkeys 0 of
+      $ Emulator.makeTransactionBody params cUtxoIndex (Ledger.CardanoBuildTx txBodyContent)
+  case C.evaluateTransactionFee (Emulator.pProtocolParams params) txBody nkeys 0 of
     C.Lovelace fee -> pure $ Fee fee
 
 -- | Calculates the collateral for a transaction
 calcCollateral :: (Monad m) => Wallet -> MockChainT m (Set PV2.TxOutRef)
 calcCollateral w = do
-  souts <- pkUtxos (walletPKHash w)
+  souts <-
+    filteredUtxos
+      ( isPKOutputFrom (walletPKHash w)
+          >=> isOutputWithoutDatum
+          >=> isOnlyAdaOutput
+      )
   when (null souts) $
     throwError MCENoSuitableCollateral
   -- TODO We only keep one element of the list because we are limited on
@@ -807,7 +813,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
               AdjustExistingOutput ->
                 let bestTxOutValue = txSkelOutValue bestTxOut
                     adjustedValue = bestTxOutValue <> returnValue
-                 in if adjustedValue `Value.geq` Pl.toValue Pl.minAdaTxOut
+                 in if adjustedValue `Value.geq` Pl.toValue Ledger.minAdaTxOutEstimated -- TODO: make this dependent on the actual size of the TxOut
                       then
                         Just -- (1)
                           ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
@@ -826,7 +832,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       [TxSkelOut] ->
       Maybe (Map Pl.TxOutRef TxSkelRedeemer, [TxSkelOut])
     tryAdditionalOutput ins outs =
-      if Pl.fromValue returnValue >= Pl.minAdaTxOut
+      if Pl.fromValue returnValue >= Ledger.minAdaTxOutEstimated -- TODO: make this dependent on the actual size of the TxOut
         then
           Just -- (2)
             ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
@@ -846,12 +852,13 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         (newTxOutRef, newTxOut) : newAvailable ->
           let additionalValue = outputValue newTxOut
               newReturn = additionalValue <> return
+
               newIns =
                 ( ins
                     <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs)
                     <> Map.singleton newTxOutRef TxSkelNoRedeemerForPK
                 )
               newOuts = outs ++ [paysPK balancePK newReturn]
-           in if newReturn `Value.geq` Pl.toValue Pl.minAdaTxOut
+           in if newReturn `Value.geq` Pl.toValue Ledger.minAdaTxOutEstimated -- TODO: make this dependent on the actual size of the TxOut
                 then Just (newIns, newOuts) -- (3)
                 else tryAdditionalInputs newIns newOuts newAvailable newReturn

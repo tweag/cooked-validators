@@ -4,7 +4,7 @@ module Cooked.RawUPLC where
 
 import qualified Data.ByteString as BS
 import qualified Flat
-import Ledger.Scripts (Script (..), Validator (..))
+import Ledger.Scripts (Language (PlutusV2), Script (..), Validator (..), Versioned (Versioned))
 import qualified Ledger.Typed.Scripts as TScripts
 import Unsafe.Coerce
 import qualified UntypedPlutusCore as UPLC
@@ -24,10 +24,12 @@ unsafeTypedValidatorFromUPLC = unsafeCoerce . typedValidatorFromUPLC
 
 -- | Returns a 'TypedValidator' from a UPLC program. The resulting typed validator is instantiated to 'TScripts.Any',
 --  which means all of its arguments receive a value of type 'BuiltinData'.
+--
+-- TODO: At the moment this wraps everything as a PlutusV2 script. Make this more flexible.
 typedValidatorFromUPLC ::
   UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () ->
   TScripts.TypedValidator TScripts.Any
-typedValidatorFromUPLC = TScripts.unsafeMkTypedValidator . Validator . fromPlc
+typedValidatorFromUPLC = TScripts.unsafeMkTypedValidator . flip Versioned PlutusV2 . Validator . fromPlc
   where
     -- copied from: github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-ledger-api/src/Plutus/V1/Ledger/Scripts.hs#L169
     fromPlc :: UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () -> Script

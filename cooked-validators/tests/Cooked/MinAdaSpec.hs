@@ -7,9 +7,9 @@ module Cooked.MinAdaSpec where
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Ledger.Ada as Pl
 import qualified Ledger.Index as Pl
 import Optics.Core ((^.))
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Prettyprinter as PP

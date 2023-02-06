@@ -13,13 +13,11 @@
 
 module Cooked.Currencies where
 
-import qualified Ledger
-import qualified Ledger as Pl
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Ledger.Value as Pl
-import qualified Ledger.Value as Value
 import qualified Plutus.Script.Utils.V1.Scripts as Validation
 import qualified Plutus.V1.Ledger.Scripts as V1
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Builtins.Class as Pl
 import PlutusTx.Prelude hiding (Applicative (..))
@@ -75,7 +73,7 @@ permanentValue = Pl.assetClassValue . permanentAssetClass
 -- ** QuickValue Minting Policies
 
 {-# INLINEABLE mkQuickCurrencyPolicy #-}
-mkQuickCurrencyPolicy :: () -> Ledger.ScriptContext -> Bool
+mkQuickCurrencyPolicy :: () -> Pl.ScriptContext -> Bool
 mkQuickCurrencyPolicy _ _ = True
 
 quickCurrencyPolicy :: Scripts.MintingPolicy
@@ -83,11 +81,11 @@ quickCurrencyPolicy =
   V1.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
-quickCurrencySymbol :: Value.CurrencySymbol
+quickCurrencySymbol :: Pl.CurrencySymbol
 quickCurrencySymbol = Validation.scriptCurrencySymbol quickCurrencyPolicy
 
 {-# INLINEABLE mkPermanentCurrencyPolicy #-}
-mkPermanentCurrencyPolicy :: () -> Ledger.ScriptContext -> Bool
+mkPermanentCurrencyPolicy :: () -> Pl.ScriptContext -> Bool
 mkPermanentCurrencyPolicy _ _ = False
 
 permanentCurrencyPolicy :: Scripts.MintingPolicy
@@ -95,5 +93,5 @@ permanentCurrencyPolicy =
   V1.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
 
-permanentCurrencySymbol :: Value.CurrencySymbol
+permanentCurrencySymbol :: Pl.CurrencySymbol
 permanentCurrencySymbol = Validation.scriptCurrencySymbol permanentCurrencyPolicy

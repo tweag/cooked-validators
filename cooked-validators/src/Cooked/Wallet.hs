@@ -7,23 +7,23 @@
 module Cooked.Wallet where
 
 import qualified Cardano.Api as Api
-import qualified Cardano.Api.Shelley as Api
 import qualified Cardano.Crypto.Wallet as CWCrypto
 import Control.Arrow
 import Data.Default
 import Data.Function (on)
 import qualified Data.Map.Strict as M
 import Data.Maybe
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
+import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as CW
-import qualified Ledger.Credential as Pl
-import qualified Ledger.Crypto as Crypto
-import qualified Ledger.Tx.CardanoAPI.Internal as Pl
-import qualified Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl (OutputDatum (..))
-import qualified PlutusTx as Pl
-import Unsafe.Coerce
+import qualified Ledger.Crypto as Pl
+import qualified Ledger.Tx as Pl
+import qualified Ledger.Tx.CardanoAPI as Pl
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.V1.Ledger.Api as Pl hiding (TxOut)
+import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.V2.Ledger.Api as PV2
+import Unsafe.Coerce (unsafeCoerce)
 
 -- * MockChain Wallets
 
@@ -60,13 +60,13 @@ walletPK :: Wallet -> Pl.PubKey
 walletPK = Pl.unPaymentPubKey . CW.paymentPubKey
 
 walletStakingPK :: Wallet -> Maybe Pl.PubKey
-walletStakingPK = fmap Crypto.toPublicKey . walletStakingSK
+walletStakingPK = fmap Pl.toPublicKey . walletStakingSK
 
 walletPKHash :: Wallet -> Pl.PubKeyHash
 walletPKHash = Pl.pubKeyHash . walletPK
 
 walletStakingPKHash :: Wallet -> Maybe Pl.PubKeyHash
-walletStakingPKHash = fmap Crypto.pubKeyHash . walletStakingPK
+walletStakingPKHash = fmap Pl.pubKeyHash . walletStakingPK
 
 walletAddress :: Wallet -> Pl.Address
 walletAddress w =
@@ -142,14 +142,11 @@ validInitialDistribution = all (all hasMinAda . snd) . M.toList . distribution
   where
     hasMinAda vl = minAda `Pl.leq` vl
 
--- | Proxy to 'Pl.minAdaTxOut' as a 'Pl.Value'
-minAda :: Pl.Value
-minAda = Pl.toValue Pl.minAdaTxOut
-
-ensureHasMinAda :: Pl.Value -> Pl.Value
-ensureHasMinAda val = val <> Pl.toValue missingAda
-  where
-    missingAda = max 0 $ Pl.minAdaTxOut - Pl.fromValue val
+    -- the actual minimal value for a Tx output varies, here we'll just make
+    -- sure that there are at least two Ada, which is sufficient for most
+    -- "simple" cases.
+    minAda :: Pl.Value
+    minAda = Pl.lovelaceValueOf 2_000_000
 
 instance Semigroup InitialDistribution where
   (InitialDistribution i) <> (InitialDistribution j) = InitialDistribution $ M.unionWith (<>) i j
@@ -165,6 +162,14 @@ instance Default InitialDistribution where
 -- | Ensures the distribution is valid by adding any missing Ada to all utxos.
 distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . M.fromList . fmap (second $ fmap ensureHasMinAda)
+  where
+    -- the actual minimal value for a Tx output varies, here we'll just make
+    -- sure that there are at least two Ada, which is sufficient for most
+    -- "simple" cases.
+    ensureHasMinAda :: Pl.Value -> Pl.Value
+    ensureHasMinAda val = val <> Pl.toValue missingAda
+      where
+        missingAda = max 0 $ Pl.Lovelace 2_000_000 - Pl.fromValue val
 
 -- | Extension of the default initial distribution with additional value in
 -- some wallets.
@@ -177,11 +182,10 @@ initialTxFor initDist
     error "Not all UTxOs have at least minAda; this initial distribution is unusable"
   | otherwise =
     mempty
-      { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+      { Pl.txMint = fromRight' . Pl.toCardanoValue $ mconcat (map (mconcat . snd) initDist'),
         Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
       }
   where
-    -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
 
     initDist' = M.toList $ distribution initDist
@@ -189,20 +193,22 @@ initialTxFor initDist
     toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
     toPlTxOut addr value datum = toPlTxOut' addr value datum'
       where
-        datum' = maybe Pl.NoOutputDatum (Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData) datum
+        datum' = maybe PV2.NoOutputDatum (PV2.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData) datum
 
-    toPlTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Pl.TxOut
+    toPlTxOut' :: Pl.Address -> Pl.Value -> PV2.OutputDatum -> Pl.TxOut
     toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
 
-    toCardanoTxOut' :: Pl.Address -> Pl.Value -> Pl.OutputDatum -> Api.TxOut Api.CtxTx Api.BabbageEra
-    toCardanoTxOut' addr value datum = Api.TxOut cAddr cValue cDatum Api.ReferenceScriptNone
-      where
-        fromRight' x = case x of
-          Left err -> error $ show err
-          Right res -> res
-        cAddr = fromRight' $ Pl.toCardanoAddressInEra theNetworkId addr
-        cValue = fromRight' $ Pl.toCardanoTxOutValue value
-        cDatum = fromRight' $ Pl.toCardanoTxOutDatum datum
+    toCardanoTxOut' :: Pl.Address -> Pl.Value -> PV2.OutputDatum -> Api.TxOut Api.CtxTx Api.BabbageEra
+    toCardanoTxOut' addr value datum =
+      fromRight' $
+        Pl.toCardanoTxOut
+          theNetworkId
+          (PV2.TxOut addr value datum Nothing)
+
+    fromRight' :: Show e => Either e a -> a
+    fromRight' x = case x of
+      Left err -> error $ show err
+      Right res -> res
 
     theNetworkId :: Api.NetworkId
     theNetworkId = Api.Testnet $ Api.NetworkMagic 42 -- TODO PORT what's magic?
