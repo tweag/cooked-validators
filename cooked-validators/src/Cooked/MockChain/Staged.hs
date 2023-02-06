@@ -10,6 +10,7 @@
 
 module Cooked.MockChain.Staged where
 
+import qualified Cardano.Node.Emulator.Params as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
@@ -71,6 +72,7 @@ data MockChainBuiltin a where
   TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
   GetCurrentSlot :: MockChainBuiltin Pl.Slot
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
+  GetParams :: MockChainBuiltin Emulator.Params
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
@@ -140,6 +142,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AllUtxos = allUtxos
+  interpBuiltin GetParams = params
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
@@ -197,6 +200,7 @@ instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxos = singletonBuiltin AllUtxos
   txOutByRef = singletonBuiltin . TxOutByRef
   ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
+  params = singletonBuiltin GetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
 

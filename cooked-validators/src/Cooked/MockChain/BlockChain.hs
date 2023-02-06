@@ -13,17 +13,21 @@
 
 module Cooked.MockChain.BlockChain where
 
+import qualified Cardano.Node.Emulator.Params as Emulator
+import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Writer
 import Cooked.Output
 import Cooked.Skeleton
+import Cooked.Time (TimeUnit)
 import Data.Kind
 import Data.Maybe
 import qualified Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import ListT
 import Optics.Core
+import qualified Plutus.V1.Ledger.Time as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import Prettyprinter (Doc)
 
@@ -45,13 +49,16 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
   ownPaymentPubKeyHash :: m PV2.PubKeyHash
 
+  -- | Returns the current ledger parameters
+  params :: m Emulator.Params
+
   -- | Returns the current slot number
-  currentSlot :: m Ledger.Slot
+  currentSlot :: TimeUnit tu => m tu
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
   --  is larger than the argument.
-  awaitSlot :: Ledger.Slot -> m Ledger.Slot
+  awaitSlot :: TimeUnit tu => tu -> m tu
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -156,11 +163,31 @@ valueFromTxOutRef oref = do
 -- and trying to exercise certain branches of certain validators; make sure you also read
 -- the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
+-- | Moves n slots fowards
 waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-waitNSlots n = do
+waitNSlots n =
+  if n < 0
+    then fail "waitNSlots: negative argument"
+    else currentSlot >>= awaitSlot . (+ fromIntegral n)
+
+-- | Returns the last ms of the current slot
+currentTime :: (MonadBlockChainWithoutValidation m) => m PV2.POSIXTime
+currentTime = do
+  slotConfig <- Emulator.pSlotConfig <$> params
+  Emulator.slotToEndPOSIXTime slotConfig <$> currentSlot
+
+-- | Wait until the slot where the given time falls into and return latest time
+-- we know has passed.
+--
+-- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
+-- waits until slot 2 and returns the value `POSIXTime 5`.
+awaitTime :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m PV2.POSIXTime
+awaitTime = undefined
+
+waitNMilliSeconds :: (MonadBlockChainWithoutValidation m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
+waitNMilliSeconds n = do
   when (n < 0) $ fail "waitNSlots: negative argument"
-  c <- currentSlot
-  awaitSlot $ c + fromIntegral n
+  currentTime >>= awaitTime . (+ Pl.fromMilliSeconds n)
 
 -- ** Deriving further 'MonadBlockChain' instances
 
@@ -180,6 +207,7 @@ instance (MonadTrans t, MonadBlockChainWithoutValidation m, MonadFail (t m)) => 
   txOutByRef = lift . txOutByRef
   datumFromHash = lift . datumFromHash
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+  params = lift params
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
 

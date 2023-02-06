@@ -275,6 +275,8 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
   datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
 
+  params = asks mceParams
+
   currentSlot = gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot

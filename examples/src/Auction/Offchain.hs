@@ -11,11 +11,13 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
+import qualified Ledger.Slot as Pl
 import qualified Ledger.Tx as Ledger
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.Value as Value
+import qualified Plutus.V1.Ledger.Interval as Interval
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
