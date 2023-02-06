@@ -135,7 +135,7 @@ jobs:
               cabal_res=0
               cabal build | tee "../${proj}-cabal-build.out"
               cabal_res=$?
-              echo "cabal_build:$cabal_res" >> "../${proj}-cabal-build.res"
+              echo "cabal_build:$cabal_res" > "../${proj}-cabal-build.res"
               if [ $cabal_res -ne 0 ]; then
                 cabal_builds_all_ok=false
               fi
@@ -144,7 +144,7 @@ jobs:
               cabal_res=0
               cabal run tests | tee "../${proj}-cabal-test.out"
               cabal_res=$?
-              echo "run_cabal_test:$cabal_res" >> "../${proj}-cabal-test.res"
+              echo "run_cabal_test:$cabal_res" > "../${proj}-cabal-test.res"
 
               popd || exit
             done
