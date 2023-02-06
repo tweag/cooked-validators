@@ -142,7 +142,7 @@ utxosFromCardanoTx =
 txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
--- | try to resolve the datum om the output: If there's an inline datum, take
+-- | Try to resolve the datum on the output: If there's an inline datum, take
 -- that; if there's a datum hash look the corresponding datum up (returning
 -- @Nothing@) if it can't be found; if there's no datum or hash at all, return
 -- @Nothing@.
@@ -173,6 +173,32 @@ resolveDatum out =
           datum
           (out ^. outputReferenceScriptL)
     PV2.NoOutputDatum -> return Nothing
+
+-- | Try to resolve the validator that owns an output: If the output is owned by
+-- a public key, or if the validator's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@) return @Nothing@.
+resolveValidator ::
+  ( IsAbstractOutput out,
+    ToCredential (OwnerType out),
+    MonadBlockChainBalancing m
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (Pl.Versioned PV2.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
+resolveValidator out =
+  case toCredential (out ^. outputOwnerL) of
+    Pl.PubKeyCredential _ -> return Nothing
+    Pl.ScriptCredential valHash -> do
+      mVal <- validatorFromHash valHash
+      case mVal of
+        Nothing -> return Nothing
+        Just val ->
+          return . Just $
+            ConcreteOutput
+              val
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              (out ^. outputDatumL)
+              (out ^. outputReferenceScriptL)
 
 liftLookup :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
 liftLookup f l =
