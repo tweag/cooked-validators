@@ -9,7 +9,6 @@ module Cooked.Wallet where
 import qualified Cardano.Api as Cardano
 import qualified Cardano.Api.Shelley as Cardano
 import qualified Cardano.Crypto.Wallet as Cardano
-import Control.Arrow
 import Data.Default
 import Data.Function (on)
 import Data.Map.Strict (Map)
@@ -20,7 +19,6 @@ import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Tx.CardanoAPI.Internal as Pl
-import qualified Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Tx as Pl2 (OutputDatum (..))
 import qualified PlutusTx as Pl
 import Unsafe.Coerce
@@ -135,22 +133,6 @@ txAddSignature w = Pl.addSignature' (walletSK w)
 newtype InitialDistribution = InitialDistribution {distribution :: Map Wallet [Pl.Value]}
   deriving (Eq, Show)
 
--- | An initial distribution is valid if all utxos being created contain at least
---  a minimum amount of Ada: 'minAda'.
-validInitialDistribution :: InitialDistribution -> Bool
-validInitialDistribution = all (all hasMinAda . snd) . Map.toList . distribution
-  where
-    hasMinAda vl = minAda `Pl.leq` vl
-
--- | Proxy to 'Pl.minAdaTxOut' as a 'Pl.Value'
-minAda :: Pl.Value
-minAda = Pl.toValue Pl.minAdaTxOut
-
-ensureHasMinAda :: Pl.Value -> Pl.Value
-ensureHasMinAda val = val <> Pl.toValue missingAda
-  where
-    missingAda = max 0 $ Pl.minAdaTxOut - Pl.fromValue val
-
 instance Semigroup InitialDistribution where
   (InitialDistribution i) <> (InitialDistribution j) = InitialDistribution $ Map.unionWith (<>) i j
 
@@ -164,7 +146,7 @@ instance Default InitialDistribution where
 
 -- | Ensures the distribution is valid by adding any missing Ada to all utxos.
 distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
-distributionFromList = InitialDistribution . Map.fromList . fmap (second $ fmap ensureHasMinAda)
+distributionFromList = InitialDistribution . Map.fromList
 
 -- | Extension of the default initial distribution with additional value in
 -- some wallets.
@@ -172,14 +154,11 @@ initialDistribution' :: [(Wallet, [Pl.Value])] -> InitialDistribution
 initialDistribution' = (def <>) . distributionFromList
 
 initialTxFor :: InitialDistribution -> Pl.Tx
-initialTxFor initDist
-  | not $ validInitialDistribution initDist =
-    error "Not all UTxOs have at least minAda; this initial distribution is unusable"
-  | otherwise =
-    mempty
-      { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
-        Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-      }
+initialTxFor initDist =
+  mempty
+    { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+      Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
+    }
   where
     -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
