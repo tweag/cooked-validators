@@ -157,8 +157,8 @@ distributionFromList = InitialDistribution . Map.fromList
 
 -- | Extension of the default initial distribution with additional value in
 -- some wallets.
-initialDistribution' :: [(Wallet, [Pl.Value])] -> InitialDistribution
-initialDistribution' = (def <>) . distributionFromList
+initialDistribution :: [(Wallet, [Pl.Value])] -> InitialDistribution
+initialDistribution = (def <>) . distributionFromList
 
 -- | Bootstraps an initial transaction resulting in a state where wallets
 -- posess UTxOs fitting a given 'InitialDistribution'
