@@ -13,7 +13,6 @@ import Data.Default
 import Data.Function (on)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe)
 import qualified Ledger as Pl
 import qualified Ledger.Ada as Pl
 import qualified Ledger.CardanoWallet as Pl
@@ -103,9 +102,6 @@ walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
     -- it easy to test that this works: check the @Cooked.WalletSpec@ test module.
     hackUnMockPrivateKey :: a -> Cardano.XPrv
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
-
-toPKHMap :: [Wallet] -> Map Pl.PubKeyHash Wallet
-toPKHMap ws = Map.fromList [(walletPKHash w, w) | w <- ws]
 
 -- | Signs a transaction
 txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
@@ -198,6 +194,3 @@ initialTxFor initDist =
 
     theNetworkId :: Cardano.NetworkId
     theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42 -- TODO PORT what's magic?
-
-valuesForWallet :: InitialDistribution -> Wallet -> [Pl.Value]
-valuesForWallet d w = fromMaybe [] $ w `Map.lookup` distribution d
