@@ -18,31 +18,7 @@
           hooks = {
             nixfmt.enable = true;
             ormolu.enable = true;
-
-            ## FIXME: The upstream `hpack` hook is completely broken, so we
-            ## write our own, heavily inspired by theirs but introducing some
-            ## fixes. The bugs have been reported at
-            ##
-            ## https://github.com/cachix/pre-commit-hooks.nix/issues/235
-            ##
-            ## and we should simply update pre-commit-hooks, remove all this and
-            ## replace it by `hpack.enable = true` once they are fixed.
-            hpack-fixed = {
-              enable = true;
-              entry = let
-                hpack-dir = pkgs.writeShellApplication {
-                  name = "hpack-dir";
-                  text = ''
-                    set -e
-                    find . -type f -name package.yaml | while read -r file; do
-                        ${pkgs.hpack}/bin/hpack --force "$file"
-                    done
-                  '';
-                };
-              in "${hpack-dir}/bin/hpack-dir";
-              files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|((^|/)package\\.yaml$)";
-              pass_filenames = false;
-            };
+            hpack.enable = true;
           };
         };
       in {
@@ -61,6 +37,7 @@
             postgresql # For pg_config
             systemd
             pkg-config
+            glibcLocales
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
@@ -89,4 +66,11 @@
 
         checks = { inherit pre-commit; };
       });
+
+  nixConfig = {
+    extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
+    extra-trusted-public-keys = [
+      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
+    ];
+  };
 }

@@ -51,7 +51,19 @@ jobs:
 
       - name: Build documentation
         run: |
-          nix develop .#ci --command bash ci/build-haddock
+          nix develop .#ci --command bash -c '
+            set -o xtrace
+
+            cabal update
+
+            cabal haddock \
+              --haddock-hyperlink-source \
+              --haddock-html-location="http://hackage.haskell.org/packages/archive/\$pkg/latest/doc/html" \
+              cooked-validators
+
+            mkdir -p docs
+            cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
+          '
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
