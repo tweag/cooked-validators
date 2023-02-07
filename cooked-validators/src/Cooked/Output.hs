@@ -118,8 +118,8 @@ outputOutputDatum = toOutputDatum . (^. outputDatumL)
 outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Pl.Value
 outputValue = toValue . (^. outputValueL)
 
-outputReferenceScript :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
-outputReferenceScript = (toScriptHash <$>) . (^. outputReferenceScriptL)
+outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
+outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator. In particular the
 -- correctness of this specification will depend on the 'IsOnchainOutput' instance, so
@@ -131,7 +131,7 @@ outputTxOut o =
     (outputAddress o)
     (outputValue o)
     (outputOutputDatum o)
-    (outputReferenceScript o)
+    (outputReferenceScriptHash o)
 
 -- ** 'Pl.TxOut's are outputs
 
@@ -339,3 +339,13 @@ isOnlyAdaOutput out =
           (out ^. outputDatumL)
           (out ^. outputReferenceScriptL)
     else Nothing
+
+isOutputWithReferenceScriptSuchThat ::
+  IsAbstractOutput output =>
+  output ->
+  (Maybe (ReferenceScriptType output) -> Bool) ->
+  Maybe output
+isOutputWithReferenceScriptSuchThat out condition =
+  if condition (out ^. outputReferenceScriptL)
+  then Just out
+  else Nothing

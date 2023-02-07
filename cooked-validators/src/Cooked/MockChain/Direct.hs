@@ -269,7 +269,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         (txOptUnsafeModTx $ txSkelOpts skel)
         consumedData
         (txSkelOutputData skel)
-        (txSkelOutValidators skel)
+        (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return (Ledger.CardanoApiTx someCardanoTx)
@@ -285,7 +285,9 @@ runTransactionValidation ::
   Map Pl.DatumHash (Pl.Datum, Doc ()) ->
   -- | The data produced by the transaction
   Map Pl.DatumHash (Pl.Datum, Doc ()) ->
-  -- | The validators protecting transaction outputs
+  -- | The validators protecting transaction outputs, and the validators in the
+  -- reference script field of transaction outputs. The MockChain will remember
+  -- them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   MockChainT m Ledger.SomeCardanoApiTx
 runTransactionValidation cardanoTx rawModTx consumedData producedData outputValidators = do

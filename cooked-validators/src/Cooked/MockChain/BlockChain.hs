@@ -200,6 +200,32 @@ resolveValidator out =
               (out ^. outputDatumL)
               (out ^. outputReferenceScriptL)
 
+-- | Try to resolve the reference script on an output: If the output has no
+-- reference script, or if the reference script's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
+resolveReferenceScript ::
+  ( IsAbstractOutput out,
+    ToScriptHash (ReferenceScriptType out),
+    MonadBlockChainBalancing m
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Pl.Versioned Pl.Validator)))
+resolveReferenceScript out =
+  case outputReferenceScriptHash out of
+    Nothing -> return Nothing
+    Just (Pl.ScriptHash hash) -> do
+      mVal <- validatorFromHash (Pl.ValidatorHash hash)
+      case mVal of
+        Nothing -> return Nothing
+        Just val ->
+          return . Just $
+            ConcreteOutput
+              (out ^. outputOwnerL)
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              (out ^. outputDatumL)
+              (Just val)
+
 liftLookup :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
 liftLookup f l =
   catMaybes
