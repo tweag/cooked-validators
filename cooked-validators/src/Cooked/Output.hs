@@ -347,5 +347,5 @@ isOutputWithReferenceScriptSuchThat ::
   Maybe output
 isOutputWithReferenceScriptSuchThat out condition =
   if condition (out ^. outputReferenceScriptL)
-  then Just out
-  else Nothing
+    then Just out
+    else Nothing
