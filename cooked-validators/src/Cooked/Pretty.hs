@@ -56,7 +56,7 @@ module Cooked.Pretty where
 
 import Control.Arrow (second)
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
-import Cooked.MockChain.Direct
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx (GenerateTxError (..))
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
@@ -132,6 +132,11 @@ instance PrettyCooked MockChainError where
       "Transaction generation error:"
       "-"
       [PP.pretty msg]
+  prettyCookedOpt _ (MCEGenerationError (TxBodyError msg err)) =
+    prettyItemize
+      "Transaction generation error:"
+      "-"
+      [PP.pretty msg, PP.viaShow err]
   prettyCookedOpt opts (MCECalcFee err) =
     PP.vsep ["Fee calculation error:", PP.indent 2 (prettyCookedOpt opts err)]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
@@ -141,6 +146,21 @@ instance PrettyCooked MockChainError where
       [PP.pretty msg, prettyCookedOpt opts txOutRef]
   prettyCookedOpt _ (FailWith msg) =
     "Failed with:" <+> PP.pretty msg
+  prettyCookedOpt opts (MCEUnknownValidator msg valHash) =
+    prettyItemize
+      "Unknown validator hash:"
+      "-"
+      [PP.pretty msg, "hash:" <+> prettyHash (pcOptPrintedHashLength opts) valHash]
+  prettyCookedOpt opts (MCEUnknownDatum msg dHash) =
+    prettyItemize
+      "Unknown datum hash:"
+      "-"
+      [PP.pretty msg, "hash:" <+> prettyHash (pcOptPrintedHashLength opts) dHash]
+  prettyCookedOpt _ (OtherMockChainError err) =
+    prettyItemize
+      "Miscellaneous MockChainError:"
+      "-"
+      [PP.viaShow err]
 
 -- | Use this to convert a pretty-printer to a regular show function using
 -- default layout options. This is used in "Testing" because Tasty uses
