@@ -226,6 +226,9 @@ resolveReferenceScript out =
               (out ^. outputDatumL)
               (Just val)
 
+-- | Helper function to apply a "lookup something in the chain and add that
+-- information to an output" function like 'resolveDatum' to a list of UTxOs as
+-- returned by a function like 'allUtxos' or 'utxosFromCardanoTx'.
 liftLookup :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
 liftLookup f l =
   catMaybes
@@ -238,6 +241,9 @@ liftLookup f l =
       )
       l
 
+-- | Helper function to apply a "check some property of an output, while also
+-- changing its type" function like 'isScriptOutputFrom' to a list of UTxOs as
+-- returned by a function like 'allUtxos' or 'utxosFromCardanoTx'.
 liftFilter :: Applicative m => (b -> Maybe c) -> [(a, b)] -> m [(a, c)]
 liftFilter f = pure . mapMaybe (\(a, b) -> (a,) <$> f b)
 
