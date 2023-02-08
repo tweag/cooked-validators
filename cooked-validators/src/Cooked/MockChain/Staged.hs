@@ -19,7 +19,6 @@ import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
@@ -73,7 +72,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
   -- the following are not strictly blockchain specific, but they allow us to

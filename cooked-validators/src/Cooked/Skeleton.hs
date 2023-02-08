@@ -440,6 +440,12 @@ instance Eq TxSkelOut where
 
 deriving instance Show TxSkelOut
 
+txSkelOutDatumL :: Lens' TxSkelOut TxSkelOutDatum
+txSkelOutDatumL =
+  lens
+    (\(Pays output) -> output ^. outputDatumL)
+    (\(Pays output) newDatum -> Pays $ output & outputDatumL .~ newDatum)
+
 txSkelOutValueL :: Lens' TxSkelOut Pl.Value
 txSkelOutValueL =
   lens
@@ -485,13 +491,16 @@ instance Eq TxSkelOutDatum where
       Nothing -> False
   _ == _ = False
 
+instance Ord TxSkelOutDatum where
+  compare x y = compare (txSkelOutUntypedDatum x) (txSkelOutUntypedDatum y)
+
 -- | The 'PrettyCooked' instance for 'TxSkelOutDatum' relays the pretty-printing of
 -- the datum it contains.
 instance PrettyCooked TxSkelOutDatum where
-  prettyCooked TxSkelOutNoDatum = mempty
-  prettyCooked (TxSkelOutDatumHash datum) = prettyCooked datum
-  prettyCooked (TxSkelOutDatum datum) = prettyCooked datum
-  prettyCooked (TxSkelOutInlineDatum datum) = prettyCooked datum
+  prettyCookedOpt _ TxSkelOutNoDatum = mempty
+  prettyCookedOpt opts (TxSkelOutDatumHash datum) = prettyCookedOpt opts datum
+  prettyCookedOpt opts (TxSkelOutDatum datum) = prettyCookedOpt opts datum
+  prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
 
 {- [note on TxSkelOut data]
 
@@ -540,7 +549,7 @@ txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
 txSkelOutToTxOut (Pays output) = outputTxOut output
 
 -- | See the [note on TxSkelOut data]
-txSkelOutDatumComplete :: TxSkelOut -> Maybe (Pl.Datum, DocCooked)
+txSkelOutDatumComplete :: TxSkelOut -> Maybe Pl.Datum
 txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL
 
 -- | See the [note on TxSkelOut data]
@@ -550,15 +559,15 @@ instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
   toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
 
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe (Pl.Datum, DocCooked)
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Pl.Datum
 txSkelOutUntypedDatum = \case
   TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
-  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
-  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x, prettyCooked x)
+  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x)
+  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
+  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
 
 txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum . fst <=< txSkelOutUntypedDatum
+txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum <=< txSkelOutUntypedDatum
 
 -- ** Smart constructors for transaction outputs
 
@@ -737,14 +746,21 @@ txSkelTemplate =
     }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash (Pl.Datum, DocCooked)
+txSkelOutputData :: TxSkel -> Map Pl.DatumHash TxSkelOutDatum
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
         % folded
-        % afolding txSkelOutDatumComplete -- if you're wondering why to use this function, see the [note on TxSkelOut data]
+        % txSkelOutDatumL
     )
-    (\(datum, datumStr) -> Map.singleton (Pl.datumHash datum) (datum, datumStr))
+    ( \txSkelOutDatum -> do
+        maybe
+          Map.empty
+          (\datum -> Map.singleton (Pl.datumHash datum) txSkelOutDatum)
+          (txSkelOutUntypedDatum txSkelOutDatum)
+    )
+
+-- Map.singleton (Pl.datumHash <$> txSkelOutUntypedDatum datum) datum)
 
 newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
 
@@ -852,7 +868,7 @@ txSkelOutputDatumTypeAT =
   atraversal
     ( \txSkelOut -> case txSkelOutDatumComplete txSkelOut of
         Nothing -> Left txSkelOut
-        Just (Pl.Datum datum, _) -> case Pl.fromBuiltinData datum of
+        Just (Pl.Datum datum) -> case Pl.fromBuiltinData datum of
           Just tyDatum -> Right tyDatum
           Nothing -> Left txSkelOut
     )
@@ -876,5 +892,5 @@ txSkelOutputDatumTypeAT =
 
 data SkelContext = SkelContext
   { skelContextTxOuts :: Map Pl.TxOutRef Pl.TxOut,
-    skelContextDatumDocs :: Map Pl.DatumHash (Pl.Datum, DocCooked)
+    skelContextTxSkelOutDatums :: Map Pl.DatumHash TxSkelOutDatum
   }

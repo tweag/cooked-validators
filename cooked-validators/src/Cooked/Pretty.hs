@@ -300,9 +300,20 @@ prettyTxSkelOut opts (Pays output) =
         ]
     )
 
+prettyTxSkelOutDatumMaybe :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
+prettyTxSkelOutDatumMaybe _ TxSkelOutNoDatum = Nothing
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum@(TxSkelOutInlineDatum _) =
+  Just $
+    "Datum (inlined):"
+      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
+  Just $
+    "Datum (hashed):"
+      <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
+
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
-  (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
+  (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
   let redeemerDoc =
         case txSkelRedeemer of
           TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> prettyCookedOpt opts redeemer)
@@ -311,16 +322,27 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
     prettyItemize
       ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
-      (prettyCookedOpt opts (outputValue output) : catMaybes [redeemerDoc, datumDoc, getReferenceScriptDoc opts output])
+      ( prettyCookedOpt opts (outputValue output) :
+        catMaybes
+          [ redeemerDoc,
+            prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            getReferenceScriptDoc opts output
+          ]
+      )
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Pl.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do
-  (output, datumDoc) <- lookupOutputWithDatumDoc skelContext txOutRef
+  (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
   return $
     prettyItemize
       ("References output from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
-      (prettyCookedOpt opts (outputValue output) : catMaybes [datumDoc, getReferenceScriptDoc opts output])
+      ( prettyCookedOpt opts (outputValue output) :
+        catMaybes
+          [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            getReferenceScriptDoc opts output
+          ]
+      )
 
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
 getReferenceScriptDoc opts output =
@@ -328,24 +350,19 @@ getReferenceScriptDoc opts output =
     Nothing -> Nothing
     Just refScript -> Just $ "Reference script hash:" <+> prettyHash (pcOptPrintedHashLength opts) (toScriptHash refScript)
 
-lookupOutputWithDatumDoc ::
+lookupOutput ::
   SkelContext ->
   Pl.TxOutRef ->
-  Maybe (Pl.TxOut, Maybe DocCooked)
-lookupOutputWithDatumDoc (SkelContext managedTxOuts managedDatums) txOutRef = do
+  Maybe (Pl.TxOut, TxSkelOutDatum)
+lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
-  datumDoc <-
+  datumHash <-
     case outputOutputDatum output of
-      Pl.OutputDatum datum ->
-        do
-          (_, datumDoc) <- Map.lookup (Pl.datumHash datum) managedDatums
-          return $ Just ("Datum (inlined):" <+> PP.align datumDoc)
-      Pl.OutputDatumHash datumHash ->
-        do
-          (_, datumDoc) <- Map.lookup datumHash managedDatums
-          return $ Just ("Datum (hashed):" <+> PP.align datumDoc)
-      Pl.NoOutputDatum -> return Nothing
-  return (output, datumDoc)
+      Pl.OutputDatum datum -> return (Pl.datumHash datum)
+      Pl.OutputDatumHash datumHash -> return datumHash
+      Pl.NoOutputDatum -> Nothing
+  txSkelOutDatum <- Map.lookup datumHash managedTxSkelOutDatums
+  return (output, txSkelOutDatum)
 
 -- prettyHash 28a3d93cc3daac
 -- #28a3d9
@@ -488,7 +505,7 @@ instance Show UtxoState where
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
-prettyAddressState :: PrettyCookedOpts -> Pl.Address -> [(Pl.Value, Maybe UtxoDatum)] -> DocCooked
+prettyAddressState :: PrettyCookedOpts -> Pl.Address -> [(Pl.Value, TxSkelOutDatum)] -> DocCooked
 prettyAddressState opts address payloads =
   prettyItemize
     (prettyCookedOpt opts address)
@@ -501,26 +518,46 @@ prettyAddressState opts address payloads =
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
 -- been grouped together when they belong to the same utxo
-prettyPayloadGrouped :: PrettyCookedOpts -> [(Pl.Value, Maybe UtxoDatum)] -> Maybe DocCooked
+prettyPayloadGrouped :: PrettyCookedOpts -> [(Pl.Value, TxSkelOutDatum)] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
 prettyPayloadGrouped opts [payload] = uncurry (prettyPayload opts) payload
 prettyPayloadGrouped opts (payload : rest) =
   let cardinality = 1 + length rest
    in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> uncurry (prettyPayload opts) payload
 
-prettyPayload :: PrettyCookedOpts -> Pl.Value -> Maybe UtxoDatum -> Maybe DocCooked
-prettyPayload opts value mDatum =
+prettyPayload :: PrettyCookedOpts -> Pl.Value -> TxSkelOutDatum -> Maybe DocCooked
+prettyPayload opts value txOutDatum =
   case catMaybes
     [ Just (prettyCookedOpt opts value),
-      prettyPayloadDatum <$> mDatum
+      prettyPayloadDatum txOutDatum
     ] of
     [] -> Nothing
     [doc] -> Just $ PP.align doc
     docs -> Just . PP.align . PP.vsep $ docs
   where
-    prettyPayloadDatum :: UtxoDatum -> DocCooked
-    prettyPayloadDatum d =
-      "Datum"
-        <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
-          <> ":"
-        <+> PP.align (utxoDoc d)
+    prettyPayloadDatum :: TxSkelOutDatum -> Maybe DocCooked
+    prettyPayloadDatum TxSkelOutNoDatum = Nothing
+    prettyPayloadDatum (TxSkelOutInlineDatum datum) =
+      Just $
+        "Datum"
+          <+> PP.parens "inlined"
+            <> ":"
+          <+> prettyCookedOpt opts datum
+    prettyPayloadDatum (TxSkelOutDatumHash datum) =
+      Just $
+        "Datum"
+          <+> PP.parens "hashed"
+            <> ":"
+          <+> prettyCookedOpt opts datum
+    prettyPayloadDatum (TxSkelOutDatum datum) =
+      Just $
+        "Datum"
+          <+> PP.parens "hashed"
+            <> ":"
+          <+> prettyCookedOpt opts datum
+
+-- prettyPayloadDatum d =
+-- "Datum"
+--   <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
+--     <> ":"
+--   <+> PP.align (utxoDoc d)

@@ -1,6 +1,8 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
+{-# HLINT ignore "Use section" #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
@@ -9,8 +11,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
-
-{-# HLINT ignore "Use section" #-}
 
 module Cooked.MockChain.Direct where
 
@@ -57,7 +57,6 @@ import qualified Plutus.V1.Ledger.Value as Value
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
-import Prettyprinter (Doc)
 
 -- * Direct Emulation
 
@@ -74,29 +73,24 @@ import Prettyprinter (Doc)
 -- way of managing the current utxo state.
 
 mcstToUtxoState :: MockChainSt -> UtxoState
-mcstToUtxoState s =
+mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
-    . Map.fromListWith (<>)
-    . map (go . snd)
+    . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
+    . mapMaybe go
     . Map.toList
     . utxoIndexToTxOutMap
-    . mcstIndex
-    $ s
+    $ mcstIndex
   where
-    go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
-    go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
-
-    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
-    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
-    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
-      do
-        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
-        return $ UtxoDatum datum False datumStr
-    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
-      do
-        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
-        return $ UtxoDatum datum True datumStr
+    go :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoValueSet)
+    go (txOutRef, PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
+      case txOutDatum of
+        Pl.NoOutputDatum -> return (txOutAddress, UtxoValueSet [(txOutValue, TxSkelOutNoDatum)])
+        Pl.OutputDatum datum -> do
+          txSkelOutDatum <- Map.lookup (Pl.datumHash datum) mcstDatums
+          return (txOutAddress, UtxoValueSet [(txOutValue, txSkelOutDatum)])
+        Pl.OutputDatumHash hash -> do
+          txSkelOutDatum <- Map.lookup hash mcstDatums
+          return (txOutAddress, UtxoValueSet [(txOutValue, txSkelOutDatum)])
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
@@ -104,7 +98,7 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
+    mcstDatums :: Map Pl.DatumHash TxSkelOutDatum,
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Ledger.Slot
   }
@@ -118,7 +112,7 @@ instance Eq MockChainSt where
     == (MockChainSt index2 datums2 validators2 currentSlot2) =
       and
         [ index1 == index2,
-          Map.map fst datums1 == Map.map fst datums2,
+          datums1 == datums2,
           validators1 == validators2,
           currentSlot1 == currentSlot2
         ]
@@ -274,7 +268,7 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
   allUtxos = gets $ Map.toList . utxoIndexToTxOutMap . mcstIndex
 
-  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
+  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Map.lookup datumHash) <$> gets mcstDatums
 
   currentSlot = gets mcstCurrentSlot
 
@@ -307,7 +301,13 @@ instance Monad m => MonadBlockChain (MockChainT m) where
     managedData <- gets mcstDatums
     managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
     managedValidators <- gets mcstValidators
-    case generateTxBodyContent def {gtpCollateralIns = collateralInputs, gtpFee = fee} params managedData managedTxOuts managedValidators skel of
+    case generateTxBodyContent
+      def {gtpCollateralIns = collateralInputs, gtpFee = fee}
+      params
+      (Map.mapMaybe txSkelOutUntypedDatum managedData)
+      managedTxOuts
+      managedValidators
+      skel of
       Left err -> throwError $ MCEGenerationError err
       Right txBodyContent -> do
         slot <- currentSlot
@@ -354,7 +354,7 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data on transaction outputs. If the transaction is successful, these
   -- will be added to the 'mcstDatums'.
-  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Map Pl.DatumHash TxSkelOutDatum ->
   -- | The validators on transaction outputs.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | Modifications to apply to the transaction right before it is submitted.
@@ -577,11 +577,18 @@ setFeeAndBalance balancePK skel0 = do
     calcFee n fee cUtxoIndex skel = do
       let bPol = txOptBalanceOutputPolicy $ txSkelOpts skel
       attemptedSkel <- balanceTxFromAux bPol BalCalcFee balancePK skel fee
-      manageData <- gets mcstDatums
+      managedData <- gets mcstDatums
       managedTxOuts <- gets $ utxoIndexToTxOutMap . mcstIndex
       managedValidators <- gets mcstValidators
       theParams <- asks mceParams
-      case estimateTxSkelFee theParams cUtxoIndex manageData managedTxOuts managedValidators attemptedSkel fee of
+      case estimateTxSkelFee
+        theParams
+        cUtxoIndex
+        (Map.mapMaybe txSkelOutUntypedDatum managedData)
+        managedTxOuts
+        managedValidators
+        attemptedSkel
+        fee of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -603,7 +610,7 @@ setFeeAndBalance balancePK skel0 = do
 estimateTxSkelFee ::
   Emulator.Params ->
   Emulator.UTxO Emulator.EmulatorEra ->
-  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Map Pl.DatumHash Pl.Datum ->
   Map Pl.TxOutRef PV2.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
