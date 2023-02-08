@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
@@ -47,8 +48,21 @@ instance MonadBlockChainWithoutValidation m => MonadTweak (Tweak m) where
 --   'MonadBlockChainWithoutValidateTxSkel' to do so, this also includes
 --   stateful lookups or even things like waiting for a certain amount of time
 --   before submitting the transaction.
+--
+-- If you're using tweaks in a 'MonadModalBlockChain' together with mechanisms
+-- like 'withTweak', 'somewhere', or 'everywhere', you should never have areason
+-- to use this function.
 runTweakInChain :: (MonadBlockChainWithoutValidation m, MonadPlus m) => Tweak m a -> TxSkel -> m (a, TxSkel)
 runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
+
+-- | Like 'runTweakInChain', but for when you want to explicitly apply a tweak
+-- to a transaction skeleton and get all results as a list.
+--
+-- If you're trying to apply a tweak to a transaction directly before it's
+-- modified, consider using 'MonadModalBlockChain' and idioms like 'withTweak',
+-- 'somewhere', or 'everywhere'.
+runTweakInChain' :: MonadBlockChainWithoutValidation m => Tweak m a -> TxSkel -> m [(a, TxSkel)]
+runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
 -- will probably never use it while you're building 'Tweak's.
