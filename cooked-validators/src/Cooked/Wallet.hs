@@ -103,12 +103,11 @@ newtype HACK = HACK Cardano.XPrv
 walletStakingSK :: Wallet -> Maybe PrivateKey
 walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
   where
-    -- Don't move this function to outside the where clause; its a hack and will be deprecated once we have time to
-    -- make a PR into plutus exporting the things we need. If you use this
-    -- anyway, make sure that you only apply it to @MockPrivateKey@; the
-    -- function is polymorphic because @MockPrivateKey@ is not exported either;
-    -- having a dedicated function makes it easy to test that this works: check
-    -- the @Cooked.WalletSpec@ test module.
+    -- Don't move this function to outside the where clause; its a hack and
+    -- will be deprecated once we have time to make a PR into plutus exporting
+    -- the things we need. If you use this anyway, make sure that you only
+    -- apply it to @MockPrivateKey@; the function is polymorphic because
+    -- @MockPrivateKey@ is not exported either
     hackUnMockPrivateKey :: a -> Cardano.XPrv
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
 
