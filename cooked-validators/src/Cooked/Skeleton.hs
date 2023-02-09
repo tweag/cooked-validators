@@ -491,14 +491,6 @@ instance Eq TxSkelOutDatum where
 instance Ord TxSkelOutDatum where
   compare x y = compare (txSkelOutUntypedDatum x) (txSkelOutUntypedDatum y)
 
--- | The 'PrettyCooked' instance for 'TxSkelOutDatum' relays the pretty-printing of
--- the datum it contains.
-instance PrettyCooked TxSkelOutDatum where
-  prettyCookedOpt _ TxSkelOutNoDatum = mempty
-  prettyCookedOpt opts (TxSkelOutDatumHash datum) = prettyCookedOpt opts datum
-  prettyCookedOpt opts (TxSkelOutDatum datum) = prettyCookedOpt opts datum
-  prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
-
 {- [note on TxSkelOut data]
 
 On transaction outputs, we have the option to use

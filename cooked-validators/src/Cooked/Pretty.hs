@@ -155,6 +155,14 @@ prettyEndState opts (res, state) =
     "-"
     ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
 
+-- | The 'PrettyCooked' instance for 'TxSkelOutDatum' relays the pretty-printing of
+-- the datum it contains.
+instance PrettyCooked TxSkelOutDatum where
+  prettyCookedOpt _ TxSkelOutNoDatum = mempty
+  prettyCookedOpt opts (TxSkelOutDatumHash datum) = prettyCookedOpt opts datum
+  prettyCookedOpt opts (TxSkelOutDatum datum) = prettyCookedOpt opts datum
+  prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
+
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
