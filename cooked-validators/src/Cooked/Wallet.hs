@@ -32,7 +32,7 @@ import Unsafe.Coerce
 
 -- $mockchainwallets
 --
--- Because the mock wallets from the plutus-apps changes somewhat often, we
+-- Because the mock wallets from the plutus-apps change somewhat often, we
 -- provide our own wrapper on top of them to make sure that we can easily deal
 -- changes from Plutus.
 
@@ -103,7 +103,7 @@ newtype HACK = HACK Cardano.XPrv
 walletStakingSK :: Wallet -> Maybe PrivateKey
 walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
   where
-    -- Don't use this; its a hack and will be deprecated once we have time to
+    -- Don't move this function to outside the where clause; its a hack and will be deprecated once we have time to
     -- make a PR into plutus exporting the things we need. If you use this
     -- anyway, make sure that you only apply it to @MockPrivateKey@; the
     -- function is polymorphic because @MockPrivateKey@ is not exported either;
