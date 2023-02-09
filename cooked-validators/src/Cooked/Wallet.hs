@@ -13,18 +13,21 @@
 module Cooked.Wallet where
 
 import qualified Cardano.Api as Cardano
-import qualified Cardano.Api.Shelley as Cardano
 import qualified Cardano.Crypto.Wallet as Cardano
 import Data.Default
 import Data.Function (on)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import qualified Ledger as Pl
-import qualified Ledger.Ada as Pl
+import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as Pl
 import qualified Ledger.Credential as Pl
+import qualified Ledger.Crypto as Pl
+import qualified Ledger.Scripts as Pl
+import qualified Ledger.Tx as Pl
 import qualified Ledger.Tx.CardanoAPI.Internal as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl2 (OutputDatum (..))
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx as Pl
 import Unsafe.Coerce
 
@@ -181,11 +184,13 @@ initialDistribution = (def <>) . distributionFromList
 initialTxFor :: InitialDistribution -> Pl.Tx
 initialTxFor initDist =
   mempty
-    { Pl.txMint = mconcat (map (mconcat . snd) initDist'),
+    { Pl.txMint =
+        fromRight'
+          . Pl.toCardanoValue
+          $ mconcat (map (mconcat . snd) initDist'),
       Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
     }
   where
-    -- initUtxosFor w v = Pl.TxOut $ Api.TxOut addr val Api.TxOutDatumNone Api.ReferenceScriptNone
     initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
 
     initDist' = Map.toList $ unInitialDistribution initDist
@@ -206,16 +211,21 @@ initialTxFor initDist =
     toPlTxOut' :: Pl.Address -> Pl.Value -> Pl2.OutputDatum -> Pl.TxOut
     toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
 
-    toCardanoTxOut' :: Pl.Address -> Pl.Value -> Pl2.OutputDatum -> Cardano.TxOut Cardano.CtxTx Cardano.BabbageEra
+    toCardanoTxOut' ::
+      Pl.Address ->
+      Pl.Value ->
+      Pl2.OutputDatum ->
+      Cardano.TxOut Cardano.CtxTx Cardano.BabbageEra
     toCardanoTxOut' addr value datum =
-      Cardano.TxOut cAddr cValue cDatum Cardano.ReferenceScriptNone
-      where
-        fromRight' x = case x of
-          Left err -> error $ show err
-          Right res -> res
-        cAddr = fromRight' $ Pl.toCardanoAddressInEra theNetworkId addr
-        cValue = fromRight' $ Pl.toCardanoTxOutValue value
-        cDatum = fromRight' $ Pl.toCardanoTxOutDatum datum
+      fromRight' $
+        Pl.toCardanoTxOut
+          theNetworkId
+          (Pl2.TxOut addr value datum Nothing)
+
+    fromRight' :: Show e => Either e a -> a
+    fromRight' x = case x of
+      Left err -> error $ show err
+      Right res -> res
 
     theNetworkId :: Cardano.NetworkId
     theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42 -- TODO PORT what's magic?

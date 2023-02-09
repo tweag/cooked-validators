@@ -37,7 +37,6 @@ library
     , lens
     , mtl
     , optics-core
-    , playground-common
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -89,7 +88,6 @@ test-suite spec
     , lens
     , mtl
     , optics-core
-    , playground-common
     , plutus-contract
     , plutus-core
     , plutus-ledger

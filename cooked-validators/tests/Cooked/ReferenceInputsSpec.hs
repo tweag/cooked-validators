@@ -15,7 +15,8 @@ import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import qualified Ledger.Ada as Pl
+import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx
@@ -64,7 +65,7 @@ fooValidator (FooDatum pkh) _ (Pl.ScriptContext txInfo _) =
 
 fooTypedValidator :: Pl.TypedValidator Foo
 fooTypedValidator =
-  let wrap = Pl.mkUntypedValidator @FooDatum @()
+  let wrap = Pl.mkUntypedValidator
    in Pl.mkTypedValidator @Foo
         $$(Pl.compile [||fooValidator||])
         $$(Pl.compile [||wrap||])
@@ -94,7 +95,7 @@ barValidator _ _ (Pl.ScriptContext txInfo _) =
 
 barTypedValidator :: Pl.TypedValidator Bar
 barTypedValidator =
-  let wrap = Pl.mkUntypedValidator @() @()
+  let wrap = Pl.mkUntypedValidator
    in Pl.mkTypedValidator @Bar
         $$(Pl.compile [||barValidator||])
         $$(Pl.compile [||wrap||])

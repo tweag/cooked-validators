@@ -54,6 +54,7 @@ library
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
+    , cardano-node-emulator
     , cardano-wallet-core
     , containers
     , data-default
@@ -125,6 +126,7 @@ test-suite spec
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
+    , cardano-node-emulator
     , cardano-wallet-core
     , containers
     , cooked-validators

@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -70,11 +71,10 @@ import qualified Data.List.NonEmpty as NEList
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
-import qualified Ledger as Pl hiding (TxOut, mintingPolicyHash, unspentOutputs, validatorHash)
-import qualified Ledger.Ada as Ada
-import qualified Ledger.Value as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.V2.Scripts as Pl (mintingPolicyHash)
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
@@ -253,12 +253,12 @@ prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} sig
 -- #abcdef "Foo" -> 500
 -- #123456 "Bar" | Redeemer -> 1000
 prettyMints :: PrettyCookedOpts -> (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> DocCooked
-prettyMints opts (Pl.Versioned policy _, NoMintsRedeemer, tokenName, NonZero amount) =
+prettyMints opts (policy, NoMintsRedeemer, tokenName, NonZero amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "->"
     <+> PP.viaShow amount
-prettyMints opts (Pl.Versioned policy _, SomeMintsRedeemer redeemer, tokenName, NonZero amount) =
+prettyMints opts (policy, SomeMintsRedeemer redeemer, tokenName, NonZero amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "|"
@@ -359,7 +359,7 @@ instance PrettyCooked Pl.TxOutRef where
   prettyCookedOpt opts (Pl.TxOutRef txId index) =
     prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> PP.pretty index
 
-instance PrettyCooked Pl.MintingPolicy where
+instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts) . Pl.mintingPolicyHash
 
 instance PrettyCooked Pl.Value where

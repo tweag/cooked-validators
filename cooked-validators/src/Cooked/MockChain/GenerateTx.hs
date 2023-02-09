@@ -7,6 +7,8 @@ module Cooked.MockChain.GenerateTx where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
+import qualified Cardano.Node.Emulator.Params as Emulator
+import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import Control.Arrow
 import Cooked.Output
 import Cooked.Skeleton
@@ -21,12 +23,12 @@ import qualified Data.Maybe as Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, validatorHash)
-import qualified Ledger.Ada as Pl
-import qualified Ledger.TimeSlot as Pl
 import qualified Ledger.Tx.CardanoAPI as Pl
 import Optics.Core
+import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter (Doc)
+import qualified Wallet.API as Pl
 
 data GenerateTxError
   = ToCardanoError String Pl.ToCardanoError
@@ -53,11 +55,11 @@ generateTxBodyContent ::
   GenTxParams ->
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
-  -- | All of the currently known data, also coming from the 'MockChain'.
+  -- | All of the currently known data on transaction inputs, also coming from the 'MockChain'.
   Map Pl.DatumHash (Pl.Datum, Doc ()) ->
-  -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
+  -- | All of the currently known UTxOs which will be used as transaction inputs or referenced, also coming from the 'MockChain'.
   Map Pl.TxOutRef Pl.TxOut ->
-  -- | All of the currently known transactions outputs, also coming from the 'MockChain'.
+  -- | All of the currently known validators which protect transaction inputs, also coming from the 'MockChain'.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | The transaction skeleton to translate.
   TxSkel ->
@@ -73,7 +75,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     left
       (ToCardanoError "translating the transaction validity range")
       . Pl.toCardanoValidityRange
-      . Pl.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
+      . Emulator.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
       $ txSkelValidityRange skel
   txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-
@@ -115,7 +117,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         C.txMetadata = C.TxMetadataNone, -- That's what plutus-apps does as well
         C.txAuxScripts = C.TxAuxScriptsNone, -- That's what plutus-apps does as well
         C.txExtraKeyWits = txExtraKeyWits,
-        C.txProtocolParams = C.BuildTxWith . Just . Pl.pProtocolParams $ theParams, -- That's what plutus-apps does as well
+        C.txProtocolParams = C.BuildTxWith . Just . Emulator.pProtocolParams $ theParams, -- That's what plutus-apps does as well
         C.txWithdrawals = C.TxWithdrawalsNone, -- That's what plutus-apps does as well
         C.txCertificates = C.TxCertificatesNone, -- That's what plutus-apps does as well
         C.txUpdateProposal = C.TxUpdateProposalNone, -- That's what plutus-apps does as well
@@ -320,7 +322,7 @@ txSkelOutToCardanoTxOut theParams (Pays output) =
   left (ToCardanoError "txSkelOutToTxOut") $
     C.TxOut
       <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
-      <*> Pl.toCardanoTxOutValue (outputValue output)
+      <*> (Pl.toCardanoTxOutValue <$> Pl.toCardanoValue (outputValue output))
       <*> ( case output ^. outputDatumL of
               TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum
               TxSkelOutDatumHash datum -> Pl.toCardanoTxOutDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
