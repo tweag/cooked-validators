@@ -25,7 +25,6 @@ import qualified Ledger.Tx.CardanoAPI as Ledger
 import ListT
 import Optics.Core
 import qualified Plutus.V2.Ledger.Api as PV2
-import Prettyprinter (Doc)
 
 -- * BlockChain Monad
 
@@ -33,8 +32,7 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs
   allUtxos :: m [(PV2.TxOutRef, PV2.TxOut)]
 
-  -- | Returns the datum with the given hash, along with its pretty-printed
-  -- representation, or 'Nothing' if there is none
+  -- | Returns the datum with the given hash or 'Nothing' if there is none
   datumFromHash :: PV2.DatumHash -> m (Maybe PV2.Datum)
 
   -- | Returns an output given a reference to it

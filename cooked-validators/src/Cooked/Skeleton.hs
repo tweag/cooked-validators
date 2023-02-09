@@ -153,9 +153,6 @@ applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedT
 -- running in 'MockChainT'. If nothing is explicitely stated, the option has an effect independently of the
 -- running context.
 --
--- IMPORTANT INTERNAL: If you add or remove fields from 'TxOpts', make sure
--- to update the internal @fields@ value from 'Cooked.Tx.Constraints.Pretty'
---
 -- TODO Refactor field names to avoid clashes on common terms such as "collateral" or "balance"
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
@@ -537,10 +534,9 @@ That is:
   like 'findDatum'.
 
 In summary: On the one hand, there is the function 'txSkelOutDatumComplete'
-which extracts the whole datum, with its pretty-printed representation, from a
-'TxSkelOut', in order to save it in the simulated chain state. On the other
-hand, there is 'txSkelOutToTxOut', which will return the output as seen on the
-'txInfo' by a validator, with the correct 'Pl.OutputDatum' on it.
+which extracts the whole datum from a 'TxSkelOut'. On the other hand, there is
+'txSkelOutToTxOut', which will return the output as seen on the 'txInfo' by a
+validator, with the correct 'Pl.OutputDatum' on it.
 -}
 
 -- | The transaction output, as seen by a validator. In particular, see the

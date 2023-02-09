@@ -104,9 +104,6 @@ data MockChainSt = MockChainSt
   }
   deriving (Show)
 
--- | There is no natural 'Eq' instance for 'Doc' (pretty printed document)
--- which we store for each datum in the state. The 'Eq' instance for 'Doc'
--- ignores these pretty printed docs.
 instance Eq MockChainSt where
   (MockChainSt index1 datums1 validators1 currentSlot1)
     == (MockChainSt index2 datums2 validators2 currentSlot2) =
