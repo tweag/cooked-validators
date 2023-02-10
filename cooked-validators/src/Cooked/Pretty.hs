@@ -537,35 +537,8 @@ prettyPayload :: PrettyCookedOpts -> Pl.Value -> TxSkelOutDatum -> Maybe DocCook
 prettyPayload opts value txOutDatum =
   case catMaybes
     [ Just (prettyCookedOpt opts value),
-      prettyPayloadDatum txOutDatum
+      prettyTxSkelOutDatumMaybe opts txOutDatum
     ] of
     [] -> Nothing
     [doc] -> Just $ PP.align doc
     docs -> Just . PP.align . PP.vsep $ docs
-  where
-    prettyPayloadDatum :: TxSkelOutDatum -> Maybe DocCooked
-    prettyPayloadDatum TxSkelOutNoDatum = Nothing
-    prettyPayloadDatum (TxSkelOutInlineDatum datum) =
-      Just $
-        "Datum"
-          <+> PP.parens "inlined"
-            <> ":"
-          <+> prettyCookedOpt opts datum
-    prettyPayloadDatum (TxSkelOutDatumHash datum) =
-      Just $
-        "Datum"
-          <+> PP.parens "hashed"
-            <> ":"
-          <+> prettyCookedOpt opts datum
-    prettyPayloadDatum (TxSkelOutDatum datum) =
-      Just $
-        "Datum"
-          <+> PP.parens "hashed"
-            <> ":"
-          <+> prettyCookedOpt opts datum
-
--- prettyPayloadDatum d =
--- "Datum"
---   <+> PP.parens (if utxoInlined d then "inlined" else "hashed")
---     <> ":"
---   <+> PP.align (utxoDoc d)
