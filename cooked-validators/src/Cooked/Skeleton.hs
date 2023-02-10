@@ -489,7 +489,23 @@ instance Eq TxSkelOutDatum where
   _ == _ = False
 
 instance Ord TxSkelOutDatum where
-  compare x y = compare (txSkelOutUntypedDatum x) (txSkelOutUntypedDatum y)
+  compare TxSkelOutNoDatum TxSkelOutNoDatum = EQ
+  compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2) =
+    case compare (SomeTypeRep (typeOf d1)) (SomeTypeRep (typeOf d2)) of
+      LT -> LT
+      GT -> GT
+      EQ -> case typeOf d1 `eqTypeRep` typeOf d2 of
+        Just HRefl -> compare (Pl.toBuiltinData d1) (Pl.toBuiltinData d2)
+        Nothing -> error "This branch cannot happen: un-equal type representations that compare to EQ"
+  compare (TxSkelOutDatum d1) (TxSkelOutDatum d2) =
+    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
+  compare (TxSkelOutInlineDatum d1) (TxSkelOutInlineDatum d2) =
+    compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
+  compare TxSkelOutDatumHash {} TxSkelOutNoDatum = GT
+  compare TxSkelOutDatum {} TxSkelOutNoDatum = GT
+  compare TxSkelOutDatum {} TxSkelOutDatumHash {} = GT
+  compare TxSkelOutInlineDatum {} _ = GT
+  compare _ _ = LT
 
 {- [note on TxSkelOut data]
 
