@@ -527,7 +527,7 @@ That is:
 
 In summary: On the one hand, there is the function 'txSkelOutDatumComplete'
 which extracts the whole datum from a 'TxSkelOut'. On the other hand, there is
-'txSkelOutToTxOut', which will return the output as seen on the 'txInfo' by a
+'txSkelOutToTxOut', which will return the output as seen on the 'TxInfo' by a
 validator, with the correct 'Pl.OutputDatum' on it.
 -}
 
