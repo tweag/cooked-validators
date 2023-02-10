@@ -473,20 +473,7 @@ data TxSkelOutDatum where
 deriving instance Show TxSkelOutDatum
 
 instance Eq TxSkelOutDatum where
-  TxSkelOutNoDatum == TxSkelOutNoDatum = True
-  TxSkelOutDatumHash datum1 == TxSkelOutDatumHash datum2 =
-    case typeOf datum1 `eqTypeRep` typeOf datum2 of
-      Just HRefl -> datum1 Pl.== datum2
-      Nothing -> False
-  TxSkelOutDatum datum1 == TxSkelOutDatum datum2 =
-    case typeOf datum1 `eqTypeRep` typeOf datum2 of
-      Just HRefl -> datum1 Pl.== datum2
-      Nothing -> False
-  TxSkelOutInlineDatum datum1 == TxSkelOutInlineDatum datum2 =
-    case typeOf datum1 `eqTypeRep` typeOf datum2 of
-      Just HRefl -> datum1 Pl.== datum2
-      Nothing -> False
-  _ == _ = False
+  x == y = compare x y == EQ
 
 instance Ord TxSkelOutDatum where
   compare TxSkelOutNoDatum TxSkelOutNoDatum = EQ
