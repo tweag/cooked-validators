@@ -180,7 +180,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
                   (GenerateTxErrorGeneral "txSkelInToTxIn: Datum hash could not be resolved")
-                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> managedData Map.!? datumHash)
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> Map.lookup datumHash managedData)
           return (validatorHash, validator, datum)
 
         mkWitness :: TxSkelRedeemer -> Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)

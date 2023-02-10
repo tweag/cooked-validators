@@ -34,7 +34,6 @@ import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
-import Prettyprinter (Doc)
 
 balancedTxSkel :: MonadBlockChainBalancing m => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
 balancedTxSkel skelUnbal = do
@@ -58,7 +57,7 @@ balancedTxSkel skelUnbal = do
 balancedTx :: MonadBlockChainBalancing m => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
 balancedTx (skel, fee, collateralInputs) = do
   params <- getParams
-  consumedData <- Map.map fst <$> txSkelInputData skel
+  consumedData <- txSkelInputData skel
   consumedOrReferencedTxOuts <- do
     ins <- txSkelInputUtxosPV2 skel
     insRef <- txSkelReferenceInputUtxosPV2 skel
@@ -172,7 +171,7 @@ txSkelInputValue skel = do
   return $ foldMap (PV2.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.DatumHash (PV2.Datum, Doc ()))
+txSkelInputData :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.DatumHash PV2.Datum)
 txSkelInputData skel = do
   txSkelInputs <- Map.elems <$> txSkelInputUtxosPV2 skel
   mDatums <-
@@ -182,23 +181,23 @@ txSkelInputData skel = do
             PV2.NoOutputDatum -> return Nothing
             PV2.OutputDatum datum ->
               let dHash = Pl.datumHash datum
-               in Just . (dHash,) <$> datumAndPrettyFromHash dHash
+               in Just . (dHash,) <$> datumFromHashWithError dHash
             PV2.OutputDatumHash dHash ->
-              Just . (dHash,) <$> datumAndPrettyFromHash dHash
+              Just . (dHash,) <$> datumFromHashWithError dHash
       )
       txSkelInputs
   return . Map.fromList . catMaybes $ mDatums
   where
-    datumAndPrettyFromHash :: MonadBlockChainBalancing m => Pl.DatumHash -> m (PV2.Datum, Doc ())
-    datumAndPrettyFromHash dHash = do
-      mDatumWithPretty <- datumFromHash dHash
-      case mDatumWithPretty of
+    datumFromHashWithError :: MonadBlockChainBalancing m => Pl.DatumHash -> m PV2.Datum
+    datumFromHashWithError dHash = do
+      mDatum <- datumFromHash dHash
+      case mDatum of
         Nothing ->
           throwError $
             MCEUnknownDatum
               "txSkelInputData: Transaction input with un-resolvable datum hash"
               dHash
-        Just datumWithPretty -> return datumWithPretty
+        Just datum -> return datum
 
 -- ensuring that the equation
 --
@@ -260,7 +259,7 @@ setFeeAndBalance balanceWallet skel0 = do
       m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
       attemptedSkel <- balanceTxFromAux BalCalcFee balanceWallet skel fee
-      managedData <- Map.map fst <$> txSkelInputData skel
+      managedData <- txSkelInputData skel
       managedTxOuts <- do
         ins <- txSkelInputUtxosPV2 skel
         insRef <- txSkelReferenceInputUtxosPV2 skel

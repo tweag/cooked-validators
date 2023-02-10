@@ -35,8 +35,6 @@ import ListT
 import Optics.Core
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
-import qualified Plutus.V2.Ledger.Api as Pl
-import Prettyprinter (Doc)
 
 -- * BlockChain Monad
 
@@ -73,9 +71,8 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Return a list of all UTxOs at a certain address.
   utxosAtLedger :: PV2.Address -> m [(PV2.TxOutRef, Ledger.TxOut)]
 
-  -- | Returns the datum with the given hash, along with its pretty-printed
-  -- representation, or 'Nothing' if there is none
-  datumFromHash :: PV2.DatumHash -> m (Maybe (PV2.Datum, Doc ()))
+  -- | Returns the datum with the given hash or 'Nothing' if there is none
+  datumFromHash :: PV2.DatumHash -> m (Maybe PV2.Datum)
 
   -- | Returns the full validator corresponding to hash, if that validator is
   -- currently the owner of some UTxO. (If it is not, there's no guarantee that
@@ -98,7 +95,7 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   currentSlot :: m Ledger.Slot
 
   -- | Returns the current time
-  currentTime :: m Pl.POSIXTime
+  currentTime :: m PV2.POSIXTime
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
@@ -110,7 +107,7 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   --
   -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
   -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
+  awaitTime :: PV2.POSIXTime -> m PV2.POSIXTime
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -159,7 +156,7 @@ resolveDatums =
           mDatum <- datumFromHash datumHash
           case mDatum of
             Nothing -> return (oref, out)
-            Just (datum, _) -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+            Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
         _ -> return (oref, out)
     )
 
@@ -193,7 +190,7 @@ datumFromTxOutRef oref = do
     Just (PV2.OutputDatumHash datumHash) -> do
       mDatum <- datumFromHash datumHash
       case mDatum of
-        Just (datum, _) -> return $ Just datum
+        Just datum -> return $ Just datum
         Nothing -> return Nothing
 
 typedDatumFromTxOutRef :: (PV2.FromData a, MonadBlockChainWithoutValidation m) => PV2.TxOutRef -> m (Maybe a)

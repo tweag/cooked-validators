@@ -21,7 +21,6 @@ import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
@@ -29,7 +28,6 @@ import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -81,7 +79,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
