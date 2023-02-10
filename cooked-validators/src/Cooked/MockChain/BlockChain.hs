@@ -2,7 +2,9 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -13,30 +15,76 @@
 
 module Cooked.MockChain.BlockChain where
 
+import qualified Cardano.Node.Emulator as Emulator
+import Control.Arrow
+import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Control.Monad.Trans.Control
 import Control.Monad.Trans.Writer
+import Cooked.MockChain.GenerateTx (GenerateTxError)
 import Cooked.Output
 import Cooked.Skeleton
 import Data.Kind
 import Data.Maybe
-import qualified Ledger
+import qualified Ledger.Index as Ledger
+import qualified Ledger.Slot as Ledger
+import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import ListT
 import Optics.Core
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 
 -- * BlockChain Monad
 
-class (MonadFail m) => MonadBlockChainWithoutValidation m where
-  -- | Returns a list of all currently known outputs
-  allUtxos :: m [(PV2.TxOutRef, PV2.TxOut)]
+-- | The errors that can be produced by the 'MockChainT' monad
+data MockChainError where
+  MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
+  MCEUnbalanceable :: String -> BalanceStage -> TxSkel -> MockChainError
+  MCENoSuitableCollateral :: MockChainError
+  MCEGenerationError :: GenerateTxError -> MockChainError
+  MCECalcFee :: MockChainError -> MockChainError
+  MCEUnknownOutRefError :: String -> PV2.TxOutRef -> MockChainError
+  MCEUnknownValidator :: String -> PV2.ValidatorHash -> MockChainError
+  MCEUnknownDatum :: String -> PV2.DatumHash -> MockChainError
+  FailWith :: String -> MockChainError
+  OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
+
+deriving instance Show MockChainError
+
+instance Eq MockChainError where
+  (==) = undefined
+
+-- | Describes us which stage of the balancing process are we at. This is needed
+--  to distinguish the successive calls to balancing while computing fees from
+--  the final call to balancing
+data BalanceStage
+  = BalCalcFee
+  | BalFinalizing
+  deriving (Show, Eq)
+
+class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
+  -- | Returns the paramters of the chain.
+  getParams :: m Emulator.Params
+
+  -- | Return a list of all UTxOs at a certain address.
+  utxosAtLedger :: PV2.Address -> m [(PV2.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the datum with the given hash or 'Nothing' if there is none
   datumFromHash :: PV2.DatumHash -> m (Maybe PV2.Datum)
 
+  -- | Returns the full validator corresponding to hash, if that validator is
+  -- currently the owner of some UTxO. (If it is not, there's no guarantee that
+  -- this will return @Just@.)
+  validatorFromHash :: PV2.ValidatorHash -> m (Maybe (Pl.Versioned PV2.Validator))
+
   -- | Returns an output given a reference to it
-  txOutByRef :: PV2.TxOutRef -> m (Maybe PV2.TxOut)
+  txOutByRefLedger :: PV2.TxOutRef -> m (Maybe Ledger.TxOut)
+
+class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
+  -- | Returns a list of all currently known outputs.
+  allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
   --  this is a proxy to 'PV2.ownPubKey'; when running in mock mode, the return value can be
@@ -47,7 +95,7 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   currentSlot :: m Ledger.Slot
 
   -- | Returns the current time
-  currentTime :: m Ledger.POSIXTime
+  currentTime :: m PV2.POSIXTime
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
@@ -59,7 +107,7 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   --
   -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
   -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: Ledger.POSIXTime -> m Ledger.POSIXTime
+  awaitTime :: PV2.POSIXTime -> m PV2.POSIXTime
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -69,6 +117,15 @@ class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   --
   --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
+
+allUtxos :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
+allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
+
+utxosAt :: MonadBlockChainBalancing m => PV2.Address -> m [(PV2.TxOutRef, PV2.TxOut)]
+utxosAt address = fmap (second txOutV2FromLedger) <$> utxosAtLedger address
+
+txOutByRef :: MonadBlockChainBalancing m => PV2.TxOutRef -> m (Maybe PV2.TxOut)
+txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
 --
@@ -86,25 +143,22 @@ txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
 filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
 
--- | Return all UTxOs belonging to a particular pubkey, no matter their datum or
--- value.
-pkUtxosMaybeDatum :: MonadBlockChainWithoutValidation m => PV2.PubKeyHash -> m [(PV2.TxOutRef, PKOutputMaybeDatum)]
-pkUtxosMaybeDatum pkh = filterUtxos (isPKOutputFrom pkh) <$> allUtxos
-
 -- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
 -- complete datum from the state
 allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
-allUtxosWithDatums =
-  allUtxos
-    >>= mapM
-      ( \(oref, out) -> case outputOutputDatum out of
-          PV2.OutputDatumHash datumHash -> do
-            mDatum <- datumFromHash datumHash
-            case mDatum of
-              Nothing -> return (oref, out)
-              Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
-          _ -> return (oref, out)
-      )
+allUtxosWithDatums = allUtxos >>= resolveDatums
+
+resolveDatums :: MonadBlockChainBalancing m => [(PV2.TxOutRef, PV2.TxOut)] -> m [(PV2.TxOutRef, PV2.TxOut)]
+resolveDatums =
+  mapM
+    ( \(oref, out) -> case outputOutputDatum out of
+        PV2.OutputDatumHash datumHash -> do
+          mDatum <- datumFromHash datumHash
+          case mDatum of
+            Nothing -> return (oref, out)
+            Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
+        _ -> return (oref, out)
+    )
 
 filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(PV2.TxOutRef, output)]
 filteredUtxos predicate = filterUtxos predicate <$> allUtxos
@@ -153,32 +207,10 @@ valueFromTxOutRef oref = do
     Nothing -> return Nothing
     Just out -> return . Just $ outputValue out
 
--- ** Slot and Time Management
-
--- $slotandtime
--- #slotandtime#
---
--- Slots are integers that monotonically increase and model the passage of time. By looking
--- at the current slot, a validator gets to know that it is being executed within a certain
--- window of wall-clock time. Things can get annoying pretty fast when trying to mock traces
--- and trying to exercise certain branches of certain validators; make sure you also read
--- the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
-
-waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
-waitNSlots n = do
-  when (n < 0) $ fail "waitNSlots: negative argument"
-  c <- currentSlot
-  awaitSlot $ c + fromIntegral n
-
-waitNMilliSeconds :: (MonadBlockChain m) => Ledger.DiffMilliSeconds -> m Ledger.POSIXTime
-waitNMilliSeconds n = do
-  t <- currentTime
-  awaitTime $ t + Ledger.fromMilliSeconds n
-
 -- ** Deriving further 'MonadBlockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
--- for any 'MonadTrans'.
+-- for any 'MonadTransControl'.
 --
 -- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
 --
@@ -186,31 +218,74 @@ waitNMilliSeconds n = do
 --
 -- and avoid the boilerplate of defining all the methods of the class yourself.
 newtype AsTrans t (m :: Type -> Type) a = AsTrans {getTrans :: t m a}
-  deriving newtype (Functor, Applicative, Monad, MonadFail, MonadTrans)
+  deriving newtype (Functor, Applicative, Monad, MonadTrans, MonadTransControl)
 
-instance (MonadTrans t, MonadBlockChainWithoutValidation m, MonadFail (t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
-  allUtxos = lift allUtxos
-  txOutByRef = lift . txOutByRef
+instance (MonadTrans t, MonadFail m, Monad (t m)) => MonadFail (AsTrans t m) where
+  fail = lift . fail
+
+instance (MonadTransControl t, MonadError MockChainError m, Monad (t m)) => MonadError MockChainError (AsTrans t m) where
+  throwError = lift . throwError
+  catchError act f = liftWith (\run -> catchError (run act) (run . f)) >>= restoreT . return
+
+instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainBalancing (AsTrans t m) where
+  getParams = lift getParams
+  validatorFromHash = lift . validatorFromHash
+  utxosAtLedger = lift . utxosAtLedger
+  txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
+
+instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
+  allUtxosLedger = lift allUtxosLedger
   ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
   awaitTime = lift . awaitTime
 
-instance (MonadTrans t, MonadBlockChain m, MonadFail (t m)) => MonadBlockChain (AsTrans t m) where
+instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
+
+deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainBalancing m) => MonadBlockChainBalancing (WriterT w m)
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (WriterT w m)
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
+deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ReaderT r m)
+
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ReaderT r m)
 
 deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+
+deriving via (AsTrans (StateT s) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
 
 deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
 
-deriving via (AsTrans ListT m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m)
+-- 'ListT' has no 'MonadTransControl' instance, so the @deriving via ...@
+-- machinery is unusable here. However, there is
+--
+-- > MonadError e m => MonadError e (ListT m)
+--
+-- so I decided to go with a bit of code duplication to implement the
+-- 'MonadBlockChainWithoutValidation' and 'MonadBlockChain' instances for
+-- 'ListT', instead of more black magic...
+
+instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
+  getParams = lift getParams
+  validatorFromHash = lift . validatorFromHash
+  utxosAtLedger = lift . utxosAtLedger
+  txOutByRefLedger = lift . txOutByRefLedger
+  datumFromHash = lift . datumFromHash
+
+instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
+  allUtxosLedger = lift allUtxosLedger
+  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
+  currentSlot = lift currentSlot
+  currentTime = lift currentTime
+  awaitSlot = lift . awaitSlot
+  awaitTime = lift . awaitTime
+
+instance MonadBlockChain m => MonadBlockChain (ListT m) where
+  validateTxSkel = lift . validateTxSkel

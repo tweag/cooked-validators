@@ -2,6 +2,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use section" #-}
 
 module Cooked.MockChain.GenerateTx where
 
@@ -23,6 +26,7 @@ import qualified Data.Maybe as Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger as Pl hiding (TxOut, validatorHash)
+import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
@@ -31,6 +35,7 @@ import qualified Wallet.API as Pl
 
 data GenerateTxError
   = ToCardanoError String Pl.ToCardanoError
+  | TxBodyError String C.TxBodyError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
@@ -50,7 +55,7 @@ instance Default GenTxParams where
   def = GenTxParams {gtpCollateralIns = mempty, gtpFee = 0}
 
 generateTxBodyContent ::
-  -- | The parameters controlling the transaction generation.
+  -- | Parameters controlling transaction generation.
   GenTxParams ->
   -- | Some parameters, coming from the 'MockChain'.
   Pl.Params ->
@@ -329,3 +334,43 @@ txSkelOutToCardanoTxOut theParams (Pays output) =
               TxSkelOutInlineDatum datum -> Right . Pl.toCardanoTxOutDatumInline . Pl.Datum . Pl.toBuiltinData $ datum
           )
       <*> Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
+
+generateTx ::
+  -- | Parameters controlling transaction generation.
+  GenTxParams ->
+  -- | Some parameters, coming from the 'MockChain'.
+  Pl.Params ->
+  -- | All of the currently known data on transaction inputs, also coming from the 'MockChain'.
+  Map Pl.DatumHash Pl.Datum ->
+  -- | All of the currently known UTxOs which will be used as transaction inputs or referenced, also coming from the 'MockChain'.
+  Map Pl.TxOutRef Pl.TxOut ->
+  -- | All of the currently known validators which protect transaction inputs, also coming from the 'MockChain'.
+  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
+  -- | The transaction skeleton to translate.
+  TxSkel ->
+  Either
+    GenerateTxError
+    (C.Tx C.BabbageEra)
+generateTx genTxParams params datums txOuts validators skel = do
+  txBodyContent <- generateTxBodyContent genTxParams params datums txOuts validators skel
+  cardanoTxUnsigned <-
+    bimap
+      (TxBodyError "generateTx: ")
+      (flip C.Tx [])
+      -- WARN 'makeTransactionBody' will be deprecated in newer versions of
+      -- cardano-api
+      -- The new name (which is more fitting as well) is
+      -- 'createAndValidateTransactionBody'.
+      (C.makeTransactionBody txBodyContent)
+  let cardanoTxSigned = foldl' txAddSignature cardanoTxUnsigned (txSkelSigners skel)
+  return $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skel) cardanoTxSigned
+  where
+    txAddSignature :: C.Tx C.BabbageEra -> Wallet -> C.Tx C.BabbageEra
+    txAddSignature tx wal = case Ledger.addCardanoTxSignature
+      (walletSK wal)
+      (Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx tx) of
+      Ledger.CardanoApiTx (Ledger.CardanoApiEmulatorEraTx tx') -> tx'
+      -- Looking at the implementation of Ledger.addCardanoTxSignature:
+      -- It never changes the constructor used, so the above branch
+      -- will never happen
+      _ -> error "generateTx: expected CardanoApiTx"

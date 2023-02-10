@@ -54,7 +54,7 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit = initialDistribution' [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
+testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
