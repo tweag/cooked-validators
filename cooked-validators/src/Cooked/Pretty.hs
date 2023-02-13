@@ -527,10 +527,6 @@ prettyUtxoState opts =
       (Pl.Address (Pl.ScriptCredential _) _, _) = LT
     addressOrdering (a1, _) (a2, _) = compare a1 a2
 
--- TODO find a way to use options
-instance Show UtxoState where
-  show = show . prettyUtxoState def
-
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
 prettyAddressState :: PrettyCookedOpts -> Pl.Address -> [(Pl.Value, TxSkelOutDatum)] -> DocCooked
