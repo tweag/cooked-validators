@@ -6,6 +6,16 @@
 
 -- | This module implements pretty-printing for Cooked structures such as
 -- skeletons and chain state.
+--
+-- It contains orphaned instances of 'PrettyCooked' for Cooked datatypes. They
+-- cannot be provided in "Cooked.Pretty.Class" because of dependency cycles
+-- and, for ease of maintainability, we chose to centralize all pretty-printing
+-- related code in submodules of "Cooked.Pretty" instead of having
+-- 'PrettyCooked' instances scattered around.
+--
+-- Some structure require additional arguments to be pretty-printed and have
+-- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
+-- 'TxSkelContext').
 module Cooked.Pretty.Cooked where
 
 import Control.Arrow (second)
