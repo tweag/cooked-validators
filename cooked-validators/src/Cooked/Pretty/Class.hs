@@ -14,6 +14,7 @@ import Cooked.Pretty.Common
 import Cooked.Pretty.Options
 import Cooked.Wallet
 import Data.Default
+import qualified Ledger.Index as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -91,3 +92,8 @@ instance PrettyCooked Pl.Value where
             | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
             | symbol == permanentCurrencySymbol = "Permanent" <+> PP.pretty name
             | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol <+> PP.pretty name
+
+instance PrettyCooked Pl.ValidationErrorInPhase where
+  -- TODO Implement better pretty-printing for errors such as
+  -- 'ValueNotPreserved'
+  prettyCookedOpt _ = PP.pretty
