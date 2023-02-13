@@ -6,7 +6,9 @@
 -- printers for Plutus types which already have instances of 'Pretty'. Also,
 -- 'PrettyCooked' makes it possible to optionally modify pretty printing
 -- settings 'PrettyCookedOpts' (e.g. length of printed hashes).
--- You just need to implement either 'prettyCooked' or 'prettyCookedOpt'.
+--
+-- When defining a new 'PrettyCooked' instance, prefer implementing
+-- 'prettyCookedOpt' and relay the option parameter to other printers.
 module Cooked.Pretty.Class where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
