@@ -43,8 +43,8 @@
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="hs-keyword">type</span><span> </span><span id="PrivateKey"><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-var">PrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span><span>
 </span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679500030"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>  </span><span id="local-6989586621679500028"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679498381"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679498379"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -53,8 +53,8 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var hs-var">Pl.mwWalletId</span></span><span>
 </span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679500013"><span id="local-6989586621679500015"><span id="local-6989586621679500017"><span id="local-6989586621679500019"><span id="local-6989586621679500021"><span id="local-6989586621679500023"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>  </span><span id="local-6989586621679500011"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679498364"><span id="local-6989586621679498366"><span id="local-6989586621679498368"><span id="local-6989586621679498370"><span id="local-6989586621679498372"><span id="local-6989586621679498374"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679498362"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
@@ -72,27 +72,27 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span id="line-56"></span><span class="hs-comment">-- | Wallet corresponding to a given wallet number (or wallet ID)</span><span>
 </span><span id="line-57"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-58"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Int -&gt; Wallet
-</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679500006"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500006"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679498357"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679498357"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-59"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500006"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679498357"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500006"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679498357"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679500002"><span class="annot"><span class="annottext">i :: Int
-</span><a href="#local-6989586621679500002"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500006"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679498353"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679498353"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679498357"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Int -&gt; Wallet
 forall a. [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500002"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679498353"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-60"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WalletNumber -&gt; Wallet
 </span><span class="hs-identifier hs-var">Pl.fromWalletNumber</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; WalletNumber
@@ -101,7 +101,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679500006"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679498357"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-61"></span><span>
 </span><span id="line-62"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public key</span><span>
 </span><span id="line-63"></span><span class="hs-comment">-- hash, if any.</span><span>
@@ -115,10 +115,10 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Map PubKeyHash Int -&gt; Maybe Int
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">Map PubKeyHash Int
-</span><a href="#local-6989586621679499995"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
+</span><a href="#local-6989586621679498346"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
 </span><span id="line-68"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-69"></span><span>    </span><span id="local-6989586621679499995"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
-</span><a href="#local-6989586621679499995"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679498346"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
+</span><a href="#local-6989586621679498346"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">[(PubKeyHash, Int)] -&gt; Map PubKeyHash Int
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(PubKeyHash, Int)] -&gt; Map PubKeyHash Int)
@@ -190,8 +190,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-88"></span><span class="hs-comment">-- | Retrieves a wallet's address</span><span>
 </span><span id="line-89"></span><span class="annot"><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-type">walletAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span>
 </span><span id="line-90"></span><span id="walletAddress"><span class="annot"><span class="annottext">walletAddress :: Wallet -&gt; Address
-</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679499982"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499982"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679498333"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679498333"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-91"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Pl.Address</span></span><span>
 </span><span id="line-92"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
@@ -199,7 +199,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499982"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679498333"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-93"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Pl.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
@@ -210,7 +210,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499982"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679498333"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-94"></span><span>
 </span><span id="line-95"></span><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span><span>
 </span><span id="line-96"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.MockWallet</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span><span>
@@ -235,7 +235,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">MockPrivateKey -&gt; XPrv
 forall a. a -&gt; XPrv
-</span><a href="#local-6989586621679499973"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
+</span><a href="#local-6989586621679498324"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
 -&gt; (Wallet -&gt; Maybe MockPrivateKey) -&gt; Wallet -&gt; Maybe XPrv
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe MockPrivateKey
@@ -246,24 +246,24 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-111"></span><span>    </span><span class="hs-comment">-- the things we need. If you use this anyway, make sure that you only</span><span>
 </span><span id="line-112"></span><span>    </span><span class="hs-comment">-- apply it to @MockPrivateKey@; the function is polymorphic because</span><span>
 </span><span id="line-113"></span><span>    </span><span class="hs-comment">-- @MockPrivateKey@ is not exported either</span><span>
-</span><span id="line-114"></span><span>    </span><span id="local-6989586621679500094"><span class="annot"><a href="#local-6989586621679499973"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679500094"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span></span><span>
-</span><span id="line-115"></span><span>    </span><span id="local-6989586621679499973"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
-</span><a href="#local-6989586621679499973"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679499971"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679499971"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679499970"><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679499970"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
+</span><span id="line-114"></span><span>    </span><span id="local-6989586621679498445"><span class="annot"><a href="#local-6989586621679498324"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679498445"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span></span><span>
+</span><span id="line-115"></span><span>    </span><span id="local-6989586621679498324"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
+</span><a href="#local-6989586621679498324"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679498322"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679498322"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679498321"><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679498321"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
 forall a b. a -&gt; b
 </span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679499971"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679499970"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><a href="#local-6989586621679498322"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679498321"><span class="hs-identifier hs-var">y</span></a></span><span>
 </span><span id="line-116"></span><span>
 </span><span id="line-117"></span><span class="hs-comment">-- | Signs a transaction</span><span>
 </span><span id="line-118"></span><span class="annot"><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-type">txAddSignature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span>
 </span><span id="line-119"></span><span id="txAddSignature"><span class="annot"><span class="annottext">txAddSignature :: Wallet -&gt; Tx -&gt; Tx
-</span><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679499967"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499967"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
+</span><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679498318"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679498318"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
 </span><span class="hs-identifier hs-var">Pl.addSignature'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
 </span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499967"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679498318"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-120"></span><span>
 </span><span id="line-121"></span><span class="hs-comment">-- * Initial distribution of funds</span><span>
 </span><span id="line-122"></span><span>
@@ -301,7 +301,7 @@ forall a b. a -&gt; b
 </span><span id="line-154"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="unInitialDistribution"><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.Wallet.html#unInitialDistribution"><span class="hs-identifier hs-var hs-var">unInitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">]</span><span>
 </span><span id="line-155"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-156"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679499960"><span id="local-6989586621679499962"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
+</span><span id="line-156"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679498311"><span id="local-6989586621679498313"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
 (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; Eq InitialDistribution
@@ -310,7 +310,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 == :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 $c== :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679499954"><span id="local-6989586621679499956"><span id="local-6989586621679499958"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679498305"><span id="local-6989586621679498307"><span id="local-6989586621679498309"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
 [InitialDistribution] -&gt; ShowS
 InitialDistribution -&gt; String
 (Int -&gt; InitialDistribution -&gt; ShowS)
@@ -327,11 +327,11 @@ showsPrec :: Int -&gt; InitialDistribution -&gt; ShowS
 $cshowsPrec :: Int -&gt; InitialDistribution -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-157"></span><span>
-</span><span id="line-158"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679499948"><span id="local-6989586621679499950"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-159"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679499946"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679499946"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679499945"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679499944"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679499944"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-158"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679498299"><span id="local-6989586621679498301"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-159"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679498297"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679498297"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679498296"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679498295"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679498295"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-160"></span><span>    </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
 -&gt; Map Wallet [Value] -&gt; InitialDistribution
@@ -342,18 +342,18 @@ forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Ma
 </span><span class="hs-identifier hs-var">Map.unionWith</span></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; [Value] -&gt; [Value]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679499946"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679499944"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><a href="#local-6989586621679498297"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679498295"><span class="hs-identifier hs-var">j</span></a></span><span>
 </span><span id="line-161"></span><span>
-</span><span id="line-162"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679499937"><span id="local-6989586621679499939"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-163"></span><span>  </span><span id="local-6989586621679499935"><span class="annot"><span class="annottext">mempty :: InitialDistribution
+</span><span id="line-162"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679498288"><span id="local-6989586621679498290"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-163"></span><span>  </span><span id="local-6989586621679498286"><span class="annot"><span class="annottext">mempty :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span>
 </span><span id="line-164"></span><span>
 </span><span id="line-165"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-166"></span><span>  </span><span id="local-6989586621679499931"><span class="annot"><span class="annottext">def :: InitialDistribution
+</span><span id="line-166"></span><span>  </span><span id="local-6989586621679498282"><span class="annot"><span class="annottext">def :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-167"></span><span>    </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
@@ -377,10 +377,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. Int -&gt; a -&gt; [a]
 </span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499927"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679498278"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-170"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-171"></span><span>      </span><span id="local-6989586621679499927"><span class="annot"><span class="annottext">defLovelace :: Value
-</span><a href="#local-6989586621679499927"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><span id="line-171"></span><span>      </span><span id="local-6989586621679498278"><span class="annot"><span class="annottext">defLovelace :: Value
+</span><a href="#local-6989586621679498278"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">100_000_000</span></span><span>
 </span><span id="line-172"></span><span>
@@ -417,8 +417,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-183"></span><span class="hs-comment">-- posess UTxOs fitting a given 'InitialDistribution'</span><span>
 </span><span id="line-184"></span><span class="annot"><a href="Cooked.Wallet.html#initialTxFor"><span class="hs-identifier hs-type">initialTxFor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span>
 </span><span id="line-185"></span><span id="initialTxFor"><span class="annot"><span class="annottext">initialTxFor :: InitialDistribution -&gt; Tx
-</span><a href="Cooked.Wallet.html#initialTxFor"><span class="hs-identifier hs-var hs-var">initialTxFor</span></a></span></span><span> </span><span id="local-6989586621679499922"><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679499922"><span class="hs-identifier hs-var">initDist</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Wallet.html#initialTxFor"><span class="hs-identifier hs-var hs-var">initialTxFor</span></a></span></span><span> </span><span id="local-6989586621679498273"><span class="annot"><span class="annottext">InitialDistribution
+</span><a href="#local-6989586621679498273"><span class="hs-identifier hs-var">initDist</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-186"></span><span>  </span><span class="annot"><span class="annottext">Tx
 forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">mempty</span></span><span>
@@ -426,7 +426,7 @@ forall a. Monoid a =&gt; a
 </span><span class="hs-identifier hs-var">Pl.txMint</span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-188"></span><span>        </span><span class="annot"><span class="annottext">Either ToCardanoError Value -&gt; Value
 forall e a. Show e =&gt; Either e a -&gt; a
-</span><a href="#local-6989586621679499920"><span class="hs-identifier hs-var">fromRight'</span></a></span><span>
+</span><a href="#local-6989586621679498271"><span class="hs-identifier hs-var">fromRight'</span></a></span><span>
 </span><span id="line-189"></span><span>          </span><span class="annot"><span class="annottext">(Either ToCardanoError Value -&gt; Value)
 -&gt; (Value -&gt; Either ToCardanoError Value) -&gt; Value -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -446,56 +446,56 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Wallet, [Value]) -&gt; [Value]
 forall a b. (a, b) -&gt; b
 </span><span class="hs-identifier hs-var">snd</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
-</span><a href="#local-6989586621679499918"><span class="hs-identifier hs-var">initDist'</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679498269"><span class="hs-identifier hs-var">initDist'</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-191"></span><span>      </span><span class="annot"><span class="annottext">txOutputs :: [TxOut]
 </span><span class="hs-identifier hs-var">Pl.txOutputs</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Wallet, [Value]) -&gt; [TxOut]) -&gt; [(Wallet, [Value])] -&gt; [TxOut]
 forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
-</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679499915"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499915"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679499914"><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679499914"><span class="hs-identifier hs-var">vs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxOut) -&gt; [Value] -&gt; [TxOut]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679498266"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679498266"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679498265"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679498265"><span class="hs-identifier hs-var">vs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxOut) -&gt; [Value] -&gt; [TxOut]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Value -&gt; TxOut
-</span><a href="#local-6989586621679499913"><span class="hs-identifier hs-var">initUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499915"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679499914"><span class="hs-identifier hs-var">vs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
-</span><a href="#local-6989586621679499918"><span class="hs-identifier hs-var">initDist'</span></a></span><span>
+</span><a href="#local-6989586621679498264"><span class="hs-identifier hs-var">initUtxosFor</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679498266"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679498265"><span class="hs-identifier hs-var">vs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Wallet, [Value])]
+</span><a href="#local-6989586621679498269"><span class="hs-identifier hs-var">initDist'</span></a></span><span>
 </span><span id="line-192"></span><span>    </span><span class="hs-special">}</span><span>
 </span><span id="line-193"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-194"></span><span>    </span><span id="local-6989586621679499913"><span class="annot"><span class="annottext">initUtxosFor :: Wallet -&gt; Value -&gt; TxOut
-</span><a href="#local-6989586621679499913"><span class="hs-identifier hs-var hs-var">initUtxosFor</span></a></span></span><span> </span><span id="local-6989586621679499912"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499912"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679499911"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499911"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; Maybe () -&gt; TxOut
+</span><span id="line-194"></span><span>    </span><span id="local-6989586621679498264"><span class="annot"><span class="annottext">initUtxosFor :: Wallet -&gt; Value -&gt; TxOut
+</span><a href="#local-6989586621679498264"><span class="hs-identifier hs-var hs-var">initUtxosFor</span></a></span></span><span> </span><span id="local-6989586621679498263"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679498263"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679498262"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498262"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; Maybe () -&gt; TxOut
 forall a. ToData a =&gt; Address -&gt; Value -&gt; Maybe a -&gt; TxOut
-</span><a href="#local-6989586621679499910"><span class="hs-identifier hs-var">toPlTxOut</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Address
+</span><a href="#local-6989586621679498261"><span class="hs-identifier hs-var">toPlTxOut</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; Address
 </span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var">walletAddress</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679499912"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499911"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ()
+</span><a href="#local-6989586621679498263"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498262"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ()
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
 </span><span id="line-195"></span><span>
-</span><span id="line-196"></span><span>    </span><span id="local-6989586621679499918"><span class="annot"><span class="annottext">initDist' :: [(Wallet, [Value])]
-</span><a href="#local-6989586621679499918"><span class="hs-identifier hs-var hs-var">initDist'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; [(Wallet, [Value])]
+</span><span id="line-196"></span><span>    </span><span id="local-6989586621679498269"><span class="annot"><span class="annottext">initDist' :: [(Wallet, [Value])]
+</span><a href="#local-6989586621679498269"><span class="hs-identifier hs-var hs-var">initDist'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; [(Wallet, [Value])]
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; [(Wallet, [Value])])
 -&gt; Map Wallet [Value] -&gt; [(Wallet, [Value])]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.Wallet.html#unInitialDistribution"><span class="hs-identifier hs-var hs-var">unInitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">InitialDistribution
-</span><a href="#local-6989586621679499922"><span class="hs-identifier hs-var">initDist</span></a></span><span>
+</span><a href="#local-6989586621679498273"><span class="hs-identifier hs-var">initDist</span></a></span><span>
 </span><span id="line-197"></span><span>
-</span><span id="line-198"></span><span>    </span><span id="local-6989586621679500060"><span class="annot"><a href="#local-6989586621679499910"><span class="hs-identifier hs-type">toPlTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ToData</span></span><span> </span><span class="annot"><a href="#local-6989586621679500060"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679500060"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span></span><span>
-</span><span id="line-199"></span><span>    </span><span id="local-6989586621679499910"><span class="annot"><span class="annottext">toPlTxOut :: Address -&gt; Value -&gt; Maybe a -&gt; TxOut
-</span><a href="#local-6989586621679499910"><span class="hs-identifier hs-var hs-var">toPlTxOut</span></a></span></span><span> </span><span id="local-6989586621679499908"><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499908"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679499907"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499907"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679499906"><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679499906"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; OutputDatum -&gt; TxOut
-</span><a href="#local-6989586621679499905"><span class="hs-identifier hs-var">toPlTxOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499908"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499907"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679499904"><span class="hs-identifier hs-var">datum'</span></a></span><span>
+</span><span id="line-198"></span><span>    </span><span id="local-6989586621679498411"><span class="annot"><a href="#local-6989586621679498261"><span class="hs-identifier hs-type">toPlTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ToData</span></span><span> </span><span class="annot"><a href="#local-6989586621679498411"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679498411"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span></span><span>
+</span><span id="line-199"></span><span>    </span><span id="local-6989586621679498261"><span class="annot"><span class="annottext">toPlTxOut :: Address -&gt; Value -&gt; Maybe a -&gt; TxOut
+</span><a href="#local-6989586621679498261"><span class="hs-identifier hs-var hs-var">toPlTxOut</span></a></span></span><span> </span><span id="local-6989586621679498259"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679498259"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679498258"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498258"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679498257"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679498257"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; OutputDatum -&gt; TxOut
+</span><a href="#local-6989586621679498256"><span class="hs-identifier hs-var">toPlTxOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679498259"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498258"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679498255"><span class="hs-identifier hs-var">datum'</span></a></span><span>
 </span><span id="line-200"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-201"></span><span>        </span><span id="local-6989586621679499904"><span class="annot"><span class="annottext">datum' :: OutputDatum
-</span><a href="#local-6989586621679499904"><span class="hs-identifier hs-var hs-var">datum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-201"></span><span>        </span><span id="local-6989586621679498255"><span class="annot"><span class="annottext">datum' :: OutputDatum
+</span><a href="#local-6989586621679498255"><span class="hs-identifier hs-var hs-var">datum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-202"></span><span>          </span><span class="annot"><span class="annottext">OutputDatum -&gt; (a -&gt; OutputDatum) -&gt; Maybe a -&gt; OutputDatum
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span>
@@ -518,37 +518,37 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span>
 </span><span id="line-208"></span><span>            </span><span class="hs-special">)</span><span>
 </span><span id="line-209"></span><span>            </span><span class="annot"><span class="annottext">Maybe a
-</span><a href="#local-6989586621679499906"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679498257"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-210"></span><span>
-</span><span id="line-211"></span><span>    </span><span class="annot"><a href="#local-6989586621679499905"><span class="hs-identifier hs-type">toPlTxOut'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl2.OutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span>
-</span><span id="line-212"></span><span>    </span><span id="local-6989586621679499905"><span class="annot"><span class="annottext">toPlTxOut' :: Address -&gt; Value -&gt; OutputDatum -&gt; TxOut
-</span><a href="#local-6989586621679499905"><span class="hs-identifier hs-var hs-var">toPlTxOut'</span></a></span></span><span> </span><span id="local-6989586621679499897"><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499897"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679499896"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499896"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679499895"><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679499895"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut CtxTx BabbageEra -&gt; TxOut
+</span><span id="line-211"></span><span>    </span><span class="annot"><a href="#local-6989586621679498256"><span class="hs-identifier hs-type">toPlTxOut'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl2.OutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span>
+</span><span id="line-212"></span><span>    </span><span id="local-6989586621679498256"><span class="annot"><span class="annottext">toPlTxOut' :: Address -&gt; Value -&gt; OutputDatum -&gt; TxOut
+</span><a href="#local-6989586621679498256"><span class="hs-identifier hs-var hs-var">toPlTxOut'</span></a></span></span><span> </span><span id="local-6989586621679498248"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679498248"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679498247"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498247"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679498246"><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679498246"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut CtxTx BabbageEra -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl.TxOut</span></span><span> </span><span class="annot"><span class="annottext">(TxOut CtxTx BabbageEra -&gt; TxOut)
 -&gt; TxOut CtxTx BabbageEra -&gt; TxOut
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; OutputDatum -&gt; TxOut CtxTx BabbageEra
-</span><a href="#local-6989586621679499893"><span class="hs-identifier hs-var">toCardanoTxOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499897"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499896"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679499895"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679498244"><span class="hs-identifier hs-var">toCardanoTxOut'</span></a></span><span> </span><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679498248"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498247"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679498246"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-213"></span><span>
-</span><span id="line-214"></span><span>    </span><span class="annot"><a href="#local-6989586621679499893"><span class="hs-identifier hs-type">toCardanoTxOut'</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-214"></span><span>    </span><span class="annot"><a href="#local-6989586621679498244"><span class="hs-identifier hs-type">toCardanoTxOut'</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-215"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-216"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-217"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Pl2.OutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-218"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Cardano.TxOut</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.CtxTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.BabbageEra</span></span><span>
-</span><span id="line-219"></span><span>    </span><span id="local-6989586621679499893"><span class="annot"><span class="annottext">toCardanoTxOut' :: Address -&gt; Value -&gt; OutputDatum -&gt; TxOut CtxTx BabbageEra
-</span><a href="#local-6989586621679499893"><span class="hs-identifier hs-var hs-var">toCardanoTxOut'</span></a></span></span><span> </span><span id="local-6989586621679499892"><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499892"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679499891"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499891"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679499890"><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679499890"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-219"></span><span>    </span><span id="local-6989586621679498244"><span class="annot"><span class="annottext">toCardanoTxOut' :: Address -&gt; Value -&gt; OutputDatum -&gt; TxOut CtxTx BabbageEra
+</span><a href="#local-6989586621679498244"><span class="hs-identifier hs-var hs-var">toCardanoTxOut'</span></a></span></span><span> </span><span id="local-6989586621679498243"><span class="annot"><span class="annottext">Address
+</span><a href="#local-6989586621679498243"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span id="local-6989586621679498242"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498242"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span id="local-6989586621679498241"><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679498241"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-220"></span><span>      </span><span class="annot"><span class="annottext">Either ToCardanoError (TxOut CtxTx BabbageEra)
 -&gt; TxOut CtxTx BabbageEra
 forall e a. Show e =&gt; Either e a -&gt; a
-</span><a href="#local-6989586621679499920"><span class="hs-identifier hs-var">fromRight'</span></a></span><span> </span><span class="annot"><span class="annottext">(Either ToCardanoError (TxOut CtxTx BabbageEra)
+</span><a href="#local-6989586621679498271"><span class="hs-identifier hs-var">fromRight'</span></a></span><span> </span><span class="annot"><span class="annottext">(Either ToCardanoError (TxOut CtxTx BabbageEra)
  -&gt; TxOut CtxTx BabbageEra)
 -&gt; Either ToCardanoError (TxOut CtxTx BabbageEra)
 -&gt; TxOut CtxTx BabbageEra
@@ -558,36 +558,36 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; TxOut -&gt; Either ToCardanoError (TxOut CtxTx BabbageEra)
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxOut</span></span><span>
 </span><span id="line-222"></span><span>          </span><span class="annot"><span class="annottext">NetworkId
-</span><a href="#local-6989586621679499888"><span class="hs-identifier hs-var">theNetworkId</span></a></span><span>
+</span><a href="#local-6989586621679498239"><span class="hs-identifier hs-var">theNetworkId</span></a></span><span>
 </span><span id="line-223"></span><span>          </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Address -&gt; Value -&gt; OutputDatum -&gt; Maybe ScriptHash -&gt; TxOut
 </span><span class="hs-identifier hs-var">Pl2.TxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
-</span><a href="#local-6989586621679499892"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679499891"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
-</span><a href="#local-6989586621679499890"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
+</span><a href="#local-6989586621679498243"><span class="hs-identifier hs-var">addr</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679498242"><span class="hs-identifier hs-var">value</span></a></span><span> </span><span class="annot"><span class="annottext">OutputDatum
+</span><a href="#local-6989586621679498241"><span class="hs-identifier hs-var">datum</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
 </span><span id="line-224"></span><span>
-</span><span id="line-225"></span><span>    </span><span id="local-6989586621679500067"><span id="local-6989586621679500068"><span class="annot"><a href="#local-6989586621679499920"><span class="hs-identifier hs-type">fromRight'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679500068"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679500068"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679500067"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679500067"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-226"></span><span>    </span><span id="local-6989586621679499920"><span class="annot"><span class="annottext">fromRight' :: Either e a -&gt; a
-</span><a href="#local-6989586621679499920"><span class="hs-identifier hs-var hs-var">fromRight'</span></a></span></span><span> </span><span id="local-6989586621679499886"><span class="annot"><span class="annottext">Either e a
-</span><a href="#local-6989586621679499886"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either e a
-</span><a href="#local-6989586621679499886"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-227"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679499885"><span class="annot"><span class="annottext">e
-</span><a href="#local-6989586621679499885"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; a
+</span><span id="line-225"></span><span>    </span><span id="local-6989586621679498418"><span id="local-6989586621679498419"><span class="annot"><a href="#local-6989586621679498271"><span class="hs-identifier hs-type">fromRight'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679498419"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679498419"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679498418"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679498418"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-226"></span><span>    </span><span id="local-6989586621679498271"><span class="annot"><span class="annottext">fromRight' :: Either e a -&gt; a
+</span><a href="#local-6989586621679498271"><span class="hs-identifier hs-var hs-var">fromRight'</span></a></span></span><span> </span><span id="local-6989586621679498237"><span class="annot"><span class="annottext">Either e a
+</span><a href="#local-6989586621679498237"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Either e a
+</span><a href="#local-6989586621679498237"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-227"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679498236"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679498236"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; a
 forall a. HasCallStack =&gt; String -&gt; a
 </span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; a) -&gt; String -&gt; a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">e -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">e
-</span><a href="#local-6989586621679499885"><span class="hs-identifier hs-var">err</span></a></span><span>
-</span><span id="line-228"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679499882"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679499882"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679499882"><span class="hs-identifier hs-var">res</span></a></span><span>
+</span><a href="#local-6989586621679498236"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-228"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679498233"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679498233"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679498233"><span class="hs-identifier hs-var">res</span></a></span><span>
 </span><span id="line-229"></span><span>
-</span><span id="line-230"></span><span>    </span><span class="annot"><a href="#local-6989586621679499888"><span class="hs-identifier hs-type">theNetworkId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.NetworkId</span></span><span>
-</span><span id="line-231"></span><span>    </span><span id="local-6989586621679499888"><span class="annot"><span class="annottext">theNetworkId :: NetworkId
-</span><a href="#local-6989586621679499888"><span class="hs-identifier hs-var hs-var">theNetworkId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NetworkMagic -&gt; NetworkId
+</span><span id="line-230"></span><span>    </span><span class="annot"><a href="#local-6989586621679498239"><span class="hs-identifier hs-type">theNetworkId</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.NetworkId</span></span><span>
+</span><span id="line-231"></span><span>    </span><span id="local-6989586621679498239"><span class="annot"><span class="annottext">theNetworkId :: NetworkId
+</span><a href="#local-6989586621679498239"><span class="hs-identifier hs-var hs-var">theNetworkId</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NetworkMagic -&gt; NetworkId
 </span><span class="hs-identifier hs-var">Cardano.Testnet</span></span><span> </span><span class="annot"><span class="annottext">(NetworkMagic -&gt; NetworkId) -&gt; NetworkMagic -&gt; NetworkId
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; NetworkMagic
