@@ -128,7 +128,8 @@ listUtxosTestTrace useInlineDatum validator =
                   else paysScript validator FirstPaymentDatum
               )
                 (Pl.lovelaceValueOf 3_000_000)
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 -- | This defines two traces of two transactions each: @spendOutputTestTrace
@@ -150,7 +151,8 @@ spendOutputTestTrace useInlineDatum validator = do
     validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelIns = Map.singleton theTxOutRef $ TxSkelRedeemerForScript ()
+          txSkelIns = Map.singleton theTxOutRef $ TxSkelRedeemerForScript (),
+          txSkelSigners = [wallet 1]
         }
 
 -- | This defines two traces of two transactions each: On the first transaction,
@@ -182,7 +184,8 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
                   Inline -> paysScriptInlineDatum validator SecondPaymentDatum
               )
                 (outputValue theOutput)
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 tests :: TestTree

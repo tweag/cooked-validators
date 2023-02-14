@@ -32,7 +32,6 @@ import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
 import qualified Data.List as List
-import qualified Data.List.NonEmpty as NEList
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
@@ -182,17 +181,20 @@ prettyBalancingWallet opts w =
   prettyCookedOpt opts (walletPKHash w) <+> "[Balancing]"
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
-prettySigners :: PrettyCookedOpts -> TxOpts -> NEList.NonEmpty Wallet -> [DocCooked]
-prettySigners opts TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner NEList.:| signers) =
+prettySigners :: PrettyCookedOpts -> TxOpts -> [Wallet] -> [DocCooked]
+prettySigners opts TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner : signers) =
   prettyBalancingWallet opts firstSigner : (prettyCookedOpt opts . walletPKHash <$> signers)
 prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
-  aux (NEList.toList signers)
+  aux signers
   where
     aux :: [Wallet] -> [DocCooked]
     aux [] = []
     aux (s : ss)
       | s == balancingWallet = prettyBalancingWallet opts balancingWallet : aux ss
       | otherwise = prettyCookedOpt opts (walletPKHash s) : aux ss
+-- The following case should never happen for real transactions, but if the list
+-- of signers is empty, this will lead to no signers being printed.
+prettySigners _ _ [] = []
 
 -- prettyMints
 --

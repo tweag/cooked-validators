@@ -19,7 +19,6 @@ import Cooked.Wallet
 import Data.Bifunctor
 import Data.Default
 import Data.Foldable
-import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -83,12 +82,16 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
       $ txSkelValidityRange skel
   txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-
-    bimap
-      (ToCardanoError "translating the required signers")
-      (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
-      $ mapM
-        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash)
-        (NEList.toList $ txSkelSigners skel)
+    let signers = txSkelSigners skel
+     in if null signers
+          then Left $ GenerateTxErrorGeneral "empty txSkelSigners. You must provide at least one signer"
+          else
+            bimap
+              (ToCardanoError "translating the required signers")
+              (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
+              $ mapM
+                (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash)
+                signers
   txTotalCollateral <-
     right
       ( C.TxTotalCollateral (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
