@@ -30,7 +30,6 @@ import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
-import qualified Data.List.NonEmpty as NEList
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
@@ -109,14 +108,11 @@ utxoIndexToTxOutMap (Ledger.UtxoIndex utxoMap) = Map.map txOutV2FromLedger utxoM
 instance Default Ledger.Slot where
   def = Ledger.Slot 0
 
-data MockChainEnv = MockChainEnv
-  { mceParams :: Emulator.Params,
-    mceSigners :: NEList.NonEmpty Wallet
-  }
+newtype MockChainEnv = MockChainEnv {mceParams :: Emulator.Params}
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def (wallet 1 NEList.:| [])
+  def = MockChainEnv def
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -234,8 +230,6 @@ instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
 instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
-  ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)
-
   allUtxosLedger = gets $ Map.toList . Ledger.getIndex . mcstIndex
 
   currentSlot = gets mcstCurrentSlot

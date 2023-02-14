@@ -80,7 +80,6 @@ data MockChainBuiltin a where
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
-  OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
@@ -152,7 +151,6 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin (ValidatorFromHash h) = validatorFromHash h
-  interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AllUtxosLedger = allUtxosLedger
   interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
   interpBuiltin Empty = mzero
@@ -222,7 +220,6 @@ instance MonadBlockChainBalancing StagedMockChain where
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger
-  ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot
   currentTime = singletonBuiltin GetCurrentTime
   awaitSlot = singletonBuiltin . AwaitSlot

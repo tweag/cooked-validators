@@ -86,11 +86,6 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
   allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
 
-  -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
-  --  this is a proxy to 'PV2.ownPubKey'; when running in mock mode, the return value can be
-  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
-  ownPaymentPubKeyHash :: m PV2.PubKeyHash
-
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
@@ -236,7 +231,6 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
@@ -281,7 +275,6 @@ instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
 
 instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
