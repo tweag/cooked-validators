@@ -36,7 +36,8 @@ paymentWithMinAda = do
                   mempty
                   (TxSkelOutDatum heavyDatum)
                   (Nothing @(Pl.Versioned Pl.Script))
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 paymentWithoutMinAda :: MonadBlockChain m => Integer -> m ()
@@ -52,7 +53,8 @@ paymentWithoutMinAda paidLovelaces = do
                   (Pl.lovelaceValueOf paidLovelaces)
                   (TxSkelOutDatum heavyDatum)
                   (Nothing @(Pl.Versioned Pl.Script))
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 tests :: TestTree

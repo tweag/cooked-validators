@@ -61,7 +61,8 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
        in txSkelTemplate
             { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelMints = mints,
-              txSkelOuts = [paysPK (walletPKHash recipient) mintedValue]
+              txSkelOuts = [paysPK (walletPKHash recipient) mintedValue],
+              txSkelSigners = [wallet 3]
             }
 
 tests :: TestTree
@@ -86,7 +87,8 @@ tests =
                   txSkelOuts =
                     [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
                       paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2)
-                    ]
+                    ],
+                  txSkelSigners = [wallet 3]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
@@ -104,7 +106,8 @@ tests =
                               [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
                                 paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2),
                                 paysPK (walletPKHash attacker) increment
-                              ]
+                              ],
+                            txSkelSigners = [wallet 3]
                           }
                       )
                   ]
@@ -146,7 +149,8 @@ tests =
                     [ paysPK
                         (walletPKHash (wallet 1))
                         (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2)
-                    ]
+                    ],
+                  txSkelSigners = [wallet 2]
                 }
             skelExpected =
               [ Right
@@ -161,7 +165,8 @@ tests =
                             paysPK
                               (walletPKHash attacker)
                               (Pl.assetClassValue ac1 1)
-                          ]
+                          ],
+                        txSkelSigners = [wallet 2]
                       }
                   )
               ]

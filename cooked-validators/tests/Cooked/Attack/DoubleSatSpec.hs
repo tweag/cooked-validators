@@ -128,12 +128,12 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
 
 tests :: TestTree
 tests =
@@ -160,7 +160,8 @@ tests =
                   skelIn aOrefs =
                     txSkelTemplate
                       { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) $ Set.fromList aOrefs,
-                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)]
+                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)],
+                        txSkelSigners = [wallet 1]
                       }
 
                   -- apply the 'doubleSatAttack' to the input skeleton to
@@ -235,7 +236,8 @@ tests =
                         txSkelOuts =
                           [ paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000),
                             paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bUtxos)
-                          ]
+                          ],
+                        txSkelSigners = [wallet 1]
                       }
                in [ testGroup "with 'AllSeparate'" $
                       let thePredicate :: [(Pl.TxOutRef, Pl.TxOut)] -> [[(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]] -> Assertion

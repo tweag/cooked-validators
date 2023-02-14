@@ -19,7 +19,6 @@ import Cooked.Wallet
 import Data.Default
 import Data.Function
 import Data.List
-import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -39,7 +38,9 @@ balancedTxSkel :: MonadBlockChainBalancing m => TxSkel -> m (TxSkel, Fee, Set PV
 balancedTxSkel skelUnbal = do
   let balancingWallet =
         case txOptBalanceWallet . txSkelOpts $ skelUnbal of
-          BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
+          BalanceWithFirstSigner -> case txSkelSigners skelUnbal of
+            [] -> error "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
+            bw : _ -> bw
           BalanceWith bWallet -> bWallet
   let collateralWallet = balancingWallet
   (skel, fee) <-

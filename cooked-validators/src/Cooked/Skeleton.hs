@@ -24,7 +24,6 @@ import Data.Default
 import Data.Either.Combinators
 import Data.Function
 import Data.List
-import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -699,7 +698,7 @@ data TxSkel where
       txSkelOpts :: TxOpts,
       txSkelMints :: TxSkelMints,
       txSkelValidityRange :: Pl.POSIXTimeRange,
-      txSkelSigners :: NonEmpty Wallet,
+      txSkelSigners :: [Wallet],
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       txSkelInsReference :: Set Pl.TxOutRef,
       txSkelOuts :: [TxSkelOut]
@@ -730,7 +729,7 @@ txSkelTemplate =
       txSkelOpts = def,
       txSkelMints = Map.empty,
       txSkelValidityRange = Pl.always,
-      txSkelSigners = wallet 1 NEList.:| [],
+      txSkelSigners = [],
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
       txSkelOuts = []
