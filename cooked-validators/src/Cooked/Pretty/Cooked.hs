@@ -376,6 +376,10 @@ prettyUtxoState opts =
       (Pl.Address (Pl.ScriptCredential _) _, _) = LT
     addressOrdering (a1, _) (a2, _) = compare a1 a2
 
+-- | The 'Show' instance is essential for REPL interaction
+instance Show UtxoState where
+  show = renderString $ prettyUtxoState def
+
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
 prettyAddressState :: PrettyCookedOpts -> Pl.Address -> [(Pl.Value, TxSkelOutDatum)] -> DocCooked
