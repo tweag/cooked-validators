@@ -72,8 +72,7 @@ lockTxSkel o v =
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
-  me <- ownPaymentPubKeyHash
-  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
+  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom (walletPKHash $ wallet 1) >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
