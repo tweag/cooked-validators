@@ -1,0 +1,62 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | Pretty-printing options for 'prettyCookedOpt' and their default values.</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty.Options</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">data</span><span> </span><span id="PrettyCookedOpts"><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-var">PrettyCookedOpts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="PrettyCookedOpts"><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-var">PrettyCookedOpts</span></a></span></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | Whether to print transaction ids of validated transactions.</span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-comment">-- By default: False</span><span>
+</span><span id="line-9"></span><span>    </span><span id="pcOptPrintTxHashes"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintTxHashes"><span class="hs-identifier hs-var hs-var">pcOptPrintTxHashes</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="hs-comment">-- | Whether to print tx options that have not been modified from their</span><span>
+</span><span id="line-11"></span><span>    </span><span class="hs-comment">-- default.</span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-comment">-- By default: False</span><span>
+</span><span id="line-13"></span><span>    </span><span id="pcOptPrintDefaultTxOpts"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintDefaultTxOpts"><span class="hs-identifier hs-var hs-var">pcOptPrintDefaultTxOpts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-comment">-- | Length of printed hashes (e.g. addresses, tx ids)</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-comment">-- By default: 7</span><span>
+</span><span id="line-16"></span><span>    </span><span id="pcOptPrintedHashLength"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Int
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintedHashLength"><span class="hs-identifier hs-var hs-var">pcOptPrintedHashLength</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679499598"><span id="local-6989586621679499600"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+(PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
+-&gt; (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
+-&gt; Eq PrettyCookedOpts
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+$c/= :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+== :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+$c== :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679499591"><span id="local-6989586621679499593"><span id="local-6989586621679499595"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
+[PrettyCookedOpts] -&gt; ShowS
+PrettyCookedOpts -&gt; String
+(Int -&gt; PrettyCookedOpts -&gt; ShowS)
+-&gt; (PrettyCookedOpts -&gt; String)
+-&gt; ([PrettyCookedOpts] -&gt; ShowS)
+-&gt; Show PrettyCookedOpts
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [PrettyCookedOpts] -&gt; ShowS
+$cshowList :: [PrettyCookedOpts] -&gt; ShowS
+show :: PrettyCookedOpts -&gt; String
+$cshow :: PrettyCookedOpts -&gt; String
+showsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
+$cshowsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>  </span><span id="local-6989586621679499587"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts :: Bool -&gt; Bool -&gt; Int -&gt; PrettyCookedOpts
+</span><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span>
+</span><span id="line-23"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">pcOptPrintTxHashes :: Bool
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintTxHashes"><span class="hs-identifier hs-var">pcOptPrintTxHashes</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintDefaultTxOpts :: Bool
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintDefaultTxOpts"><span class="hs-identifier hs-var">pcOptPrintDefaultTxOpts</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span>
+</span><span id="line-25"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintedHashLength :: Int
+</span><a href="Cooked.Pretty.Options.html#pcOptPrintedHashLength"><span class="hs-identifier hs-var">pcOptPrintedHashLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">7</span></span><span>
+</span><span id="line-26"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-27"></span></pre></body></html>
