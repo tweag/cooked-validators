@@ -12,7 +12,6 @@ import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
