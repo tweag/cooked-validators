@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -108,12 +109,16 @@ instance PrettyCooked MockChainError where
       "-"
       [PP.viaShow err]
 
-prettyEndState :: Show a => PrettyCookedOpts -> (a, UtxoState) -> DocCooked
-prettyEndState opts (res, state) =
-  prettyItemize
-    "End state:"
-    "-"
-    ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
+instance Show a => PrettyCooked (a, UtxoState) where
+  prettyCookedOpt opts (res, state) =
+    prettyItemize
+      "End state:"
+      "-"
+      ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
+
+instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
+  prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
+  prettyCookedOpt opts (Right endState) = "🟢" <+> prettyCookedOpt opts endState
 
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has

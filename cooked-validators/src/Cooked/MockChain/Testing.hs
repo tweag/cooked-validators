@@ -121,7 +121,7 @@ testFailsFrom' ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyEndState pcOpts)))
+testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
 -- This is particularly important when writing negative tests. For example, if we are simulating
