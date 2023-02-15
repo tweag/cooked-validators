@@ -58,14 +58,11 @@ instance PrettyCooked MockChainError where
     PP.vsep ["Validation error", PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
-  prettyCookedOpt _ (MCEUnbalanceable msg balanceStage _) =
+  prettyCookedOpt _ (MCEUnbalanceable msg _) =
     prettyItemize
       "Unbalanceable"
       "-"
-      [PP.pretty msg, prettyBalanceStage balanceStage]
-    where
-      prettyBalanceStage BalCalcFee = "Fee calculation stage"
-      prettyBalanceStage BalFinalizing = "Finalizing stage"
+      [PP.pretty msg]
   prettyCookedOpt _ MCENoSuitableCollateral =
     "No suitable collateral"
   prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
