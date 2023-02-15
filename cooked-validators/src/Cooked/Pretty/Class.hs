@@ -22,12 +22,24 @@ import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
+import qualified Prettyprinter.Render.Text as PP
 
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked
   prettyCooked = prettyCookedOpt def
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
   prettyCookedOpt _ = prettyCooked
+
+-- | Use this in the REPL as an alternative to the default 'print' function
+-- when dealing with pretty-printable cooked values.
+--
+-- For example, @printCookedOpt def runMockChain i0 foo@
+printCookedOpt :: PrettyCooked a => PrettyCookedOpts -> a -> IO ()
+printCookedOpt opts = PP.putDoc . prettyCookedOpt opts
+
+-- | Version of 'printCookedOpt' that uses default pretty printing options.
+printCooked :: PrettyCooked a => a -> IO ()
+printCooked = printCookedOpt def
 
 instance PrettyCooked Pl.TxId where
   prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
