@@ -118,7 +118,7 @@ twoAuctions = do
 -- given state
 holdingInState :: UtxoState -> Wallet -> Value
 holdingInState (UtxoState m) w
-  | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
+  | Just vs <- M.lookup (walletAddress w) m = utxoPayloadSetTotal vs
   | otherwise = mempty
 
 successfulSingle :: TestTree
