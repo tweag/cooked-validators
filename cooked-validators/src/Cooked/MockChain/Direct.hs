@@ -62,13 +62,13 @@ mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
     . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
-    . mapMaybe go
+    . mapMaybe extractPayload
     . Map.toList
     . utxoIndexToTxOutMap
     $ mcstIndex
   where
-    go :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
-    go (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
+    extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
+    extractPayload (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
       do
         let mRefScript = outputReferenceScript out
         txSkelOutDatum <-
