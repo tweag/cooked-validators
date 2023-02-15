@@ -238,7 +238,7 @@ setFeeAndBalance balanceWallet skel0 = do
       calcFee 5 startingFee cUtxoIndex skel
         `catchError` \case
           -- Impossible to balance the transaction
-          MCEUnbalanceable _ BalCalcFee _ ->
+          MCEUnbalanceable _ _ ->
             -- WARN
             -- "Pl.minFee" takes an actual Tx but we no longer provide it
             -- since we work on "TxSkel". However, for now, the
@@ -259,7 +259,7 @@ setFeeAndBalance balanceWallet skel0 = do
       TxSkel ->
       m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
-      attemptedSkel <- balanceTxFromAux BalCalcFee balanceWallet skel fee
+      attemptedSkel <- balanceTxFromAux balanceWallet skel fee
       managedData <- txSkelInputData skel
       managedTxOuts <- do
         ins <- txSkelInputUtxosPV2 skel
@@ -321,12 +321,12 @@ calcCollateral w = do
   -- investigated further for a better approach?
   return $ Set.fromList $ take 1 (fst <$> souts)
 
-balanceTxFromAux :: MonadBlockChainBalancing m => BalanceStage -> Wallet -> TxSkel -> Fee -> m TxSkel
-balanceTxFromAux stage balanceWallet txskel fee = do
-  bres <- calcBalanceTx stage balanceWallet txskel fee
+balanceTxFromAux :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m TxSkel
+balanceTxFromAux balanceWallet txskel fee = do
+  bres <- calcBalanceTx balanceWallet txskel fee
   case applyBalanceTx (walletPKHash balanceWallet) bres txskel of
     Just txskel' -> return txskel'
-    Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
+    Nothing -> throwError $ MCEUnbalanceable (show bres) txskel
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
@@ -347,8 +347,8 @@ data BalanceTxRes = BalanceTxRes
 -- | Calculate the changes needed to balance a transaction with money from a
 -- given wallet.  Every transaction that is sent to the chain must be balanced,
 -- that is: @inputs + mints == outputs + fee + burns@.
-calcBalanceTx :: MonadBlockChainBalancing m => BalanceStage -> Wallet -> TxSkel -> Fee -> m BalanceTxRes
-calcBalanceTx balanceStage balanceWallet skel fee = do
+calcBalanceTx :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m BalanceTxRes
+calcBalanceTx balanceWallet skel fee = do
   inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
   let outValue = txSkelOutputValue skel fee -- transaction outputs + fee + burned value
       difference = outValue <> Pl.negate inValue
@@ -384,7 +384,6 @@ calcBalanceTx balanceStage balanceWallet skel fee = do
               ++ show missingValue
               ++ ")"
           )
-          balanceStage
           skel
     Just bTxRes -> return bTxRes
   where

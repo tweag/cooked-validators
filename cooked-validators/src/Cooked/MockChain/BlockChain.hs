@@ -41,7 +41,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
   MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
-  MCEUnbalanceable :: String -> BalanceStage -> TxSkel -> MockChainError
+  MCEUnbalanceable :: String -> TxSkel -> MockChainError
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   MCECalcFee :: MockChainError -> MockChainError
@@ -55,14 +55,6 @@ deriving instance Show MockChainError
 
 instance Eq MockChainError where
   (==) = undefined
-
--- | Describes us which stage of the balancing process are we at. This is needed
---  to distinguish the successive calls to balancing while computing fees from
---  the final call to balancing
-data BalanceStage
-  = BalCalcFee
-  | BalFinalizing
-  deriving (Show, Eq)
 
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
   -- | Returns the paramters of the chain.
