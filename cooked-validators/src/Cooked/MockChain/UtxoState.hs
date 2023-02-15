@@ -12,35 +12,44 @@ import qualified Plutus.V1.Ledger.Value as Pl1
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
-newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoValueSet}
+newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
 
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
 
--- | Represents a /set/ of values, yet, we use a list instead of a set because 'Pl.Value'
--- doesn't implement 'Ord' and because it is possible that we want to distinguish between utxo states
--- that have additional utxos, even if these could have been merged together.
-newtype UtxoValueSet = UtxoValueSet {utxoValueSet :: [(Pl1.Value, TxSkelOutDatum)]}
+-- | Represents a /set/ of payloads. Payloads are the name we give to the
+-- information we care about on a UTxO: value, datum, and reference script. We
+-- use a list instead of a set because 'Pl.Value' doesn't implement 'Ord' and
+-- because it is possible that we want to distinguish between utxo states that
+-- have additional utxos, even if these could have been merged together.
+newtype UtxoPayloadSet = UtxoPayloadSet {utxoPayloadSet :: [UtxoPayload]}
   deriving (Show)
 
-instance Eq UtxoValueSet where
-  (UtxoValueSet xs) == (UtxoValueSet ys) = xs' == ys'
+data UtxoPayload = UtxoPayload
+  { utxoPayloadValue :: Pl1.Value,
+    utxoPayloadSkelOutDatum :: TxSkelOutDatum,
+    utxoPayloadReferenceScript :: Maybe Pl.ScriptHash
+  }
+  deriving (Eq, Show)
+
+instance Eq UtxoPayloadSet where
+  (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
     where
-      k (val, m) = (Pl1.flattenValue val, m)
+      k (UtxoPayload val dat rs) = (Pl1.flattenValue val, dat, rs)
       xs' = List.sortBy (compare `on` k) xs
       ys' = List.sortBy (compare `on` k) ys
 
-instance Semigroup UtxoValueSet where
-  UtxoValueSet a <> UtxoValueSet b = UtxoValueSet $ a ++ b
+instance Semigroup UtxoPayloadSet where
+  UtxoPayloadSet a <> UtxoPayloadSet b = UtxoPayloadSet $ a ++ b
 
-instance Monoid UtxoValueSet where
-  mempty = UtxoValueSet []
+instance Monoid UtxoPayloadSet where
+  mempty = UtxoPayloadSet []
 
 -- | Computes the total value in a set
-utxoValueSetTotal :: UtxoValueSet -> Pl1.Value
-utxoValueSetTotal = mconcat . map fst . utxoValueSet
+utxoPayloadSetTotal :: UtxoPayloadSet -> Pl1.Value
+utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
 
 -- | Computes the total value in the entire state
 utxoStateTotal :: UtxoState -> Pl1.Value
-utxoStateTotal = mconcat . map utxoValueSetTotal . Map.elems . utxoState
+utxoStateTotal = mconcat . fmap utxoPayloadSetTotal . Map.elems . utxoState

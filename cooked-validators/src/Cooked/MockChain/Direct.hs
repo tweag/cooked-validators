@@ -62,21 +62,24 @@ mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
     . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
-    . mapMaybe go
+    . mapMaybe extractPayload
     . Map.toList
     . utxoIndexToTxOutMap
     $ mcstIndex
   where
-    go :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoValueSet)
-    go (txOutRef, PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
-      case txOutDatum of
-        Pl.NoOutputDatum -> return (txOutAddress, UtxoValueSet [(txOutValue, TxSkelOutNoDatum)])
-        Pl.OutputDatum datum -> do
-          txSkelOutDatum <- Map.lookup (Pl.datumHash datum) mcstDatums
-          return (txOutAddress, UtxoValueSet [(txOutValue, txSkelOutDatum)])
-        Pl.OutputDatumHash hash -> do
-          txSkelOutDatum <- Map.lookup hash mcstDatums
-          return (txOutAddress, UtxoValueSet [(txOutValue, txSkelOutDatum)])
+    extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
+    extractPayload (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
+      do
+        let mRefScript = outputReferenceScript out
+        txSkelOutDatum <-
+          case txOutDatum of
+            Pl.NoOutputDatum -> Just TxSkelOutNoDatum
+            Pl.OutputDatum datum -> Map.lookup (Pl.datumHash datum) mcstDatums
+            Pl.OutputDatumHash hash -> Map.lookup hash mcstDatums
+        return
+          ( txOutAddress,
+            UtxoPayloadSet [UtxoPayload txOutValue txSkelOutDatum mRefScript]
+          )
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
