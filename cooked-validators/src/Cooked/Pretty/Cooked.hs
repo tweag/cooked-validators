@@ -19,7 +19,6 @@
 -- 'TxSkelContext').
 module Cooked.Pretty.Cooked where
 
-import Control.Arrow (second)
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Staged
