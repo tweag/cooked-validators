@@ -78,7 +78,7 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
             Pl.OutputDatumHash hash -> Map.lookup hash mcstDatums
         return
           ( txOutAddress,
-            UtxoPayloadSet [UtxoPayload txOutValue txSkelOutDatum mRefScript]
+            UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
