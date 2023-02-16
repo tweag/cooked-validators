@@ -390,31 +390,61 @@ prettyAddressState opts address payloadSet =
     (prettyCookedOpt opts address)
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
-        . List.group
+        . group
         . List.sortBy (compare `on` (Ada.fromValue . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )
+  where
+    similar :: UtxoPayload -> UtxoPayload -> Bool
+    similar
+      (UtxoPayload _ value1 skelOutDatum1 refScript1)
+      (UtxoPayload _ value2 skelOutDatum2 refScript2) =
+        value1 == value2
+          && skelOutDatum1 == skelOutDatum2
+          && refScript1 == refScript2
+    group :: [UtxoPayload] -> [[UtxoPayload]]
+    group =
+      case pcOptPrintTxOutRefs opts of
+        PCOptTxOutRefsFull -> map (: [])
+        _ -> List.groupBy similar
 
 -- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
 -- been grouped together when they belong to the same utxo
 prettyPayloadGrouped :: PrettyCookedOpts -> [UtxoPayload] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
-prettyPayloadGrouped opts [payload] = prettyPayload opts payload
+prettyPayloadGrouped opts [payload] =
+  prettyPayload
+    opts
+    (pcOptPrintTxOutRefs opts /= PCOptTxOutRefsHidden)
+    payload
 prettyPayloadGrouped opts (payload : rest) =
   let cardinality = 1 + length rest
-   in (PP.parens ("×" <> PP.pretty cardinality) <+>) <$> prettyPayload opts payload
+   in (PP.parens ("×" <> PP.pretty cardinality) <+>)
+        <$> prettyPayload opts False payload
 
-prettyPayload :: PrettyCookedOpts -> UtxoPayload -> Maybe DocCooked
-prettyPayload opts (UtxoPayload {utxoPayloadValue, utxoPayloadSkelOutDatum, utxoPayloadReferenceScript}) =
-  case catMaybes
-    [ Just (prettyCookedOpt opts utxoPayloadValue),
-      prettyTxSkelOutDatumMaybe opts utxoPayloadSkelOutDatum,
-      prettyReferenceScriptHash opts <$> utxoPayloadReferenceScript
-    ] of
-    [] -> Nothing
-    [doc] -> Just $ PP.align doc
-    docs -> Just . PP.align . PP.vsep $ docs
+prettyPayload :: PrettyCookedOpts -> Bool -> UtxoPayload -> Maybe DocCooked
+prettyPayload
+  opts
+  showTxOutRef
+  ( UtxoPayload
+      { utxoPayloadTxOutRef,
+        utxoPayloadValue,
+        utxoPayloadSkelOutDatum,
+        utxoPayloadReferenceScript
+      }
+    ) =
+    case catMaybes
+      [ if showTxOutRef
+          then Just $ prettyCookedOpt opts utxoPayloadTxOutRef
+          else Nothing,
+        Just (prettyCookedOpt opts utxoPayloadValue),
+        prettyTxSkelOutDatumMaybe opts utxoPayloadSkelOutDatum,
+        prettyReferenceScriptHash opts <$> utxoPayloadReferenceScript
+      ] of
+      [] -> Nothing
+      [doc] -> Just $ PP.align doc
+      docs -> Just . PP.align . PP.vsep $ docs
 
 prettyReferenceScriptHash :: PrettyCookedOpts -> Pl.ScriptHash -> DocCooked
 prettyReferenceScriptHash opts scriptHash =
