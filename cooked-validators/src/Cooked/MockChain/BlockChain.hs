@@ -53,7 +53,7 @@ data MockChainError where
   OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
 
 data MCEUnbalanceableError
-  = -- | The balancing wallet miss some value to pay what is needed to balance
+  = -- | The balancing wallet misses some value to pay what is needed to balance
     -- the transaction.
     MCEUnbalNotEnoughFunds Wallet PV2.Value
   | -- | There is value to return to the balancing wallet but not enough to
