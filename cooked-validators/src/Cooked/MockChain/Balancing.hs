@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
@@ -323,10 +324,18 @@ calcCollateral w = do
 
 balanceTxFromAux :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m TxSkel
 balanceTxFromAux balanceWallet txskel fee = do
-  bres <- calcBalanceTx balanceWallet txskel fee
+  bres@(BalanceTxRes {newInputs, returnValue, availableUtxos}) <- calcBalanceTx balanceWallet txskel fee
   case applyBalanceTx (walletPKHash balanceWallet) bres txskel of
     Just txskel' -> return txskel'
-    Nothing -> throwError $ MCEUnbalanceable (show bres) txskel
+    Nothing ->
+      throwError $
+        MCEUnbalanceable
+          ( MCEUnbalNotEnoughReturning
+              (fst <$> newInputs)
+              (fst <$> availableUtxos)
+              returnValue
+          )
+          txskel
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
@@ -378,12 +387,7 @@ calcBalanceTx balanceWallet skel fee = do
     Nothing ->
       throwError $
         MCEUnbalanceable
-          ( "The wallet "
-              ++ show (walletPKHash balanceWallet)
-              ++ " does not own enough funds to pay for balancing. It has to pay this: ("
-              ++ show missingValue
-              ++ ")"
-          )
+          (MCEUnbalNotEnoughFunds balanceWallet missingValue)
           skel
     Just bTxRes -> return bTxRes
   where

@@ -58,11 +58,28 @@ instance PrettyCooked MockChainError where
     PP.vsep ["Validation error", PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
-  prettyCookedOpt _ (MCEUnbalanceable msg _) =
+  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =
     prettyItemize
-      "Unbalanceable"
+      "Unbalanceable:"
       "-"
-      [PP.pretty msg]
+      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough Ada",
+        "Required payment is" <+> prettyCookedOpt opts targetValue
+      ]
+  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning spentTxOuts remainingTxOuts returnValue) _) =
+    prettyItemize
+      "Unbalanceable:"
+      "-"
+      [ "Value to return is below the min ada per UTxO:"
+          <+> prettyCookedOpt opts returnValue,
+        prettyItemize
+          "Outputs spent for balancing:"
+          "-"
+          (prettyCookedOpt opts <$> spentTxOuts),
+        prettyItemize
+          "Remaining candidate outputs (not enough):"
+          "-"
+          (prettyCookedOpt opts <$> remainingTxOuts)
+      ]
   prettyCookedOpt _ MCENoSuitableCollateral =
     "No suitable collateral"
   prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
