@@ -25,6 +25,7 @@ import Control.Monad.Trans.Writer
 import Cooked.MockChain.GenerateTx (GenerateTxError)
 import Cooked.Output
 import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Kind
 import Data.Maybe
 import qualified Ledger.Index as Ledger
@@ -41,7 +42,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
   MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
-  MCEUnbalanceable :: String -> TxSkel -> MockChainError
+  MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   MCECalcFee :: MockChainError -> MockChainError
@@ -50,6 +51,16 @@ data MockChainError where
   MCEUnknownDatum :: String -> PV2.DatumHash -> MockChainError
   FailWith :: String -> MockChainError
   OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
+
+data MCEUnbalanceableError
+  = -- | The balancing wallet miss some value to pay what is needed to balance
+    -- the transaction.
+    MCEUnbalNotEnoughFunds Wallet PV2.Value
+  | -- | There is value to return to the balancing wallet but not enough to
+    -- fullfill the min ada requirement and there is not enough in additional
+    -- inputs to make it possible.
+    MCEUnbalNotEnoughReturning [PV2.TxOutRef] [PV2.TxOutRef] PV2.Value
+  deriving (Show)
 
 deriving instance Show MockChainError
 
