@@ -27,7 +27,8 @@ newtype UtxoPayloadSet = UtxoPayloadSet {utxoPayloadSet :: [UtxoPayload]}
   deriving (Show)
 
 data UtxoPayload = UtxoPayload
-  { utxoPayloadValue :: Pl1.Value,
+  { utxoPayloadTxOutRef :: Pl.TxOutRef,
+    utxoPayloadValue :: Pl1.Value,
     utxoPayloadSkelOutDatum :: TxSkelOutDatum,
     utxoPayloadReferenceScript :: Maybe Pl.ScriptHash
   }
@@ -36,7 +37,7 @@ data UtxoPayload = UtxoPayload
 instance Eq UtxoPayloadSet where
   (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
     where
-      k (UtxoPayload val dat rs) = (Pl1.flattenValue val, dat, rs)
+      k (UtxoPayload ref val dat rs) = (ref, Pl1.flattenValue val, dat, rs)
       xs' = List.sortBy (compare `on` k) xs
       ys' = List.sortBy (compare `on` k) ys
 
