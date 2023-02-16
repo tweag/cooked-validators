@@ -62,7 +62,7 @@ instance PrettyCooked MockChainError where
     prettyItemize
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough Ada",
+      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough funds",
         "Required payment is" <+> prettyCookedOpt opts targetValue
       ]
   prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning spentTxOuts remainingTxOuts returnValue) _) =
