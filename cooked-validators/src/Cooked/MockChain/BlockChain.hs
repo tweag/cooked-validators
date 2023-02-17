@@ -59,7 +59,10 @@ data MCEUnbalanceableError
   | -- | There is value to return to the balancing wallet but not enough to
     -- fullfill the min ada requirement and there is not enough in additional
     -- inputs to make it possible.
-    MCEUnbalNotEnoughReturning [PV2.TxOutRef] [PV2.TxOutRef] PV2.Value
+    MCEUnbalNotEnoughReturning
+      (PV2.Value, [PV2.TxOutRef]) -- What was spent
+      (PV2.Value, [PV2.TxOutRef]) -- What is left to spend
+      PV2.Value -- What cannot be given back
   deriving (Show)
 
 deriving instance Show MockChainError

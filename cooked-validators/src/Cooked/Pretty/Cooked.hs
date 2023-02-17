@@ -65,20 +65,30 @@ instance PrettyCooked MockChainError where
       [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough funds",
         "Required payment is" <+> prettyCookedOpt opts targetValue
       ]
-  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning spentTxOuts remainingTxOuts returnValue) _) =
+  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning (spentValue, spentTxOuts) (remainingValue, remainingTxOuts) returnValue) _) =
     prettyItemize
       "Unbalanceable:"
       "-"
       [ "Value to return is below the min ada per UTxO:"
           <+> prettyCookedOpt opts returnValue,
         prettyItemize
-          "Outputs spent for balancing:"
+          "Spent for balancing:"
           "-"
-          (prettyCookedOpt opts <$> spentTxOuts),
+          [ prettyCookedOpt opts spentValue,
+            prettyItemize
+              "Outputs:"
+              "-"
+              (prettyCookedOpt opts <$> spentTxOuts)
+          ],
         prettyItemize
-          "Remaining candidate outputs (not enough):"
+          "Remaining candidates:"
           "-"
-          (prettyCookedOpt opts <$> remainingTxOuts)
+          [ prettyCookedOpt opts remainingValue,
+            prettyItemize
+              "Outputs:"
+              "-"
+              (prettyCookedOpt opts <$> remainingTxOuts)
+          ]
       ]
   prettyCookedOpt _ MCENoSuitableCollateral =
     "No suitable collateral"
