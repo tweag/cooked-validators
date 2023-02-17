@@ -147,7 +147,10 @@ txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 -- @Nothing@) if it can't be found; if there's no datum or hash at all, return
 -- @Nothing@.
 resolveDatum ::
-  (IsOnchainOutput out, MonadBlockChainBalancing m) =>
+  ( IsAbstractOutput out,
+    ToOutputDatum (DatumType out),
+    MonadBlockChainBalancing m
+  ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) PV2.Datum (ValueType out) (ReferenceScriptType out)))
 resolveDatum out =
@@ -225,27 +228,6 @@ resolveReferenceScript out =
               (out ^. outputValueL)
               (out ^. outputDatumL)
               (Just val)
-
--- | Helper function to apply a "lookup something in the chain and add that
--- information to an output" function like 'resolveDatum' to a list of UTxOs as
--- returned by a function like 'allUtxos' or 'utxosFromCardanoTx'.
-liftLookup :: Monad m => (b -> m (Maybe c)) -> [(a, b)] -> m [(a, c)]
-liftLookup f l =
-  catMaybes
-    <$> mapM
-      ( \(a, b) -> do
-          mc <- f b
-          case mc of
-            Nothing -> return Nothing
-            Just c -> return $ Just (a, c)
-      )
-      l
-
--- | Helper function to apply a "check some property of an output, while also
--- changing its type" function like 'isScriptOutputFrom' to a list of UTxOs as
--- returned by a function like 'allUtxos' or 'utxosFromCardanoTx'.
-liftFilter :: Applicative m => (b -> Maybe c) -> [(a, b)] -> m [(a, c)]
-liftFilter f = pure . mapMaybe (\(a, b) -> (a,) <$> f b)
 
 outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do

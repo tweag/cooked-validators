@@ -13,6 +13,7 @@ import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.Search
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -314,9 +315,10 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
 calcCollateral :: MonadBlockChainBalancing m => Wallet -> m (Set PV2.TxOutRef)
 calcCollateral w = do
   souts <-
-    utxosAt (walletAddress w)
-      >>= liftFilter isOutputWithoutDatum
-      >>= liftFilter isOnlyAdaOutput
+    runUtxoSearch $
+      utxosAtSearch (walletAddress w)
+        `filterWithPure` isOutputWithoutDatum
+        `filterWithPure` isOnlyAdaOutput
   when (null souts) $
     throwError MCENoSuitableCollateral
   -- TODO We only keep one element of the list because we are limited on

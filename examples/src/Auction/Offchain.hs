@@ -76,10 +76,11 @@ txBid :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> Integer -> m Ledger.Carda
 txBid submitter offerOref bid = do
   let theNft = A.threadToken offerOref
   [(oref, output)] <-
-    utxosAt (Pl.validatorAddress A.auctionValidator)
-      >>= liftFilter (isOutputWithValueSuchThat (`Value.geq` theNft))
-      >>= liftLookup resolveDatum
-      >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+        `filterWithPure` isOutputWithValueSuchThat (`Value.geq` theNft)
+        `filterWith` resolveDatum
+        `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
   let datum = output ^. outputDatumL
       Just deadline = A.getBidDeadline datum
       seller = A.getSeller datum
@@ -118,10 +119,11 @@ txHammer :: MonadBlockChain m => Wallet -> Pl.TxOutRef -> m ()
 txHammer submitter offerOref = do
   let theNft = A.threadToken offerOref
   utxos <-
-    utxosAt (Pl.validatorAddress A.auctionValidator)
-      >>= liftFilter (isOutputWithValueSuchThat (`Value.geq` theNft))
-      >>= liftLookup resolveDatum
-      >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+        `filterWithPure` isOutputWithValueSuchThat (`Value.geq` theNft)
+        `filterWith` resolveDatum
+        `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
   case utxos of
     [] ->
       -- There's no thread token, so the auction is still in 'Offer' state, and

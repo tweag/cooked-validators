@@ -235,9 +235,10 @@ tryDoubleSat =
             case txSkelTypedRedeemer @A.Auction redeemer of
               Just (A.Bid (A.BidderInfo bid bidder)) -> do
                 extraUtxos <-
-                  utxosAt (Pl.validatorAddress A.auctionValidator)
-                    >>= liftLookup resolveDatum
-                    >>= liftFilter (isOutputWithInlineDatumOfType @A.AuctionState)
+                  runUtxoSearch $
+                    utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+                      `filterWith` resolveDatum
+                      `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
                 return $
                   mapMaybe
                     ( \(oref, output) -> case output ^. outputDatumL of
@@ -414,8 +415,9 @@ exploitDoubleSat = do
   A.txBid bob offer2 60_000_000
   -- The UTxO at the first auction that represents the current state:
   [(theLastBidOref, theLastBidOutput)] <-
-    utxosAt (Pl.validatorAddress A.auctionValidator)
-      >>= liftFilter (isOutputWithValueSuchThat (`Pl.geq` A.threadToken offer1))
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+        `filterWithPure` isOutputWithValueSuchThat (`Pl.geq` A.threadToken offer1)
   -- Eve now bids on the second auction. Among other things this ensures that
   -- there's an output containing 40_000_000 Lovelace to Bob on the
   -- transaction. This means that, if she simultaneously bids on the first

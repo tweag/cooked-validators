@@ -139,12 +139,12 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 2_000_000))
-          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 3_000_000))
-          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 4_000_000))
-          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 5_000_000))
-          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 6_000_000))
-          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ allUtxos >>= liftFilter (isOutputWithValueSuchThat (== Pl.lovelaceValueOf 7_000_000))
+    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 2_000_000)
+          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 3_000_000)
+          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 4_000_000)
+          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 5_000_000)
+          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 6_000_000)
+          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPure` isOutputWithValueSuchThat (== Pl.lovelaceValueOf 7_000_000)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
@@ -177,7 +177,7 @@ tests =
                         ( doubleSatAttack
                             (txSkelInsL % to Map.keys % folded) -- We know that all of these TxOutRefs point to something that the 'aValidator' owns
                             ( \aOref -> do
-                                bUtxos <- allUtxos >>= liftFilter (isScriptOutputFrom bValidator)
+                                bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
                                 Just aValue <- valueFromTxOutRef aOref
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
