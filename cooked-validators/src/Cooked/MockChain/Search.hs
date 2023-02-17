@@ -15,15 +15,15 @@ import qualified Plutus.V2.Ledger.Api as Pl2
 
 -- * The type of UTxO searches
 
--- | If an UTxO is a 'TxOutRef' with some additional information, this type
+-- | If a UTxO is a 'TxOutRef' with some additional information, this type
 -- captures a "stream" of UTxOs.
 type UtxoSearch m a = ListT m (Pl2.TxOutRef, a)
 
--- | Given an UTxO search, we can run it to obtain a list of UTxOs.
+-- | Given a UTxO search, we can run it to obtain a list of UTxOs.
 runUtxoSearch :: Monad m => UtxoSearch m a -> m [(Pl2.TxOutRef, a)]
 runUtxoSearch = ListT.toList
 
--- | Search all currently known 'TxOutRef's together with their correspoding
+-- | Search all currently known 'TxOutRef's together with their corresponding
 -- 'TxInfo'-'TxOut'.
 allUtxosSearch :: MonadBlockChain m => UtxoSearch m Pl2.TxOut
 allUtxosSearch = allUtxos >>= ListT.fromFoldable
@@ -50,7 +50,7 @@ utxosFromCardanoTxSearch = ListT.fromFoldable . utxosFromCardanoTx
 
 -- * filtering UTxO searches
 
--- | Transform an 'UtxoSearch' by applying a possibly failing monadic "lookup"
+-- | Transform a 'UtxoSearch' by applying a possibly failing monadic "lookup"
 -- on every output.
 filterWith :: Monad m => UtxoSearch m a -> (a -> m (Maybe b)) -> UtxoSearch m b
 filterWith (ListT as) f =
