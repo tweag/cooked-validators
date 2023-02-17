@@ -4,11 +4,7 @@
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
   outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
-    ## Systemd isn't compatible with Darwin, so we can't use `eachDefaultSystem`
-    ## as long as `systemd` is a dependency.
-    ## TODO: go back to `eachDefaultSystem` once systemd isn't needed anymore.
-    with flake-utils.lib;
-    eachSystem [ system.x86_64-linux system.aarch64-linux ] (system:
+    flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         hpkgs = pkgs.haskell.packages.ghc8107;
@@ -33,16 +29,12 @@
             pkg-config
             zlib
             xz
-            z3
-            postgresql # For pg_config
-            systemd
-            pkg-config
             glibcLocales
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
-            lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
+            lib.strings.makeLibraryPath [ libsodium zlib xz ];
           LANG = "C.UTF-8";
         in {
           ci = pkgs.mkShell {
