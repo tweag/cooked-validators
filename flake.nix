@@ -1,5 +1,5 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
