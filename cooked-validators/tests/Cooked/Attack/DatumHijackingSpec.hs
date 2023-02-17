@@ -14,6 +14,7 @@ import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
@@ -76,7 +77,7 @@ txLock v = do
   (oref, _) : _ <-
     runUtxoSearch $
       utxosAtSearch (walletAddress $ wallet 1)
-        `filterWithPure` isOutputWithValueSuchThat (`Pl.geq` lockValue)
+        `filterWithBool` ((`Pl.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -98,7 +99,7 @@ txRelock v = do
       utxosAtSearch (Pl.validatorAddress v)
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @MockDatum
-        `filterWithPure` isOutputWithDatumSuchThat (FirstLock ==)
+        `filterWithBool` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
 datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()

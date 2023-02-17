@@ -77,7 +77,7 @@ txBid submitter offerOref bid = do
   [(oref, output)] <-
     runUtxoSearch $
       utxosAtSearch (Pl.validatorAddress A.auctionValidator)
-        `filterWithPure` isOutputWithValueSuchThat (`Value.geq` theNft)
+        `filterWithBool` ((`Value.geq` theNft) . outputValue)
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
   let datum = output ^. outputDatumL
@@ -120,7 +120,7 @@ txHammer submitter offerOref = do
   utxos <-
     runUtxoSearch $
       utxosAtSearch (Pl.validatorAddress A.auctionValidator)
-        `filterWithPure` isOutputWithValueSuchThat (`Value.geq` theNft)
+        `filterWithBool` ((`Value.geq` theNft) . outputValue)
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
   case utxos of

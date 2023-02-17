@@ -258,26 +258,6 @@ isOutputWithDatumHash out =
           (out ^. outputReferenceScriptL)
     _ -> Nothing
 
--- | Test if the value carried by an output verifies a given predicate.
-isOutputWithValueSuchThat ::
-  IsAbstractOutput output =>
-  (ValueType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithValueSuchThat predicate out
-  | predicate (out ^. outputValueL) = Just out
-  | otherwise = Nothing
-
--- | Test if the datum carried by an output verifies a given predicate.
-isOutputWithDatumSuchThat ::
-  IsAbstractOutput output =>
-  (DatumType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithDatumSuchThat predicate out
-  | predicate (out ^. outputDatumL) = Just out
-  | otherwise = Nothing
-
 -- | Test if the owner an output is a specific script. If it is, return an
 -- output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
@@ -337,14 +317,4 @@ isOnlyAdaOutput out =
           (Pl.fromValue $ outputValue out)
           (out ^. outputDatumL)
           (out ^. outputReferenceScriptL)
-    else Nothing
-
-isOutputWithReferenceScriptSuchThat ::
-  IsAbstractOutput output =>
-  output ->
-  (Maybe (ReferenceScriptType output) -> Bool) ->
-  Maybe output
-isOutputWithReferenceScriptSuchThat out condition =
-  if condition (out ^. outputReferenceScriptL)
-    then Just out
     else Nothing
