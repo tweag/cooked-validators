@@ -48,8 +48,8 @@
             ## in the `buildInputs`, so as to take precedence. This ensures that the
             ## version of Ormolu available in the path is that of nixpkgs and not the
             ## one pinned by HLS.
-            buildInputs = buildInputs ++ (with pkgs; [ ormolu hpack hlint ])
-              ++ (with hpkgs; [ haskell-language-server ]);
+            buildInputs = buildInputs ++ (with pkgs; [ hpack hlint ])
+              ++ (with hpkgs; [ haskell-language-server ormolu_0_5_3_0 ]);
             inherit (pre-commit) shellHook;
             inherit LD_LIBRARY_PATH;
             inherit LANG;
