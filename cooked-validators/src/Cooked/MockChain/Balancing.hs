@@ -331,11 +331,14 @@ balanceTxFromAux balanceWallet txskel fee = do
       throwError $
         MCEUnbalanceable
           ( MCEUnbalNotEnoughReturning
-              (fst <$> newInputs)
-              (fst <$> availableUtxos)
+              (valueAndRefs newInputs)
+              (valueAndRefs availableUtxos)
               returnValue
           )
           txskel
+  where
+    valueAndRefs :: [(PV2.TxOutRef, PV2.TxOut)] -> (PV2.Value, [PV2.TxOutRef])
+    valueAndRefs x = (mconcat (outputValue . snd <$> x), fst <$> x)
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
