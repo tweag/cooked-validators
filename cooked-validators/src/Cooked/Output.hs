@@ -215,8 +215,7 @@ isOutputWithoutDatum out = case outputOutputDatum out of
 
 -- ** Functions to translate between different output types
 
--- | Test if the output carries some inlined datum (lose the type information
--- about the datum in favour of Plutus' 'Datum' type).
+-- | Test if the output carries some inlined datum.
 isOutputWithInlineDatumOfType ::
   (Pl.FromData a, IsOnchainOutput output) =>
   output ->

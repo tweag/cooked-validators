@@ -139,8 +139,8 @@ txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
 -- | Try to resolve the datum on the output: If there's an inline datum, take
--- that; if there's a datum hash look the corresponding datum up (returning
--- @Nothing@) if it can't be found; if there's no datum or hash at all, return
+-- that; if there's a datum hash, look the corresponding datum up (with 'datumFromHash'), returning
+-- @Nothing@ if it can't be found; if there's no datum or hash at all, return
 -- @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
