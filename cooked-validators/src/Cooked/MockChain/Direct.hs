@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
@@ -8,8 +9,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
-
-{-# HLINT ignore "Use section" #-}
 
 module Cooked.MockChain.Direct where
 
@@ -31,9 +30,9 @@ import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
-import qualified Data.List.NonEmpty as NEList
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (mapMaybe)
 import qualified Ledger.Blockchain as Ledger
 import qualified Ledger.Index as Ledger
 import Ledger.Orphans ()
@@ -44,7 +43,6 @@ import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified Plutus.V2.Ledger.Api as Pl
-import Prettyprinter (Doc)
 
 -- * Direct Emulation
 
@@ -61,29 +59,27 @@ import Prettyprinter (Doc)
 -- way of managing the current utxo state.
 
 mcstToUtxoState :: MockChainSt -> UtxoState
-mcstToUtxoState s =
+mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
-    . Map.fromListWith (<>)
-    . map (go . snd)
+    . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
+    . mapMaybe extractPayload
     . Map.toList
     . utxoIndexToTxOutMap
-    . mcstIndex
-    $ s
+    $ mcstIndex
   where
-    go :: PV2.TxOut -> (Pl.Address, UtxoValueSet)
-    go (PV2.TxOut addr val outputDatum _) = do
-      (addr, UtxoValueSet [(val, outputDatumToUtxoDatum outputDatum)])
-
-    outputDatumToUtxoDatum :: PV2.OutputDatum -> Maybe UtxoDatum
-    outputDatumToUtxoDatum PV2.NoOutputDatum = Nothing
-    outputDatumToUtxoDatum (PV2.OutputDatumHash datumHash) =
+    extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
+    extractPayload (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
       do
-        (datum, datumStr) <- Map.lookup datumHash (mcstDatums s)
-        return $ UtxoDatum datum False datumStr
-    outputDatumToUtxoDatum (PV2.OutputDatum datum) =
-      do
-        (_, datumStr) <- Map.lookup (Pl.datumHash datum) (mcstDatums s)
-        return $ UtxoDatum datum True datumStr
+        let mRefScript = outputReferenceScriptHash out
+        txSkelOutDatum <-
+          case txOutDatum of
+            Pl.NoOutputDatum -> Just TxSkelOutNoDatum
+            Pl.OutputDatum datum -> Map.lookup (Pl.datumHash datum) mcstDatums
+            Pl.OutputDatumHash hash -> Map.lookup hash mcstDatums
+        return
+          ( txOutAddress,
+            UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
+          )
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
 --  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
@@ -91,21 +87,18 @@ mcstToUtxoState s =
 --  in order to display the contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash (Pl.Datum, Doc ()),
+    mcstDatums :: Map Pl.DatumHash TxSkelOutDatum,
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show)
 
--- | There is no natural 'Eq' instance for 'Doc' (pretty printed document)
--- which we store for each datum in the state. The 'Eq' instance for 'Doc'
--- ignores these pretty printed docs.
 instance Eq MockChainSt where
   (MockChainSt index1 datums1 validators1 currentSlot1)
     == (MockChainSt index2 datums2 validators2 currentSlot2) =
       and
         [ index1 == index2,
-          Map.map fst datums1 == Map.map fst datums2,
+          datums1 == datums2,
           validators1 == validators2,
           currentSlot1 == currentSlot2
         ]
@@ -118,14 +111,11 @@ utxoIndexToTxOutMap (Ledger.UtxoIndex utxoMap) = Map.map txOutV2FromLedger utxoM
 instance Default Ledger.Slot where
   def = Ledger.Slot 0
 
-data MockChainEnv = MockChainEnv
-  { mceParams :: Emulator.Params,
-    mceSigners :: NEList.NonEmpty Wallet
-  }
+newtype MockChainEnv = MockChainEnv {mceParams :: Emulator.Params}
   deriving (Show)
 
 instance Default MockChainEnv where
-  def = MockChainEnv def (wallet 1 NEList.:| [])
+  def = MockChainEnv def
 
 -- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
@@ -239,12 +229,10 @@ instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
   txOutByRefLedger outref = gets $ Map.lookup outref . Ledger.getIndex . mcstIndex
-  datumFromHash datumHash = Map.lookup datumHash <$> gets mcstDatums
+  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
 instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
-  ownPaymentPubKeyHash = asks (walletPKHash . NEList.head . mceSigners)
-
   allUtxosLedger = gets $ Map.toList . Ledger.getIndex . mcstIndex
 
   currentSlot = gets mcstCurrentSlot
@@ -282,9 +270,9 @@ runTransactionValidation ::
   -- | Modifications to apply to the transaction right before it is submitted.
   [RawModTx] ->
   -- | The data consumed by the transaction
-  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Map Pl.DatumHash Pl.Datum ->
   -- | The data produced by the transaction
-  Map Pl.DatumHash (Pl.Datum, Doc ()) ->
+  Map Pl.DatumHash TxSkelOutDatum ->
   -- | The validators protecting transaction outputs, and the validators in the
   -- reference script field of transaction outputs. The MockChain will remember
   -- them.

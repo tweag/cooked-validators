@@ -30,6 +30,9 @@ library
       Cooked.Output
       Cooked.Pretty
       Cooked.Pretty.Class
+      Cooked.Pretty.Common
+      Cooked.Pretty.Cooked
+      Cooked.Pretty.Options
       Cooked.RawUPLC
       Cooked.Skeleton
       Cooked.Tweak

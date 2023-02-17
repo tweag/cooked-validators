@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -108,7 +107,8 @@ putRefScriptOnWalletOutput recipient referencedScript =
                 (walletPKHash recipient)
                 (Pl.lovelaceValueOf 1)
                 referencedScript
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 putRefScriptOnScriptOutput ::
@@ -129,7 +129,8 @@ putRefScriptOnScriptOutput recipient referencedScript =
                   (Pl.lovelaceValueOf 1)
                   (TxSkelOutDatum ())
                   (Just referencedScript)
-            ]
+            ],
+          txSkelSigners = [wallet 1]
         }
 
 retrieveRefScriptHash :: MonadBlockChain m => Pl.TxOutRef -> m (Maybe Pl.ScriptHash)
@@ -154,13 +155,15 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
                   (requireRefScriptValidator expectedScriptHash)
                   ()
                   (Pl.lovelaceValueOf 42_000_000)
-              ]
+              ],
+            txSkelSigners = [wallet 1]
           }
   void $
     validateTxSkel
       txSkelTemplate
         { txSkelIns = Map.singleton oref $ TxSkelRedeemerForScript (),
-          txSkelInsReference = Set.singleton refScriptOref
+          txSkelInsReference = Set.singleton refScriptOref,
+          txSkelSigners = [wallet 1]
         }
 
 useReferenceScript :: MonadBlockChain m => Wallet -> Pl.TypedValidator MockContract -> m ()
@@ -175,7 +178,8 @@ useReferenceScript spendingSubmitter theScript = do
                   theScript
                   ()
                   (Pl.lovelaceValueOf 42_000_000)
-              ]
+              ],
+            txSkelSigners = [wallet 1]
           }
   void $
     validateTxSkel
@@ -262,12 +266,14 @@ tests =
                                 yesValidator
                                 ()
                                 (Pl.lovelaceValueOf 42_000_000)
-                            ]
+                            ],
+                          txSkelSigners = [wallet 1]
                         }
                 void $
                   validateTxSkel
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript ())
+                      { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript ()),
+                        txSkelSigners = [wallet 1]
                       },
           testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'" $
             testFailsFrom'
@@ -289,13 +295,15 @@ tests =
                                 yesValidator
                                 ()
                                 (Pl.lovelaceValueOf 42_000_000)
-                            ]
+                            ],
+                          txSkelSigners = [wallet 1]
                         }
                 void $
                   validateTxSkel
                     txSkelTemplate
                       { txSkelIns = Map.singleton oref (TxSkelRedeemerForScript ()),
-                        txSkelInsReference = Set.singleton scriptOref
+                        txSkelInsReference = Set.singleton scriptOref,
+                        txSkelSigners = [wallet 1]
                       },
           testCase
             "fail if referenced script's requirement is violated"

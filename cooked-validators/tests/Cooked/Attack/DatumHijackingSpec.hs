@@ -67,7 +67,8 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
-      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue]
+      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
+      txSkelSigners = [wallet 1]
     }
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
@@ -83,7 +84,8 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ TxSkelRedeemerForScript (),
-      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
+      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue],
+      txSkelSigners = [wallet 1]
     }
 
 txRelock ::
@@ -158,7 +160,7 @@ carelessValidator =
     wrap = Pl.mkUntypedValidator
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = txSkelTemplate {txSkelOuts = os}
+txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = [wallet 1]}
 
 -- * TestTree for the datum hijacking attack
 
@@ -206,7 +208,8 @@ tests =
                       paysScriptInlineDatum val2 SecondLock x1,
                       paysScriptInlineDatum val1 FirstLock x2,
                       paysScriptInlineDatum b SecondLock x2
-                    ]
+                    ],
+                  txSkelSigners = [wallet 1]
                 }
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $

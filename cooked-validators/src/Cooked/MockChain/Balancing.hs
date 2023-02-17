@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
@@ -20,7 +21,6 @@ import Cooked.Wallet
 import Data.Default
 import Data.Function
 import Data.List
-import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
@@ -35,13 +35,14 @@ import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
-import Prettyprinter (Doc)
 
 balancedTxSkel :: MonadBlockChainBalancing m => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
 balancedTxSkel skelUnbal = do
   let balancingWallet =
         case txOptBalanceWallet . txSkelOpts $ skelUnbal of
-          BalanceWithFirstSigner -> NEList.head (txSkelSigners skelUnbal)
+          BalanceWithFirstSigner -> case txSkelSigners skelUnbal of
+            [] -> error "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
+            bw : _ -> bw
           BalanceWith bWallet -> bWallet
   let collateralWallet = balancingWallet
   (skel, fee) <-
@@ -59,7 +60,7 @@ balancedTxSkel skelUnbal = do
 balancedTx :: MonadBlockChainBalancing m => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
 balancedTx (skel, fee, collateralInputs) = do
   params <- getParams
-  consumedData <- Map.map fst <$> txSkelInputData skel
+  consumedData <- txSkelInputData skel
   consumedOrReferencedTxOuts <- do
     ins <- txSkelInputUtxosPV2 skel
     insRef <- txSkelReferenceInputUtxosPV2 skel
@@ -173,7 +174,7 @@ txSkelInputValue skel = do
   return $ foldMap (PV2.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.DatumHash (PV2.Datum, Doc ()))
+txSkelInputData :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.DatumHash PV2.Datum)
 txSkelInputData skel = do
   txSkelInputs <- Map.elems <$> txSkelInputUtxosPV2 skel
   mDatums <-
@@ -183,23 +184,23 @@ txSkelInputData skel = do
             PV2.NoOutputDatum -> return Nothing
             PV2.OutputDatum datum ->
               let dHash = Pl.datumHash datum
-               in Just . (dHash,) <$> datumAndPrettyFromHash dHash
+               in Just . (dHash,) <$> datumFromHashWithError dHash
             PV2.OutputDatumHash dHash ->
-              Just . (dHash,) <$> datumAndPrettyFromHash dHash
+              Just . (dHash,) <$> datumFromHashWithError dHash
       )
       txSkelInputs
   return . Map.fromList . catMaybes $ mDatums
   where
-    datumAndPrettyFromHash :: MonadBlockChainBalancing m => Pl.DatumHash -> m (PV2.Datum, Doc ())
-    datumAndPrettyFromHash dHash = do
-      mDatumWithPretty <- datumFromHash dHash
-      case mDatumWithPretty of
+    datumFromHashWithError :: MonadBlockChainBalancing m => Pl.DatumHash -> m PV2.Datum
+    datumFromHashWithError dHash = do
+      mDatum <- datumFromHash dHash
+      case mDatum of
         Nothing ->
           throwError $
             MCEUnknownDatum
               "txSkelInputData: Transaction input with un-resolvable datum hash"
               dHash
-        Just datumWithPretty -> return datumWithPretty
+        Just datum -> return datum
 
 -- ensuring that the equation
 --
@@ -239,7 +240,7 @@ setFeeAndBalance balanceWallet skel0 = do
       calcFee 5 startingFee cUtxoIndex skel
         `catchError` \case
           -- Impossible to balance the transaction
-          MCEUnbalanceable _ BalCalcFee _ ->
+          MCEUnbalanceable _ _ ->
             -- WARN
             -- "Pl.minFee" takes an actual Tx but we no longer provide it
             -- since we work on "TxSkel". However, for now, the
@@ -260,8 +261,8 @@ setFeeAndBalance balanceWallet skel0 = do
       TxSkel ->
       m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
-      attemptedSkel <- balanceTxFromAux BalCalcFee balanceWallet skel fee
-      managedData <- Map.map fst <$> txSkelInputData skel
+      attemptedSkel <- balanceTxFromAux balanceWallet skel fee
+      managedData <- txSkelInputData skel
       managedTxOuts <- do
         ins <- txSkelInputUtxosPV2 skel
         insRef <- txSkelReferenceInputUtxosPV2 skel
@@ -326,12 +327,23 @@ calcCollateral w = do
   -- investigated further for a better approach?
   return $ Set.fromList $ take 1 (fst <$> souts)
 
-balanceTxFromAux :: MonadBlockChainBalancing m => BalanceStage -> Wallet -> TxSkel -> Fee -> m TxSkel
-balanceTxFromAux stage balanceWallet txskel fee = do
-  bres <- calcBalanceTx stage balanceWallet txskel fee
+balanceTxFromAux :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m TxSkel
+balanceTxFromAux balanceWallet txskel fee = do
+  bres@(BalanceTxRes {newInputs, returnValue, availableUtxos}) <- calcBalanceTx balanceWallet txskel fee
   case applyBalanceTx (walletPKHash balanceWallet) bres txskel of
     Just txskel' -> return txskel'
-    Nothing -> throwError $ MCEUnbalanceable (show bres) stage txskel
+    Nothing ->
+      throwError $
+        MCEUnbalanceable
+          ( MCEUnbalNotEnoughReturning
+              (valueAndRefs newInputs)
+              (valueAndRefs availableUtxos)
+              returnValue
+          )
+          txskel
+  where
+    valueAndRefs :: [(PV2.TxOutRef, PV2.TxOut)] -> (PV2.Value, [PV2.TxOutRef])
+    valueAndRefs x = (mconcat (outputValue . snd <$> x), fst <$> x)
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
@@ -352,8 +364,8 @@ data BalanceTxRes = BalanceTxRes
 -- | Calculate the changes needed to balance a transaction with money from a
 -- given wallet.  Every transaction that is sent to the chain must be balanced,
 -- that is: @inputs + mints == outputs + fee + burns@.
-calcBalanceTx :: MonadBlockChainBalancing m => BalanceStage -> Wallet -> TxSkel -> Fee -> m BalanceTxRes
-calcBalanceTx balanceStage balanceWallet skel fee = do
+calcBalanceTx :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m BalanceTxRes
+calcBalanceTx balanceWallet skel fee = do
   inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
   let outValue = txSkelOutputValue skel fee -- transaction outputs + fee + burned value
       difference = outValue <> Pl.negate inValue
@@ -383,13 +395,7 @@ calcBalanceTx balanceStage balanceWallet skel fee = do
     Nothing ->
       throwError $
         MCEUnbalanceable
-          ( "The wallet "
-              ++ show (walletPKHash balanceWallet)
-              ++ " does not own enough funds to pay for balancing. It has to pay this: ("
-              ++ show missingValue
-              ++ ")"
-          )
-          balanceStage
+          (MCEUnbalNotEnoughFunds balanceWallet missingValue)
           skel
     Just bTxRes -> return bTxRes
   where

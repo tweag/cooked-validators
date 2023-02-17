@@ -54,7 +54,7 @@ bananasIn v = Value.assetClassValueOf v bananaAssetClass
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
-testInit = initialDistribution' [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
+testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
 
 -- * Successful single-trace runs
 
@@ -118,7 +118,7 @@ twoAuctions = do
 -- given state
 holdingInState :: UtxoState -> Wallet -> Value
 holdingInState (UtxoState m) w
-  | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
+  | Just vs <- M.lookup (walletAddress w) m = utxoPayloadSetTotal vs
   | otherwise = mempty
 
 successfulSingle :: TestTree

@@ -21,7 +21,6 @@ import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
@@ -29,7 +28,6 @@ import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -81,8 +79,7 @@ data MockChainBuiltin a where
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
   GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
   AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
-  OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
@@ -154,7 +151,6 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin (ValidatorFromHash h) = validatorFromHash h
-  interpBuiltin OwnPubKey = ownPaymentPubKeyHash
   interpBuiltin AllUtxosLedger = allUtxosLedger
   interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
   interpBuiltin Empty = mzero
@@ -224,7 +220,6 @@ instance MonadBlockChainBalancing StagedMockChain where
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger
-  ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
   currentSlot = singletonBuiltin GetCurrentSlot
   currentTime = singletonBuiltin GetCurrentTime
   awaitSlot = singletonBuiltin . AwaitSlot

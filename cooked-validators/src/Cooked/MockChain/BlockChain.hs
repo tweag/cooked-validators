@@ -8,7 +8,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -25,8 +24,8 @@ import Control.Monad.Trans.Writer
 import Cooked.MockChain.GenerateTx (GenerateTxError)
 import Cooked.Output
 import Cooked.Skeleton
+import Cooked.Wallet
 import Data.Kind
-import Data.Maybe
 import qualified Ledger.Index as Ledger
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
@@ -35,15 +34,13 @@ import ListT
 import Optics.Core
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
-import qualified Plutus.V2.Ledger.Api as Pl
-import Prettyprinter (Doc)
 
 -- * BlockChain Monad
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
   MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
-  MCEUnbalanceable :: String -> BalanceStage -> TxSkel -> MockChainError
+  MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   MCECalcFee :: MockChainError -> MockChainError
@@ -53,18 +50,23 @@ data MockChainError where
   FailWith :: String -> MockChainError
   OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
 
+data MCEUnbalanceableError
+  = -- | The balancing wallet misses some value to pay what is needed to balance
+    -- the transaction.
+    MCEUnbalNotEnoughFunds Wallet PV2.Value
+  | -- | There is value to return to the balancing wallet but not enough to
+    -- fullfill the min ada requirement and there is not enough in additional
+    -- inputs to make it possible.
+    MCEUnbalNotEnoughReturning
+      (PV2.Value, [PV2.TxOutRef]) -- What was spent
+      (PV2.Value, [PV2.TxOutRef]) -- What is left to spend
+      PV2.Value -- What cannot be given back
+  deriving (Show)
+
 deriving instance Show MockChainError
 
 instance Eq MockChainError where
   (==) = undefined
-
--- | Describes us which stage of the balancing process are we at. This is needed
---  to distinguish the successive calls to balancing while computing fees from
---  the final call to balancing
-data BalanceStage
-  = BalCalcFee
-  | BalFinalizing
-  deriving (Show, Eq)
 
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
   -- | Returns the paramters of the chain.
@@ -73,9 +75,8 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Return a list of all UTxOs at a certain address.
   utxosAtLedger :: PV2.Address -> m [(PV2.TxOutRef, Ledger.TxOut)]
 
-  -- | Returns the datum with the given hash, along with its pretty-printed
-  -- representation, or 'Nothing' if there is none
-  datumFromHash :: PV2.DatumHash -> m (Maybe (PV2.Datum, Doc ()))
+  -- | Returns the datum with the given hash or 'Nothing' if there is none
+  datumFromHash :: PV2.DatumHash -> m (Maybe PV2.Datum)
 
   -- | Returns the full validator corresponding to hash, if that validator is
   -- currently the owner of some UTxO. (If it is not, there's no guarantee that
@@ -89,16 +90,11 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
   allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
 
-  -- | Returns the hash of our own public key. When running in the "Plutus.Contract.Contract" monad,
-  --  this is a proxy to 'PV2.ownPubKey'; when running in mock mode, the return value can be
-  --  controlled with 'signingWith': the head of the non-empty list will be considered as the "ownPubkey".
-  ownPaymentPubKeyHash :: m PV2.PubKeyHash
-
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
   -- | Returns the current time
-  currentTime :: m Pl.POSIXTime
+  currentTime :: m PV2.POSIXTime
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
@@ -110,7 +106,7 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   --
   -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
   -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: Pl.POSIXTime -> m Pl.POSIXTime
+  awaitTime :: PV2.POSIXTime -> m PV2.POSIXTime
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -159,7 +155,7 @@ resolveDatum out =
       mDatum <- datumFromHash datumHash
       case mDatum of
         Nothing -> return Nothing
-        Just (datum, _) ->
+        Just datum ->
           return . Just $
             ConcreteOutput
               (out ^. outputOwnerL)
@@ -189,8 +185,8 @@ resolveValidator ::
   m (Maybe (ConcreteOutput (Pl.Versioned PV2.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
 resolveValidator out =
   case toCredential (out ^. outputOwnerL) of
-    Pl.PubKeyCredential _ -> return Nothing
-    Pl.ScriptCredential valHash -> do
+    PV2.PubKeyCredential _ -> return Nothing
+    PV2.ScriptCredential valHash -> do
       mVal <- validatorFromHash valHash
       case mVal of
         Nothing -> return Nothing
@@ -212,12 +208,12 @@ resolveReferenceScript ::
     MonadBlockChainBalancing m
   ) =>
   out ->
-  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Pl.Versioned Pl.Validator)))
+  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Pl.Versioned PV2.Validator)))
 resolveReferenceScript out =
   case outputReferenceScriptHash out of
     Nothing -> return Nothing
-    Just (Pl.ScriptHash hash) -> do
-      mVal <- validatorFromHash (Pl.ValidatorHash hash)
+    Just (PV2.ScriptHash hash) -> do
+      mVal <- validatorFromHash (PV2.ValidatorHash hash)
       case mVal of
         Nothing -> return Nothing
         Just val ->
@@ -246,7 +242,7 @@ datumFromTxOutRef oref = do
     Just (PV2.OutputDatumHash datumHash) -> do
       mDatum <- datumFromHash datumHash
       case mDatum of
-        Just (datum, _) -> return $ Just datum
+        Just datum -> return $ Just datum
         Nothing -> return Nothing
 
 typedDatumFromTxOutRef :: (PV2.FromData a, MonadBlockChainWithoutValidation m) => PV2.TxOutRef -> m (Maybe a)
@@ -292,7 +288,6 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
@@ -337,7 +332,6 @@ instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
 
 instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
-  ownPaymentPubKeyHash = lift ownPaymentPubKeyHash
   currentSlot = lift currentSlot
   currentTime = lift currentTime
   awaitSlot = lift . awaitSlot

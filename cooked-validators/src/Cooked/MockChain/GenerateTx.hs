@@ -19,7 +19,6 @@ import Cooked.Wallet
 import Data.Bifunctor
 import Data.Default
 import Data.Foldable
-import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
@@ -83,12 +82,16 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
       $ txSkelValidityRange skel
   txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-
-    bimap
-      (ToCardanoError "translating the required signers")
-      (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
-      $ mapM
-        (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash)
-        (NEList.toList $ txSkelSigners skel)
+    let signers = txSkelSigners skel
+     in if null signers
+          then Left $ GenerateTxErrorGeneral "empty txSkelSigners. You must provide at least one signer"
+          else
+            bimap
+              (ToCardanoError "translating the required signers")
+              (C.TxExtraKeyWitnesses C.ExtraKeyWitnessesInBabbageEra)
+              $ mapM
+                (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash)
+                signers
   txTotalCollateral <-
     right
       ( C.TxTotalCollateral (Maybe.fromJust (C.totalAndReturnCollateralSupportedInEra C.BabbageEra))
@@ -180,7 +183,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               Pl.OutputDatumHash datumHash ->
                 throwOnNothing
                   (GenerateTxErrorGeneral "txSkelInToTxIn: Datum hash could not be resolved")
-                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> managedData Map.!? datumHash)
+                  (C.ScriptDatumForTxIn . Pl.toCardanoScriptData . Pl.getDatum <$> Map.lookup datumHash managedData)
           return (validatorHash, validator, datum)
 
         mkWitness :: TxSkelRedeemer -> Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)
