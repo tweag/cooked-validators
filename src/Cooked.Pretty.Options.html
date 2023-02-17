@@ -22,7 +22,7 @@
 </span><span id="line-19"></span><span>    </span><span id="pcOptPrintedHashLength"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Int
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintedHashLength"><span class="hs-identifier hs-var hs-var">pcOptPrintedHashLength</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
 </span><span id="line-20"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-21"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679502496"><span id="local-6989586621679502498"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+</span><span id="line-21"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679503956"><span id="local-6989586621679503958"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; Eq PrettyCookedOpts
@@ -31,7 +31,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 == :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 $c== :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679502489"><span id="local-6989586621679502491"><span id="local-6989586621679502493"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679503949"><span id="local-6989586621679503951"><span id="local-6989586621679503953"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
 [PrettyCookedOpts] -&gt; ShowS
 PrettyCookedOpts -&gt; String
 (Int -&gt; PrettyCookedOpts -&gt; ShowS)
@@ -60,7 +60,7 @@ $cshowsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
 </span><span id="line-32"></span><span>    </span><span class="hs-comment">-- This avoids  the downside of 'PCOptTxOutRefsFull' which disables printing</span><span>
 </span><span id="line-33"></span><span>    </span><span class="hs-comment">-- utxos as a group.</span><span>
 </span><span id="line-34"></span><span>    </span><span id="PCOptTxOutRefsPartial"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsPartial"><span class="hs-identifier hs-var">PCOptTxOutRefsPartial</span></a></span></span><span>
-</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679502481"><span id="local-6989586621679502483"><span class="annot"><span class="annottext">PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679503941"><span id="local-6989586621679503943"><span class="annot"><span class="annottext">PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 (PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool)
 -&gt; (PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool) -&gt; Eq PCOptTxOutRefs
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -68,7 +68,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 == :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 $c== :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679502475"><span id="local-6989586621679502477"><span id="local-6989586621679502479"><span class="annot"><span class="annottext">Int -&gt; PCOptTxOutRefs -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679503935"><span id="local-6989586621679503937"><span id="local-6989586621679503939"><span class="annot"><span class="annottext">Int -&gt; PCOptTxOutRefs -&gt; ShowS
 [PCOptTxOutRefs] -&gt; ShowS
 PCOptTxOutRefs -&gt; String
 (Int -&gt; PCOptTxOutRefs -&gt; ShowS)
@@ -86,7 +86,7 @@ $cshowsPrec :: Int -&gt; PCOptTxOutRefs -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-36"></span><span>
 </span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-38"></span><span>  </span><span id="local-6989586621679502472"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679503932"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts :: Bool -&gt; PCOptTxOutRefs -&gt; Bool -&gt; Int -&gt; PrettyCookedOpts
 </span><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span>
