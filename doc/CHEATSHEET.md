@@ -33,7 +33,7 @@ foo = do
 foo :: MonadBlockChain m => m ()
 foo = do
     t0 <- currentTime
-    bar (currentTime + 60_0000)
+    bar (currentTime + 60_000)
 ```
 
 ## Submit a transaction
