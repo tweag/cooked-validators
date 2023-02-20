@@ -208,7 +208,10 @@ jobs:
     name: Build and deploy documentation
 
     runs-on: ubuntu-latest
-    needs: cache-minimal-nix-dependencies
+    needs: build-and-test
+    ## This job doesn't really need `build-and-test` as much as
+    ## `cache-minimal-nix-dependencies` but it shares the same Cabal cache so it
+    ## is important to run them non-concurrently.
 
     steps:
       - name: Check out repository code
