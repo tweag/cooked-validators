@@ -8,6 +8,7 @@ on:
       - main
     tags:
       - '*'
+  pull_request:
 
 ## REVIEW: Why do we need this?
 permissions:
