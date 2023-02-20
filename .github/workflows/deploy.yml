@@ -2,6 +2,10 @@
 
 name: Publish documentation
 
+## We run this workflow for all pushes on `main`, for all tag pushes *and* for
+## all pull requests. This allows checking that documentation builds correctly
+## before merging anything. Of course, the actual deployment of the
+## documentation only happens on the `main` branch.
 on:
   push:
     branches:
