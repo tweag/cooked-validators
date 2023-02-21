@@ -61,6 +61,7 @@
             postgresql # For pg_config
             systemd
             pkg-config
+            glibcLocales
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`

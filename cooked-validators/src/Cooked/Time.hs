@@ -1,10 +1,11 @@
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Cooked.Time where
 
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
-import qualified Ledger.Slot as Ledger
-import qualified Plutus.V2.Ledger.Api as PV2
+import Cardano.Node.Emulator.TimeSlot qualified as Emulator
+import Ledger.Slot qualified as Ledger
+import Plutus.V2.Ledger.Api qualified as PV2
 
 class TimeUnit a where
   getSlot :: a -> Emulator.SlotConfig -> Ledger.Slot
@@ -23,3 +24,7 @@ instance TimeUnit Ledger.Slot where
   getFirstTimeUnit _ a = a
   getLastTimeUnit _ a = a
   appendUnits (Ledger.Slot t) = Ledger.Slot . (t +)
+
+class TimeTranslate a b where
+  leftApproximate :: PV2.Interval a -> PV2.Interval b
+  rightApproximate :: PV2.Interval b -> PV2.Interval a

@@ -23,9 +23,10 @@ import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
 
 toSlotRange :: MonadBlockChain m => Pl.POSIXTime -> m Pl.SlotRange
-toSlotRange t = do
-  config <- L.pSlotConfig <$> params
-  return $ Interval.to $ Pl.posixTimeToEnclosingSlot config t
+toSlotRange t = Interval.to . (+ (-1)) <$> getEnclosingSlot t
+
+toSlotRangeAfter :: MonadBlockChain m => Pl.POSIXTime -> m Pl.SlotRange
+toSlotRangeAfter t = Interval.from . (+ 1) <$> getEnclosingSlot t
 
 -- | Make an offer. There are no checks with this transaction. Anyone is allowed
 -- to pay the 'auctionValidator' with something they want to sell, using the
@@ -151,7 +152,7 @@ txHammer submitter offerOref = do
       let ResolvedOrInlineDatum datum = output ^. outputDatumL
           Just deadline = A.getBidDeadline datum
           seller = A.getSeller datum
-      validityInterval <- toSlotRange deadline
+      validityInterval <- toSlotRangeAfter deadline
       void $
         validateTxSkel $
           txSkelTemplate

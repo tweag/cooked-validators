@@ -20,14 +20,12 @@ import Control.Monad.State
 import Control.Monad.Trans.Writer
 import Cooked.Output
 import Cooked.Skeleton
-import Cooked.Time (TimeUnit)
 import Data.Kind
 import Data.Maybe
 import qualified Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import ListT
 import Optics.Core
-import qualified Plutus.V1.Ledger.Time as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import Prettyprinter (Doc)
 
@@ -53,12 +51,12 @@ class (MonadFail m) => MonadBlockChainWithoutValidation m where
   params :: m Emulator.Params
 
   -- | Returns the current slot number
-  currentSlot :: TimeUnit tu => m tu
+  currentSlot :: m Ledger.Slot
 
   -- | Either waits until the given slot or returns the current slot.
   --  Note that that it might not wait for anything if the current slot
   --  is larger than the argument.
-  awaitSlot :: TimeUnit tu => tu -> m tu
+  awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -170,24 +168,26 @@ waitNSlots n =
     then fail "waitNSlots: negative argument"
     else currentSlot >>= awaitSlot . (+ fromIntegral n)
 
--- | Returns the last ms of the current slot
-currentTime :: (MonadBlockChainWithoutValidation m) => m PV2.POSIXTime
+-- | Returns the ms interval corresponding to the current slot
+currentTime :: (MonadBlockChainWithoutValidation m) => m (PV2.POSIXTime, PV2.POSIXTime)
 currentTime = do
   slotConfig <- Emulator.pSlotConfig <$> params
-  Emulator.slotToEndPOSIXTime slotConfig <$> currentSlot
+  interval <- Emulator.slotToPOSIXTimeRange slotConfig <$> currentSlot
+  case interval of
+    PV2.Interval (PV2.LowerBound (PV2.Finite left) _) (PV2.UpperBound (PV2.Finite right) _) ->
+      return (left, right)
+    _ -> fail "The enclosing slot should be finite on both ends."
 
--- | Wait until the slot where the given time falls into and return latest time
--- we know has passed.
---
--- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
--- waits until slot 2 and returns the value `POSIXTime 5`.
-awaitTime :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m PV2.POSIXTime
-awaitTime = undefined
+getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
+getEnclosingSlot t = do
+  slotConfig <- Emulator.pSlotConfig <$> params
+  return $ Emulator.posixTimeToEnclosingSlot slotConfig t
 
-waitNMilliSeconds :: (MonadBlockChainWithoutValidation m) => Pl.DiffMilliSeconds -> m Pl.POSIXTime
-waitNMilliSeconds n = do
-  when (n < 0) $ fail "waitNSlots: negative argument"
-  currentTime >>= awaitTime . (+ Pl.fromMilliSeconds n)
+-- | Attempts to wait until the slot containing the given time or returns the current slot.
+--  Note that that it might not wait for anything if the resulting slot
+--  is larger than the argument.
+awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
+awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- ** Deriving further 'MonadBlockChain' instances
 
