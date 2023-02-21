@@ -13,7 +13,26 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.BlockChain where
+module Cooked.MockChain.BlockChain
+  ( MockChainError (..),
+    MCEUnbalanceableError (..),
+    MonadBlockChainBalancing (..),
+    MonadBlockChainWithoutValidation (..),
+    MonadBlockChain (..),
+    allUtxos,
+    utxosAt,
+    txOutByRef,
+    utxosFromCardanoTx,
+    txOutV2FromLedger,
+    filterUtxos,
+    filteredUtxos,
+    filteredUtxosWithDatums,
+    typedDatumFromTxOutRef,
+    valueFromTxOutRef,
+    outputDatumFromTxOutRef,
+    datumFromTxOutRef,
+  )
+where
 
 import qualified Cardano.Node.Emulator as Emulator
 import Control.Arrow
