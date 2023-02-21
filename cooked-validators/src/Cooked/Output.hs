@@ -8,7 +8,47 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Output where
+module Cooked.Output
+  ( IsAbstractOutput,
+    OwnerType,
+    DatumType,
+    ValueType,
+    ReferenceScriptType,
+    outputOwnerL,
+    outputStakingCredentialL,
+    outputDatumL,
+    outputValueL,
+    outputReferenceScriptL,
+    ToCredential (..),
+    ToOutputDatum (..),
+    ToValue (..),
+    ToScript (..),
+    ToScriptHash (..),
+    IsOnchainOutput,
+    outputAddress,
+    outputOutputDatum,
+    outputValue,
+    outputReferenceScript,
+    outputTxOut,
+    ConcreteOutput (ConcreteOutput),
+    PKAdaOnlyOutput,
+    PKOutputMaybeDatum,
+    ScriptOutputWithInlineDatum,
+    toOutputWithReferenceScriptHash,
+    isOutputWithoutDatum,
+    isOutputWithInlineDatumUntyped,
+    isOutputWithInlineDatum,
+    isOutputWithDatumHash,
+    isOutputWithValueSuchThat,
+    isOutputWithDatumSuchThat,
+    isOutputWithDatumOfType,
+    isScriptOutputFrom,
+    isScriptOutputFrom',
+    isPKOutputFrom,
+    isOnlyAdaOutput,
+    ResolvedOrInlineDatum (ResolvedOrInlineDatum),
+  )
+where
 
 import Control.Monad
 import Optics.Core
