@@ -105,7 +105,7 @@ jobs:
             ~/.cabal/packages
             ~/.cabal/store
             dist-newstyle
-          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}-build-and-test
           restore-keys: ${{ runner.os }}-
 
       ## Steps below run a certain program and creates two files:
@@ -208,10 +208,7 @@ jobs:
     name: Build and deploy documentation
 
     runs-on: ubuntu-latest
-    needs: build-and-test
-    ## This job doesn't really need `build-and-test` as much as
-    ## `cache-minimal-nix-dependencies` but it shares the same Cabal cache so it
-    ## is important to run them non-concurrently.
+    needs: cache-minimal-nix-dependencies
 
     steps:
       - name: Check out repository code
@@ -239,7 +236,7 @@ jobs:
             ~/.cabal/packages
             ~/.cabal/store
             dist-newstyle
-          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}-haddock
           restore-keys: ${{ runner.os }}-
 
       - name: Build documentation
