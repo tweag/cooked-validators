@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
@@ -219,6 +220,58 @@ instance Default MockChainSt where
 
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initialTxFor i0]]
+  where
+    -- Bootstraps an initial transaction resulting in a state where wallets
+    -- posess UTxOs fitting a given 'InitialDistribution'
+    initialTxFor :: InitialDistribution -> Ledger.Tx
+    initialTxFor initDist =
+      mempty
+        { Ledger.txMint =
+            fromRight'
+              . Ledger.toCardanoValue
+              $ mconcat (map (mconcat . snd) initDist'),
+          Ledger.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
+        }
+      where
+        initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
+
+        initDist' = Map.toList $ unInitialDistribution initDist
+
+        toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Ledger.TxOut
+        toPlTxOut addr value datum = toPlTxOut' addr value datum'
+          where
+            datum' =
+              maybe
+                PV2.NoOutputDatum
+                ( PV2.OutputDatumHash
+                    . Pl.datumHash
+                    . Pl.Datum
+                    . Pl.toBuiltinData
+                )
+                datum
+
+        toPlTxOut' :: Pl.Address -> Pl.Value -> PV2.OutputDatum -> Ledger.TxOut
+        toPlTxOut' addr value datum = Ledger.TxOut $ toCardanoTxOut' addr value datum
+
+        toCardanoTxOut' ::
+          Pl.Address ->
+          Pl.Value ->
+          PV2.OutputDatum ->
+          C.TxOut C.CtxTx C.BabbageEra
+        toCardanoTxOut' addr value datum =
+          fromRight' $
+            Ledger.toCardanoTxOut
+              theNetworkId
+              (PV2.TxOut addr value datum Nothing)
+
+        fromRight' :: Show e => Either e a -> a
+        fromRight' x = case x of
+          Left err -> error $ show err
+          Right res -> res
+
+        theNetworkId :: C.NetworkId
+        theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
+
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
