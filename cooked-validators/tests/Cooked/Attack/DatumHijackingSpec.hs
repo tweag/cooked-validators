@@ -11,6 +11,7 @@ module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
+import Cooked.MockChain.Staged
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set

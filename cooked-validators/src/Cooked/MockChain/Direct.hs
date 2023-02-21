@@ -4,8 +4,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
@@ -271,7 +271,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
 
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
-
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def

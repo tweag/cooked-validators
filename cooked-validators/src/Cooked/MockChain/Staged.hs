@@ -8,7 +8,22 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Staged where
+module Cooked.MockChain.Staged
+  ( interpretAndRunWith,
+    interpretAndRun,
+    MockChainLogEntry (..),
+    MockChainLog,
+    StagedMockChain,
+    runTweak,
+    runTweakFrom,
+
+    -- * User API
+    MonadModalBlockChain,
+    somewhere,
+    everywhere,
+    withTweak,
+  )
+where
 
 import qualified Cardano.Node.Emulator as Emulator
 import Control.Applicative

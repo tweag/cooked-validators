@@ -114,13 +114,6 @@ twoAuctions = do
   awaitTime (deadline2 + 1)
   A.txHammer (wallet 1) offerOref2
 
--- | helper function to compute what the given wallet owns in the
--- given state
-holdingInState :: UtxoState -> Wallet -> Value
-holdingInState (UtxoState m) w
-  | Just vs <- M.lookup (walletAddress w) m = utxoPayloadSetTotal vs
-  | otherwise = mempty
-
 successfulSingle :: TestTree
 successfulSingle =
   testGroup
