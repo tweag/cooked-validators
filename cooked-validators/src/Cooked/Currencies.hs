@@ -11,7 +11,18 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
-module Cooked.Currencies where
+module Cooked.Currencies
+  ( quickTokenName,
+    quickAssetClass,
+    quickValue,
+    permanentTokenName,
+    permanentAssetClass,
+    quickCurrencyPolicy,
+    quickCurrencySymbol,
+    permanentCurrencyPolicy,
+    permanentCurrencySymbol,
+  )
+where
 
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Plutus.Script.Utils.V1.Scripts as Validation
