@@ -9,7 +9,12 @@
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
-module Cooked.Pretty.Class where
+module Cooked.Pretty.Class
+  ( PrettyCooked (..),
+    printCookedOpt,
+    printCooked,
+  )
+where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Common

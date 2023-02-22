@@ -1,7 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Common tools to help implement pretty-printers in cooked-validators
-module Cooked.Pretty.Common where
+module Cooked.Pretty.Common
+  ( DocCooked,
+    renderString,
+    prettyItemize,
+    prettyItemizeNonEmpty,
+    prettyEnumerate,
+    prettyHash,
+    prettyNumericUnderscore,
+  )
+where
 
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP

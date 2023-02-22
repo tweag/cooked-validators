@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Cooked.Attack.DupToken where
+module Cooked.Attack.DupToken (dupTokenAttack, DupTokenLbl (..)) where
 
 import Control.Monad
 import Cooked.Skeleton

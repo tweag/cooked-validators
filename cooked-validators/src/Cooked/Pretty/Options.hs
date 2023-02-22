@@ -1,5 +1,9 @@
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
-module Cooked.Pretty.Options where
+module Cooked.Pretty.Options
+  ( PrettyCookedOpts (..),
+    PCOptTxOutRefs (..),
+  )
+where
 
 import Data.Default
 

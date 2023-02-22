@@ -8,7 +8,13 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.Attack.DatumHijacking where
+module Cooked.Attack.DatumHijacking
+  ( redirectScriptOutputTweak,
+    datumHijackingAttack,
+    DatumHijackingLbl (..),
+    datumHijackingTarget,
+  )
+where
 
 import Control.Monad
 import Cooked.Output
