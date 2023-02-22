@@ -1,6 +1,13 @@
-module Cooked.MockChain.UtxoState where
+module Cooked.MockChain.UtxoState
+  ( UtxoState (..),
+    UtxoPayloadSet (..),
+    UtxoPayload (..),
+    holdingInState,
+  )
+where
 
 import Cooked.Skeleton (TxSkelOutDatum)
+import Cooked.Wallet (Wallet, walletAddress)
 import Data.Function (on)
 import qualified Data.List as List
 import Data.Map.Strict (Map)
@@ -14,6 +21,13 @@ import qualified Plutus.V1.Ledger.Value as Pl1
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
 newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
+
+-- | Helper function to compute what the given wallet owns in the
+-- given state
+holdingInState :: UtxoState -> Wallet -> Pl1.Value
+holdingInState (UtxoState m) w
+  | Just vs <- Map.lookup (walletAddress w) m = utxoPayloadSetTotal vs
+  | otherwise = mempty
 
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
@@ -50,7 +64,3 @@ instance Monoid UtxoPayloadSet where
 -- | Computes the total value in a set
 utxoPayloadSetTotal :: UtxoPayloadSet -> Pl1.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
-
--- | Computes the total value in the entire state
-utxoStateTotal :: UtxoState -> Pl1.Value
-utxoStateTotal = mconcat . fmap utxoPayloadSetTotal . Map.elems . utxoState

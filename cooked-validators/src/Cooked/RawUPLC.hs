@@ -1,6 +1,12 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Cooked.RawUPLC where
+module Cooked.RawUPLC
+  ( unsafeTypedValidatorFromUPLC,
+    typedValidatorFromUPLC,
+    unsafeTypedValidatorFromBS,
+    typedValidatorFromBS,
+  )
+where
 
 import qualified Data.ByteString as BS
 import qualified Flat

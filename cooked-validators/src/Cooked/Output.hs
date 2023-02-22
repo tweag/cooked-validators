@@ -7,7 +7,39 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Output where
+module Cooked.Output
+  ( IsAbstractOutput,
+    OwnerType,
+    DatumType,
+    ValueType,
+    ReferenceScriptType,
+    outputOwnerL,
+    outputStakingCredentialL,
+    outputDatumL,
+    outputValueL,
+    outputReferenceScriptL,
+    ToCredential (..),
+    ToOutputDatum (..),
+    ToValue (..),
+    ToScript (..),
+    ToScriptHash (..),
+    IsOnchainOutput,
+    outputAddress,
+    outputOutputDatum,
+    outputValue,
+    outputReferenceScriptHash,
+    outputTxOut,
+    ConcreteOutput (ConcreteOutput),
+    toOutputWithReferenceScriptHash,
+    isOutputWithoutDatum,
+    isOutputWithInlineDatum,
+    isOutputWithDatumHash,
+    isOutputWithInlineDatumOfType,
+    isScriptOutputFrom,
+    isPKOutputFrom,
+    isOnlyAdaOutput,
+  )
+where
 
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl

@@ -12,6 +12,7 @@ module Cooked.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
 import Cooked
+import Cooked.MockChain.Staged
 import Cooked.TestUtils
 import Data.Default
 import qualified Data.Map as Map

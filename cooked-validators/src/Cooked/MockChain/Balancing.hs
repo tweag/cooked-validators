@@ -4,7 +4,12 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
-module Cooked.MockChain.Balancing where
+module Cooked.MockChain.Balancing
+  ( balancedTxSkel,
+    balancedTx,
+    txSkelInputData,
+  )
+where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C

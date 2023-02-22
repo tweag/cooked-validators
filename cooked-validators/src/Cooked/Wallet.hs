@@ -10,9 +10,25 @@
 -- It also exposes a convenient API to construct wallets and distributions,
 -- manipulate them, and fetch information (such as public/private keys and
 -- staking keys).
-module Cooked.Wallet where
+module Cooked.Wallet
+  ( knownWallets,
+    wallet,
+    walletPKHashToId,
+    walletPK,
+    walletStakingPK,
+    walletPKHash,
+    walletStakingPKHash,
+    walletAddress,
+    walletSK,
+    walletStakingSK,
+    txAddSignature,
+    initialDistribution,
+    InitialDistribution (..),
+    Wallet,
+    PrivateKey,
+  )
+where
 
-import qualified Cardano.Api as Cardano
 import qualified Cardano.Crypto.Wallet as Cardano
 import Data.Default
 import Data.Function (on)
@@ -22,13 +38,9 @@ import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Pl
-import qualified Ledger.Scripts as Pl
 import qualified Ledger.Tx as Pl
-import qualified Ledger.Tx.CardanoAPI.Internal as Pl
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl2
-import qualified PlutusTx as Pl
 import Unsafe.Coerce
 
 -- * MockChain Wallets
@@ -178,54 +190,3 @@ distributionFromList = InitialDistribution . Map.fromList
 -- some wallets.
 initialDistribution :: [(Wallet, [Pl.Value])] -> InitialDistribution
 initialDistribution = (def <>) . distributionFromList
-
--- | Bootstraps an initial transaction resulting in a state where wallets
--- posess UTxOs fitting a given 'InitialDistribution'
-initialTxFor :: InitialDistribution -> Pl.Tx
-initialTxFor initDist =
-  mempty
-    { Pl.txMint =
-        fromRight'
-          . Pl.toCardanoValue
-          $ mconcat (map (mconcat . snd) initDist'),
-      Pl.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-    }
-  where
-    initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
-
-    initDist' = Map.toList $ unInitialDistribution initDist
-
-    toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Pl.TxOut
-    toPlTxOut addr value datum = toPlTxOut' addr value datum'
-      where
-        datum' =
-          maybe
-            Pl2.NoOutputDatum
-            ( Pl2.OutputDatumHash
-                . Pl.datumHash
-                . Pl.Datum
-                . Pl.toBuiltinData
-            )
-            datum
-
-    toPlTxOut' :: Pl.Address -> Pl.Value -> Pl2.OutputDatum -> Pl.TxOut
-    toPlTxOut' addr value datum = Pl.TxOut $ toCardanoTxOut' addr value datum
-
-    toCardanoTxOut' ::
-      Pl.Address ->
-      Pl.Value ->
-      Pl2.OutputDatum ->
-      Cardano.TxOut Cardano.CtxTx Cardano.BabbageEra
-    toCardanoTxOut' addr value datum =
-      fromRight' $
-        Pl.toCardanoTxOut
-          theNetworkId
-          (Pl2.TxOut addr value datum Nothing)
-
-    fromRight' :: Show e => Either e a -> a
-    fromRight' x = case x of
-      Left err -> error $ show err
-      Right res -> res
-
-    theNetworkId :: Cardano.NetworkId
-    theNetworkId = Cardano.Testnet $ Cardano.NetworkMagic 42 -- TODO PORT what's magic?
