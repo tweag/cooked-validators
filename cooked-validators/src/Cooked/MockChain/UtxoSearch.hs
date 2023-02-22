@@ -2,11 +2,22 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Cooked.MockChain.UtxoSearch where
+module Cooked.MockChain.UtxoSearch
+  ( runUtxoSearch,
+    allUtxosSearch,
+    allUtxosLedgerSearch,
+    utxosAtSearch,
+    utxosAtLedgerSearch,
+    utxosFromCardanoTxSearch,
+    filterWith,
+    filterWithPure,
+    filterWithOptic,
+    filterWithPred,
+  )
+where
 
 import Control.Monad
 import Cooked.MockChain.BlockChain
-import Cooked.Output
 import qualified Ledger.Tx as Ledger
 import ListT (ListT (..))
 import qualified ListT
