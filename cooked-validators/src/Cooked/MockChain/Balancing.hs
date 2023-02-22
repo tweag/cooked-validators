@@ -19,6 +19,7 @@ import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.UtxoSearch
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -279,16 +280,16 @@ setFeeAndBalance balanceWallet skel0 = do
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
-              -- Debug.Trace.traceM "Reached fixpoint:"
-              -- Debug.Trace.traceM $ "- fee = " <> show fee
-              -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-              pure (attemptedSkel, fee) -- reached fixpoint
+            -- Debug.Trace.traceM "Reached fixpoint:"
+            -- Debug.Trace.traceM $ "- fee = " <> show fee
+            -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+            pure (attemptedSkel, fee) -- reached fixpoint
           | n == 0 -> do
-              -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-              pure (attemptedSkel, max newFee fee) -- maximum number of iterations
+            -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+            pure (attemptedSkel, max newFee fee) -- maximum number of iterations
           | otherwise -> do
-              -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-              calcFee (n - 1) newFee cUtxoIndex skel
+            -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+            calcFee (n - 1) newFee cUtxoIndex skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
@@ -319,7 +320,11 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
 -- | Calculates the collateral for a transaction
 calcCollateral :: MonadBlockChainBalancing m => Wallet -> m (Set PV2.TxOutRef)
 calcCollateral w = do
-  souts <- filterUtxos (isOutputWithoutDatum >=> isOnlyAdaOutput) <$> utxosAt (walletAddress w)
+  souts <-
+    runUtxoSearch $
+      utxosAtSearch (walletAddress w)
+        `filterWithPure` isOutputWithoutDatum
+        `filterWithPure` isOnlyAdaOutput
   when (null souts) $
     throwError MCENoSuitableCollateral
   -- TODO We only keep one element of the list because we are limited on
@@ -469,7 +474,7 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       -- All transaction outputs that are ada-only, datum-free, and belong to
       -- 'balancePK', together with the index of the corresponding 'TxSkelOut'
       -- in 'outs'.
-      candidateOutputsWithIndices :: [(Int, PKAdaOnlyOutput)]
+      candidateOutputsWithIndices :: [(Int, ConcreteOutput PV2.PubKeyHash () Pl.Ada PV2.ScriptHash)]
       candidateOutputsWithIndices =
         mapMaybe
           ( \(i, Pays output) ->

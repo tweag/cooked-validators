@@ -12,6 +12,7 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
+import Data.Maybe
 import qualified Data.Set as Set
 import qualified Ledger.Index as Pl
 import Optics.Core
@@ -214,7 +215,18 @@ tests =
                   )
                   def
                   $ putRefScriptOnScriptOutput yesValidator theRefScript
-                    >>= retrieveRefScriptHash
+                    >>= retrieveRefScriptHash,
+              testCase "retreiving the complete script from its hash" $
+                testSucceedsFrom'
+                  def
+                  ( \mOut _ -> case mOut of
+                      Nothing -> testFailure
+                      Just out -> Just (Pl.vValidatorScript theRefScript) .==. out ^. outputReferenceScriptL
+                  )
+                  def
+                  $ putRefScriptOnWalletOutput (wallet 3) theRefScript
+                    >>= fmap fromJust . txOutByRef
+                    >>= resolveReferenceScript
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"

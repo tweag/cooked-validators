@@ -70,6 +70,7 @@ module Cooked.Skeleton
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
+    txSkelOutReferenceScripts,
   )
 where
 
@@ -822,21 +823,27 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
     <> Pl.lovelaceValueOf (feeLovelace fees)
 
+-- | All validators protecting transaction outputs
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
     . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
     . txSkelOuts
 
--- -- | All of the '_txSkelRequiredSigners', plus all of the signers required for
--- -- PK inputs on the transaction
--- txSkelAllSigners :: TxSkel -> Set Pl.PubKeyHash
--- txSkelAllSigners skel =
---   (skel ^. txSkelRequiredSignersL)
---     <> foldMapOf
---       (consumedOutputsF % afolding sBelongsToPubKey)
---       Set.singleton
---       skel
+-- | All validators in the reference script field of transaction outputs
+txSkelOutReferenceScripts :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+txSkelOutReferenceScripts =
+  mconcat
+    . map
+      ( \(Pays output) ->
+          case output ^. outputReferenceScriptL of
+            Nothing -> Map.empty
+            Just x ->
+              let vScript@(Pl.Versioned script version) = toScript x
+                  Pl.ScriptHash hash = toScriptHash vScript
+               in Map.singleton (Pl.ValidatorHash hash) $ Pl.Versioned (Pl.Validator script) version
+      )
+    . txSkelOuts
 
 -- * Utilities
 

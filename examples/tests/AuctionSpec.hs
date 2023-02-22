@@ -227,11 +227,15 @@ tryDoubleSat =
         ( \redeemer ->
             case txSkelTypedRedeemer @A.Auction redeemer of
               Just (A.Bid (A.BidderInfo bid bidder)) -> do
-                extraUtxos <- filteredUtxosWithDatums $ isScriptOutputFrom' A.auctionValidator
+                extraUtxos <-
+                  runUtxoSearch $
+                    utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+                      `filterWith` resolveDatum
+                      `filterWithPure` isOutputWithInlineDatumOfType @A.AuctionState
                 return $
                   mapMaybe
                     ( \(oref, output) -> case output ^. outputDatumL of
-                        ResolvedOrInlineDatum (A.NoBids seller minBid _deadline) ->
+                        (A.NoBids seller minBid _deadline) ->
                           Just
                             ( Map.singleton oref $
                                 TxSkelRedeemerForScript
@@ -239,7 +243,7 @@ tryDoubleSat =
                               [],
                               mempty
                             )
-                        ResolvedOrInlineDatum (A.Bidding seller _deadline (A.BidderInfo prevBid prevBidder)) ->
+                        (A.Bidding seller _deadline (A.BidderInfo prevBid prevBidder)) ->
                           Just
                             ( Map.singleton oref $
                                 TxSkelRedeemerForScript
@@ -404,9 +408,9 @@ exploitDoubleSat = do
   A.txBid bob offer2 60_000_000
   -- The UTxO at the first auction that represents the current state:
   [(theLastBidOref, theLastBidOutput)] <-
-    filteredUtxos $
-      isScriptOutputFrom A.auctionValidator
-        >=> isOutputWithValueSuchThat (`Pl.geq` A.threadToken offer1)
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress A.auctionValidator)
+        `filterWithPred` ((`Pl.geq` A.threadToken offer1) . outputValue)
   -- Eve now bids on the second auction. Among other things this ensures that
   -- there's an output containing 40_000_000 Lovelace to Bob on the
   -- transaction. This means that, if she simultaneously bids on the first

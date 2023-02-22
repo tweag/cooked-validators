@@ -15,6 +15,7 @@ import Cooked.MockChain.Staged
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
@@ -74,7 +75,10 @@ lockTxSkel o v =
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
-  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom (walletPKHash $ wallet 1) >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
+  (oref, _) : _ <-
+    runUtxoSearch $
+      utxosAtSearch (walletAddress $ wallet 1)
+        `filterWithPred` ((`Pl.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -92,9 +96,11 @@ txRelock ::
   m ()
 txRelock v = do
   (oref, _) : _ <-
-    filteredUtxosWithDatums $
-      isScriptOutputFrom' v
-        >=> isOutputWithDatumSuchThat (ResolvedOrInlineDatum FirstLock ==)
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress v)
+        `filterWith` resolveDatum
+        `filterWithPure` isOutputWithInlineDatumOfType @MockDatum
+        `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
 datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()

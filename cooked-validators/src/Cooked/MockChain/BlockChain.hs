@@ -8,7 +8,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -24,13 +23,13 @@ module Cooked.MockChain.BlockChain
     txOutByRef,
     utxosFromCardanoTx,
     txOutV2FromLedger,
-    filterUtxos,
-    filteredUtxos,
-    filteredUtxosWithDatums,
     typedDatumFromTxOutRef,
     valueFromTxOutRef,
     outputDatumFromTxOutRef,
     datumFromTxOutRef,
+    resolveDatum,
+    resolveValidator,
+    resolveReferenceScript,
   )
 where
 
@@ -46,7 +45,6 @@ import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Kind
-import Data.Maybe
 import qualified Ledger.Index as Ledger
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
@@ -159,39 +157,92 @@ utxosFromCardanoTx =
 txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
--- | Helper function to filter the output of 'allUtxos' and 'utxosFromCardanoTx'
-filterUtxos :: (o1 -> Maybe o2) -> [(PV2.TxOutRef, o1)] -> [(PV2.TxOutRef, o2)]
-filterUtxos predicate = mapMaybe (\(oref, out) -> (oref,) <$> predicate out)
+-- | Try to resolve the datum on the output: If there's an inline datum, take
+-- that; if there's a datum hash, look the corresponding datum up (with 'datumFromHash'), returning
+-- @Nothing@ if it can't be found; if there's no datum or hash at all, return
+-- @Nothing@.
+resolveDatum ::
+  ( IsAbstractOutput out,
+    ToOutputDatum (DatumType out),
+    MonadBlockChainBalancing m
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) PV2.Datum (ValueType out) (ReferenceScriptType out)))
+resolveDatum out =
+  case outputOutputDatum out of
+    PV2.OutputDatumHash datumHash -> do
+      mDatum <- datumFromHash datumHash
+      case mDatum of
+        Nothing -> return Nothing
+        Just datum ->
+          return . Just $
+            ConcreteOutput
+              (out ^. outputOwnerL)
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              datum
+              (out ^. outputReferenceScriptL)
+    PV2.OutputDatum datum ->
+      return . Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (out ^. outputStakingCredentialL)
+          (out ^. outputValueL)
+          datum
+          (out ^. outputReferenceScriptL)
+    PV2.NoOutputDatum -> return Nothing
 
--- | Like 'allUtxos', but on every 'OutputDatumHash', try to resolve the
--- complete datum from the state
-allUtxosWithDatums :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
-allUtxosWithDatums = allUtxos >>= resolveDatums
+-- | Try to resolve the validator that owns an output: If the output is owned by
+-- a public key, or if the validator's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@) return @Nothing@.
+resolveValidator ::
+  ( IsAbstractOutput out,
+    ToCredential (OwnerType out),
+    MonadBlockChainBalancing m
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (Pl.Versioned PV2.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
+resolveValidator out =
+  case toCredential (out ^. outputOwnerL) of
+    PV2.PubKeyCredential _ -> return Nothing
+    PV2.ScriptCredential valHash -> do
+      mVal <- validatorFromHash valHash
+      case mVal of
+        Nothing -> return Nothing
+        Just val ->
+          return . Just $
+            ConcreteOutput
+              val
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              (out ^. outputDatumL)
+              (out ^. outputReferenceScriptL)
 
-resolveDatums :: MonadBlockChainBalancing m => [(PV2.TxOutRef, PV2.TxOut)] -> m [(PV2.TxOutRef, PV2.TxOut)]
-resolveDatums =
-  mapM
-    ( \(oref, out) -> case outputOutputDatum out of
-        PV2.OutputDatumHash datumHash -> do
-          mDatum <- datumFromHash datumHash
-          case mDatum of
-            Nothing -> return (oref, out)
-            Just datum -> return (oref, out & outputDatumL .~ PV2.OutputDatum datum)
-        _ -> return (oref, out)
-    )
-
-filteredUtxos :: MonadBlockChainWithoutValidation m => (PV2.TxOut -> Maybe output) -> m [(PV2.TxOutRef, output)]
-filteredUtxos predicate = filterUtxos predicate <$> allUtxos
-
--- | Like 'filteredUtxos', but will all resolvable datum hashes resolved. This
--- means that the outputs are presented differently from how a script would see
--- them; the information on whether there are inline datums or datum hashes is
--- lost.
-filteredUtxosWithDatums ::
-  MonadBlockChainWithoutValidation m =>
-  (PV2.TxOut -> Maybe output) ->
-  m [(PV2.TxOutRef, output)]
-filteredUtxosWithDatums predicate = filterUtxos predicate <$> allUtxosWithDatums
+-- | Try to resolve the reference script on an output: If the output has no
+-- reference script, or if the reference script's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
+resolveReferenceScript ::
+  ( IsAbstractOutput out,
+    ToScriptHash (ReferenceScriptType out),
+    MonadBlockChainBalancing m
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Pl.Versioned PV2.Validator)))
+resolveReferenceScript out =
+  case outputReferenceScriptHash out of
+    Nothing -> return Nothing
+    Just (PV2.ScriptHash hash) -> do
+      mVal <- validatorFromHash (PV2.ValidatorHash hash)
+      case mVal of
+        Nothing -> return Nothing
+        Just val ->
+          return . Just $
+            ConcreteOutput
+              (out ^. outputOwnerL)
+              (out ^. outputStakingCredentialL)
+              (out ^. outputValueL)
+              (out ^. outputDatumL)
+              (Just val)
 
 outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do

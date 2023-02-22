@@ -6,8 +6,8 @@ module Cooked.Tweak.OutPermutationsSpec (tests) where
 
 import Control.Monad (join, replicateM)
 import Cooked
-import Cooked.TestUtils
 import Cooked.MockChain.Staged
+import Cooked.TestUtils
 import Data.Default
 import Data.Either (rights)
 import Data.List (group, groupBy)

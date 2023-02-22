@@ -71,7 +71,7 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
     extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
     extractPayload (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
       do
-        let mRefScript = outputReferenceScript out
+        let mRefScript = outputReferenceScriptHash out
         txSkelOutDatum <-
           case txOutDatum of
             Pl.NoOutputDatum -> Just TxSkelOutNoDatum
@@ -309,7 +309,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         (txOptUnsafeModTx $ txSkelOpts skel)
         consumedData
         (txSkelOutputData skel)
-        (txSkelOutValidators skel)
+        (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
     return (Ledger.CardanoApiTx someCardanoTx)
@@ -325,7 +325,9 @@ runTransactionValidation ::
   Map Pl.DatumHash Pl.Datum ->
   -- | The data produced by the transaction
   Map Pl.DatumHash TxSkelOutDatum ->
-  -- | The validators protecting transaction outputs
+  -- | The validators protecting transaction outputs, and the validators in the
+  -- reference script field of transaction outputs. The MockChain will remember
+  -- them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   MockChainT m Ledger.SomeCardanoApiTx
 runTransactionValidation cardanoTx rawModTx consumedData producedData outputValidators = do

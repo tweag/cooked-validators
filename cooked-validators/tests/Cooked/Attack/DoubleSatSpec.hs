@@ -140,12 +140,12 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 2_000_000)
-          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 3_000_000)
-          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 4_000_000)
-          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 5_000_000)
-          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 6_000_000)
-          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 7_000_000)
+    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 2_000_000) . outputValue)
+          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 3_000_000) . outputValue)
+          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 4_000_000) . outputValue)
+          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 5_000_000) . outputValue)
+          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 6_000_000) . outputValue)
+          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 7_000_000) . outputValue)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
@@ -179,36 +179,36 @@ tests =
                         ( doubleSatAttack
                             (txSkelInsL % to Map.keys % folded) -- We know that all of these TxOutRefs point to something that the 'aValidator' owns
                             ( \aOref -> do
-                                bUtxos <- filteredUtxos $ isScriptOutputFrom bValidator
+                                bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
                                 Just aValue <- valueFromTxOutRef aOref
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
-                                        return
-                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                            | (bOref, bOut) <- bUtxos,
-                                              outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                          ]
+                                      return
+                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                          | (bOref, bOut) <- bUtxos,
+                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        ]
                                     | aValue == Pl.lovelaceValueOf 3_000_000 ->
-                                        return
-                                          [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                            | (bOref, bOut) <- bUtxos,
-                                              outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
-                                          ]
+                                      return
+                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                          | (bOref, bOut) <- bUtxos,
+                                            outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                        ]
                                     | aValue == Pl.lovelaceValueOf 4_000_000 ->
-                                        return $
-                                          concatMap
-                                            ( \(bOref, bOut) ->
-                                                let bValue = outputValue bOut
-                                                 in if
-                                                        | bValue == Pl.lovelaceValueOf 6_000_000 ->
-                                                            [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
-                                                        | bValue == Pl.lovelaceValueOf 7_000_000 ->
-                                                            [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
-                                                              toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
-                                                            ]
-                                                        | otherwise -> []
-                                            )
-                                            bUtxos
+                                      return $
+                                        concatMap
+                                          ( \(bOref, bOut) ->
+                                              let bValue = outputValue bOut
+                                               in if
+                                                      | bValue == Pl.lovelaceValueOf 6_000_000 ->
+                                                        [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
+                                                      | bValue == Pl.lovelaceValueOf 7_000_000 ->
+                                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
+                                                          toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
+                                                        ]
+                                                      | otherwise -> []
+                                          )
+                                          bUtxos
                                     | otherwise -> return []
                             )
                             (wallet 6)
