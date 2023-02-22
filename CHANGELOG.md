@@ -9,7 +9,8 @@ code quality.
 ### New features
 
 - Reference inputs can be declared in transaction skeletons.
-- Reference scripts can be declared in outputs of transaction skeletons.
+- Reference scripts can be declared in outputs of transaction skeletons and one
+  can spend inputs from a script that a transaction references.
 - Datums in outputs of transaction skeletons can be declared as
    - inlined, 
    - hashed, with the resolved datum included on the transaction (i.e. as in
