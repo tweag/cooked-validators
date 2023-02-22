@@ -291,8 +291,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         witnessMap :: Either GenerateTxError (Map C.PolicyId (C.ScriptWitness C.WitCtxMint C.BabbageEra))
         witnessMap =
-          right mconcat
-            $ mapM
+          right mconcat $
+            mapM
               ( \(policy, redeemer, _tName, _amount) ->
                   Map.singleton
                     <$> left
@@ -300,7 +300,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                       (Pl.toCardanoPolicyId (Pl.mintingPolicyHash policy))
                     <*> mkMintWitness policy redeemer
               )
-            $ txSkelMintsToList mints
+              $ txSkelMintsToList mints
 
         mkMintWitness ::
           Pl.Versioned Pl.MintingPolicy ->
