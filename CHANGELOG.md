@@ -10,8 +10,10 @@ code quality.
 
 - Reference inputs can be declared in transaction skeletons
 - Reference scripts can be declared in outputs of transaction skeletons
-- Datums in outputs of transaction skeletons can be declared as inlined, or
-  hashed (resolved or not in the transaction itself)
+- Datums in outputs of transaction skeletons can be declared as
+   - inlined, 
+   - hashed, with the resolved datum included on the transaction (i.e. as in Plutus V1), or
+   - hashed, without the resolved datum on the transaction.
 - New framework to search for UTxOs in the state using chainable filters
   that bring more type information
 - Parameterizable and revamped pretty-printing relying on `prettyprinter`
