@@ -82,7 +82,6 @@ library
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-ledger-constraints
     , plutus-pab
     , plutus-script-utils
     , plutus-tx
@@ -155,7 +154,6 @@ test-suite spec
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-ledger-constraints
     , plutus-pab
     , plutus-script-utils
     , plutus-tx
