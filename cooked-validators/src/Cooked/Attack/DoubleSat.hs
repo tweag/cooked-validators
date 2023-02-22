@@ -4,7 +4,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.Attack.DoubleSat where
+module Cooked.Attack.DoubleSat
+  ( DoubleSatSplitMode (..),
+    DoubleSatDelta,
+    DoubleSatLbl (..),
+    doubleSatAttack,
+  )
+where
 
 import Control.Monad
 import Cooked.MockChain.BlockChain

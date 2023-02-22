@@ -17,7 +17,24 @@
 -- Some structure require additional arguments to be pretty-printed and have
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
 -- 'TxSkelContext').
-module Cooked.Pretty.Cooked where
+module Cooked.Pretty.Cooked
+  ( prettyMockChainLog,
+    prettyTxSkel,
+    prettyBalancingWallet,
+    prettySigners,
+    prettyMints,
+    mPrettyTxOpts,
+    prettyTxSkelOut,
+    prettyTxSkelOutDatumMaybe,
+    prettyTxSkelIn,
+    prettyTxSkelInReference,
+    prettyUtxoState,
+    prettyAddressState,
+    prettyPayloadGrouped,
+    prettyPayload,
+    prettyReferenceScriptHash,
+  )
+where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
