@@ -8,21 +8,17 @@
 </span><span id="line-8"></span><span>    </span><span class="hs-comment">-- By default: False</span><span>
 </span><span id="line-9"></span><span>    </span><span id="pcOptPrintTxHashes"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintTxHashes"><span class="hs-identifier hs-var hs-var">pcOptPrintTxHashes</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">,</span><span>
-</span><span id="line-10"></span><span>    </span><span class="hs-comment">-- | Whether to print transaction outputs references.</span><span>
-</span><span id="line-11"></span><span>    </span><span class="hs-comment">-- By default: hidden</span><span>
-</span><span id="line-12"></span><span>    </span><span id="pcOptPrintTxOutRefs"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PCOptTxOutRefs
-</span><a href="Cooked.Pretty.Options.html#pcOptPrintTxOutRefs"><span class="hs-identifier hs-var hs-var">pcOptPrintTxOutRefs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefs"><span class="hs-identifier hs-type">PCOptTxOutRefs</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-13"></span><span>    </span><span class="hs-comment">-- | Whether to print tx options that have not been modified from their</span><span>
-</span><span id="line-14"></span><span>    </span><span class="hs-comment">-- default.</span><span>
-</span><span id="line-15"></span><span>    </span><span class="hs-comment">-- By default: False</span><span>
-</span><span id="line-16"></span><span>    </span><span id="pcOptPrintDefaultTxOpts"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
+</span><span id="line-10"></span><span>    </span><span class="hs-comment">-- | Whether to print tx options that have not been modified from their</span><span>
+</span><span id="line-11"></span><span>    </span><span class="hs-comment">-- default.</span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-comment">-- By default: False</span><span>
+</span><span id="line-13"></span><span>    </span><span id="pcOptPrintDefaultTxOpts"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintDefaultTxOpts"><span class="hs-identifier hs-var hs-var">pcOptPrintDefaultTxOpts</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">,</span><span>
-</span><span id="line-17"></span><span>    </span><span class="hs-comment">-- | Length of printed hashes (e.g. addresses, tx ids)</span><span>
-</span><span id="line-18"></span><span>    </span><span class="hs-comment">-- By default: 7</span><span>
-</span><span id="line-19"></span><span>    </span><span id="pcOptPrintedHashLength"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Int
+</span><span id="line-14"></span><span>    </span><span class="hs-comment">-- | Length of printed hashes (e.g. addresses, tx ids)</span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-comment">-- By default: 7</span><span>
+</span><span id="line-16"></span><span>    </span><span id="pcOptPrintedHashLength"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Int
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintedHashLength"><span class="hs-identifier hs-var hs-var">pcOptPrintedHashLength</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
-</span><span id="line-20"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-21"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679503956"><span id="local-6989586621679503958"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+</span><span id="line-17"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679499598"><span id="local-6989586621679499600"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; Eq PrettyCookedOpts
@@ -31,7 +27,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 == :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 $c== :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679503949"><span id="local-6989586621679503951"><span id="local-6989586621679503953"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679499591"><span id="local-6989586621679499593"><span id="local-6989586621679499595"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
 [PrettyCookedOpts] -&gt; ShowS
 PrettyCookedOpts -&gt; String
 (Int -&gt; PrettyCookedOpts -&gt; ShowS)
@@ -47,60 +43,20 @@ $cshow :: PrettyCookedOpts -&gt; String
 showsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
 $cshowsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-22"></span><span>
-</span><span id="line-23"></span><span class="hs-comment">-- | Whether to print transaction outputs references.</span><span>
-</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="PCOptTxOutRefs"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefs"><span class="hs-identifier hs-var">PCOptTxOutRefs</span></a></span></span><span>
-</span><span id="line-25"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | Hide them</span><span>
-</span><span id="line-26"></span><span>    </span><span id="PCOptTxOutRefsHidden"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsHidden"><span class="hs-identifier hs-var">PCOptTxOutRefsHidden</span></a></span></span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Always show them.</span><span>
-</span><span id="line-28"></span><span>    </span><span class="hs-comment">-- Warning: this will disable printing similar utxos as a group</span><span>
-</span><span id="line-29"></span><span>    </span><span class="hs-comment">-- (for instance @(&#215;10) Lovelace: 100_000_000@)</span><span>
-</span><span id="line-30"></span><span>    </span><span id="PCOptTxOutRefsFull"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsFull"><span class="hs-identifier hs-var">PCOptTxOutRefsFull</span></a></span></span><span>
-</span><span id="line-31"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Show them for utxos which are not grouped with similar others.</span><span>
-</span><span id="line-32"></span><span>    </span><span class="hs-comment">-- This avoids  the downside of 'PCOptTxOutRefsFull' which disables printing</span><span>
-</span><span id="line-33"></span><span>    </span><span class="hs-comment">-- utxos as a group.</span><span>
-</span><span id="line-34"></span><span>    </span><span id="PCOptTxOutRefsPartial"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsPartial"><span class="hs-identifier hs-var">PCOptTxOutRefsPartial</span></a></span></span><span>
-</span><span id="line-35"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679503941"><span id="local-6989586621679503943"><span class="annot"><span class="annottext">PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-(PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool)
--&gt; (PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool) -&gt; Eq PCOptTxOutRefs
-forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-$c/= :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-== :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-$c== :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679503935"><span id="local-6989586621679503937"><span id="local-6989586621679503939"><span class="annot"><span class="annottext">Int -&gt; PCOptTxOutRefs -&gt; ShowS
-[PCOptTxOutRefs] -&gt; ShowS
-PCOptTxOutRefs -&gt; String
-(Int -&gt; PCOptTxOutRefs -&gt; ShowS)
--&gt; (PCOptTxOutRefs -&gt; String)
--&gt; ([PCOptTxOutRefs] -&gt; ShowS)
--&gt; Show PCOptTxOutRefs
-forall a.
-(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [PCOptTxOutRefs] -&gt; ShowS
-$cshowList :: [PCOptTxOutRefs] -&gt; ShowS
-show :: PCOptTxOutRefs -&gt; String
-$cshow :: PCOptTxOutRefs -&gt; String
-showsPrec :: Int -&gt; PCOptTxOutRefs -&gt; ShowS
-$cshowsPrec :: Int -&gt; PCOptTxOutRefs -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-38"></span><span>  </span><span id="local-6989586621679503932"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>  </span><span id="local-6989586621679499587"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts :: Bool -&gt; PCOptTxOutRefs -&gt; Bool -&gt; Int -&gt; PrettyCookedOpts
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts :: Bool -&gt; Bool -&gt; Int -&gt; PrettyCookedOpts
 </span><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span>
-</span><span id="line-40"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">pcOptPrintTxHashes :: Bool
+</span><span id="line-23"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">pcOptPrintTxHashes :: Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintTxHashes"><span class="hs-identifier hs-var">pcOptPrintTxHashes</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span>
-</span><span id="line-41"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintTxOutRefs :: PCOptTxOutRefs
-</span><a href="Cooked.Pretty.Options.html#pcOptPrintTxOutRefs"><span class="hs-identifier hs-var">pcOptPrintTxOutRefs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PCOptTxOutRefs
-</span><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsHidden"><span class="hs-identifier hs-var">PCOptTxOutRefsHidden</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-42"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintDefaultTxOpts :: Bool
+</span><span id="line-24"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintDefaultTxOpts :: Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintDefaultTxOpts"><span class="hs-identifier hs-var">pcOptPrintDefaultTxOpts</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span>
-</span><span id="line-43"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintedHashLength :: Int
+</span><span id="line-25"></span><span>        </span><span class="annot"><span class="annottext">pcOptPrintedHashLength :: Int
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintedHashLength"><span class="hs-identifier hs-var">pcOptPrintedHashLength</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">7</span></span><span>
-</span><span id="line-44"></span><span>      </span><span class="hs-special">}</span><span>
-</span><span id="line-45"></span></pre></body></html>
+</span><span id="line-26"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-27"></span></pre></body></html>
