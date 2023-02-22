@@ -7,6 +7,7 @@ module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
+import Cooked.MockChain.Staged
 import Data.Default
 import qualified Data.Set as Set
 import qualified Plutus.Script.Utils.Ada as Pl
@@ -18,7 +19,6 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
-import Cooked.MockChain.Staged
 import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.HUnit
