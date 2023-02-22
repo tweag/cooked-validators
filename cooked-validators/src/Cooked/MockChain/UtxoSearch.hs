@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Cooked.MockChain.Search where
+module Cooked.MockChain.UtxoSearch where
 
 import Control.Monad
 import Cooked.MockChain.BlockChain
@@ -69,5 +69,5 @@ filterWithPure as f = filterWith as (return . f)
 filterWithOptic :: (Is k An_AffineFold, Monad m) => UtxoSearch m a -> Optic' k is a b -> UtxoSearch m b
 filterWithOptic as optic = filterWithPure as (^? optic)
 
-filterWithBool :: Monad m => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
-filterWithBool as f = filterWithPure as $ \a -> if f a then Just a else Nothing
+filterWithPred :: Monad m => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
+filterWithPred as f = filterWithPure as $ \a -> if f a then Just a else Nothing

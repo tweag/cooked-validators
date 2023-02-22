@@ -139,12 +139,12 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 2_000_000) . outputValue)
-          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 3_000_000) . outputValue)
-          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 4_000_000) . outputValue)
-          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 5_000_000) . outputValue)
-          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 6_000_000) . outputValue)
-          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithBool` ((== Pl.lovelaceValueOf 7_000_000) . outputValue)
+    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 2_000_000) . outputValue)
+          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 3_000_000) . outputValue)
+          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 4_000_000) . outputValue)
+          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 5_000_000) . outputValue)
+          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 6_000_000) . outputValue)
+          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 7_000_000) . outputValue)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,

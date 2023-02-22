@@ -23,9 +23,9 @@ library
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
-      Cooked.MockChain.Search
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
+      Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState
       Cooked.Output
       Cooked.Pretty

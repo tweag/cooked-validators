@@ -14,7 +14,7 @@ import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
-import Cooked.MockChain.Search
+import Cooked.MockChain.UtxoSearch
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet

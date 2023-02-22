@@ -77,7 +77,7 @@ txLock v = do
   (oref, _) : _ <-
     runUtxoSearch $
       utxosAtSearch (walletAddress $ wallet 1)
-        `filterWithBool` ((`Pl.geq` lockValue) . outputValue)
+        `filterWithPred` ((`Pl.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -99,7 +99,7 @@ txRelock v = do
       utxosAtSearch (Pl.validatorAddress v)
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @MockDatum
-        `filterWithBool` ((FirstLock ==) . (^. outputDatumL))
+        `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
 datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()

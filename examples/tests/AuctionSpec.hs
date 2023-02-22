@@ -417,7 +417,7 @@ exploitDoubleSat = do
   [(theLastBidOref, theLastBidOutput)] <-
     runUtxoSearch $
       utxosAtSearch (Pl.validatorAddress A.auctionValidator)
-        `filterWithBool` ((`Pl.geq` A.threadToken offer1) . outputValue)
+        `filterWithPred` ((`Pl.geq` A.threadToken offer1) . outputValue)
   -- Eve now bids on the second auction. Among other things this ensures that
   -- there's an output containing 40_000_000 Lovelace to Bob on the
   -- transaction. This means that, if she simultaneously bids on the first
