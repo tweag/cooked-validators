@@ -49,8 +49,8 @@ hasFullTimeRangeTweak = validityRangeSatisfiesTweak (always ==)
 
 -- | Adds a constraint to the current validity range
 -- Returns the old range, and fails is the resulting interval is empty
-addToValidityRangeTweak :: MonadTweak m => SlotRange -> m SlotRange
-addToValidityRangeTweak newRange = do
+intersectValidityRangeTweak :: MonadTweak m => SlotRange -> m SlotRange
+intersectValidityRangeTweak newRange = do
   oldRange <- viewTweak txSkelValidityRangeL
   let combinedRange = intersection newRange oldRange
   guard (combinedRange /= never)
@@ -67,18 +67,18 @@ centerAroundValidityRangeTweak t r = do
   setValidityRangeTweak newRange
 
 -- | Makes a transaction range equal to a singleton
-makeValidityRangeSingleton :: MonadTweak m => Slot -> m SlotRange
-makeValidityRangeSingleton = setValidityRangeTweak . singleton
+makeValidityRangeSingletonTweak :: MonadTweak m => Slot -> m SlotRange
+makeValidityRangeSingletonTweak = setValidityRangeTweak . singleton
 
 -- | Makes the transaction validity range comply with the current time
 makeValidityRangeNowTweak :: MonadTweak m => m SlotRange
-makeValidityRangeNowTweak = currentSlot >>= makeValidityRangeSingleton
+makeValidityRangeNowTweak = currentSlot >>= makeValidityRangeSingletonTweak
 
--- | Makes current time comply with the current validity range
--- returns the new current time after the modification
--- fails if current time is already after the validity range
-makeCurrentTimeInValidityRangeTweak :: MonadTweak m => m Slot
-makeCurrentTimeInValidityRangeTweak = do
+-- | Makes current time comply with the validity range of the transaction under
+-- modification. Returns the new current time after the modification; fails if
+-- current time is already after the validity range.
+waitUntilValidTweak :: MonadTweak m => m Slot
+waitUntilValidTweak = do
   now <- currentSlot
   vRange <- getValidityRangeTweak
   if member now vRange

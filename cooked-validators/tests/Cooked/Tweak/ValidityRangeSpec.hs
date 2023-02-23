@@ -3,7 +3,7 @@ module Cooked.Tweak.ValidityRangeSpec (tests) where
 import Control.Monad (join)
 import Cooked (MonadTweak, awaitSlot, currentSlot, txSkelTemplate)
 import Cooked.MockChain.Staged (runTweak)
-import Cooked.Tweak.ValidityRange (addToValidityRangeTweak, centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeCurrentTimeInValidityRangeTweak, makeValidityRangeNowTweak, setValidityRangeTweak)
+import Cooked.Tweak.ValidityRange (centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, intersectValidityRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeValidityRangeNowTweak, setValidityRangeTweak, waitUntilValidTweak)
 import Data.Default (def)
 import Data.Either (rights)
 import Data.Function (on)
@@ -39,7 +39,7 @@ checkAddToValidityRange = do
   centerAroundValidityRangeTweak (timeOrigin + Slot 100) 80
   b <- isValidDuringTweak $ toSlotRangeTranslate timeOrigin 25 35
   b1 <- isValidAtTweak (timeOrigin + Slot 130)
-  addToValidityRangeTweak $ toSlotRangeTranslate timeOrigin 110 220
+  intersectValidityRangeTweak $ toSlotRangeTranslate timeOrigin 110 220
   b2 <- isValidAtTweak (timeOrigin + Slot 130)
   now <- currentSlot
   awaitSlot $ timeOrigin + Slot 130
@@ -55,13 +55,13 @@ checkAddToValidityRange = do
 checkMoveCurrentSlot :: MonadTweak m => m Assertion
 checkMoveCurrentSlot = do
   setValidityRangeTweak $ toSlotRange 10 20
-  makeCurrentTimeInValidityRangeTweak
+  waitUntilValidTweak
   b1 <- isValidNowTweak
   setValidityRangeTweak $ toSlotRange 30 60
-  makeCurrentTimeInValidityRangeTweak
+  waitUntilValidTweak
   b2 <- isValidNowTweak
   setValidityRangeTweak $ toSlotRange 80 100
-  makeCurrentTimeInValidityRangeTweak
+  waitUntilValidTweak
   b3 <- isValidNowTweak
   return $
     assertBool "Time shift did not occur" $
