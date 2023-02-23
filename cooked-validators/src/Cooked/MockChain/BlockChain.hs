@@ -19,6 +19,8 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
     allUtxos,
+    currentTime,
+    waitNSlots,
     utxosAt,
     txOutByRef,
     utxosFromCardanoTx,
@@ -32,6 +34,7 @@ module Cooked.MockChain.BlockChain
     resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
+    getTrans,
   )
 where
 
@@ -294,8 +297,8 @@ currentTime = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
   interval <- Emulator.slotToPOSIXTimeRange slotConfig <$> currentSlot
   case interval of
-    PV2.Interval (PV2.LowerBound (PV2.Finite left) _) (PV2.UpperBound (PV2.Finite right) _) ->
-      return (left, right)
+    PV2.Interval (PV2.LowerBound (PV2.Finite l) _) (PV2.UpperBound (PV2.Finite r) _) ->
+      return (l, r)
     _ -> fail "The enclosing slot should be finite on both ends."
 
 getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot

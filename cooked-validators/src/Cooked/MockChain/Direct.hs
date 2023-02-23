@@ -16,7 +16,6 @@ module Cooked.MockChain.Direct where
 import qualified Cardano.Api as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import qualified Cardano.Node.Emulator.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
