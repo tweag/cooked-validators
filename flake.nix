@@ -29,6 +29,7 @@
             pkg-config
             zlib
             xz
+            postgresql # For pg_config
             glibcLocales
           ]);
 
