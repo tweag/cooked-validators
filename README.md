@@ -65,10 +65,10 @@ Before using `cooked-validators`, you need
    from wallet 1 to wallet 2:
    ```haskell
    > import Cooked
-   > import qualified Plutus.Script.Utils.Ada as Script
+   > import qualified Plutus.Script.Utils.Ada as Pl
    > prettyCooked . runMockChain . validateTxSkel $
          txSkelTemplate
-           { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Script.adaValueOf 10)],
+           { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Pl.adaValueOf 10)],
              txSkelSigners = [wallet 1]
            }
    [...]
