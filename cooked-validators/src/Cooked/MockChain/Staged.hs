@@ -14,12 +14,12 @@ module Cooked.MockChain.Staged
     MockChainLogEntry (..),
     MockChainLog,
     StagedMockChain,
-    runTweak,
     runTweakFrom,
 
     -- * User API
     MonadModalBlockChain,
     somewhere,
+    runTweak,
     everywhere,
     withTweak,
   )
@@ -92,8 +92,6 @@ data MockChainBuiltin a where
   TxOutByRefLedger :: Pl.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
-  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]

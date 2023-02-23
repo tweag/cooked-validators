@@ -30,6 +30,8 @@ module Cooked.MockChain.BlockChain
     resolveDatum,
     resolveValidator,
     resolveReferenceScript,
+    getEnclosingSlot,
+    awaitEnclosingSlot,
   )
 where
 
@@ -379,9 +381,7 @@ instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
 instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
   currentSlot = lift currentSlot
-  currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
 
 instance MonadBlockChain m => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

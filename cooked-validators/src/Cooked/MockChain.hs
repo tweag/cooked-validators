@@ -9,7 +9,6 @@ import Cooked.MockChain.Staged as X hiding
     StagedMockChain,
     interpretAndRun,
     interpretAndRunWith,
-    runTweak,
     runTweakFrom,
   )
 import Cooked.MockChain.Testing as X
