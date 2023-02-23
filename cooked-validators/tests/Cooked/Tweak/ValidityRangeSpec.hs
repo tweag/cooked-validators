@@ -1,7 +1,8 @@
 module Cooked.Tweak.ValidityRangeSpec (tests) where
 
 import Control.Monad (join)
-import Cooked (MonadTweak, awaitSlot, currentSlot, runTweak, txSkelTemplate)
+import Cooked (MonadTweak, awaitSlot, currentSlot, txSkelTemplate)
+import Cooked.MockChain.Staged (runTweak)
 import Cooked.Tweak.ValidityRange (addToValidityRangeTweak, centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeCurrentTimeInValidityRangeTweak, makeValidityRangeNowTweak, setValidityRangeTweak)
 import Data.Default (def)
 import Data.Either (rights)
