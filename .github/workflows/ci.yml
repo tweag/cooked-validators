@@ -105,7 +105,7 @@ jobs:
             ~/.cabal/packages
             ~/.cabal/store
             dist-newstyle
-          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}-build-and-test
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-build-and-test
           restore-keys: ${{ runner.os }}-
 
       ## Steps below run a certain program and creates two files:
