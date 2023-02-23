@@ -121,16 +121,24 @@ jobs:
       - name: Build and run tests
         run: |
           nix develop .#ci --command bash -c '
-            set -xuo
-
-            cabal update
+            ## NOTE: `-x` and `-u` are here to help us avoid making mistakes.
+            ##
+            ## NOTE: `-o pipefail` is important for the semantics of this
+            ## script, because with pipe the result of `cabal build` and `cabal
+            ## run tests` through `tee`. Without `-o pipefail`, this succeeds if
+            ## and only if the `tee` command succeeds, while with `-o pipefail`
+            ## this succeeds if and only if all the commands succeed, which is
+            ## what we want.
+            set -xuo pipefail
 
             cabal_builds_all_ok=true
 
-            for proj in examples cooked-validators; do
-              pushd "$proj" || exit
+            for proj in cooked-validators examples; do
+              pushd "$proj" || exit 1
 
-              echo "Running `cabal build` on $proj"
+              cabal update
+
+              echo "Running \`cabal build\` on $proj"
               cabal_res=0
               cabal build | tee "../${proj}-cabal-build.out"
               cabal_res=$?
@@ -139,13 +147,13 @@ jobs:
                 cabal_builds_all_ok=false
               fi
 
-              echo "Running `cabal run tests` on $proj"
+              echo "Running \`cabal run tests\` on $proj"
               cabal_res=0
               cabal run tests | tee "../${proj}-cabal-test.out"
               cabal_res=$?
               echo "run_cabal_test:$cabal_res" > "../${proj}-cabal-test.res"
 
-              popd || exit
+              popd || exit 1
             done
 
             if ! $cabal_builds_all_ok; then
@@ -177,7 +185,7 @@ jobs:
         run: |
           is_ok=true
 
-          for proj in examples cooked-validators; do
+          for proj in cooked-validators examples; do
             for step in cabal-build cabal-test; do
               echo "!! [$proj]: output from $step"
               cat $proj-$step.out
