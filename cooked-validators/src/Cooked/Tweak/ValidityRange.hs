@@ -89,6 +89,6 @@ waitUntilValidTweak = do
       later <- case ivFrom vRange of
         LowerBound (Finite left) isClosed ->
           return $ left + Slot (toInteger $ fromEnum $ not isClosed)
-        _ -> fail "Invalid interval"
+        _ -> error "this should never happen: left-finite interval without left border"
       void $ awaitSlot later
       return later
