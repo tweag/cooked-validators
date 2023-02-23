@@ -34,7 +34,6 @@ module Cooked.MockChain.BlockChain
     resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
-    getTrans,
   )
 where
 
