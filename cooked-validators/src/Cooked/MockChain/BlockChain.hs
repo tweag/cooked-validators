@@ -34,6 +34,8 @@ module Cooked.MockChain.BlockChain
     resolveReferenceScript,
     getEnclosingSlot,
     awaitEnclosingSlot,
+    slotRangeBefore,
+    slotRangeAfter,
   )
 where
 
@@ -310,6 +312,16 @@ getEnclosingSlot t = do
 --  is larger than the argument.
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
+
+-- | The infinite range of slots starting with the first slot after the
+-- enclosing slot of the given time
+slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore t = PV2.to . (+ (-1)) <$> getEnclosingSlot t
+
+-- | The infinite range of slots ending with the last slot before the enclosing
+-- slot of the given time
+slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter t = PV2.from . (+ 1) <$> getEnclosingSlot t
 
 -- ** Deriving further 'MonadBlockChain' instances
 
