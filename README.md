@@ -12,7 +12,9 @@ potentially malicious offchain code. You can also use the library to write
 
 In particular, `cooked-validators` helps you
 - interact with smart contracts written in Plutus (as well as any other language
-  that compiles to UPLC, by loading contracts from byte strings),
+  that compiles to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc),
+  like for example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus),
+  by loading contracts from byte strings),
 - generate and submit transactions declaratively, while automatically taking
   care of missing inputs and outputs, balancing, and minimum-Ada constraints,
 - construct sequences of transactions in an easy-to-understand abstraction of
@@ -23,16 +25,17 @@ In particular, `cooked-validators` helps you
   are modifications that are aware of the current state of the simulated
   blockchain, and
 - compose and deploy tweaks with flexible idioms inspired by linear temporal
-  logic, in order to turn one sequence of transactions into potentially very
-  many traces that might be useful test cases.
+  logic, in order to turn one sequence of transactions into many sequences that
+  might be useful test cases.
 
 If you're interested in a one-stop-shop solution to writing Cardano smart
 contracts, `cooked-validators` is probably not for you. The library is geared
 specifically towards testing and auditing (already existing) on-chain code.
 
-We provide `cooked-validators` as a research prototype under active development,
-and it comes _as is_ with no guarantees whatsoever. Check the [license](LICENSE)
-for details.
+You are free to copy, modify, and distribute `cooked-validators` inder the terms
+of the MIT license. We provide `cooked-validators` as a research prototype under
+active development, and it comes _as is_ with no guarantees whatsoever. Check
+the [license](LICENSE) for details.
 
 ## How to use `cooked-validators`
 
@@ -44,4 +47,8 @@ how to accomplish such a thing.
 ## Documentation
 
 The rendered Haddock for the current `main` branch can be found at
-[https://tweag.github.io/cooked-validators/](https://tweag.github.io/cooked-validators/)
+[https://tweag.github.io/cooked-validators/](https://tweag.github.io/cooked-validators/).
+
+Please also look at our
+[issues](https://tweag.github.io/cooked-validators/issues) for problems that
+we're already aware of, and feel free to open new issues!
