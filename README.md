@@ -47,9 +47,10 @@ Before using `cooked-validators`, you need
 - [GHC](https://www.haskell.org/ghc/download_ghc_8_10_7.html) version 8.10.7
 - [Cabal](https://www.haskell.org/cabal)
 
-1. Copy the file [`cabal.project`](./cabal.project) and
+1. If you have no constraint on the version of `plutus-apps`, copy the file
+   [`cabal.project`](./cabal.project) to your project and
    [adapt](https://cabal.readthedocs.io/en/stable/cabal-project.html#specifying-the-local-packages)
-   the `packages` stanza to your project
+   the `packages` stanza.
 2. Add the following stanza to the file `cabal.project`
    ```cabal.project
    source-repository-package
