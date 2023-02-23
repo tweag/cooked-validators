@@ -8,24 +8,41 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Cooked.MockChain.Staged where
+module Cooked.MockChain.Staged
+  ( interpretAndRunWith,
+    interpretAndRun,
+    MockChainLogEntry (..),
+    MockChainLog,
+    StagedMockChain,
+    runTweak,
+    runTweakFrom,
 
-import qualified Cardano.Node.Emulator.Params as Emulator
+    -- * User API
+    MonadModalBlockChain,
+    somewhere,
+    everywhere,
+    withTweak,
+  )
+where
+
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad.Except
+import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Writer.Strict hiding (Alt)
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.UtxoState
-import Cooked.Pretty.Class
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import qualified Ledger as Pl
-import qualified Plutus.V2.Ledger.Api as PV2
+import qualified Ledger.Slot as Ledger
+import qualified Ledger.Tx as Ledger
+import qualified Ledger.Typed.Scripts as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -68,17 +85,19 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 -- * 'StagedMockChain': An AST for 'MonadMockChain' computations
 
 data MockChainBuiltin a where
-  ValidateTxSkel :: TxSkel -> MockChainBuiltin Pl.CardanoTx
-  TxOutByRef :: Pl.TxOutRef -> MockChainBuiltin (Maybe PV2.TxOut)
-  GetCurrentSlot :: MockChainBuiltin Pl.Slot
-  AwaitSlot :: Pl.Slot -> MockChainBuiltin Pl.Slot
-  GetParams :: MockChainBuiltin Emulator.Params
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe (Pl.Datum, DocCooked))
-  OwnPubKey :: MockChainBuiltin Pl.PubKeyHash
-  AllUtxos :: MockChainBuiltin [(Pl.TxOutRef, PV2.TxOut)]
-  -- the following are not strictly blockchain specific, but they allow us to
-  -- combine several traces into one and to signal failure.
+  -- methods of 'MonadBlockChain'
 
+  GetParams :: MockChainBuiltin Emulator.Params
+  ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
+  TxOutByRefLedger :: Pl.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
+  GetCurrentSlot :: MockChainBuiltin Ledger.Slot
+  AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
+  GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
+  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
+  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
+  AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
+  UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
+  ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -86,8 +105,11 @@ data MockChainBuiltin a where
     StagedMockChain a ->
     StagedMockChain a ->
     MockChainBuiltin a
-  -- | The failing operation
+  -- for the 'MonadFail' instance
   Fail :: String -> MockChainBuiltin a
+  -- for the 'MonadError MockChainError' instance
+  ThrowError :: MockChainError -> MockChainBuiltin a
+  CatchError :: StagedMockChain a -> (MockChainError -> StagedMockChain a) -> MockChainBuiltin a
 
 type MockChainOp = LtlOp (UntypedTweak InterpMockChain) MockChainBuiltin
 
@@ -107,6 +129,7 @@ instance MonadPlus m => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
+  interpBuiltin GetParams = lift $ asks mceParams
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -116,7 +139,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
       interpretAndTell ::
         UntypedTweak InterpMockChain ->
         [Ltl (UntypedTweak InterpMockChain)] ->
-        StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Pl.CardanoTx
+        StateT [Ltl (UntypedTweak InterpMockChain)] InterpMockChain Ledger.CardanoTx
       interpretAndTell (UntypedTweak now) later = do
         mcst <- lift get
         let managedTxOuts = utxoIndexToTxOutMap . mcstIndex $ mcst
@@ -133,21 +156,23 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         lift $
           lift $
             tell
-              [MCLogNewTx (Pl.getCardanoTxId tx)]
+              [MCLogNewTx (Ledger.getCardanoTxId tx)]
         put later
         return tx
-  interpBuiltin (TxOutByRef o) = txOutByRef o
+  interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
   interpBuiltin (DatumFromHash h) = datumFromHash h
-  interpBuiltin OwnPubKey = ownPaymentPubKeyHash
-  interpBuiltin AllUtxos = allUtxos
-  interpBuiltin GetParams = params
+  interpBuiltin (ValidatorFromHash h) = validatorFromHash h
+  interpBuiltin AllUtxosLedger = allUtxosLedger
+  interpBuiltin (UtxosAtLedger address) = utxosAtLedger address
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
     lift $ lift $ tell [MCLogFail msg]
     fail msg
+  interpBuiltin (ThrowError err) = throwError err
+  interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)
 
 -- ** Helpers to run tweaks for use in tests for tweaks
 
@@ -195,12 +220,19 @@ withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
 singletonBuiltin :: builtin a -> Staged (LtlOp modification builtin) a
 singletonBuiltin b = Instr (Builtin b) Return
 
-instance MonadBlockChainWithoutValidation StagedMockChain where
+instance MonadError MockChainError StagedMockChain where
+  throwError = singletonBuiltin . ThrowError
+  catchError act handler = singletonBuiltin $ CatchError act handler
+
+instance MonadBlockChainBalancing StagedMockChain where
+  getParams = singletonBuiltin GetParams
   datumFromHash = singletonBuiltin . DatumFromHash
-  allUtxos = singletonBuiltin AllUtxos
-  txOutByRef = singletonBuiltin . TxOutByRef
-  ownPaymentPubKeyHash = singletonBuiltin OwnPubKey
-  params = singletonBuiltin GetParams
+  txOutByRefLedger = singletonBuiltin . TxOutByRefLedger
+  utxosAtLedger = singletonBuiltin . UtxosAtLedger
+  validatorFromHash = singletonBuiltin . ValidatorFromHash
+
+instance MonadBlockChainWithoutValidation StagedMockChain where
+  allUtxosLedger = singletonBuiltin AllUtxosLedger
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
 

@@ -7,8 +7,6 @@ cabal-version: 3.4
 name:           cooked-validators
 version:        0.2.0
 build-type:     Simple
-extra-source-files:
-    README.md
 
 library
   exposed-modules:
@@ -21,18 +19,22 @@ library
       Cooked.Currencies
       Cooked.Ltl
       Cooked.MockChain
+      Cooked.MockChain.Balancing
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
       Cooked.MockChain.Staged
       Cooked.MockChain.Testing
+      Cooked.MockChain.UtxoSearch
       Cooked.MockChain.UtxoState
       Cooked.Output
       Cooked.Pretty
       Cooked.Pretty.Class
+      Cooked.Pretty.Common
+      Cooked.Pretty.Cooked
+      Cooked.Pretty.Options
       Cooked.RawUPLC
       Cooked.Skeleton
-      Cooked.Time
       Cooked.Tweak
       Cooked.Tweak.AddInputsAndOutputs
       Cooked.Tweak.Common

@@ -1,40 +1,113 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | We provide the 'PrettyCooked' class and instances for common Plutus types.
 -- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
 -- printers for Plutus types which already have instances of 'Pretty'. Also,
 -- 'PrettyCooked' makes it possible to optionally modify pretty printing
 -- settings 'PrettyCookedOpts' (e.g. length of printed hashes).
--- You just need to implement either 'prettyCooked' or 'prettyCookedOpt'.
+--
+-- When defining a new 'PrettyCooked' instance, prefer implementing
+-- 'prettyCookedOpt' and relay the option parameter to other printers.
 module Cooked.Pretty.Class where
 
+import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.Pretty.Common
+import Cooked.Pretty.Options
+import Cooked.Wallet
 import Data.Default
-import Prettyprinter (Doc)
-
-type DocCooked = Doc ()
-
-data PrettyCookedOpts = PrettyCookedOpts
-  { -- | Whether to print transaction ids of validated transactions.
-    -- By default: False
-    pcOptPrintTxHashes :: Bool,
-    -- | Whether to print tx options that have not been modified from their
-    -- default.
-    -- By default: False
-    pcOptPrintDefaultTxOpts :: Bool,
-    -- | Length of printed hashes (e.g. addresses, tx ids)
-    -- By default: 7
-    pcOptPrintedHashLength :: Int
-  }
-  deriving (Eq, Show)
-
-instance Default PrettyCookedOpts where
-  def =
-    PrettyCookedOpts
-      { pcOptPrintTxHashes = False,
-        pcOptPrintDefaultTxOpts = False,
-        pcOptPrintedHashLength = 7
-      }
+import qualified Ledger.Index as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
+import Prettyprinter ((<+>))
+import qualified Prettyprinter as PP
+import qualified Prettyprinter.Render.Text as PP
 
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked
   prettyCooked = prettyCookedOpt def
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
   prettyCookedOpt _ = prettyCooked
+
+-- | Use this in the REPL as an alternative to the default 'print' function
+-- when dealing with pretty-printable cooked values.
+--
+-- For example, @printCookedOpt def runMockChain i0 foo@
+printCookedOpt :: PrettyCooked a => PrettyCookedOpts -> a -> IO ()
+printCookedOpt opts = PP.putDoc . prettyCookedOpt opts
+
+-- | Version of 'printCookedOpt' that uses default pretty printing options.
+printCooked :: PrettyCooked a => a -> IO ()
+printCooked = printCookedOpt def
+
+instance PrettyCooked Pl.TxId where
+  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
+
+instance PrettyCooked Pl.TxOutRef where
+  prettyCookedOpt opts (Pl.TxOutRef txId index) =
+    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> PP.pretty index
+
+instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
+  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts) . Pl.mintingPolicyHash
+
+instance PrettyCooked Pl.Address where
+  prettyCookedOpt opts (Pl.Address addrCr Nothing) = prettyCookedOpt opts addrCr
+  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingHash stakCr))) =
+    prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> prettyCookedOpt opts stakCr)
+  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingPtr p1 p2 p3))) =
+    prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
+
+instance PrettyCooked Pl.PubKeyHash where
+  -- If the pubkey is a known wallet
+  -- #abcdef (wallet 3)
+  --
+  -- Otherwise
+  -- #123456
+  --
+  prettyCookedOpt opts pkh =
+    case walletPKHashToId pkh of
+      Nothing -> prettyHash (pcOptPrintedHashLength opts) pkh
+      Just walletId ->
+        prettyHash (pcOptPrintedHashLength opts) pkh
+          <+> PP.parens ("wallet" <+> PP.viaShow walletId)
+
+instance PrettyCooked Pl.Credential where
+  prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptPrintedHashLength opts) vh
+  prettyCookedOpt opts (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
+
+instance PrettyCooked Pl.Value where
+  -- prettyValue example output:
+  --
+  -- Value:
+  --   - Lovelace: 45_000_000
+  --   - Quick "hello": 3
+  --   - #12bc3d "usertoken": 1
+  --
+  -- In case of an empty value (even though not an empty map):
+  -- Empty value
+  --
+  prettyCookedOpt opts =
+    prettySingletons
+      . map prettySingletonValue
+      . filter (\(_, _, n) -> n /= 0)
+      . Pl.flattenValue
+    where
+      prettySingletons :: [DocCooked] -> DocCooked
+      prettySingletons [] = "Empty value"
+      prettySingletons [doc] = doc
+      prettySingletons docs = prettyItemize "Value:" "-" docs
+      prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
+      prettySingletonValue (symbol, name, amount) =
+        prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
+        where
+          prettyAssetClass
+            | symbol == Pl.CurrencySymbol "" = "Lovelace"
+            | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
+            | symbol == permanentCurrencySymbol = "Permanent" <+> PP.pretty name
+            | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol <+> PP.pretty name
+
+instance PrettyCooked Pl.ValidationErrorInPhase where
+  -- TODO Implement better pretty-printing for errors such as
+  -- 'ValueNotPreserved'
+  prettyCookedOpt _ = PP.pretty

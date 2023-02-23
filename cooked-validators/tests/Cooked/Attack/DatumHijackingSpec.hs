@@ -11,9 +11,11 @@ module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
+import Cooked.MockChain.Staged
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
@@ -67,13 +69,16 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
-      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue]
+      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
+      txSkelSigners = [wallet 1]
     }
 
 txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
 txLock v = do
-  me <- ownPaymentPubKeyHash
-  (oref, _) : _ <- filteredUtxos $ isPKOutputFrom me >=> isOutputWithValueSuchThat (`Pl.geq` lockValue)
+  (oref, _) : _ <-
+    runUtxoSearch $
+      utxosAtSearch (walletAddress $ wallet 1)
+        `filterWithPred` ((`Pl.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
 relockTxSkel :: Pl.TypedValidator MockContract -> Pl.TxOutRef -> TxSkel
@@ -81,7 +86,8 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ TxSkelRedeemerForScript (),
-      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue]
+      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue],
+      txSkelSigners = [wallet 1]
     }
 
 txRelock ::
@@ -90,9 +96,11 @@ txRelock ::
   m ()
 txRelock v = do
   (oref, _) : _ <-
-    filteredUtxosWithDatums $
-      isScriptOutputFrom' v
-        >=> isOutputWithDatumSuchThat (ResolvedOrInlineDatum FirstLock ==)
+    runUtxoSearch $
+      utxosAtSearch (Pl.validatorAddress v)
+        `filterWith` resolveDatum
+        `filterWithPure` isOutputWithInlineDatumOfType @MockDatum
+        `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
 datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
@@ -154,7 +162,7 @@ carelessValidator =
     wrap = Pl.mkUntypedValidator
 
 txSkelFromOuts :: [TxSkelOut] -> TxSkel
-txSkelFromOuts os = txSkelTemplate {txSkelOuts = os}
+txSkelFromOuts os = txSkelTemplate {txSkelOuts = os, txSkelSigners = [wallet 1]}
 
 -- * TestTree for the datum hijacking attack
 
@@ -202,7 +210,8 @@ tests =
                       paysScriptInlineDatum val2 SecondLock x1,
                       paysScriptInlineDatum val1 FirstLock x2,
                       paysScriptInlineDatum b SecondLock x2
-                    ]
+                    ],
+                  txSkelSigners = [wallet 1]
                 }
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $

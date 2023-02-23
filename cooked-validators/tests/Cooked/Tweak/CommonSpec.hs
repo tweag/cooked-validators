@@ -1,6 +1,7 @@
 module Cooked.Tweak.CommonSpec (tests) where
 
 import Cooked
+import Cooked.MockChain.Staged
 import Data.Default
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl

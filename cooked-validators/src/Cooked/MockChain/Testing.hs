@@ -7,11 +7,11 @@ module Cooked.MockChain.Testing where
 
 import qualified Control.Exception as E
 import Control.Monad
+import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Pretty.Class
 import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
@@ -121,7 +121,7 @@ testFailsFrom' ::
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyEndState pcOpts)))
+testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
 -- This is particularly important when writing negative tests. For example, if we are simulating

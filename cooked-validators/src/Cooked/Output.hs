@@ -5,12 +5,42 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Output where
+module Cooked.Output
+  ( IsAbstractOutput,
+    OwnerType,
+    DatumType,
+    ValueType,
+    ReferenceScriptType,
+    outputOwnerL,
+    outputStakingCredentialL,
+    outputDatumL,
+    outputValueL,
+    outputReferenceScriptL,
+    ToCredential (..),
+    ToOutputDatum (..),
+    ToValue (..),
+    ToScript (..),
+    ToScriptHash (..),
+    IsOnchainOutput,
+    outputAddress,
+    outputOutputDatum,
+    outputValue,
+    outputReferenceScriptHash,
+    outputTxOut,
+    ConcreteOutput (ConcreteOutput),
+    toOutputWithReferenceScriptHash,
+    isOutputWithoutDatum,
+    isOutputWithInlineDatum,
+    isOutputWithDatumHash,
+    isOutputWithInlineDatumOfType,
+    isScriptOutputFrom,
+    isPKOutputFrom,
+    isOnlyAdaOutput,
+  )
+where
 
-import Control.Monad
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
@@ -62,9 +92,6 @@ instance ToOutputDatum () where
 
 instance ToOutputDatum Pl.DatumHash where
   toOutputDatum = Pl.OutputDatumHash
-
-instance Pl.ToData a => ToOutputDatum (ResolvedOrInlineDatum a) where
-  toOutputDatum (ResolvedOrInlineDatum x) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ x
 
 class ToValue a where
   toValue :: a -> Pl.Value
@@ -123,8 +150,8 @@ outputOutputDatum = toOutputDatum . (^. outputDatumL)
 outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Pl.Value
 outputValue = toValue . (^. outputValueL)
 
-outputReferenceScript :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
-outputReferenceScript = (toScriptHash <$>) . (^. outputReferenceScriptL)
+outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
+outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator. In particular the
 -- correctness of this specification will depend on the 'IsOnchainOutput' instance, so
@@ -136,7 +163,7 @@ outputTxOut o =
     (outputAddress o)
     (outputValue o)
     (outputOutputDatum o)
-    (outputReferenceScript o)
+    (outputReferenceScriptHash o)
 
 -- ** 'Pl.TxOut's are outputs
 
@@ -187,21 +214,6 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
   outputValueL = lens concreteOutputValue (\out value -> out {concreteOutputValue = value})
   outputReferenceScriptL = lens concreteOutputReferenceScript (\out mRefScript -> out {concreteOutputReferenceScript = mRefScript})
 
--- ** A few special concrete outputs
-
--- | A public key output that only has Ada and no datum
-type PKAdaOnlyOutput = ConcreteOutput Pl.PubKeyHash () Pl.Ada Pl.ScriptHash
-
--- | A public key output where we don't know anything about the datum: It is a
--- general 'Pl.OutputDatum'
-type PKOutputMaybeDatum = ConcreteOutput Pl.PubKeyHash Pl.OutputDatum Pl.Value Pl.ScriptHash
-
--- | An output that belongs to a typed validator and has an inline datum of the
--- appropriate type.
-type ScriptOutputWithInlineDatum a = ConcreteOutput (Pl.TypedValidator a) (Pl.DatumType a) Pl.Value Pl.ScriptHash
-
--- TODO et cetera
-
 -- ** Functions to translate between different output types
 
 toOutputWithReferenceScriptHash ::
@@ -235,22 +247,20 @@ isOutputWithoutDatum out = case outputOutputDatum out of
 
 -- ** Functions to translate between different output types
 
--- | Test if the output carries some inlined datum (lose the type information
--- about the datum in favour of Plutus' 'Datum' type).
-isOutputWithInlineDatumUntyped ::
-  IsOnchainOutput output =>
+-- | Test if the output carries some inlined datum.
+isOutputWithInlineDatumOfType ::
+  (Pl.FromData a, IsOnchainOutput output) =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
-isOutputWithInlineDatumUntyped out =
+  Maybe (ConcreteOutput (OwnerType output) a (ValueType output) (ReferenceScriptType output))
+isOutputWithInlineDatumOfType out =
   case outputOutputDatum out of
-    Pl.OutputDatum datum ->
-      Just $
-        ConcreteOutput
-          (out ^. outputOwnerL)
-          (out ^. outputStakingCredentialL)
-          (out ^. outputValueL)
-          datum
-          (out ^. outputReferenceScriptL)
+    Pl.OutputDatum (Pl.Datum datum) ->
+      ConcreteOutput
+        (out ^. outputOwnerL)
+        (out ^. outputStakingCredentialL)
+        (out ^. outputValueL)
+        <$> Pl.fromBuiltinData datum
+        <*> Just (out ^. outputReferenceScriptL)
     _ -> Nothing
 
 -- | Test if the output carries some inlined datum.
@@ -280,51 +290,6 @@ isOutputWithDatumHash out =
           (out ^. outputReferenceScriptL)
     _ -> Nothing
 
--- | Test if the value carried by an output verifies a given predicate.
-isOutputWithValueSuchThat ::
-  IsAbstractOutput output =>
-  (ValueType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithValueSuchThat predicate out
-  | predicate (out ^. outputValueL) = Just out
-  | otherwise = Nothing
-
--- | Test if the datum carried by an output verifies a given predicate.
-isOutputWithDatumSuchThat ::
-  IsAbstractOutput output =>
-  (DatumType output -> Bool) ->
-  output ->
-  Maybe output
-isOutputWithDatumSuchThat predicate out
-  | predicate (out ^. outputDatumL) = Just out
-  | otherwise = Nothing
-
--- | Wrapper type to make clear that the datum is a resolved or inline datum
-newtype ResolvedOrInlineDatum a = ResolvedOrInlineDatum a deriving (Show, Eq)
-
--- | Test if an output has an inline datum of a certain type. In most
--- applications, it will make sense to use this with 'filteredUtxosWithDatums',
--- and not with 'filteredUtxos'.
-isOutputWithDatumOfType ::
-  forall a output.
-  ( Pl.FromData a,
-    IsOnchainOutput output
-  ) =>
-  output ->
-  Maybe (ConcreteOutput (OwnerType output) (ResolvedOrInlineDatum a) (ValueType output) (ReferenceScriptType output))
-isOutputWithDatumOfType out = case outputOutputDatum out of
-  Pl.OutputDatumHash _ -> Nothing
-  Pl.OutputDatum (Pl.Datum datum) ->
-    ConcreteOutput
-      (out ^. outputOwnerL)
-      (out ^. outputStakingCredentialL)
-      (out ^. outputValueL)
-      . ResolvedOrInlineDatum
-      <$> Pl.fromBuiltinData datum
-      <*> Just (out ^. outputReferenceScriptL)
-  Pl.NoOutputDatum -> Nothing
-
 -- | Test if the owner an output is a specific script. If it is, return an
 -- output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
@@ -346,26 +311,6 @@ isScriptOutputFrom validator out =
               (out ^. outputReferenceScriptL)
         else Nothing
     _ -> Nothing
-
--- | like 'isScriptOutputFrom', but also makes sure that the output has an
--- inline datum of the correct type. In most applications, it will make sense to
--- use this with 'filteredUtxosWithDatums', and not with 'filteredUtxos'.
-isScriptOutputFrom' ::
-  forall a output.
-  ( IsOnchainOutput output,
-    Pl.FromData (Pl.DatumType a),
-    ToOutputDatum (DatumType output),
-    Show (DatumType output),
-    ToValue (ValueType output),
-    Show (ValueType output)
-  ) =>
-  Pl.TypedValidator a ->
-  output ->
-  Maybe (ConcreteOutput (Pl.TypedValidator a) (ResolvedOrInlineDatum (Pl.DatumType a)) (ValueType output) (ReferenceScriptType output))
-isScriptOutputFrom' validator =
-  -- what's all this madness witht the type annotations?
-  isScriptOutputFrom @output @a validator
-    >=> isOutputWithDatumOfType @(Pl.DatumType a) @(ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) _)
 
 -- | Test if the owner an output is a specific public key. If it is, return an
 -- output of the same 'DatumType', but with 'Pl.PubKeyHash' as its 'OwnerType'.

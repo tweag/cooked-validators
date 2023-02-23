@@ -1,14 +1,10 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/22.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
   outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
-    ## Systemd isn't compatible with Darwin, so we can't use `eachDefaultSystem`
-    ## as long as `systemd` is a dependency.
-    ## TODO: go back to `eachDefaultSystem` once systemd isn't needed anymore.
-    with flake-utils.lib;
-    eachSystem [ system.x86_64-linux system.aarch64-linux ] (system:
+    flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         hpkgs = pkgs.haskell.packages.ghc8107;
@@ -18,31 +14,7 @@
           hooks = {
             nixfmt.enable = true;
             ormolu.enable = true;
-
-            ## FIXME: The upstream `hpack` hook is completely broken, so we
-            ## write our own, heavily inspired by theirs but introducing some
-            ## fixes. The bugs have been reported at
-            ##
-            ## https://github.com/cachix/pre-commit-hooks.nix/issues/235
-            ##
-            ## and we should simply update pre-commit-hooks, remove all this and
-            ## replace it by `hpack.enable = true` once they are fixed.
-            hpack-fixed = {
-              enable = true;
-              entry = let
-                hpack-dir = pkgs.writeShellApplication {
-                  name = "hpack-dir";
-                  text = ''
-                    set -e
-                    find . -type f -name package.yaml | while read -r file; do
-                        ${pkgs.hpack}/bin/hpack --force "$file"
-                    done
-                  '';
-                };
-              in "${hpack-dir}/bin/hpack-dir";
-              files = "(\\.l?hs(-boot)?$)|(\\.cabal$)|((^|/)package\\.yaml$)";
-              pass_filenames = false;
-            };
+            hpack.enable = true;
           };
         };
       in {
@@ -57,16 +29,13 @@
             pkg-config
             zlib
             xz
-            z3
             postgresql # For pg_config
-            systemd
-            pkg-config
             glibcLocales
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
-            lib.strings.makeLibraryPath [ libsodium zlib xz z3 ];
+            lib.strings.makeLibraryPath [ libsodium zlib xz ];
           LANG = "C.UTF-8";
         in {
           ci = pkgs.mkShell {
@@ -90,4 +59,11 @@
 
         checks = { inherit pre-commit; };
       });
+
+  nixConfig = {
+    extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
+    extra-trusted-public-keys = [
+      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
+    ];
+  };
 }

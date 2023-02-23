@@ -5,7 +5,18 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Cooked.Ltl where
+module Cooked.Ltl
+  ( Ltl (..),
+    nowLater,
+    nowLaterList,
+    LtlOp (..),
+    Staged (..),
+    interpLtl,
+    interpLtlAndPruneUnfinished,
+    InterpLtl (..),
+    MonadModal (..),
+  )
+where
 
 import Control.Monad
 import Control.Monad.State

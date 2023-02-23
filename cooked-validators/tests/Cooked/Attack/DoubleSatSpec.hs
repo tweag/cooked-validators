@@ -12,6 +12,7 @@ module Cooked.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
 import Cooked
+import Cooked.MockChain.Staged
 import Cooked.TestUtils
 import Data.Default
 import qualified Data.Map as Map
@@ -128,23 +129,23 @@ dsTestMockChainSt = case runMockChainRaw def def setup of
   Right (_, mcst) -> mcst
   where
     setup = do
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
+      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
 
 tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 2_000_000)
-          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 3_000_000)
-          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 4_000_000)
-          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 5_000_000)
-          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 6_000_000)
-          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ filteredUtxos $ isOutputWithValueSuchThat (== Pl.lovelaceValueOf 7_000_000)
+    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 2_000_000) . outputValue)
+          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 3_000_000) . outputValue)
+          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 4_000_000) . outputValue)
+          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 5_000_000) . outputValue)
+          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 6_000_000) . outputValue)
+          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 7_000_000) . outputValue)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
@@ -160,7 +161,8 @@ tests =
                   skelIn aOrefs =
                     txSkelTemplate
                       { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) $ Set.fromList aOrefs,
-                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)]
+                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)],
+                        txSkelSigners = [wallet 1]
                       }
 
                   -- apply the 'doubleSatAttack' to the input skeleton to
@@ -177,7 +179,7 @@ tests =
                         ( doubleSatAttack
                             (txSkelInsL % to Map.keys % folded) -- We know that all of these TxOutRefs point to something that the 'aValidator' owns
                             ( \aOref -> do
-                                bUtxos <- filteredUtxos $ isScriptOutputFrom bValidator
+                                bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
                                 Just aValue <- valueFromTxOutRef aOref
                                 if
                                     | aValue == Pl.lovelaceValueOf 2_000_000 ->
@@ -235,7 +237,8 @@ tests =
                         txSkelOuts =
                           [ paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000),
                             paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bUtxos)
-                          ]
+                          ],
+                        txSkelSigners = [wallet 1]
                       }
                in [ testGroup "with 'AllSeparate'" $
                       let thePredicate :: [(Pl.TxOutRef, Pl.TxOut)] -> [[(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]] -> Assertion
