@@ -56,13 +56,11 @@ checkMoveCurrentSlot :: MonadTweak m => m Assertion
 checkMoveCurrentSlot = do
   setValidityRangeTweak $ toSlotRange 10 20
   waitUntilValidTweak
-  b1 <- isValidNowTweak
-  setValidityRangeTweak $ toSlotRange 30 60
-  waitUntilValidTweak
+  b1 <- (\now -> now >= 10 && now <= 20) <$> currentSlot
   b2 <- isValidNowTweak
-  setValidityRangeTweak $ toSlotRange 80 100
+  setValidityRangeTweak $ toSlotRange 15 25
   waitUntilValidTweak
-  b3 <- isValidNowTweak
+  b3 <- (\now -> now >= 15 && now <= 25) <$> currentSlot
   return $
     assertBool "Time shift did not occur" $
       b1 && b2 && b3
