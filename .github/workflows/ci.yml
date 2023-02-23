@@ -247,10 +247,10 @@ jobs:
             cabal update
 
             cabal haddock \
-                --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' \
-                --haddock-hyperlink-source \
-                --haddock-quickjump \
-                cooked-validators
+              --haddock-hyperlink-source \
+              --haddock-quickjump \
+              --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' \
+              cooked-validators
 
             mkdir -p docs
             cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
