@@ -18,6 +18,7 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
+    AsTrans (..),
     allUtxos,
     utxosAt,
     txOutByRef,
