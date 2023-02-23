@@ -68,8 +68,8 @@ Before using `cooked-validators`, you need
    > prettyCooked . runMockChain . validateTxSkel $
          txSkelTemplate
            { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Script.adaValueOf 10)],
-	     txSkelSigners = [wallet 1]
-	   }
+             txSkelSigners = [wallet 1]
+           }
    - UTxO state:
      • pubkey #a2c20c7 (wallet 1)
        - Lovelace: 89_828_471
