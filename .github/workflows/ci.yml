@@ -246,7 +246,10 @@ jobs:
 
             cabal update
 
-            cabal haddock --haddock-for-hackage cooked-validators
+            cabal haddock \
+                --haddock-for-hackage \
+                --haddock-quickjump \
+                cooked-validators
 
             mkdir -p docs
             cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
