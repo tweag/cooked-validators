@@ -247,7 +247,8 @@ jobs:
             cabal update
 
             cabal haddock \
-                --haddock-for-hackage \
+                --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' \
+                --haddock-hyperlink-source \
                 --haddock-quickjump \
                 cooked-validators
 
