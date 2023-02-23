@@ -34,12 +34,66 @@ We provide `cooked-validators` as a research prototype under active development,
 and it comes _as is_ with no guarantees whatsoever. Check the [license](LICENSE)
 for details.
 
-## How to use `cooked-validators`
+## How to integrate `cooked-validators` in a project
 
-Most people will want to add a specific commit of `cooked-validators` as a
-`source-repository-package` to their `cabal.project`. Have a look at our
-[repository of examples](https://github.com/tweag/cooked-smart-contracts) for
-how to accomplish such a thing.
+This guide shows you how to use `cooked-validators` in a haskell project
+using [Cabal](https://cabal.readthedocs.io/en/stable/)
+to create and validate a simple transaction.
+
+Before using `cooked-validators`, you need
+- [GHC](https://www.haskell.org/ghc/download_ghc_8_10_7.html) version 8.10.7
+- [Cabal](https://www.haskell.org/cabal)
+
+1. Copy the file [`cabal.project`](./cabal.project) and
+   [adapt](https://cabal.readthedocs.io/en/stable/cabal-project.html#specifying-the-local-packages)
+   the `packages` stanza to your project
+2. Add the following stanza to the file `cabal.project`
+   ```cabal.project
+   source-repository-package
+     type: git
+     location: https://github.com/tweag/cooked-validators
+     tag: e124a5f2872e180df9d807445c2195f8052bd262
+     subdir:
+       cooked-validators
+   ```
+3. Make your project
+   [depend](https://cabal.readthedocs.io/en/stable/getting-started.html#adding-dependencies)
+   on `cooked-validators` and `plutus-script-utils`
+3. Enter a Cabal read-eval-print-loop (with `cabal repl`)
+   and create and validate a transaction which transfers 10 Ada
+   from wallet 1 to wallet 2:
+   ```haskell
+   > import Cooked
+   > import qualified Plutus.Script.Utils.Ada as Script
+   > prettyCooked . runMockChain . validateTxSkel $
+         txSkelTemplate
+           { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Script.adaValueOf 10)],
+	     txSkelSigners = [wallet 1]
+	   }
+   - UTxO state:
+     • pubkey #a2c20c7 (wallet 1)
+       - Lovelace: 89_828_471
+       - (×9) Lovelace: 100_000_000
+     • pubkey #80a4f45 (wallet 2)
+       - Lovelace: 10_000_000
+       - (×10) Lovelace: 100_000_000
+     • pubkey #2e0ad60 (wallet 3)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #557d23c (wallet 4)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #bf342dd (wallet 5)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #97add5c (wallet 6)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #c605888 (wallet 7)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #8952ed1 (wallet 8)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #dfe12ac (wallet 9)
+       - (×10) Lovelace: 100_000_000
+     • pubkey #a96a668 (wallet 10)
+       - (×10) Lovelace: 100_000_000
+   ```
 
 ## Documentation
 
