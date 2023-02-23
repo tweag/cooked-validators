@@ -5,7 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.Tweak.TamperDatum where
+module Cooked.Tweak.TamperDatum
+  ( tamperDatumTweak,
+    TamperDatumLbl (..),
+  )
+where
 
 import Control.Monad
 import Cooked.Pretty.Class

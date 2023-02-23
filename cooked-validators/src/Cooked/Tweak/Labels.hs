@@ -1,6 +1,11 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 
-module Cooked.Tweak.Labels where
+module Cooked.Tweak.Labels
+  ( addLabelTweak,
+    removeLabelTweak,
+    hasLabelTweak,
+  )
+where
 
 import Cooked.Skeleton
 import Cooked.Tweak.Common
