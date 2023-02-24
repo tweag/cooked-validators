@@ -70,10 +70,10 @@ noBids :: MonadBlockChain m => m ()
 noBids = do
   (_, t0) <- currentTime
   let deadline = t0 + 60_000
-  deadlineNextSlot <- getEnclosingSlot deadline <&> (+ 1)
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
-  awaitSlot deadlineNextSlot
+  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
+  awaitSlot slotAfterDeadline
   A.txHammer (wallet 1) offerOref
   return ()
 
@@ -84,7 +84,8 @@ oneBid = do
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
-  awaitEnclosingSlot (deadline + 1)
+  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
+  awaitSlot slotAfterDeadline
   A.txHammer (wallet 3) offerOref -- It doesn't matter which wallet hammers here
 
 twoBids :: MonadBlockChain m => m ()
@@ -95,7 +96,8 @@ twoBids = do
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 40_000_000
-  awaitEnclosingSlot (deadline + 1)
+  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
+  awaitSlot slotAfterDeadline
   A.txHammer (wallet 1) offerOref
 
 twoAuctions :: MonadBlockChain m => m ()
@@ -110,9 +112,11 @@ twoAuctions = do
   A.txBid (wallet 2) offerOref1 30_000_000
   A.txBid (wallet 3) offerOref2 50_000_000
   A.txBid (wallet 4) offerOref2 60_000_000
-  awaitEnclosingSlot (deadline1 + 1)
+  slotAfterDeadline1 <- getEnclosingSlot deadline1 <&> (+ 1)
+  awaitSlot slotAfterDeadline1
   A.txHammer (wallet 1) offerOref1
-  awaitEnclosingSlot (deadline2 + 1)
+  slotAfterDeadline2 <- getEnclosingSlot deadline2 <&> (+ 1)
+  awaitSlot slotAfterDeadline2
   A.txHammer (wallet 1) offerOref2
 
 successfulSingle :: TestTree
@@ -160,7 +164,8 @@ failingTwoBids = do
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 30_000_000
-  awaitEnclosingSlot (deadline + 1)
+  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
+  awaitSlot slotAfterDeadline
   A.txHammer (wallet 1) offerOref
 
 failingSingle :: TestTree
@@ -377,7 +382,8 @@ exploitAddToken = do
 
   -- After the deadline of Eve's auction, anyone can hammer it, and this will
   -- pay Bob's money to Eve, while Bob will only get the forged NFT in exchange.
-  awaitEnclosingSlot eveDeadline
+  slotAfterEveDeadline <- getEnclosingSlot eveDeadline <&> (+ 1)
+  awaitSlot slotAfterEveDeadline
   A.txHammer eve eveOfferOref
   where
     alice = wallet 1
@@ -440,9 +446,11 @@ exploitDoubleSat = do
                 )
   -- Both auctions are closed normally. Eve is the highest bidder on both of
   -- them.
-  awaitEnclosingSlot (t1 + 1)
+  slotAfterT1 <- getEnclosingSlot t1 <&> (+ 1)
+  awaitSlot slotAfterT1
   A.txHammer eve offer1
-  awaitEnclosingSlot (t2 + 1)
+  slotAfterT2 <- getEnclosingSlot t2 <&> (+ 1)
+  awaitSlot slotAfterT2
   A.txHammer eve offer2
   where
     alice = wallet 1
@@ -487,7 +495,8 @@ bidderAlternativeTrace = do
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000 <|> A.txBid (wallet 3) offerOref 30_000_000
-  awaitEnclosingSlot (deadline + 1)
+  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
+  awaitSlot slotAfterDeadline
   A.txHammer (wallet 1) offerOref
 
 bidderAlternative :: TestTree
