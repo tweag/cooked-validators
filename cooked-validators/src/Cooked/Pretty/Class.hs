@@ -112,6 +112,9 @@ instance PrettyCooked Pl.ValidationErrorInPhase where
   -- 'ValueNotPreserved'
   prettyCookedOpt _ = PP.pretty
 
+instance PrettyCooked Pl.POSIXTime where
+  prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+
 instance PrettyCooked a => PrettyCooked [a] where
   prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
 
