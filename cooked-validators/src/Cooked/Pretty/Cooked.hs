@@ -137,7 +137,7 @@ instance Show a => PrettyCooked (a, UtxoState) where
     prettyItemize
       "End state:"
       "-"
-      ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
+      ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
   prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
@@ -385,27 +385,27 @@ mPrettyTxOpts
 
 -- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
 -- pks, then scripts.
-prettyUtxoState :: PrettyCookedOpts -> UtxoState -> DocCooked
-prettyUtxoState opts =
-  prettyItemize "UTxO state:" "•"
-    . map (uncurry (prettyAddressState opts))
-    . List.sortBy addressOrdering
-    . Map.toList
-    . utxoState
-  where
-    addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
-    addressOrdering
-      (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
-      (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
-        case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
-          (Just i, Just j) -> compare i j
-          (Just _, Nothing) -> LT
-          (Nothing, Just _) -> GT
-          (Nothing, Nothing) -> compare a1 a2
-    addressOrdering
-      (Pl.Address (Pl.PubKeyCredential _) _, _)
-      (Pl.Address (Pl.ScriptCredential _) _, _) = LT
-    addressOrdering (a1, _) (a2, _) = compare a1 a2
+instance PrettyCooked UtxoState where
+  prettyCookedOpt opts =
+    prettyItemize "UTxO state:" "•"
+      . map (uncurry (prettyAddressState opts))
+      . List.sortBy addressOrdering
+      . Map.toList
+      . utxoState
+    where
+      addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
+      addressOrdering
+        (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
+        (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
+          case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
+            (Just i, Just j) -> compare i j
+            (Just _, Nothing) -> LT
+            (Nothing, Just _) -> GT
+            (Nothing, Nothing) -> compare a1 a2
+      addressOrdering
+        (Pl.Address (Pl.PubKeyCredential _) _, _)
+        (Pl.Address (Pl.ScriptCredential _) _, _) = LT
+      addressOrdering (a1, _) (a2, _) = compare a1 a2
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
