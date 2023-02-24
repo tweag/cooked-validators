@@ -227,17 +227,17 @@ jobs:
           name: tweag-plutus-libs
           ## No auth token: read only cache.
 
-      # ## Example from
-      # ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
-      # - name: Accessing the Cabal cache
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: |
-      #       ~/.cabal/packages
-      #       ~/.cabal/store
-      #       dist-newstyle
-      #     key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-haddock
-      #     restore-keys: ${{ runner.os }}-
+      ## Example from
+      ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
+      - name: Accessing the Cabal cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-haddock
+          restore-keys: ${{ runner.os }}-
 
       - name: Build documentation
         run: |
