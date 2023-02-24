@@ -9,7 +9,12 @@
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
-module Cooked.Pretty.Class where
+module Cooked.Pretty.Class
+  ( PrettyCooked (..),
+    printCookedOpt,
+    printCooked,
+  )
+where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Common
@@ -35,7 +40,7 @@ class PrettyCooked a where
 --
 -- For example, @printCookedOpt def runMockChain i0 foo@
 printCookedOpt :: PrettyCooked a => PrettyCookedOpts -> a -> IO ()
-printCookedOpt opts = PP.putDoc . prettyCookedOpt opts
+printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 
 -- | Version of 'printCookedOpt' that uses default pretty printing options.
 printCooked :: PrettyCooked a => a -> IO ()
@@ -46,7 +51,7 @@ instance PrettyCooked Pl.TxId where
 
 instance PrettyCooked Pl.TxOutRef where
   prettyCookedOpt opts (Pl.TxOutRef txId index) =
-    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> PP.pretty index
+    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> prettyCookedOpt opts index
 
 instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts) . Pl.mintingPolicyHash
@@ -99,7 +104,7 @@ instance PrettyCooked Pl.Value where
       prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
+        prettyAssetClass <> ":" <+> prettyCookedOpt opts amount
         where
           prettyAssetClass
             | symbol == Pl.CurrencySymbol "" = "Lovelace"
@@ -110,4 +115,38 @@ instance PrettyCooked Pl.Value where
 instance PrettyCooked Pl.ValidationErrorInPhase where
   -- TODO Implement better pretty-printing for errors such as
   -- 'ValueNotPreserved'
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Pl.POSIXTime where
+  prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+
+instance PrettyCooked a => PrettyCooked [a] where
+  prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
+
+instance PrettyCooked Int where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Integer where
+  prettyCookedOpt opts =
+    if pcOptNumericUnderscores opts
+      then prettyNumericUnderscore
+      else PP.pretty
+    where
+      -- prettyNumericUnderscore 23798423723
+      -- 23_798_423_723
+      prettyNumericUnderscore :: Integer -> DocCooked
+      prettyNumericUnderscore i
+        | 0 == i = "0"
+        | i > 0 = psnTerm "" 0 i
+        | otherwise = "-" <> psnTerm "" 0 (-i)
+        where
+          psnTerm :: DocCooked -> Integer -> Integer -> DocCooked
+          psnTerm acc _ 0 = acc
+          psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+          psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
+
+instance PrettyCooked Bool where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked () where
   prettyCookedOpt _ = PP.pretty

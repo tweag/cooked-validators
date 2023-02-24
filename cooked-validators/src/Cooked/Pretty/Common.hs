@@ -1,7 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Common tools to help implement pretty-printers in cooked-validators
-module Cooked.Pretty.Common where
+module Cooked.Pretty.Common
+  ( DocCooked,
+    renderString,
+    prettyItemize,
+    prettyItemizeNonEmpty,
+    prettyEnumerate,
+    prettyHash,
+  )
+where
 
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
@@ -24,9 +32,11 @@ prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
 prettyItemize title bullet items =
   PP.vsep
     [ title,
-      PP.indent 2 . PP.vsep $
-        map (bullet <+>) items
+      PP.indent 2 . prettyItemizeNoTitle bullet $ items
     ]
+
+prettyItemizeNoTitle :: DocCooked -> [DocCooked] -> DocCooked
+prettyItemizeNoTitle bullet = PP.vsep . map (bullet <+>)
 
 prettyItemizeNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
 prettyItemizeNonEmpty _ _ [] = Nothing
@@ -44,16 +54,3 @@ prettyEnumerate title bullet items =
 -- #28a3d9
 prettyHash :: (Show a) => Int -> a -> DocCooked
 prettyHash printedLength = PP.pretty . ('#' :) . take printedLength . show
-
--- prettyNumericUnderscore 23798423723
--- 23_798_423_723
-prettyNumericUnderscore :: Integer -> DocCooked
-prettyNumericUnderscore i
-  | 0 == i = "0"
-  | i > 0 = psnTerm "" 0 i
-  | otherwise = "-" <> psnTerm "" 0 (-i)
-  where
-    psnTerm :: DocCooked -> Integer -> Integer -> DocCooked
-    psnTerm acc _ 0 = acc
-    psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-    psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)

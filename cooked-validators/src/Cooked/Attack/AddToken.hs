@@ -1,4 +1,4 @@
-module Cooked.Attack.AddToken where
+module Cooked.Attack.AddToken (addTokenAttack, AddTokenLbl (..)) where
 
 import Control.Monad
 import Cooked.Skeleton

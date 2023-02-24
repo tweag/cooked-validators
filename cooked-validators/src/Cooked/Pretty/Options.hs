@@ -1,5 +1,9 @@
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
-module Cooked.Pretty.Options where
+module Cooked.Pretty.Options
+  ( PrettyCookedOpts (..),
+    PCOptTxOutRefs (..),
+  )
+where
 
 import Data.Default
 
@@ -16,7 +20,11 @@ data PrettyCookedOpts = PrettyCookedOpts
     pcOptPrintDefaultTxOpts :: Bool,
     -- | Length of printed hashes (e.g. addresses, tx ids)
     -- By default: 7
-    pcOptPrintedHashLength :: Int
+    pcOptPrintedHashLength :: Int,
+    -- | Whether to print big integers with numeric underscores.
+    -- For example @53_000_000@ instead of @53000000@.
+    -- By default: True
+    pcOptNumericUnderscores :: Bool
   }
   deriving (Eq, Show)
 
@@ -40,5 +48,6 @@ instance Default PrettyCookedOpts where
       { pcOptPrintTxHashes = False,
         pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
         pcOptPrintDefaultTxOpts = False,
-        pcOptPrintedHashLength = 7
+        pcOptPrintedHashLength = 7,
+        pcOptNumericUnderscores = True
       }
