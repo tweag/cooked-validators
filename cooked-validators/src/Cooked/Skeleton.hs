@@ -14,11 +14,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Cooked.Skeleton
-  ( txSkelOutToTxOut,
-    txSkelOutDatumComplete,
-    SpendsScriptConstrs,
-    -- REVIEW do we keep those above?
-    LabelConstrs,
+  ( LabelConstrs,
     TxLabel (..),
     BalanceOutputPolicy (..),
     BalancingWallet (..),
