@@ -5,6 +5,7 @@ module Cooked.Pretty.Common
   ( DocCooked,
     renderString,
     prettyItemize,
+    prettyItemizeNoTitle,
     prettyItemizeNonEmpty,
     prettyEnumerate,
     prettyHash,

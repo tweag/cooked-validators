@@ -18,8 +18,7 @@
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
 -- 'TxSkelContext').
 module Cooked.Pretty.Cooked
-  ( prettyMockChainLog,
-    prettyTxSkel,
+  ( prettyTxSkel,
     prettyBalancingWallet,
     prettySigners,
     prettyMints,
@@ -28,7 +27,6 @@ module Cooked.Pretty.Cooked
     prettyTxSkelOutDatumMaybe,
     prettyTxSkelIn,
     prettyTxSkelInReference,
-    prettyUtxoState,
     prettyAddressState,
     prettyPayloadGrouped,
     prettyPayload,
