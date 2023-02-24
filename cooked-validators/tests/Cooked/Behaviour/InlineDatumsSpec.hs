@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.InlineDatumsSpec where
+module Cooked.Behaviour.InlineDatumsSpec where
 
 import Control.Arrow
 import Control.Monad

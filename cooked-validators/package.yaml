@@ -69,3 +69,5 @@ tests:
       - tests/
     dependencies:
       - cooked-validators
+    ghc-options:
+      -Wall
