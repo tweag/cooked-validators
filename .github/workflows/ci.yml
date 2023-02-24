@@ -106,7 +106,6 @@ jobs:
             ~/.cabal/store
             dist-newstyle
           key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-build-and-test
-          restore-keys: ${{ runner.os }}-
 
       ## Steps below run a certain program and creates two files:
       ## `${proj}-${step}.res` and `${proj}-${step}.out`. The former contains a
@@ -237,7 +236,6 @@ jobs:
             ~/.cabal/store
             dist-newstyle
           key: ${{ runner.os }}-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze', 'flake.nix', 'flake.lock') }}-haddock
-          restore-keys: ${{ runner.os }}-
 
       - name: Build documentation
         run: |
