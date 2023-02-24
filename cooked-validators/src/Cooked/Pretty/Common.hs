@@ -46,16 +46,3 @@ prettyEnumerate title bullet items =
 -- #28a3d9
 prettyHash :: (Show a) => Int -> a -> DocCooked
 prettyHash printedLength = PP.pretty . ('#' :) . take printedLength . show
-
--- prettyNumericUnderscore 23798423723
--- 23_798_423_723
-prettyNumericUnderscore :: Integer -> DocCooked
-prettyNumericUnderscore i
-  | 0 == i = "0"
-  | i > 0 = psnTerm "" 0 i
-  | otherwise = "-" <> psnTerm "" 0 (-i)
-  where
-    psnTerm :: DocCooked -> Integer -> Integer -> DocCooked
-    psnTerm acc _ 0 = acc
-    psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
-    psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
