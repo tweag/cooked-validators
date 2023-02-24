@@ -35,7 +35,7 @@ class PrettyCooked a where
 --
 -- For example, @printCookedOpt def runMockChain i0 foo@
 printCookedOpt :: PrettyCooked a => PrettyCookedOpts -> a -> IO ()
-printCookedOpt opts = PP.putDoc . prettyCookedOpt opts
+printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 
 -- | Version of 'printCookedOpt' that uses default pretty printing options.
 printCooked :: PrettyCooked a => a -> IO ()
