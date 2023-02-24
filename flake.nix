@@ -30,6 +30,7 @@
             zlib
             xz
             glibcLocales
+            postgresql # For pg_config
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
