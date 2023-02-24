@@ -118,9 +118,11 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
-  -- | Either waits until the given slot or returns the current slot.
+  -- | Waits until the current slot becomes greater or equal to the given slot,
+  -- and returns the current slot after waiting.
+  --
   --  Note that that it might not wait for anything if the current slot
-  --  is larger than the argument.
+  --  is large enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
@@ -307,19 +309,16 @@ getEnclosingSlot t = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
   return $ Emulator.posixTimeToEnclosingSlot slotConfig t
 
--- | Attempts to wait until the slot containing the given time or returns the current slot.
---  Note that that it might not wait for anything if the resulting slot
---  is larger than the argument.
+-- | Waits until the current slot becomes greater or equal to the slot containing the given POSIX time.
+--  Note that that it might not wait for anything if the current slot is large enough.
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
--- | The infinite range of slots starting with the first slot after the
--- enclosing slot of the given time
+-- | The infinite range of slots ending before the given POSIX time
 slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = PV2.to . (+ (-1)) <$> getEnclosingSlot t
 
--- | The infinite range of slots ending with the last slot before the enclosing
--- slot of the given time
+-- | The infinite range of slots starting after the given POSIX time
 slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = PV2.from . (+ 1) <$> getEnclosingSlot t
 
