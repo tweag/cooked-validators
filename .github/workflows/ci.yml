@@ -121,7 +121,8 @@ jobs:
       - name: Build and run tests
         run: |
           nix develop .#ci --command bash -c '
-            ## NOTE: `-x` and `-u` are here to help us avoid making mistakes.
+            ## NOTE: `-u` is here to help us avoid making mistakes.
+            ##       `-x` is here to help with debugging.
             ##
             ## NOTE: `-o pipefail` is important for the semantics of this
             ## script, because with pipe the result of `cabal build` and `cabal
@@ -248,7 +249,9 @@ jobs:
       - name: Build documentation
         run: |
           nix develop .#ci --command bash -c '
-            set -o xtrace
+            ## NOTE: `-e` and `-u` are here to help us avoid making mistakes.
+            ##       `-x` is here to help with debugging.
+            set -eux
 
             cabal update
 
