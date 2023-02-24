@@ -254,12 +254,19 @@ jobs:
 
             cabal haddock \
               --haddock-hyperlink-source \
-              --haddock-html-location="http://hackage.haskell.org/packages/archive/\$pkg/latest/doc/html" \
+              --haddock-quickjump \
+              --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' \
               cooked-validators
 
             mkdir -p docs
             cp --force --recursive dist-newstyle/build/*/ghc-*/cooked-validators-*/doc/html/cooked-validators/* docs
           '
+
+      - name: Upload documentation as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: ./docs
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
