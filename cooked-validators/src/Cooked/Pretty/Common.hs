@@ -24,9 +24,11 @@ prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
 prettyItemize title bullet items =
   PP.vsep
     [ title,
-      PP.indent 2 . PP.vsep $
-        map (bullet <+>) items
+      PP.indent 2 . prettyItemizeNoTitle bullet $ items
     ]
+
+prettyItemizeNoTitle :: DocCooked -> [DocCooked] -> DocCooked
+prettyItemizeNoTitle bullet = PP.vsep . map (bullet <+>)
 
 prettyItemizeNonEmpty :: DocCooked -> DocCooked -> [DocCooked] -> Maybe DocCooked
 prettyItemizeNonEmpty _ _ [] = Nothing
