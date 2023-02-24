@@ -41,9 +41,6 @@ data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 instance PrettyCooked MockDatum where
   prettyCooked = viaShow
 
-instance PrettyCooked () where
-  prettyCooked = viaShow
-
 instance Pl.Eq MockDatum where
   {-# INLINEABLE (==) #-}
   FirstLock == FirstLock = True

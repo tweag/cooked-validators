@@ -32,9 +32,6 @@ instance Pl.ValidatorTypes MockContract where
   type RedeemerType MockContract = ()
   type DatumType MockContract = ()
 
-instance PrettyCooked () where
-  prettyCooked = PP.pretty
-
 -- | The validator that always agrees to the transaction
 yesValidator :: Pl.TypedValidator MockContract
 yesValidator =

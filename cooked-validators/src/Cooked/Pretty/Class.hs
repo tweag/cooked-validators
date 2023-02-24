@@ -111,3 +111,18 @@ instance PrettyCooked Pl.ValidationErrorInPhase where
   -- TODO Implement better pretty-printing for errors such as
   -- 'ValueNotPreserved'
   prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked a => PrettyCooked [a] where
+  prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
+
+instance PrettyCooked Int where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Integer where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Bool where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked () where
+  prettyCookedOpt _ = PP.pretty
