@@ -38,7 +38,7 @@
               libsodium
               zlib
               xz
-              postgresql
+              postgresql # For cardano-node-emulator
               openldap # For freer-extras‽
             ];
           LANG = "C.UTF-8";
