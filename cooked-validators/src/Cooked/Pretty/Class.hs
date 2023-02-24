@@ -126,6 +126,19 @@ instance PrettyCooked Integer where
     if pcOptNumericUnderscores opts
       then prettyNumericUnderscore
       else PP.pretty
+    where
+      -- prettyNumericUnderscore 23798423723
+      -- 23_798_423_723
+      prettyNumericUnderscore :: Integer -> DocCooked
+      prettyNumericUnderscore i
+        | 0 == i = "0"
+        | i > 0 = psnTerm "" 0 i
+        | otherwise = "-" <> psnTerm "" 0 (-i)
+        where
+          psnTerm :: DocCooked -> Integer -> Integer -> DocCooked
+          psnTerm acc _ 0 = acc
+          psnTerm acc 3 nb = psnTerm (PP.pretty (nb `mod` 10) <> "_" <> acc) 1 (nb `div` 10)
+          psnTerm acc n nb = psnTerm (PP.pretty (nb `mod` 10) <> acc) (n + 1) (nb `div` 10)
 
 instance PrettyCooked Bool where
   prettyCookedOpt _ = PP.pretty
