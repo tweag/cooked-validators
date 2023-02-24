@@ -32,7 +32,7 @@ If you're interested in a one-stop-shop solution to writing Cardano smart
 contracts, `cooked-validators` is probably not for you. The library is geared
 specifically towards testing and auditing (already existing) on-chain code.
 
-You are free to copy, modify, and distribute `cooked-validators` inder the terms
+You are free to copy, modify, and distribute `cooked-validators` under the terms
 of the MIT license. We provide `cooked-validators` as a research prototype under
 active development, and it comes _as is_ with no guarantees whatsoever. Check
 the [license](LICENSE) for details.
@@ -104,6 +104,8 @@ Before using `cooked-validators`, you need
 
 The rendered Haddock for the current `main` branch can be found at
 [https://tweag.github.io/cooked-validators/](https://tweag.github.io/cooked-validators/).
+
+We also have a [repository of example contracts](https://github.com/tweag/cooked-smart-contracts) written using `cooked-validators`.
 
 Please also look at our
 [issues](https://tweag.github.io/cooked-validators/issues) for problems that
