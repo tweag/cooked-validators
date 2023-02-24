@@ -86,7 +86,7 @@ txBid submitter offerOref bid = do
       Just deadline = A.getBidDeadline datum
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
-  validityInterval <- slotRangeBefore deadline
+  validityInterval <- slotRangeBefore (deadline - 1)
   validateTxSkel $
     txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
@@ -149,7 +149,7 @@ txHammer submitter offerOref = do
       let datum = output ^. outputDatumL
           Just deadline = A.getBidDeadline datum
           seller = A.getSeller datum
-      validityInterval <- slotRangeAfter deadline
+      validityInterval <- slotRangeAfter (deadline + 1)
       void $
         validateTxSkel $
           txSkelTemplate

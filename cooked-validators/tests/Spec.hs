@@ -3,6 +3,7 @@ import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 -- import qualified Cooked.BalanceSpec as Ba
 import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.MinAdaSpec as MinAdaSpec
+import qualified Cooked.MockChainSpec as MockChainSpec
 import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
 import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
 import qualified Cooked.TweakSpec as TweakSpec
@@ -32,5 +33,6 @@ tests =
       ReferenceScriptsSpec.tests,
       AttackSpec.tests,
       TweakSpec.tests,
-      LtlSpec.tests
+      LtlSpec.tests,
+      MockChainSpec.tests
     ]

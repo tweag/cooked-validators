@@ -36,6 +36,7 @@ module Cooked.MockChain.BlockChain
     awaitEnclosingSlot,
     slotRangeBefore,
     slotRangeAfter,
+    slotToTimeInterval,
   )
 where
 
@@ -294,16 +295,38 @@ waitNSlots n =
     then fail "waitNSlots: negative argument"
     else currentSlot >>= awaitSlot . (+ fromIntegral n)
 
--- | Returns the ms interval corresponding to the current slot
+-- | Returns the closed ms interval corresponding to the current slot
 currentTime :: (MonadBlockChainWithoutValidation m) => m (PV2.POSIXTime, PV2.POSIXTime)
-currentTime = do
-  slotConfig <- Emulator.pSlotConfig <$> getParams
-  interval <- Emulator.slotToPOSIXTimeRange slotConfig <$> currentSlot
-  case interval of
-    PV2.Interval (PV2.LowerBound (PV2.Finite l) _) (PV2.UpperBound (PV2.Finite r) _) ->
-      return (l, r)
-    _ -> fail "The enclosing slot should be finite on both ends."
+currentTime = slotToTimeInterval =<< currentSlot
 
+-- | Returns the closed ms interval corresponding to the slot with the given
+-- number. It holds that
+--
+-- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
+--
+-- and
+--
+-- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
+slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (PV2.POSIXTime, PV2.POSIXTime)
+slotToTimeInterval slot = do
+  slotConfig <- Emulator.pSlotConfig <$> getParams
+  case Emulator.slotToPOSIXTimeRange slotConfig slot of
+    PV2.Interval
+      (PV2.LowerBound (PV2.Finite l) leftclosed)
+      (PV2.UpperBound (PV2.Finite r) rightclosed) ->
+        return
+          ( if leftclosed then l else l + 1,
+            if rightclosed then r else r - 1
+          )
+    _ -> error "The time interval corresponding to a slot should be finite on both ends."
+
+-- | Return the slot that contains the given time. It holds that
+--
+-- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
+--
+-- and
+--
+-- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
 getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
 getEnclosingSlot t = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
@@ -314,13 +337,23 @@ getEnclosingSlot t = do
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
--- | The infinite range of slots ending before the given POSIX time
+-- | The infinite range of slots ending before or at the given POSIX time
 slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
-slotRangeBefore t = PV2.to . (+ (-1)) <$> getEnclosingSlot t
+slotRangeBefore t = do
+  n <- getEnclosingSlot t
+  (_, b) <- slotToTimeInterval n
+  if t == b
+    then return $ PV2.to n
+    else return $ PV2.to (n - 1)
 
--- | The infinite range of slots starting after the given POSIX time
+-- | The infinite range of slots starting after or at the given POSIX time
 slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
-slotRangeAfter t = PV2.from . (+ 1) <$> getEnclosingSlot t
+slotRangeAfter t = do
+  n <- getEnclosingSlot t
+  (a, _) <- slotToTimeInterval n
+  if t == a
+    then return $ PV2.from n
+    else return $ PV2.from (n + 1)
 
 -- ** Deriving further 'MonadBlockChain' instances
 
