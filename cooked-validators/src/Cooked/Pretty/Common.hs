@@ -8,7 +8,6 @@ module Cooked.Pretty.Common
     prettyItemizeNonEmpty,
     prettyEnumerate,
     prettyHash,
-    prettyNumericUnderscore,
   )
 where
 
