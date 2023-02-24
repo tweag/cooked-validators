@@ -146,43 +146,44 @@ instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-prettyMockChainLog :: PrettyCookedOpts -> MockChainLog -> DocCooked
-prettyMockChainLog opts =
-  prettyEnumerate "MockChain run:" "."
-    . go []
-  where
-    -- In order to avoid printing 'MockChainLogValidateTxSkel' then
-    -- 'MockChainLogNewTx' as two different items, we combine them into one
-    -- single 'DocCooked'
-    go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
-    go
-      acc
-      ( MCLogSubmittedTxSkel skelContext skel
-          : MCLogNewTx txId
-          : entries
-        )
-        | pcOptPrintTxHashes opts =
-          go
-            ( "Validated"
-                <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                <+> prettyTxSkel opts skelContext skel :
-              acc
-            )
-            entries
-        | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
-    go
-      acc
-      ( MCLogSubmittedTxSkel skelContext skel
-          : entries
-        ) =
-        go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
-    go acc (MCLogFail msg : entries) =
-      go ("Fail:" <+> PP.pretty msg : acc) entries
-    -- This case is not supposed to occur because it should follow a
-    -- 'MCLogSubmittedTxSkel'
-    go acc (MCLogNewTx txId : entries) =
-      go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
-    go acc [] = reverse acc
+instance PrettyCooked MockChainLog where
+  prettyCookedOpt opts =
+    prettyEnumerate "MockChain run:" "."
+      . go []
+      . unMockChainLog
+    where
+      -- In order to avoid printing 'MockChainLogValidateTxSkel' then
+      -- 'MockChainLogNewTx' as two different items, we combine them into one
+      -- single 'DocCooked'
+      go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
+      go
+        acc
+        ( MCLogSubmittedTxSkel skelContext skel
+            : MCLogNewTx txId
+            : entries
+          )
+          | pcOptPrintTxHashes opts =
+            go
+              ( "Validated"
+                  <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
+                  <+> prettyTxSkel opts skelContext skel :
+                acc
+              )
+              entries
+          | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
+      go
+        acc
+        ( MCLogSubmittedTxSkel skelContext skel
+            : entries
+          ) =
+          go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
+      go acc (MCLogFail msg : entries) =
+        go ("Fail:" <+> PP.pretty msg : acc) entries
+      -- This case is not supposed to occur because it should follow a
+      -- 'MCLogSubmittedTxSkel'
+      go acc (MCLogNewTx txId : entries) =
+        go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
+      go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints validityRange signers ins insReference outs) =

@@ -153,7 +153,7 @@ testAllSatisfiesFrom ::
 testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
   where
     go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
-    go (prop, mcLog) = testCounterexample (renderString (prettyMockChainLog pcOpts) mcLog) (f prop)
+    go (prop, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f prop)
 
 -- | Asserts that the given 'StagedMockChain' produces exactly two outcomes, both of which
 -- are successful and have their resulting states related by a given predicate. A typical
@@ -173,9 +173,9 @@ testBinaryRelatedBy pcOpts rel = testSatisfiesFrom' $ \case
   [(ra, ta), (rb, tb)] -> case (ra, rb) of
     (Right resA, Right resB) -> rel (snd resA) (snd resB)
     (Left errA, Right _) ->
-      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", renderString (prettyCookedOpt pcOpts) errA, "\n", renderString (prettyMockChainLog pcOpts) ta]
+      testFailureMsg $ concat ["Expected two outcomes, the first failed with:", renderString (prettyCookedOpt pcOpts) errA, "\n", renderString (prettyCookedOpt pcOpts) ta]
     (Right _, Left errB) ->
-      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", renderString (prettyCookedOpt pcOpts) errB, "\n", renderString (prettyMockChainLog pcOpts) tb]
+      testFailureMsg $ concat ["Expected two outcomes, the second failed with:", renderString (prettyCookedOpt pcOpts) errB, "\n", renderString (prettyCookedOpt pcOpts) tb]
     (Left errA, Left errB) ->
       testFailureMsg $
         concat
@@ -184,9 +184,9 @@ testBinaryRelatedBy pcOpts rel = testSatisfiesFrom' $ \case
             "; ",
             renderString (prettyCookedOpt pcOpts) errB,
             "\n First: ",
-            renderString (prettyMockChainLog pcOpts) ta,
+            renderString (prettyCookedOpt pcOpts) ta,
             "\nSecond: ",
-            renderString (prettyMockChainLog pcOpts) tb
+            renderString (prettyCookedOpt pcOpts) tb
           ]
   xs -> testFailureMsg $ "Expected exactly two outcomes, received: " ++ show (length xs)
 
@@ -208,13 +208,13 @@ testOneEquivClass ::
 testOneEquivClass pcOpts rel = testSatisfiesFrom' $ \case
   [] -> testFailureMsg "Expected two of more outcomes, received: 0"
   [_] -> testFailureMsg "Expected two of more outcomes, received: 1"
-  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errX, "\n", renderString (prettyMockChainLog pcOpts) tx]
+  ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errX, "\n", renderString (prettyCookedOpt pcOpts) tx]
   ((Right resX, _) : xs) -> go (snd resX) xs
   where
     -- we can flag a success here because 'xs' above is guarnateed to have at least
     -- one element since we ruled out the empty and the singleton lists in the \case
     go _resX [] = testSuccess
-    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errY, "\n", renderString (prettyMockChainLog pcOpts) ty]
+    go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errY, "\n", renderString (prettyCookedOpt pcOpts) ty]
     go resX ((Right (_, resY), _) : ys) = testConjoin [rel resX resY, go resX ys]
 
 -- | Asserts that the results produced by running the given 'StagedMockChain' from
