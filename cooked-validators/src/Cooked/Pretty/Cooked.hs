@@ -445,7 +445,7 @@ prettyPayloadGrouped opts [payload] =
     payload
 prettyPayloadGrouped opts (payload : rest) =
   let cardinality = 1 + length rest
-   in (PP.parens ("×" <> PP.pretty cardinality) <+>)
+   in (PP.parens ("×" <> prettyCookedOpt opts cardinality) <+>)
         <$> prettyPayload opts False payload
 
 prettyPayload :: PrettyCookedOpts -> Bool -> UtxoPayload -> Maybe DocCooked

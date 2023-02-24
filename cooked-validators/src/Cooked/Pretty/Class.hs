@@ -46,7 +46,7 @@ instance PrettyCooked Pl.TxId where
 
 instance PrettyCooked Pl.TxOutRef where
   prettyCookedOpt opts (Pl.TxOutRef txId index) =
-    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> PP.pretty index
+    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> prettyCookedOpt opts index
 
 instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts) . Pl.mintingPolicyHash
@@ -99,7 +99,7 @@ instance PrettyCooked Pl.Value where
       prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyAssetClass <> ":" <+> prettyNumericUnderscore amount
+        prettyAssetClass <> ":" <+> prettyCookedOpt opts amount
         where
           prettyAssetClass
             | symbol == Pl.CurrencySymbol "" = "Lovelace"
@@ -119,7 +119,10 @@ instance PrettyCooked Int where
   prettyCookedOpt _ = PP.pretty
 
 instance PrettyCooked Integer where
-  prettyCookedOpt _ = PP.pretty
+  prettyCookedOpt opts =
+    if pcOptNumericUnderscores opts
+      then prettyNumericUnderscore
+      else PP.pretty
 
 instance PrettyCooked Bool where
   prettyCookedOpt _ = PP.pretty
