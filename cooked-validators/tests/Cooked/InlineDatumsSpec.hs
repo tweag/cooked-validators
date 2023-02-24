@@ -42,9 +42,6 @@ data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show
 instance PrettyCooked SimpleContractDatum where
   prettyCooked = viaShow
 
-instance PrettyCooked () where
-  prettyCooked = viaShow
-
 instance Pl.Eq SimpleContractDatum where
   FirstPaymentDatum == FirstPaymentDatum = True
   SecondPaymentDatum == SecondPaymentDatum = True

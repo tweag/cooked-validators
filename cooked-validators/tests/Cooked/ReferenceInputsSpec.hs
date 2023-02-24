@@ -44,9 +44,6 @@ newtype FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
 instance PrettyCooked FooDatum where
   prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyCookedOpt opts pkh
 
-instance PrettyCooked () where
-  prettyCooked = PP.pretty
-
 instance Pl.Eq FooDatum where
   FooDatum pkh1 == FooDatum pkh2 = pkh1 == pkh2
 

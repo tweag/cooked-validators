@@ -8,6 +8,7 @@ import Control.Monad (join, replicateM)
 import Cooked
 import Cooked.MockChain.Staged
 import Cooked.TestUtils
+import Cooked.Tweak.OutPermutations
 import Data.Default
 import Data.Either (rights)
 import Data.List (group, groupBy)

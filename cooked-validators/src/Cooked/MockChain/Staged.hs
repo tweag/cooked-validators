@@ -12,7 +12,7 @@ module Cooked.MockChain.Staged
   ( interpretAndRunWith,
     interpretAndRun,
     MockChainLogEntry (..),
-    MockChainLog,
+    MockChainLog (..),
     StagedMockChain,
     runTweak,
     runTweakFrom,
@@ -65,7 +65,13 @@ data MockChainLogEntry
   | MCLogNewTx Pl.TxId
   | MCLogFail String
 
-type MockChainLog = [MockChainLogEntry]
+newtype MockChainLog = MockChainLog {unMockChainLog :: [MockChainLogEntry]}
+
+instance Semigroup MockChainLog where
+  MockChainLog x <> MockChainLog y = MockChainLog $ x <> y
+
+instance Monoid MockChainLog where
+  mempty = MockChainLog []
 
 -- | The semantic domain in which 'StagedMockChain' gets interpreted; see
 --  the 'interpret' function for more.
@@ -147,16 +153,17 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
         (_, skel') <- lift $ runTweakInChain now skel
         lift $
           lift $
-            tell
-              [ MCLogSubmittedTxSkel
-                  (SkelContext managedTxOuts managedDatums)
-                  skel'
-              ]
+            tell $
+              MockChainLog
+                [ MCLogSubmittedTxSkel
+                    (SkelContext managedTxOuts managedDatums)
+                    skel'
+                ]
         tx <- validateTxSkel skel'
         lift $
           lift $
-            tell
-              [MCLogNewTx (Ledger.getCardanoTxId tx)]
+            tell $
+              MockChainLog [MCLogNewTx (Ledger.getCardanoTxId tx)]
         put later
         return tx
   interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
@@ -171,7 +178,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin Empty = mzero
   interpBuiltin (Alt l r) = interpLtl l `mplus` interpLtl r
   interpBuiltin (Fail msg) = do
-    lift $ lift $ tell [MCLogFail msg]
+    lift $ lift $ tell $ MockChainLog [MCLogFail msg]
     fail msg
   interpBuiltin (ThrowError err) = throwError err
   interpBuiltin (CatchError act handler) = catchError (interpLtl act) (interpLtl . handler)

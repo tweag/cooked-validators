@@ -6,7 +6,25 @@
 
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
-module Cooked.Tweak.Common where
+module Cooked.Tweak.Common
+  ( runTweakInChain,
+    runTweakInChain',
+    Tweak,
+    UntypedTweak (UntypedTweak),
+
+    -- * User API
+    MonadTweak (..),
+    failingTweak,
+    doNothingTweak,
+    viewTweak,
+    viewAllTweak,
+    setTweak,
+    overTweak,
+    overMaybeTweak,
+    overMaybeSelectingTweak,
+    selectP,
+  )
+where
 
 import Control.Monad
 import Control.Monad.State

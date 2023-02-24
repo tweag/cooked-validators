@@ -17,7 +17,22 @@
 -- Some structure require additional arguments to be pretty-printed and have
 -- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
 -- 'TxSkelContext').
-module Cooked.Pretty.Cooked where
+module Cooked.Pretty.Cooked
+  ( prettyTxSkel,
+    prettyBalancingWallet,
+    prettySigners,
+    prettyMints,
+    mPrettyTxOpts,
+    prettyTxSkelOut,
+    prettyTxSkelOutDatumMaybe,
+    prettyTxSkelIn,
+    prettyTxSkelInReference,
+    prettyAddressState,
+    prettyPayloadGrouped,
+    prettyPayload,
+    prettyReferenceScriptHash,
+  )
+where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -137,7 +152,7 @@ instance Show a => PrettyCooked (a, UtxoState) where
     prettyItemize
       "End state:"
       "-"
-      ["Returns:" <+> PP.viaShow res, prettyUtxoState opts state]
+      ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
 instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
   prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
@@ -146,43 +161,44 @@ instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
 -- | This pretty prints a mock chain log that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
-prettyMockChainLog :: PrettyCookedOpts -> MockChainLog -> DocCooked
-prettyMockChainLog opts =
-  prettyEnumerate "MockChain run:" "."
-    . go []
-  where
-    -- In order to avoid printing 'MockChainLogValidateTxSkel' then
-    -- 'MockChainLogNewTx' as two different items, we combine them into one
-    -- single 'DocCooked'
-    go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
-    go
-      acc
-      ( MCLogSubmittedTxSkel skelContext skel
-          : MCLogNewTx txId
-          : entries
-        )
-        | pcOptPrintTxHashes opts =
-          go
-            ( "Validated"
-                <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                <+> prettyTxSkel opts skelContext skel :
-              acc
-            )
-            entries
-        | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
-    go
-      acc
-      ( MCLogSubmittedTxSkel skelContext skel
-          : entries
-        ) =
-        go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
-    go acc (MCLogFail msg : entries) =
-      go ("Fail:" <+> PP.pretty msg : acc) entries
-    -- This case is not supposed to occur because it should follow a
-    -- 'MCLogSubmittedTxSkel'
-    go acc (MCLogNewTx txId : entries) =
-      go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
-    go acc [] = reverse acc
+instance PrettyCooked MockChainLog where
+  prettyCookedOpt opts =
+    prettyEnumerate "MockChain run:" "."
+      . go []
+      . unMockChainLog
+    where
+      -- In order to avoid printing 'MockChainLogValidateTxSkel' then
+      -- 'MockChainLogNewTx' as two different items, we combine them into one
+      -- single 'DocCooked'
+      go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
+      go
+        acc
+        ( MCLogSubmittedTxSkel skelContext skel
+            : MCLogNewTx txId
+            : entries
+          )
+          | pcOptPrintTxHashes opts =
+            go
+              ( "Validated"
+                  <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
+                  <+> prettyTxSkel opts skelContext skel :
+                acc
+              )
+              entries
+          | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
+      go
+        acc
+        ( MCLogSubmittedTxSkel skelContext skel
+            : entries
+          ) =
+          go ("Submitted" <+> prettyTxSkel opts skelContext skel : acc) entries
+      go acc (MCLogFail msg : entries) =
+        go ("Fail:" <+> PP.pretty msg : acc) entries
+      -- This case is not supposed to occur because it should follow a
+      -- 'MCLogSubmittedTxSkel'
+      go acc (MCLogNewTx txId : entries) =
+        go ("New transaction:" <+> prettyCookedOpt opts txId : acc) entries
+      go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
 prettyTxSkel opts skelContext (TxSkel lbl txopts mints validityRange signers ins insReference outs) =
@@ -384,27 +400,27 @@ mPrettyTxOpts
 
 -- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
 -- pks, then scripts.
-prettyUtxoState :: PrettyCookedOpts -> UtxoState -> DocCooked
-prettyUtxoState opts =
-  prettyItemize "UTxO state:" "•"
-    . map (uncurry (prettyAddressState opts))
-    . List.sortBy addressOrdering
-    . Map.toList
-    . utxoState
-  where
-    addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
-    addressOrdering
-      (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
-      (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
-        case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
-          (Just i, Just j) -> compare i j
-          (Just _, Nothing) -> LT
-          (Nothing, Just _) -> GT
-          (Nothing, Nothing) -> compare a1 a2
-    addressOrdering
-      (Pl.Address (Pl.PubKeyCredential _) _, _)
-      (Pl.Address (Pl.ScriptCredential _) _, _) = LT
-    addressOrdering (a1, _) (a2, _) = compare a1 a2
+instance PrettyCooked UtxoState where
+  prettyCookedOpt opts =
+    prettyItemize "UTxO state:" "•"
+      . map (uncurry (prettyAddressState opts))
+      . List.sortBy addressOrdering
+      . Map.toList
+      . utxoState
+    where
+      addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
+      addressOrdering
+        (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
+        (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
+          case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
+            (Just i, Just j) -> compare i j
+            (Just _, Nothing) -> LT
+            (Nothing, Just _) -> GT
+            (Nothing, Nothing) -> compare a1 a2
+      addressOrdering
+        (Pl.Address (Pl.PubKeyCredential _) _, _)
+        (Pl.Address (Pl.ScriptCredential _) _, _) = LT
+      addressOrdering (a1, _) (a2, _) = compare a1 a2
 
 -- | Pretty prints the state of an address, that is the list of utxos
 -- (including value and datum), grouped
@@ -444,7 +460,7 @@ prettyPayloadGrouped opts [payload] =
     payload
 prettyPayloadGrouped opts (payload : rest) =
   let cardinality = 1 + length rest
-   in (PP.parens ("×" <> PP.pretty cardinality) <+>)
+   in (PP.parens ("×" <> prettyCookedOpt opts cardinality) <+>)
         <$> prettyPayload opts False payload
 
 prettyPayload :: PrettyCookedOpts -> Bool -> UtxoPayload -> Maybe DocCooked

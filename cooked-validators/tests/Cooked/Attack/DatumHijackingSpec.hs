@@ -11,6 +11,7 @@ module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
+import Cooked.Attack.DatumHijacking
 import Cooked.MockChain.Staged
 import Data.Default
 import qualified Data.Map as Map
@@ -39,9 +40,6 @@ import Test.Tasty.HUnit
 data MockDatum = FirstLock | SecondLock deriving (Show, Eq)
 
 instance PrettyCooked MockDatum where
-  prettyCooked = viaShow
-
-instance PrettyCooked () where
   prettyCooked = viaShow
 
 instance Pl.Eq MockDatum where
