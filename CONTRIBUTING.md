@@ -22,9 +22,31 @@ Thank you for investing your time in contributing to _Cooked Validators_!
 [issue tracker]: https://github.com/tweag/cooked-validators/issues
 [documentation]: https://tweag.github.io/cooked-validators/
 
-## Testing
+## Running and testing
 
-## Environment details
+Our Nix integration provides everything one needs to hack on _Cooked Validators_
+The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
+The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
+
+Unit tests are defined in `/cooked-validators/tests`.
+The `/examples` directory contains more high-level tests under the form of full blown examples.
+Running tests consists in checking in both those directories that `cabal run tests` is happy.
+For instance:
+
+```console
+$ cd cooked-validators
+$ cabal run tests
+...
+All 74 tests passed (2.22s)
+$ cd ../examples
+$ cabal run tests
+...
+All 16 tests passed (12.32s)
+```
+
+Our continuous integration checks all of this automatically.
+
+[haskell language server]: https://github.com/haskell/haskell-language-server
 
 ## How to submit changes
 
