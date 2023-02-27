@@ -63,11 +63,32 @@ Provide more context by answering these questions:
 
 - What are the name and version of the OS you are using?
 
+## How to request an enhancement
+
+Enhancement requests are tracked using GitHub's [issue tracker].
+
+Before creating enhancement suggestions, please check whether [there is already an issue tracking it][issue tracker].
+When you are creating an enhancement suggestion, please include as many details as possible.
+Fill in the template, including the steps that you imagine you would take if the feature you're requesting existed.
+
+- Use a clear and descriptive title for the issue to identify the suggestion.
+
+- Provide a step-by-step description of the suggested enhancement in as many details as possible.
+
+- Provide specific examples to demonstrate the steps.
+  Include copy/pasteable snippets which you use in those examples, as Markdown code blocks.
+
+- Describe the current behavior and explain which behaviour you expected to see instead and why.
+
+- Explain why this enhancement would be useful to most _Cooked Validators_ users and is not something that can or should be implemented as a community package.
+
+- Specify which version of _Cooked Validators_ you are using.
+  Specify the name and version of the OS you are using.
+
+
 ## Templates
 
 ## First bugs to contributors
-
-## How to request an “enhancement”
 
 ## Style guide / Coding conventions
 
