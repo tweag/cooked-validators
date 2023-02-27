@@ -16,8 +16,6 @@ Thank you for investing your time in contributing to _Cooked Validators_!
   Please report it using GitHub's [issue tracker].
   Select “feature request”.
 
-- [documentation](https://tweag.github.io/cooked-validators/)
-
 [discussions board]: https://github.com/tweag/cooked-validators/discussions
 [issue tracker]: https://github.com/tweag/cooked-validators/issues
 [documentation]: https://tweag.github.io/cooked-validators/
