@@ -50,6 +50,34 @@ Our continuous integration checks all of this automatically.
 
 ## How to submit changes
 
+Changes are submitted by means of [pull requests].
+The process of submitting pull requests has several goals:
+
+- Maintain _Cooked Validators_'s quality.
+
+- Fix problems that are important to users.
+
+- Engage the community in working toward the best possible _Cooked Validators_.
+
+- Enable a sustainable system for _Cooked Validators_'s maintainers to review contributions.
+
+[pull requests]: https://github.com/tweag/cooked-validators/pulls
+
+Please follow these steps to have your contribution considered by the maintainers:
+
+- Follow all instructions in the template.
+
+- Follow the [style guides].
+
+- After you submit your pull request, verify that all [status checks] are passing.
+  If a status check is failing, and you believe that the failure is unrelated to your change, please leave a comment on the pull request explaining why you believe the failure is unrelated.
+  A maintainer will re-run the status check for you.
+  If we conclude that the failure was a false positive, then we will open an issue to track that problem with our status check suite.
+
+While the prerequisites above must be satisfied prior to having your pull request reviewed, the reviewer/s may ask you to complete additional design work, tests, or other changes before your pull request can be ultimately accepted.
+
+[status checks]: https://help.github.com/articles/about-status-checks/
+
 ## How to report a bug
 
 Bugs are tracked using GitHub's [issue tracker].
@@ -107,7 +135,9 @@ Fill in the template, including the steps that you imagine you would take if the
 - Specify which version of _Cooked Validators_ you are using.
   Specify the name and version of the OS you are using.
 
-## Style guide / Coding conventions
+## Style guides / Coding conventions
+
+[style guides]: #style-guides--coding-conventions
 
 ### Haskell style guide
 
