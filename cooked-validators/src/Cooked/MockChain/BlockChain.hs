@@ -307,6 +307,10 @@ currentTime = slotToTimeInterval =<< currentSlot
 -- and
 --
 -- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
+--
+-- and
+--
+-- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
 slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (PV2.POSIXTime, PV2.POSIXTime)
 slotToTimeInterval slot = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
@@ -320,13 +324,8 @@ slotToTimeInterval slot = do
           )
     _ -> error "The time interval corresponding to a slot should be finite on both ends."
 
--- | Return the slot that contains the given time. It holds that
---
--- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
---
--- and
---
--- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
+-- | Return the slot that contains the given time. See 'slotToTimeInterval' for
+-- some equational properties this function satisfies.
 getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
 getEnclosingSlot t = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
