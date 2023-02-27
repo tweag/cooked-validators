@@ -1,7 +1,3 @@
-> **Warning**
->
-> This is a development version of the next iteration of `cooked-validators`, with full support of Plutus V2 features. Refer to [version 1.0.0](https://github.com/tweag/cooked-validators/releases/tag/v1.0.0) for the latest stable version, which only supports Plutus V1.
-
 # [Cooked Validators](https://github.com/tweag/cooked-validators/)
 
 Copyright Tweag I/O 2023
