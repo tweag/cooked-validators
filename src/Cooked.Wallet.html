@@ -55,8 +55,8 @@
 </span><span id="line-55"></span><span>
 </span><span id="line-56"></span><span class="hs-keyword">type</span><span> </span><span id="PrivateKey"><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-var">PrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span><span>
 </span><span id="line-57"></span><span>
-</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507238"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-59"></span><span>  </span><span id="local-6989586621679507236"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-58"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507292"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679507290"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">(==)</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -65,8 +65,8 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">`on`</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><span class="hs-identifier hs-var hs-var">Pl.mwWalletId</span></span><span>
 </span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507221"><span id="local-6989586621679507223"><span id="local-6989586621679507225"><span id="local-6989586621679507227"><span id="local-6989586621679507229"><span id="local-6989586621679507231"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-62"></span><span>  </span><span id="local-6989586621679507219"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507275"><span id="local-6989586621679507277"><span id="local-6989586621679507279"><span id="local-6989586621679507281"><span id="local-6989586621679507283"><span id="local-6989586621679507285"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>  </span><span id="local-6989586621679507273"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
@@ -84,27 +84,27 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span id="line-68"></span><span class="hs-comment">-- | Wallet corresponding to a given wallet number (or wallet ID)</span><span>
 </span><span id="line-69"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-70"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Int -&gt; Wallet
-</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679507216"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507216"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679507270"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679507270"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-71"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507216"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679507270"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507216"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679507270"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679507212"><span class="annot"><span class="annottext">i :: Int
-</span><a href="#local-6989586621679507212"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507216"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679507266"><span class="annot"><span class="annottext">i :: Int
+</span><a href="#local-6989586621679507266"><span class="hs-identifier hs-var hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679507270"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Int -&gt; Wallet
 forall a. [a] -&gt; Int -&gt; a
 </span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507212"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><a href="#local-6989586621679507266"><span class="hs-identifier hs-var">i</span></a></span><span>
 </span><span id="line-72"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WalletNumber -&gt; Wallet
 </span><span class="hs-identifier hs-var">Pl.fromWalletNumber</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer -&gt; WalletNumber
@@ -113,7 +113,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679507216"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679507270"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-73"></span><span>
 </span><span id="line-74"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public key</span><span>
 </span><span id="line-75"></span><span class="hs-comment">-- hash, if any.</span><span>
@@ -127,10 +127,10 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Map PubKeyHash Int -&gt; Maybe Int
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">Map PubKeyHash Int
-</span><a href="#local-6989586621679507206"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
+</span><a href="#local-6989586621679507260"><span class="hs-identifier hs-var">walletPKHashToIdMap</span></a></span><span>
 </span><span id="line-80"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-81"></span><span>    </span><span id="local-6989586621679507206"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
-</span><a href="#local-6989586621679507206"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-81"></span><span>    </span><span id="local-6989586621679507260"><span class="annot"><span class="annottext">walletPKHashToIdMap :: Map PubKeyHash Int
+</span><a href="#local-6989586621679507260"><span class="hs-identifier hs-var hs-var">walletPKHashToIdMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">[(PubKeyHash, Int)] -&gt; Map PubKeyHash Int
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.fromList</span></span><span> </span><span class="annot"><span class="annottext">([(PubKeyHash, Int)] -&gt; Map PubKeyHash Int)
@@ -202,8 +202,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-100"></span><span class="hs-comment">-- | Retrieves a wallet's address</span><span>
 </span><span id="line-101"></span><span class="annot"><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-type">walletAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span>
 </span><span id="line-102"></span><span id="walletAddress"><span class="annot"><span class="annottext">walletAddress :: Wallet -&gt; Address
-</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679507199"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679507199"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679507253"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679507253"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-103"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><span class="hs-identifier hs-var">Pl.Address</span></span><span>
 </span><span id="line-104"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
@@ -211,7 +211,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679507199"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679507253"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-105"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><span class="hs-identifier hs-var">Pl.StakingHash</span></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
@@ -222,7 +222,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679507199"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679507253"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-106"></span><span>
 </span><span id="line-107"></span><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span><span>
 </span><span id="line-108"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.MockWallet</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span><span>
@@ -247,7 +247,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">MockPrivateKey -&gt; XPrv
 forall a. a -&gt; XPrv
-</span><a href="#local-6989586621679507191"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
+</span><a href="#local-6989586621679507245"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
 -&gt; (Wallet -&gt; Maybe MockPrivateKey) -&gt; Wallet -&gt; Maybe XPrv
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe MockPrivateKey
@@ -258,24 +258,24 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-123"></span><span>    </span><span class="hs-comment">-- the things we need. If you use this anyway, make sure that you only</span><span>
 </span><span id="line-124"></span><span>    </span><span class="hs-comment">-- apply it to @MockPrivateKey@; the function is polymorphic because</span><span>
 </span><span id="line-125"></span><span>    </span><span class="hs-comment">-- @MockPrivateKey@ is not exported either</span><span>
-</span><span id="line-126"></span><span>    </span><span id="local-6989586621679507279"><span class="annot"><a href="#local-6989586621679507191"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679507279"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span></span><span>
-</span><span id="line-127"></span><span>    </span><span id="local-6989586621679507191"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
-</span><a href="#local-6989586621679507191"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679507189"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679507189"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679507188"><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679507188"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
+</span><span id="line-126"></span><span>    </span><span id="local-6989586621679507333"><span class="annot"><a href="#local-6989586621679507245"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679507333"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Cardano.XPrv</span></span></span><span>
+</span><span id="line-127"></span><span>    </span><span id="local-6989586621679507245"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
+</span><a href="#local-6989586621679507245"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679507243"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679507243"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679507242"><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679507242"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
 forall a b. a -&gt; b
 </span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679507189"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679507188"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><a href="#local-6989586621679507243"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679507242"><span class="hs-identifier hs-var">y</span></a></span><span>
 </span><span id="line-128"></span><span>
 </span><span id="line-129"></span><span class="hs-comment">-- | Signs a transaction</span><span>
 </span><span id="line-130"></span><span class="annot"><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-type">txAddSignature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Tx</span></span><span>
 </span><span id="line-131"></span><span id="txAddSignature"><span class="annot"><span class="annottext">txAddSignature :: Wallet -&gt; Tx -&gt; Tx
-</span><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679507186"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679507186"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
+</span><a href="Cooked.Wallet.html#txAddSignature"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679507240"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679507240"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">XPrv -&gt; Tx -&gt; Tx
 </span><span class="hs-identifier hs-var">Pl.addSignature'</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; XPrv
 </span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679507186"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679507240"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-132"></span><span>
 </span><span id="line-133"></span><span class="hs-comment">-- * Initial distribution of funds</span><span>
 </span><span id="line-134"></span><span>
@@ -313,7 +313,7 @@ forall a b. a -&gt; b
 </span><span id="line-166"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="unInitialDistribution"><span class="annot"><span class="annottext">InitialDistribution -&gt; Map Wallet [Value]
 </span><a href="Cooked.Wallet.html#unInitialDistribution"><span class="hs-identifier hs-var hs-var">unInitialDistribution</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span class="hs-special">]</span><span>
 </span><span id="line-167"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-168"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507179"><span id="local-6989586621679507181"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
+</span><span id="line-168"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679507233"><span id="local-6989586621679507235"><span class="annot"><span class="annottext">InitialDistribution -&gt; InitialDistribution -&gt; Bool
 (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; (InitialDistribution -&gt; InitialDistribution -&gt; Bool)
 -&gt; Eq InitialDistribution
@@ -322,7 +322,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 == :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
 $c== :: InitialDistribution -&gt; InitialDistribution -&gt; Bool
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507173"><span id="local-6989586621679507175"><span id="local-6989586621679507177"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679507227"><span id="local-6989586621679507229"><span id="local-6989586621679507231"><span class="annot"><span class="annottext">Int -&gt; InitialDistribution -&gt; ShowS
 [InitialDistribution] -&gt; ShowS
 InitialDistribution -&gt; String
 (Int -&gt; InitialDistribution -&gt; ShowS)
@@ -339,11 +339,11 @@ showsPrec :: Int -&gt; InitialDistribution -&gt; ShowS
 $cshowsPrec :: Int -&gt; InitialDistribution -&gt; ShowS
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-169"></span><span>
-</span><span id="line-170"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507167"><span id="local-6989586621679507169"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-171"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679507165"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679507165"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679507164"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
-</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679507163"><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679507163"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-170"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507221"><span id="local-6989586621679507223"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-171"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679507219"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679507219"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679507218"><span class="annot"><span class="annottext">&lt;&gt; :: InitialDistribution -&gt; InitialDistribution -&gt; InitialDistribution
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span id="local-6989586621679507217"><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679507217"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-172"></span><span>    </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
 -&gt; Map Wallet [Value] -&gt; InitialDistribution
@@ -354,18 +354,18 @@ forall k a. Ord k =&gt; (a -&gt; a -&gt; a) -&gt; Map k a -&gt; Map k a -&gt; Ma
 </span><span class="hs-identifier hs-var">Map.unionWith</span></span><span> </span><span class="annot"><span class="annottext">[Value] -&gt; [Value] -&gt; [Value]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679507165"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
-</span><a href="#local-6989586621679507163"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><a href="#local-6989586621679507219"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
+</span><a href="#local-6989586621679507217"><span class="hs-identifier hs-var">j</span></a></span><span>
 </span><span id="line-173"></span><span>
-</span><span id="line-174"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507156"><span id="local-6989586621679507158"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-175"></span><span>  </span><span id="local-6989586621679507154"><span class="annot"><span class="annottext">mempty :: InitialDistribution
+</span><span id="line-174"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679507210"><span id="local-6989586621679507212"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-175"></span><span>  </span><span id="local-6989586621679507208"><span class="annot"><span class="annottext">mempty :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">Map Wallet [Value]
 forall k a. Map k a
 </span><span class="hs-identifier hs-var">Map.empty</span></span><span>
 </span><span id="line-176"></span><span>
 </span><span id="line-177"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-178"></span><span>  </span><span id="local-6989586621679507150"><span class="annot"><span class="annottext">def :: InitialDistribution
+</span><span id="line-178"></span><span>  </span><span id="local-6989586621679507204"><span class="annot"><span class="annottext">def :: InitialDistribution
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-179"></span><span>    </span><span class="annot"><span class="annottext">Map Wallet [Value] -&gt; InitialDistribution
 </span><a href="Cooked.Wallet.html#InitialDistribution"><span class="hs-identifier hs-var">InitialDistribution</span></a></span><span> </span><span class="annot"><span class="annottext">(Map Wallet [Value] -&gt; InitialDistribution)
@@ -389,10 +389,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. Int -&gt; a -&gt; [a]
 </span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679507146"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679507200"><span class="hs-identifier hs-var">defLovelace</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-182"></span><span>    </span><span class="hs-keyword">where</span><span>
-</span><span id="line-183"></span><span>      </span><span id="local-6989586621679507146"><span class="annot"><span class="annottext">defLovelace :: Value
-</span><a href="#local-6989586621679507146"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
+</span><span id="line-183"></span><span>      </span><span id="local-6989586621679507200"><span class="annot"><span class="annottext">defLovelace :: Value
+</span><a href="#local-6989586621679507200"><span class="hs-identifier hs-var hs-var">defLovelace</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Value
 </span><span class="hs-identifier hs-var">Pl.lovelaceValueOf</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">100_000_000</span></span><span>
 </span><span id="line-184"></span><span>
