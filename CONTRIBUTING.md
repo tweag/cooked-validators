@@ -85,15 +85,30 @@ Fill in the template, including the steps that you imagine you would take if the
 - Specify which version of _Cooked Validators_ you are using.
   Specify the name and version of the OS you are using.
 
-
-## Templates
-
-## First bugs to contributors
-
 ## Style guide / Coding conventions
 
-## Code of conduct
+### Haskell style guide
 
-## Who is involved?
+- All Haskell code is formatted with [Ormolu].
 
-## Where can I ask for help?
+- Use explicit import lists.
+
+- Document all your functions using [Haddock]'s syntax.
+
+[ormolu]: https://github.com/tweag/ormolu
+[haddock]: https://haskell-haddock.readthedocs.io/en/latest/
+
+### Nix style guide
+
+- All Nix code is formatted with [nixfmt].
+
+- Avoid variable bindings that are not used.
+
+- Provide documentation explaining any bit of code that is not standard.
+
+[nixfmt]: https://github.com/serokell/nixfmt
+
+### CI and pre-commit hooks
+
+Most of those coding conventions are enforced automatically by our continuous integration.
+The Nix environment provides pre-commit hooks that check those coding conventions in the exact same way the CI does.
