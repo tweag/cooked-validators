@@ -213,14 +213,14 @@ instance Cooked.PrettyCooked AuctionState where
       "-"
       [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
         "minimum bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf minBid),
-        "deadline" <+> PP.pretty deadline
+        "deadline" <+> Cooked.prettyCookedOpt opts deadline
       ]
   prettyCookedOpt opts (Bidding seller deadline (BidderInfo lastBid lastBidder)) =
     Cooked.prettyItemize
       "Bidding"
       "-"
       [ "seller:" <+> Cooked.prettyCookedOpt opts seller,
-        "deadline" <+> PP.pretty deadline,
+        "deadline" <+> Cooked.prettyCookedOpt opts deadline,
         "previous bidder:" <+> Cooked.prettyCookedOpt opts lastBidder,
         "previous bid:" <+> Cooked.prettyCookedOpt opts (Ada.lovelaceValueOf lastBid)
       ]

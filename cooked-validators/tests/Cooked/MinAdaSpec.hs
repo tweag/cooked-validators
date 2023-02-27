@@ -16,9 +16,6 @@ import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
-instance PrettyCooked [Integer] where
-  prettyCooked = PP.pretty
-
 heavyDatum :: [Integer]
 heavyDatum = take 100 [0 ..]
 

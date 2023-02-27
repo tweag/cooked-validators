@@ -1,4 +1,12 @@
-module Cooked.Tweak.OutPermutations where
+module Cooked.Tweak.OutPermutations
+  ( PermutOutTweakMode (..),
+    allOutPermutsTweak,
+    singleOutPermutTweak,
+
+    -- * For testing purposes
+    distinctPermutations,
+  )
+where
 
 import Control.Monad
 import Cooked.Skeleton

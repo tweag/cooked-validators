@@ -29,13 +29,19 @@
             pkg-config
             zlib
             xz
-            postgresql # For pg_config
             glibcLocales
+            postgresql # For pg_config
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
           LD_LIBRARY_PATH = with pkgs;
-            lib.strings.makeLibraryPath [ libsodium zlib xz ];
+            lib.strings.makeLibraryPath [
+              libsodium
+              zlib
+              xz
+              postgresql # For cardano-node-emulator
+              openldap # For freer-extras‽
+            ];
           LANG = "C.UTF-8";
         in {
           ci = pkgs.mkShell {
