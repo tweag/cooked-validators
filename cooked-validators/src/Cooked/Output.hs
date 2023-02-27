@@ -50,12 +50,20 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Tx as Pl
 
 -- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
--- some information about who owns the output (a public key, a script...?) and
--- the datum (do we have an inline datum, a datum hash, nothing...?) to the type
--- level.
+-- some information about
+--
+-- - who owns the output (a public key, a script...?)
+--
+-- - what kind of datum is there (do we have an inline datum, a datum hash,
+--   nothing...?)
+--
+-- - what kind of value does the output hold (pure Ada ...?)
+--
+-- - what information do we have on the reference script (only a hash, a
+--   complete script, a typed validator...?)
+--
+-- to the type level.
 class IsAbstractOutput o where
-  -- The owner type can be, in particular, a 'TypedValidator a' or a
-  -- 'PubkeyHash'
   type OwnerType o
   type DatumType o
   type ValueType o
@@ -132,7 +140,8 @@ instance ToScriptHash Pl.ValidatorHash where
 instance ToScriptHash (Pl.TypedValidator a) where
   toScriptHash = toScriptHash . Pl.validatorHash
 
--- | An output that can be translated into its script-perspective (as seen on the 'TxInfo') representation
+-- | An output that can be translated into its script-perspective (as seen on
+-- the 'TxInfo') representation
 type IsOnchainOutput o =
   ( IsAbstractOutput o,
     ToCredential (OwnerType o),
@@ -153,10 +162,7 @@ outputValue = toValue . (^. outputValueL)
 outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
 outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
--- | Return the output as it is seen by a validator. In particular the
--- correctness of this specification will depend on the 'IsOnchainOutput' instance, so
--- make sure you get these instances (in particular the functions 'outputAddress',
--- 'outputOutputDatum', and 'outputValue') right!
+-- | Return the output as it is seen by a validator on the 'TxInfo'.
 outputTxOut :: IsOnchainOutput o => o -> Pl.TxOut
 outputTxOut o =
   Pl.TxOut
@@ -165,7 +171,7 @@ outputTxOut o =
     (outputOutputDatum o)
     (outputReferenceScriptHash o)
 
--- ** 'Pl.TxOut's are outputs
+-- * 'Pl.TxOut's are outputs
 
 instance IsAbstractOutput Pl.TxOut where
   type OwnerType Pl.TxOut = Pl.Credential
@@ -187,8 +193,9 @@ instance IsAbstractOutput Pl.TxOut where
   outputValueL = lensVL Pl.outValue
   outputReferenceScriptL = lensVL Pl.outReferenceScript
 
--- ** A concrete type for outputs
+-- * A concrete type for outputs
 
+-- | A type constructed to be the most general instance of 'IsAbstractOutput'.
 data ConcreteOutput ownerType datumType valueType referenceScriptType where
   ConcreteOutput ::
     { concreteOutputOwner :: ownerType,
@@ -214,22 +221,11 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
   outputValueL = lens concreteOutputValue (\out value -> out {concreteOutputValue = value})
   outputReferenceScriptL = lens concreteOutputReferenceScript (\out mRefScript -> out {concreteOutputReferenceScript = mRefScript})
 
--- ** Functions to translate between different output types
+-- * Functions to translate between different output types
 
-toOutputWithReferenceScriptHash ::
-  (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) =>
-  output ->
-  ConcreteOutput (OwnerType output) (DatumType output) (ValueType output) Pl.ScriptHash
-toOutputWithReferenceScriptHash out =
-  ConcreteOutput
-    (out ^. outputOwnerL)
-    (out ^. outputStakingCredentialL)
-    (out ^. outputValueL)
-    (out ^. outputDatumL)
-    (toScriptHash <$> out ^. outputReferenceScriptL)
+-- ** Filtering on the datum
 
--- | Test if there is no datum on an output. If there is no datum, return an
--- output with the same 'OwnerType', but with @()@ as its 'DatumType'.
+-- | Test if there is no datum on an output.
 isOutputWithoutDatum ::
   IsOnchainOutput output =>
   output ->
@@ -245,9 +241,8 @@ isOutputWithoutDatum out = case outputOutputDatum out of
         (out ^. outputReferenceScriptL)
   _ -> Nothing
 
--- ** Functions to translate between different output types
-
--- | Test if the output carries some inlined datum.
+-- | Test if the output carries some inlined datum that can be parsed from
+-- builtin data on to something of a specific type.
 isOutputWithInlineDatumOfType ::
   (Pl.FromData a, IsOnchainOutput output) =>
   output ->
@@ -290,8 +285,10 @@ isOutputWithDatumHash out =
           (out ^. outputReferenceScriptL)
     _ -> Nothing
 
--- | Test if the owner an output is a specific script. If it is, return an
--- output with the validator type as its 'OwnerType'.
+-- ** Filtering on the owner
+
+-- | Test if the owner of an output is a specific typed validator. If it is,
+-- return an output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
   IsOnchainOutput output =>
   Pl.TypedValidator a ->
@@ -312,8 +309,9 @@ isScriptOutputFrom validator out =
         else Nothing
     _ -> Nothing
 
--- | Test if the owner an output is a specific public key. If it is, return an
--- output of the same 'DatumType', but with 'Pl.PubKeyHash' as its 'OwnerType'.
+-- | Test if the owner of an output is a specific public key. If it is, return
+-- an output of the same 'DatumType', but with 'Pl.PubKeyHash' as its
+-- 'OwnerType'.
 isPKOutputFrom ::
   IsOnchainOutput output =>
   Pl.PubKeyHash ->
@@ -333,8 +331,9 @@ isPKOutputFrom pkh out = case outputAddress out of
       else Nothing
   _ -> Nothing
 
--- | Test if the value on an output contains only Ada, and adapt the return type
--- accordingly if it is so.
+-- ** Filtering on the value
+
+-- | Test if the value on an output contains only Ada.
 isOnlyAdaOutput ::
   IsOnchainOutput output =>
   output ->
@@ -350,3 +349,18 @@ isOnlyAdaOutput out =
           (out ^. outputDatumL)
           (out ^. outputReferenceScriptL)
     else Nothing
+
+-- ** Filtering on the reference script
+
+-- | Convert the reference script type on the output to 'Pl.ScriptHash'.
+toOutputWithReferenceScriptHash ::
+  (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) =>
+  output ->
+  ConcreteOutput (OwnerType output) (DatumType output) (ValueType output) Pl.ScriptHash
+toOutputWithReferenceScriptHash out =
+  ConcreteOutput
+    (out ^. outputOwnerL)
+    (out ^. outputStakingCredentialL)
+    (out ^. outputValueL)
+    (out ^. outputDatumL)
+    (toScriptHash <$> out ^. outputReferenceScriptL)
