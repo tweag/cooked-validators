@@ -68,7 +68,7 @@ hammerToWithdraw = do
 
 noBids :: MonadBlockChain m => m ()
 noBids = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
@@ -79,7 +79,7 @@ noBids = do
 
 oneBid :: MonadBlockChain m => m ()
 oneBid = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
@@ -90,7 +90,7 @@ oneBid = do
 
 twoBids :: MonadBlockChain m => m ()
 twoBids = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
@@ -102,7 +102,7 @@ twoBids = do
 
 twoAuctions :: MonadBlockChain m => m ()
 twoAuctions = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline1 = t0 + 60_000
       deadline2 = t0 + 90_000
   offerOref1 <- A.txOffer (wallet 1) (banana 2) 30_000_000
@@ -158,7 +158,7 @@ forbiddenHammerToWithdraw = do
 
 failingTwoBids :: MonadBlockChain m => m ()
 failingTwoBids = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
@@ -349,7 +349,7 @@ exploitAddToken = do
   -- in order to mint an extra token of Alice's auction's thread token asset
   -- class.
   eveOfferOref <- A.txOffer eve mempty 1
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let eveDeadline = t0 + 60_000
   A.txSetDeadline eve eveOfferOref eveDeadline
     `withTweak` ( do
@@ -404,7 +404,7 @@ exploitDoubleSat = do
   -- they both belong to her, this vulnerability applies to any two auctions)
   offer1 <- A.txOffer alice (banana 2) 40_000_000
   offer2 <- A.txOffer alice (banana 3) 60_000_000
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let t1 = t0 + 60_000
       t2 = t0 + 90_000
   A.txSetDeadline alice offer1 t1
@@ -490,7 +490,7 @@ successfulAttacks =
 
 bidderAlternativeTrace :: (Alternative m, MonadBlockChain m) => m ()
 bidderAlternativeTrace = do
-  (_, t0) <- currentTime
+  (t0, _) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
