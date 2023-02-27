@@ -22,14 +22,23 @@ Thank you for investing your time in contributing to _Cooked Validators_!
 
 ## Running and testing
 
-Our Nix integration provides everything one needs to hack on _Cooked Validators_
-The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
-The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
+### Environment
+
+We recommend using [Nix] to work on _Cooked Validators_.
+Our Nix integration provides everything one needs to contribute:
+
+- The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
+
+- The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
+
+[nix]: https://nixos.org/
+
+### Running and testing
 
 Unit tests are defined in `/cooked-validators/tests`.
 The `/examples` directory contains more high-level tests under the form of full blown examples.
 Running tests consists in checking in both those directories that `cabal run tests` is happy.
-For instance:
+In a correct environment, this should only be a matter of doing the following:
 
 ```console
 $ cd cooked-validators
