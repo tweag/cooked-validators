@@ -1,14 +1,9 @@
-> **Warning**
->
-> This is a development version of the next iteration of `cooked-validators`, with full support of Plutus V2 features. Refer to [version 1.0.0](https://github.com/tweag/cooked-validators/releases/tag/v1.0.0) for the latest stable version, which only supports Plutus V1.
-
 # [Cooked Validators](https://github.com/tweag/cooked-validators/)
 
 Copyright Tweag I/O 2023
 
-With `cooked-validators` you can test Cardano smart contracts by writing
-potentially malicious offchain code. You can also use the library to write
-"normal" offchain code in a comfortable and flexible way.
+With `cooked-validators` you can test Cardano smart contracts (including Plutus v2 features) by writing potentially malicious offchain code.
+You can also use the library to write "normal" offchain code in a comfortable and flexible way.
 
 In particular, `cooked-validators` helps you
 - interact with smart contracts written in Plutus (as well as any other language
@@ -106,5 +101,5 @@ The rendered Haddock for the current `main` branch can be found at
 We also have a [repository](https://github.com/tweag/cooked-smart-contracts) of example contracts with offchain code and tests written using `cooked-validators`.
 
 Please also look at our
-[issues](https://tweag.github.io/cooked-validators/issues) for problems that
+[issues](https://github.com/tweag/cooked-validators/issues) for problems that
 we're already aware of, and feel free to open new issues!

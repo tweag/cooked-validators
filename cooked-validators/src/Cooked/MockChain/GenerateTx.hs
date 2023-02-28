@@ -18,7 +18,6 @@ where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import Control.Arrow
 import Cooked.Output
 import Cooked.Skeleton
@@ -85,7 +84,6 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     left
       (ToCardanoError "translating the transaction validity range")
       . Pl.toCardanoValidityRange
-      . Emulator.posixTimeRangeToContainedSlotRange (Pl.pSlotConfig theParams)
       $ txSkelValidityRange skel
   txMintValue <- txSkelMintsToTxMintValue $ txSkelMints skel
   txExtraKeyWits <-

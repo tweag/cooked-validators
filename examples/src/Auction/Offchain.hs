@@ -84,6 +84,13 @@ txBid submitter offerOref bid = do
       Just deadline = A.getBidDeadline datum
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
+  -- In an ideal world, we would not have to subtract 1 millisecond from the
+  -- deadline here. As it stands at the moment, we have to do it in order to
+  -- account for a few subtle bugs/features of the implementation of plutus and
+  -- the ledger. For more explanation see here:
+  --
+  -- https://github.com/tweag/cooked-validators/issues/309
+  validityInterval <- slotRangeBefore (deadline - 1)
   validateTxSkel $
     txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
@@ -107,7 +114,7 @@ txBid submitter offerOref bid = do
                   (A.Bidding seller deadline (A.BidderInfo bid (walletPKHash submitter)))
                   (lotPlusPreviousBidPlusNft <> Ada.lovelaceValueOf (bid - prevBid))
               ],
-        txSkelValidityRange = Pl.to (deadline - 1)
+        txSkelValidityRange = validityInterval
       }
 
 -- | Close the auction with the given 'Offer' UTxO. If there were any bids, this
@@ -146,6 +153,7 @@ txHammer submitter offerOref = do
       let datum = output ^. outputDatumL
           Just deadline = A.getBidDeadline datum
           seller = A.getSeller datum
+      validityInterval <- slotRangeAfter deadline
       void $
         validateTxSkel $
           txSkelTemplate
@@ -172,5 +180,5 @@ txHammer submitter offerOref = do
                      in [ paysPK lastBidder lot,
                           paysPK seller (Ada.lovelaceValueOf lastBid)
                         ],
-              txSkelValidityRange = Pl.from deadline
+              txSkelValidityRange = validityInterval
             }

@@ -90,6 +90,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
+import qualified Ledger.Slot as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import Optics.TH
@@ -724,11 +725,11 @@ data TxSkel where
       -- | Any value minted or burned by the transaction. You'll probably want
       -- to use 'txSkelMintsFromList' to construct this.
       txSkelMints :: TxSkelMints,
-      txSkelValidityRange :: Pl.POSIXTimeRange,
       -- | The wallets signing the transaction. This list must contain at least
       -- one element. By default, the first signer will pay for fees and
       -- balancing. You can change that with 'txOptBalanceWallet'.
       txSkelSigners :: [Wallet],
+      txSkelValidityRange :: Pl.SlotRange,
       -- | To each 'TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
       --

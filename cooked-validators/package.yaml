@@ -37,7 +37,6 @@ dependencies:
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api
-  - plutus-ledger-constraints
   - plutus-pab
   - plutus-script-utils
   - plutus-tx

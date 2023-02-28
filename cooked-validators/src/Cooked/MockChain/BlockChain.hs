@@ -18,7 +18,10 @@ module Cooked.MockChain.BlockChain
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
+    AsTrans (..),
     allUtxos,
+    currentTime,
+    waitNSlots,
     utxosAt,
     txOutByRef,
     utxosFromCardanoTx,
@@ -30,6 +33,11 @@ module Cooked.MockChain.BlockChain
     resolveDatum,
     resolveValidator,
     resolveReferenceScript,
+    getEnclosingSlot,
+    awaitEnclosingSlot,
+    slotRangeBefore,
+    slotRangeAfter,
+    slotToTimeInterval,
   )
 where
 
@@ -112,20 +120,12 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
-  -- | Returns the current time
-  currentTime :: m PV2.POSIXTime
-
-  -- | Either waits until the given slot or returns the current slot.
-  --  Note that that it might not wait for anything if the current slot
-  --  is larger than the argument.
-  awaitSlot :: Ledger.Slot -> m Ledger.Slot
-
-  -- | Wait until the slot where the given time falls into and return latest time
-  -- we know has passed.
+  -- | Waits until the current slot becomes greater or equal to the given slot,
+  -- and returns the current slot after waiting.
   --
-  -- Example: if starting time is 0 and slot length is 3s, then `awaitTime 4`
-  -- waits until slot 2 and returns the value `POSIXTime 5`.
-  awaitTime :: PV2.POSIXTime -> m PV2.POSIXTime
+  --  Note that that it might not wait for anything if the current slot
+  --  is large enough.
+  awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- | Generates and balances a transaction from a skeleton, then attemps to validate such
@@ -278,6 +278,87 @@ valueFromTxOutRef oref = do
     Nothing -> return Nothing
     Just out -> return . Just $ outputValue out
 
+-- ** Slot and Time Management
+
+-- $slotandtime
+-- #slotandtime#
+--
+-- Slots are integers that monotonically increase and model the passage of time. By looking
+-- at the current slot, a validator gets to know that it is being executed within a certain
+-- window of wall-clock time. Things can get annoying pretty fast when trying to mock traces
+-- and trying to exercise certain branches of certain validators; make sure you also read
+-- the docs on 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
+
+-- | Moves n slots fowards
+waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
+waitNSlots n =
+  if n < 0
+    then fail "waitNSlots: negative argument"
+    else currentSlot >>= awaitSlot . (+ fromIntegral n)
+
+-- | Returns the closed ms interval corresponding to the current slot
+currentTime :: (MonadBlockChainWithoutValidation m) => m (PV2.POSIXTime, PV2.POSIXTime)
+currentTime = slotToTimeInterval =<< currentSlot
+
+-- | Returns the closed ms interval corresponding to the slot with the given
+-- number. It holds that
+--
+-- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
+--
+-- and
+--
+-- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot a == n && getEnclosingSlot b == n
+--
+-- and
+--
+-- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
+slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (PV2.POSIXTime, PV2.POSIXTime)
+slotToTimeInterval slot = do
+  slotConfig <- Emulator.pSlotConfig <$> getParams
+  case Emulator.slotToPOSIXTimeRange slotConfig slot of
+    PV2.Interval
+      (PV2.LowerBound (PV2.Finite l) leftclosed)
+      (PV2.UpperBound (PV2.Finite r) rightclosed) ->
+        return
+          ( if leftclosed then l else l + 1,
+            if rightclosed then r else r - 1
+          )
+    _ -> error "The time interval corresponding to a slot should be finite on both ends."
+
+-- | Return the slot that contains the given time. See 'slotToTimeInterval' for
+-- some equational properties this function satisfies.
+getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
+getEnclosingSlot t = do
+  slotConfig <- Emulator.pSlotConfig <$> getParams
+  return $ Emulator.posixTimeToEnclosingSlot slotConfig t
+
+-- | Waits until the current slot becomes greater or equal to the slot containing the given POSIX time.
+--  Note that that it might not wait for anything if the current slot is large enough.
+awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.Slot
+awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
+
+-- | The infinite range of slots ending before or at the given POSIX time
+slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore t = do
+  n <- getEnclosingSlot t
+  (_, b) <- slotToTimeInterval n
+  -- If the given time @t@ happens to be the last millisecond of its slot, we
+  -- can include the whole slot. Otherwise, the only way to be sure that the
+  -- returned slot range contains no time after @t@ is to go to the preceding
+  -- slot.
+  if t == b
+    then return $ PV2.to n
+    else return $ PV2.to (n - 1)
+
+-- | The infinite range of slots starting after or at the given POSIX time
+slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter t = do
+  n <- getEnclosingSlot t
+  (a, _) <- slotToTimeInterval n
+  if t == a
+    then return $ PV2.from n
+    else return $ PV2.from (n + 1)
+
 -- ** Deriving further 'MonadBlockChain' instances
 
 -- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of 'MonadBlockChain'
@@ -308,9 +389,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
   currentSlot = lift currentSlot
-  currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
 
 instance (MonadTrans t, MonadBlockChain m, MonadBlockChainWithoutValidation (AsTrans t m)) => MonadBlockChain (AsTrans t m) where
   validateTxSkel = lift . validateTxSkel
@@ -352,9 +431,7 @@ instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
 instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
   currentSlot = lift currentSlot
-  currentTime = lift currentTime
   awaitSlot = lift . awaitSlot
-  awaitTime = lift . awaitTime
 
 instance MonadBlockChain m => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

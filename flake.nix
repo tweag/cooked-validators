@@ -67,9 +67,10 @@
       });
 
   nixConfig = {
-    extra-trusted-substituters = [ "https://tweag-plutus-libs.cachix.org/" ];
+    extra-trusted-substituters =
+      [ "https://tweag-cooked-validators.cachix.org/" ];
     extra-trusted-public-keys = [
-      "tweag-plutus-libs.cachix.org-1:0BeVJYx8DnUWJWapRDZeLPOOboBUy3UwhvONd5Qm2Xc="
+      "tweag-cooked-validators.cachix.org-1:g1TP7YtXjkBGXP/VbSTGBOGONSzdfzYwNJM27bn8pik="
     ];
   };
 }
