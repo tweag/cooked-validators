@@ -1,6 +1,7 @@
 # Contributing
 
-Thank you for investing your time in contributing to _Cooked Validators_!
+Thank you for investing your time in contributing to _Cooked Validators_.
+Bug reports, feature requests and pull requests are all most welcome!
 
 ## Short links to important resources
 
