@@ -161,7 +161,6 @@ The Nix environment provides pre-commit hooks that check those coding convention
 [discussions board]: https://github.com/tweag/cooked-validators/discussions
 [issue tracker]: https://github.com/tweag/cooked-validators/issues
 [pull requests]: https://github.com/tweag/cooked-validators/pulls
-[documentation]: https://tweag.github.io/cooked-validators/
 
 [status checks]: https://help.github.com/articles/about-status-checks/
 
