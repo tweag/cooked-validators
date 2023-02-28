@@ -2,9 +2,8 @@
 
 Copyright Tweag I/O 2023
 
-With `cooked-validators` you can test Cardano smart contracts by writing
-potentially malicious offchain code. You can also use the library to write
-"normal" offchain code in a comfortable and flexible way.
+With `cooked-validators` you can test Cardano smart contracts (including Plutus v2 features) by writing potentially malicious offchain code.
+You can also use the library to write "normal" offchain code in a comfortable and flexible way.
 
 In particular, `cooked-validators` helps you
 - interact with smart contracts written in Plutus (as well as any other language
