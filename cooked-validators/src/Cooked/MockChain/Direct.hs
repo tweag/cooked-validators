@@ -16,7 +16,6 @@ module Cooked.MockChain.Direct where
 import qualified Cardano.Api as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.TimeSlot as Emulator
 import qualified Cardano.Node.Emulator.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
@@ -289,14 +288,7 @@ instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
 
   currentSlot = gets mcstCurrentSlot
 
-  currentTime = asks (Emulator.slotToEndPOSIXTime . Emulator.pSlotConfig . mceParams) <*> gets mcstCurrentSlot
-
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
-
-  awaitTime t = do
-    sc <- asks $ Emulator.pSlotConfig . mceParams
-    s <- awaitSlot (1 + Emulator.posixTimeToEnclosingSlot sc t)
-    return $ Emulator.slotToBeginPOSIXTime sc s
 
 instance Monad m => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do

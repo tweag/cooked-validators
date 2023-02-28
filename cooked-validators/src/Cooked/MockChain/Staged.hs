@@ -14,12 +14,12 @@ module Cooked.MockChain.Staged
     MockChainLogEntry (..),
     MockChainLog (..),
     StagedMockChain,
-    runTweak,
     runTweakFrom,
 
     -- * User API
     MonadModalBlockChain,
     somewhere,
+    runTweak,
     everywhere,
     withTweak,
   )
@@ -98,8 +98,6 @@ data MockChainBuiltin a where
   TxOutByRefLedger :: Pl.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  GetCurrentTime :: MockChainBuiltin Pl.POSIXTime
-  AwaitTime :: Pl.POSIXTime -> MockChainBuiltin Pl.POSIXTime
   DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
   AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
   UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
@@ -169,8 +167,6 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
   interpBuiltin (TxOutByRefLedger o) = txOutByRefLedger o
   interpBuiltin GetCurrentSlot = currentSlot
   interpBuiltin (AwaitSlot s) = awaitSlot s
-  interpBuiltin GetCurrentTime = currentTime
-  interpBuiltin (AwaitTime t) = awaitTime t
   interpBuiltin (DatumFromHash h) = datumFromHash h
   interpBuiltin (ValidatorFromHash h) = validatorFromHash h
   interpBuiltin AllUtxosLedger = allUtxosLedger
@@ -243,9 +239,7 @@ instance MonadBlockChainBalancing StagedMockChain where
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger
   currentSlot = singletonBuiltin GetCurrentSlot
-  currentTime = singletonBuiltin GetCurrentTime
   awaitSlot = singletonBuiltin . AwaitSlot
-  awaitTime = singletonBuiltin . AwaitTime
 
 instance MonadBlockChain StagedMockChain where
   validateTxSkel = singletonBuiltin . ValidateTxSkel

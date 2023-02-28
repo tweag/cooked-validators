@@ -41,6 +41,7 @@ library
       Cooked.Tweak.Labels
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.TamperDatum
+      Cooked.Tweak.ValidityRange
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators
@@ -109,11 +110,14 @@ test-suite spec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.MinAdaSpec
+      Cooked.MockChain.BlockChainSpec
+      Cooked.MockChainSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
+      Cooked.Tweak.ValidityRangeSpec
       Cooked.TweakSpec
       Paths_cooked_validators
   autogen-modules:

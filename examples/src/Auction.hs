@@ -417,6 +417,11 @@ validBid datum bid bidder ctx =
       checkDeadlineAndSignature deadline =
         traceIfFalse
           "Bidding past the deadline is not permitted"
+          -- This line is sometimes wrong by one millisecond, but it's not our fault. See
+          --
+          -- https://github.com/tweag/cooked-validators/issues/309
+          --
+          -- for context.
           (Pl.to deadline `Interval.contains` Pl.txInfoValidRange txi)
           && traceIfFalse "Bid transaction not signed by bidder" (txi `Pl.txSignedBy` bidder)
       checkLocked seller deadline v =

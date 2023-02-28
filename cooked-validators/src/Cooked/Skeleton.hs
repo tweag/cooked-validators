@@ -89,6 +89,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Ledger.Scripts (validatorHash)
 import qualified Ledger.Scripts as Pl hiding (validatorHash)
+import qualified Ledger.Slot as Pl
 import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import Optics.TH
@@ -752,7 +753,7 @@ data TxSkel where
     { txSkelLabel :: Set TxLabel,
       txSkelOpts :: TxOpts,
       txSkelMints :: TxSkelMints,
-      txSkelValidityRange :: Pl.POSIXTimeRange,
+      txSkelValidityRange :: Pl.SlotRange,
       txSkelSigners :: [Wallet],
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       txSkelInsReference :: Set Pl.TxOutRef,

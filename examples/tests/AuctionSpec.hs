@@ -68,38 +68,41 @@ hammerToWithdraw = do
 
 noBids :: MonadBlockChain m => m ()
 noBids = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
-  awaitTime (deadline + 1)
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
   return ()
 
 oneBid :: MonadBlockChain m => m ()
 oneBid = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
-  awaitTime (deadline + 1)
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 3) offerOref -- It doesn't matter which wallet hammers here
 
 twoBids :: MonadBlockChain m => m ()
 twoBids = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 40_000_000
-  awaitTime (deadline + 1)
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 twoAuctions :: MonadBlockChain m => m ()
 twoAuctions = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline1 = t0 + 60_000
       deadline2 = t0 + 90_000
   offerOref1 <- A.txOffer (wallet 1) (banana 2) 30_000_000
@@ -109,9 +112,11 @@ twoAuctions = do
   A.txBid (wallet 2) offerOref1 30_000_000
   A.txBid (wallet 3) offerOref2 50_000_000
   A.txBid (wallet 4) offerOref2 60_000_000
-  awaitTime (deadline1 + 1)
+  deadline1Slot <- getEnclosingSlot deadline1
+  awaitSlot $ deadline1Slot + 1
   A.txHammer (wallet 1) offerOref1
-  awaitTime (deadline2 + 1)
+  deadline2Slot <- getEnclosingSlot deadline2
+  awaitSlot $ deadline2Slot + 1
   A.txHammer (wallet 1) offerOref2
 
 successfulSingle :: TestTree
@@ -153,13 +158,14 @@ forbiddenHammerToWithdraw = do
 
 failingTwoBids :: MonadBlockChain m => m ()
 failingTwoBids = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 30_000_000
-  awaitTime (deadline + 1)
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 failingSingle :: TestTree
@@ -343,7 +349,7 @@ exploitAddToken = do
   -- in order to mint an extra token of Alice's auction's thread token asset
   -- class.
   eveOfferOref <- A.txOffer eve mempty 1
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let eveDeadline = t0 + 60_000
   A.txSetDeadline eve eveOfferOref eveDeadline
     `withTweak` ( do
@@ -376,7 +382,8 @@ exploitAddToken = do
 
   -- After the deadline of Eve's auction, anyone can hammer it, and this will
   -- pay Bob's money to Eve, while Bob will only get the forged NFT in exchange.
-  awaitTime eveDeadline
+  slotEveDeadline <- getEnclosingSlot eveDeadline
+  awaitSlot $ slotEveDeadline + 1
   A.txHammer eve eveOfferOref
   where
     alice = wallet 1
@@ -397,7 +404,7 @@ exploitDoubleSat = do
   -- they both belong to her, this vulnerability applies to any two auctions)
   offer1 <- A.txOffer alice (banana 2) 40_000_000
   offer2 <- A.txOffer alice (banana 3) 60_000_000
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let t1 = t0 + 60_000
       t2 = t0 + 90_000
   A.txSetDeadline alice offer1 t1
@@ -419,7 +426,8 @@ exploitDoubleSat = do
   -- money to herself, effectively stealing Bob's bid on the first auction.
   A.txBid eve offer2 70_000_000
     `withTweak` ( do
-                    overTweak txSkelValidityRangeL (`Pl.intersection` Pl.to (t1 - 1))
+                    t1slot <- getEnclosingSlot t1 <&> (+ (-1))
+                    overTweak txSkelValidityRangeL (`Pl.intersection` Pl.to t1slot)
                     addInputTweak theLastBidOref $
                       TxSkelRedeemerForScript
                         (A.Bid $ A.BidderInfo 50_000_000 (walletPKHash eve))
@@ -438,9 +446,11 @@ exploitDoubleSat = do
                 )
   -- Both auctions are closed normally. Eve is the highest bidder on both of
   -- them.
-  awaitTime (t1 + 1)
+  slotT1 <- getEnclosingSlot t1
+  awaitSlot slotT1
   A.txHammer eve offer1
-  awaitTime (t2 + 1)
+  slotT2 <- getEnclosingSlot t2
+  awaitSlot slotT2
   A.txHammer eve offer2
   where
     alice = wallet 1
@@ -480,12 +490,13 @@ successfulAttacks =
 
 bidderAlternativeTrace :: (Alternative m, MonadBlockChain m) => m ()
 bidderAlternativeTrace = do
-  t0 <- currentTime
+  (_, t0) <- currentTime
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000 <|> A.txBid (wallet 3) offerOref 30_000_000
-  awaitTime (deadline + 1)
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 bidderAlternative :: TestTree
