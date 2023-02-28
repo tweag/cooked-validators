@@ -10,13 +10,11 @@ import Control.Monad
 import Cooked
 import Data.Default
 import qualified Data.Map as Map
-import qualified Ledger.Slot as Pl
 import qualified Ledger.Tx as Ledger
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.Value as Value
-import qualified Plutus.V1.Ledger.Interval as Interval
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import Test.QuickCheck.Modifiers (NonZero (..))
@@ -86,7 +84,13 @@ txBid submitter offerOref bid = do
       Just deadline = A.getBidDeadline datum
       seller = A.getSeller datum
       lotPlusPreviousBidPlusNft = outputValue output
-  validityInterval <- slotRangeBefore deadline
+  -- In an ideal world, we would not have to subtract 1 millisecond from the
+  -- deadline here. As it stands at the moment, we have to do it in order to
+  -- account for a few subtle bugs/features of the implementation of plutus and
+  -- the ledger. For more explanation see here:
+  --
+  -- https://github.com/tweag/cooked-validators/issues/309
+  validityInterval <- slotRangeBefore (deadline - 1)
   validateTxSkel $
     txSkelTemplate
       { txSkelOpts = def {txOptEnsureMinAda = True},
