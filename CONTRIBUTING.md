@@ -34,6 +34,8 @@ Our Nix integration provides everything one needs to contribute:
 
 [nix]: https://nixos.org/
 
+Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC 8.10.7 and Cabal.
+
 ### Running and testing
 
 Unit tests are defined in `/cooked-validators/tests`.
