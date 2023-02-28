@@ -1,6 +1,6 @@
 # Changelog
 
-## [[2.0.0]](https://github.com/tweag/plutus-libs/releases/tag/v2.0.0) - 2023-02-28
+## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
 This major update overhauls the entire library to: handle Plutus V2 features,
 improve transaction generation, the API, and the internal module structure and
