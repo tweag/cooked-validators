@@ -16,8 +16,6 @@ module Cooked.MockChain.Staged
     StagedMockChain,
     runTweak,
     runTweakFrom,
-
-    -- * User API
     MonadModalBlockChain,
     somewhere,
     everywhere,
@@ -46,9 +44,9 @@ import qualified Plutus.V2.Ledger.Api as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
--- | Interprets the staged mockchain then runs the resulting computation
--- with a custom function. This can be used, for example, to supply
--- a custom 'InitialDistribution' by providing 'runMockChainTFrom'.
+-- | Interprets the staged mockchain then runs the resulting computation with a
+-- custom function. This can be used, for example, to supply a custom
+-- 'InitialDistribution' by providing 'runMockChainTFrom'.
 interpretAndRunWith ::
   (forall m. Monad m => MockChainT m a -> m res) ->
   StagedMockChain a ->
@@ -73,14 +71,14 @@ instance Semigroup MockChainLog where
 instance Monoid MockChainLog where
   mempty = MockChainLog []
 
--- | The semantic domain in which 'StagedMockChain' gets interpreted; see
---  the 'interpret' function for more.
+-- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
+-- 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT MockChainLog [])
 
 -- | The 'interpret' function gives semantics to our traces. One
---  'StagedMockChain' computation yields a potential list of 'MockChainT'
---  computations, which emit a description of their operation. Recall a
---  'MockChainT' is a state and except monad composed:
+-- 'StagedMockChain' computation yields a potential list of 'MockChainT'
+-- computations, which emit a description of their operation. Recall a
+-- 'MockChainT' is a state and except monad composed:
 --
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
@@ -197,7 +195,8 @@ runTweakFrom mcenv mcst tweak skel =
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL modifications with 'Tweak's
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications
+-- with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
