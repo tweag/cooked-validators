@@ -30,12 +30,12 @@ code quality.
   wallet).
 - Modules have been reorganized in a flatter tree and cleaned up.
 
-## [[1.0.1]](https://github.com/tweag/plutus-libs/releases/tag/v1.0.1) - 2023-02-17
+## [[1.0.1]](https://github.com/tweag/cooked-validators/releases/tag/v1.0.1) - 2023-02-17
 
 ### Fixes
 
 - Fixes wrong version number in the `.cabal` files
 
-## [[1.0.0]](https://github.com/tweag/plutus-libs/releases/tag/v1.0.0) - 2023-01-04
+## [[1.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v1.0.0) - 2023-01-04
 
 Stable release covering Plutus V1. 
