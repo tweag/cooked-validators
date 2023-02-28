@@ -49,15 +49,12 @@ import qualified Plutus.V2.Ledger.Api as Pl
 
 -- $mockchaindocstr
 --
--- The MockChainT monad provides a direct emulator; that is, it gives us a simple way to call
--- validator scripts directly, without the need for all the complexity the 'Contract'
--- monad introduces.
+-- The MockChainT monad provides a direct emulator; that is, it gives us a
+-- simple way to call validator scripts directly, without the need for all the
+-- complexity the 'Contract' monad introduces.
 --
--- Running a 'MockChain' produces a 'UtxoState', which is a map from 'Pl.Address' to
--- @(Pl.Value, Maybe Pl.Datum)@, and corresponds to the utxo mental model most people have.
--- Internally, however, we keep a 'Pl.UtxoIndex' in our state and feeding it to 'Pl.validateTx'.
--- For convenience, we also keep a map of 'Pl.Address' to 'Pl.Datum', giving is a simple
--- way of managing the current utxo state.
+-- Running a 'MockChain' produces a 'UtxoState', a simplified view on
+-- 'Pl.UtxoIndex', which we also keep in our state.
 
 mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
@@ -82,10 +79,9 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
--- | Slightly more concrete version of 'UtxoState', used to actually run the simulation.
---  We keep a map from datum hash to datum, then a map from txOutRef to datumhash
---  Additionally, we also keep a map from datum hash to the underlying value's "show" result,
---  in order to display the contents of the state to the user.
+-- | Slightly more concrete version of 'UtxoState', used to actually run the
+-- simulation. We keep a map from datum hash to datum in order to display the
+-- contents of the state to the user.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
     mcstDatums :: Map Pl.DatumHash TxSkelOutDatum,
@@ -104,8 +100,8 @@ instance Eq MockChainSt where
           currentSlot1 == currentSlot2
         ]
 
--- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map that
--- contains 'Plutus.V2.Ledger.Api.TxOut'.
+-- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map
+-- that contains 'Plutus.V2.Ledger.Api.TxOut'.
 utxoIndexToTxOutMap :: Ledger.UtxoIndex -> Map PV2.TxOutRef PV2.TxOut
 utxoIndexToTxOutMap (Ledger.UtxoIndex utxoMap) = Map.map txOutV2FromLedger utxoMap
 
@@ -118,15 +114,13 @@ newtype MockChainEnv = MockChainEnv {mceParams :: Emulator.Params}
 instance Default MockChainEnv where
   def = MockChainEnv def
 
--- | The actual 'MockChainT' is a trivial combination of 'StateT' and 'ExceptT'
 newtype MockChainT m a = MockChainT
   {unMockChain :: ReaderT MockChainEnv (StateT MockChainSt (ExceptT MockChainError m)) a}
   deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadReader MockChainEnv)
 
--- | Non-transformer variant
 type MockChain = MockChainT Identity
 
--- Custom monad instance made to increase the slot count automatically
+-- | Custom monad instance made to increase the slot count automatically
 instance (Monad m) => Monad (MockChainT m) where
   return = pure
   MockChainT x >>= f = MockChainT $ x >>= unMockChain . f
@@ -174,9 +168,10 @@ runMockChainTRaw e0 i0 =
     . flip runReaderT e0
     . unMockChain
 
--- | Executes a 'MockChainT' from an initial state set up with the given initial value distribution.
--- Similar to 'runMockChainT', uses the default environment. Returns a 'UtxoState' instead of
--- a 'MockChainSt'. If you need the later, use 'runMockChainTRaw'
+-- | Executes a 'MockChainT' from an initial state set up with the given
+-- initial value distribution. Similar to 'runMockChainT', uses the default
+-- environment. Returns a 'UtxoState' instead of a 'MockChainSt'. If you need
+-- the later, use 'runMockChainTRaw'
 runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
@@ -185,9 +180,9 @@ runMockChainTFrom ::
 runMockChainTFrom i0 =
   fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw def (mockChainSt0From i0)
 
--- | Executes a 'MockChainT' from the canonical initial state and environment. The canonical
---  environment uses the default 'SlotConfig' and @[Cooked.Wallet.wallet 1]@ as the sole
---  wallet signing transactions.
+-- | Executes a 'MockChainT' from the canonical initial state and environment.
+-- The canonical environment uses the default 'SlotConfig' and
+-- @Cooked.Wallet.wallet 1@ as the sole wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
 runMockChainT = runMockChainTFrom def
 
@@ -204,7 +199,7 @@ runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 runMockChain :: MockChain a -> Either MockChainError (a, UtxoState)
 runMockChain = runIdentity . runMockChainT
 
--- Canonical initial values
+-- * Canonical initial values
 
 utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
@@ -222,7 +217,7 @@ utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initialTxFor i0]]
   where
     -- Bootstraps an initial transaction resulting in a state where wallets
-    -- posess UTxOs fitting a given 'InitialDistribution'
+    -- possess UTxOs fitting a given 'InitialDistribution'
     initialTxFor :: InitialDistribution -> Ledger.Tx
     initialTxFor initDist =
       mempty
@@ -275,7 +270,7 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
 
--- ** Direct Interpretation of Operations
+-- * Direct Interpretation of Operations
 
 instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
@@ -326,8 +321,8 @@ runTransactionValidation ::
   -- | The data produced by the transaction
   Map Pl.DatumHash TxSkelOutDatum ->
   -- | The validators protecting transaction outputs, and the validators in the
-  -- reference script field of transaction outputs. The MockChain will remember
-  -- them.
+  -- reference script field of transaction outputs. The 'MockChain' will
+  -- remember them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   MockChainT m Ledger.SomeCardanoApiTx
 runTransactionValidation cardanoTx rawModTx consumedData producedData outputValidators = do
@@ -337,7 +332,7 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
   let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
       cardanoIndex = either (error . show) id $ Ledger.fromPlutusIndex utxoIndex
 
-      -- "Ledger.CardanoTx" is a plutus-apps type "Tx BabbageEra" is a
+      -- "Ledger.CardanoTx" is a plutus-apps type 'Tx BabbageEra' is a
       -- cardano-api type with the information we need. This wraps the latter
       -- inside the former.
       txWrapped :: Ledger.CardanoTx
@@ -350,7 +345,7 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
       newUtxoIndex = case mValidationError of
         Left (Ledger.Phase1, _) -> utxoIndex
         Left (Ledger.Phase2, _) ->
-          -- Despite its name, this actually deletes the collateral Utxos from
+          -- Despite its name, this actually deletes the collateral UTxOs from
           -- the index
           Ledger.insertCollateral txWrapped utxoIndex
         Right _ -> Ledger.insert txWrapped utxoIndex
@@ -359,9 +354,9 @@ runTransactionValidation cardanoTx rawModTx consumedData producedData outputVali
     Right _ -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just
-      -- `newUtxoIndex`; the new mcstDatums is computed by removing the
-      -- datum hashes have been consumed and adding those that have been
-      -- created in the transaction.
+      -- `newUtxoIndex`; the new mcstDatums is computed by removing the datum
+      -- hashes have been consumed and adding those that have been created in
+      -- the transaction.
       modify'
         ( \st ->
             st
