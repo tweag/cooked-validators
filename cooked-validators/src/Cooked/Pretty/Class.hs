@@ -82,16 +82,15 @@ instance PrettyCooked Pl.Credential where
   prettyCookedOpt opts (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
 
 instance PrettyCooked Pl.Value where
-  -- prettyValue example output:
+  -- Example output:
   --
-  -- Value:
-  --   - Lovelace: 45_000_000
-  --   - Quick "hello": 3
-  --   - #12bc3d "usertoken": 1
+  -- > Value:
+  -- >   - Lovelace: 45_000_000
+  -- >   - Quick "hello": 3
+  -- >   - #12bc3d "usertoken": 1
   --
   -- In case of an empty value (even though not an empty map):
-  -- Empty value
-  --
+  -- > Empty value
   prettyCookedOpt opts =
     prettySingletons
       . map prettySingletonValue
@@ -113,8 +112,9 @@ instance PrettyCooked Pl.Value where
             | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol <+> PP.pretty name
 
 instance PrettyCooked Pl.ValidationErrorInPhase where
-  -- TODO Implement better pretty-printing for errors such as
-  -- 'ValueNotPreserved'
+  -- In Plutus V2, most errors no longer have dedicated constructors we can
+  -- pattern match on, they are mostly wrapped as text which makes it difficult
+  -- to improve upon default printing.
   prettyCookedOpt _ = PP.pretty
 
 instance PrettyCooked Pl.POSIXTime where

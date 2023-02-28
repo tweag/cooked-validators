@@ -62,18 +62,26 @@ import Optics.Core
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 
--- * BlockChain Monad
+-- * BlockChain monad
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
   MCEValidationError :: Ledger.ValidationErrorInPhase -> MockChainError
   MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
+  -- | Thrown when the balancing wallet owns no output that is pure Ada and
+  -- with no datum.
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
+  -- | Errors happening at fee calculation time.
   MCECalcFee :: MockChainError -> MockChainError
+  -- | Thrown when an output reference should be in the state of the mockchain,
+  -- but isn't.
   MCEUnknownOutRefError :: String -> PV2.TxOutRef -> MockChainError
+  -- | Same as 'MCEUnknownOutRefError' for validators.
   MCEUnknownValidator :: String -> PV2.ValidatorHash -> MockChainError
+  -- | Same as 'MCEUnknownOutRefError' for datums.
   MCEUnknownDatum :: String -> PV2.DatumHash -> MockChainError
+  -- | Used to provide 'MonadFail' instances.
   FailWith :: String -> MockChainError
   OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
 
@@ -95,19 +103,19 @@ deriving instance Show MockChainError
 instance Eq MockChainError where
   (==) = undefined
 
+-- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
-  -- | Returns the paramters of the chain.
+  -- | Returns the parameters of the chain.
   getParams :: m Emulator.Params
 
-  -- | Return a list of all UTxOs at a certain address.
+  -- | Returns a list of all UTxOs at a certain address.
   utxosAtLedger :: PV2.Address -> m [(PV2.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the datum with the given hash or 'Nothing' if there is none
   datumFromHash :: PV2.DatumHash -> m (Maybe PV2.Datum)
 
-  -- | Returns the full validator corresponding to hash, if that validator is
-  -- currently the owner of some UTxO. (If it is not, there's no guarantee that
-  -- this will return @Just@.)
+  -- | Returns the full validator corresponding to hash, if that validator owns
+  -- something or if it is stored in the reference script field of some UTxO.
   validatorFromHash :: PV2.ValidatorHash -> m (Maybe (Pl.Versioned PV2.Validator))
 
   -- | Returns an output given a reference to it
@@ -123,17 +131,20 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   -- | Waits until the current slot becomes greater or equal to the given slot,
   -- and returns the current slot after waiting.
   --
-  --  Note that that it might not wait for anything if the current slot
-  --  is large enough.
+  -- Note that it might not wait for anything if the current slot is large
+  -- enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
+-- | The main abstraction of the blockchain.
 class MonadBlockChainWithoutValidation m => MonadBlockChain m where
-  -- | Generates and balances a transaction from a skeleton, then attemps to validate such
-  --  transaction. A balanced transaction is such that @inputs + mints == outputs + fees@.
-  --  To balance a transaction, we need access to the current UTxO state to choose
-  --  which inputs to add in case the output-side of the balancing equation is bigger.
-  --
-  --  The 'TxSkel' receives a 'TxOpts' record with a number of options to customize how validation works.
+  -- | Generates, balances and validates a transaction from a skeleton.
+  -- It returns the validated transaction and updates the state of the
+  -- blockchain. In 'MockChainT', this means:
+  -- - deletes the consumed outputs from 'mcstIndex'
+  -- - adds the produced outputs to 'msctIndex'
+  -- - deletes the consumed datums from 'mcstDatums'
+  -- - adds the produced datums to 'mcstDatums'
+  -- - adds the validators on outputs to the 'mcstValidators'.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
 allUtxos :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
@@ -158,9 +169,9 @@ txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
 -- | Try to resolve the datum on the output: If there's an inline datum, take
--- that; if there's a datum hash, look the corresponding datum up (with 'datumFromHash'), returning
--- @Nothing@ if it can't be found; if there's no datum or hash at all, return
--- @Nothing@.
+-- that; if there's a datum hash, look the corresponding datum up (with
+-- 'datumFromHash'), returning @Nothing@ if it can't be found; if there's no
+-- datum or hash at all, return @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
     ToOutputDatum (DatumType out),
