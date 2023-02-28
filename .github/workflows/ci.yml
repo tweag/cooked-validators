@@ -35,7 +35,7 @@ jobs:
           name: tweag-plutus-libs
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Build Nix CI environment
         run: |
@@ -64,7 +64,7 @@ jobs:
           name: tweag-plutus-libs
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Build all Nix environments
         run: |
@@ -301,7 +301,7 @@ jobs:
           name: tweag-plutus-libs
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Run flake checks
         run: nix flake check --print-build-logs
