@@ -106,5 +106,5 @@ The rendered Haddock for the current `main` branch can be found at
 We also have a [repository](https://github.com/tweag/cooked-smart-contracts) of example contracts with offchain code and tests written using `cooked-validators`.
 
 Please also look at our
-[issues](https://tweag.github.io/cooked-validators/issues) for problems that
+[issues](https://github.com/tweag/cooked-validators/issues) for problems that
 we're already aware of, and feel free to open new issues!
