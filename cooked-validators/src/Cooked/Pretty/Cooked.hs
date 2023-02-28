@@ -199,7 +199,7 @@ instance PrettyCooked MockChainLog where
       go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
-prettyTxSkel opts skelContext (TxSkel lbl txopts mints validityRange signers ins insReference outs) =
+prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs) =
   prettyItemize
     "transaction skeleton:"
     "-"
