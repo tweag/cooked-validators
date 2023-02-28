@@ -24,11 +24,13 @@ type DocCooked = Doc ()
 renderString :: (a -> DocCooked) -> a -> String
 renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
--- prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
---    Foo
---      - bar1
---      - bar2
---      - bar3
+-- | Print an item list with a title.
+--
+-- >>> prettyItemize "Foo" "-" ["bar1", "bar2", "bar3"]
+-- Foo
+--   - bar1
+--   - bar2
+--   - bar3
 prettyItemize :: DocCooked -> DocCooked -> [DocCooked] -> DocCooked
 prettyItemize title bullet items =
   PP.vsep
@@ -51,7 +53,6 @@ prettyEnumerate title bullet items =
         zipWith (\index item -> PP.pretty index <> bullet <+> PP.align item) [1 :: Int ..] items
     ]
 
--- prettyHash 28a3d93cc3daac
--- #28a3d9
+-- | Pretty print a prefix of a hash with a given length.
 prettyHash :: (Show a) => Int -> a -> DocCooked
 prettyHash printedLength = PP.pretty . ('#' :) . take printedLength . show

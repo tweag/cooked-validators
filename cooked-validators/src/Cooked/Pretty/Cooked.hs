@@ -57,11 +57,9 @@ import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
-import Test.QuickCheck (NonZero)
-import Test.Tasty.QuickCheck (NonZero (..))
 
--- | The 'PrettyCooked' instance for 'TxSkelOutDatum' relays the pretty-printing of
--- the datum it contains.
+-- | The 'PrettyCooked' instance for 'TxSkelOutDatum' prints the datum it
+-- contains according to its own 'PrettyCooked' instance.
 instance PrettyCooked TxSkelOutDatum where
   prettyCookedOpt _ TxSkelOutNoDatum = mempty
   prettyCookedOpt opts (TxSkelOutDatumHash datum) = prettyCookedOpt opts datum
@@ -158,7 +156,7 @@ instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
   prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
   prettyCookedOpt opts (Right endState) = "🟢" <+> prettyCookedOpt opts endState
 
--- | This pretty prints a mock chain log that usually consists of the list of
+-- | This pretty prints a 'MockChainLog' that usually consists of the list of
 -- validated or submitted transactions. In the log, we know a transaction has
 -- been validated if the 'MCLogSubmittedTxSkel' is followed by a 'MCLogNewTx'.
 instance PrettyCooked MockChainLog where
@@ -218,8 +216,8 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints validityRange signers ins
         ]
     )
 
--- | Same as 'prettyPubKeyHash' with a suffix mentionning this is the balancing
--- wallet
+-- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
+-- this is the balancing wallet
 prettyBalancingWallet :: PrettyCookedOpts -> Wallet -> DocCooked
 prettyBalancingWallet opts w =
   prettyCookedOpt opts (walletPKHash w) <+> "[Balancing]"
@@ -240,11 +238,11 @@ prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} sig
 -- of signers is empty, this will lead to no signers being printed.
 prettySigners _ _ [] = []
 
--- prettyMints
+-- | Prints a minting specification
 --
 -- Examples without and with redeemer
--- #abcdef "Foo" -> 500
--- #123456 "Bar" | Redeemer -> 1000
+-- > #abcdef "Foo" -> 500
+-- > #123456 "Bar" | Redeemer -> 1000
 prettyMints :: PrettyCookedOpts -> (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> DocCooked
 prettyMints opts (policy, NoMintsRedeemer, tokenName, NonZero amount) =
   prettyCookedOpt opts policy
@@ -346,8 +344,9 @@ lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   txSkelOutDatum <- Map.lookup datumHash managedTxSkelOutDatums
   return (output, txSkelOutDatum)
 
--- | Pretty-print a list of transaction skeleton options, only printing an option if its value is non-default.
--- If no non-default options are in the list, return nothing.
+-- | Pretty-print a list of transaction skeleton options, only printing an
+-- option if its value is non-default. If no non-default options are in the
+-- list, return nothing.
 mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
@@ -398,8 +397,8 @@ mPrettyTxOpts
 
 -- * Pretty-printing
 
--- | Pretty prints a 'UtxoState'. Print the known wallets first, then unknown
--- pks, then scripts.
+-- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
+-- pubkeys, then scripts.
 instance PrettyCooked UtxoState where
   prettyCookedOpt opts =
     prettyItemize "UTxO state:" "•"
@@ -422,7 +421,7 @@ instance PrettyCooked UtxoState where
         (Pl.Address (Pl.ScriptCredential _) _, _) = LT
       addressOrdering (a1, _) (a2, _) = compare a1 a2
 
--- | Pretty prints the state of an address, that is the list of utxos
+-- | Pretty prints the state of an address, that is the list of UTxOs
 -- (including value and datum), grouped
 prettyAddressState :: PrettyCookedOpts -> Pl.Address -> UtxoPayloadSet -> DocCooked
 prettyAddressState opts address payloadSet =
@@ -449,8 +448,8 @@ prettyAddressState opts address payloadSet =
         PCOptTxOutRefsFull -> map (: [])
         _ -> List.groupBy similar
 
--- | Pretty prints payloads (datum and value corresponding to 1 utxo) that have
--- been grouped together when they belong to the same utxo
+-- | Pretty prints payloads (datum and value corresponding to 1 UTxO) that have
+-- been grouped together when they carry same value and datum
 prettyPayloadGrouped :: PrettyCookedOpts -> [UtxoPayload] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
 prettyPayloadGrouped opts [payload] =
