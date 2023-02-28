@@ -391,7 +391,7 @@ calcBalanceTx balanceWallet skel fee = do
   -- contain a lot of Ada. The hope behind this heuristic is that it'll
   -- therefore become less likely for the 'returnValue' to be less than the
   -- minimum Ada amount required for each output. See this comment for context:
-  -- https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041
+  -- https://github.com/tweag/cooked-validators/issues/71#issuecomment-1016406041
   candidateUtxos <-
     sortBy (flip compare `on` Pl.fromValue . outputValue . snd)
       . filter ((`notElem` inputOrefs) . fst)
