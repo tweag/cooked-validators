@@ -17,10 +17,6 @@ Bug reports, feature requests and pull requests are all most welcome!
   Please report it using GitHub's [issue tracker].
   Select “feature request”.
 
-[discussions board]: https://github.com/tweag/cooked-validators/discussions
-[issue tracker]: https://github.com/tweag/cooked-validators/issues
-[documentation]: https://tweag.github.io/cooked-validators/
-
 ## Running and testing
 
 ### Environment
@@ -31,8 +27,6 @@ Our Nix integration provides everything one needs to contribute:
 - The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
 
 - The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
-
-[nix]: https://nixos.org/
 
 Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC 8.10.7 and Cabal.
 
@@ -56,8 +50,6 @@ All 16 tests passed (12.32s)
 
 Our continuous integration checks all of this automatically.
 
-[haskell language server]: https://github.com/haskell/haskell-language-server
-
 ## How to submit changes
 
 Changes are submitted by means of [pull requests].
@@ -71,8 +63,6 @@ The process of submitting pull requests has several goals:
 
 - Enable a sustainable system for _Cooked Validators_'s maintainers to review contributions.
 
-[pull requests]: https://github.com/tweag/cooked-validators/pulls
-
 Please follow these steps to have your contribution considered by the maintainers:
 
 - Follow all instructions in the template.
@@ -85,8 +75,6 @@ Please follow these steps to have your contribution considered by the maintainer
   If we conclude that the failure was a false positive, then we will open an issue to track that problem with our status check suite.
 
 While the prerequisites above must be satisfied prior to having your pull request reviewed, the reviewer/s may ask you to complete additional design work, tests, or other changes before your pull request can be ultimately accepted.
-
-[status checks]: https://help.github.com/articles/about-status-checks/
 
 ## How to report a bug
 
@@ -157,9 +145,6 @@ Fill in the template, including the steps that you imagine you would take if the
 
 - Document all your functions using [Haddock]'s syntax.
 
-[ormolu]: https://github.com/tweag/ormolu
-[haddock]: https://haskell-haddock.readthedocs.io/en/latest/
-
 ### Nix style guide
 
 - All Nix code is formatted with [nixfmt].
@@ -168,9 +153,20 @@ Fill in the template, including the steps that you imagine you would take if the
 
 - Provide documentation explaining any bit of code that is not standard.
 
-[nixfmt]: https://github.com/serokell/nixfmt
-
 ### CI and pre-commit hooks
 
 Most of those coding conventions are enforced automatically by our continuous integration.
 The Nix environment provides pre-commit hooks that check those coding conventions in the exact same way the CI does.
+
+[discussions board]: https://github.com/tweag/cooked-validators/discussions
+[issue tracker]: https://github.com/tweag/cooked-validators/issues
+[pull requests]: https://github.com/tweag/cooked-validators/pulls
+[documentation]: https://tweag.github.io/cooked-validators/
+
+[status checks]: https://help.github.com/articles/about-status-checks/
+
+[haskell language server]: https://github.com/haskell/haskell-language-server
+[nix]: https://nixos.org/
+[ormolu]: https://github.com/tweag/ormolu
+[haddock]: https://haskell-haddock.readthedocs.io/en/latest/
+[nixfmt]: https://github.com/serokell/nixfmt
