@@ -72,8 +72,8 @@ noBids = do
   let deadline = t0 + 60_000
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
-  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
-  awaitSlot slotAfterDeadline
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
   return ()
 
@@ -84,8 +84,8 @@ oneBid = do
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
-  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
-  awaitSlot slotAfterDeadline
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 3) offerOref -- It doesn't matter which wallet hammers here
 
 twoBids :: MonadBlockChain m => m ()
@@ -96,8 +96,8 @@ twoBids = do
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 40_000_000
-  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
-  awaitSlot slotAfterDeadline
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 twoAuctions :: MonadBlockChain m => m ()
@@ -112,11 +112,11 @@ twoAuctions = do
   A.txBid (wallet 2) offerOref1 30_000_000
   A.txBid (wallet 3) offerOref2 50_000_000
   A.txBid (wallet 4) offerOref2 60_000_000
-  slotAfterDeadline1 <- getEnclosingSlot deadline1 <&> (+ 1)
-  awaitSlot slotAfterDeadline1
+  deadline1Slot <- getEnclosingSlot deadline1
+  awaitSlot $ deadline1Slot + 1
   A.txHammer (wallet 1) offerOref1
-  slotAfterDeadline2 <- getEnclosingSlot deadline2 <&> (+ 1)
-  awaitSlot slotAfterDeadline2
+  deadline2Slot <- getEnclosingSlot deadline2
+  awaitSlot $ deadline2Slot + 1
   A.txHammer (wallet 1) offerOref2
 
 successfulSingle :: TestTree
@@ -164,8 +164,8 @@ failingTwoBids = do
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000
   A.txBid (wallet 3) offerOref 30_000_000
-  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
-  awaitSlot slotAfterDeadline
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 failingSingle :: TestTree
@@ -382,8 +382,8 @@ exploitAddToken = do
 
   -- After the deadline of Eve's auction, anyone can hammer it, and this will
   -- pay Bob's money to Eve, while Bob will only get the forged NFT in exchange.
-  slotAfterEveDeadline <- getEnclosingSlot eveDeadline <&> (+ 1)
-  awaitSlot slotAfterEveDeadline
+  slotEveDeadline <- getEnclosingSlot eveDeadline
+  awaitSlot $ slotEveDeadline + 1
   A.txHammer eve eveOfferOref
   where
     alice = wallet 1
@@ -426,7 +426,7 @@ exploitDoubleSat = do
   -- money to herself, effectively stealing Bob's bid on the first auction.
   A.txBid eve offer2 70_000_000
     `withTweak` ( do
-                    t1slot <- (getEnclosingSlot $ t1) <&> (+ (-1))
+                    t1slot <- getEnclosingSlot t1 <&> (+ (-1))
                     overTweak txSkelValidityRangeL (`Pl.intersection` Pl.to t1slot)
                     addInputTweak theLastBidOref $
                       TxSkelRedeemerForScript
@@ -446,11 +446,11 @@ exploitDoubleSat = do
                 )
   -- Both auctions are closed normally. Eve is the highest bidder on both of
   -- them.
-  slotAfterT1 <- getEnclosingSlot t1 <&> (+ 1)
-  awaitSlot slotAfterT1
+  slotT1 <- getEnclosingSlot t1
+  awaitSlot slotT1
   A.txHammer eve offer1
-  slotAfterT2 <- getEnclosingSlot t2 <&> (+ 1)
-  awaitSlot slotAfterT2
+  slotT2 <- getEnclosingSlot t2
+  awaitSlot slotT2
   A.txHammer eve offer2
   where
     alice = wallet 1
@@ -495,8 +495,8 @@ bidderAlternativeTrace = do
   offerOref <- A.txOffer (wallet 1) (banana 2) 30_000_000
   A.txSetDeadline (wallet 1) offerOref deadline
   A.txBid (wallet 2) offerOref 30_000_000 <|> A.txBid (wallet 3) offerOref 30_000_000
-  slotAfterDeadline <- getEnclosingSlot deadline <&> (+ 1)
-  awaitSlot slotAfterDeadline
+  deadlineSlot <- getEnclosingSlot deadline
+  awaitSlot $ deadlineSlot + 1
   A.txHammer (wallet 1) offerOref
 
 bidderAlternative :: TestTree

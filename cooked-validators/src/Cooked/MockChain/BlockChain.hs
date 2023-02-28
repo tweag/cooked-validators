@@ -341,6 +341,10 @@ slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
+  -- If the given time @t@ happens to be the last millisecond of its slot, we
+  -- can include the whole slot. Otherwise, the only way to be sure that the
+  -- returned slot range contains no time after @t@ is to go to the preceding
+  -- slot.
   if t == b
     then return $ PV2.to n
     else return $ PV2.to (n - 1)

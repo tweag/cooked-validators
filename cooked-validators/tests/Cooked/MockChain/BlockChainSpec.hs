@@ -13,7 +13,7 @@ tests =
     "BlockChain"
     [ testGroup
         "time handling"
-        [ testProperty "borders computed by slotToTimeInterval are included in slot" $
+        [ testProperty "bounds computed by slotToTimeInterval are included in slot" $
             \n ->
               case runMockChain $ do
                 (l, r) <- slotToTimeInterval $ Ledger.Slot n
@@ -22,7 +22,7 @@ tests =
                 return (nl, nr) of
                 Left _err -> False
                 Right ((nl, nr), _) -> nl == n && nr == n,
-          testProperty "borders computed by slotToTimeInterval are maximal" $
+          testProperty "bounds computed by slotToTimeInterval are maximal" $
             \n ->
               case runMockChain $ do
                 (l, r) <- slotToTimeInterval $ Ledger.Slot n
