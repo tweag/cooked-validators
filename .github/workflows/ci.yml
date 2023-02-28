@@ -32,10 +32,10 @@ jobs:
       - name: Setup Nix caches
         uses: cachix/cachix-action@v12
         with:
-          name: tweag-plutus-libs
+          name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Build Nix CI environment
         run: |
@@ -61,10 +61,10 @@ jobs:
       - name: Setup Nix caches
         uses: cachix/cachix-action@v12
         with:
-          name: tweag-plutus-libs
+          name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Build all Nix environments
         run: |
@@ -93,7 +93,7 @@ jobs:
       - name: Setup Nix caches
         uses: cachix/cachix-action@v12
         with:
-          name: tweag-plutus-libs
+          name: tweag-cooked-validators
           ## No auth token: read only cache.
 
       ## Example from
@@ -165,7 +165,7 @@ jobs:
       - name: Upload build and test outputs
         uses: actions/upload-artifact@v3
         with:
-          name: plutus-libs-checks
+          name: cooked-validators-checks
           path: |
             ./*.out
             ./*.res
@@ -180,7 +180,7 @@ jobs:
       - name: Access build and test outputs
         uses: actions/download-artifact@v3
         with:
-          name: plutus-libs-checks
+          name: cooked-validators-checks
 
       - name: Check tests output
         run: |
@@ -232,7 +232,7 @@ jobs:
       - name: Setup Nix caches
         uses: cachix/cachix-action@v12
         with:
-          name: tweag-plutus-libs
+          name: tweag-cooked-validators
           ## No auth token: read only cache.
 
       ## Example from
@@ -298,10 +298,10 @@ jobs:
       - name: Setup Nix caches
         uses: cachix/cachix-action@v12
         with:
-          name: tweag-plutus-libs
+          name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
           ## everything that happens in CI will be pushed at the end of the job.
-          authToken: '${{ secrets.CACHIX_TWEAG_PLUTUS_LIBS_AUTH_TOKEN }}'
+          authToken: '${{ secrets.CACHIX_TWEAG_COOKED_VALIDATORS_AUTH_TOKEN }}'
 
       - name: Run flake checks
         run: nix flake check --print-build-logs
