@@ -1602,7 +1602,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-391"></span><span>  </span><span class="hs-comment">-- contain a lot of Ada. The hope behind this heuristic is that it'll</span><span>
 </span><span id="line-392"></span><span>  </span><span class="hs-comment">-- therefore become less likely for the 'returnValue' to be less than the</span><span>
 </span><span id="line-393"></span><span>  </span><span class="hs-comment">-- minimum Ada amount required for each output. See this comment for context:</span><span>
-</span><span id="line-394"></span><span>  </span><span class="hs-comment">-- https://github.com/tweag/plutus-libs/issues/71#issuecomment-1016406041</span><span>
+</span><span id="line-394"></span><span>  </span><span class="hs-comment">-- https://github.com/tweag/cooked-validators/issues/71#issuecomment-1016406041</span><span>
 </span><span id="line-395"></span><span>  </span><span id="local-6989586621679510787"><span class="annot"><span class="annottext">[(TxOutRef, TxOut)]
 </span><a href="#local-6989586621679510787"><span class="hs-identifier hs-var">candidateUtxos</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-396"></span><span>    </span><span class="annot"><span class="annottext">((TxOutRef, TxOut) -&gt; (TxOutRef, TxOut) -&gt; Ordering)
