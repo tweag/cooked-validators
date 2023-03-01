@@ -390,19 +390,12 @@ txSkelMintsToList =
     )
     . Map.toList
 
--- | Smart constructor for 'TxSkelMints'. This function relies on the 'Monoid'
--- instance of 'TxSkelMints'. So, some non-empty lists (where all amounts for a
--- given asset class an redeemer add up to zero) might be translated into the
--- empty 'TxSkelMints'. (See the comment at the 'Semigroup' instance definition
--- of 'TxSkelMints'.)
+-- | Smart constructor for 'TxSkelMints'. This function relies on
+-- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given
+-- asset class an redeemer add up to zero) might be translated into the empty
+-- 'TxSkelMints'.
 txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)] -> TxSkelMints
-txSkelMintsFromList =
-  foldMap
-    ( \(policy, red, tName, amount) ->
-        if 0 == amount
-          then Map.empty
-          else Map.singleton policy (red, NEMap.singleton tName (NonZero amount))
-    )
+txSkelMintsFromList = foldr addToTxSkelMints mempty
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Pl.Value
