@@ -13,7 +13,7 @@
  the transaction.</p><p>###################################</p><p>ATTENTION: If you modify the state while computing these lists, the
  behaviour of the <code><a href="Cooked-Attack-DoubleSat.html#v:doubleSatAttack" title="Cooked.Attack.DoubleSat">doubleSatAttack</a></code> might be strange: Any modification of
  the state that happens on any call to this function will be applied to all
- returned transactions. For example, if you <code><a href="Cooked-MockChain-BlockChain.html#v:awaitTime" title="Cooked.MockChain.BlockChain">awaitTime</a></code> in any of these
+ returned transactions. For example, if you <code>awaitTime</code> in any of these
  computations, the <code><a href="Cooked-Attack-DoubleSat.html#v:doubleSatAttack" title="Cooked.Attack.DoubleSat">doubleSatAttack</a></code> will wait for all returned
  transactions.</p><p>TODO: Make this interface safer, for example by using (some kind of) an
  <code>UtxoState</code> argument.</p><p>###################################</p></td></tr><tr><td class="src">-&gt; <a href="Cooked-Wallet.html#t:Wallet" title="Cooked.Wallet">Wallet</a></td><td class="doc"><p>The wallet of the attacker, where any surplus is paid to.</p><p>In the example, the extra value in the added <code>spendsScript</code> constraints
