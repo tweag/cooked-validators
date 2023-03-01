@@ -42,10 +42,10 @@ dupTokenAttack change attacker = do
       oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =
             map
-              ( \(Pl.Versioned policy version, redeemer, tName, NonZero oldAmount) ->
+              ( \(Pl.Versioned policy version, redeemer, tName, oldAmount) ->
                   let ac = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash policy) tName
                       newAmount = change ac oldAmount
-                   in (Pl.Versioned policy version, redeemer, tName, NonZero $ max newAmount oldAmount)
+                   in (Pl.Versioned policy version, redeemer, tName, max newAmount oldAmount)
               )
               oldMintsList
       guard $ newMintsList /= oldMintsList

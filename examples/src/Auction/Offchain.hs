@@ -17,7 +17,6 @@ import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.Value as Value
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
-import Test.QuickCheck.Modifiers (NonZero (..))
 
 -- | Make an offer. There are no checks with this transaction. Anyone is allowed
 -- to pay the 'auctionValidator' with something they want to sell, using the
@@ -53,7 +52,7 @@ txSetDeadline submitter offerOref deadline = do
             [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                 SomeMintsRedeemer offerOref,
                 A.tokenNameFromTxOutRef offerOref,
-                NonZero 1
+                1
               )
             ],
         txSkelIns = Map.singleton offerOref $ TxSkelRedeemerForScript A.SetDeadline,
@@ -167,7 +166,7 @@ txHammer submitter offerOref = do
                   [ ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                       SomeMintsRedeemer offerOref,
                       A.tokenNameFromTxOutRef offerOref,
-                      NonZero (-1)
+                      -1
                     )
                   ],
               txSkelOuts =

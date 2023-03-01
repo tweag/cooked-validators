@@ -31,7 +31,6 @@ import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
 import qualified Prettyprinter as PP
-import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.ExpectedFailure
 import Test.Tasty.HUnit
@@ -328,7 +327,7 @@ tryAddToken :: (Alternative m, MonadModalBlockChain m) => m ()
 tryAddToken =
   somewhere
     ( addTokenAttack
-        (const [(Pl.TokenName "exampleTokenName", NonZero 1)])
+        (const [(Pl.TokenName "exampleTokenName", 1)])
         (wallet 6)
     )
     simpleTraces
@@ -357,7 +356,7 @@ exploitAddToken = do
                       ( Pl.Versioned A.threadTokenPolicy Pl.PlutusV2,
                         SomeMintsRedeemer eveOfferOref, -- Use the redeemer that is already on the transaction!
                         aliceNftTokenName,
-                        NonZero 1
+                        1
                       )
                     addOutputTweak $ paysPK (walletPKHash eve) aliceNft
                 )

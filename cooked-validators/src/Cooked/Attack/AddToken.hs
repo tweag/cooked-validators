@@ -30,7 +30,7 @@ addTokenAttack ::
   -- there'll be n*m*o modified transactions.)
   --
   -- The redeemer will be the one that's already being used on the transaction.
-  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, NonZero Integer)]) ->
+  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, Integer)]) ->
   -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
   Wallet ->
   m Pl.Value

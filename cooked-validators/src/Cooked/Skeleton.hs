@@ -24,7 +24,6 @@ module Cooked.Skeleton
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
-    NonZero (..),
     addToTxSkelMints,
     txSkelMintsToList,
     txSkelMintsFromList,
@@ -347,11 +346,12 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- redeemer per minting policy, and no conflicting mints of the same asset
 -- class, since they'll just cancel.
 addToTxSkelMints ::
-  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
+  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) ->
   TxSkelMints ->
   TxSkelMints
-addToTxSkelMints (pol, red, tName, NonZero amount) mints =
-  case mints Map.!? pol of
+addToTxSkelMints (pol, red, tName, amount) mints
+  | 0 == amount = mints
+  | otherwise = case mints Map.!? pol of
     Nothing ->
       -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
       -- new entry:
@@ -381,11 +381,11 @@ addToTxSkelMints (pol, red, tName, NonZero amount) mints =
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.
-txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)]
 txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
-        (\(t, n) -> (p, r, t, n))
+        (\(t, NonZero n) -> (p, r, t, n))
           <$> NEList.toList (NEMap.toList m)
     )
     . Map.toList
@@ -395,11 +395,13 @@ txSkelMintsToList =
 -- given asset class an redeemer add up to zero) might be translated into the
 -- empty 'TxSkelMints'. (See the comment at the 'Semigroup' instance definition
 -- of 'TxSkelMints'.)
-txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
+txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)] -> TxSkelMints
 txSkelMintsFromList =
   foldMap
     ( \(policy, red, tName, amount) ->
-        Map.singleton policy (red, NEMap.singleton tName amount)
+        if 0 == amount
+          then Map.empty
+          else Map.singleton policy (red, NEMap.singleton tName (NonZero amount))
     )
 
 -- | The value described by a 'TxSkelMints'
@@ -407,7 +409,7 @@ txSkelMintsValue :: TxSkelMints -> Pl.Value
 txSkelMintsValue =
   foldMapOf
     (to txSkelMintsToList % folded)
-    ( \(policy, _, tName, NonZero amount) ->
+    ( \(policy, _, tName, amount) ->
         Pl.assetClassValue
           ( Pl.assetClass
               (Pl.scriptCurrencySymbol policy)
