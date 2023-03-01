@@ -25,7 +25,6 @@ import qualified Data.Map as Map
 import qualified Ledger as Pl
 import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
-import Test.QuickCheck (NonZero (..))
 
 -- * Adding and removing transaction inputs
 
@@ -90,17 +89,17 @@ removeOutputTweak removePred = do
 -- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under
 -- modification. As this is implemented in terms of 'addToTxSkelMints', the same
 -- caveats apply as do to that function!
-addMintTweak :: MonadTweak m => (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> m ()
+addMintTweak :: MonadTweak m => (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> m ()
 addMintTweak mint = overTweak txSkelMintsL $ addToTxSkelMints mint
 
 -- | Remove some entries from the 'TxSkelMints' of a transaction, according to
 -- some predicate. The returned list holds the removed entries.
 removeMintTweak ::
   MonadTweak m =>
-  ((Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Bool) ->
-  m [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+  ((Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> Bool) ->
+  m [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)]
 removeMintTweak removePred = do
-  presentMints <- viewTweak $ txSkelMintsL % mintsListIso
+  presentMints <- viewTweak $ txSkelMintsL % to txSkelMintsToList
   let (removed, kept) = partition removePred presentMints
-  setTweak (txSkelMintsL % mintsListIso) kept
+  setTweak txSkelMintsL $ txSkelMintsFromList kept
   return removed

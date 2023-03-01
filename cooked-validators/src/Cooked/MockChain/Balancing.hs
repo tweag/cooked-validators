@@ -22,6 +22,7 @@ import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoSearch
 import Cooked.Output
 import Cooked.Skeleton
+import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.Function
