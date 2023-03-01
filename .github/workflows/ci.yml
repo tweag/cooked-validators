@@ -192,7 +192,7 @@ jobs:
           ## Because there will be a lot of tests, we print a summary of the
           ## results
           echo "Summary of results (1 is failure)"
-          cat *.res
+          cat cooked-validators-cabal-build.res cooked-validators-cabal-test.res
 
           if $is_ok; then
             exit 0
