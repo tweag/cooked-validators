@@ -86,9 +86,9 @@ datumHijackingAttack ::
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
   (ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script) -> Bool) ->
-  -- | The selection predicate may match more than one output, restrict to the
-  -- i-th of the output(s) (counting from the left, starting at zero) chosen by
-  -- the selection predicate with this predicate.
+  -- | The selection predicate may match more than one output. Use this
+  -- predicate to restrict to the i-th of the outputs (counting from the left,
+  -- starting at zero) chosen by the selection predicate with this predicate.
   (Integer -> Bool) ->
   m [ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script)]
 datumHijackingAttack change select = do

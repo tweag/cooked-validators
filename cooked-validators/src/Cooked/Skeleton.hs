@@ -262,18 +262,8 @@ instance Eq MintsRedeemer where
 
 instance Ord MintsRedeemer where
   compare NoMintsRedeemer NoMintsRedeemer = EQ
-  -- The next two clauses are ugly, but necessary, since minting with no
-  -- redeemer is represented as minting with the unit redeemer on-chain.
-  --
-  -- TODO remove them!
-  compare NoMintsRedeemer (SomeMintsRedeemer a) =
-    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
-      then EQ
-      else LT
-  compare (SomeMintsRedeemer a) NoMintsRedeemer =
-    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
-      then EQ
-      else GT
+  compare NoMintsRedeemer SomeMintsRedeemer {} = LT
+  compare SomeMintsRedeemer {} NoMintsRedeemer = GT
   compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
     case compare (SomeTypeRep $ typeOf a) (SomeTypeRep $ typeOf b) of
       LT -> LT
@@ -424,6 +414,7 @@ instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
 data TxSkelOut where
   Pays ::
     ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
+      Typeable o,
       IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
@@ -435,12 +426,10 @@ data TxSkelOut where
     {producedOutput :: o} ->
     TxSkelOut
 
--- | Since we mostly care about whether the transaction outputs are the same
--- on-chain, this is sufficient: (TODO Should we do the usual tricks with
--- existential type variables here, to compare our off-chain representation, and
--- not the on-chain?)
 instance Eq TxSkelOut where
-  (==) = (==) `on` txSkelOutToTxOut
+  Pays a == Pays b = case typeOf a `eqTypeRep` typeOf b of
+    Just HRefl -> outputTxOut a == outputTxOut b
+    Nothing -> False
 
 deriving instance Show TxSkelOut
 
@@ -534,10 +523,6 @@ instance Ord TxSkelOutDatum where
   compare TxSkelOutInlineDatum {} _ = GT
   compare _ _ = LT
 
--- | The transaction output, as seen by a validator.
-txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
-txSkelOutToTxOut (Pays output) = outputTxOut output
-
 instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum TxSkelOutNoDatum = Pl.NoOutputDatum
   toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
@@ -565,12 +550,12 @@ paysPK pkh value =
         Nothing
         value
         TxSkelOutNoDatum
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Pay a certain value to a public key, including a reference script. This can
 -- be used to put reference scripts on chain.
-paysPKWithReferenceScript :: Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
+paysPKWithReferenceScript :: Typeable a => Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
 paysPKWithReferenceScript pkh value refScript =
   Pays
     ( ConcreteOutput
@@ -602,7 +587,7 @@ paysScript validator datum value =
         Nothing
         value
         (TxSkelOutDatum datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Like 'paysScript', but using the 'TxSkelOutInlineDatum' constructor for the
@@ -626,7 +611,7 @@ paysScriptInlineDatum validator datum value =
         Nothing
         value
         (TxSkelOutInlineDatum datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Like 'paysScript', but using the 'TxSkelOutDatumHash' constructor. This is
@@ -650,7 +635,7 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- * Redeemers for transaction inputs
