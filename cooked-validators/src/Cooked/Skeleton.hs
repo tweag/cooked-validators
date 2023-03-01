@@ -57,11 +57,7 @@ module Cooked.Skeleton
     txSkelOutputData,
     Fee (..),
     txSkelOutputValue,
-    flattenValueI,
     txSkelOutValidators,
-    positivePart,
-    negativePart,
-    adaL,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
@@ -73,11 +69,11 @@ import qualified Cardano.Api as C
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
+import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
-import Data.List
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -813,48 +809,7 @@ txSkelOutReferenceScripts =
       )
     . txSkelOuts
 
--- * Utilities
-
--- ** Working with 'Value's
-
-flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
-flattenValueI =
-  iso
-    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
-    (foldl' (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
-
--- | The positive part of a value. For every asset class in the given value,
--- this asset class and its amount are included in the output iff the amount is
--- strictly positive. It holds
---
--- > x == positivePart x <> Pl.negate negativePart x
-positivePart :: Pl.Value -> Pl.Value
-positivePart = over flattenValueI (filter $ (0 <) . snd)
-
--- | The negative part of a value. For every asset class in the given value,
--- this asset class and its negated amount are included in the output iff the
--- amount is strictly negative. It holds
---
--- > x == positivePart x <> Pl.negate negativePart x
-negativePart :: Pl.Value -> Pl.Value
-negativePart = positivePart . Pl.negate
-
--- | Focus the Ada part in a value.
-adaL :: Lens' Pl.Value Pl.Ada
-adaL =
-  lens
-    Pl.fromValue
-    ( \value (Pl.Lovelace ada) ->
-        over
-          flattenValueI
-          (\l -> insertAssocList l (Pl.assetClass Pl.adaSymbol Pl.adaToken) ada)
-          value
-    )
-  where
-    insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
-    insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
-
--- ** Various Optics on 'TxSkels' and all the other types defined in "Cooked.Tx.Constraints.Type".
+-- * Various Optics on 'TxSkels' and all the other types defined here
 
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::

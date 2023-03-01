@@ -42,6 +42,7 @@ library
       Cooked.Tweak.OutPermutations
       Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange
+      Cooked.ValueUtils
       Cooked.Wallet
   other-modules:
       Paths_cooked_validators
