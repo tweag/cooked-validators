@@ -23,7 +23,7 @@ module Cooked.Output
     ToValue (..),
     ToScript (..),
     ToScriptHash (..),
-    IsOnchainOutput,
+    IsTxInfoOutput,
     outputAddress,
     outputOutputDatum,
     outputValue,
@@ -142,7 +142,7 @@ instance ToScriptHash (Pl.TypedValidator a) where
 
 -- | An output that can be translated into its script-perspective (as seen on
 -- the 'TxInfo') representation
-type IsOnchainOutput o =
+type IsTxInfoOutput o =
   ( IsAbstractOutput o,
     ToCredential (OwnerType o),
     ToOutputDatum (DatumType o),
@@ -163,7 +163,7 @@ outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptT
 outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator on the 'TxInfo'.
-outputTxOut :: IsOnchainOutput o => o -> Pl.TxOut
+outputTxOut :: IsTxInfoOutput o => o -> Pl.TxOut
 outputTxOut o =
   Pl.TxOut
     (outputAddress o)
@@ -227,7 +227,7 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
 
 -- | Test if there is no datum on an output.
 isOutputWithoutDatum ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) () (ValueType output) (ReferenceScriptType output))
 isOutputWithoutDatum out = case outputOutputDatum out of
@@ -244,7 +244,7 @@ isOutputWithoutDatum out = case outputOutputDatum out of
 -- | Test if the output carries some inlined datum that can be parsed from
 -- builtin data on to something of a specific type.
 isOutputWithInlineDatumOfType ::
-  (Pl.FromData a, IsOnchainOutput output) =>
+  (Pl.FromData a, IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) a (ValueType output) (ReferenceScriptType output))
 isOutputWithInlineDatumOfType out =
@@ -260,7 +260,7 @@ isOutputWithInlineDatumOfType out =
 
 -- | Test if the output carries some inlined datum.
 isOutputWithInlineDatum ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   output ->
   Maybe output
 isOutputWithInlineDatum out =
@@ -270,7 +270,7 @@ isOutputWithInlineDatum out =
 
 -- | Test if the output carries some datum hash.
 isOutputWithDatumHash ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) Pl.DatumHash (ValueType output) (ReferenceScriptType output))
 isOutputWithDatumHash out =
@@ -290,7 +290,7 @@ isOutputWithDatumHash out =
 -- | Test if the owner of an output is a specific typed validator. If it is,
 -- return an output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   Pl.TypedValidator a ->
   output ->
   Maybe (ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) (ReferenceScriptType output))
@@ -313,7 +313,7 @@ isScriptOutputFrom validator out =
 -- an output of the same 'DatumType', but with 'Pl.PubKeyHash' as its
 -- 'OwnerType'.
 isPKOutputFrom ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   Pl.PubKeyHash ->
   output ->
   Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output) (ValueType output) (ReferenceScriptType output))
@@ -335,7 +335,7 @@ isPKOutputFrom pkh out = case outputAddress out of
 
 -- | Test if the value on an output contains only Ada.
 isOnlyAdaOutput ::
-  IsOnchainOutput output =>
+  IsTxInfoOutput output =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) (DatumType output) Pl.Ada (ReferenceScriptType output))
 isOnlyAdaOutput out =

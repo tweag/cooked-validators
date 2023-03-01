@@ -428,7 +428,7 @@ instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
 data TxSkelOut where
   Pays ::
     ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
-      IsOnchainOutput o,
+      IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
