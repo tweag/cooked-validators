@@ -1053,7 +1053,7 @@ forall a. TypedValidator a -&gt; Versioned Validator
 </span><span id="line-428"></span><span class="hs-keyword">data</span><span> </span><span id="TxSkelOut"><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-var">TxSkelOut</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-429"></span><span>  </span><span id="local-6989586621679511079"><span id="Pays"><span class="annot"><a href="Cooked.Skeleton.html#Pays"><span class="hs-identifier hs-var">Pays</span></a></span></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-430"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.</span><span>
-</span><span id="line-431"></span><span>      </span><span class="annot"><a href="Cooked.Output.html#IsOnchainOutput"><span class="hs-identifier hs-type">IsOnchainOutput</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-431"></span><span>      </span><span class="annot"><a href="Cooked.Output.html#IsTxInfoOutput"><span class="hs-identifier hs-type">IsTxInfoOutput</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-432"></span><span>      </span><span class="annot"><a href="Cooked.Skeleton.html#IsTxSkelOutAllowedOwner"><span class="hs-identifier hs-type">IsTxSkelOutAllowedOwner</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#OwnerType"><span class="hs-identifier hs-type">OwnerType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-433"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Typeable</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#OwnerType"><span class="hs-identifier hs-type">OwnerType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
 </span><span id="line-434"></span><span>      </span><span class="annot"><a href="Cooked.Output.html#ToCredential"><span class="hs-identifier hs-type">ToCredential</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#OwnerType"><span class="hs-identifier hs-type">OwnerType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679511079"><span class="hs-identifier hs-type">o</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
@@ -1102,7 +1102,7 @@ forall o. IsAbstractOutput o =&gt; Lens' o (DatumType o)
 </span><a href="#local-6989586621679511060"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679511059"><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="#local-6989586621679511059"><span class="hs-identifier hs-var">newDatum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">o -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1138,7 +1138,7 @@ forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
 </span><a href="#local-6989586621679511054"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679511053"><span class="annot"><span class="annottext">Value
 </span><a href="#local-6989586621679511053"><span class="hs-identifier hs-var">newValue</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">o -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1350,7 +1350,7 @@ forall a. TxSkelOutDatumConstrs a =&gt; a -&gt; TxSkelOutDatum
 </span><span id="line-543"></span><span id="txSkelOutToTxOut"><span class="annot"><span class="annottext">txSkelOutToTxOut :: TxSkelOut -&gt; TxOut
 </span><a href="Cooked.Skeleton.html#txSkelOutToTxOut"><span class="hs-identifier hs-var hs-var">txSkelOutToTxOut</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#Pays"><span class="hs-identifier hs-type">Pays</span></a></span><span> </span><span id="local-6989586621679511007"><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679511007"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">o -&gt; TxOut
-forall o. IsOnchainOutput o =&gt; o -&gt; TxOut
+forall o. IsTxInfoOutput o =&gt; o -&gt; TxOut
 </span><a href="Cooked.Output.html#outputTxOut"><span class="hs-identifier hs-var">outputTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679511007"><span class="hs-identifier hs-var">output</span></a></span><span>
 </span><span id="line-544"></span><span>
@@ -1470,7 +1470,7 @@ Monad m =&gt;
 </span><span id="line-566"></span><span>  </span><span class="annot"><span class="annottext">ConcreteOutput PubKeyHash TxSkelOutDatum Value (TypedValidator Any)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1516,7 +1516,7 @@ forall a. Maybe a
 </span><span id="line-579"></span><span>  </span><span class="annot"><span class="annottext">ConcreteOutput PubKeyHash TxSkelOutDatum Value (TypedValidator a)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1575,7 +1575,7 @@ forall a. a -&gt; Maybe a
   (TypedValidator a) TxSkelOutDatum Value (TypedValidator Any)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1635,7 +1635,7 @@ forall a. Maybe a
   (TypedValidator a) TxSkelOutDatum Value (TypedValidator Any)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1695,7 +1695,7 @@ forall a. Maybe a
   (TypedValidator a) TxSkelOutDatum Value (TypedValidator Any)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -2465,7 +2465,7 @@ forall b s a. (b -&gt; s) -&gt; (s -&gt; Maybe a) -&gt; Prism s s a b
 </span><span id="line-870"></span><span>    </span><span class="annot"><span class="annottext">ConcreteOutput ownerType TxSkelOutDatum Value (Versioned Script)
 -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -2619,7 +2619,7 @@ forall a b. a -&gt; Either a b
 </span><a href="#local-6989586621679510815"><span class="hs-identifier hs-var">newTyDatum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-897"></span><span>        </span><span class="annot"><span class="annottext">o -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;

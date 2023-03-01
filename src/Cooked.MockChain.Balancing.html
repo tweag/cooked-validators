@@ -372,7 +372,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span id="line-107"></span><span>          </span><span id="local-6989586621679514242"><span class="annot"><span class="annottext">updatedTxSkelOut :: TxSkelOut
 </span><a href="#local-6989586621679514242"><span class="hs-identifier hs-var hs-var">updatedTxSkelOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">o -&gt; TxSkelOut
 forall o.
-(Show o, IsOnchainOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
+(Show o, IsTxInfoOutput o, IsTxSkelOutAllowedOwner (OwnerType o),
  Typeable (OwnerType o), ToCredential (OwnerType o),
  DatumType o ~ TxSkelOutDatum, ValueType o ~ Value,
  ToScript (ReferenceScriptType o)) =&gt;
@@ -1350,7 +1350,7 @@ Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Maybe (ConcreteOutput Credential () Value ScriptHash)
 forall output.
-IsOnchainOutput output =&gt;
+IsTxInfoOutput output =&gt;
 output
 -&gt; Maybe
      (ConcreteOutput
@@ -1369,7 +1369,7 @@ UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput Credential () Value ScriptHash
 -&gt; Maybe (ConcreteOutput Credential () Ada ScriptHash)
 forall output.
-IsOnchainOutput output =&gt;
+IsTxInfoOutput output =&gt;
 output
 -&gt; Maybe
      (ConcreteOutput
@@ -1877,7 +1877,7 @@ forall a b. (a -&gt; Maybe b) -&gt; [a] -&gt; [b]
      (ConcreteOutput
         PubKeyHash (DatumType o) (ValueType o) (ReferenceScriptType o))
 forall output.
-IsOnchainOutput output =&gt;
+IsTxInfoOutput output =&gt;
 PubKeyHash
 -&gt; output
 -&gt; Maybe
@@ -1906,7 +1906,7 @@ Monad m =&gt;
      (ConcreteOutput
         PubKeyHash TxSkelOutDatum Ada (ReferenceScriptType o))
 forall output.
-IsOnchainOutput output =&gt;
+IsTxInfoOutput output =&gt;
 output
 -&gt; Maybe
      (ConcreteOutput
@@ -1933,7 +1933,7 @@ Monad m =&gt;
   PubKeyHash TxSkelOutDatum Ada (ReferenceScriptType o)
 -&gt; Maybe (ConcreteOutput PubKeyHash () Ada (ReferenceScriptType o))
 forall output.
-IsOnchainOutput output =&gt;
+IsTxInfoOutput output =&gt;
 output
 -&gt; Maybe
      (ConcreteOutput
