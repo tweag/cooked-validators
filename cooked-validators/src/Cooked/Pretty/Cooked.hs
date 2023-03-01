@@ -243,13 +243,13 @@ prettySigners _ _ [] = []
 -- Examples without and with redeemer
 -- > #abcdef "Foo" -> 500
 -- > #123456 "Bar" | Redeemer -> 1000
-prettyMints :: PrettyCookedOpts -> (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> DocCooked
-prettyMints opts (policy, NoMintsRedeemer, tokenName, NonZero amount) =
+prettyMints :: PrettyCookedOpts -> (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> DocCooked
+prettyMints opts (policy, NoMintsRedeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "->"
     <+> PP.viaShow amount
-prettyMints opts (policy, SomeMintsRedeemer redeemer, tokenName, NonZero amount) =
+prettyMints opts (policy, SomeMintsRedeemer redeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "|"
