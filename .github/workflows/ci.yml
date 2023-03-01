@@ -132,32 +132,26 @@ jobs:
             ## what we want.
             set -xuo pipefail
 
-            cabal_builds_all_ok=true
+            cabal_build_ok=true
 
-            for proj in cooked-validators examples; do
-              pushd "$proj" || exit 1
+            cabal update
 
-              cabal update
+            echo "Running \`cabal build\`"
+            cabal_res=0
+            cabal build | tee cabal-build.out
+            cabal_res=$?
+            echo "cabal_build:$cabal_res" > cabal-build.res
+            if [ $cabal_res -ne 0 ]; then
+              cabal_build_ok=false
+            fi
 
-              echo "Running \`cabal build\` on $proj"
-              cabal_res=0
-              cabal build | tee "../${proj}-cabal-build.out"
-              cabal_res=$?
-              echo "cabal_build:$cabal_res" > "../${proj}-cabal-build.res"
-              if [ $cabal_res -ne 0 ]; then
-                cabal_builds_all_ok=false
-              fi
+            echo "Running \`cabal run tests\`"
+            cabal_res=0
+            cabal run tests | tee cabal-test.out
+            cabal_res=$?
+            echo "run_cabal_test:$cabal_res" > cabal-test.res
 
-              echo "Running \`cabal run tests\` on $proj"
-              cabal_res=0
-              cabal run tests | tee "../${proj}-cabal-test.out"
-              cabal_res=$?
-              echo "run_cabal_test:$cabal_res" > "../${proj}-cabal-test.res"
-
-              popd || exit 1
-            done
-
-            if ! $cabal_builds_all_ok; then
+            if ! $cabal_build_ok; then
               exit 1
             fi
           '
@@ -186,31 +180,25 @@ jobs:
         run: |
           is_ok=true
 
-          for proj in cooked-validators examples; do
-            for step in cabal-build cabal-test; do
-              echo "!! [$proj]: output from $step"
-              cat $proj-$step.out
-              res=$(cat $proj-$step.res | cut -d':' -f2)
-              if [ "$res" -ne 0 ]; then
-                is_ok=false
-              fi
-            done
+          for step in cabal-build cabal-test; do
+            echo "!! output from $step"
+            cat $step.out
+            res=$(cat $step.res | cut -d':' -f2)
+            if [ "$res" -ne 0 ]; then
+              is_ok=false
+            fi
           done
 
           ## Because there will be a lot of tests, we print a summary of the
           ## results
           echo "Summary of results (1 is failure)"
-          for proj in examples cooked-validators; do
-            echo "Summary for: $proj"
-            cat ${proj}-*.res
-          done
+          cat cabal-build.res cabal-test.res
 
           if $is_ok; then
             exit 0
           else
             exit 1
           fi
-
 
   build-and-deploy-documentation:
     name: Build and deploy documentation

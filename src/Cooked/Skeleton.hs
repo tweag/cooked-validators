@@ -24,11 +24,9 @@ module Cooked.Skeleton
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
-    NonZero (..),
     addToTxSkelMints,
     txSkelMintsToList,
     txSkelMintsFromList,
-    mintsListIso,
     txSkelMintsValue,
     txSkelOutValueL,
     txSkelOutDatumL,
@@ -59,11 +57,7 @@ module Cooked.Skeleton
     txSkelOutputData,
     Fee (..),
     txSkelOutputValue,
-    flattenValueI,
     txSkelOutValidators,
-    positivePart,
-    negativePart,
-    adaL,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
@@ -75,11 +69,11 @@ import qualified Cardano.Api as C
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
+import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
-import Data.List
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -268,18 +262,8 @@ instance Eq MintsRedeemer where
 
 instance Ord MintsRedeemer where
   compare NoMintsRedeemer NoMintsRedeemer = EQ
-  -- The next two clauses are ugly, but necessary, since minting with no
-  -- redeemer is represented as minting with the unit redeemer on-chain.
-  --
-  -- TODO remove them!
-  compare NoMintsRedeemer (SomeMintsRedeemer a) =
-    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
-      then EQ
-      else LT
-  compare (SomeMintsRedeemer a) NoMintsRedeemer =
-    if Pl.unitRedeemer == Pl.Redeemer (Pl.toBuiltinData a)
-      then EQ
-      else GT
+  compare NoMintsRedeemer SomeMintsRedeemer {} = LT
+  compare SomeMintsRedeemer {} NoMintsRedeemer = GT
   compare (SomeMintsRedeemer a) (SomeMintsRedeemer b) =
     case compare (SomeTypeRep $ typeOf a) (SomeTypeRep $ typeOf b) of
       LT -> LT
@@ -348,11 +332,12 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- redeemer per minting policy, and no conflicting mints of the same asset
 -- class, since they'll just cancel.
 addToTxSkelMints ::
-  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) ->
+  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) ->
   TxSkelMints ->
   TxSkelMints
-addToTxSkelMints (pol, red, tName, NonZero amount) mints =
-  case mints Map.!? pol of
+addToTxSkelMints (pol, red, tName, amount) mints
+  | 0 == amount = mints
+  | otherwise = case mints Map.!? pol of
     Nothing ->
       -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
       -- new entry:
@@ -382,50 +367,28 @@ addToTxSkelMints (pol, red, tName, NonZero amount) mints =
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.
-txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
+txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)]
 txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
-        (\(t, n) -> (p, r, t, n))
+        (\(t, NonZero n) -> (p, r, t, n))
           <$> NEList.toList (NEMap.toList m)
     )
     . Map.toList
 
--- | Smart constructor for 'TxSkelMints'. This function relies on the 'Monoid'
--- instance of 'TxSkelMints'. So, some non-empty lists (where all amounts for a
--- given asset class an redeemer add up to zero) might be translated into the
--- empty 'TxSkelMints'. (See the comment at the 'Semigroup' instance definition
--- of 'TxSkelMints'.)
-txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)] -> TxSkelMints
-txSkelMintsFromList =
-  foldMap
-    ( \(policy, red, tName, amount) ->
-        Map.singleton policy (red, NEMap.singleton tName amount)
-    )
-
--- | Convert between 'TxSkelMints' and a list of tuples describing eveything
--- that's being minted. This is implemented in terms of 'txSkelMintsFromList'
--- (see the comment at that function). The upshot is that
---
--- > review mintsListIso . view mintsListIso
---
--- is the identity on 'TxSkelMints', but
---
--- > view mintsListIso . review mintsListIso
---
--- is NOT THE IDENTITY on @[(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName,
--- NonZero Integer)]@.
---
--- TODO: Remove this, it's confusing, and not a lawful Iso.
-mintsListIso :: Iso' TxSkelMints [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
-mintsListIso = iso txSkelMintsToList txSkelMintsFromList
+-- | Smart constructor for 'TxSkelMints'. This function relies on
+-- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given
+-- asset class an redeemer add up to zero) might be translated into the empty
+-- 'TxSkelMints'.
+txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)] -> TxSkelMints
+txSkelMintsFromList = foldr addToTxSkelMints mempty
 
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Pl.Value
 txSkelMintsValue =
   foldMapOf
-    (mintsListIso % folded)
-    ( \(policy, _, tName, NonZero amount) ->
+    (to txSkelMintsToList % folded)
+    ( \(policy, _, tName, amount) ->
         Pl.assetClassValue
           ( Pl.assetClass
               (Pl.scriptCurrencySymbol policy)
@@ -451,7 +414,8 @@ instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
 data TxSkelOut where
   Pays ::
     ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
-      IsOnchainOutput o,
+      Typeable o,
+      IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
@@ -462,12 +426,10 @@ data TxSkelOut where
     {producedOutput :: o} ->
     TxSkelOut
 
--- | Since we mostly care about whether the transaction outputs are the same
--- on-chain, this is sufficient: (TODO Should we do the usual tricks with
--- existential type variables here, to compare our off-chain representation, and
--- not the on-chain?)
 instance Eq TxSkelOut where
-  (==) = (==) `on` txSkelOutToTxOut
+  Pays a == Pays b = case typeOf a `eqTypeRep` typeOf b of
+    Just HRefl -> outputTxOut a == outputTxOut b
+    Nothing -> False
 
 deriving instance Show TxSkelOut
 
@@ -561,10 +523,6 @@ instance Ord TxSkelOutDatum where
   compare TxSkelOutInlineDatum {} _ = GT
   compare _ _ = LT
 
--- | The transaction output, as seen by a validator.
-txSkelOutToTxOut :: TxSkelOut -> Pl.TxOut
-txSkelOutToTxOut (Pays output) = outputTxOut output
-
 instance ToOutputDatum TxSkelOutDatum where
   toOutputDatum TxSkelOutNoDatum = Pl.NoOutputDatum
   toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
@@ -592,12 +550,12 @@ paysPK pkh value =
         Nothing
         value
         TxSkelOutNoDatum
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Pay a certain value to a public key, including a reference script. This can
 -- be used to put reference scripts on chain.
-paysPKWithReferenceScript :: Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
+paysPKWithReferenceScript :: Typeable a => Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
 paysPKWithReferenceScript pkh value refScript =
   Pays
     ( ConcreteOutput
@@ -629,7 +587,7 @@ paysScript validator datum value =
         Nothing
         value
         (TxSkelOutDatum datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Like 'paysScript', but using the 'TxSkelOutInlineDatum' constructor for the
@@ -653,7 +611,7 @@ paysScriptInlineDatum validator datum value =
         Nothing
         value
         (TxSkelOutInlineDatum datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- | Like 'paysScript', but using the 'TxSkelOutDatumHash' constructor. This is
@@ -677,7 +635,7 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
-        (Nothing @(Pl.TypedValidator Pl.Any))
+        (Nothing @(Pl.Versioned Pl.Script))
     )
 
 -- * Redeemers for transaction inputs
@@ -836,48 +794,7 @@ txSkelOutReferenceScripts =
       )
     . txSkelOuts
 
--- * Utilities
-
--- ** Working with 'Value's
-
-flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
-flattenValueI =
-  iso
-    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
-    (foldl' (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
-
--- | The positive part of a value. For every asset class in the given value,
--- this asset class and its amount are included in the output iff the amount is
--- strictly positive. It holds
---
--- > x == positivePart x <> Pl.negate negativePart x
-positivePart :: Pl.Value -> Pl.Value
-positivePart = over flattenValueI (filter $ (0 <) . snd)
-
--- | The negative part of a value. For every asset class in the given value,
--- this asset class and its negated amount are included in the output iff the
--- amount is strictly negative. It holds
---
--- > x == positivePart x <> Pl.negate negativePart x
-negativePart :: Pl.Value -> Pl.Value
-negativePart = positivePart . Pl.negate
-
--- | Focus the Ada part in a value.
-adaL :: Lens' Pl.Value Pl.Ada
-adaL =
-  lens
-    Pl.fromValue
-    ( \value (Pl.Lovelace ada) ->
-        over
-          flattenValueI
-          (\l -> insertAssocList l (Pl.assetClass Pl.adaSymbol Pl.adaToken) ada)
-          value
-    )
-  where
-    insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
-    insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
-
--- ** Various Optics on 'TxSkels' and all the other types defined in "Cooked.Tx.Constraints.Type".
+-- * Various Optics on 'TxSkels' and all the other types defined here
 
 -- | Decide if a transaction output has a certain owner and datum type.
 txSkelOutOwnerTypeP ::

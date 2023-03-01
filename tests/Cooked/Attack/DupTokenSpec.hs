@@ -19,7 +19,6 @@ import qualified Plutus.V2.Ledger.Api as Pl
 import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
-import Test.QuickCheck.Modifiers (NonZero (..))
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -53,7 +52,7 @@ carelessPolicy =
     Pl.mkMintingPolicyScript
       $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
-dupTokenTrace :: MonadBlockChain m => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> NonZero Integer -> Wallet -> m ()
+dupTokenTrace :: MonadBlockChain m => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
   where
     skel =
@@ -82,8 +81,8 @@ tests =
               txSkelTemplate
                 { txSkelMints =
                     txSkelMintsFromList
-                      [ (pol1, NoMintsRedeemer, tName1, NonZero 5),
-                        (pol2, NoMintsRedeemer, tName2, NonZero 7)
+                      [ (pol1, NoMintsRedeemer, tName1, 5),
+                        (pol2, NoMintsRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
                     [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
@@ -100,8 +99,8 @@ tests =
                           { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                             txSkelMints =
                               txSkelMintsFromList
-                                [ (pol1, NoMintsRedeemer, tName1, NonZero v1),
-                                  (pol2, NoMintsRedeemer, tName2, NonZero v2)
+                                [ (pol1, NoMintsRedeemer, tName1, v1),
+                                  (pol2, NoMintsRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
                               [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
@@ -128,7 +127,7 @@ tests =
               def
               ( somewhere
                   (dupTokenAttack (\_ n -> n + 1) (wallet 6))
-                  (dupTokenTrace pol tName (NonZero 1) (wallet 1))
+                  (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
         let tName = Pl.tokenName "MockToken"
@@ -136,7 +135,7 @@ tests =
          in testSucceeds def $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
-                (dupTokenTrace pol tName (NonZero 1) (wallet 1)),
+                (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
             pol = carelessPolicy
@@ -145,7 +144,7 @@ tests =
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
               txSkelTemplate
-                { txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, NonZero 1)],
+                { txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, 1)],
                   txSkelOuts =
                     [ paysPK
                         (walletPKHash (wallet 1))
@@ -158,7 +157,7 @@ tests =
                   ( Pl.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
-                        txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, NonZero 2)],
+                        txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, 2)],
                         txSkelOuts =
                           [ paysPK
                               (walletPKHash (wallet 1))

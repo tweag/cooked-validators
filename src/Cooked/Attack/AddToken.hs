@@ -9,7 +9,6 @@ import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx.Numeric as Pl
-import Test.QuickCheck.Modifiers (NonZero)
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
 -- different from the 'dupTokenAttack' in that it does not merely try to
@@ -31,7 +30,7 @@ addTokenAttack ::
   -- there'll be n*m*o modified transactions.)
   --
   -- The redeemer will be the one that's already being used on the transaction.
-  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, NonZero Integer)]) ->
+  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, Integer)]) ->
   -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
   Wallet ->
   m Pl.Value

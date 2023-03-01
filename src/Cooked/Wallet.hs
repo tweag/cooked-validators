@@ -20,7 +20,6 @@ module Cooked.Wallet
     walletAddress,
     walletSK,
     walletStakingSK,
-    txAddSignature,
     initialDistribution,
     InitialDistribution (..),
     Wallet,
@@ -37,7 +36,6 @@ import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as Pl
 import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Pl
-import qualified Ledger.Tx as Pl
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import Unsafe.Coerce
@@ -60,7 +58,14 @@ instance Eq Wallet where
 instance Ord Wallet where
   compare = compare `on` Pl.mwWalletId
 
--- | All the wallets corresponding to known Plutus mock wallets.
+-- | All the wallets corresponding to known Plutus mock wallets. This is a list
+-- of 10 wallets which will
+--
+-- - receive funds in the standard initial distribution of cooked-validators,
+--   and
+--
+-- - be pretty-printed as part the final state after running a few
+--   transactions.
 knownWallets :: [Wallet]
 knownWallets = Pl.knownMockWallets
 
@@ -122,10 +127,6 @@ walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
     hackUnMockPrivateKey :: a -> Cardano.XPrv
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
 
--- | Signs a transaction
-txAddSignature :: Wallet -> Pl.Tx -> Pl.Tx
-txAddSignature w = Pl.addSignature' (walletSK w)
-
 -- * Initial distribution of funds
 
 -- | Describes the initial distribution of UTxOs per wallet. This is important
@@ -168,10 +169,8 @@ instance Default InitialDistribution where
     where
       defLovelace = Pl.lovelaceValueOf 100_000_000
 
--- | Ensures the distribution is valid by adding any missing Ada to all UTxOs.
 distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . Map.fromList
 
--- | Extends the default 'InitialDistribution'.
 initialDistribution :: [(Wallet, [Pl.Value])] -> InitialDistribution
 initialDistribution = (def <>) . distributionFromList
