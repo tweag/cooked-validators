@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Attack.DatumHijackingSpec (tests) where
+module Cooked.Unit.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked

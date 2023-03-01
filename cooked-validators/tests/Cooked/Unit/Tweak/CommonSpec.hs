@@ -1,4 +1,4 @@
-module Cooked.Tweak.CommonSpec (tests) where
+module Cooked.Unit.Tweak.CommonSpec (tests) where
 
 import Cooked
 import Cooked.MockChain.Staged

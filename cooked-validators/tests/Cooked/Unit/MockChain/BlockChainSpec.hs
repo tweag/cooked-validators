@@ -1,4 +1,4 @@
-module Cooked.MockChain.BlockChainSpec (tests) where
+module Cooked.Unit.MockChain.BlockChainSpec (tests) where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct

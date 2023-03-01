@@ -2,7 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Cooked.LtlSpec (tests) where
+module Cooked.Unit.LtlSpec (tests) where
 
 import Control.Applicative
 import Control.Monad.State

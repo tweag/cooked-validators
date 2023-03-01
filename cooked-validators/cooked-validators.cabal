@@ -103,24 +103,24 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Cooked.Attack.DatumHijackingSpec
-      Cooked.Attack.DoubleSatSpec
-      Cooked.Attack.DupTokenSpec
-      Cooked.AttackSpec
       Cooked.Behaviour.Elementary
       Cooked.Behaviour.InlineDatumsSpec
       Cooked.Behaviour.ReferenceInputsSpec
       Cooked.Behaviour.ReferenceScriptsSpec
       Cooked.Behaviour.Validators
-      Cooked.LtlSpec
-      Cooked.MinAdaSpec
-      Cooked.MockChain.BlockChainSpec
-      Cooked.MockChainSpec
       Cooked.TestUtils
-      Cooked.Tweak.CommonSpec
-      Cooked.Tweak.OutPermutationsSpec
-      Cooked.Tweak.ValidityRangeSpec
-      Cooked.TweakSpec
+      Cooked.Unit.Attack.DatumHijackingSpec
+      Cooked.Unit.Attack.DoubleSatSpec
+      Cooked.Unit.Attack.DupTokenSpec
+      Cooked.Unit.AttackSpec
+      Cooked.Unit.LtlSpec
+      Cooked.Unit.MinAdaSpec
+      Cooked.Unit.MockChain.BlockChainSpec
+      Cooked.Unit.MockChainSpec
+      Cooked.Unit.Tweak.CommonSpec
+      Cooked.Unit.Tweak.OutPermutationsSpec
+      Cooked.Unit.Tweak.ValidityRangeSpec
+      Cooked.Unit.TweakSpec
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
