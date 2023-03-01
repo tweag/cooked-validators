@@ -262,10 +262,17 @@ isOutputWithInlineDatumOfType out =
 isOutputWithInlineDatum ::
   IsOnchainOutput output =>
   output ->
-  Maybe output
+  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
 isOutputWithInlineDatum out =
   case outputOutputDatum out of
-    Pl.OutputDatum _ -> Just out
+    Pl.OutputDatum datum@(Pl.Datum _) ->
+      Just $
+        ConcreteOutput
+          (out ^. outputOwnerL)
+          (out ^. outputStakingCredentialL)
+          (out ^. outputValueL)
+          datum
+          (out ^. outputReferenceScriptL)
     _ -> Nothing
 
 -- | Test if the output carries some datum hash.
