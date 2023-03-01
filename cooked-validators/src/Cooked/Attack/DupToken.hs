@@ -11,7 +11,6 @@ import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.V1.Ledger.Value as Pl
 import qualified PlutusTx.Numeric as Pl
-import Test.QuickCheck.Modifiers (NonZero (..))
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a
 -- 'TxSkel' according to some conditions, and pays the extra minted value to a
@@ -40,7 +39,7 @@ dupTokenAttack change attacker = do
   where
     changeMintAmountsTweak :: MonadTweak m => m Pl.Value
     changeMintAmountsTweak = do
-      oldMintsList <- viewTweak $ txSkelMintsL % mintsListIso
+      oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =
             map
               ( \(Pl.Versioned policy version, redeemer, tName, NonZero oldAmount) ->
@@ -50,7 +49,7 @@ dupTokenAttack change attacker = do
               )
               oldMintsList
       guard $ newMintsList /= oldMintsList
-      let newMints = review mintsListIso newMintsList
+      let newMints = txSkelMintsFromList newMintsList
           newValue = txSkelMintsValue newMints
           oldValue = txSkelMintsValue $ txSkelMintsFromList oldMintsList
       setTweak txSkelMintsL newMints
