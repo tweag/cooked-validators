@@ -64,8 +64,8 @@ instance Ord Wallet where
 -- - receive funds in the standard initial distribution of cooked-validators,
 --   and
 --
--- - will be pretty-printed as part the final state after running a few
---   transactions
+-- - be pretty-printed as part the final state after running a few
+--   transactions.
 knownWallets :: [Wallet]
 knownWallets = Pl.knownMockWallets
 
