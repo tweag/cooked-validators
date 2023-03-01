@@ -6,6 +6,8 @@ cabal-version: 3.4
 
 name:           cooked-validators
 version:        2.0.0
+license:        MIT
+license-file:   LICENSE
 build-type:     Simple
 
 library
