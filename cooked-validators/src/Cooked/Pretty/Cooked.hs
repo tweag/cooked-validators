@@ -206,7 +206,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
     ( catMaybes
         [ prettyItemizeNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
-          prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> (mints ^. mintsListIso)),
+          prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
           -- TODO handle unsafe 'fromJust' better

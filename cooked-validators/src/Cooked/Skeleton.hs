@@ -28,7 +28,6 @@ module Cooked.Skeleton
     addToTxSkelMints,
     txSkelMintsToList,
     txSkelMintsFromList,
-    mintsListIso,
     txSkelMintsValue,
     txSkelOutValueL,
     txSkelOutDatumL,
@@ -403,28 +402,11 @@ txSkelMintsFromList =
         Map.singleton policy (red, NEMap.singleton tName amount)
     )
 
--- | Convert between 'TxSkelMints' and a list of tuples describing eveything
--- that's being minted. This is implemented in terms of 'txSkelMintsFromList'
--- (see the comment at that function). The upshot is that
---
--- > review mintsListIso . view mintsListIso
---
--- is the identity on 'TxSkelMints', but
---
--- > view mintsListIso . review mintsListIso
---
--- is NOT THE IDENTITY on @[(Pl.MintingPolicy, MintsRedeemer, Pl.TokenName,
--- NonZero Integer)]@.
---
--- TODO: Remove this, it's confusing, and not a lawful Iso.
-mintsListIso :: Iso' TxSkelMints [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
-mintsListIso = iso txSkelMintsToList txSkelMintsFromList
-
 -- | The value described by a 'TxSkelMints'
 txSkelMintsValue :: TxSkelMints -> Pl.Value
 txSkelMintsValue =
   foldMapOf
-    (mintsListIso % folded)
+    (to txSkelMintsToList % folded)
     ( \(policy, _, tName, NonZero amount) ->
         Pl.assetClassValue
           ( Pl.assetClass

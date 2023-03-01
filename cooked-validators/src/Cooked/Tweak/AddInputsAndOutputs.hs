@@ -25,7 +25,6 @@ import qualified Data.Map as Map
 import qualified Ledger as Pl
 import Optics.Core
 import qualified Plutus.V2.Ledger.Api as Pl
-import Test.QuickCheck (NonZero (..))
 
 -- * Adding and removing transaction inputs
 
@@ -100,7 +99,7 @@ removeMintTweak ::
   ((Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer) -> Bool) ->
   m [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, NonZero Integer)]
 removeMintTweak removePred = do
-  presentMints <- viewTweak $ txSkelMintsL % mintsListIso
+  presentMints <- viewTweak $ txSkelMintsL % to txSkelMintsToList
   let (removed, kept) = partition removePred presentMints
-  setTweak (txSkelMintsL % mintsListIso) kept
+  setTweak txSkelMintsL $ txSkelMintsFromList kept
   return removed
