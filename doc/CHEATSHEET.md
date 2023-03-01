@@ -32,8 +32,9 @@ foo = do
 ```haskell
 foo :: MonadBlockChain m => m ()
 foo = do
-    t0 <- currentTime
-    bar (t0 + 60_000)
+    (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentTime
+    slot <- getEnclosingSlot $ firstMsOfCurrentSlot + 123467890
+    bar slot
 ```
 
 ## Submit a transaction
