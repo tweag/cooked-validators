@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Attack.DoubleSatSpec (tests) where
+module Cooked.Unit.Attack.DoubleSatSpec (tests) where
 
 import Control.Arrow
 import Cooked

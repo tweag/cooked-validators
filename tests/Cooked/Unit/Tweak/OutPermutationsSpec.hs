@@ -2,7 +2,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.Tweak.OutPermutationsSpec (tests) where
+module Cooked.Unit.Tweak.OutPermutationsSpec (tests) where
 
 import Control.Monad (join, replicateM)
 import Cooked

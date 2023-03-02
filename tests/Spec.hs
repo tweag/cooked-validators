@@ -1,10 +1,7 @@
-import qualified Cooked.AttackSpec as AttackSpec
 -- import qualified Cooked.BalanceSpec as Ba
-import qualified Cooked.LtlSpec as LtlSpec
-import qualified Cooked.MinAdaSpec as MinAdaSpec
-import qualified Cooked.MockChainSpec as MockChainSpec
+
 import qualified Cooked.Behaviour as Behaviour
-import qualified Cooked.TweakSpec as TweakSpec
+import qualified Cooked.Unit as Unit
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
 -- import qualified Cooked.WalletSpec as WalletSpec
@@ -25,10 +22,6 @@ tests =
       -- testGroup "Staged monad" StagedSpec.tests,
       -- testGroup "UtxoState" UtxoStateSpec.tests,
       -- testGroup "Wallet" WalletSpec.tests,
-      MinAdaSpec.tests,
-      AttackSpec.tests,
-      TweakSpec.tests,
-      LtlSpec.tests,
-      MockChainSpec.tests,
+      Unit.tests,
       Behaviour.tests
     ]

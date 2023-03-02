@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.Attack.DupTokenSpec (tests) where
+module Cooked.Unit.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
