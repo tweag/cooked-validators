@@ -119,13 +119,11 @@ putRefScriptOnScriptOutput recipient referencedScript =
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
-            [ Pays $
-                ConcreteOutput
-                  recipient
-                  Nothing
-                  (Pl.lovelaceValueOf 1)
-                  (TxSkelOutDatum ())
-                  (Just referencedScript)
+            [ paysScriptWithReferenceScript
+                recipient
+                ()
+                (Pl.lovelaceValueOf 1)
+                referencedScript
             ],
           txSkelSigners = [wallet 1]
         }
