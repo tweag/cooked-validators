@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.7.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -107,9 +107,11 @@ test-suite spec
   main-is: Spec.hs
   other-modules:
       Cooked.Behaviour
+      Cooked.Behaviour.Elementary
       Cooked.Behaviour.InlineDatumsSpec
       Cooked.Behaviour.ReferenceInputsSpec
       Cooked.Behaviour.ReferenceScriptsSpec
+      Cooked.Behaviour.Validators
       Cooked.TestUtils
       Cooked.Unit
       Cooked.Unit.Attack.DatumHijackingSpec
@@ -129,6 +131,7 @@ test-suite spec
       Paths_cooked_validators
   hs-source-dirs:
       tests/
+  ghc-options: -Wall
   build-depends:
       QuickCheck
     , aeson
