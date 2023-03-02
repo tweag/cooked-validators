@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.ReferenceScriptsSpec where
+module Cooked.Behaviour.ReferenceScriptsSpec where
 
 import Control.Monad
 import Cooked

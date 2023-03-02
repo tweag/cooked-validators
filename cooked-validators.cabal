@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.34.7.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -110,13 +110,14 @@ test-suite spec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
-      Cooked.InlineDatumsSpec
+      Cooked.Behaviour
+      Cooked.Behaviour.InlineDatumsSpec
+      Cooked.Behaviour.ReferenceInputsSpec
+      Cooked.Behaviour.ReferenceScriptsSpec
       Cooked.LtlSpec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
-      Cooked.ReferenceInputsSpec
-      Cooked.ReferenceScriptsSpec
       Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
