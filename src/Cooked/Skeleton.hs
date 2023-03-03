@@ -710,7 +710,7 @@ withDatumHash (Pays output) datum =
       (TxSkelOutDatumHash datum)
       (output ^. outputReferenceScriptL)
 
--- | Make the datum in a payment hashed, with no resolution in the transaction
+-- | Add a reference script to a transaction output (or replace it if there is already one)
 withReferenceScript ::
   ( Show script,
     ToScript script,
@@ -729,7 +729,7 @@ withReferenceScript (Pays output) script =
       (output ^. outputDatumL)
       (Just script)
 
--- | Make the datum in a payment hashed, with no resolution in the transaction
+-- | Add a staking credential to a transaction output (or replace it if there is already one)
 withStakingCredential :: TxSkelOut -> Pl.StakingCredential -> TxSkelOut
 withStakingCredential (Pays output) stakingCredential =
   Pays $
