@@ -41,6 +41,7 @@ module Cooked.Skeleton
     paysScript,
     paysScriptInlineDatum,
     paysScriptDatumHash,
+    paysScriptNoDatum,
     withDatum,
     withInlineDatum,
     withDatumHash,
@@ -628,6 +629,20 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
+        (Nothing @(Pl.Versioned Pl.Script))
+    )
+
+-- | Pays a script a certain value without any datum. Intended to be used with
+-- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
+-- does not match the validator's.
+paysScriptNoDatum :: Typeable a => Pl.TypedValidator a -> Pl.Value -> TxSkelOut
+paysScriptNoDatum validator value =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        value
+        TxSkelOutNoDatum
         (Nothing @(Pl.Versioned Pl.Script))
     )
 
