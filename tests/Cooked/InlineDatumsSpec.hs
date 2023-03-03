@@ -121,10 +121,10 @@ listUtxosTestTrace useInlineDatum validator =
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
             [ ( if useInlineDatum
-                  then paysScriptInlineDatum validator FirstPaymentDatum
-                  else paysScript validator FirstPaymentDatum
+                  then withInlineDatum
+                  else id
               )
-                (Pl.lovelaceValueOf 3_000_000)
+                (paysScript validator FirstPaymentDatum (Pl.lovelaceValueOf 3_000_000))
             ],
           txSkelSigners = [wallet 1]
         }
@@ -176,9 +176,9 @@ continuingOutputTestTrace datumKindOnSecondPayment validator = do
           txSkelIns = Map.singleton theTxOutRef $ TxSkelRedeemerForScript (),
           txSkelOuts =
             [ ( case datumKindOnSecondPayment of
-                  OnlyHash -> paysScriptDatumHash validator SecondPaymentDatum
+                  OnlyHash -> withDatumHash . paysScript validator SecondPaymentDatum
                   Datum -> paysScript validator SecondPaymentDatum
-                  Inline -> paysScriptInlineDatum validator SecondPaymentDatum
+                  Inline -> withInlineDatum . paysScript validator SecondPaymentDatum
               )
                 (outputValue theOutput)
             ],
