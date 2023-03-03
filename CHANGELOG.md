@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Modifiers to ease specification of payments in transaction skeletons:
+  `withInlineDatum`, `withDatumHash`, `withReferenceScript`,
+  `withStakingCredential`.
+
+### Removed
+
+- Some smart constructors for payments (`paysPKWithReferenceScript`,
+  `paysScriptInlineDatum`, `paysScriptDatumHash`) which are superseded by
+  modifiers to be applied on payments specified with `paysPK`, `paysPKDatum`,
+  and `paysScript`.
+
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
 This major update overhauls the entire library to: handle Plutus V2 features,
