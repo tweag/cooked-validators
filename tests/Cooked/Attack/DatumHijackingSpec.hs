@@ -67,7 +67,7 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
-      txSkelOuts = [withInlineDatum $ paysScript v FirstLock lockValue],
+      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -84,7 +84,7 @@ relockTxSkel v o =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o $ TxSkelRedeemerForScript (),
-      txSkelOuts = [withInlineDatum $ paysScript v SecondLock lockValue],
+      txSkelOuts = [paysScriptInlineDatum v SecondLock lockValue],
       txSkelSigners = [wallet 1]
     }
 
@@ -177,11 +177,11 @@ tests =
             x3 = Pl.lovelaceValueOf 9999
             skelIn =
               txSkelFromOuts
-                [ withInlineDatum $ paysScript val1 SecondLock x1,
-                  withInlineDatum $ paysScript val1 SecondLock x3,
-                  withInlineDatum $ paysScript val2 SecondLock x1,
-                  withInlineDatum $ paysScript val1 FirstLock x2,
-                  withInlineDatum $ paysScript val1 SecondLock x2
+                [ paysScriptInlineDatum val1 SecondLock x1,
+                  paysScriptInlineDatum val1 SecondLock x3,
+                  paysScriptInlineDatum val2 SecondLock x1,
+                  paysScriptInlineDatum val1 FirstLock x2,
+                  paysScriptInlineDatum val1 SecondLock x2
                 ]
             skelOut bound select =
               runTweak
@@ -203,11 +203,11 @@ tests =
                     Set.singleton . TxLabel . DatumHijackingLbl $
                       Pl.validatorAddress thief,
                   txSkelOuts =
-                    [ withInlineDatum $ paysScript val1 SecondLock x1,
-                      withInlineDatum $ paysScript a SecondLock x3,
-                      withInlineDatum $ paysScript val2 SecondLock x1,
-                      withInlineDatum $ paysScript val1 FirstLock x2,
-                      withInlineDatum $ paysScript b SecondLock x2
+                    [ paysScriptInlineDatum val1 SecondLock x1,
+                      paysScriptInlineDatum a SecondLock x3,
+                      paysScriptInlineDatum val2 SecondLock x1,
+                      paysScriptInlineDatum val1 FirstLock x2,
+                      paysScriptInlineDatum b SecondLock x2
                     ],
                   txSkelSigners = [wallet 1]
                 }

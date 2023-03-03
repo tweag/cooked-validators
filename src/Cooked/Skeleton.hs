@@ -38,8 +38,10 @@ module Cooked.Skeleton
     txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
     paysPK,
-    paysPKDatum,
     paysScript,
+    paysScriptInlineDatum,
+    paysScriptDatumHash,
+    withDatum,
     withInlineDatum,
     withDatumHash,
     withReferenceScript,
@@ -558,28 +560,6 @@ paysPK pkh value =
         (Nothing @(Pl.Versioned Pl.Script))
     )
 
--- | Pay a certain value to a public key along with a datum.
-paysPKDatum ::
-  ( Pl.ToData a,
-    Show a,
-    Typeable a,
-    Pl.Eq a,
-    PrettyCooked a
-  ) =>
-  Pl.PubKeyHash ->
-  a ->
-  Pl.Value ->
-  TxSkelOut
-paysPKDatum pkh datum value =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutDatum datum)
-        (Nothing @(Pl.Versioned Pl.Script))
-    )
-
 -- | Pays a script a certain value with a certain datum, using the
 -- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
 paysScript ::
@@ -604,34 +584,115 @@ paysScript validator datum value =
         (Nothing @(Pl.Versioned Pl.Script))
     )
 
--- | Make the datum in a payment inlined
-withInlineDatum :: TxSkelOut -> TxSkelOut
-withInlineDatum (Pays output) =
+-- | Pays a script a certain value with a certain inlined datum.
+paysScriptInlineDatum ::
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
+    Typeable a
+  ) =>
+  Pl.TypedValidator a ->
+  Pl.DatumType a ->
+  Pl.Value ->
+  TxSkelOut
+paysScriptInlineDatum validator datum value =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        value
+        (TxSkelOutInlineDatum datum)
+        (Nothing @(Pl.Versioned Pl.Script))
+    )
+
+-- | Pays a script a certain value with a certain hashed (not resolved in
+-- transaction) datum.
+paysScriptDatumHash ::
+  ( Pl.ToData (Pl.DatumType a),
+    Show (Pl.DatumType a),
+    Typeable (Pl.DatumType a),
+    Pl.Eq (Pl.DatumType a),
+    PrettyCooked (Pl.DatumType a),
+    Typeable a
+  ) =>
+  Pl.TypedValidator a ->
+  Pl.DatumType a ->
+  Pl.Value ->
+  TxSkelOut
+paysScriptDatumHash validator datum value =
+  Pays
+    ( ConcreteOutput
+        validator
+        Nothing
+        value
+        (TxSkelOutDatumHash datum)
+        (Nothing @(Pl.Versioned Pl.Script))
+    )
+
+-- | Set the datum in a payment to the given datum (whose type may not fit the
+-- typed validator in case of a script).
+withDatum ::
+  ( Pl.ToData a,
+    Show a,
+    Typeable a,
+    Pl.Eq a,
+    PrettyCooked a
+  ) =>
+  TxSkelOut ->
+  a ->
+  TxSkelOut
+withDatum (Pays output) datum =
   Pays $
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
       (output ^. outputValueL)
-      ( case output ^. outputDatumL of
-          TxSkelOutDatum d -> TxSkelOutInlineDatum d
-          TxSkelOutDatumHash d -> TxSkelOutInlineDatum d
-          d -> d
-      )
+      (TxSkelOutDatum datum)
       (output ^. outputReferenceScriptL)
 
--- | Make the datum in a payment hashed, with no resolution in the transaction
-withDatumHash :: TxSkelOut -> TxSkelOut
-withDatumHash (Pays output) =
+-- | Set the datum in a payment to the given inlined datum (whose type may not
+-- fit the typed validator in case of a script).
+withInlineDatum ::
+  ( Pl.ToData a,
+    Show a,
+    Typeable a,
+    Pl.Eq a,
+    PrettyCooked a
+  ) =>
+  TxSkelOut ->
+  a ->
+  TxSkelOut
+withInlineDatum (Pays output) datum =
   Pays $
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
       (output ^. outputValueL)
-      ( case output ^. outputDatumL of
-          TxSkelOutDatum d -> TxSkelOutDatumHash d
-          TxSkelOutInlineDatum d -> TxSkelOutDatumHash d
-          d -> d
-      )
+      (TxSkelOutInlineDatum datum)
+      (output ^. outputReferenceScriptL)
+
+-- | Set the datum in a payment to the given hashed (not resolved in the
+-- transaction) datum (whose type may not fit the typed validator in case of a
+-- script).
+withDatumHash ::
+  ( Pl.ToData a,
+    Show a,
+    Typeable a,
+    Pl.Eq a,
+    PrettyCooked a
+  ) =>
+  TxSkelOut ->
+  a ->
+  TxSkelOut
+withDatumHash (Pays output) datum =
+  Pays $
+    ConcreteOutput
+      (output ^. outputOwnerL)
+      (output ^. outputStakingCredentialL)
+      (output ^. outputValueL)
+      (TxSkelOutDatumHash datum)
       (output ^. outputReferenceScriptL)
 
 -- | Make the datum in a payment hashed, with no resolution in the transaction
