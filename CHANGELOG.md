@@ -8,6 +8,8 @@
   - `withDatum`, `withInlineDatum`, and `withDatumHash` to add or override
     datums in payments, regardless of whether the type matches the validator
     type in case of scripts
+  - `paysScriptNoDatum` to be used with `withDatum`, `withInlineDatum` and
+    `withDatumHash`.
   - `withReferenceScript` and `withStakingCredential` to add a reference script
     or staking credential to a payment
 
