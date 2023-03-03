@@ -103,10 +103,11 @@ trace1 = do
       <$> validateTxSkel
         txSkelTemplate
           { txSkelOuts =
-              [ paysScriptInlineDatum
-                  fooTypedValidator
-                  (FooDatum (walletPKHash (wallet 3)))
-                  (Pl.lovelaceValueOf 4_000_000),
+              [ withInlineDatum $
+                  paysScript
+                    fooTypedValidator
+                    (FooDatum (walletPKHash (wallet 3)))
+                    (Pl.lovelaceValueOf 4_000_000),
                 paysScript
                   barTypedValidator
                   ()

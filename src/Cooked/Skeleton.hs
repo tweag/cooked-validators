@@ -35,22 +35,15 @@ module Cooked.Skeleton
     TxSkelOutDatumConstrs,
     TxSkelOutDatum (..),
     TxSkelOut (..),
-    paysPK,
-    paysPKDatum,
-    paysPKInlineDatum,
-    paysPKDatumHash,
-    paysPKWithReferenceScript,
-    paysPKDatumWithReferenceScript,
-    paysPKInlineDatumWithReferenceScript,
-    paysPKDatumHashWithReferenceScript,
     txSkelOutTypedDatum,
     txSkelOutUntypedDatum,
+    paysPK,
+    paysPKDatum,
     paysScript,
-    paysScriptInlineDatum,
-    paysScriptDatumHash,
-    paysScriptWithReferenceScript,
-    paysScriptInlineDatumWithReferenceScript,
-    paysScriptDatumHashWithReferenceScript,
+    withInlineDatum,
+    withDatumHash,
+    withReferenceScript,
+    withStakingCredential,
     TxSkelRedeemer (..),
     txSkelTypedRedeemer,
     TxSkel (..),
@@ -430,7 +423,10 @@ data TxSkelOut where
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
       ValueType o ~ Pl.Value, -- needed for the 'txSkelOutValueL'
-      ToScript (ReferenceScriptType o)
+      ToScript (ReferenceScriptType o),
+      Show (OwnerType o),
+      Show (ReferenceScriptType o),
+      Typeable (ReferenceScriptType o)
     ) =>
     {producedOutput :: o} ->
     TxSkelOut
@@ -584,139 +580,6 @@ paysPKDatum pkh datum value =
         (Nothing @(Pl.Versioned Pl.Script))
     )
 
--- | Pay a certain value to a public key along with an inlined datum.
-paysPKInlineDatum ::
-  ( Pl.ToData a,
-    Show a,
-    Typeable a,
-    Pl.Eq a,
-    PrettyCooked a
-  ) =>
-  Pl.PubKeyHash ->
-  a ->
-  Pl.Value ->
-  TxSkelOut
-paysPKInlineDatum pkh datum value =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutInlineDatum datum)
-        (Nothing @(Pl.Versioned Pl.Script))
-    )
-
--- | Pay a certain value to a public key along with a hashed datum that is not
--- resolved in the transaction.
-paysPKDatumHash ::
-  ( Pl.ToData a,
-    Show a,
-    Typeable a,
-    Pl.Eq a,
-    PrettyCooked a
-  ) =>
-  Pl.PubKeyHash ->
-  a ->
-  Pl.Value ->
-  TxSkelOut
-paysPKDatumHash pkh datum value =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutDatumHash datum)
-        (Nothing @(Pl.Versioned Pl.Script))
-    )
-
--- | Pay a certain value to a public key, including a reference script. This can
--- be used to put reference scripts on chain.
-paysPKWithReferenceScript :: Typeable a => Pl.PubKeyHash -> Pl.Value -> Pl.TypedValidator a -> TxSkelOut
-paysPKWithReferenceScript pkh value refScript =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        TxSkelOutNoDatum
-        (Just refScript)
-    )
-
--- | Pay a certain value to a public key along with a datum, and including a
--- reference script.
-paysPKDatumWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a
-  ) =>
-  Pl.PubKeyHash ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator a ->
-  TxSkelOut
-paysPKDatumWithReferenceScript pkh datum value refScript =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutDatum datum)
-        (Just refScript)
-    )
-
--- | Pay a certain value to a public key along with an inlined datum, and
--- including a reference script.
-paysPKInlineDatumWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a
-  ) =>
-  Pl.PubKeyHash ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator a ->
-  TxSkelOut
-paysPKInlineDatumWithReferenceScript pkh datum value refScript =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutInlineDatum datum)
-        (Just refScript)
-    )
-
--- | Pay a certain value to a public key along with a hashed datum that is not
--- resolved in the transaction, and including a reference script.
-paysPKDatumHashWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a
-  ) =>
-  Pl.PubKeyHash ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator a ->
-  TxSkelOut
-paysPKDatumHashWithReferenceScript pkh datum value refScript =
-  Pays
-    ( ConcreteOutput
-        pkh
-        Nothing
-        value
-        (TxSkelOutDatumHash datum)
-        (Just refScript)
-    )
-
 -- | Pays a script a certain value with a certain datum, using the
 -- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
 paysScript ::
@@ -741,134 +604,65 @@ paysScript validator datum value =
         (Nothing @(Pl.Versioned Pl.Script))
     )
 
--- | Like 'paysScript', but using the 'TxSkelOutInlineDatum' constructor for the
--- datum.
-paysScriptInlineDatum ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a
-  ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  TxSkelOut
-paysScriptInlineDatum validator datum value =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        value
-        (TxSkelOutInlineDatum datum)
-        (Nothing @(Pl.Versioned Pl.Script))
-    )
+-- | Make the datum in a payment inlined
+withInlineDatum :: TxSkelOut -> TxSkelOut
+withInlineDatum (Pays output) =
+  Pays $
+    ConcreteOutput
+      (output ^. outputOwnerL)
+      (output ^. outputStakingCredentialL)
+      (output ^. outputValueL)
+      ( case output ^. outputDatumL of
+          TxSkelOutDatum d -> TxSkelOutInlineDatum d
+          TxSkelOutDatumHash d -> TxSkelOutInlineDatum d
+          d -> d
+      )
+      (output ^. outputReferenceScriptL)
 
--- | Like 'paysScript', but using the 'TxSkelOutDatumHash' constructor. This is
--- only useful if there's no script that checks the output datum.
-paysScriptDatumHash ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a
-  ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  TxSkelOut
-paysScriptDatumHash validator datum value =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        value
-        (TxSkelOutDatumHash datum)
-        (Nothing @(Pl.Versioned Pl.Script))
-    )
+-- | Make the datum in a payment hashed, with no resolution in the transaction
+withDatumHash :: TxSkelOut -> TxSkelOut
+withDatumHash (Pays output) =
+  Pays $
+    ConcreteOutput
+      (output ^. outputOwnerL)
+      (output ^. outputStakingCredentialL)
+      (output ^. outputValueL)
+      ( case output ^. outputDatumL of
+          TxSkelOutDatum d -> TxSkelOutDatumHash d
+          TxSkelOutInlineDatum d -> TxSkelOutDatumHash d
+          d -> d
+      )
+      (output ^. outputReferenceScriptL)
 
--- | Pays a script a certain value with a certain datum, using the
--- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
--- The output includes a reference script.
-paysScriptWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a,
-    Typeable b
+-- | Make the datum in a payment hashed, with no resolution in the transaction
+withReferenceScript ::
+  ( Show script,
+    ToScript script,
+    Typeable script,
+    ToScriptHash script
   ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator b ->
+  TxSkelOut ->
+  script ->
   TxSkelOut
-paysScriptWithReferenceScript validator datum value refScript =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        value
-        (TxSkelOutDatum datum)
-        (Just refScript)
-    )
+withReferenceScript (Pays output) script =
+  Pays $
+    ConcreteOutput
+      (output ^. outputOwnerL)
+      (output ^. outputStakingCredentialL)
+      (output ^. outputValueL)
+      (output ^. outputDatumL)
+      (Just script)
 
--- | Like 'paysScript', but using the 'TxSkelOutInlineDatum' constructor for the
--- datum.
--- The output includes a reference script.
-paysScriptInlineDatumWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a,
-    Typeable b
-  ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator b ->
-  TxSkelOut
-paysScriptInlineDatumWithReferenceScript validator datum value refScript =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        value
-        (TxSkelOutInlineDatum datum)
-        (Just refScript)
-    )
-
--- | Like 'paysScript', but using the 'TxSkelOutDatumHash' constructor. This is
--- only useful if there's no script that checks the output datum.
--- The output includes a reference script.
-paysScriptDatumHashWithReferenceScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Typeable a,
-    Typeable b
-  ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
-  Pl.TypedValidator b ->
-  TxSkelOut
-paysScriptDatumHashWithReferenceScript validator datum value refScript =
-  Pays
-    ( ConcreteOutput
-        validator
-        Nothing
-        value
-        (TxSkelOutDatumHash datum)
-        (Just refScript)
-    )
+-- | Make the datum in a payment hashed, with no resolution in the transaction
+withStakingCredential :: TxSkelOut -> Pl.StakingCredential -> TxSkelOut
+withStakingCredential (Pays output) stakingCredential =
+  Pays $
+    ConcreteOutput
+      (output ^. outputOwnerL)
+      (Just stakingCredential)
+      (output ^. outputValueL)
+      (output ^. outputDatumL)
+      (output ^. outputReferenceScriptL)
 
 -- * Redeemers for transaction inputs
 

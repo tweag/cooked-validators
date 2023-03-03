@@ -100,10 +100,10 @@ putRefScriptOnWalletOutput recipient referencedScript =
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
-            [ paysPKWithReferenceScript
+            [ paysPK
                 (walletPKHash recipient)
                 (Pl.lovelaceValueOf 1)
-                referencedScript
+                `withReferenceScript` referencedScript
             ],
           txSkelSigners = [wallet 1]
         }
@@ -119,11 +119,11 @@ putRefScriptOnScriptOutput recipient referencedScript =
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
-            [ paysScriptWithReferenceScript
+            [ paysScript
                 recipient
                 ()
                 (Pl.lovelaceValueOf 1)
-                referencedScript
+                `withReferenceScript` referencedScript
             ],
           txSkelSigners = [wallet 1]
         }
