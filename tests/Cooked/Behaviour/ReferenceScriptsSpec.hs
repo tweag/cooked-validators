@@ -26,20 +26,6 @@ import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- | This validator ensures that the given public key signs the transaction.
-requireSignerValidator :: Pl.PubKeyHash -> Pl.TypedValidator Validators.Unit
-requireSignerValidator =
-  Pl.mkTypedValidatorParam @Validators.Unit
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
-  where
-    val :: Pl.PubKeyHash -> () -> () -> Pl.ScriptContext -> Bool
-    val pkh _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "the required signer is missing" Pl.$
-        Pl.elem pkh (Pl.txInfoSignatories txInfo)
-
-    wrap = Pl.mkUntypedValidator
-
 -- | This validator ensures that there is a transaction input that has a
 -- reference script with the given hash.
 requireRefScriptValidator :: Pl.ScriptHash -> Pl.TypedValidator Validators.Unit
@@ -281,9 +267,9 @@ tests =
                   (== "the required signer is missing")
               )
               def
-            $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
+            $ useReferenceScript (wallet 1) (Validators.requireSigner (walletPKHash $ wallet 2)),
           testCase "succeed if referenced script's requirement is met" $
             testSucceeds def $
-              useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1))
+              useReferenceScript (wallet 1) (Validators.requireSigner (walletPKHash $ wallet 1))
         ]
     ]

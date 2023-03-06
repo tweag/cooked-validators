@@ -15,6 +15,7 @@ module Cooked.Behaviour.Validators
     DatumKind (OnlyHash, ResolvedHash, Inline),
     continuingDatum,
     inputDatum,
+    requireSigner,
   )
 where
 
@@ -109,5 +110,19 @@ inputDatum =
               PV2.OutputDatumHash _ -> True
               PV2.OutputDatum _ -> trace "I want a datum hash, but I got an inline datum" False
               PV2.NoOutputDatum -> trace "I want a datum hash, but I got neither a datum nor a hash" False
+
+    wrap = Scripts.mkUntypedValidator
+
+-- | This validator ensures that the given public key signs the transaction.
+requireSigner :: PV2.PubKeyHash -> Scripts.TypedValidator Unit
+requireSigner =
+  Scripts.mkTypedValidatorParam @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    val :: PV2.PubKeyHash -> () -> () -> PV2.ScriptContext -> Bool
+    val pkh _ _ (PV2.ScriptContext txInfo _) =
+      traceIfFalse "the required signer is missing" $
+        elem pkh (txInfoSignatories txInfo)
 
     wrap = Scripts.mkUntypedValidator
