@@ -1,43 +1,21 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | Print all the types that occur on the 'TxInfo' to 'BuiltinString'. This is
 -- useful for debugging of validators. You probably do not want to use this in
 -- production code, as many of the functions in this module are wildly
 -- inefficient due to limitations of the 'BuiltinString' type.
-module Cooked.PrintToBuiltinString where
+module Cooked.PrintToBuiltinString (printBS) where
 
-import Control.Monad hiding (fmap)
-import Cooked.Currencies
-import Cooked.MockChain
-import Cooked.Skeleton
-import Cooked.Wallet
-import qualified Data.ByteString as BS
-import Data.Default
-import qualified Data.Map as Map
-import qualified Debug.Trace as Debug
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Value
 import Plutus.V2.Ledger.Api
-import qualified Plutus.V2.Ledger.Contexts as Pl
 import qualified PlutusTx
-import qualified PlutusTx as Pl
 import qualified PlutusTx.AssocMap as PlMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude
-import qualified Prelude as Haskell
 
 -- | An abstract representation of a piece of data, used to generate a
 -- 'BuiltinString' representation. (See 'printBSSyntax')
@@ -60,6 +38,14 @@ data BSSyntax
     ListLike BuiltinString BuiltinString BuiltinString [BSSyntax]
 
 PlutusTx.makeLift ''BSSyntax
+
+{-# INLINEABLE literal #-}
+literal :: BuiltinString -> BSSyntax
+literal x = ReversedCat [x]
+
+{-# INLINEABLE application #-}
+application :: [BSSyntax] -> BSSyntax
+application = Application False -- by default, use no parentheses around applications
 
 {-# INLINEABLE printBSSyntax #-}
 printBSSyntax :: BSSyntax -> BuiltinString
@@ -118,15 +104,7 @@ printBSSyntax expr = printBSSyntax' [simplBSSyntaxApplications expr] ""
 printBS :: ToBSSyntax a => a -> BuiltinString
 printBS = printBSSyntax . toBSSyntax
 
--- * 'TOBSSyntax' instances
-
-{-# INLINEABLE literal #-}
-literal :: BuiltinString -> BSSyntax
-literal x = ReversedCat [x]
-
-{-# INLINEABLE application #-}
-application :: [BSSyntax] -> BSSyntax
-application = Application False
+-- * The class 'TOBSSyntax' and its instances
 
 class ToBSSyntax a where
   toBSSyntax :: a -> BSSyntax
@@ -255,56 +233,53 @@ instance ToBSSyntax DatumHash where
 
 instance ToBSSyntax BuiltinData where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax = builtinDataToBSSyntax
+  toBSSyntax d = application [literal "BuiltinData", builtinDataToBSSyntax d]
 
 {-# INLINEABLE builtinDataToBSSyntax #-}
 builtinDataToBSSyntax :: BuiltinData -> BSSyntax
 builtinDataToBSSyntax d =
-  application
-    [ literal "BuiltinData",
-      matchData
-        d
-        ( \i ds ->
-            application
-              [ literal "Constr",
-                integerToBSSyntax i,
-                ListLike "[" ", " "]" (fmap builtinDataToBSSyntax ds)
-              ]
-        )
-        ( \alist ->
-            application
-              [ literal "Map",
-                ListLike
-                  "["
-                  ", "
-                  "]"
-                  ( fmap
-                      ( \(a, b) ->
-                          ListLike
-                            "("
-                            ", "
-                            ")"
-                            [ builtinDataToBSSyntax a,
-                              builtinDataToBSSyntax b
-                            ]
-                      )
-                      alist
+  matchData
+    d
+    ( \i ds ->
+        application
+          [ literal "Constr",
+            integerToBSSyntax i,
+            ListLike "[" ", " "]" (fmap builtinDataToBSSyntax ds)
+          ]
+    )
+    ( \alist ->
+        application
+          [ literal "Map",
+            ListLike
+              "["
+              ", "
+              "]"
+              ( fmap
+                  ( \(a, b) ->
+                      ListLike
+                        "("
+                        ", "
+                        ")"
+                        [ builtinDataToBSSyntax a,
+                          builtinDataToBSSyntax b
+                        ]
                   )
-              ]
-        )
-        ( \list ->
-            application
-              [ literal "List",
-                ListLike "[" ", " "]" (fmap builtinDataToBSSyntax list)
-              ]
-        )
-        ( \i ->
-            application [literal "I", integerToBSSyntax i]
-        )
-        ( \bs ->
-            application [literal "B", builtinByteStringToBSSyntax bs]
-        )
-    ]
+                  alist
+              )
+          ]
+    )
+    ( \list ->
+        application
+          [ literal "List",
+            ListLike "[" ", " "]" (fmap builtinDataToBSSyntax list)
+          ]
+    )
+    ( \i ->
+        application [literal "I", integerToBSSyntax i]
+    )
+    ( \bs ->
+        application [literal "B", builtinByteStringToBSSyntax bs]
+    )
 
 instance ToBSSyntax Datum where
   {-# INLINEABLE toBSSyntax #-}
@@ -364,31 +339,13 @@ instance ToBSSyntax a => ToBSSyntax (Interval a) where
 
 instance ToBSSyntax DCert where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax _ = literal "TODO"
-
--- data DCert
---   = DCertDelegRegKey StakingCredential
---   | DCertDelegDeRegKey StakingCredential
---   | DCertDelegDelegate
---       StakingCredential
---       -- ^ delegator
---       PubKeyHash
---       -- ^ delegatee
---   | -- | A digest of the PoolParams
---     DCertPoolRegister
---       PubKeyHash
---       -- ^ poolId
---       PubKeyHash
---       -- ^ pool VFR
---   | -- | The retirement certificate and the Epoch in which the retirement will take place
---     DCertPoolRetire PubKeyHash Integer -- NB: Should be Word64 but we only have Integer on-chain
---   | -- | A really terse Digest
---     DCertGenesis
---   | -- | Another really terse Digest
---     DCertMir
---     deriving stock (Eq, Ord, Show, Generic)
---     deriving anyclass (NFData)
---     deriving Pretty via (PrettyShow DCert)
+  toBSSyntax (DCertDelegRegKey stCred) = application [literal "DCertDelegRegKey", toBSSyntax stCred]
+  toBSSyntax (DCertDelegDeRegKey stCred) = application [literal "DCertDelegDeRegKey", toBSSyntax stCred]
+  toBSSyntax (DCertDelegDelegate stCred pkh) = application [literal "DCertDelegDelegate", toBSSyntax stCred, toBSSyntax pkh]
+  toBSSyntax (DCertPoolRegister stCred1 stCred2) = application [literal "DCertPoolRegister", toBSSyntax stCred1, toBSSyntax stCred2]
+  toBSSyntax (DCertPoolRetire stCred i) = application [literal "DCertPoolRetire", toBSSyntax stCred, toBSSyntax i]
+  toBSSyntax DCertGenesis = literal "DCertGenesis"
+  toBSSyntax DCertMir = literal "DCertMir"
 
 instance ToBSSyntax ScriptPurpose where
   {-# INLINEABLE toBSSyntax #-}
@@ -401,86 +358,26 @@ instance ToBSSyntax Redeemer where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax (Redeemer builtinData) = application [literal "Redeemer", toBSSyntax builtinData]
 
-instance ToBSSyntax TxInfo where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax TxInfo {..} =
-    application
-      [ literal "TxInfo",
-        toBSSyntax txInfoInputs,
-        toBSSyntax txInfoReferenceInputs,
-        toBSSyntax txInfoOutputs,
-        -- toBSSyntax txInfoFee,
-        toBSSyntax txInfoMint
-        -- toBSSyntax txInfoDCert,
-        -- toBSSyntax txInfoWdrl,
-        -- toBSSyntax txInfoValidRange,
-        -- toBSSyntax txInfoSignatories,
-        -- toBSSyntax txInfoRedeemers,
-        -- toBSSyntax txInfoData,
-        -- toBSSyntax txInfoId
-      ]
-
--- * simple validator to test the printing here
-
-bananaAssetClass :: Value.AssetClass
-bananaAssetClass = permanentAssetClass "Banana"
-
--- | Value representing a number of bananas
-banana :: Integer -> Value.Value
-banana = Value.assetClassValue bananaAssetClass
-
--- | How many bananas are in the given value? This is a left inverse of 'banana'.
-bananasIn :: Value.Value -> Integer
-bananasIn v = Value.assetClassValueOf v bananaAssetClass
-
--- | initial distribution s.t. everyone owns five bananas
-testInit :: InitialDistribution
-testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000 <> banana 5]) | i <- knownWallets]
-
-data UnitContract
-
-instance Pl.ValidatorTypes UnitContract where
-  type RedeemerType UnitContract = Bool
-  type DatumType UnitContract = ()
-
-printValidator :: Pl.TypedValidator UnitContract
-printValidator =
-  Pl.mkTypedValidator @UnitContract
-    $$(Pl.compile [||print||])
-    $$(Pl.compile [||wrap||])
-  where
-    wrap = Pl.mkUntypedValidator
-    print _ _ ctx =
-      let txi = scriptContextTxInfo ctx
-       in -- Just input@(TxInInfo oref out@(TxOut {txOutAddress = Address (ScriptCredential vh) _})) = Pl.findOwnInput ctx
-          -- spentValue = txOutValue out
-          trace (printBS . txInfoInputs $ txi) False
-
-printTrace :: MonadBlockChain m => m ()
-printTrace = do
-  (oref, _) : _ <-
-    utxosFromCardanoTx
-      Haskell.<$> validateTxSkel
-        txSkelTemplate
-          { txSkelSigners = [wallet 1],
-            txSkelOuts =
-              [ paysScriptInlineDatum
-                  printValidator
-                  ()
-                  (Ada.lovelaceValueOf 30_000_000 <> banana 3)
-              ]
-          }
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelOpts =
-            def
-              { txOptUnsafeModTx =
-                  [ RawModTxAfterBalancing Debug.traceShowId
-                  -- V$ \tx ->
-                  --   tx
-                  ]
-              },
-          txSkelSigners = [wallet 1],
-          txSkelIns = Map.singleton oref $ TxSkelRedeemerForScript True
-        }
+-- In an ideal world, the following instance would print the whole 'TxInfo'. The
+-- sad reality is that this causes the script to go over budget on even the
+-- simplest of examples. TODO: investigate how to make adjust the execution
+-- budget.
+--
+-- instance ToBSSyntax TxInfo where
+--   {-# INLINEABLE toBSSyntax #-}
+--   toBSSyntax TxInfo {..} =
+--     application
+--       [ literal "TxInfo",
+--         toBSSyntax txInfoInputs,
+--         toBSSyntax txInfoReferenceInputs,
+--         toBSSyntax txInfoOutputs,
+--         toBSSyntax txInfoFee,
+--         toBSSyntax txInfoMint,
+--         toBSSyntax txInfoDCert,
+--         toBSSyntax txInfoWdrl,
+--         toBSSyntax txInfoValidRange,
+--         toBSSyntax txInfoSignatories,
+--         toBSSyntax txInfoRedeemers,
+--         toBSSyntax txInfoData,
+--         toBSSyntax txInfoId
+--       ]

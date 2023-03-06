@@ -83,6 +83,7 @@ library
     , optics-core
     , optics-th
     , optics-vl
+    , parsec
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -116,6 +117,7 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
+      Cooked.PrintToBuiltinStringSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.TestUtils
@@ -158,6 +160,7 @@ test-suite spec
     , optics-core
     , optics-th
     , optics-vl
+    , parsec
     , plutus-contract
     , plutus-core
     , plutus-ledger
