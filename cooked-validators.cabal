@@ -35,6 +35,7 @@ library
       Cooked.Pretty.Common
       Cooked.Pretty.Cooked
       Cooked.Pretty.Options
+      Cooked.PrintToBuiltinString
       Cooked.RawUPLC
       Cooked.Skeleton
       Cooked.Tweak
