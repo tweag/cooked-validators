@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -13,6 +14,7 @@ module Cooked.Behaviour.Validators
     no,
     DatumKind (OnlyHash, ResolvedHash, Inline),
     continuingDatum,
+    inputDatum,
   )
 where
 
@@ -82,5 +84,30 @@ continuingDatum =
             (ResolvedHash, PV2.OutputDatumHash h) -> isJust (PV2.findDatum h txi)
             (Inline, PV2.OutputDatum _) -> True
             _ -> False
+
+    wrap = Scripts.mkUntypedValidator
+
+-- | This defines two validators:
+-- - @inputDatum True@ is true if the output it is asked to spend has an inline
+--   datum,
+-- - @inputDatum False@ is true if the output has a datum hash.
+inputDatum :: Bool -> Scripts.TypedValidator Unit
+inputDatum =
+  Scripts.mkTypedValidatorParam @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    val :: Bool -> () -> () -> PV2.ScriptContext -> Bool
+    val requireInlineDatum _ _ ctx =
+      let Just (PV2.TxInInfo _ PV2.TxOut {PV2.txOutDatum = inDatum}) = PV2.findOwnInput ctx
+       in if requireInlineDatum
+            then case inDatum of
+              PV2.OutputDatum _ -> True
+              PV2.OutputDatumHash _ -> trace "I want an inline datum, but I got a hash" False
+              PV2.NoOutputDatum -> trace "I want an inline datum, but I got neither a datum nor a hash" False
+            else case inDatum of
+              PV2.OutputDatumHash _ -> True
+              PV2.OutputDatum _ -> trace "I want a datum hash, but I got an inline datum" False
+              PV2.NoOutputDatum -> trace "I want a datum hash, but I got neither a datum nor a hash" False
 
     wrap = Scripts.mkUntypedValidator
