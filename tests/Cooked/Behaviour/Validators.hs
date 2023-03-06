@@ -16,6 +16,7 @@ module Cooked.Behaviour.Validators
     continuingDatum,
     inputDatum,
     requireSigner,
+    requireRefScript,
   )
 where
 
@@ -126,3 +127,23 @@ requireSigner =
         elem pkh (txInfoSignatories txInfo)
 
     wrap = Scripts.mkUntypedValidator
+
+-- | This validator ensures that there is a transaction input that has a
+-- reference script with the given hash.
+requireRefScript :: PV2.ScriptHash -> Scripts.TypedValidator Unit
+requireRefScript =
+  Scripts.mkTypedValidatorParam @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    val :: ScriptHash -> () -> () -> ScriptContext -> Bool
+    val expectedScriptHash _ _ (ScriptContext txInfo _) =
+      traceIfFalse "there is no reference input with the correct script hash" $
+        any
+          ( \(TxInInfo _ (TxOut _ _ _ mRefScriptHash)) ->
+              Just expectedScriptHash == mRefScriptHash
+          )
+          (txInfoReferenceInputs txInfo)
+
+    wrap = Scripts.mkUntypedValidator
+

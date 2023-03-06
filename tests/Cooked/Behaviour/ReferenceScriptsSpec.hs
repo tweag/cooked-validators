@@ -2,8 +2,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Cooked.Behaviour.ReferenceScriptsSpec where
@@ -19,31 +17,9 @@ import qualified Ledger.Index as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
-
--- | This validator ensures that there is a transaction input that has a
--- reference script with the given hash.
-requireRefScriptValidator :: Pl.ScriptHash -> Pl.TypedValidator Validators.Unit
-requireRefScriptValidator =
-  Pl.mkTypedValidatorParam @Validators.Unit
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
-  where
-    val :: Pl.ScriptHash -> () -> () -> Pl.ScriptContext -> Bool
-    val expectedScriptHash _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "there is no reference input with the correct script hash" Pl.$
-        Pl.any
-          ( \(Pl.TxInInfo _ (Pl.TxOut _ _ _ mRefScriptHash)) ->
-              Just expectedScriptHash Pl.== mRefScriptHash
-          )
-          (Pl.txInfoReferenceInputs txInfo)
-
-    wrap = Pl.mkUntypedValidator
 
 putRefScriptOnWalletOutput ::
   MonadBlockChain m =>
@@ -105,7 +81,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
         txSkelTemplate
           { txSkelOuts =
               [ paysScript
-                  (requireRefScriptValidator expectedScriptHash)
+                  (Validators.requireRefScript expectedScriptHash)
                   ()
                   (Pl.lovelaceValueOf 42_000_000)
               ],
