@@ -22,6 +22,7 @@ import Cooked.Currencies
 import Cooked.MockChain
 import Cooked.Skeleton
 import Cooked.Wallet
+import qualified Data.ByteString as BS
 import Data.Default
 import qualified Data.Map as Map
 import qualified Debug.Trace as Debug
@@ -48,7 +49,12 @@ data BSSyntax
   | -- | a constructor applied to some arguments. Empty Applications are
     -- representations of the empty string, and one-element applications are
     -- constants.
-    Application [BSSyntax]
+    --
+    -- The boolean controls whether parentheses are printed around the
+    -- application. It is a leaky implementation detail though, and you'll
+    -- probably want to use the 'application' smart constructor when defining
+    -- 'ToBSSyntax' instances.
+    Application Bool [BSSyntax]
   | -- | a list with a given opening, separator, and closing symbol (in that
     -- order).
     ListLike BuiltinString BuiltinString BuiltinString [BSSyntax]
@@ -62,10 +68,10 @@ printBSSyntax expr = printBSSyntax' [simplBSSyntaxApplications expr] ""
     -- make sure that every 'Application' holds a list of at least two
     -- elements. (i.e. a "constructor" applied to one or more "arguments")
     simplBSSyntaxApplications l@(ReversedCat _) = l
-    simplBSSyntaxApplications (Application []) = ReversedCat []
-    simplBSSyntaxApplications (Application [x]) = simplBSSyntaxApplications x
-    simplBSSyntaxApplications (Application xs@(_ : _ : _)) =
-      Application $
+    simplBSSyntaxApplications (Application _ []) = ReversedCat []
+    simplBSSyntaxApplications (Application _ [x]) = simplBSSyntaxApplications x
+    simplBSSyntaxApplications (Application b xs@(_ : _ : _)) =
+      Application b $
         simplBSSyntaxApplications <$> xs
     simplBSSyntaxApplications (ListLike open sep close xs) =
       ListLike open sep close $
@@ -82,18 +88,15 @@ printBSSyntax expr = printBSSyntax' [simplBSSyntaxApplications expr] ""
       printBSSyntax'
         (ReversedCat xs : rest)
         (x <> acc)
-    printBSSyntax' (Application xs : rest) acc =
+    printBSSyntax' (Application b xs : rest) acc =
       printBSSyntax'
-        ( ListLike
-            ""
-            " "
-            ""
+        ( (if b then ListLike "(" " " ")" else ListLike "" " " "")
             ( map
                 ( \case
-                    Application ys ->
+                    Application _ ys ->
                       -- we know that ys contains at least two elements. Therefore, we
                       -- need parentheses:
-                      ListLike "(" " " ")" ys
+                      Application True ys
                     y -> y
                 )
                 xs
@@ -121,19 +124,23 @@ printBS = printBSSyntax . toBSSyntax
 literal :: BuiltinString -> BSSyntax
 literal x = ReversedCat [x]
 
+{-# INLINEABLE application #-}
+application :: [BSSyntax] -> BSSyntax
+application = Application False
+
 class ToBSSyntax a where
   toBSSyntax :: a -> BSSyntax
 
 instance ToBSSyntax Integer where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax = ReversedCat . integerToReversedDigits
+  toBSSyntax = integerToBSSyntax
 
-{-# INLINEABLE integerToReversedDigits #-}
-integerToReversedDigits :: Integer -> [BuiltinString]
-integerToReversedDigits n
-  | n < 0 = reverse $ "-" : go (negate n) []
-  | n == 0 = ["0"]
-  | otherwise = reverse $ go n []
+{-# INLINEABLE integerToBSSyntax #-}
+integerToBSSyntax :: Integer -> BSSyntax
+integerToBSSyntax n
+  | n < 0 = ReversedCat $ reverse $ "-" : go (negate n) []
+  | n == 0 = literal "0"
+  | otherwise = ReversedCat $ reverse $ go n []
   where
     go i acc
       | i == 0 = acc
@@ -165,105 +172,158 @@ instance (ToBSSyntax a, ToBSSyntax b) => ToBSSyntax (a, b) where
 instance ToBSSyntax a => ToBSSyntax (Maybe a) where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax Nothing = literal "Nothing"
-  toBSSyntax (Just x) = Application [literal "Just", toBSSyntax x]
+  toBSSyntax (Just x) = application [literal "Just", toBSSyntax x]
 
 instance (ToBSSyntax k, ToBSSyntax v) => ToBSSyntax (Map k v) where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax m = Application [literal "fromList", toBSSyntax (PlMap.toList m)]
+  toBSSyntax m = application [literal "fromList", toBSSyntax (PlMap.toList m)]
 
 instance ToBSSyntax BuiltinByteString where
   -- base16 representation
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax s = ReversedCat $ "\"" : go 0 ["\""]
-    where
-      len = lengthOfByteString s
+  toBSSyntax = builtinByteStringToBSSyntax
 
-      go :: Integer -> [BuiltinString] -> [BuiltinString]
-      go i acc
-        | i < len =
-          let (highNibble, lowNibble) = quotRem (indexByteString s i) 16
-           in go (i + 1) (toHex lowNibble : toHex highNibble : acc)
-        | otherwise = acc
+{-# INLINEABLE builtinByteStringToBSSyntax #-}
+builtinByteStringToBSSyntax :: BuiltinByteString -> BSSyntax
+builtinByteStringToBSSyntax s = ReversedCat $ "\"" : go 0 ["\""]
+  where
+    len = lengthOfByteString s
 
-      toHex :: Integer -> BuiltinString
-      toHex x
-        | x <= 9 = digitToBS x
-        | x == 10 = "a"
-        | x == 11 = "b"
-        | x == 12 = "c"
-        | x == 13 = "d"
-        | x == 14 = "e"
-        | x == 15 = "f"
-        | otherwise = "?"
+    go :: Integer -> [BuiltinString] -> [BuiltinString]
+    go i acc
+      | i < len =
+        let (highNibble, lowNibble) = quotRem (indexByteString s i) 16
+         in go (i + 1) (toHex lowNibble : toHex highNibble : acc)
+      | otherwise = acc
+
+    toHex :: Integer -> BuiltinString
+    toHex x
+      | x <= 9 = digitToBS x
+      | x == 10 = "a"
+      | x == 11 = "b"
+      | x == 12 = "c"
+      | x == 13 = "d"
+      | x == 14 = "e"
+      | x == 15 = "f"
+      | otherwise = "?"
 
 instance ToBSSyntax TokenName where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TokenName x) = Application [literal "TokenName", toBSSyntax x]
+  toBSSyntax (TokenName x) = application [literal "TokenName", toBSSyntax x]
 
 instance ToBSSyntax CurrencySymbol where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (CurrencySymbol x) = Application [literal "CurrencySymbol ", toBSSyntax x]
+  toBSSyntax (CurrencySymbol x) = application [literal "CurrencySymbol ", toBSSyntax x]
 
 instance ToBSSyntax Value where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Value m) = Application [literal "Value", toBSSyntax m]
+  toBSSyntax (Value m) = application [literal "Value", toBSSyntax m]
 
 instance ToBSSyntax TxId where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxId x) = Application [literal "TxId", toBSSyntax x]
+  toBSSyntax (TxId x) = application [literal "TxId", toBSSyntax x]
 
 instance ToBSSyntax TxOutRef where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxOutRef txid i) = Application [literal "TxOutRef", toBSSyntax txid, toBSSyntax i]
+  toBSSyntax (TxOutRef txid i) = application [literal "TxOutRef", toBSSyntax txid, toBSSyntax i]
 
 instance ToBSSyntax ValidatorHash where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ValidatorHash h) = Application [literal "ValidatorHash", toBSSyntax h]
+  toBSSyntax (ValidatorHash h) = application [literal "ValidatorHash", toBSSyntax h]
 
 instance ToBSSyntax PubKeyHash where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (PubKeyHash h) = Application [literal "PubKeyHash", toBSSyntax h]
+  toBSSyntax (PubKeyHash h) = application [literal "PubKeyHash", toBSSyntax h]
 
 instance ToBSSyntax Credential where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ScriptCredential scriptHash) = Application [literal "ScriptCredential", toBSSyntax scriptHash]
-  toBSSyntax (PubKeyCredential pkh) = Application [literal "PubKeyCredential", toBSSyntax pkh]
+  toBSSyntax (ScriptCredential scriptHash) = application [literal "ScriptCredential", toBSSyntax scriptHash]
+  toBSSyntax (PubKeyCredential pkh) = application [literal "PubKeyCredential", toBSSyntax pkh]
 
 instance ToBSSyntax StakingCredential where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (StakingHash cred) = Application [literal "StakingCredential", toBSSyntax cred]
-  toBSSyntax (StakingPtr i j k) = Application $ literal "StakingPtr" : map toBSSyntax [i, j, k]
+  toBSSyntax (StakingHash cred) = application [literal "StakingCredential", toBSSyntax cred]
+  toBSSyntax (StakingPtr i j k) = application $ literal "StakingPtr" : map toBSSyntax [i, j, k]
 
 instance ToBSSyntax Address where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Address cred mStCred) = Application [literal "Address", toBSSyntax cred, toBSSyntax mStCred]
+  toBSSyntax (Address cred mStCred) = application [literal "Address", toBSSyntax cred, toBSSyntax mStCred]
 
 instance ToBSSyntax DatumHash where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (DatumHash h) = Application [literal "DatumHash", toBSSyntax h]
+  toBSSyntax (DatumHash h) = application [literal "DatumHash", toBSSyntax h]
 
 instance ToBSSyntax BuiltinData where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax _ = literal "TODO"
+  toBSSyntax = builtinDataToBSSyntax
+
+{-# INLINEABLE builtinDataToBSSyntax #-}
+builtinDataToBSSyntax :: BuiltinData -> BSSyntax
+builtinDataToBSSyntax d =
+  application
+    [ literal "BuiltinData",
+      matchData
+        d
+        ( \i ds ->
+            application
+              [ literal "Constr",
+                integerToBSSyntax i,
+                ListLike "[" ", " "]" (fmap builtinDataToBSSyntax ds)
+              ]
+        )
+        ( \alist ->
+            application
+              [ literal "Map",
+                ListLike
+                  "["
+                  ", "
+                  "]"
+                  ( fmap
+                      ( \(a, b) ->
+                          ListLike
+                            "("
+                            ", "
+                            ")"
+                            [ builtinDataToBSSyntax a,
+                              builtinDataToBSSyntax b
+                            ]
+                      )
+                      alist
+                  )
+              ]
+        )
+        ( \list ->
+            application
+              [ literal "List",
+                ListLike "[" ", " "]" (fmap builtinDataToBSSyntax list)
+              ]
+        )
+        ( \i ->
+            application [literal "I", integerToBSSyntax i]
+        )
+        ( \bs ->
+            application [literal "B", builtinByteStringToBSSyntax bs]
+        )
+    ]
 
 instance ToBSSyntax Datum where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Datum d) = Application [literal "Datum", toBSSyntax d]
+  toBSSyntax (Datum d) = application [literal "Datum", toBSSyntax d]
 
 instance ToBSSyntax OutputDatum where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax NoOutputDatum = literal "NoOutputDatum"
-  toBSSyntax (OutputDatumHash h) = Application [literal "OutputDatumHash", toBSSyntax h]
-  toBSSyntax (OutputDatum d) = Application [literal "OutputDatum", toBSSyntax d]
+  toBSSyntax (OutputDatumHash h) = application [literal "OutputDatumHash", toBSSyntax h]
+  toBSSyntax (OutputDatum d) = application [literal "OutputDatum", toBSSyntax d]
 
 instance ToBSSyntax ScriptHash where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ScriptHash h) = Application [literal "ScriptHash", toBSSyntax h]
+  toBSSyntax (ScriptHash h) = application [literal "ScriptHash", toBSSyntax h]
 
 instance ToBSSyntax TxOut where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax (TxOut address value datum mRefScriptHash) =
-    Application
+    application
       [ literal "TxOut",
         toBSSyntax address,
         toBSSyntax value,
@@ -273,17 +333,17 @@ instance ToBSSyntax TxOut where
 
 instance ToBSSyntax TxInInfo where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxInInfo oref out) = Application [literal "TxInInfo", toBSSyntax oref, toBSSyntax out]
+  toBSSyntax (TxInInfo oref out) = application [literal "TxInInfo", toBSSyntax oref, toBSSyntax out]
 
 instance ToBSSyntax POSIXTime where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (POSIXTime t) = Application [literal "POSIXTime", toBSSyntax t]
+  toBSSyntax (POSIXTime t) = application [literal "POSIXTime", toBSSyntax t]
 
 instance ToBSSyntax a => ToBSSyntax (Extended a) where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax NegInf = literal "NegInf"
   toBSSyntax PosInf = literal "PosInf"
-  toBSSyntax (Finite x) = Application [literal "Finite", toBSSyntax x]
+  toBSSyntax (Finite x) = application [literal "Finite", toBSSyntax x]
 
 instance ToBSSyntax Bool where
   {-# INLINEABLE toBSSyntax #-}
@@ -292,15 +352,15 @@ instance ToBSSyntax Bool where
 
 instance ToBSSyntax a => ToBSSyntax (LowerBound a) where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (LowerBound x closure) = Application [literal "LowerBound", toBSSyntax x, toBSSyntax closure]
+  toBSSyntax (LowerBound x closure) = application [literal "LowerBound", toBSSyntax x, toBSSyntax closure]
 
 instance ToBSSyntax a => ToBSSyntax (UpperBound a) where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (UpperBound x closure) = Application [literal "UpperBound", toBSSyntax x, toBSSyntax closure]
+  toBSSyntax (UpperBound x closure) = application [literal "UpperBound", toBSSyntax x, toBSSyntax closure]
 
 instance ToBSSyntax a => ToBSSyntax (Interval a) where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Interval lb ub) = Application [literal "Interval", toBSSyntax lb, toBSSyntax ub]
+  toBSSyntax (Interval lb ub) = application [literal "Interval", toBSSyntax lb, toBSSyntax ub]
 
 instance ToBSSyntax DCert where
   {-# INLINEABLE toBSSyntax #-}
@@ -332,21 +392,21 @@ instance ToBSSyntax DCert where
 
 instance ToBSSyntax ScriptPurpose where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Minting cs) = Application [literal "Minting", toBSSyntax cs]
-  toBSSyntax (Spending oref) = Application [literal "Spending", toBSSyntax oref]
-  toBSSyntax (Rewarding stCred) = Application [literal "Rewarding", toBSSyntax stCred]
-  toBSSyntax (Certifying dCert) = Application [literal "Certifying", toBSSyntax dCert]
+  toBSSyntax (Minting cs) = application [literal "Minting", toBSSyntax cs]
+  toBSSyntax (Spending oref) = application [literal "Spending", toBSSyntax oref]
+  toBSSyntax (Rewarding stCred) = application [literal "Rewarding", toBSSyntax stCred]
+  toBSSyntax (Certifying dCert) = application [literal "Certifying", toBSSyntax dCert]
 
 instance ToBSSyntax Redeemer where
   {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Redeemer builtinData) = Application [literal "Redeemer", toBSSyntax builtinData]
+  toBSSyntax (Redeemer builtinData) = application [literal "Redeemer", toBSSyntax builtinData]
 
 instance ToBSSyntax TxInfo where
   {-# INLINEABLE toBSSyntax #-}
   toBSSyntax TxInfo {..} =
-    Application
-      [ -- literal "TxInfo",
-        -- toBSSyntax txInfoInputs,
+    application
+      [ literal "TxInfo",
+        toBSSyntax txInfoInputs,
         toBSSyntax txInfoReferenceInputs,
         toBSSyntax txInfoOutputs,
         -- toBSSyntax txInfoFee,
@@ -394,7 +454,7 @@ printValidator =
       let txi = scriptContextTxInfo ctx
        in -- Just input@(TxInInfo oref out@(TxOut {txOutAddress = Address (ScriptCredential vh) _})) = Pl.findOwnInput ctx
           -- spentValue = txOutValue out
-          trace (printBS txi) False
+          trace (printBS . txInfoInputs $ txi) False
 
 printTrace :: MonadBlockChain m => m ()
 printTrace = do
@@ -404,7 +464,7 @@ printTrace = do
         txSkelTemplate
           { txSkelSigners = [wallet 1],
             txSkelOuts =
-              [ paysScript
+              [ paysScriptInlineDatum
                   printValidator
                   ()
                   (Ada.lovelaceValueOf 30_000_000 <> banana 3)
