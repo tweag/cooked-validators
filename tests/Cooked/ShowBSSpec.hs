@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.PrintToBuiltinStringSpec (tests) where
+module Cooked.ShowBSSpec (tests) where
 
 import Control.Monad
 import Cooked
@@ -37,7 +37,7 @@ printValidator =
     $$(Pl.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
-    print _ _ ctx = Pl.trace (printBS . Pl.txInfoInputs . Pl.scriptContextTxInfo Pl.$ ctx) False
+    print _ _ ctx = Pl.trace (showBS . Pl.txInfoInputs . Pl.scriptContextTxInfo Pl.$ ctx) False
 
 printTrace :: MonadBlockChain m => m ()
 printTrace = do
@@ -68,22 +68,22 @@ tests =
         testConjoin $
           map
             (uncurry (@?=))
-            [ (printBS @Pl.Integer 123, "123"),
-              (printBS @Pl.Integer (-123), "-123"),
-              (printBS @[Pl.Integer] [1, 2, 3], "[1,2,3]"),
-              (printBS (Pl.True, Pl.False), "(True,False)"),
-              (printBS @Pl.BuiltinByteString "abca", "\"61626361\""),
-              (printBS @Pl.Value mempty, "Value (fromList [])"),
-              ( printBS @Pl.Value (Ada.lovelaceValueOf 123),
+            [ (showBS @Pl.Integer 123, "123"),
+              (showBS @Pl.Integer (-123), "-123"),
+              (showBS @[Pl.Integer] [1, 2, 3], "[1,2,3]"),
+              (showBS (Pl.True, Pl.False), "(True,False)"),
+              (showBS @Pl.BuiltinByteString "abca", "\"61626361\""),
+              (showBS @Pl.Value mempty, "Value (fromList [])"),
+              ( showBS @Pl.Value (Ada.lovelaceValueOf 123),
                 "Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",123)])])"
               ),
-              ( printBS @Pl.Value (quickValue "banana" 4),
+              ( showBS @Pl.Value (quickValue "banana" 4),
                 "Value (fromList [(CurrencySymbol \"35a527970f2e1b64ed7cf429f1594ce8b5f0cf09e37473ab628082bd\",fromList [(TokenName \"62616e616e61\",4)])])"
               ),
-              ( printBS (Pl.mkConstr 0 [Pl.mkMap [(Pl.mkI 1, Pl.mkList [Pl.mkB "abc"])]]),
+              ( showBS (Pl.mkConstr 0 [Pl.mkMap [(Pl.mkI 1, Pl.mkList [Pl.mkB "abc"])]]),
                 "BuiltinData (Constr 0 [Map [(I 1,List [B \"616263\"])]])"
               ),
-              ( printBS
+              ( showBS
                   ( Pl.Interval
                       (Pl.LowerBound (Pl.Finite $ Pl.POSIXTime 123) True)
                       (Pl.UpperBound (Pl.Finite $ Pl.POSIXTime 234) False)

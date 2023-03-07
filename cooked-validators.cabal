@@ -35,8 +35,8 @@ library
       Cooked.Pretty.Common
       Cooked.Pretty.Cooked
       Cooked.Pretty.Options
-      Cooked.PrintToBuiltinString
       Cooked.RawUPLC
+      Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Tweak
       Cooked.Tweak.AddInputsAndOutputs
@@ -116,9 +116,9 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
-      Cooked.PrintToBuiltinStringSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
+      Cooked.ShowBSSpec
       Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec

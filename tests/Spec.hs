@@ -4,9 +4,9 @@ import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.MinAdaSpec as MinAdaSpec
 import qualified Cooked.MockChainSpec as MockChainSpec
-import qualified Cooked.PrintToBuiltinStringSpec as PrintToBuiltinStringSpec
 import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
 import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
+import qualified Cooked.ShowBSSpec as ShowBSSpec
 import qualified Cooked.TweakSpec as TweakSpec
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
@@ -36,5 +36,5 @@ tests =
       TweakSpec.tests,
       LtlSpec.tests,
       MockChainSpec.tests,
-      PrintToBuiltinStringSpec.tests
+      ShowBSSpec.tests
     ]
