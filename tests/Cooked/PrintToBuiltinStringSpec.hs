@@ -75,7 +75,7 @@ tests =
                 "BuiltinData (Constr 0 [Map [(I 1, List [B \"616263\"])]])"
               )
             ],
-      testCase "print the 'txInfoInputs' from a validator" $
+      testCase "printing 'txInfoInputs' from a validator produces the expected string" $
         testFailsFrom'
           def
           ( isCekEvaluationFailureWithMsg
