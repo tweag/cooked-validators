@@ -1,13 +1,13 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | Standard transactions that ought to cover a substantial spectrum of the
 -- capabilities of Cooked.
 module Cooked.Behaviour.Elementary where
 
-import Control.Monad (void)
 import Cooked
 import qualified Cooked.Behaviour.Validators as Validators
-import qualified Cooked.MockChain.UtxoState as UtxoState
 import Data.Default (def)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
@@ -159,62 +159,139 @@ putRefScriptOnWalletOutput recipient referencedScript =
           txSkelSigners = [recipient]
         }
 
-scriptProtectsInState :: UtxoState.UtxoState -> Scripts.TypedValidator a -> PV2.Value
-scriptProtectsInState (UtxoState.UtxoState state) validator =
-  case Map.lookup (Scripts.validatorAddress validator) state of
-    Nothing -> mempty
-    Just (UtxoState.UtxoPayloadSet v) -> foldr ((<>) . UtxoState.utxoPayloadValue) mempty v
+-- * Continuing outputs
 
--- | A "continuing output" trace scheme. Instances of this trace contains the
--- following transactions:
--- - post a reference script on an output locked by wallet 1,
--- - post an output locked by that script with 2 Ada
--- - consume the latter output, using the former reference script and post a
---   new output and 2 Ada more.
--- This can model a pot with several contributions performed linearly (i.e.
--- where the pot is gathered into one output).
-continuingOutput ::
-  -- | Validator protecting the pot
+--
+-- A transaction involves a continuing output when one of its input is locked
+-- by a script and one of its output is locked by the same script. Continuing
+-- outputs can model contributions to a simple centralised pot, where each
+-- transaction adds some value or something to the datum of the output. On
+-- each contribution, the script is run to ensure its correctness.
+
+-- | Produce traces of the form
+-- 1. Post a reference script at address of wallet 1
+-- 2. Post an output with some value protected by the latter script
+-- 3. Post a sequence of @n@ transaction that take the unique output locked by the
+--    script, consume it and produce a new output still locked by the script.
+-- A predicate can be run after each transaction of the sequence.
+txSequence ::
+  MonadBlockChain m =>
   Scripts.TypedValidator Validators.Unit ->
+  -- | The length of the sequence
+  Int ->
+  -- | Predicates run after each transaction of the sequence. The integer is
+  -- substituted by the index of the transaction (starting at zero).
+  -- The string is a debug message when the proposition is false.
+  (Integer -> m (Bool, String)) ->
+  -- | The value /added/ to the value of the previous output in the chain.
+  -- The initial output contains 2 Ada.
+  (Integer -> PV2.Value) ->
+  m [(Bool, String)]
+txSequence validator chainLength (predicates :: Integer -> m (Bool, String)) values = do
+  refScriptOutRef <- putRefScriptOnWalletOutput (wallet 1) validator
+  initCTx <-
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOuts = [paysScript validator () (Pl.adaValueOf 2)],
+          txSkelSigners = [wallet 2]
+        }
+  let previousOut : _ = utxosFromCardanoTx initCTx
+  go refScriptOutRef previousOut 0 []
+  where
+    go ::
+      MonadBlockChain m =>
+      PV2.TxOutRef ->
+      (PV2.TxOutRef, PV2.TxOut) ->
+      Int ->
+      [(Bool, String)] ->
+      m [(Bool, String)]
+    go refScriptOutRef (previousOutRef, previousOut) count propositions =
+      if count >= chainLength
+        then return propositions
+        else do
+          _ <-
+            validateTxSkel $
+              txSkelTemplate
+                { txSkelOpts = def {txOptEnsureMinAda = True},
+                  txSkelIns =
+                    Map.singleton
+                      previousOutRef
+                      (TxSkelRedeemerForReferencedScript ()),
+                  txSkelOuts =
+                    [ paysScript
+                        validator
+                        ()
+                        (previousOut ^. outputValueL <> values (toInteger count))
+                    ],
+                  txSkelInsReference = Set.singleton refScriptOutRef,
+                  txSkelSigners = [wallet 2]
+                }
+          proposition <- predicates (toInteger count)
+          -- There should be a unique output, the test 'uniqueScriptOutput'
+          -- ensures this
+          outs <- runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress validator)
+          go refScriptOutRef (head outs) (count + 1) (proposition : propositions)
+
+-- | A helper function to test sequences of output chaining.
+testSequence ::
+  -- | The validator protected the value of the chained outputs
+  Scripts.TypedValidator Validators.Unit ->
+  -- | Length of the sequence
+  Int ->
+  -- | Predicates to run after each transaction.
+  (Integer -> forall m. MonadBlockChain m => m (Bool, String)) ->
+  -- | Value accumulated on each transaction: for each transaction of the
+  -- sequence, the value of the output is the value of the input + the value
+  -- returned by this function. The initial output contains 2A.
+  (Integer -> PV2.Value) ->
+  InitialDistribution ->
   Assertion
-continuingOutput validator =
+testSequence validator chainLength predicates values distrib =
   testSucceedsFrom'
-    def {pcOptPrintTxHashes = True}
-    ( \() state -> do
-        countLovelace (scriptProtectsInState state validator) @?= 4_000_000
+    def
+    (\propositions _ -> mapM_ (uncurry (@?)) propositions)
+    distrib
+    (txSequence validator chainLength predicates values)
+
+-- | Check that on each step, there is only one output protected by the
+-- validator.
+uniqueScriptOutput :: Assertion
+uniqueScriptOutput =
+  testSequence
+    Validators.yes
+    6
+    ( \_ -> do
+        utxos <- runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress Validators.yes)
+        return
+          (case utxos of [_] -> True; _ -> False, "Not a single output locked by the validator")
     )
+    (const $ Pl.adaValueOf 2)
     ( InitialDistribution $
         Map.fromList
-          [ (wallet 1, [Pl.adaValueOf 100]),
-            (wallet 2, [Pl.adaValueOf 100])
+          [ (wallet 1, [Pl.adaValueOf 42]),
+            (wallet 2, [Pl.adaValueOf 42])
           ]
     )
-    ( do
-        refScriptOutRef <- putRefScriptOnWalletOutput (wallet 1) validator
-        -- Post initial amount locked by refscript;
-        -- or first contribution to the pot
-        _ <-
-          validateTxSkel $
-            txSkelTemplate
-              { txSkelOuts = [paysScript validator () (Pl.adaValueOf 2)],
-                txSkelSigners = [wallet 2]
-              }
-        contribution1Outs <- runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress validator)
-        let (contribution1Ref, contribution1Out) = head contribution1Outs
-        void $
-          validateTxSkel $
-            txSkelTemplate
-              { txSkelIns = Map.singleton contribution1Ref (TxSkelRedeemerForReferencedScript ()),
-                txSkelOuts =
-                  [ paysScript
-                      validator
-                      ()
-                      (contribution1Out ^. outputValueL <> Pl.adaValueOf 2)
-                  ],
-                txSkelInsReference = Set.singleton refScriptOutRef,
-                txSkelSigners = [wallet 2]
-              }
+
+-- | Check that the money stored in the pot increases on each step (according
+-- to an affine function).
+increasingPot :: Assertion
+increasingPot =
+  testSequence
+    Validators.yes
+    6
+    ( \i -> do
+        theOutput : _ <-
+          runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress Validators.yes)
+        return
+          ( snd theOutput ^. outputValueL == Pl.lovelaceValueOf (2_000_000 * (2 + i)),
+            "The amount in the output doesn't match "
+              ++ show (2_000_000 * (2 + i))
+              ++ " lovelace"
+          )
     )
+    (\_ -> Pl.adaValueOf 2)
+    def
 
 tests :: TestTree
 tests =
@@ -236,5 +313,7 @@ tests =
         ],
       testGroup
         "Continuing outputs"
-        [testCase "standard" $ continuingOutput Validators.yes]
+        [ testCase "keeping one output" uniqueScriptOutput,
+          testCase "pot increases" increasingPot
+        ]
     ]
