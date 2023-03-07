@@ -20,8 +20,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
 
--- | Returns the total value accessible to the entity designed by the
--- address.
+-- | Total value accessible to what's pointed by the address.
 holdsInState :: PV2.Address -> UtxoState -> PV2.Value
 holdsInState address (UtxoState m) =
   maybe mempty utxoPayloadSetTotal (Map.lookup address m)
