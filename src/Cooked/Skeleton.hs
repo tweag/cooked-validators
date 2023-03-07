@@ -19,6 +19,8 @@ module Cooked.Skeleton
     BalanceOutputPolicy (..),
     BalancingWallet (..),
     RawModTx (..),
+    ChangeParams (..),
+    applyChangeParams,
     applyRawModOnBalancedTx,
     TxOpts (..),
     MintsConstrs,
@@ -66,6 +68,7 @@ module Cooked.Skeleton
 where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -167,6 +170,25 @@ applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
 applyRawModOnBalancedTx [] = id
 applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
 
+-- | Wraps a function that will temporarily change the emulator parameters for
+-- the transaction's balancing and submission.
+data ChangeParams = DontChangeParams | ChangeParams (Emulator.Params -> Emulator.Params)
+
+instance Eq ChangeParams where
+  DontChangeParams == DontChangeParams = True
+  _ == _ = False
+
+instance Show ChangeParams where
+  show DontChangeParams = "DontChangeParams"
+  show ChangeParams {} = "ChangeParams <function>"
+
+instance Default ChangeParams where
+  def = DontChangeParams
+
+applyChangeParams :: ChangeParams -> Emulator.Params -> Emulator.Params
+applyChangeParams DontChangeParams = id
+applyChangeParams (ChangeParams f) = f
+
 -- | Set of options to modify the behavior of generating and validating some transaction.
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
@@ -222,7 +244,21 @@ data TxOpts = TxOpts
     -- of signers.
     --
     -- Default is 'BalanceWithFirstSigner'.
-    txOptBalanceWallet :: BalancingWallet
+    txOptBalanceWallet :: BalancingWallet,
+    -- | Apply an arbitrary modification to the protocol parameters that are
+    -- used during balancing and submmission of the transaction. This is
+    -- ovbiously a very unsafe thing to do if you want to preserve
+    -- compatibuility with the actual chain. It is useful mainly for testing
+    -- purposes, when you might want to use extremely big transactions or
+    -- transactions that exhaust the maximum execution budget. Such a thing
+    -- could be accomplished with
+    --
+    -- > txOptChangeParams = ChangeParams increaseTransactionLimits
+    --
+    -- for example.
+    --
+    -- Default is 'DontChangeParams'.
+    txOptChangeParams :: ChangeParams
   }
   deriving (Eq, Show)
 
@@ -235,7 +271,8 @@ instance Default TxOpts where
         txOptUnsafeModTx = [],
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
-        txOptBalanceWallet = def
+        txOptBalanceWallet = def,
+        txOptChangeParams = def
       }
 
 -- * Description of the Minting

@@ -356,7 +356,8 @@ mPrettyTxOpts
       txOptUnsafeModTx,
       txOptBalance,
       txOptBalanceOutputPolicy,
-      txOptBalanceWallet
+      txOptBalanceWallet,
+      txOptChangeParams
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
@@ -365,7 +366,8 @@ mPrettyTxOpts
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
-          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx
+          prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
+          prettyIfNot def prettyChangeParams txOptChangeParams
         ]
     where
       prettyIfNot :: Eq a => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -394,6 +396,9 @@ mPrettyTxOpts
          in PP.pretty n
               <+> "transaction"
               <+> PP.plural "modification" "modifications" n
+      prettyChangeParams :: ChangeParams -> DocCooked
+      prettyChangeParams DontChangeParams = "No modifications of protocol paramters"
+      prettyChangeParams ChangeParams {} = "With modifications of protocol parameters"
 
 -- * Pretty-printing
 

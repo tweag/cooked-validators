@@ -290,8 +290,10 @@ instance Monad m => MonadBlockChain (MockChainT m) where
     (skel, fee, collateralInputs) <- balancedTxSkel skelUnbal
     tx <- balancedTx (skel, fee, collateralInputs)
     consumedData <- txSkelInputData skel
+    theParams <- applyChangeParams (txOptChangeParams . txSkelOpts $ skel) <$> getParams
     someCardanoTx <-
       runTransactionValidation
+        theParams
         tx
         (txOptUnsafeModTx $ txSkelOpts skel)
         consumedData
@@ -303,6 +305,8 @@ instance Monad m => MonadBlockChain (MockChainT m) where
 
 runTransactionValidation ::
   Monad m =>
+  -- | The emulator parameters to use. They might have been changed by the 'txOptChangeParams'.
+  Emulator.Params ->
   -- | The transaction to validate. It should already be balanced, and include
   -- appropriate fees and collateral.
   C.Tx C.BabbageEra ->
@@ -317,9 +321,8 @@ runTransactionValidation ::
   -- remember them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   MockChainT m Ledger.SomeCardanoApiTx
-runTransactionValidation cardanoTx rawModTx consumedData producedData outputValidators = do
+runTransactionValidation theParams cardanoTx rawModTx consumedData producedData outputValidators = do
   utxoIndex <- gets mcstIndex
-  theParams <- getParams
   theSlot <- currentSlot
   let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
       cardanoIndex = either (error . show) id $ Ledger.fromPlutusIndex utxoIndex
