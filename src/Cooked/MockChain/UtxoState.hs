@@ -30,12 +30,13 @@ instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
 
 -- | Represents a /set/ of payloads.
-newtype UtxoPayloadSet = UtxoPayloadSet {utxoPayloadSet :: [UtxoPayload]}
+newtype UtxoPayloadSet = UtxoPayloadSet
+  { utxoPayloadSet :: [UtxoPayload]
+  -- We use a list instead of a set because 'Pl.Value' doesn't implement 'Ord'
+  -- and because it is possible that we want to distinguish between utxo states
+  -- that have additional utxos, even if these could have been merged together.
+  }
   deriving (Show)
-
--- We use a list instead of a set because 'Pl.Value' doesn't implement 'Ord'
--- and because it is possible that we want to distinguish between utxo states
--- that have additional utxos, even if these could have been merged together.
 
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
