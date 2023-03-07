@@ -2,32 +2,29 @@ module Cooked.MockChain.UtxoState
   ( UtxoState (..),
     UtxoPayloadSet (..),
     UtxoPayload (..),
-    holdingInState,
+    holdsInState,
   )
 where
 
 import Cooked.Skeleton (TxSkelOutDatum)
-import Cooked.Wallet (Wallet, walletAddress)
 import Data.Function (on)
 import qualified Data.List as List
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Ledger as Pl hiding (Value)
-import qualified Plutus.V1.Ledger.Value as Pl1
-
--- TODO Migrate to V2 values (see imports)
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.V2.Ledger.Api as PV2
 
 -- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
 -- Each address has a set of UTxOs that consist in a value and some potential datum.
 newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
 
--- | Helper function to compute what the given wallet owns in the
--- given state
-holdingInState :: UtxoState -> Wallet -> Pl1.Value
-holdingInState (UtxoState m) w
-  | Just vs <- Map.lookup (walletAddress w) m = utxoPayloadSetTotal vs
-  | otherwise = mempty
+-- | Returns the total value accessible to the entity designed by the
+-- address.
+holdsInState :: PV2.Address -> UtxoState -> PV2.Value
+holdsInState address (UtxoState m) =
+  maybe mempty utxoPayloadSetTotal (Map.lookup address m)
 
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
@@ -42,7 +39,7 @@ newtype UtxoPayloadSet = UtxoPayloadSet {utxoPayloadSet :: [UtxoPayload]}
 
 data UtxoPayload = UtxoPayload
   { utxoPayloadTxOutRef :: Pl.TxOutRef,
-    utxoPayloadValue :: Pl1.Value,
+    utxoPayloadValue :: PV2.Value,
     utxoPayloadSkelOutDatum :: TxSkelOutDatum,
     utxoPayloadReferenceScript :: Maybe Pl.ScriptHash
   }
@@ -51,7 +48,7 @@ data UtxoPayload = UtxoPayload
 instance Eq UtxoPayloadSet where
   (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
     where
-      k (UtxoPayload ref val dat rs) = (ref, Pl1.flattenValue val, dat, rs)
+      k (UtxoPayload ref val dat rs) = (ref, Pl.flattenValue val, dat, rs)
       xs' = List.sortBy (compare `on` k) xs
       ys' = List.sortBy (compare `on` k) ys
 
@@ -62,5 +59,5 @@ instance Monoid UtxoPayloadSet where
   mempty = UtxoPayloadSet []
 
 -- | Computes the total value in a set
-utxoPayloadSetTotal :: UtxoPayloadSet -> Pl1.Value
+utxoPayloadSetTotal :: UtxoPayloadSet -> PV2.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
