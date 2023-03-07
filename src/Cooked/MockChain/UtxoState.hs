@@ -15,8 +15,8 @@ import qualified Ledger as Pl hiding (Value)
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 
--- | A 'UtxoState' provides us with the mental picture of the state of the UTxO graph:
--- Each address has a set of UTxOs that consist in a value and some potential datum.
+-- | A description of who owns what in a blockchain. Owners are addresses
+-- and they each own a 'UtxoPayloadSet'.
 newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
 
@@ -29,14 +29,15 @@ holdsInState address (UtxoState m) =
 instance Semigroup UtxoState where
   (UtxoState a) <> (UtxoState b) = UtxoState $ Map.unionWith (<>) a b
 
--- | Represents a /set/ of payloads. Payloads are the name we give to the
--- information we care about on a UTxO: value, datum, and reference script. We
--- use a list instead of a set because 'Pl.Value' doesn't implement 'Ord' and
--- because it is possible that we want to distinguish between utxo states that
--- have additional utxos, even if these could have been merged together.
+-- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet {utxoPayloadSet :: [UtxoPayload]}
   deriving (Show)
 
+-- We use a list instead of a set because 'Pl.Value' doesn't implement 'Ord'
+-- and because it is possible that we want to distinguish between utxo states
+-- that have additional utxos, even if these could have been merged together.
+
+-- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
   { utxoPayloadTxOutRef :: Pl.TxOutRef,
     utxoPayloadValue :: PV2.Value,
