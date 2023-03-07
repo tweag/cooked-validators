@@ -92,21 +92,22 @@ tests =
               )
             ],
       testCase "printing 'txInfoInputs' from a validator produces the expected string" $
-        testFailsFrom'
-          def
-          ( isCekEvaluationFailureWithMsg
-              def
-              ( isRight
-                  . parse
-                    ( string "[TxInInfo (TxOutRef (TxId \""
-                        *> many1 hexDigit
-                        *> string "\") 0) (TxOut (Address (ScriptCredential (ValidatorHash \""
-                        *> many1 hexDigit
-                        *> string "\")) Nothing) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",30000000)])])) (OutputDatum (Datum (BuiltinData (Constr 0 [])))) Nothing)]"
-                    )
-                    ""
+        let isExpectedString =
+              isRight
+                . parse
+                  ( string "[TxInInfo (TxOutRef (TxId \""
+                      *> many1 hexDigit
+                      *> string "\") 0) (TxOut (Address (ScriptCredential (ValidatorHash \""
+                      *> many1 hexDigit
+                      *> string "\")) Nothing) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",30000000)])])) (OutputDatum (Datum (BuiltinData (Constr 0 [])))) Nothing)]"
+                  )
+                  ""
+         in testFailsFrom'
+              (def @PrettyCookedOpts)
+              ( isCekEvaluationFailureWithMsg
+                  (def @PrettyCookedOpts)
+                  isExpectedString
               )
-          )
-          def
-          printTrace
+              (def @InitialDistribution)
+              printTrace
     ]
