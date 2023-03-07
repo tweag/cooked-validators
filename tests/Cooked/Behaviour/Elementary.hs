@@ -4,11 +4,14 @@
 -- capabilities of Cooked.
 module Cooked.Behaviour.Elementary where
 
+import Control.Monad (void)
 import Cooked
 import qualified Cooked.Behaviour.Validators as Validators
+import qualified Cooked.MockChain.UtxoState as UtxoState
 import Data.Default (def)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
+import qualified Data.Set as Set
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.V2.Address as Address
@@ -134,19 +137,104 @@ walletToScriptHowDatum datumKind =
        in validateTxSkel skel >> outputsProtectedBy Validators.yes
     )
 
+-- | Create an output locked by a wallet containing a reference script.
+putRefScriptOnWalletOutput ::
+  MonadBlockChain m =>
+  -- | Recipient of the output and wallet used to balance the transaction
+  Wallet ->
+  -- | Referenced script
+  Scripts.TypedValidator Validators.Unit ->
+  m PV2.TxOutRef
+putRefScriptOnWalletOutput recipient referencedScript =
+  fst . head . utxosFromCardanoTx
+    <$> validateTxSkel
+      txSkelTemplate
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts =
+            [ paysPKWithReferenceScript
+                (walletPKHash recipient)
+                mempty
+                referencedScript
+            ],
+          txSkelSigners = [recipient]
+        }
+
+scriptProtectsInState :: UtxoState.UtxoState -> Scripts.TypedValidator a -> PV2.Value
+scriptProtectsInState (UtxoState.UtxoState state) validator =
+  case Map.lookup (Scripts.validatorAddress validator) state of
+    Nothing -> mempty
+    Just (UtxoState.UtxoPayloadSet v) -> foldr ((<>) . UtxoState.utxoPayloadValue) mempty v
+
+-- | A "continuing output" trace scheme. Instances of this trace contains the
+-- following transactions:
+-- - post a reference script on an output locked by wallet 1,
+-- - post an output locked by that script with 2 Ada
+-- - consume the latter output, using the former reference script and post a
+--   new output and 2 Ada more.
+-- This can model a pot with several contributions performed linearly (i.e.
+-- where the pot is gathered into one output).
+continuingOutput ::
+  -- | Validator protecting the pot
+  Scripts.TypedValidator Validators.Unit ->
+  Assertion
+continuingOutput validator =
+  testSucceedsFrom'
+    def {pcOptPrintTxHashes = True}
+    ( \() state -> do
+        countLovelace (scriptProtectsInState state validator) @?= 4_000_000
+    )
+    ( InitialDistribution $
+        Map.fromList
+          [ (wallet 1, [Pl.adaValueOf 100]),
+            (wallet 2, [Pl.adaValueOf 100])
+          ]
+    )
+    ( do
+        refScriptOutRef <- putRefScriptOnWalletOutput (wallet 1) validator
+        -- Post initial amount locked by refscript;
+        -- or first contribution to the pot
+        _ <-
+          validateTxSkel $
+            txSkelTemplate
+              { txSkelOuts = [paysScript validator () (Pl.adaValueOf 2)],
+                txSkelSigners = [wallet 2]
+              }
+        contribution1Outs <- runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress validator)
+        let (contribution1Ref, contribution1Out) = head contribution1Outs
+        void $
+          validateTxSkel $
+            txSkelTemplate
+              { txSkelIns = Map.singleton contribution1Ref (TxSkelRedeemerForReferencedScript ()),
+                txSkelOuts =
+                  [ paysScript
+                      validator
+                      ()
+                      (contribution1Out ^. outputValueL <> Pl.adaValueOf 2)
+                  ],
+                txSkelInsReference = Set.singleton refScriptOutRef,
+                txSkelSigners = [wallet 2]
+              }
+    )
+
 tests :: TestTree
 tests =
   testGroup
-    "Transferring Ada from a wallet to"
-    [ testCase "another wallet" walletToWallet,
-      testCase "a script" walletToScript,
-      testCase
-        "a script, using an inline datum"
-        (walletToScriptHowDatum Validators.Inline),
-      testCase
-        "a script, using a hashed datum"
-        (walletToScriptHowDatum Validators.OnlyHash),
-      testCase
-        "a script, using a resolved datum"
-        $ walletToScriptHowDatum Validators.ResolvedHash
+    "Standard-ish transactions"
+    [ testGroup
+        "Transferring Ada from a wallet to"
+        [ testCase "another wallet" walletToWallet,
+          testCase "a script" walletToScript,
+          testCase
+            "a script, using an inline datum"
+            (walletToScriptHowDatum Validators.Inline),
+          testCase
+            "a script, using a hashed datum"
+            (walletToScriptHowDatum Validators.OnlyHash),
+          testCase
+            "a script, using a resolved datum"
+            $ walletToScriptHowDatum Validators.ResolvedHash
+        ],
+      testGroup
+        "Continuing outputs"
+        [testCase "standard" $ continuingOutput Validators.yes]
     ]
