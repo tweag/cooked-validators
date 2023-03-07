@@ -7,6 +7,7 @@
 
 module Cooked.ShowBSSpec (tests) where
 
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Monad
 import Cooked
 import Data.Default
@@ -37,7 +38,7 @@ printValidator =
     $$(Pl.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
-    print _ _ ctx = Pl.trace (showBS . Pl.txInfoInputs . Pl.scriptContextTxInfo Pl.$ ctx) False
+    print _ _ ctx = Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
 
 printTrace :: MonadBlockChain m => m ()
 printTrace = do
@@ -56,7 +57,8 @@ printTrace = do
   void $
     validateTxSkel
       txSkelTemplate
-        { txSkelSigners = [wallet 1],
+        { txSkelOpts = def {txOptChangeParams = ChangeParams Emulator.increaseTransactionLimits},
+          txSkelSigners = [wallet 1],
           txSkelIns = Map.singleton oref $ TxSkelRedeemerForScript True
         }
 
@@ -91,15 +93,23 @@ tests =
                 "Interval (LowerBound (Finite (POSIXTime 123)) True) (UpperBound (Finite (POSIXTime 234)) False)"
               )
             ],
-      testCase "printing 'txInfoInputs' from a validator produces the expected string" $
+      testCase "printing the 'TxInfo' from a validator produces the expected string" $
         let isExpectedString =
               isRight
                 . parse
-                  ( string "[TxInInfo (TxOutRef (TxId \""
+                  ( string "TxInfo [TxInInfo (TxOutRef (TxId \""
                       *> many1 hexDigit
                       *> string "\") 0) (TxOut (Address (ScriptCredential (ValidatorHash \""
                       *> many1 hexDigit
-                      *> string "\")) Nothing) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",30000000)])])) (OutputDatum (Datum (BuiltinData (Constr 0 [])))) Nothing)]"
+                      *> string "\")) Nothing) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",30000000)])])) (OutputDatum (Datum (BuiltinData (Constr 0 [])))) Nothing)] [] [TxOut (Address (PubKeyCredential (PubKeyHash \""
+                      *> many1 hexDigit
+                      *> string "\")) Nothing) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",27000000)])])) NoOutputDatum Nothing] (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",3000000)])])) (Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",0)])])) [] (fromList []) (Interval (LowerBound NegInf True) (UpperBound PosInf True)) [PubKeyHash \""
+                      *> many1 hexDigit
+                      *> string "\"] (fromList [(Spending (TxOutRef (TxId \""
+                      *> many1 hexDigit
+                      *> string "\") 0),Redeemer (BuiltinData (Constr 1 [])))]) (fromList []) (TxId \""
+                      *> many1 hexDigit
+                      *> string "\")"
                   )
                   ""
          in testFailsFrom'
