@@ -58,46 +58,46 @@ showBSParen True s = literal "(" . s . literal ")"
 -- | print an application of a constructor to an argument
 {-# INLINEABLE application1 #-}
 application1 :: ShowBS a => Integer -> BuiltinString -> a -> BuiltinString -> BuiltinString
-application1 prec f x = showBSParen (app_prec < prec) $ literal f . literal " " . showBSsPrec (app_prec + 1) x
+application1 prec f x = showBSParen (app_prec <= prec) $ literal f . literal " " . showBSsPrec app_prec x
 
 -- | like 'application1' with two arguments
 {-# INLINEABLE application2 #-}
 application2 :: (ShowBS a, ShowBS b) => Integer -> BuiltinString -> a -> b -> BuiltinString -> BuiltinString
 application2 prec f x y =
-  showBSParen (app_prec < prec) $
+  showBSParen (app_prec <= prec) $
     literal f
       . literal " "
-      . showBSsPrec (app_prec + 1) x
+      . showBSsPrec app_prec x
       . literal " "
-      . showBSsPrec (app_prec + 1) y
+      . showBSsPrec app_prec y
 
 -- | like 'application1' with three arguments
 {-# INLINEABLE application3 #-}
 application3 :: (ShowBS a, ShowBS b, ShowBS c) => Integer -> BuiltinString -> a -> b -> c -> BuiltinString -> BuiltinString
 application3 prec f x y z =
-  showBSParen (app_prec < prec) $
+  showBSParen (app_prec <= prec) $
     literal f
       . literal " "
-      . showBSsPrec (app_prec + 1) x
+      . showBSsPrec app_prec x
       . literal " "
-      . showBSsPrec (app_prec + 1) y
+      . showBSsPrec app_prec y
       . literal " "
-      . showBSsPrec (app_prec + 1) z
+      . showBSsPrec app_prec z
 
 -- | like 'application1' with four arguments
 {-# INLINEABLE application4 #-}
 application4 :: (ShowBS a, ShowBS b, ShowBS c, ShowBS d) => Integer -> BuiltinString -> a -> b -> c -> d -> BuiltinString -> BuiltinString
 application4 prec f x y z w =
-  showBSParen (app_prec < prec) $
+  showBSParen (app_prec <= prec) $
     literal f
       . literal " "
-      . showBSsPrec (app_prec + 1) x
+      . showBSsPrec app_prec x
       . literal " "
-      . showBSsPrec (app_prec + 1) y
+      . showBSsPrec app_prec y
       . literal " "
-      . showBSsPrec (app_prec + 1) z
+      . showBSsPrec app_prec z
       . literal " "
-      . showBSsPrec (app_prec + 1) w
+      . showBSsPrec app_prec w
 
 instance ShowBS Integer where
   {-# INLINEABLE showBSsPrec #-}
@@ -236,7 +236,7 @@ instance ShowBS DatumHash where
 
 instance ShowBS BuiltinData where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p d = showBSParen (app_prec < p) $ literal "BuiltinData " . builtinDataShowBSsPrec (app_prec + 1) d
+  showBSsPrec p d = showBSParen (app_prec <= p) $ literal "BuiltinData " . builtinDataShowBSsPrec app_prec d
 
 {-# INLINEABLE builtinDataShowBSsPrec #-}
 builtinDataShowBSsPrec :: Integer -> BuiltinData -> BuiltinString -> BuiltinString
@@ -244,14 +244,14 @@ builtinDataShowBSsPrec p d =
   matchData
     d
     ( \i ds ->
-        showBSParen (app_prec < p) $
+        showBSParen (app_prec <= p) $
           literal "Constr "
             . showBSs i
             . literal " "
             . catList "[" "," "]" (builtinDataShowBSsPrec 0) ds
     )
     ( \alist ->
-        showBSParen (app_prec < p) $
+        showBSParen (app_prec <= p) $
           literal "Map "
             . catList
               "["
@@ -261,12 +261,12 @@ builtinDataShowBSsPrec p d =
               alist
     )
     ( \list ->
-        showBSParen (app_prec < p) $
+        showBSParen (app_prec <= p) $
           literal "List "
             . catList "[" "," "]" (builtinDataShowBSsPrec 0) list
     )
-    (\i -> showBSParen (app_prec < p) $ literal "I " . showBSs i)
-    (\bs -> showBSParen (app_prec < p) $ literal "B " . showBSs bs)
+    (\i -> showBSParen (app_prec <= p) $ literal "I " . showBSs i)
+    (\bs -> showBSParen (app_prec <= p) $ literal "B " . showBSs bs)
 
 instance ShowBS Datum where
   {-# INLINEABLE showBSsPrec #-}
@@ -341,28 +341,28 @@ instance ShowBS Redeemer where
 instance ShowBS TxInfo where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p TxInfo {..} =
-    showBSParen (app_prec < p) $
+    showBSParen (app_prec <= p) $
       literal "TxInfo "
-        . showBSsPrec (app_prec + 1) txInfoInputs
+        . showBSsPrec app_prec txInfoInputs
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoReferenceInputs
+        . showBSsPrec app_prec txInfoReferenceInputs
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoOutputs
+        . showBSsPrec app_prec txInfoOutputs
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoFee
+        . showBSsPrec app_prec txInfoFee
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoMint
+        . showBSsPrec app_prec txInfoMint
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoDCert
+        . showBSsPrec app_prec txInfoDCert
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoWdrl
+        . showBSsPrec app_prec txInfoWdrl
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoValidRange
+        . showBSsPrec app_prec txInfoValidRange
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoSignatories
+        . showBSsPrec app_prec txInfoSignatories
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoRedeemers
+        . showBSsPrec app_prec txInfoRedeemers
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoData
+        . showBSsPrec app_prec txInfoData
         . literal " "
-        . showBSsPrec (app_prec + 1) txInfoId
+        . showBSsPrec app_prec txInfoId
