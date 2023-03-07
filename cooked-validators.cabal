@@ -83,7 +83,6 @@ library
     , optics-core
     , optics-th
     , optics-vl
-    , parsec
     , plutus-contract
     , plutus-core
     , plutus-ledger
