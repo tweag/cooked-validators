@@ -12,11 +12,18 @@
     `withDatumHash`.
   - `withReferenceScript` and `withStakingCredential` to add a reference script
     or staking credential to a payment
+- Export `Cooked.UtxoState`
 
 ### Removed
 
 - `paysPKWithReferenceScript` (superseded by the `withReferenceScript`
   modifier)
+- Do not export `Cooked.UtxoPayloadSet`
+
+### Changed
+
+- `Cooked.holdingInState` is relpaced by `Cooked.holdsInState` which takes an
+  address instead of a wallet as argument.
 
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
