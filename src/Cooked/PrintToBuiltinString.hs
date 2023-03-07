@@ -344,14 +344,25 @@ instance PrintBS TxInfo where
     printBSParen (app_prec < p) $
       literal "TxInfo "
         . printBSsPrec (app_prec + 1) txInfoInputs
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoReferenceInputs
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoOutputs
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoFee
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoMint
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoDCert
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoWdrl
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoValidRange
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoSignatories
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoRedeemers
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoData
+        . literal " "
         . printBSsPrec (app_prec + 1) txInfoId
