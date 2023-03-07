@@ -1,124 +1,114 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# HLINT ignore "Use camelCase" #-}
+{-# HLINT ignore "Use foldr" #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Print all the types that occur on the 'TxInfo' to 'BuiltinString'. This is
 -- useful for debugging of validators. You probably do not want to use this in
 -- production code, as many of the functions in this module are wildly
 -- inefficient due to limitations of the 'BuiltinString' type.
-module Cooked.PrintToBuiltinString (printBS) where
+module Cooked.PrintToBuiltinString (PrintBS (..), printBSs, app_prec) where
 
 import Plutus.V2.Ledger.Api
-import qualified PlutusTx
 import qualified PlutusTx.AssocMap as PlMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude
 
--- | An abstract representation of a piece of data, used to generate a
--- 'BuiltinString' representation. (See 'printBSSyntax')
-data BSSyntax
-  = -- | a list of strings to concatenate. For efficiency reasons, the order is
-    -- reversed, so that @ReversedCat ["ef", "bcd", "", "a"]@ is a
-    -- representation of @"abcdef"@.
-    ReversedCat [BuiltinString]
-  | -- | a constructor applied to some arguments. Empty Applications are
-    -- representations of the empty string, and one-element applications are
-    -- constants.
-    --
-    -- The boolean controls whether parentheses are printed around the
-    -- application. It is a leaky implementation detail though, and you'll
-    -- probably want to use the 'application' smart constructor when defining
-    -- 'ToBSSyntax' instances.
-    Application Bool [BSSyntax]
-  | -- | a list with a given opening, separator, and closing symbol (in that
-    -- order).
-    ListLike BuiltinString BuiltinString BuiltinString [BSSyntax]
+-- | analogue of Haskell's 'Show' class for use in Plutus scripts.
+class PrintBS a where
+  -- | analogue of 'show'
+  {-# INLINEABLE printBS #-}
+  printBS :: a -> BuiltinString
+  printBS x = printBSsPrec 0 x ""
 
-PlutusTx.makeLift ''BSSyntax
+  -- | analogue of 'showsPrec'
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec :: Integer -> a -> BuiltinString -> BuiltinString
+  printBSsPrec _ x s = printBS x <> s
+
+-- | analogue of 'shows'
+{-# INLINEABLE printBSs #-}
+printBSs :: PrintBS a => a -> BuiltinString -> BuiltinString
+printBSs = printBSsPrec 0
+
+-- | Precedence of function applications
+{-# INLINEABLE app_prec #-}
+app_prec :: Integer
+app_prec = 10
 
 {-# INLINEABLE literal #-}
-literal :: BuiltinString -> BSSyntax
-literal x = ReversedCat [x]
+literal :: BuiltinString -> BuiltinString -> BuiltinString
+literal = (<>)
 
-{-# INLINEABLE application #-}
-application :: [BSSyntax] -> BSSyntax
-application = Application False -- by default, use no parentheses around applications
+{-# INLINEABLE cat #-}
+cat :: [BuiltinString] -> BuiltinString -> BuiltinString
+cat [] = id -- we cannot use foldr here for some reason with the plutus compiler
+cat (x : xs) = literal x . cat xs
 
-{-# INLINEABLE printBSSyntax #-}
-printBSSyntax :: BSSyntax -> BuiltinString
-printBSSyntax expr = printBSSyntax' [simplBSSyntaxApplications expr] ""
-  where
-    -- make sure that every 'Application' holds a list of at least two
-    -- elements. (i.e. a "constructor" applied to one or more "arguments")
-    simplBSSyntaxApplications l@(ReversedCat _) = l
-    simplBSSyntaxApplications (Application _ []) = ReversedCat []
-    simplBSSyntaxApplications (Application _ [x]) = simplBSSyntaxApplications x
-    simplBSSyntaxApplications (Application b xs@(_ : _ : _)) =
-      Application b $
-        simplBSSyntaxApplications <$> xs
-    simplBSSyntaxApplications (ListLike open sep close xs) =
-      ListLike open sep close $
-        simplBSSyntaxApplications <$> xs
+-- | print with a surrounding parenthesis, if the boolean argument is true
+{-# INLINEABLE printBSParen #-}
+printBSParen :: Bool -> (BuiltinString -> BuiltinString) -> BuiltinString -> BuiltinString
+printBSParen False s = s
+printBSParen True s = literal "(" . s . literal ")"
 
-    -- The first argument is a stack, the head of which is whatever should be
-    -- prepended to the string under construction next. I take this slightly
-    -- convoluted approach in order to avoid the "painter's algorithm"
-    -- associated with the linear complexity of '<>' on 'BuiltinString'.
-    printBSSyntax' :: [BSSyntax] -> BuiltinString -> BuiltinString
-    printBSSyntax' [] acc = acc
-    printBSSyntax' (ReversedCat [] : rest) acc = printBSSyntax' rest acc
-    printBSSyntax' (ReversedCat (x : xs) : rest) acc =
-      printBSSyntax'
-        (ReversedCat xs : rest)
-        (x <> acc)
-    printBSSyntax' (Application b xs : rest) acc =
-      printBSSyntax'
-        ( (if b then ListLike "(" " " ")" else ListLike "" " " "")
-            ( map
-                ( \case
-                    Application _ ys ->
-                      -- we know that ys contains at least two elements. Therefore, we
-                      -- need parentheses:
-                      Application True ys
-                    y -> y
-                )
-                xs
-            ) :
-          rest
-        )
-        acc
-    printBSSyntax' (ListLike open sep close xs : rest) acc =
-      printBSSyntax'
-        (literal close : reverse (literal open : separateWith (literal sep) xs) ++ rest)
-        acc
+-- | print an application of a constructor to an argument
+{-# INLINEABLE application1 #-}
+application1 :: PrintBS a => Integer -> BuiltinString -> a -> BuiltinString -> BuiltinString
+application1 prec f x = printBSParen (app_prec < prec) $ literal f . literal " " . printBSsPrec (app_prec + 1) x
 
-    separateWith :: a -> [a] -> [a]
-    separateWith _ [] = []
-    separateWith _ [x] = [x]
-    separateWith sep (x : xs@(_ : _)) = x : sep : separateWith sep xs
+-- | like 'application1' with two arguments
+{-# INLINEABLE application2 #-}
+application2 :: (PrintBS a, PrintBS b) => Integer -> BuiltinString -> a -> b -> BuiltinString -> BuiltinString
+application2 prec f x y =
+  printBSParen (app_prec < prec) $
+    literal f
+      . literal " "
+      . printBSsPrec (app_prec + 1) x
+      . literal " "
+      . printBSsPrec (app_prec + 1) y
 
-{-# INLINEABLE printBS #-}
-printBS :: ToBSSyntax a => a -> BuiltinString
-printBS = printBSSyntax . toBSSyntax
+-- | like 'application1' with three arguments
+{-# INLINEABLE application3 #-}
+application3 :: (PrintBS a, PrintBS b, PrintBS c) => Integer -> BuiltinString -> a -> b -> c -> BuiltinString -> BuiltinString
+application3 prec f x y z =
+  printBSParen (app_prec < prec) $
+    literal f
+      . literal " "
+      . printBSsPrec (app_prec + 1) x
+      . literal " "
+      . printBSsPrec (app_prec + 1) y
+      . literal " "
+      . printBSsPrec (app_prec + 1) z
 
--- * The class 'TOBSSyntax' and its instances
+-- | like 'application1' with four arguments
+{-# INLINEABLE application4 #-}
+application4 :: (PrintBS a, PrintBS b, PrintBS c, PrintBS d) => Integer -> BuiltinString -> a -> b -> c -> d -> BuiltinString -> BuiltinString
+application4 prec f x y z w =
+  printBSParen (app_prec < prec) $
+    literal f
+      . literal " "
+      . printBSsPrec (app_prec + 1) x
+      . literal " "
+      . printBSsPrec (app_prec + 1) y
+      . literal " "
+      . printBSsPrec (app_prec + 1) z
+      . literal " "
+      . printBSsPrec (app_prec + 1) w
 
-class ToBSSyntax a where
-  toBSSyntax :: a -> BSSyntax
+instance PrintBS Integer where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ i = cat (integerToDigits i)
 
-instance ToBSSyntax Integer where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax = integerToBSSyntax
-
-{-# INLINEABLE integerToBSSyntax #-}
-integerToBSSyntax :: Integer -> BSSyntax
-integerToBSSyntax n
-  | n < 0 = ReversedCat $ reverse $ "-" : go (negate n) []
-  | n == 0 = literal "0"
-  | otherwise = ReversedCat $ reverse $ go n []
+{-# INLINEABLE integerToDigits #-}
+integerToDigits :: Integer -> [BuiltinString]
+integerToDigits n
+  | n < 0 = "-" : go (negate n) []
+  | n == 0 = ["0"]
+  | otherwise = go n []
   where
     go i acc
       | i == 0 = acc
@@ -139,39 +129,52 @@ digitToBS x
   | x == 9 = "9"
   | otherwise = "?"
 
-instance ToBSSyntax a => ToBSSyntax [a] where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax = ListLike "[" ", " "]" . fmap toBSSyntax
+instance PrintBS a => PrintBS [a] where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ = catList "[" "," "]" printBSs
 
-instance (ToBSSyntax a, ToBSSyntax b) => ToBSSyntax (a, b) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (x, y) = ListLike "(" ", " ")" [toBSSyntax x, toBSSyntax y]
+{-# INLINEABLE catList #-}
+catList :: BuiltinString -> BuiltinString -> BuiltinString -> (a -> BuiltinString -> BuiltinString) -> [a] -> BuiltinString -> BuiltinString
+catList open _ close _ [] = literal open . literal close
+catList open sep close print (x : xs) = literal open . print x . printSeparated xs . literal close
+  where
+    printSeparated [] = id
+    printSeparated (y : ys) = literal sep . print y . printSeparated ys
 
-instance ToBSSyntax a => ToBSSyntax (Maybe a) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax Nothing = literal "Nothing"
-  toBSSyntax (Just x) = application [literal "Just", toBSSyntax x]
+instance (PrintBS a, PrintBS b) => PrintBS (a, b) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ (x, y) = literal "(" . printBSs x . literal "," . printBSs y . literal ")"
 
-instance (ToBSSyntax k, ToBSSyntax v) => ToBSSyntax (Map k v) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax m = application [literal "fromList", toBSSyntax (PlMap.toList m)]
+instance PrintBS Bool where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ True = literal "True"
+  printBSsPrec _ False = literal "False"
 
-instance ToBSSyntax BuiltinByteString where
+instance PrintBS a => PrintBS (Maybe a) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ Nothing = literal "Nothing"
+  printBSsPrec p (Just x) = application1 p "Just" x
+
+instance (PrintBS k, PrintBS v) => PrintBS (Map k v) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p m = application1 p "fromList" (PlMap.toList m)
+
+instance PrintBS BuiltinByteString where
   -- base16 representation
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax = builtinByteStringToBSSyntax
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ bs = literal "\"" . cat (builtinByteStringCharacters bs) . literal "\""
 
-{-# INLINEABLE builtinByteStringToBSSyntax #-}
-builtinByteStringToBSSyntax :: BuiltinByteString -> BSSyntax
-builtinByteStringToBSSyntax s = ReversedCat $ "\"" : go 0 ["\""]
+{-# INLINEABLE builtinByteStringCharacters #-}
+builtinByteStringCharacters :: BuiltinByteString -> [BuiltinString]
+builtinByteStringCharacters s = go (len - 1) []
   where
     len = lengthOfByteString s
 
     go :: Integer -> [BuiltinString] -> [BuiltinString]
     go i acc
-      | i < len =
+      | i >= 0 =
         let (highNibble, lowNibble) = quotRem (indexByteString s i) 16
-         in go (i + 1) (toHex lowNibble : toHex highNibble : acc)
+         in go (i - 1) (toHex highNibble : toHex lowNibble : acc)
       | otherwise = acc
 
     toHex :: Integer -> BuiltinString
@@ -185,199 +188,170 @@ builtinByteStringToBSSyntax s = ReversedCat $ "\"" : go 0 ["\""]
       | x == 15 = "f"
       | otherwise = "?"
 
-instance ToBSSyntax TokenName where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TokenName x) = application [literal "TokenName", toBSSyntax x]
+instance PrintBS TokenName where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (TokenName x) = application1 p "TokenName" x
 
-instance ToBSSyntax CurrencySymbol where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (CurrencySymbol x) = application [literal "CurrencySymbol ", toBSSyntax x]
+instance PrintBS CurrencySymbol where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (CurrencySymbol x) = application1 p "CurrencySymbol" x
 
-instance ToBSSyntax Value where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Value m) = application [literal "Value", toBSSyntax m]
+instance PrintBS Value where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Value m) = application1 p "Value" m
 
-instance ToBSSyntax TxId where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxId x) = application [literal "TxId", toBSSyntax x]
+instance PrintBS TxId where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (TxId x) = application1 p "TxId" x
 
-instance ToBSSyntax TxOutRef where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxOutRef txid i) = application [literal "TxOutRef", toBSSyntax txid, toBSSyntax i]
+instance PrintBS TxOutRef where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (TxOutRef txid i) = application2 p "TxOutRef" txid i
 
-instance ToBSSyntax ValidatorHash where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ValidatorHash h) = application [literal "ValidatorHash", toBSSyntax h]
+instance PrintBS ValidatorHash where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (ValidatorHash h) = application1 p "ValidatorHash" h
 
-instance ToBSSyntax PubKeyHash where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (PubKeyHash h) = application [literal "PubKeyHash", toBSSyntax h]
+instance PrintBS PubKeyHash where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (PubKeyHash h) = application1 p "PubKeyHash" h
 
-instance ToBSSyntax Credential where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ScriptCredential scriptHash) = application [literal "ScriptCredential", toBSSyntax scriptHash]
-  toBSSyntax (PubKeyCredential pkh) = application [literal "PubKeyCredential", toBSSyntax pkh]
+instance PrintBS Credential where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (ScriptCredential scriptHash) = application1 p "ScriptCredential" scriptHash
+  printBSsPrec p (PubKeyCredential pkh) = application1 p "PubKeyCredential" pkh
 
-instance ToBSSyntax StakingCredential where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (StakingHash cred) = application [literal "StakingCredential", toBSSyntax cred]
-  toBSSyntax (StakingPtr i j k) = application $ literal "StakingPtr" : map toBSSyntax [i, j, k]
+instance PrintBS StakingCredential where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (StakingHash cred) = application1 p "StakingCredential" cred
+  printBSsPrec p (StakingPtr i j k) = application3 p "StakingPtr" i j k
 
-instance ToBSSyntax Address where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Address cred mStCred) = application [literal "Address", toBSSyntax cred, toBSSyntax mStCred]
+instance PrintBS Address where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Address cred mStCred) = application2 p "Address" cred mStCred
 
-instance ToBSSyntax DatumHash where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (DatumHash h) = application [literal "DatumHash", toBSSyntax h]
+instance PrintBS DatumHash where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (DatumHash h) = application1 p "DatumHash" h
 
-instance ToBSSyntax BuiltinData where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax d = application [literal "BuiltinData", builtinDataToBSSyntax d]
+instance PrintBS BuiltinData where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p d = printBSParen (app_prec < p) $ literal "BuiltinData " . builtinDataPrintBSsPrec (app_prec + 1) d
 
-{-# INLINEABLE builtinDataToBSSyntax #-}
-builtinDataToBSSyntax :: BuiltinData -> BSSyntax
-builtinDataToBSSyntax d =
+{-# INLINEABLE builtinDataPrintBSsPrec #-}
+builtinDataPrintBSsPrec :: Integer -> BuiltinData -> BuiltinString -> BuiltinString
+builtinDataPrintBSsPrec p d =
   matchData
     d
     ( \i ds ->
-        application
-          [ literal "Constr",
-            integerToBSSyntax i,
-            ListLike "[" ", " "]" (fmap builtinDataToBSSyntax ds)
-          ]
+        printBSParen (app_prec < p) $
+          literal "Constr "
+            . printBSs i
+            . literal " "
+            . catList "[" "," "]" (builtinDataPrintBSsPrec 0) ds
     )
     ( \alist ->
-        application
-          [ literal "Map",
-            ListLike
+        printBSParen (app_prec < p) $
+          literal "Map "
+            . catList
               "["
-              ", "
+              ","
               "]"
-              ( fmap
-                  ( \(a, b) ->
-                      ListLike
-                        "("
-                        ", "
-                        ")"
-                        [ builtinDataToBSSyntax a,
-                          builtinDataToBSSyntax b
-                        ]
-                  )
-                  alist
-              )
-          ]
+              (\(a, b) -> literal "(" . builtinDataPrintBSsPrec 0 a . literal "," . builtinDataPrintBSsPrec 0 b . literal ")")
+              alist
     )
     ( \list ->
-        application
-          [ literal "List",
-            ListLike "[" ", " "]" (fmap builtinDataToBSSyntax list)
-          ]
+        printBSParen (app_prec < p) $
+          literal "List "
+            . catList "[" "," "]" (builtinDataPrintBSsPrec 0) list
     )
-    ( \i ->
-        application [literal "I", integerToBSSyntax i]
-    )
-    ( \bs ->
-        application [literal "B", builtinByteStringToBSSyntax bs]
-    )
+    (\i -> printBSParen (app_prec < p) $ literal "I " . printBSs i)
+    (\bs -> printBSParen (app_prec < p) $ literal "B " . printBSs bs)
 
-instance ToBSSyntax Datum where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Datum d) = application [literal "Datum", toBSSyntax d]
+instance PrintBS Datum where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Datum d) = application1 p "Datum" d
 
-instance ToBSSyntax OutputDatum where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax NoOutputDatum = literal "NoOutputDatum"
-  toBSSyntax (OutputDatumHash h) = application [literal "OutputDatumHash", toBSSyntax h]
-  toBSSyntax (OutputDatum d) = application [literal "OutputDatum", toBSSyntax d]
+instance PrintBS OutputDatum where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ NoOutputDatum = literal "NoOutputDatum"
+  printBSsPrec p (OutputDatumHash h) = application1 p "OutputDatumHash" h
+  printBSsPrec p (OutputDatum d) = application1 p "OutputDatum" d
 
-instance ToBSSyntax ScriptHash where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (ScriptHash h) = application [literal "ScriptHash", toBSSyntax h]
+instance PrintBS ScriptHash where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (ScriptHash h) = application1 p "ScriptHash" h
 
-instance ToBSSyntax TxOut where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxOut address value datum mRefScriptHash) =
-    application
-      [ literal "TxOut",
-        toBSSyntax address,
-        toBSSyntax value,
-        toBSSyntax datum,
-        toBSSyntax mRefScriptHash
-      ]
+instance PrintBS TxOut where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (TxOut address value datum mRefScriptHash) = application4 p "TxOut" address value datum mRefScriptHash
 
-instance ToBSSyntax TxInInfo where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (TxInInfo oref out) = application [literal "TxInInfo", toBSSyntax oref, toBSSyntax out]
+instance PrintBS TxInInfo where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (TxInInfo oref out) = application2 p "TxInInfo" oref out
 
-instance ToBSSyntax POSIXTime where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (POSIXTime t) = application [literal "POSIXTime", toBSSyntax t]
+instance PrintBS POSIXTime where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (POSIXTime t) = application1 p "POSIXTime" t
 
-instance ToBSSyntax a => ToBSSyntax (Extended a) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax NegInf = literal "NegInf"
-  toBSSyntax PosInf = literal "PosInf"
-  toBSSyntax (Finite x) = application [literal "Finite", toBSSyntax x]
+instance PrintBS a => PrintBS (Extended a) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec _ NegInf = literal "NegInf"
+  printBSsPrec _ PosInf = literal "PosInf"
+  printBSsPrec p (Finite x) = application1 p "Finite" x
 
-instance ToBSSyntax Bool where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax True = literal "True"
-  toBSSyntax False = literal "False"
+instance PrintBS a => PrintBS (LowerBound a) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (LowerBound x closure) = application2 p "LowerBound" x closure
 
-instance ToBSSyntax a => ToBSSyntax (LowerBound a) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (LowerBound x closure) = application [literal "LowerBound", toBSSyntax x, toBSSyntax closure]
+instance PrintBS a => PrintBS (UpperBound a) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (UpperBound x closure) = application2 p "UpperBound" x closure
 
-instance ToBSSyntax a => ToBSSyntax (UpperBound a) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (UpperBound x closure) = application [literal "UpperBound", toBSSyntax x, toBSSyntax closure]
+instance PrintBS a => PrintBS (Interval a) where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Interval lb ub) = application2 p "Interval" lb ub
 
-instance ToBSSyntax a => ToBSSyntax (Interval a) where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Interval lb ub) = application [literal "Interval", toBSSyntax lb, toBSSyntax ub]
+instance PrintBS DCert where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (DCertDelegRegKey stCred) = application1 p "DCertDelegRegKey" stCred
+  printBSsPrec p (DCertDelegDeRegKey stCred) = application1 p "DCertDelegDeRegKey" stCred
+  printBSsPrec p (DCertDelegDelegate stCred pkh) = application2 p "DCertDelegDelegate" stCred pkh
+  printBSsPrec p (DCertPoolRegister stCred1 stCred2) = application2 p "DCertPoolRegister" stCred1 stCred2
+  printBSsPrec p (DCertPoolRetire stCred i) = application2 p "DCertPoolRetire" stCred i
+  printBSsPrec _ DCertGenesis = literal "DCertGenesis"
+  printBSsPrec _ DCertMir = literal "DCertMir"
 
-instance ToBSSyntax DCert where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (DCertDelegRegKey stCred) = application [literal "DCertDelegRegKey", toBSSyntax stCred]
-  toBSSyntax (DCertDelegDeRegKey stCred) = application [literal "DCertDelegDeRegKey", toBSSyntax stCred]
-  toBSSyntax (DCertDelegDelegate stCred pkh) = application [literal "DCertDelegDelegate", toBSSyntax stCred, toBSSyntax pkh]
-  toBSSyntax (DCertPoolRegister stCred1 stCred2) = application [literal "DCertPoolRegister", toBSSyntax stCred1, toBSSyntax stCred2]
-  toBSSyntax (DCertPoolRetire stCred i) = application [literal "DCertPoolRetire", toBSSyntax stCred, toBSSyntax i]
-  toBSSyntax DCertGenesis = literal "DCertGenesis"
-  toBSSyntax DCertMir = literal "DCertMir"
+instance PrintBS ScriptPurpose where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Minting cs) = application1 p "Minting" cs
+  printBSsPrec p (Spending oref) = application1 p "Spending" oref
+  printBSsPrec p (Rewarding stCred) = application1 p "Rewarding" stCred
+  printBSsPrec p (Certifying dCert) = application1 p "Certifying" dCert
 
-instance ToBSSyntax ScriptPurpose where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Minting cs) = application [literal "Minting", toBSSyntax cs]
-  toBSSyntax (Spending oref) = application [literal "Spending", toBSSyntax oref]
-  toBSSyntax (Rewarding stCred) = application [literal "Rewarding", toBSSyntax stCred]
-  toBSSyntax (Certifying dCert) = application [literal "Certifying", toBSSyntax dCert]
-
-instance ToBSSyntax Redeemer where
-  {-# INLINEABLE toBSSyntax #-}
-  toBSSyntax (Redeemer builtinData) = application [literal "Redeemer", toBSSyntax builtinData]
+instance PrintBS Redeemer where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p (Redeemer builtinData) = application1 p "Redeemer" builtinData
 
 -- In an ideal world, the following instance would print the whole 'TxInfo'. The
 -- sad reality is that this causes the script to go over budget on even the
--- simplest of examples. TODO: investigate how to make adjust the execution
+-- simplest of examples. TODO: investigate how to adjust the execution
 -- budget.
 --
--- instance ToBSSyntax TxInfo where
---   {-# INLINEABLE toBSSyntax #-}
---   toBSSyntax TxInfo {..} =
---     application
---       [ literal "TxInfo",
---         toBSSyntax txInfoInputs,
---         toBSSyntax txInfoReferenceInputs,
---         toBSSyntax txInfoOutputs,
---         toBSSyntax txInfoFee,
---         toBSSyntax txInfoMint,
---         toBSSyntax txInfoDCert,
---         toBSSyntax txInfoWdrl,
---         toBSSyntax txInfoValidRange,
---         toBSSyntax txInfoSignatories,
---         toBSSyntax txInfoRedeemers,
---         toBSSyntax txInfoData,
---         toBSSyntax txInfoId
---       ]
+instance PrintBS TxInfo where
+  {-# INLINEABLE printBSsPrec #-}
+  printBSsPrec p TxInfo {..} =
+    printBSParen (app_prec < p) $
+      literal "TxInfo "
+        . printBSsPrec (app_prec + 1) txInfoInputs
+        . printBSsPrec (app_prec + 1) txInfoReferenceInputs
+        . printBSsPrec (app_prec + 1) txInfoOutputs
+        . printBSsPrec (app_prec + 1) txInfoFee
+        . printBSsPrec (app_prec + 1) txInfoMint
+        . printBSsPrec (app_prec + 1) txInfoDCert
+        . printBSsPrec (app_prec + 1) txInfoWdrl
+        . printBSsPrec (app_prec + 1) txInfoValidRange
+        . printBSsPrec (app_prec + 1) txInfoSignatories
+        . printBSsPrec (app_prec + 1) txInfoRedeemers
+        . printBSsPrec (app_prec + 1) txInfoData
+        . printBSsPrec (app_prec + 1) txInfoId
