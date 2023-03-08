@@ -161,7 +161,7 @@ validRangeSubsetOf =
     timeRangeOfPair Nothing Nothing = always
     timeRangeOfPair Nothing (Just a) = to (POSIXTime a)
     timeRangeOfPair (Just a) Nothing = from (POSIXTime a)
-    timeRangeOfPair (Just a) (Just b) = to (POSIXTime b) /\ from (POSIXTime a)
+    timeRangeOfPair (Just a) (Just b) = Interval.interval (POSIXTime a) (POSIXTime b)
     val :: (Maybe Integer, Maybe Integer) -> () -> () -> ScriptContext -> Bool
     val range _ _ (ScriptContext txInfo _) =
       uncurry timeRangeOfPair range `contains` txInfoValidRange txInfo
