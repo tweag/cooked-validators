@@ -46,8 +46,7 @@ literal = (<>)
 
 {-# INLINEABLE cat #-}
 cat :: [BuiltinString] -> BuiltinString -> BuiltinString
-cat [] = id -- we cannot use foldr here for some reason with the plutus compiler
-cat (x : xs) = literal x . cat xs
+cat xs x = foldr (<>) x xs
 
 -- | print with a surrounding parenthesis, if the boolean argument is true
 {-# INLINEABLE showBSParen #-}
