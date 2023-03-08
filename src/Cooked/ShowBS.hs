@@ -11,6 +11,11 @@
 -- useful for debugging of validators. You probably do not want to use this in
 -- production code, as many of the functions in this module are wildly
 -- inefficient due to limitations of the 'BuiltinString' type.
+--
+-- If the functions from this module make script execution on your transactions
+-- go over budget, consider using 'txOptEmulatorParamsModification' to
+-- temporarily loosen the limits (at the cost of breaking compatibility with
+-- mainnet)
 module Cooked.ShowBS (ShowBS (..), showBSs, app_prec) where
 
 import Plutus.V2.Ledger.Api
@@ -333,11 +338,6 @@ instance ShowBS Redeemer where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (Redeemer builtinData) = application1 p "Redeemer" builtinData
 
--- In an ideal world, the following instance would print the whole 'TxInfo'. The
--- sad reality is that this causes the script to go over budget on even the
--- simplest of examples. TODO: investigate how to adjust the execution
--- budget.
---
 instance ShowBS TxInfo where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p TxInfo {..} =
