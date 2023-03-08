@@ -160,6 +160,30 @@ putRefScriptOnWalletOutput recipient referencedScript =
           txSkelSigners = [recipient]
         }
 
+-- | Create an output whose address is the one of a script, and another one
+-- consuming that output, and hence running the validator.
+-- The first transaction simply puts the minimal amount of Ada (taken from
+-- wallet 1) in an output protected by the validator.
+triggerValidator ::
+  MonadBlockChain m =>
+  Scripts.TypedValidator Validators.Unit ->
+  -- | Template transaction which runs the validator. The transaction
+  -- effectively run has an input with the validator added.
+  m TxSkel ->
+  m ()
+triggerValidator validator skel = do
+  outCTx <-
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts =
+            [paysScript validator () mempty],
+          txSkelSigners = [wallet 1]
+        }
+  let (outRef, _) : _ = utxosFromCardanoTx outCTx
+  skel' <- over txSkelInsL (Map.insert outRef (TxSkelRedeemerForScript ())) <$> skel
+  void $ validateTxSkel skel'
+
 -- * Continuing outputs
 
 --
@@ -342,6 +366,25 @@ tests =
           testCase
             "the required signer is not there"
             (testFails def $ requireSigner (wallet 3) [wallet 1, wallet 2])
+        ],
+      testGroup
+        "Valid ranges"
+        [ testCase "always subset of the whole time" $
+            testSucceeds
+              def
+              ( triggerValidator
+                  (Validators.validRangeSubsetOf (Nothing, Nothing))
+                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+              ),
+          testCase "never subset of the (almost) empty set" $
+            testFailsFrom'
+              def
+              (isCekEvaluationFailure def)
+              def
+              ( triggerValidator
+                  (Validators.validRangeSubsetOf (Just 0, Just 0))
+                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+              )
         ],
       testGroup
         "Continuing outputs"

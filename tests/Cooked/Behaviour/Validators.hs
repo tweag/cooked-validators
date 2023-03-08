@@ -17,11 +17,13 @@ module Cooked.Behaviour.Validators
     inputDatum,
     requireSigner,
     requireRefScript,
+    validRangeSubsetOf,
   )
 where
 
 import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
+import Plutus.V1.Ledger.Interval as Interval
 import Plutus.V2.Ledger.Api as PV2
 import Plutus.V2.Ledger.Contexts as PV2
 import PlutusTx
@@ -147,3 +149,20 @@ requireRefScript =
 
     wrap = Scripts.mkUntypedValidator
 
+-- | A validator that succeeds if the valid range is a subset of the argument.
+-- Have this in mind when using this validator:
+-- https://github.com/input-output-hk/plutus/issues/5185
+validRangeSubsetOf :: (Maybe Integer, Maybe Integer) -> Scripts.TypedValidator Unit
+validRangeSubsetOf =
+  Scripts.mkTypedValidatorParam @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    timeRangeOfPair Nothing Nothing = always
+    timeRangeOfPair Nothing (Just a) = to (POSIXTime a)
+    timeRangeOfPair (Just a) Nothing = from (POSIXTime a)
+    timeRangeOfPair (Just a) (Just b) = to (POSIXTime b) /\ from (POSIXTime a)
+    val :: (Maybe Integer, Maybe Integer) -> () -> () -> ScriptContext -> Bool
+    val range _ _ (ScriptContext txInfo _) =
+      uncurry timeRangeOfPair range `contains` txInfoValidRange txInfo
+    wrap = Scripts.mkUntypedValidator
