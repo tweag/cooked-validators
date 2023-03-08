@@ -246,9 +246,9 @@ data TxOpts = TxOpts
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
     -- | Apply an arbitrary modification to the protocol parameters that are
-    -- used during balancing and submmission of the transaction. This is
-    -- ovbiously a very unsafe thing to do if you want to preserve
-    -- compatibuility with the actual chain. It is useful mainly for testing
+    -- used to balance and submit the transaction. This is
+    -- obviously a very unsafe thing to do if you want to preserve
+    -- compatibility with the actual chain. It is useful mainly for testing
     -- purposes, when you might want to use extremely big transactions or
     -- transactions that exhaust the maximum execution budget. Such a thing
     -- could be accomplished with
