@@ -18,9 +18,11 @@ module Cooked.Behaviour.Validators
     requireSigner,
     requireRefScript,
     validRangeSubsetOf,
+    checkFeeBetween,
   )
 where
 
+import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
 import Plutus.V1.Ledger.Interval as Interval
@@ -166,3 +168,23 @@ validRangeSubsetOf =
     val range _ _ (ScriptContext txInfo _) =
       uncurry timeRangeOfPair range `contains` txInfoValidRange txInfo
     wrap = Scripts.mkUntypedValidator
+
+-- | Succeeds if the fee is in the given range.
+checkFeeBetween ::
+  -- | Range @(x, Nothing)@ encodes @[max x 0, +∞)@ while @(x, Just y)@ encodes
+  -- @[max x 0, max y 0]@.
+  (Integer, Maybe Integer) ->
+  Scripts.TypedValidator Unit
+checkFeeBetween =
+  Scripts.mkTypedValidatorParam @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    wrap = Scripts.mkUntypedValidator
+    rangeOfPair :: (Haskell.Num a, Ord a) => a -> Maybe a -> Interval a
+    rangeOfPair a Nothing = from (max 0 a)
+    rangeOfPair a (Just b) = Interval.interval (max 0 a) (max 0 b)
+    val :: (Integer, Maybe Integer) -> () -> () -> ScriptContext -> Bool
+    val (lower, upper) _ _ (ScriptContext txInfo _) =
+      Ada.fromValue (txInfoFee txInfo)
+        `member` rangeOfPair (Haskell.fromInteger lower) (fmap Haskell.fromInteger upper)

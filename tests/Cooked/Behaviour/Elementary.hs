@@ -378,6 +378,34 @@ tests =
               )
         ],
       testGroup
+        "Fees control"
+        [ testCase "standard" $
+            testSucceeds
+              def
+              ( triggerValidator
+                  (Validators.checkFeeBetween (350_000, Just 3_000_000))
+                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+              ),
+          testCase "why? (review needed)" $
+            testFailsFrom'
+              def
+              (isCekEvaluationFailure def)
+              def
+              ( triggerValidator
+                  (Validators.checkFeeBetween (350_000, Just 2_900_000))
+                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+              ),
+          testCase "why? (review needed)" $
+            testFailsFrom'
+              def
+              (isCekEvaluationFailure def)
+              def
+              ( triggerValidator
+                  (Validators.checkFeeBetween (360_000, Just 3_000_000))
+                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+              )
+        ],
+      testGroup
         "Continuing outputs"
         [ testCase "keeping one output" uniqueScriptOutput,
           testCase "pot increases" increasingPot
