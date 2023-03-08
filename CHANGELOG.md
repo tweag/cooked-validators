@@ -13,6 +13,9 @@
   - `withReferenceScript` and `withStakingCredential` to add a reference script
     or staking credential to a payment
 - Export `Cooked.UtxoState`
+- Add a module `Cooked.ShowBS` to provide a Plutus-level analogue of `Show` with
+  `BuiltinString` as its codomain. This is very inefficient due to limitations
+  of `BuiltinString`, but potentially useful for "printf-debugging" of scripts.
 
 ### Removed
 
