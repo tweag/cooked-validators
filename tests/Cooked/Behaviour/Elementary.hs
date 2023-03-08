@@ -6,6 +6,7 @@
 -- capabilities of Cooked.
 module Cooked.Behaviour.Elementary where
 
+import Control.Monad (void)
 import Cooked
 import qualified Cooked.Behaviour.Validators as Validators
 import Data.Default (def)
@@ -293,6 +294,28 @@ increasingPot =
     (\_ -> Pl.adaValueOf 2)
     def
 
+-- | Create a transaction that runs the validator 'Validators.requireSigner'.
+requireSigner :: MonadBlockChain m => Wallet -> [Wallet] -> m ()
+requireSigner required signers = do
+  let val = Validators.requireSigner $ walletPKHash required
+  outCTx <-
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts =
+            [paysScript val () mempty],
+          txSkelSigners = [wallet 1]
+        }
+  let (outRef, _) : _ = utxosFromCardanoTx outCTx
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts = [paysPK (walletPKHash $ wallet 1) mempty],
+          txSkelIns = Map.singleton outRef (TxSkelRedeemerForScript ()),
+          txSkelSigners = signers
+        }
+
 tests :: TestTree
 tests =
   testGroup
@@ -310,6 +333,15 @@ tests =
           testCase
             "a script, using a resolved datum"
             $ walletToScriptHowDatum Validators.ResolvedHash
+        ],
+      testGroup
+        "Signers"
+        [ testCase
+            "the required signer is there"
+            (testSucceeds def $ requireSigner (wallet 3) [wallet 1, wallet 3]),
+          testCase
+            "the required signer is not there"
+            (testFails def $ requireSigner (wallet 3) [wallet 1, wallet 2])
         ],
       testGroup
         "Continuing outputs"
