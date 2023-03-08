@@ -69,3 +69,4 @@ tests:
       - tests/
     dependencies:
       - cooked-validators
+      - parsec

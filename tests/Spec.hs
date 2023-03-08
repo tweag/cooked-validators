@@ -6,6 +6,7 @@ import qualified Cooked.MinAdaSpec as MinAdaSpec
 import qualified Cooked.MockChainSpec as MockChainSpec
 import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
 import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
+import qualified Cooked.ShowBSSpec as ShowBSSpec
 import qualified Cooked.TweakSpec as TweakSpec
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
@@ -34,5 +35,6 @@ tests =
       AttackSpec.tests,
       TweakSpec.tests,
       LtlSpec.tests,
-      MockChainSpec.tests
+      MockChainSpec.tests,
+      ShowBSSpec.tests
     ]
