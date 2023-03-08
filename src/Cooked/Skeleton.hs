@@ -158,6 +158,8 @@ newtype RawModTx
     -- final signing are performed
     RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
 
+-- This instance always returns @False@, which is no problem, because 'Eq
+-- TxSkel' is only used for tests that never depend on this comparison
 instance Eq RawModTx where
   _ == _ = False
 
@@ -174,6 +176,8 @@ applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedT
 -- the transaction's balancing and submission.
 newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
 
+-- This instance always returns @False@, which is no problem, because 'Eq
+-- TxSkel' is only used for tests that never depend on this comparison
 instance Eq EmulatorParamsModification where
   _ == _ = False
 
