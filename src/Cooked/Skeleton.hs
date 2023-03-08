@@ -19,8 +19,8 @@ module Cooked.Skeleton
     BalanceOutputPolicy (..),
     BalancingWallet (..),
     RawModTx (..),
-    ChangeParams (..),
-    applyChangeParams,
+    EmulatorParamsModification (..),
+    applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
     MintsConstrs,
@@ -172,22 +172,17 @@ applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedT
 
 -- | Wraps a function that will temporarily change the emulator parameters for
 -- the transaction's balancing and submission.
-data ChangeParams = DontChangeParams | ChangeParams (Emulator.Params -> Emulator.Params)
+newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
 
-instance Eq ChangeParams where
-  DontChangeParams == DontChangeParams = True
+instance Eq EmulatorParamsModification where
   _ == _ = False
 
-instance Show ChangeParams where
-  show DontChangeParams = "DontChangeParams"
-  show ChangeParams {} = "ChangeParams <function>"
+instance Show EmulatorParamsModification where
+  show EmulatorParamsModification {} = "EmulatorParamsModification <function>"
 
-instance Default ChangeParams where
-  def = DontChangeParams
-
-applyChangeParams :: ChangeParams -> Emulator.Params -> Emulator.Params
-applyChangeParams DontChangeParams = id
-applyChangeParams (ChangeParams f) = f
+applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.Params -> Emulator.Params
+applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
+applyEmulatorParamsModification Nothing = id
 
 -- | Set of options to modify the behavior of generating and validating some transaction.
 data TxOpts = TxOpts
@@ -253,12 +248,12 @@ data TxOpts = TxOpts
     -- transactions that exhaust the maximum execution budget. Such a thing
     -- could be accomplished with
     --
-    -- > txOptChangeParams = ChangeParams increaseTransactionLimits
+    -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
     --
     -- for example.
     --
-    -- Default is 'DontChangeParams'.
-    txOptChangeParams :: ChangeParams
+    -- Default is 'Nothing'.
+    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
   }
   deriving (Eq, Show)
 
@@ -272,7 +267,7 @@ instance Default TxOpts where
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
-        txOptChangeParams = def
+        txOptEmulatorParamsModification = Nothing
       }
 
 -- * Description of the Minting

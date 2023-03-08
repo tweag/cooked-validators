@@ -65,7 +65,7 @@ balancedTxSkel skelUnbal = do
 -- transaction.
 balancedTx :: MonadBlockChainBalancing m => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
 balancedTx (skel, fee, collateralInputs) = do
-  params <- applyChangeParams (txOptChangeParams . txSkelOpts $ skel) <$> getParams
+  params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
   consumedData <- txSkelInputData skel
   consumedOrReferencedTxOuts <- do
     ins <- txSkelInputUtxosPV2 skel
@@ -91,7 +91,7 @@ balancedTx (skel, fee, collateralInputs) = do
 -- @True@.
 ensureTxSkelOutsMinAda :: MonadBlockChainBalancing m => TxSkel -> m TxSkel
 ensureTxSkelOutsMinAda skel = do
-  theParams <- applyChangeParams (txOptChangeParams . txSkelOpts $ skel) <$> getParams
+  theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
   case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
     Left err -> throwError $ MCEGenerationError err
     Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
@@ -274,7 +274,7 @@ setFeeAndBalance balanceWallet skel0 = do
         insRef <- txSkelReferenceInputUtxosPV2 skel
         return $ ins <> insRef
       managedValidators <- txSkelInputValidators skel
-      theParams <- applyChangeParams (txOptChangeParams . txSkelOpts $ skel) <$> getParams
+      theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
       case estimateTxSkelFee theParams cUtxoIndex managedData managedTxOuts managedValidators attemptedSkel fee of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err

@@ -290,7 +290,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
     (skel, fee, collateralInputs) <- balancedTxSkel skelUnbal
     tx <- balancedTx (skel, fee, collateralInputs)
     consumedData <- txSkelInputData skel
-    theParams <- applyChangeParams (txOptChangeParams . txSkelOpts $ skel) <$> getParams
+    theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
     someCardanoTx <-
       runTransactionValidation
         theParams
@@ -305,7 +305,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
 
 runTransactionValidation ::
   Monad m =>
-  -- | The emulator parameters to use. They might have been changed by the 'txOptChangeParams'.
+  -- | The emulator parameters to use. They might have been changed by the 'txOptEmulatorParamsModification'.
   Emulator.Params ->
   -- | The transaction to validate. It should already be balanced, and include
   -- appropriate fees and collateral.
