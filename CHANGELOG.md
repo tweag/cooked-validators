@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Modifiers to ease specification of payments in transaction skeletons:
+  - `withDatum`, `withInlineDatum`, and `withDatumHash` to add or override
+    datums in payments, regardless of whether the type matches the validator
+    type in case of scripts
+  - `paysScriptNoDatum` to be used with `withDatum`, `withInlineDatum` and
+    `withDatumHash`.
+  - `withReferenceScript` and `withStakingCredential` to add a reference script
+    or staking credential to a payment
+- Export `Cooked.UtxoState`
+- Add a module `Cooked.ShowBS` to provide a Plutus-level analogue of `Show` with
+  `BuiltinString` as its codomain. This is very inefficient due to limitations
+  of `BuiltinString`, but potentially useful for "printf-debugging" of scripts.
+
+### Removed
+
+- `paysPKWithReferenceScript` (superseded by the `withReferenceScript`
+  modifier)
+- Do not export `Cooked.UtxoPayloadSet`
+
+### Changed
+
+- `Cooked.holdingInState` is relpaced by `Cooked.holdsInState` which takes an
+  address instead of a wallet as argument.
+
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
 This major update overhauls the entire library to: handle Plutus V2 features,
