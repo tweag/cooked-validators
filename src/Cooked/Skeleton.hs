@@ -789,11 +789,13 @@ type SpendsScriptConstrs redeemer =
 data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
   TxSkelRedeemerForScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
-  TxSkelRedeemerForReferencedScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
+  -- | The first argument is a reference to the output where the referenced
+  -- script is stored.
+  TxSkelRedeemerForReferencedScript :: SpendsScriptConstrs redeemer => Pl.TxOutRef -> redeemer -> TxSkelRedeemer
 
 txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
@@ -804,8 +806,9 @@ instance Eq TxSkelRedeemer where
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 Pl.== r2
       Nothing -> False
-  (TxSkelRedeemerForReferencedScript r1) == (TxSkelRedeemerForReferencedScript r2) =
+  (TxSkelRedeemerForReferencedScript o1 r1) == (TxSkelRedeemerForReferencedScript o2 r2) =
     TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
+      && o1 == o2
   _ == _ = False
 
 -- * Transaction skeletons
@@ -834,10 +837,6 @@ data TxSkel where
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
-      --
-      -- - On 'TxOutRef's belonging to /referenced/ scripts, you must make sure
-      --   that the UTxO where the referenced script is stored is included in
-      --   the 'txSkelInsReference'.
       txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
       -- | All outputs referenced by the transaction.
       txSkelInsReference :: Set Pl.TxOutRef,

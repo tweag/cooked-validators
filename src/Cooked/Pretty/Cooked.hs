@@ -209,7 +209,6 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
-          -- TODO handle unsafe 'fromJust' better
           prettyItemizeNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn opts skelContext) $ Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
           prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs)
@@ -294,13 +293,21 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
 prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
   (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
-  let redeemerDoc =
+  let (redeemerDoc, ownerDoc) =
         case txSkelRedeemer of
-          TxSkelRedeemerForScript redeemer -> Just ("Redeemer:" <+> prettyCookedOpt opts redeemer)
-          _ -> Nothing
+          TxSkelRedeemerForScript redeemer ->
+            ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
+              prettyCookedOpt opts (outputAddress output)
+            )
+          TxSkelRedeemerForReferencedScript refScriptOref redeemer ->
+            ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
+              prettyCookedOpt opts (outputAddress output)
+                <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
+            )
+          TxSkelNoRedeemerForPK -> (Nothing, prettyCookedOpt opts (outputAddress output))
   return $
     prettyItemize
-      ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
+      ("Spends from" <+> ownerDoc)
       "-"
       ( prettyCookedOpt opts (outputValue output) :
         catMaybes

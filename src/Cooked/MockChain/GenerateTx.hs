@@ -19,6 +19,7 @@ import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Node.Emulator.Params as Emulator
 import Control.Arrow
+import Control.Monad
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -77,7 +78,15 @@ generateTxBodyContent ::
     (C.TxBodyContent C.BuildTx C.BabbageEra)
 generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts managedValidators skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList (txSkelIns skel)
-  txInsReference <- txOutRefsToTxInsReference $ Set.toList (txSkelInsReference skel)
+  txInsReference <-
+    txOutRefsToTxInsReference $
+      Maybe.mapMaybe
+        ( \case
+            TxSkelRedeemerForReferencedScript oref _ -> Just oref
+            _ -> Nothing
+        )
+        (Map.elems $ txSkelIns skel)
+        ++ Set.toList (txSkelInsReference skel)
   txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
   txOuts <- mapM (txSkelOutToCardanoTxOut theParams) $ txSkelOuts skel
   txValidityRange <-
@@ -193,19 +202,18 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         mkWitness :: TxSkelRedeemer -> Either GenerateTxError (C.Witness C.WitCtxTxIn C.BabbageEra)
         mkWitness TxSkelNoRedeemerForPK = Right $ C.KeyWitness C.KeyWitnessForSpending
-        mkWitness (TxSkelRedeemerForReferencedScript redeemer) = do
+        mkWitness (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
           (validatorHash, validator, datum) <- resolveScriptOutputOwnerAndDatum
-          validatorOref <-
+          scriptHashAtOref <-
+            -- In our own MockChainT implementation, this error should never
+            -- been thrown, because we collect the 'managedTxOuts' using
+            -- (eventually) 'lookupUtxos', which will already fail on
+            -- un-resolvable 'TxOutRef's.
             throwOnNothing
-              (GenerateTxErrorGeneral "txSkelInToTxIn: Can't find reference script. In order to use a reference script, you must include the output where it is stored in the 'txSkelInsReference'.")
-              $ find
-                ( \oref -> case Map.lookup oref managedTxOuts of
-                    Nothing -> False
-                    Just output -> case output ^. outputReferenceScriptL of
-                      Nothing -> False
-                      Just scriptHash -> scriptHash == toScriptHash validator
-                )
-                (txSkelInsReference skel)
+              (GenerateTxErrorGeneral "txSkelInToTxIn: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored")
+              $ Map.lookup validatorOref managedTxOuts >>= (^. outputReferenceScriptL)
+          when (scriptHashAtOref /= toScriptHash validatorHash) $
+            Left $ GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
           validatorTxIn <-
             left
               (ToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits")
