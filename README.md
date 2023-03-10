@@ -49,7 +49,7 @@ Before using `cooked-validators`, you need
    source-repository-package
      type: git
      location: https://github.com/tweag/cooked-validators
-     tag: e124a5f2872e180df9d807445c2195f8052bd262
+     tag: v2.0.0
      subdir:
        cooked-validators
    ```

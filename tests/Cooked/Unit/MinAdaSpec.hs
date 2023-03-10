@@ -26,13 +26,10 @@ paymentWithMinAda = do
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
-            [ Pays $
-                ConcreteOutput
-                  (walletPKHash $ wallet 2)
-                  Nothing
-                  mempty
-                  (TxSkelOutDatum heavyDatum)
-                  (Nothing @(Pl.Versioned Pl.Script))
+            [ paysPK
+                (walletPKHash $ wallet 2)
+                mempty
+                `withDatum` heavyDatum
             ],
           txSkelSigners = [wallet 1]
         }
@@ -43,13 +40,10 @@ paymentWithoutMinAda paidLovelaces = do
     validateTxSkel
       txSkelTemplate
         { txSkelOuts =
-            [ Pays $
-                ConcreteOutput
-                  (walletPKHash $ wallet 2)
-                  Nothing
-                  (Pl.lovelaceValueOf paidLovelaces)
-                  (TxSkelOutDatum heavyDatum)
-                  (Nothing @(Pl.Versioned Pl.Script))
+            [ paysPK
+                (walletPKHash $ wallet 2)
+                (Pl.lovelaceValueOf paidLovelaces)
+                `withDatum` heavyDatum
             ],
           txSkelSigners = [wallet 1]
         }
