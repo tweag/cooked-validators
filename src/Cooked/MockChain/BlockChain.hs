@@ -349,7 +349,7 @@ awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- | The infinite range of slots ending before or at the given POSIX time
-slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
@@ -362,7 +362,7 @@ slotRangeBefore t = do
     else return $ PV2.to (n - 1)
 
 -- | The infinite range of slots starting after or at the given POSIX time
-slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToTimeInterval n
