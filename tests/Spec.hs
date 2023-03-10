@@ -1,6 +1,7 @@
 -- import qualified Cooked.BalanceSpec as Ba
 
 import qualified Cooked.Behaviour as Behaviour
+import qualified Cooked.ShowBSSpec as ShowBSSpec
 import qualified Cooked.Unit as Unit
 -- import qualified Cooked.MockChain.Monad.StagedSpec as StagedSpec
 -- import qualified Cooked.MockChain.UtxoStateSpec as UtxoStateSpec
@@ -23,5 +24,6 @@ tests =
       -- testGroup "UtxoState" UtxoStateSpec.tests,
       -- testGroup "Wallet" WalletSpec.tests,
       Unit.tests,
-      Behaviour.tests
+      Behaviour.tests,
+      ShowBSSpec.tests
     ]

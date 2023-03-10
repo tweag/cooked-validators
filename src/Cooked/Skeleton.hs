@@ -19,6 +19,8 @@ module Cooked.Skeleton
     BalanceOutputPolicy (..),
     BalancingWallet (..),
     RawModTx (..),
+    EmulatorParamsModification (..),
+    applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
     MintsConstrs,
@@ -71,6 +73,7 @@ module Cooked.Skeleton
 where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Node.Emulator as Emulator
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -160,6 +163,8 @@ newtype RawModTx
     -- final signing are performed
     RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
 
+-- This instance always returns @False@, which is no problem, because 'Eq
+-- TxSkel' is only used for tests that never depend on this comparison
 instance Eq RawModTx where
   _ == _ = False
 
@@ -171,6 +176,22 @@ instance Show RawModTx where
 applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
 applyRawModOnBalancedTx [] = id
 applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
+
+-- | Wraps a function that will temporarily change the emulator parameters for
+-- the transaction's balancing and submission.
+newtype EmulatorParamsModification = EmulatorParamsModification (Emulator.Params -> Emulator.Params)
+
+-- This instance always returns @False@, which is no problem, because 'Eq
+-- TxSkel' is only used for tests that never depend on this comparison
+instance Eq EmulatorParamsModification where
+  _ == _ = False
+
+instance Show EmulatorParamsModification where
+  show EmulatorParamsModification {} = "EmulatorParamsModification <function>"
+
+applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.Params -> Emulator.Params
+applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
+applyEmulatorParamsModification Nothing = id
 
 -- | Set of options to modify the behavior of generating and validating some transaction.
 data TxOpts = TxOpts
@@ -227,7 +248,21 @@ data TxOpts = TxOpts
     -- of signers.
     --
     -- Default is 'BalanceWithFirstSigner'.
-    txOptBalanceWallet :: BalancingWallet
+    txOptBalanceWallet :: BalancingWallet,
+    -- | Apply an arbitrary modification to the protocol parameters that are
+    -- used to balance and submit the transaction. This is
+    -- obviously a very unsafe thing to do if you want to preserve
+    -- compatibility with the actual chain. It is useful mainly for testing
+    -- purposes, when you might want to use extremely big transactions or
+    -- transactions that exhaust the maximum execution budget. Such a thing
+    -- could be accomplished with
+    --
+    -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
+    --
+    -- for example.
+    --
+    -- Default is 'Nothing'.
+    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
   }
   deriving (Eq, Show)
 
@@ -240,7 +275,8 @@ instance Default TxOpts where
         txOptUnsafeModTx = [],
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
-        txOptBalanceWallet = def
+        txOptBalanceWallet = def,
+        txOptEmulatorParamsModification = Nothing
       }
 
 -- * Description of the Minting

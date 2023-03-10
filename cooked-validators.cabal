@@ -36,6 +36,7 @@ library
       Cooked.Pretty.Cooked
       Cooked.Pretty.Options
       Cooked.RawUPLC
+      Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Tweak
       Cooked.Tweak.AddInputsAndOutputs
@@ -112,6 +113,7 @@ test-suite spec
       Cooked.Behaviour.ReferenceInputsSpec
       Cooked.Behaviour.ReferenceScriptsSpec
       Cooked.Behaviour.Validators
+      Cooked.ShowBSSpec
       Cooked.TestUtils
       Cooked.Unit
       Cooked.Unit.Attack.DatumHijackingSpec
@@ -162,6 +164,7 @@ test-suite spec
     , optics-core
     , optics-th
     , optics-vl
+    , parsec
     , plutus-contract
     , plutus-core
     , plutus-ledger

@@ -69,5 +69,6 @@ tests:
       - tests/
     dependencies:
       - cooked-validators
+      - parsec
     ghc-options:
       -Wall

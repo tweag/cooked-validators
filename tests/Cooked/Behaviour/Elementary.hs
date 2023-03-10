@@ -18,6 +18,7 @@ import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.V2.Address as Address
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
 import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.V1.Ledger.Address as PV1 (pubKeyHashAddress)
 import qualified Plutus.V2.Ledger.Api as PV2
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -37,13 +38,16 @@ outputsProtectedBy =
     . Address.mkValidatorAddress
     . Scripts.validatorScript
 
+wAddress :: Int -> PV2.Address
+wAddress = PV1.pubKeyHashAddress . walletPKHash . wallet
+
 walletToWallet :: Assertion
 walletToWallet =
   testSucceedsFrom'
     def
     ( \_ state -> do
-        holdingInState state (wallet 2) @?= Pl.adaValueOf 7
-        countLovelace (holdingInState state (wallet 1))
+        wAddress 2 `holdsInState` state @?= Pl.adaValueOf 7
+        countLovelace (wAddress 1 `holdsInState` state)
           <= 3_000_000
           @? "Wallet 1 has too many Lovelace"
     )
@@ -68,7 +72,7 @@ walletToScript =
         let yesOutsValue = mconcat $ view outputValueL . snd <$> yesOuts
         countLovelace yesOutsValue @?= 2_000_000
         -- Wallet 1 pays some fees
-        countLovelace (holdingInState state (wallet 1))
+        countLovelace (wAddress 1 `holdsInState` state)
           < 3_000_000
           @? "Wallet 1 has too many Lovelace (have fees been spent?)"
         case yesOuts of [_] -> True; _ -> False
@@ -100,7 +104,7 @@ walletToScriptHowDatum datumKind =
         let outsValue = mconcat $ view outputValueL . snd <$> outputs
         countLovelace outsValue @?= 2_000_000
         -- Wallet 1 pays some fees
-        countLovelace (holdingInState state (wallet 1))
+        countLovelace (wAddress 1 `holdsInState` state)
           < 3_000_000
           @? "Wallet 1 has too many Lovelace (have fees been spent?)"
         ( case ( datumKind,
@@ -152,10 +156,10 @@ putRefScriptOnWalletOutput recipient referencedScript =
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
           txSkelOuts =
-            [ paysPKWithReferenceScript
+            [ paysPK
                 (walletPKHash recipient)
                 mempty
-                referencedScript
+                `withReferenceScript` referencedScript
             ],
           txSkelSigners = [recipient]
         }
