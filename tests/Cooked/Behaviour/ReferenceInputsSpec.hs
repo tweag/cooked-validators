@@ -3,8 +3,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Cooked.Behaviour.ReferenceInputsSpec where
@@ -16,14 +14,6 @@ import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
-import Prettyprinter (Pretty)
-import qualified Prettyprinter as PP
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as Tasty
 
