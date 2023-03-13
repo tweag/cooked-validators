@@ -390,7 +390,7 @@ tests =
                   (Validators.checkFeeBetween (350_000, Just 3_000_000))
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
-          testCase "why? (review needed)" $
+          testCase "3 Ada is the upper bound" $
             testFailsFrom'
               def
               (isCekEvaluationFailure def)
@@ -399,7 +399,7 @@ tests =
                   (Validators.checkFeeBetween (350_000, Just 2_900_000))
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
-          testCase "why? (review needed)" $
+          testCase "350 000 Lovelace is the lower bound" $
             testFailsFrom'
               def
               (isCekEvaluationFailure def)
