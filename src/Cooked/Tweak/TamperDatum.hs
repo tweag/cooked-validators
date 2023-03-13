@@ -71,6 +71,7 @@ malformDatumTweak change = do
   let modifiedOutputs = map (\output -> output : changeOutput output) outputs
       modifiedOutputGroups = tail $ allCombinations modifiedOutputs
   msum $ map (setTweak txSkelOutsL) modifiedOutputGroups
+  addLabelTweak MalformDatumLbl
   where
     changeOutput :: TxSkelOut -> [TxSkelOut]
     changeOutput (Pays out) =
