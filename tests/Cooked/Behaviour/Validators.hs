@@ -19,6 +19,9 @@ module Cooked.Behaviour.Validators
     requireRefScript,
     validRangeSubsetOf,
     checkFeeBetween,
+    otherInputDatum,
+    pkNotInDatum,
+    PubKey,
   )
 where
 
@@ -188,3 +191,51 @@ checkFeeBetween =
     val (lower, upper) _ _ (ScriptContext txInfo _) =
       Ada.fromValue (txInfoFee txInfo)
         `member` rangeOfPair (Haskell.fromInteger lower) (fmap Haskell.fromInteger upper)
+
+-- * Coupled validators
+
+-- 'otherInputDatum' and 'pkNotInDatum' are two scripts to test reference inputs.
+-- They serve no purpose and make no real sense.
+
+-- | Outputs can only be spent if in the transaction, there's an input whose
+-- datum contains the pubkey hash of a signer of the transaction. The datum is
+-- expected inline.
+otherInputDatum :: Scripts.TypedValidator Unit
+otherInputDatum =
+  Scripts.mkTypedValidator @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    wrap = Scripts.mkUntypedValidator
+    val :: () -> () -> ScriptContext -> Bool
+    val _ _ (ScriptContext txInfo _) =
+      any (f txInfo) (txInfoReferenceInputs txInfo)
+    f :: TxInfo -> TxInInfo -> Bool
+    f
+      txInfo
+      ( TxInInfo
+          _
+          (TxOut _ _ (OutputDatum (Datum datum)) _)
+        ) =
+        case fromBuiltinData @PubKeyHash datum of
+          Nothing -> False
+          Just pkh -> pkh `elem` txInfoSignatories txInfo
+    f _ _ = False
+
+data PubKey
+
+instance Scripts.ValidatorTypes PubKey where
+  type RedeemerType PubKey = ()
+  type DatumType PubKey = PubKeyHash
+
+-- | Outputs can only be spent by pubkeys whose hash is not the one in the datum.
+pkNotInDatum :: Scripts.TypedValidator PubKey
+pkNotInDatum =
+  Scripts.mkTypedValidator @PubKey
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    val :: PubKeyHash -> () -> ScriptContext -> Bool
+    val pkh _ (ScriptContext txInfo _) =
+      pkh `notElem` txInfoSignatories txInfo
+    wrap = Scripts.mkUntypedValidator
