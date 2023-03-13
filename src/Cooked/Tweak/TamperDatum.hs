@@ -23,8 +23,8 @@ import Optics.Core
 import qualified PlutusTx as Pl
 import Type.Reflection
 
--- | A tweak that tries to change the datum on outputs that go to scripts with a
--- prescribed tampering function, that only applies to datums of a certain type.
+-- | A tweak that tries to change the datum on outputs carrying datums of a
+-- certain type with a prescribed tampering function.
 --
 -- The tweak returns a list of the modified datums, as they were *before* the
 -- modification was applied to them.
@@ -56,7 +56,12 @@ tamperDatumTweak change = do
 
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
--- | FIXME
+-- | A tweak that tries to change the datum on outputs carrying datums of a
+-- certain type with a prescribed tampering function. There are two main
+-- differences with 'tamperDatumTweak'. First, the tampering function can return
+-- several tampered datums, and it returns the as 'BuiltinData', allowing it to
+-- do pretty much anything with them. Second, the modifications are applied to
+-- all outputs but also to all subsets of these outputs (except the empty set).
 malformDatumTweak ::
   forall a m.
   ( MonadTweak m,
@@ -101,12 +106,21 @@ malformDatumTweak change = do
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
--- | FIXME: document
+-- | Given a list of lists, we call “combination” a list of the same size as the
+-- outer list consisting of one element of each of the inner lists. More
+-- formally, @c@ is a combination of @l@ if @length c == length l@ and for all
+-- @0 <= i < length c@, @elem (c !! i) (l !! i)@.
 --
--- The first element of the result is the list consisting of all the first
--- elements of the inputs.
+-- 'allCombinations', as the name suggests, returns all the possible
+-- combinations of a given list of lists. For instance:
 --
 -- @allCombinations [[1,2,3], [4,5], [6]] == [[1,4,6], [1,5,6], [2,4,6], [2,5,6], [3,4,6], [3,5,6]]@
+--
+-- It is guaranteed that the first element of the result is the list consisting
+-- of all the first elements of the inputs.
+--
+-- REVIEW: The guarantee can be much better and probably expressed in term of
+-- lexicographic order or whatnot.
 allCombinations :: [[a]] -> [[a]]
 allCombinations [] = [[]]
 allCombinations [[]] = [] -- included in the next one
