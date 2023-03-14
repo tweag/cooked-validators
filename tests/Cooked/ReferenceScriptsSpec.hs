@@ -226,13 +226,12 @@ tests =
       testGroup
         "checking the presence of reference scripts on the TxInfo"
         [ testCase "fail if wrong reference script" $
-            testFailsFrom'
+            testFails
               def
               ( isCekEvaluationFailureWithMsg
                   def
                   (== "there is no reference input with the correct script hash")
               )
-              def
               $ putRefScriptOnWalletOutput (wallet 3) noValidator
                 >>= checkReferenceScriptOnOref (toScriptHash yesValidator),
           testCase "succeed if correct reference script" $
@@ -243,14 +242,13 @@ tests =
       testGroup
         "using reference scripts"
         [ testCase "fail from transaction generation for missing reference scripts" $
-            testFailsFrom'
+            testFails
               def
               ( \case
                   MCEGenerationError _ -> testSuccess
                   MCECalcFee (MCEGenerationError _) -> testSuccess
                   _ -> testFailure
               )
-              def
               $ do
                 (oref, _) : _ <-
                   utxosFromCardanoTx
@@ -271,14 +269,13 @@ tests =
                         txSkelSigners = [wallet 1]
                       },
           testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'" $
-            testFailsFrom'
+            testFails
               def
               ( \case
                   MCEValidationError (Pl.Phase1, _) -> testSuccess
                   MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
                   _ -> testFailure
               )
-              def
               $ do
                 scriptOref <- putRefScriptOnWalletOutput (wallet 3) yesValidator
                 (oref, _) : _ <-
@@ -302,13 +299,12 @@ tests =
                       },
           testCase
             "fail if referenced script's requirement is violated"
-            $ testFailsFrom'
+            $ testFails
               def
               ( isCekEvaluationFailureWithMsg
                   def
                   (== "the required signer is missing")
               )
-              def
               $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
           testCase "succeed if referenced script's requirement is met" $
             testSucceeds def $

@@ -29,6 +29,19 @@
 
 - `Cooked.holdingInState` is relpaced by `Cooked.holdsInState` which takes an
   address instead of a wallet as argument.
+- Failure testing is slightly modified so that every test has to check that the
+  right error is thrown
+  * `Cooked.testFailsFrom'` is renamed to `Cooked.testFailsFrom`
+  * `Cooked.testFails` is (the new) `Cooked.testFailsFrom` with the default
+    distribution.
+
+  To update their code, users must
+  1. Adapt invokations of `Cooked.testFails` and `Cooked.testFailsFrom` adding
+     a predicate that must hold on the error returned by running the
+     transaction,
+  2. Rename `Cooked.testFailsFrom'` into `Cooked.testFailsFrom`.
+  3. (Bonus) simplify, knowing that ``Cooked.testFailsFrom o x def ==
+     Cooked.testFails o x``
 
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
