@@ -2,6 +2,7 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+  inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -15,6 +16,13 @@
             nixfmt.enable = true;
             ormolu.enable = true;
             hpack.enable = true;
+          };
+          tools = {
+            ## This setting specifies which tools to use in the `pre-commit`
+            ## hooks. Since we take our tools (`nixfmt`, `ormolu`, `hpack`) from
+            ## `nixpkgs`, then we can simply make sure that
+            ## `pre-commit-hooks.nix`'s `nixpkgs` input follows ours, so there
+            ## is nothing to see here.
           };
         };
       in {
