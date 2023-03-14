@@ -58,10 +58,21 @@ data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
--- differences with 'tamperDatumTweak'. First, the tampering function can return
--- several tampered datums, and it returns the as 'BuiltinData', allowing it to
--- do pretty much anything with them. Second, the modifications are applied to
--- all outputs but also to all subsets of these outputs (except the empty set).
+-- differences with 'tamperDatumTweak'. First, the tampering function returns 'BuiltinData', allowing it to
+-- do pretty much anything with the datums. Second, for every output datum there are zero or more options
+-- for how to modify it, and all combinations of these modifications are tried.
+--
+-- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n' possible modifications,
+-- this tweak will try
+--
+-- >   k_1 + ... + k_n
+-- > + k_1 * k_2 + ... + k_{n-1} * k_n
+-- > + k_1 * k_2 * k_3 + ... + k_{n-2} * k_{n-1} * k_n
+-- > + ...
+-- > + k_1 * k_2 * ... * k_{n-1} * k_n
+-- > == (k_1 + 1) * ... * (k_n + 1) - 1
+--
+-- modified transactions.
 malformDatumTweak ::
   forall a m.
   ( MonadTweak m,
@@ -106,21 +117,21 @@ malformDatumTweak change = do
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
--- | Given a list of lists, we call “combination” a list of the same size as the
--- outer list consisting of one element of each of the inner lists. More
--- formally, @c@ is a combination of @l@ if @length c == length l@ and for all
--- @0 <= i < length c@, @elem (c !! i) (l !! i)@.
+-- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such that
+-- - @length c == length l@, and
+-- - for all @0 <= i < length c@, @elem (c !! i) (l !! i)@.
 --
 -- 'allCombinations', as the name suggests, returns all the possible
 -- combinations of a given list of lists. For instance:
 --
 -- @allCombinations [[1,2,3], [4,5], [6]] == [[1,4,6], [1,5,6], [2,4,6], [2,5,6], [3,4,6], [3,5,6]]@
 --
--- It is guaranteed that the first element of the result is the list consisting
--- of all the first elements of the inputs.
---
--- REVIEW: The guarantee can be much better and probably expressed in term of
--- lexicographic order or whatnot.
+-- It is guaranteed that combinations are returned in such an order that @c1@ comes before @c2@ in the result list
+-- if and only if for some @p, a1, r1, a2, r2@
+-- > c1 == p ++ (a1 : r1)
+-- > c2 == p ++ (a2 : r2)
+-- and @a1@ comes before @a2@ in the list @l !! (length p -1)@. In particular, the first element of the result list is
+-- the list consisting of all the first elements of the input lists.
 allCombinations :: [[a]] -> [[a]]
 allCombinations [] = [[]]
 allCombinations [[]] = [] -- included in the next one
