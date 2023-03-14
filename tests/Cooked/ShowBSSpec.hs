@@ -112,12 +112,11 @@ tests =
                       *> string "\")"
                   )
                   ""
-         in testFailsFrom'
+         in testFails
               (def @PrettyCookedOpts)
               ( isCekEvaluationFailureWithMsg
                   (def @PrettyCookedOpts)
                   isExpectedString
               )
-              (def @InitialDistribution)
               printTrace
     ]

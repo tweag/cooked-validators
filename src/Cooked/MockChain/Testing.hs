@@ -73,10 +73,13 @@ a .||. b = testDisjoin [a, b]
 testSucceeds :: (IsProp prop) => PrettyCookedOpts -> StagedMockChain a -> prop
 testSucceeds pcOpts = testSucceedsFrom pcOpts def
 
--- | Ensure that all results produced by the staged mockchain /fail/ starting
--- from the default initial distribution
-testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> StagedMockChain a -> prop
-testFails pcOpts = testFailsFrom pcOpts def
+-- | Ensure that all results produced by the staged mockchain /fail/ and that a
+-- predicate holds over the error.
+--
+-- To test that validation fails, use
+-- > testFails def (isCekEvaluationFailure def) e
+testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> (MockChainError -> prop) -> StagedMockChain a -> prop
+testFails pcOpts predi = testFailsFrom pcOpts predi def
 
 -- | Ensure that all results produced by the staged mockchain succeed starting
 -- from some initial distribution but doesn't impose any additional condition on success.
@@ -102,26 +105,18 @@ testSucceedsFrom' ::
 testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderString (prettyCookedOpt pcOpts)) (uncurry prop))
 
 -- | Ensure that all results produced by the staged mockchain /fail/ starting
--- from some initial distribution
+-- from some initial distribution.
 testFailsFrom ::
-  (IsProp prop, Show a) =>
-  PrettyCookedOpts ->
-  InitialDistribution ->
-  StagedMockChain a ->
-  prop
-testFailsFrom pcOpts = testFailsFrom' pcOpts (const testSuccess)
-
--- | Ensure that all results produced by the staged mockchain /fail/ starting
--- from some initial distribution, moreover, ensures that a certain predicate
--- over the error holds.
-testFailsFrom' ::
   (IsProp prop, Show a) =>
   PrettyCookedOpts ->
   (MockChainError -> prop) ->
   InitialDistribution ->
   StagedMockChain a ->
   prop
-testFailsFrom' pcOpts predi = testAllSatisfiesFrom pcOpts (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
+testFailsFrom pcOpts predi =
+  testAllSatisfiesFrom
+    pcOpts
+    (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a @CekEvaluationFailure@.
 -- This is particularly important when writing negative tests. For example, if we are simulating
