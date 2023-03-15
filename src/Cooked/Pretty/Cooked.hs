@@ -176,13 +176,13 @@ instance PrettyCooked MockChainLog where
             : entries
           )
           | pcOptPrintTxHashes opts =
-            go
-              ( "Validated"
-                  <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
-                  <+> prettyTxSkel opts skelContext skel :
-                acc
-              )
-              entries
+              go
+                ( "Validated"
+                    <+> PP.parens ("TxId:" <+> prettyCookedOpt opts txId)
+                    <+> prettyTxSkel opts skelContext skel
+                    : acc
+                )
+                entries
           | otherwise = go ("Validated" <+> prettyTxSkel opts skelContext skel : acc) entries
       go
         acc
@@ -262,22 +262,22 @@ prettyTxSkelOut opts (Pays output) =
   prettyItemize
     ("Pays to" <+> prettyCookedOpt opts (outputAddress output))
     "-"
-    ( prettyCookedOpt opts (outputValue output) :
-      catMaybes
-        [ case outputOutputDatum output of
-            Pl.OutputDatum _datum ->
-              Just $
-                "Datum (inlined):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.OutputDatumHash _datum ->
-              Just $
-                "Datum (hashed):"
-                  <+> (PP.align . prettyCookedOpt opts)
-                    (output ^. outputDatumL)
-            Pl.NoOutputDatum -> Nothing,
-          getReferenceScriptDoc opts output
-        ]
+    ( prettyCookedOpt opts (outputValue output)
+        : catMaybes
+          [ case outputOutputDatum output of
+              Pl.OutputDatum _datum ->
+                Just $
+                  "Datum (inlined):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.OutputDatumHash _datum ->
+                Just $
+                  "Datum (hashed):"
+                    <+> (PP.align . prettyCookedOpt opts)
+                      (output ^. outputDatumL)
+              Pl.NoOutputDatum -> Nothing,
+            getReferenceScriptDoc opts output
+          ]
     )
 
 prettyTxSkelOutDatumMaybe :: PrettyCookedOpts -> TxSkelOutDatum -> Maybe DocCooked
@@ -302,12 +302,12 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
     prettyItemize
       ("Spends from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
-      ( prettyCookedOpt opts (outputValue output) :
-        catMaybes
-          [ redeemerDoc,
-            prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-            getReferenceScriptDoc opts output
-          ]
+      ( prettyCookedOpt opts (outputValue output)
+          : catMaybes
+            [ redeemerDoc,
+              prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+              getReferenceScriptDoc opts output
+            ]
       )
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Pl.TxOutRef -> Maybe DocCooked
@@ -317,11 +317,11 @@ prettyTxSkelInReference opts skelContext txOutRef = do
     prettyItemize
       ("References output from" <+> prettyCookedOpt opts (outputAddress output))
       "-"
-      ( prettyCookedOpt opts (outputValue output) :
-        catMaybes
-          [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-            getReferenceScriptDoc opts output
-          ]
+      ( prettyCookedOpt opts (outputValue output)
+          : catMaybes
+            [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+              getReferenceScriptDoc opts output
+            ]
       )
 
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked

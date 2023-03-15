@@ -178,8 +178,8 @@ builtinByteStringCharacters s = go (len - 1) []
     go :: Integer -> [BuiltinString] -> [BuiltinString]
     go i acc
       | i >= 0 =
-        let (highNibble, lowNibble) = quotRem (indexByteString s i) 16
-         in go (i - 1) (toHex highNibble : toHex lowNibble : acc)
+          let (highNibble, lowNibble) = quotRem (indexByteString s i) 16
+           in go (i - 1) (toHex highNibble : toHex lowNibble : acc)
       | otherwise = acc
 
     toHex :: Integer -> BuiltinString
