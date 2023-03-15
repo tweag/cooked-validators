@@ -282,10 +282,10 @@ increasingPot =
     Validators.yes
     6
     ( \i -> do
-        theOutput : _ <-
+        (_, theOutput) : _ <-
           runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress Validators.yes)
         return
-          ( snd theOutput ^. outputValueL == Pl.lovelaceValueOf (2_000_000 * (2 + i)),
+          ( outputValue theOutput == Pl.lovelaceValueOf (2_000_000 * (2 + i)),
             "The amount in the output doesn't match "
               ++ show (2_000_000 * (2 + i))
               ++ " lovelace"
