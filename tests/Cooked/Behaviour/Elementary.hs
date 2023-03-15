@@ -145,7 +145,7 @@ triggerValidator ::
   Scripts.TypedValidator Validators.Unit ->
   -- | Template transaction which runs the validator. The transaction
   -- effectively run has an input with the validator added.
-  m TxSkel ->
+  TxSkel ->
   m ()
 triggerValidator validator skel = do
   outCTx <-
@@ -157,7 +157,7 @@ triggerValidator validator skel = do
           txSkelSigners = [wallet 1]
         }
   let (outRef, _) : _ = utxosFromCardanoTx outCTx
-  skel' <- over txSkelInsL (Map.insert outRef (TxSkelRedeemerForScript ())) <$> skel
+  let skel' = over txSkelInsL (Map.insert outRef (TxSkelRedeemerForScript ())) skel
   void $ validateTxSkel skel'
 
 -- * Continuing outputs
@@ -299,12 +299,11 @@ requireSigner :: MonadBlockChain m => Wallet -> [Wallet] -> m ()
 requireSigner required signers =
   triggerValidator
     (Validators.requireSigner $ walletPKHash required)
-    ( return $
-        txSkelTemplate
-          { txSkelOpts = def {txOptEnsureMinAda = True},
-            txSkelOuts = [paysPK (walletPKHash $ wallet 1) mempty],
-            txSkelSigners = signers
-          }
+    ( txSkelTemplate
+        { txSkelOpts = def {txOptEnsureMinAda = True},
+          txSkelOuts = [paysPK (walletPKHash $ wallet 1) mempty],
+          txSkelSigners = signers
+        }
     )
 
 tests :: TestTree
@@ -340,7 +339,7 @@ tests =
               def
               ( triggerValidator
                   (Validators.validRangeSubsetOf (Nothing, Nothing))
-                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+                  (txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "never subset of the (almost) empty set" $
             testFails
@@ -348,7 +347,7 @@ tests =
               (isCekEvaluationFailure def)
               ( triggerValidator
                   (Validators.validRangeSubsetOf (Just 0, Just 0))
-                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+                  (txSkelTemplate {txSkelSigners = [wallet 1]})
               )
         ],
       testGroup
@@ -358,7 +357,7 @@ tests =
               def
               ( triggerValidator
                   (Validators.checkFeeBetween (350_000, Just 3_000_000))
-                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+                  (txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "3 Ada is the upper bound" $
             testFails
@@ -366,7 +365,7 @@ tests =
               (isCekEvaluationFailure def)
               ( triggerValidator
                   (Validators.checkFeeBetween (350_000, Just 2_900_000))
-                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+                  (txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "350 000 Lovelace is the lower bound" $
             testFails
@@ -374,7 +373,7 @@ tests =
               (isCekEvaluationFailure def)
               ( triggerValidator
                   (Validators.checkFeeBetween (360_000, Just 3_000_000))
-                  (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
+                  (txSkelTemplate {txSkelSigners = [wallet 1]})
               )
         ],
       testGroup
