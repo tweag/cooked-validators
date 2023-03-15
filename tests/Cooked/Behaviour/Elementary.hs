@@ -64,39 +64,12 @@ walletToWallet =
           }
     )
 
-walletToScript :: Assertion
-walletToScript =
-  testSucceedsFrom'
-    def
-    ( \yesOuts state -> do
-        case yesOuts of
-          [(_, out)] -> outputValue out @?= Pl.adaValueOf 2
-          _ -> assertFailure "the yes validator sould lock exactly one output"
-        -- Wallet 1 pays some fees
-        countLovelace (wAddress 1 `holdsInState` state)
-          < 3_000_000
-          @? "Wallet 1 has too many Lovelace (have fees been spent?)"
-    )
-    ( InitialDistribution $
-        Map.fromList
-          [ (wallet 1, [Pl.adaValueOf 5]),
-            (wallet 2, [Pl.adaValueOf 5])
-          ]
-    )
-    ( let skel =
-            txSkelTemplate
-              { txSkelOuts = [paysScript Validators.yes () (Pl.adaValueOf 2)],
-                txSkelSigners = [wallet 1]
-              }
-       in validateTxSkel skel >> outputsProtectedBy Validators.yes
-    )
-
 -- | Create transaction with an output protected by a script.
-walletToScriptHowDatum ::
+walletToScript ::
   -- | How to store the datum on the output
   Validators.DatumKind ->
   Assertion
-walletToScriptHowDatum datumKind =
+walletToScript datumKind =
   testSucceedsFrom'
     def
     ( \outputs state -> do
@@ -341,16 +314,15 @@ tests =
     [ testGroup
         "Transferring Ada from a wallet to"
         [ testCase "another wallet" walletToWallet,
-          testCase "a script" walletToScript,
           testCase
             "a script, using an inline datum"
-            (walletToScriptHowDatum Validators.Inline),
+            (walletToScript Validators.Inline),
           testCase
             "a script, using a hashed datum"
-            (walletToScriptHowDatum Validators.OnlyHash),
+            (walletToScript Validators.OnlyHash),
           testCase
             "a script, using a resolved datum"
-            $ walletToScriptHowDatum Validators.ResolvedHash
+            $ walletToScript Validators.ResolvedHash
         ],
       testGroup
         "Signers"
