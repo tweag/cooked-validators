@@ -15,8 +15,7 @@ import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.V2.Address as Address
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
+import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V1.Ledger.Address as PV1 (pubKeyHashAddress)
 import qualified Plutus.V2.Ledger.Api as PV2
@@ -35,8 +34,7 @@ outputsProtectedBy ::
 outputsProtectedBy =
   runUtxoSearch
     . utxosAtSearch
-    . Address.mkValidatorAddress
-    . Scripts.validatorScript
+    . Scripts.validatorAddress
 
 wAddress :: Int -> PV2.Address
 wAddress = PV1.pubKeyHashAddress . walletPKHash . wallet
