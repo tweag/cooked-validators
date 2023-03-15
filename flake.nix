@@ -23,6 +23,10 @@
             ## `nixpkgs`, then we can simply make sure that
             ## `pre-commit-hooks.nix`'s `nixpkgs` input follows ours, so there
             ## is nothing to see here.
+            ##
+            ## NOTE: Configuring `hpack` here would have no effect. See
+            ## https://github.com/cachix/pre-commit-hooks.nix/issues/255
+            ## for more information.
           };
         };
       in {
