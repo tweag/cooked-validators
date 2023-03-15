@@ -1187,10 +1187,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Fee
 </span><a href="#local-6989586621679542859"><span class="hs-identifier hs-var">fee</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-284"></span><span>            </span><span class="hs-comment">-- Debug.Trace.traceM &quot;Reached fixpoint:&quot;</span><span>
-</span><span id="line-285"></span><span>            </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;- fee = &quot; &lt;&gt; show fee</span><span>
-</span><span id="line-286"></span><span>            </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;- skeleton = &quot; &lt;&gt; show (attemptedSkel {_txSkelFee = fee})</span><span>
-</span><span id="line-287"></span><span>            </span><span class="annot"><span class="annottext">(TxSkel, Fee) -&gt; m (TxSkel, Fee)
+</span><span id="line-284"></span><span>              </span><span class="hs-comment">-- Debug.Trace.traceM &quot;Reached fixpoint:&quot;</span><span>
+</span><span id="line-285"></span><span>              </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;- fee = &quot; &lt;&gt; show fee</span><span>
+</span><span id="line-286"></span><span>              </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;- skeleton = &quot; &lt;&gt; show (attemptedSkel {_txSkelFee = fee})</span><span>
+</span><span id="line-287"></span><span>              </span><span class="annot"><span class="annottext">(TxSkel, Fee) -&gt; m (TxSkel, Fee)
 forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
 </span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679542856"><span class="hs-identifier hs-var">attemptedSkel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Fee
@@ -1200,8 +1200,8 @@ forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-289"></span><span>            </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;Max iteration reached: newFee = &quot; &lt;&gt; show newFee</span><span>
-</span><span id="line-290"></span><span>            </span><span class="annot"><span class="annottext">(TxSkel, Fee) -&gt; m (TxSkel, Fee)
+</span><span id="line-289"></span><span>              </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;Max iteration reached: newFee = &quot; &lt;&gt; show newFee</span><span>
+</span><span id="line-290"></span><span>              </span><span class="annot"><span class="annottext">(TxSkel, Fee) -&gt; m (TxSkel, Fee)
 forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
 </span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel
 </span><a href="#local-6989586621679542856"><span class="hs-identifier hs-var">attemptedSkel</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Fee -&gt; Fee -&gt; Fee
@@ -1211,8 +1211,8 @@ forall a. Ord a =&gt; a -&gt; a -&gt; a
 </span><a href="#local-6989586621679542859"><span class="hs-identifier hs-var">fee</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- maximum number of iterations</span><span>
 </span><span id="line-291"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-292"></span><span>            </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;New iteration: newfee = &quot; &lt;&gt; show newFee</span><span>
-</span><span id="line-293"></span><span>            </span><span class="annot"><span class="annottext">Int
+</span><span id="line-292"></span><span>              </span><span class="hs-comment">-- Debug.Trace.traceM $ &quot;New iteration: newfee = &quot; &lt;&gt; show newFee</span><span>
+</span><span id="line-293"></span><span>              </span><span class="annot"><span class="annottext">Int
 -&gt; Fee
 -&gt; UTxO (BabbageEra StandardCrypto)
 -&gt; TxSkel

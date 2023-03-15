@@ -1325,7 +1325,8 @@ a b c -&gt; a (Either d b) (Either d c)
 </span><span class="hs-identifier hs-var">right</span></span><span> </span><span class="annot"><span class="annottext">[Map PolicyId (ScriptWitness WitCtxMint BabbageEra)]
 -&gt; Map PolicyId (ScriptWitness WitCtxMint BabbageEra)
 forall a. Monoid a =&gt; [a] -&gt; a
-</span><span class="hs-identifier hs-var">mconcat</span></span><span> </span><span class="annot"><span class="annottext">(Either
+</span><span class="hs-identifier hs-var">mconcat</span></span><span>
+</span><span id="line-293"></span><span>            </span><span class="annot"><span class="annottext">(Either
    GenerateTxError
    [Map PolicyId (ScriptWitness WitCtxMint BabbageEra)]
  -&gt; Either
@@ -1338,8 +1339,7 @@ forall a. Monoid a =&gt; [a] -&gt; a
      GenerateTxError
      (Map PolicyId (ScriptWitness WitCtxMint BabbageEra))
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-293"></span><span>            </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)
  -&gt; Either
       GenerateTxError
       (Map PolicyId (ScriptWitness WitCtxMint BabbageEra)))
@@ -1400,7 +1400,7 @@ forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f
 </span><a href="#local-6989586621679540592"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
 </span><a href="#local-6989586621679540591"><span class="hs-identifier hs-var">redeemer</span></a></span><span>
 </span><span id="line-300"></span><span>              </span><span class="hs-special">)</span><span>
-</span><span id="line-301"></span><span>              </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><span id="line-301"></span><span>            </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
  -&gt; Either
       GenerateTxError
       [Map PolicyId (ScriptWitness WitCtxMint BabbageEra)])

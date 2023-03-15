@@ -453,11 +453,11 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-178"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptPrintTxHashes"><span class="hs-identifier hs-var hs-var">pcOptPrintTxHashes</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544585"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-179"></span><span>            </span><span class="annot"><span class="annottext">[DocCooked] -&gt; [MockChainLogEntry] -&gt; [DocCooked]
+</span><span id="line-179"></span><span>              </span><span class="annot"><span class="annottext">[DocCooked] -&gt; [MockChainLogEntry] -&gt; [DocCooked]
 </span><a href="#local-6989586621679544582"><span class="hs-identifier hs-var">go</span></a></span><span>
-</span><span id="line-180"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-180"></span><span>                </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Validated&quot;</span></span><span>
-</span><span id="line-181"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><span id="line-181"></span><span>                    </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann
@@ -469,19 +469,19 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544585"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TxId
 </span><a href="#local-6989586621679544575"><span class="hs-identifier hs-var">txId</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-182"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><span id="line-182"></span><span>                    </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; SkelContext -&gt; TxSkel -&gt; DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#prettyTxSkel"><span class="hs-identifier hs-var">prettyTxSkel</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544585"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">SkelContext
 </span><a href="#local-6989586621679544578"><span class="hs-identifier hs-var">skelContext</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679544577"><span class="hs-identifier hs-var">skel</span></a></span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
+</span><a href="#local-6989586621679544577"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-183"></span><span>                    </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
 forall a. a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span>
-</span><span id="line-183"></span><span>                </span><span class="annot"><span class="annottext">[DocCooked]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[DocCooked]
 </span><a href="#local-6989586621679544580"><span class="hs-identifier hs-var">acc</span></a></span><span>
-</span><span id="line-184"></span><span>              </span><span class="hs-special">)</span><span>
-</span><span id="line-185"></span><span>              </span><span class="annot"><span class="annottext">[MockChainLogEntry]
+</span><span id="line-184"></span><span>                </span><span class="hs-special">)</span><span>
+</span><span id="line-185"></span><span>                </span><span class="annot"><span class="annottext">[MockChainLogEntry]
 </span><a href="#local-6989586621679544574"><span class="hs-identifier hs-var">entries</span></a></span><span>
 </span><span id="line-186"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[DocCooked] -&gt; [MockChainLogEntry] -&gt; [DocCooked]
@@ -864,28 +864,28 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="#local-6989586621679544517"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o -&gt; Value
 forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
 </span><a href="Cooked.Output.html#outputValue"><span class="hs-identifier hs-var">outputValue</span></a></span><span> </span><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
+</span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-266"></span><span>        </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
 forall a. a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span>
-</span><span id="line-266"></span><span>      </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span>
-</span><span id="line-267"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">o -&gt; OutputDatum
+</span><span id="line-267"></span><span>          </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">o -&gt; OutputDatum
 forall o.
 (IsAbstractOutput o, ToOutputDatum (DatumType o)) =&gt;
 o -&gt; OutputDatum
 </span><a href="Cooked.Output.html#outputOutputDatum"><span class="hs-identifier hs-var">outputOutputDatum</span></a></span><span> </span><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-268"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatum</span></span><span> </span><span id="local-6989586621679544510"><span class="annot"><span class="annottext">Datum
+</span><span id="line-268"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatum</span></span><span> </span><span id="local-6989586621679544510"><span class="annot"><span class="annottext">Datum
 </span><a href="#local-6989586621679544510"><span class="hs-identifier hs-var">_datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-269"></span><span>              </span><span class="annot"><span class="annottext">DocCooked -&gt; Maybe DocCooked
+</span><span id="line-269"></span><span>                </span><span class="annot"><span class="annottext">DocCooked -&gt; Maybe DocCooked
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(DocCooked -&gt; Maybe DocCooked) -&gt; DocCooked -&gt; Maybe DocCooked
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-270"></span><span>                </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-270"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Datum (inlined):&quot;</span></span><span>
-</span><span id="line-271"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><span id="line-271"></span><span>                    </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann
@@ -896,7 +896,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544517"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-272"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o
+</span><span id="line-272"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o -&gt; Optic' A_Lens NoIx o TxSkelOutDatum -&gt; TxSkelOutDatum
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
@@ -904,16 +904,16 @@ s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx o TxSkelOutDatum
 forall o. IsAbstractOutput o =&gt; Lens' o (DatumType o)
 </span><a href="Cooked.Output.html#outputDatumL"><span class="hs-identifier hs-var">outputDatumL</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-273"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatumHash</span></span><span> </span><span id="local-6989586621679544505"><span class="annot"><span class="annottext">DatumHash
+</span><span id="line-273"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatumHash</span></span><span> </span><span id="local-6989586621679544505"><span class="annot"><span class="annottext">DatumHash
 </span><a href="#local-6989586621679544505"><span class="hs-identifier hs-var">_datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-274"></span><span>              </span><span class="annot"><span class="annottext">DocCooked -&gt; Maybe DocCooked
+</span><span id="line-274"></span><span>                </span><span class="annot"><span class="annottext">DocCooked -&gt; Maybe DocCooked
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(DocCooked -&gt; Maybe DocCooked) -&gt; DocCooked -&gt; Maybe DocCooked
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-275"></span><span>                </span><span class="annot"><span class="annottext">DocCooked
+</span><span id="line-275"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked
 </span><span class="hs-string">&quot;Datum (hashed):&quot;</span></span><span>
-</span><span id="line-276"></span><span>                  </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
+</span><span id="line-276"></span><span>                    </span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann -&gt; Doc ann
 </span><span class="hs-operator hs-var">&lt;+&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DocCooked -&gt; DocCooked
 forall ann. Doc ann -&gt; Doc ann
@@ -924,7 +924,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="Cooked.Pretty.Class.html#prettyCookedOpt"><span class="hs-identifier hs-var">prettyCookedOpt</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544517"><span class="hs-identifier hs-var">opts</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-277"></span><span>                    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o
+</span><span id="line-277"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o -&gt; Optic' A_Lens NoIx o TxSkelOutDatum -&gt; TxSkelOutDatum
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
@@ -932,11 +932,11 @@ s -&gt; Optic' k is s a -&gt; a
 </span><span class="hs-operator hs-var">^.</span></span><span> </span><span class="annot"><span class="annottext">Optic' A_Lens NoIx o TxSkelOutDatum
 forall o. IsAbstractOutput o =&gt; Lens' o (DatumType o)
 </span><a href="Cooked.Output.html#outputDatumL"><span class="hs-identifier hs-var">outputDatumL</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-278"></span><span>            </span><span class="annot"><span class="annottext">OutputDatum
+</span><span id="line-278"></span><span>              </span><span class="annot"><span class="annottext">OutputDatum
 </span><span class="hs-identifier hs-var">Pl.NoOutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe DocCooked
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">,</span><span>
-</span><span id="line-279"></span><span>          </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; o -&gt; Maybe DocCooked
+</span><span id="line-279"></span><span>            </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; o -&gt; Maybe DocCooked
 forall output.
 (IsAbstractOutput output,
  ToScriptHash (ReferenceScriptType output)) =&gt;
@@ -944,7 +944,7 @@ PrettyCookedOpts -&gt; output -&gt; Maybe DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#getReferenceScriptDoc"><span class="hs-identifier hs-var">getReferenceScriptDoc</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544517"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">o
 </span><a href="#local-6989586621679544515"><span class="hs-identifier hs-var">output</span></a></span><span>
-</span><span id="line-280"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-280"></span><span>          </span><span class="hs-special">]</span><span>
 </span><span id="line-281"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-282"></span><span>
 </span><span id="line-283"></span><span class="annot"><a href="Cooked.Pretty.Cooked.html#prettyTxSkelOutDatumMaybe"><span class="hs-identifier hs-type">prettyTxSkelOutDatumMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
@@ -1054,19 +1054,19 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="#local-6989586621679544498"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOut -&gt; Value
 forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
 </span><a href="Cooked.Output.html#outputValue"><span class="hs-identifier hs-var">outputValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679544494"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
+</span><a href="#local-6989586621679544494"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-306"></span><span>          </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
 forall a. a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span>
-</span><span id="line-306"></span><span>        </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span>
-</span><span id="line-307"></span><span>          </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Maybe DocCooked
+</span><span id="line-307"></span><span>            </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Maybe DocCooked
 </span><a href="#local-6989586621679544491"><span class="hs-identifier hs-var">redeemerDoc</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-308"></span><span>            </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxSkelOutDatum -&gt; Maybe DocCooked
+</span><span id="line-308"></span><span>              </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxSkelOutDatum -&gt; Maybe DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#prettyTxSkelOutDatumMaybe"><span class="hs-identifier hs-var">prettyTxSkelOutDatumMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544498"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="#local-6989586621679544493"><span class="hs-identifier hs-var">txSkelOutDatum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-309"></span><span>            </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxOut -&gt; Maybe DocCooked
+</span><span id="line-309"></span><span>              </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxOut -&gt; Maybe DocCooked
 forall output.
 (IsAbstractOutput output,
  ToScriptHash (ReferenceScriptType output)) =&gt;
@@ -1074,7 +1074,7 @@ PrettyCookedOpts -&gt; output -&gt; Maybe DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#getReferenceScriptDoc"><span class="hs-identifier hs-var">getReferenceScriptDoc</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544498"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
 </span><a href="#local-6989586621679544494"><span class="hs-identifier hs-var">output</span></a></span><span>
-</span><span id="line-310"></span><span>          </span><span class="hs-special">]</span><span>
+</span><span id="line-310"></span><span>            </span><span class="hs-special">]</span><span>
 </span><span id="line-311"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-312"></span><span>
 </span><span id="line-313"></span><span class="annot"><a href="Cooked.Pretty.Cooked.html#prettyTxSkelInReference"><span class="hs-identifier hs-type">prettyTxSkelInReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#SkelContext"><span class="hs-identifier hs-type">SkelContext</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span><span>
@@ -1116,17 +1116,17 @@ forall a. PrettyCooked a =&gt; PrettyCookedOpts -&gt; a -&gt; DocCooked
 </span><a href="#local-6989586621679544488"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOut -&gt; Value
 forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
 </span><a href="Cooked.Output.html#outputValue"><span class="hs-identifier hs-var">outputValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679544485"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
+</span><a href="#local-6989586621679544485"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-321"></span><span>          </span><span class="annot"><span class="annottext">DocCooked -&gt; [DocCooked] -&gt; [DocCooked]
 forall a. a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span>
-</span><span id="line-321"></span><span>        </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[Maybe DocCooked] -&gt; [DocCooked]
 forall a. [Maybe a] -&gt; [a]
 </span><span class="hs-identifier hs-var">catMaybes</span></span><span>
-</span><span id="line-322"></span><span>          </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxSkelOutDatum -&gt; Maybe DocCooked
+</span><span id="line-322"></span><span>            </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxSkelOutDatum -&gt; Maybe DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#prettyTxSkelOutDatumMaybe"><span class="hs-identifier hs-var">prettyTxSkelOutDatumMaybe</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544488"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelOutDatum
 </span><a href="#local-6989586621679544484"><span class="hs-identifier hs-var">txSkelOutDatum</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-323"></span><span>            </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxOut -&gt; Maybe DocCooked
+</span><span id="line-323"></span><span>              </span><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; TxOut -&gt; Maybe DocCooked
 forall output.
 (IsAbstractOutput output,
  ToScriptHash (ReferenceScriptType output)) =&gt;
@@ -1134,7 +1134,7 @@ PrettyCookedOpts -&gt; output -&gt; Maybe DocCooked
 </span><a href="Cooked.Pretty.Cooked.html#getReferenceScriptDoc"><span class="hs-identifier hs-var">getReferenceScriptDoc</span></a></span><span> </span><span class="annot"><span class="annottext">PrettyCookedOpts
 </span><a href="#local-6989586621679544488"><span class="hs-identifier hs-var">opts</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
 </span><a href="#local-6989586621679544485"><span class="hs-identifier hs-var">output</span></a></span><span>
-</span><span id="line-324"></span><span>          </span><span class="hs-special">]</span><span>
+</span><span id="line-324"></span><span>            </span><span class="hs-special">]</span><span>
 </span><span id="line-325"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-326"></span><span>
 </span><span id="line-327"></span><span id="local-6989586621679544741"><span class="annot"><a href="Cooked.Pretty.Cooked.html#getReferenceScriptDoc"><span class="hs-identifier hs-type">getReferenceScriptDoc</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#IsAbstractOutput"><span class="hs-identifier hs-type">IsAbstractOutput</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679544741"><span class="hs-identifier hs-type">output</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Output.html#ToScriptHash"><span class="hs-identifier hs-type">ToScriptHash</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ReferenceScriptType"><span class="hs-identifier hs-type">ReferenceScriptType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679544741"><span class="hs-identifier hs-type">output</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679544741"><span class="hs-identifier hs-type">output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Cooked.Pretty.Common.html#DocCooked"><span class="hs-identifier hs-type">DocCooked</span></a></span></span><span>

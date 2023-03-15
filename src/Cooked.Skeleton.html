@@ -777,11 +777,11 @@ forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 forall k a. Ord k =&gt; Map k a -&gt; k -&gt; Maybe a
 </span><span class="hs-operator hs-var">Map.!?</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 </span><a href="#local-6989586621679539833"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-382"></span><span>    </span><span class="annot"><span class="annottext">Maybe (MintsRedeemer, NEMap TokenName (NonZero Integer))
+</span><span id="line-382"></span><span>      </span><span class="annot"><span class="annottext">Maybe (MintsRedeemer, NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-383"></span><span>      </span><span class="hs-comment">-- The policy isn't yet in the given 'TxSkelMints', so we can just add a</span><span>
-</span><span id="line-384"></span><span>      </span><span class="hs-comment">-- new entry:</span><span>
-</span><span id="line-385"></span><span>      </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><span id="line-383"></span><span>        </span><span class="hs-comment">-- The policy isn't yet in the given 'TxSkelMints', so we can just add a</span><span>
+</span><span id="line-384"></span><span>        </span><span class="hs-comment">-- new entry:</span><span>
+</span><span id="line-385"></span><span>        </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (MintsRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
 -&gt; TxSkelMints
@@ -796,23 +796,23 @@ forall a. a -&gt; NonZero a
 </span><span class="hs-identifier hs-var">NonZero</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679539830"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 </span><a href="#local-6989586621679539829"><span class="hs-identifier hs-var">mints</span></a></span><span>
-</span><span id="line-386"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679539824"><span class="annot"><span class="annottext">MintsRedeemer
+</span><span id="line-386"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679539824"><span class="annot"><span class="annottext">MintsRedeemer
 </span><a href="#local-6989586621679539824"><span class="hs-identifier hs-var">_oldRed</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679539823"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539823"><span class="hs-identifier hs-var">innerMap</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-387"></span><span>      </span><span class="hs-comment">-- Ignore the old redeemer: If it's the same as the new one, nothing will</span><span>
-</span><span id="line-388"></span><span>      </span><span class="hs-comment">-- change, if not, the new redeemer will be kept.</span><span>
-</span><span id="line-389"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><span id="line-387"></span><span>        </span><span class="hs-comment">-- Ignore the old redeemer: If it's the same as the new one, nothing will</span><span>
+</span><span id="line-388"></span><span>        </span><span class="hs-comment">-- change, if not, the new redeemer will be kept.</span><span>
+</span><span id="line-389"></span><span>        </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539823"><span class="hs-identifier hs-var">innerMap</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 -&gt; TokenName -&gt; Maybe (NonZero Integer)
 forall k a. Ord k =&gt; NEMap k a -&gt; k -&gt; Maybe a
 </span><span class="hs-operator hs-var">NEMap.!?</span></span><span> </span><span class="annot"><span class="annottext">TokenName
 </span><a href="#local-6989586621679539831"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-390"></span><span>        </span><span class="annot"><span class="annottext">Maybe (NonZero Integer)
+</span><span id="line-390"></span><span>          </span><span class="annot"><span class="annottext">Maybe (NonZero Integer)
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-391"></span><span>          </span><span class="hs-comment">-- The given token name has not yet occurred for the given</span><span>
-</span><span id="line-392"></span><span>          </span><span class="hs-comment">-- policy. This means that we can just add the new tokens to the</span><span>
-</span><span id="line-393"></span><span>          </span><span class="hs-comment">-- inner map:</span><span>
-</span><span id="line-394"></span><span>          </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><span id="line-391"></span><span>            </span><span class="hs-comment">-- The given token name has not yet occurred for the given</span><span>
+</span><span id="line-392"></span><span>            </span><span class="hs-comment">-- policy. This means that we can just add the new tokens to the</span><span>
+</span><span id="line-393"></span><span>            </span><span class="hs-comment">-- inner map:</span><span>
+</span><span id="line-394"></span><span>            </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (MintsRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
 -&gt; TxSkelMints
@@ -831,23 +831,23 @@ forall a. a -&gt; NonZero a
 </span><a href="#local-6989586621679539830"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539823"><span class="hs-identifier hs-var">innerMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 </span><a href="#local-6989586621679539829"><span class="hs-identifier hs-var">mints</span></a></span><span>
-</span><span id="line-395"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679539820"><span class="annot"><span class="annottext">Integer
+</span><span id="line-395"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonZero</span></span><span> </span><span id="local-6989586621679539820"><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679539820"><span class="hs-identifier hs-var">oldAmount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-396"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679539819"><span class="annot"><span class="annottext">newAmount :: Integer
+</span><span id="line-396"></span><span>            </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679539819"><span class="annot"><span class="annottext">newAmount :: Integer
 </span><a href="#local-6989586621679539819"><span class="hs-identifier hs-var hs-var">newAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679539820"><span class="hs-identifier hs-var">oldAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679539830"><span class="hs-identifier hs-var">amount</span></a></span><span>
-</span><span id="line-397"></span><span>           </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span id="line-397"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Integer
 </span><a href="#local-6989586621679539819"><span class="hs-identifier hs-var">newAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span>
-</span><span id="line-398"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="hs-comment">-- If the sum of the old amount of tokens and the additional</span><span>
-</span><span id="line-399"></span><span>                </span><span class="hs-comment">-- tokens is non-zero, we can just update the amount in the</span><span>
-</span><span id="line-400"></span><span>                </span><span class="hs-comment">-- inner map:</span><span>
-</span><span id="line-401"></span><span>                  </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><span id="line-398"></span><span>                  </span><span class="hs-keyword">then</span><span> </span><span class="hs-comment">-- If the sum of the old amount of tokens and the additional</span><span>
+</span><span id="line-399"></span><span>                  </span><span class="hs-comment">-- tokens is non-zero, we can just update the amount in the</span><span>
+</span><span id="line-400"></span><span>                  </span><span class="hs-comment">-- inner map:</span><span>
+</span><span id="line-401"></span><span>                    </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (MintsRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
 -&gt; TxSkelMints
@@ -866,10 +866,10 @@ forall a. a -&gt; NonZero a
 </span><a href="#local-6989586621679539819"><span class="hs-identifier hs-var">newAmount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539823"><span class="hs-identifier hs-var">innerMap</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 </span><a href="#local-6989586621679539829"><span class="hs-identifier hs-var">mints</span></a></span><span>
-</span><span id="line-402"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="hs-comment">-- If the sum is zero, we'll have to delete the token name</span><span>
-</span><span id="line-403"></span><span>                </span><span class="hs-comment">-- from the inner map. If that yields a completely empty</span><span>
-</span><span id="line-404"></span><span>                </span><span class="hs-comment">-- inner map, we'll have to remove the entry altogether:</span><span>
-</span><span id="line-405"></span><span>                </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Map TokenName (NonZero Integer)
+</span><span id="line-402"></span><span>                  </span><span class="hs-keyword">else</span><span> </span><span class="hs-comment">-- If the sum is zero, we'll have to delete the token name</span><span>
+</span><span id="line-403"></span><span>                  </span><span class="hs-comment">-- from the inner map. If that yields a completely empty</span><span>
+</span><span id="line-404"></span><span>                  </span><span class="hs-comment">-- inner map, we'll have to remove the entry altogether:</span><span>
+</span><span id="line-405"></span><span>                  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Map TokenName (NonZero Integer)
 -&gt; Maybe (NEMap TokenName (NonZero Integer))
 forall k a. Map k a -&gt; Maybe (NEMap k a)
 </span><span class="hs-identifier hs-var">NEMap.nonEmptyMap</span></span><span> </span><span class="annot"><span class="annottext">(Map TokenName (NonZero Integer)
@@ -884,13 +884,13 @@ forall k a. Ord k =&gt; k -&gt; NEMap k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">NEMap.delete</span></span><span> </span><span class="annot"><span class="annottext">TokenName
 </span><a href="#local-6989586621679539831"><span class="hs-identifier hs-var">tName</span></a></span><span> </span><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539823"><span class="hs-identifier hs-var">innerMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-406"></span><span>                  </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
+</span><span id="line-406"></span><span>                    </span><span class="annot"><span class="annottext">Maybe (NEMap TokenName (NonZero Integer))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; TxSkelMints -&gt; TxSkelMints
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Map k a
 </span><span class="hs-identifier hs-var">Map.delete</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 </span><a href="#local-6989586621679539833"><span class="hs-identifier hs-var">pol</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 </span><a href="#local-6989586621679539829"><span class="hs-identifier hs-var">mints</span></a></span><span>
-</span><span id="line-407"></span><span>                  </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679539813"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
+</span><span id="line-407"></span><span>                    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679539813"><span class="annot"><span class="annottext">NEMap TokenName (NonZero Integer)
 </span><a href="#local-6989586621679539813"><span class="hs-identifier hs-var">newInnerMap</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; (MintsRedeemer, NEMap TokenName (NonZero Integer))
 -&gt; TxSkelMints
