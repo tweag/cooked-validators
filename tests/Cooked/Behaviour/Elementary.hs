@@ -8,7 +8,7 @@ module Cooked.Behaviour.Elementary where
 
 import Control.Monad (void)
 import Cooked
-import qualified Cooked.Behaviour.Validators as Validators
+import qualified Cooked.Validators.Unit as Validators
 import Data.Default (def)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)

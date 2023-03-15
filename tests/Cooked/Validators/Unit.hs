@@ -8,7 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | Some validators to be used in test transactions.
-module Cooked.Behaviour.Validators
+module Cooked.Validators.Unit
   ( Unit,
     yes,
     no,

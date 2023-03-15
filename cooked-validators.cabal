@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 
@@ -112,7 +112,6 @@ test-suite spec
       Cooked.Behaviour.InlineDatumsSpec
       Cooked.Behaviour.ReferenceInputsSpec
       Cooked.Behaviour.ReferenceScriptsSpec
-      Cooked.Behaviour.Validators
       Cooked.ShowBSSpec
       Cooked.TestUtils
       Cooked.Unit
@@ -128,6 +127,7 @@ test-suite spec
       Cooked.Unit.Tweak.OutPermutationsSpec
       Cooked.Unit.Tweak.ValidityRangeSpec
       Cooked.Unit.TweakSpec
+      Cooked.Validators.Unit
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators

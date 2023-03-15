@@ -11,7 +11,7 @@ module Cooked.Behaviour.InlineDatumsSpec where
 
 import Control.Monad (void)
 import Cooked
-import qualified Cooked.Behaviour.Validators as Validators
+import qualified Cooked.Validators.Unit as Validators
 import Data.Default
 import qualified Data.Map as Map
 import Data.Maybe
