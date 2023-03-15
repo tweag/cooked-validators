@@ -69,14 +69,13 @@ walletToScript =
   testSucceedsFrom'
     def
     ( \yesOuts state -> do
-        let yesOutsValue = mconcat $ view outputValueL . snd <$> yesOuts
-        countLovelace yesOutsValue @?= 2_000_000
+        case yesOuts of
+          [(_, out)] -> outputValue out @?= Pl.adaValueOf 2
+          _ -> assertFailure "the yes validator sould lock exactly one output"
         -- Wallet 1 pays some fees
         countLovelace (wAddress 1 `holdsInState` state)
           < 3_000_000
           @? "Wallet 1 has too many Lovelace (have fees been spent?)"
-        case yesOuts of [_] -> True; _ -> False
-          @? "There is not a single output locked by the yes validator"
     )
     ( InitialDistribution $
         Map.fromList
