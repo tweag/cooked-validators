@@ -360,7 +360,7 @@ tests =
             (testSucceeds def $ requireSigner (wallet 3) [wallet 1, wallet 3]),
           testCase
             "the required signer is not there"
-            (testFails def $ requireSigner (wallet 3) [wallet 1, wallet 2])
+            (testFails def (isCekEvaluationFailure def) $ requireSigner (wallet 3) [wallet 1, wallet 2])
         ],
       testGroup
         "Valid ranges"
@@ -372,10 +372,9 @@ tests =
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "never subset of the (almost) empty set" $
-            testFailsFrom'
+            testFails
               def
               (isCekEvaluationFailure def)
-              def
               ( triggerValidator
                   (Validators.validRangeSubsetOf (Just 0, Just 0))
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
@@ -391,19 +390,17 @@ tests =
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "3 Ada is the upper bound" $
-            testFailsFrom'
+            testFails
               def
               (isCekEvaluationFailure def)
-              def
               ( triggerValidator
                   (Validators.checkFeeBetween (350_000, Just 2_900_000))
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})
               ),
           testCase "350 000 Lovelace is the lower bound" $
-            testFailsFrom'
+            testFails
               def
               (isCekEvaluationFailure def)
-              def
               ( triggerValidator
                   (Validators.checkFeeBetween (360_000, Just 3_000_000))
                   (return $ txSkelTemplate {txSkelSigners = [wallet 1]})

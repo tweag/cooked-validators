@@ -135,13 +135,13 @@ tests =
                     testSucceeds def $
                       spendOutputTestTrace True (Validators.inputDatum True),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       spendOutputTestTrace False (Validators.inputDatum True)
                 ],
               testGroup
                 "validator expects a datum hash..."
                 [ testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       spendOutputTestTrace True (Validators.inputDatum False),
                   testCase "...and gets a datum hash, expecting success" $
                     testSucceeds def $
@@ -158,12 +158,12 @@ tests =
                         Validators.ResolvedHash
                         (Validators.continuingDatum Validators.ResolvedHash),
                   testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.Inline
                         (Validators.continuingDatum Validators.ResolvedHash),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.OnlyHash
                         (Validators.continuingDatum Validators.ResolvedHash)
@@ -171,7 +171,7 @@ tests =
               testGroup
                 "validator expects an inline datum..."
                 [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.ResolvedHash
                         (Validators.continuingDatum Validators.Inline),
@@ -181,7 +181,7 @@ tests =
                         Validators.Inline
                         (Validators.continuingDatum Validators.Inline),
                   testCase "...and gets a datum hash, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.OnlyHash
                         (Validators.continuingDatum Validators.Inline)
@@ -189,12 +189,12 @@ tests =
               testGroup
                 "validator expects a datum hash..."
                 [ testCase "...and gets a regular datum, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.ResolvedHash
                         (Validators.continuingDatum Validators.OnlyHash),
                   testCase "...and gets an inline datum, expecting script failure" $
-                    testFailsFrom' def (isCekEvaluationFailure def) def $
+                    testFails def (isCekEvaluationFailure def) $
                       continuingOutputTestTrace
                         Validators.Inline
                         (Validators.continuingDatum Validators.OnlyHash),
