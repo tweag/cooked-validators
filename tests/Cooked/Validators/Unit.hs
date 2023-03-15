@@ -20,8 +20,6 @@ module Cooked.Validators.Unit
     validRangeSubsetOf,
     checkFeeBetween,
     otherInputDatum,
-    pkNotInDatum,
-    PubKey,
   )
 where
 
@@ -194,8 +192,8 @@ checkFeeBetween =
 
 -- * Coupled validators
 
--- 'otherInputDatum' and 'pkNotInDatum' are two scripts to test reference inputs.
--- They serve no purpose and make no real sense.
+-- 'otherInputDatum' and 'Cooked.Validators.Other.pkNotInDatum' are two scripts
+-- to test reference inputs. They serve no purpose and make no real sense.
 
 -- | Outputs can only be spent if in the transaction, there's an input whose
 -- datum contains the pubkey hash of a signer of the transaction. The datum is
@@ -222,20 +220,3 @@ otherInputDatum =
           Just pkh -> pkh `elem` txInfoSignatories txInfo
     f _ _ = False
 
-data PubKey
-
-instance Scripts.ValidatorTypes PubKey where
-  type RedeemerType PubKey = ()
-  type DatumType PubKey = PubKeyHash
-
--- | Outputs can only be spent by pubkeys whose hash is not the one in the datum.
-pkNotInDatum :: Scripts.TypedValidator PubKey
-pkNotInDatum =
-  Scripts.mkTypedValidator @PubKey
-    $$(compile [||val||])
-    $$(compile [||wrap||])
-  where
-    val :: PubKeyHash -> () -> ScriptContext -> Bool
-    val pkh _ (ScriptContext txInfo _) =
-      pkh `notElem` txInfoSignatories txInfo
-    wrap = Scripts.mkUntypedValidator

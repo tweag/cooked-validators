@@ -9,6 +9,7 @@ module Cooked.Behaviour.ReferenceInputsSpec where
 
 import Control.Monad
 import Cooked
+import qualified Cooked.Validators.Other as Validators
 import qualified Cooked.Validators.Unit as Validators
 import Data.Default
 import qualified Data.Map as Map
