@@ -5,20 +5,17 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.Attack.DoubleSat
-  ( DoubleSatSplitMode (..),
-    DoubleSatDelta,
+  ( DoubleSatDelta,
     DoubleSatLbl (..),
     doubleSatAttack,
   )
 where
 
-import Control.Monad
 import Cooked.MockChain.BlockChain
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
-import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Optics.Core
@@ -47,10 +44,6 @@ by going through the foci of some optic on the 'TxSkel' representing the
 transaction from the left to the right, and adding some extra inputs, outputs,
 and mints depending on each focus and the current 'MockChainSt'ate. -}
 
--- | How to combine extra constraints added for different reasons in the
--- 'doubleSatAttack'. See the comments there.
-data DoubleSatSplitMode = TryCombinations | AllSeparate
-
 -- | A triple of transaction inputs, transaction outputs, and minted value. This
 -- is what we can add to the transaction in order to try a double satisfaction
 -- attack.
@@ -75,18 +68,21 @@ instance {-# OVERLAPPING #-} Monoid DoubleSatDelta where
 -- value contained in new inputs to the transaction is then paid to the
 -- attacker.
 doubleSatAttack ::
-  (MonadTweak m, Is k A_Fold) =>
+  (MonadTweak m, Eq is, Is k A_Traversal) =>
+  -- | how to combine modifications from caused by different foci. See the
+  -- comment at 'combineModsTweak', which uses the same logic.
+  ([is] -> [[is]]) ->
   -- | Each focus of this optic is a potential reason to add some extra
   -- constraints.
   --
   -- As an example, one could go through the 'paysScript' outputs for
   -- validators of type @t@ with the following traversal:
   --
-  -- > txSkelOutsL % taversed % txSkelOutputToTypedValidatorP @t
-  Optic' k is TxSkel a ->
-  -- | Which inputs, outputs, and mints to add, for each of the foci. There
-  -- might be different options for each focus, that's why the return value is a
-  -- list.
+  -- > txSkelOutsL % itaversed % txSkelOutputToTypedValidatorP @t
+  Optic' k (WithIx is) TxSkel a ->
+  -- | How to change each focus, and which inputs, outputs, and mints to add,
+  -- for each of the foci. There might be different options for each focus,
+  -- that's why the return value is a list.
   --
   -- Continuing the example, for each of the focused 'paysScript' outputs, you
   -- might want to try adding some 'spendsScript' inputs to the
@@ -108,85 +104,21 @@ doubleSatAttack ::
   -- 'UtxoState' argument.
   --
   -- ###################################
-  (a -> m [DoubleSatDelta]) ->
+  (is -> a -> m [(a, DoubleSatDelta)]) ->
   -- | The wallet of the attacker, where any surplus is paid to.
   --
   -- In the example, the extra value in the added 'spendsScript' constraints
   -- will be paid to the attacker.
   Wallet ->
-  -- | Since there are potentially multiple triples of inputs, outputs, and
-  -- mints produced for each of the foci, the question is whether (and how) to
-  -- combine additions that were triggered by different foci.
-  --
-  -- In the example: Let's say that the unmodified transaction had three focused
-  -- 'paysScript' outputs (let's denote them by a, b, and c), and that you want
-  -- to try 2, 3, and 5 additional 'spendsScript' inputs for each of them,
-  -- respectively (let's call those a1, a2, and b1, b2, b3, and c1, c2, c3, c4,
-  -- c5).
-  --
-  -- - If you want to try each additional 'spendsScript' on its own modified
-  --   transaction, use 'AllSeparate'. Thus, there'll be 2+3+5=10 modified
-  --   transactions. Namely, for each element of the list
-  --
-  -- > [a1, a2, b1, b2, b3, c1, c2, c3, c4, c5]  ,
-  --
-  --   you'll get one modified transaction that includes that additional input.
-  --
-  -- - If you want to try combining all options from one focus with all options
-  --   from all of the other foci, use 'TryCombinations'. Then, there'll be
-  --   (2+1)*(3+1)*(5+1)=72 possible combinations, if you include all of the
-  --   combinations where /at most/ three (one for each focus) extra constraints
-  --   are added. One of these combinations is of course the one where nothing
-  --   is added, and that one is omitted, which brings the grand total down to
-  --   71 modified transactions, the additional 'spendsScript' inputs of which
-  --   are given by the following list:
-  --
-  -- > [ -- one additional input (the 10 cases from above)
-  -- >   [a1],
-  -- >   [a2],
-  -- >   ...
-  -- >   [c4],
-  -- >   [c5],
-  -- >
-  -- >   -- two additional inputs, from different foci (2*3 + 2*5 + 3*5 = 31 cases)
-  -- >   [a1, b1],
-  -- >   [a1, b2],
-  -- >   ...
-  -- >   [b3, c4],
-  -- >   [b3, c5],
-  -- >
-  -- >   -- three additional inputs, one from each focus (2*3*5 = 30 cases)
-  -- >   [a1, b1, c1],
-  -- >   [a1, b1, c2],
-  -- >   ...
-  -- >   [a1, b3, c4],
-  -- >   [a1, b3, c5]
-  -- > ]
-  --
-  -- So you see that this attack can branch quite wildly. Use with caution!
-  DoubleSatSplitMode ->
   m ()
-doubleSatAttack optic extra attacker mode = do
-  foci <- viewAllTweak optic
-  deltas <- mapM extra foci
-  msum $
-    map
-      ( \delta -> do
-          addDoubleSatDeltaTweak delta
-          addedValue <- deltaBalance delta
-          if addedValue `Pl.gt` mempty
-            then addOutputTweak $ paysPK (walletPKHash attacker) addedValue
-            else failingTweak
-      )
-      ( case mode of
-          AllSeparate -> nubBy sameDeltas $ concat deltas
-          TryCombinations ->
-            nubBy sameDeltas $
-              map joinDeltas $
-                tail $
-                  allCombinations $
-                    map (mempty :) deltas
-      )
+doubleSatAttack groupings optic change attacker = do
+  deltas <- combineModsTweak groupings optic change
+  let delta = joinDoubleSatDeltas deltas
+  addDoubleSatDeltaTweak delta
+  addedValue <- deltaBalance delta
+  if addedValue `Pl.gt` mempty
+    then addOutputTweak $ paysPK (walletPKHash attacker) addedValue
+    else failingTweak
   addLabelTweak DoubleSatLbl
   where
     -- for each triple of additional inputs, outputs, and mints, calculate its balance
@@ -195,7 +127,6 @@ doubleSatAttack optic extra attacker mode = do
       inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> Pl.negate outValue <> mintValue
       where
-        -- inValue = foldOf (traversed % sOutValueL) $ Map.keys inputs
         outValue = foldOf (traversed % txSkelOutValueL) outputs
         mintValue = txSkelMintsValue mints
 
@@ -206,22 +137,10 @@ doubleSatAttack optic extra attacker mode = do
         >> mapM_ addOutputTweak outs
         >> mapM_ addMintTweak (txSkelMintsToList mints)
 
-    -- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
-    -- eveything that is contained in the input.
-    joinDeltas :: [DoubleSatDelta] -> DoubleSatDelta
-    joinDeltas = mconcat
-
-    sameDeltas :: DoubleSatDelta -> DoubleSatDelta -> Bool
-    sameDeltas (i, o, m) (i', o', m') = i == i' && sameMultiSet o o' && m == m'
-      where
-        sameMultiSet :: Eq a => [a] -> [a] -> Bool
-        sameMultiSet [] [] = True
-        sameMultiSet (x : xs) ys = sameMultiSet xs (delete x ys)
-        sameMultiSet _ _ = False
-
-    allCombinations :: [[x]] -> [[x]]
-    allCombinations (l : ls) = let cs = allCombinations ls in concatMap (\x -> (x :) <$> cs) l
-    allCombinations [] = [[]]
+-- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
+-- eveything that is contained in the input.
+joinDoubleSatDeltas :: [DoubleSatDelta] -> DoubleSatDelta
+joinDoubleSatDeltas = mconcat
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show, Ord)

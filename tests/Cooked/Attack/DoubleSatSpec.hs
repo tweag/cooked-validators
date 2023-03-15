@@ -8,16 +8,20 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Cooked.Attack.DoubleSatSpec (tests) where
+module Cooked.Attack.DoubleSatSpec where
 
 import Control.Arrow
+import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
 import Cooked.TestUtils
 import Data.Default
+import Data.List (subsequences)
+import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
+import Data.Tuple (swap)
 import qualified Debug.Trace
 import Ledger.Typed.Scripts
 import Optics.Core
@@ -50,10 +54,13 @@ instance Pl.Eq ADatum where
 Pl.makeLift ''ADatum
 Pl.unstableMakeIsData ''ADatum
 
-data ARedeemer = ARedeemer deriving (Show)
+data ARedeemer = ARedeemer1 | ARedeemer2 | ARedeemer3 deriving (Show)
 
 instance Pl.Eq ARedeemer where
-  ARedeemer == ARedeemer = True
+  ARedeemer1 == ARedeemer1 = True
+  ARedeemer2 == ARedeemer2 = True
+  ARedeemer3 == ARedeemer3 = True
+  _ == _ = False
 
 instance PrettyCooked ARedeemer where
   prettyCooked = viaShow
@@ -140,12 +147,14 @@ tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
-    $ let Right ([aUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 2_000_000) . outputValue)
-          Right ([aUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 3_000_000) . outputValue)
-          Right ([aUtxo3], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 4_000_000) . outputValue)
-          Right ([aUtxo4], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 5_000_000) . outputValue)
-          Right ([bUtxo1], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 6_000_000) . outputValue)
-          Right ([bUtxo2], _) = runMockChainRaw def dsTestMockChainSt $ runUtxoSearch $ allUtxosSearch `filterWithPred` ((== Pl.lovelaceValueOf 7_000_000) . outputValue)
+    $ let Right ([aUtxo1, aUtxo2, aUtxo3, aUtxo4], _) =
+            runMockChainRaw def dsTestMockChainSt $
+              runUtxoSearch $
+                utxosAtSearch (Pl.validatorAddress aValidator)
+          Right ([bUtxo1, bUtxo2], _) =
+            runMockChainRaw def dsTestMockChainSt $
+              runUtxoSearch $
+                utxosAtSearch (Pl.validatorAddress bValidator)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
@@ -157,10 +166,10 @@ tests =
               -- the output 'TxSkel's. Both 'DoubleSatSplitMode's are tested.
               let -- generate an input skeleton from some 'aValidator' UTxOs to
                   -- be spent.
-                  skelIn :: [Pl.TxOutRef] -> TxSkel
-                  skelIn aOrefs =
+                  skelIn :: [(ARedeemer, Pl.TxOutRef)] -> TxSkel
+                  skelIn aInputs =
                     txSkelTemplate
-                      { txSkelIns = Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) $ Set.fromList aOrefs,
+                      { txSkelIns = Map.fromList $ map (second TxSkelRedeemerForScript . swap) aInputs,
                         txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)],
                         txSkelSigners = [wallet 1]
                       }
@@ -170,60 +179,58 @@ tests =
                   -- statement is what decides which UTxOs belonging to the
                   -- 'bValidator' to add, depending on the focused input
                   -- 'aValidator' UTxO.
-                  skelsOut :: DoubleSatSplitMode -> [Pl.TxOutRef] -> [TxSkel]
-                  skelsOut splitMode aUtxos =
+                  skelsOut :: ([Pl.TxOutRef] -> [[Pl.TxOutRef]]) -> [(ARedeemer, Pl.TxOutRef)] -> [TxSkel]
+                  skelsOut splitMode aInputs =
                     mapMaybe (\case Right (_, skel') -> Just skel'; _ -> Nothing) $
                       runTweakFrom
                         def
                         dsTestMockChainSt
                         ( doubleSatAttack
-                            (txSkelInsL % to Map.keys % folded) -- We know that all of these TxOutRefs point to something that the 'aValidator' owns
-                            ( \aOref -> do
+                            splitMode
+                            (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
+                            ( \aOref _aRedeemer -> do
                                 bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
-                                Just aValue <- valueFromTxOutRef aOref
                                 if
-                                    | aValue == Pl.lovelaceValueOf 2_000_000 ->
+                                    | aOref == fst aUtxo1 ->
                                       return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
+                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
                                           | (bOref, bOut) <- bUtxos,
                                             outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                         ]
-                                    | aValue == Pl.lovelaceValueOf 3_000_000 ->
+                                    | aOref == fst aUtxo2 ->
                                       return
-                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 6_000_000 -- satisfied by exactly one UTxO in 'dsTestMockChain'
+                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                          | (bOref, _) <- bUtxos,
+                                            bOref == fst bUtxo1
                                         ]
-                                    | aValue == Pl.lovelaceValueOf 4_000_000 ->
+                                    | aOref == fst aUtxo3 ->
                                       return $
                                         concatMap
-                                          ( \(bOref, bOut) ->
-                                              let bValue = outputValue bOut
-                                               in if
-                                                      | bValue == Pl.lovelaceValueOf 6_000_000 ->
-                                                        [toDelta bOref $ TxSkelRedeemerForScript BRedeemer1]
-                                                      | bValue == Pl.lovelaceValueOf 7_000_000 ->
-                                                        [ toDelta bOref $ TxSkelRedeemerForScript BRedeemer1,
-                                                          toDelta bOref $ TxSkelRedeemerForScript BRedeemer2
-                                                        ]
-                                                      | otherwise -> []
+                                          ( \(bOref, _) ->
+                                              if
+                                                  | bOref == fst bUtxo1 ->
+                                                    [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
+                                                  | bOref == fst bUtxo2 ->
+                                                    [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
+                                                      (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
+                                                    ]
+                                                  | otherwise -> []
                                           )
                                           bUtxos
                                     | otherwise -> return []
                             )
                             (wallet 6)
-                            splitMode
                         )
-                        (skelIn aUtxos)
+                        (skelIn aInputs)
                     where
                       toDelta :: Pl.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
                       toDelta oref howSpent = (Map.singleton oref howSpent, [], mempty)
 
                   -- generate a transaction that spends the given 'aValidator'
                   -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
-                  -- with the specified redeemers.
-                  skelExpected :: [Pl.TxOutRef] -> [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))] -> TxSkel
-                  skelExpected aOrefs bUtxos =
+                  -- with the specified redeemers, while redirecting the value of the inputs from the 'bValidator' to wallet 6
+                  skelExpected :: [(ARedeemer, Pl.TxOutRef)] -> [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))] -> TxSkel
+                  skelExpected aInputs bInputs =
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
                         txSkelIns =
@@ -231,83 +238,164 @@ tests =
                             ( ( \(bRedeemer, (bOref, _)) ->
                                   (bOref, TxSkelRedeemerForScript bRedeemer)
                               )
-                                <$> bUtxos
+                                <$> bInputs
                             )
-                            <> Map.fromSet (const (TxSkelRedeemerForScript ARedeemer)) (Set.fromList aOrefs),
+                            <> Map.fromList
+                              ( ( \(aRedeemer, aOref) ->
+                                    (aOref, TxSkelRedeemerForScript aRedeemer)
+                                )
+                                  <$> aInputs
+                              ),
                         txSkelOuts =
                           [ paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000),
-                            paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bUtxos)
+                            paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bInputs)
                           ],
                         txSkelSigners = [wallet 1]
                       }
-               in [ testGroup "with 'AllSeparate'" $
-                      let thePredicate :: [(Pl.TxOutRef, Pl.TxOut)] -> [[(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]] -> Assertion
-                          thePredicate aUtxos bUtxos =
+               in [ testGroup "with separate skeletons for each modification" $
+                      let thePredicate ::
+                            [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))] ->
+                            [ ( [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))],
+                                [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]
+                              )
+                            ] ->
+                            Assertion
+                          thePredicate oldInputs newInputs =
                             assertSameSets
-                              (skelExpected (fst <$> aUtxos) <$> bUtxos)
-                              (skelsOut AllSeparate $ fst <$> aUtxos)
-                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
-                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
-                            testCase "three modified transactions from 1+2 redeemers" $
-                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
-                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
-                            testCase "with two foci, the correct combinations are returned" $
-                              testConjoin $
-                                map
-                                  (uncurry thePredicate)
-                                  [ ([aUtxo1, aUtxo4], []),
-                                    ([aUtxo4, aUtxo1], []),
-                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
-                                    ( [aUtxo2, aUtxo3],
-                                      [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
-                                    )
-                                  ],
-                            testCase "with all possible foci, no additional transactions are generated" $
+                              ( map
+                                  ( \(newAInputs, newBInputs) ->
+                                      skelExpected (second fst <$> newAInputs) newBInputs
+                                  )
+                                  newInputs
+                              )
+                              (skelsOut (map (: [])) $ second fst <$> oldInputs)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $
                               thePredicate
-                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
-                                -- the same list as in the last example
-                                [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]]
-                          ],
-                    testGroup "with 'TryCombinations'" $
-                      let thePredicate :: [(Pl.TxOutRef, Pl.TxOut)] -> [[(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]] -> Assertion
-                          thePredicate aUtxos bUtxos =
-                            assertSameSets
-                              (skelExpected (fst <$> aUtxos) <$> bUtxos)
-                              (skelsOut TryCombinations $ fst <$> aUtxos)
-                       in [ testCase "no modified transactions if there's no suitable UTxO" $ thePredicate [aUtxo1] [],
-                            testCase "exactly one modified transaction if there's one suitable UTxO" $ thePredicate [aUtxo2] [[(BRedeemer1, bUtxo1)]],
+                                [(ARedeemer1, aUtxo1)]
+                                [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo2)]
+                                [([(ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])],
                             testCase "three modified transactions from 1+2 redeemers" $
-                              thePredicate [aUtxo3] [[(BRedeemer1, bUtxo1)], [(BRedeemer1, bUtxo2)], [(BRedeemer2, bUtxo2)]],
-                            testCase "no modified transactions if no redeemer is specified" $ thePredicate [aUtxo4] [],
+                              thePredicate
+                                [(ARedeemer1, aUtxo3)]
+                                [ ([(ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                  ([(ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)])
+                                ],
+                            testCase "no modified transactions if no redeemer is specified" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo4)]
+                                [],
                             testCase "with two foci, the correct combinations are returned" $
                               testConjoin $
                                 map
                                   (uncurry thePredicate)
-                                  [ ([aUtxo1, aUtxo4], []),
-                                    ([aUtxo4, aUtxo1], []),
-                                    ([aUtxo1, aUtxo2], [[(BRedeemer1, bUtxo1)]]),
-                                    ([aUtxo2, aUtxo4], [[(BRedeemer1, bUtxo1)]]),
-                                    ( [aUtxo2, aUtxo3],
-                                      [ -- one extra input
-                                        [(BRedeemer1, bUtxo1)],
-                                        [(BRedeemer1, bUtxo2)],
-                                        [(BRedeemer2, bUtxo2)],
-                                        -- two extra inputs
-                                        [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
-                                        [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                  [ ( [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4)],
+                                      []
+                                    ),
+                                    ( [(ARedeemer1, aUtxo4), (ARedeemer1, aUtxo1)],
+                                      []
+                                    ),
+                                    ( [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo2)],
+                                      [([(ARedeemer1, aUtxo1), (ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])]
+                                    ),
+                                    ( [(ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2)],
+                                      [([(ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])]
+                                    ),
+                                    ( [(ARedeemer1, aUtxo2), (ARedeemer1, aUtxo3)],
+                                      [ ([(ARedeemer2, aUtxo2), (ARedeemer1, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)])
                                       ]
                                     )
                                   ],
                             testCase "with all possible foci, no additional transactions are generated" $
                               thePredicate
-                                [aUtxo1, aUtxo2, aUtxo3, aUtxo4]
-                                -- the same list  as in the last example
-                                [ [(BRedeemer1, bUtxo1)],
-                                  [(BRedeemer1, bUtxo2)],
-                                  [(BRedeemer2, bUtxo2)],
-                                  [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)],
-                                  [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)]
+                                [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo2), (ARedeemer1, aUtxo3), (ARedeemer1, aUtxo4)]
+                                [ ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2), (ARedeemer1, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)])
+                                ]
+                          ],
+                    testGroup "trying all combinations of modifications" $
+                      let thePredicate ::
+                            [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))] ->
+                            [ ( [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))],
+                                [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]
+                              )
+                            ] ->
+                            Assertion
+                          thePredicate oldInputs newInputs =
+                            assertSameSets
+                              ( map
+                                  ( \(newAInputs, newBInputs) ->
+                                      skelExpected (second fst <$> newAInputs) newBInputs
+                                  )
+                                  newInputs
+                              )
+                              (skelsOut (tail . subsequences) $ second fst <$> oldInputs)
+                       in [ testCase "no modified transactions if there's no suitable UTxO" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo1)]
+                                [],
+                            testCase "exactly one modified transaction if there's one suitable UTxO" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo2)]
+                                [([(ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])],
+                            testCase "three modified transactions from 1+2 redeemers" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo3)]
+                                [ ([(ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                  ([(ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)])
+                                ],
+                            testCase "no modified transactions if no redeemer is specified" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo4)]
+                                [],
+                            testCase "with two foci, the correct combinations are returned" $
+                              testConjoin $
+                                map
+                                  (uncurry thePredicate)
+                                  [ ( [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4)],
+                                      []
+                                    ),
+                                    ( [(ARedeemer1, aUtxo4), (ARedeemer1, aUtxo1)],
+                                      []
+                                    ),
+                                    ( [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo2)],
+                                      [([(ARedeemer1, aUtxo1), (ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])]
+                                    ),
+                                    ( [(ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2)],
+                                      [([(ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2)], [(BRedeemer1, bUtxo1)])]
+                                    ),
+                                    ( [(ARedeemer1, aUtxo2), (ARedeemer1, aUtxo3)],
+                                      [ -- one modified focus
+                                        ([(ARedeemer2, aUtxo2), (ARedeemer1, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                        ([(ARedeemer1, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)]),
+                                        -- both foci modified
+                                        ([(ARedeemer2, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                        ([(ARedeemer2, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)]),
+                                        ([(ARedeemer2, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)])
+                                      ]
+                                    )
+                                  ],
+                            testCase "with all possible foci, no additional transactions are generated" $
+                              thePredicate
+                                [(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo2), (ARedeemer1, aUtxo3), (ARedeemer1, aUtxo4)]
+                                [ ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2), (ARedeemer1, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo2)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer1, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer2, bUtxo2)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2), (ARedeemer2, aUtxo3)], [(BRedeemer1, bUtxo1), (BRedeemer1, bUtxo2)]),
+                                  ([(ARedeemer1, aUtxo1), (ARedeemer1, aUtxo4), (ARedeemer2, aUtxo2), (ARedeemer3, aUtxo3)], [(BRedeemer1, bUtxo1), (BRedeemer2, bUtxo2)])
                                 ]
                           ]
                   ]
