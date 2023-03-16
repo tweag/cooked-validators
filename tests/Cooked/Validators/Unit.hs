@@ -19,6 +19,7 @@ module Cooked.Validators.Unit
     requireRefScript,
     validRangeSubsetOf,
     checkFeeBetween,
+    nonEmptyWithdrawal,
     otherInputDatum,
   )
 where
@@ -30,6 +31,7 @@ import Plutus.V1.Ledger.Interval as Interval
 import Plutus.V2.Ledger.Api as PV2
 import Plutus.V2.Ledger.Contexts as PV2
 import PlutusTx
+import qualified PlutusTx.AssocMap as AssocMap
 import PlutusTx.Builtins ()
 import PlutusTx.Lift ()
 import PlutusTx.Prelude
@@ -189,6 +191,18 @@ checkFeeBetween =
     val (lower, upper) _ _ (ScriptContext txInfo _) =
       Ada.fromValue (txInfoFee txInfo)
         `member` rangeOfPair (Haskell.fromInteger lower) (fmap Haskell.fromInteger upper)
+
+-- | Succeeds if some withdrawal is performed.
+nonEmptyWithdrawal :: Scripts.TypedValidator Unit
+nonEmptyWithdrawal =
+  Scripts.mkTypedValidator @Unit
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    wrap = Scripts.mkUntypedValidator
+    val :: () -> () -> ScriptContext -> Bool
+    val _ _ (ScriptContext (TxInfo {txInfoWdrl = wdrl}) _) =
+      wdrl /= AssocMap.empty
 
 -- * Coupled validators
 
