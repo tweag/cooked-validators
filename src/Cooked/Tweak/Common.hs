@@ -205,7 +205,7 @@ overMaybeSelectingTweak optic mChange select = do
 -- __Example 1__
 --
 -- Assume the optic has three foci, let's denote them by @a, b, c :: x@, with
--- indices @1, 2, 3 :: Integer@ respecitvely. Also assume that the @is -> x -> m [(x, l)]@
+-- indices @1, 2, 3 :: Integer@ respectively. Also assume that the @is -> x -> m [(x, l)]@
 -- argument returns lists of 2, 3, and 5 elements on @a@, @b@, and @c@,
 -- respectively. Let's call those elements @a1, a2@ and @b1, b2, b3@ and @c1,
 -- c2, c3, c4, c5@.

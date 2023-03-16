@@ -137,10 +137,10 @@ doubleSatAttack groupings optic change attacker = do
         >> mapM_ addOutputTweak outs
         >> mapM_ addMintTweak (txSkelMintsToList mints)
 
--- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
--- eveything that is contained in the input.
-joinDoubleSatDeltas :: [DoubleSatDelta] -> DoubleSatDelta
-joinDoubleSatDeltas = mconcat
+    -- Join a list of 'DoubleSatDelta's into one 'DoubleSatDelta' that specifies
+    -- eveything that is contained in the input.
+    joinDoubleSatDeltas :: [DoubleSatDelta] -> DoubleSatDelta
+    joinDoubleSatDeltas = mconcat
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show, Ord)
