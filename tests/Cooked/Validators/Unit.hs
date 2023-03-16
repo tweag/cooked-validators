@@ -219,4 +219,3 @@ otherInputDatum =
           Nothing -> False
           Just pkh -> pkh `elem` txInfoSignatories txInfo
     f _ _ = False
-

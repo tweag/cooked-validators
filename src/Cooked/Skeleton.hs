@@ -379,32 +379,32 @@ addToTxSkelMints ::
 addToTxSkelMints (pol, red, tName, amount) mints
   | 0 == amount = mints
   | otherwise = case mints Map.!? pol of
-    Nothing ->
-      -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
-      -- new entry:
-      Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
-    Just (_oldRed, innerMap) ->
-      -- Ignore the old redeemer: If it's the same as the new one, nothing will
-      -- change, if not, the new redeemer will be kept.
-      case innerMap NEMap.!? tName of
-        Nothing ->
-          -- The given token name has not yet occurred for the given
-          -- policy. This means that we can just add the new tokens to the
-          -- inner map:
-          Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
-        Just (NonZero oldAmount) ->
-          let newAmount = oldAmount + amount
-           in if newAmount /= 0
-                then -- If the sum of the old amount of tokens and the additional
-                -- tokens is non-zero, we can just update the amount in the
-                -- inner map:
-                  Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
-                else -- If the sum is zero, we'll have to delete the token name
-                -- from the inner map. If that yields a completely empty
-                -- inner map, we'll have to remove the entry altogether:
-                case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
-                  Nothing -> Map.delete pol mints
-                  Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
+      Nothing ->
+        -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
+        -- new entry:
+        Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
+      Just (_oldRed, innerMap) ->
+        -- Ignore the old redeemer: If it's the same as the new one, nothing will
+        -- change, if not, the new redeemer will be kept.
+        case innerMap NEMap.!? tName of
+          Nothing ->
+            -- The given token name has not yet occurred for the given
+            -- policy. This means that we can just add the new tokens to the
+            -- inner map:
+            Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
+          Just (NonZero oldAmount) ->
+            let newAmount = oldAmount + amount
+             in if newAmount /= 0
+                  then -- If the sum of the old amount of tokens and the additional
+                  -- tokens is non-zero, we can just update the amount in the
+                  -- inner map:
+                    Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
+                  else -- If the sum is zero, we'll have to delete the token name
+                  -- from the inner map. If that yields a completely empty
+                  -- inner map, we'll have to remove the entry altogether:
+                  case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
+                    Nothing -> Map.delete pol mints
+                    Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.
