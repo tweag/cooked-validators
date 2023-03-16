@@ -1,56 +1,20 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Cooked.Unit.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
+import Cooked.Policies.Unit as Policies
 import Data.Default
 import qualified Data.Set as Set
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
-
-{-# INLINEABLE mkCarefulPolicy #-}
-mkCarefulPolicy :: Pl.TokenName -> Integer -> () -> Pl.ScriptContext -> Bool
-mkCarefulPolicy tName allowedAmount _ ctx
-  | amnt Pl.== Just allowedAmount = True
-  | otherwise = Pl.trace "tried to mint wrong amount" False
-  where
-    txi = Pl.scriptContextTxInfo ctx
-
-    amnt :: Maybe Integer
-    amnt = case Pl.flattenValue (Pl.txInfoMint txi) of
-      [(cs, tn, a)] | cs Pl.== Pl.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
-      _ -> Nothing
-
-carefulPolicy :: Pl.TokenName -> Integer -> Pl.Versioned Pl.MintingPolicy
-carefulPolicy tName allowedAmount =
-  flip Pl.Versioned Pl.PlutusV2 . Pl.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
-      `Pl.applyCode` Pl.liftCode tName
-      `Pl.applyCode` Pl.liftCode allowedAmount
-
-{-# INLINEABLE mkCarelessPolicy #-}
-mkCarelessPolicy :: () -> Pl.ScriptContext -> Bool
-mkCarelessPolicy _ _ = True
-
-carelessPolicy :: Pl.Versioned Pl.MintingPolicy
-carelessPolicy =
-  flip Pl.Versioned Pl.PlutusV2 $
-    Pl.mkMintingPolicyScript
-      $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
 dupTokenTrace :: MonadBlockChain m => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
@@ -73,8 +37,8 @@ tests =
         let attacker = wallet 6
             tName1 = Pl.tokenName "MockToken1"
             tName2 = Pl.tokenName "MockToken2"
-            pol1 = carefulPolicy tName1 1
-            pol2 = carelessPolicy
+            pol1 = Policies.careful tName1 1
+            pol2 = Policies.yes
             ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol1) tName1
             ac2 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol2) tName2
             skelIn =
@@ -120,7 +84,7 @@ tests =
             ],
       testCase "careful minting policy" $
         let tName = Pl.tokenName "MockToken"
-            pol = carefulPolicy tName 1
+            pol = Policies.careful tName 1
          in testFails
               def
               (isCekEvaluationFailure def)
@@ -130,14 +94,14 @@ tests =
               ),
       testCase "careless minting policy" $
         let tName = Pl.tokenName "MockToken"
-            pol = carelessPolicy
+            pol = Policies.yes
          in testSucceeds def $
               somewhere
                 (dupTokenAttack (\_ n -> n + 1) (wallet 6))
                 (dupTokenTrace pol tName 1 (wallet 1)),
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
-            pol = carelessPolicy
+            pol = Policies.yes
             tName1 = Pl.tokenName "mintedToken"
             ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol) tName1
             ac2 = quickAssetClass "preExistingToken"

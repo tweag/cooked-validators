@@ -112,6 +112,7 @@ test-suite spec
       Cooked.Behaviour.InlineDatumsSpec
       Cooked.Behaviour.ReferenceInputsSpec
       Cooked.Behaviour.ReferenceScriptsSpec
+      Cooked.Policies.Unit
       Cooked.ShowBSSpec
       Cooked.TestUtils
       Cooked.Unit
