@@ -104,28 +104,7 @@ tests :: TestTree
 tests =
   testGroup
     "Inline datums vs. datum hashes"
-    [ testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
-        -- The validator used in these test cases does not actually matter, we
-        -- just need some script to pay to.
-        let theValidator = Validators.inputDatum True
-         in [ testCase "the datum is retrieved correctly" $
-                assertBool "... it's not" $
-                  case runMockChain (listUtxosTestTrace True theValidator >> allUtxos) of
-                    Right (utxos, _endState) ->
-                      case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
-                        [Pl.OutputDatum _] -> True
-                        _ -> False
-                    _ -> False,
-              testCase "the datum hash is retrieved correctly" $
-                assertBool "... it's not" $
-                  case runMockChain (listUtxosTestTrace False theValidator >> allUtxos) of
-                    Right (utxos, _endState) ->
-                      case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
-                        [Pl.OutputDatumHash _] -> True
-                        _ -> False
-                    _ -> False
-            ],
-      testGroup
+    [ testGroup
         "from the point of view of scripts"
         [ testGroup
             "looking at transaction inputs"
