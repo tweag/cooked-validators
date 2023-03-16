@@ -192,31 +192,31 @@ tests =
                                 bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
                                 if
                                     | aOref == fst aUtxo1 ->
-                                      return
-                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
-                                          | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                        ]
+                                        return
+                                          [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                            | (bOref, bOut) <- bUtxos,
+                                              outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                          ]
                                     | aOref == fst aUtxo2 ->
-                                      return
-                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
-                                          | (bOref, _) <- bUtxos,
-                                            bOref == fst bUtxo1
-                                        ]
+                                        return
+                                          [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                            | (bOref, _) <- bUtxos,
+                                              bOref == fst bUtxo1
+                                          ]
                                     | aOref == fst aUtxo3 ->
-                                      return $
-                                        concatMap
-                                          ( \(bOref, _) ->
-                                              if
-                                                  | bOref == fst bUtxo1 ->
-                                                    [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
-                                                  | bOref == fst bUtxo2 ->
-                                                    [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
-                                                      (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
-                                                    ]
-                                                  | otherwise -> []
-                                          )
-                                          bUtxos
+                                        return $
+                                          concatMap
+                                            ( \(bOref, _) ->
+                                                if
+                                                    | bOref == fst bUtxo1 ->
+                                                        [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
+                                                    | bOref == fst bUtxo2 ->
+                                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
+                                                          (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
+                                                        ]
+                                                    | otherwise -> []
+                                            )
+                                            bUtxos
                                     | otherwise -> return []
                             )
                             (wallet 6)
