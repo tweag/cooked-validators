@@ -205,9 +205,9 @@ overMaybeSelectingTweak optic mChange select = do
 -- __Example 1__
 --
 -- Assume the optic has three foci, let's denote them by @a, b, c :: x@, with
--- indices @1, 2, 3 :: Integer@ respecitvely. Also assume that the @x -> m [(x, l)]@
+-- indices @1, 2, 3 :: Integer@ respecitvely. Also assume that the @is -> x -> m [(x, l)]@
 -- argument returns lists of 2, 3, and 5 elements on @a@, @b@, and @c@,
--- respecitvely. Let's call those elements @a1, a2@ and @b1, b2, b3@ and @c1,
+-- respectively. Let's call those elements @a1, a2@ and @b1, b2, b3@ and @c1,
 -- c2, c3, c4, c5@.
 --
 -- If the @[ix] -> [[ix]]@ argument is @map (:[])@, you will try every
@@ -218,7 +218,7 @@ overMaybeSelectingTweak optic mChange select = do
 -- Thus, there'll be 2+3+5=10 modified transactions in our examples. Namely, for
 -- each element of the list
 --
--- > [a1, a2, b1, b2, b3, c1, c2, c3, c4, c5]  ,
+-- > [a1, a2, b1, b2, b3, c1, c2, c3, c4, c5]
 --
 -- you'll get one modified transaction that includes that value in place of the
 -- original focus.
