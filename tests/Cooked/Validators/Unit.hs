@@ -184,13 +184,13 @@ checkFeeBetween =
     $$(compile [||wrap||])
   where
     wrap = Scripts.mkUntypedValidator
-    rangeOfPair :: (Haskell.Num a, Ord a) => a -> Maybe a -> Interval a
-    rangeOfPair a Nothing = from (max 0 a)
-    rangeOfPair a (Just b) = Interval.interval (max 0 a) (max 0 b)
+    rangeOfPair :: (AdditiveMonoid a, Ord a) => a -> Maybe a -> Interval a
+    rangeOfPair a Nothing = from (max zero a)
+    rangeOfPair a (Just b) = Interval.interval (max zero a) (max zero b)
     val :: (Integer, Maybe Integer) -> () -> () -> ScriptContext -> Bool
     val (lower, upper) _ _ (ScriptContext txInfo _) =
       Ada.fromValue (txInfoFee txInfo)
-        `member` rangeOfPair (Haskell.fromInteger lower) (fmap Haskell.fromInteger upper)
+        `member` rangeOfPair (Ada.Lovelace lower) (fmap Ada.Lovelace upper)
 
 -- | Succeeds if some withdrawal is performed.
 nonEmptyWithdrawal :: Scripts.TypedValidator Unit
