@@ -27,11 +27,11 @@ countLovelace :: PV2.Value -> Integer
 countLovelace v = Pl.valueOf v PV2.adaSymbol PV2.adaToken
 
 -- | Get all outputs locked by a validator from a blockchain.
-outputsProtectedBy ::
+utxosProtectedBy ::
   MonadBlockChainBalancing m =>
   Scripts.TypedValidator Validators.Unit ->
   m [(PV2.TxOutRef, PV2.TxOut)]
-outputsProtectedBy =
+utxosProtectedBy =
   runUtxoSearch
     . utxosAtSearch
     . Scripts.validatorAddress
@@ -62,16 +62,16 @@ walletToWallet =
           }
     )
 
--- | Create transaction with an output protected by a script.
+-- | Create transaction with a UTxO protected by a script.
 walletToScript ::
-  -- | How to store the datum on the output
+  -- | How to store the datum on the UTxO
   Validators.DatumKind ->
   Assertion
 walletToScript datumKind =
   testSucceedsFrom'
     def
-    ( \outputs state -> do
-        let outsValue = mconcat $ view outputValueL . snd <$> outputs
+    ( \utxos state -> do
+        let outsValue = mconcat $ view outputValueL . snd <$> utxos
         countLovelace outsValue @?= 2_000_000
         -- Wallet 1 pays some fees
         countLovelace (wAddress 1 `holdsInState` state)
@@ -80,7 +80,7 @@ walletToScript datumKind =
         ( case ( datumKind,
                  mapMaybe
                    (fmap outputOutputDatum . (isScriptOutputFrom Validators.yes . snd))
-                   outputs
+                   utxos
                ) of
             (Validators.Inline, [PV2.OutputDatum _]) -> True
             (Validators.OnlyHash, [PV2.OutputDatumHash _]) -> True
@@ -109,10 +109,11 @@ walletToScript datumKind =
               { txSkelOuts = [pays Validators.yes () (Pl.adaValueOf 2)],
                 txSkelSigners = [wallet 1]
               }
-       in validateTxSkel skel >> outputsProtectedBy Validators.yes
+       in validateTxSkel skel >> utxosProtectedBy Validators.yes
     )
 
--- | Create an output locked by a wallet containing a reference script.
+-- | Create an output reference locked by a wallet containing a reference
+-- script.
 putRefScriptOnWalletOutput ::
   MonadBlockChain m =>
   -- | Recipient of the output and wallet used to balance the transaction
@@ -134,10 +135,11 @@ putRefScriptOnWalletOutput recipient referencedScript =
           txSkelSigners = [recipient]
         }
 
--- | Create an output whose address is the one of a script, and another one
--- consuming that output, and hence running the validator.
--- The first transaction simply puts the minimal amount of Ada (taken from
--- wallet 1) in an output protected by the validator.
+-- | Two transactions:
+-- 1. create a UTxO protected by a script
+-- 2. consume that UTxO (which means running the validator).
+-- The first transaction puts the minimal amount of Ada (taken from wallet 1)
+-- in the UTxO protected by the validator.
 triggerValidator ::
   MonadBlockChain m =>
   Scripts.TypedValidator Validators.Unit ->
@@ -161,17 +163,17 @@ triggerValidator validator skel = do
 -- * Continuing outputs
 
 --
--- A transaction involves a continuing output when one of its input is locked
--- by a script and one of its output is locked by the same script. Continuing
--- outputs can model contributions to a simple centralised pot, where each
--- transaction adds some value or something to the datum of the output. On
+-- A transaction involves a continuing output when one of its inputs is locked
+-- by a script and one of its outputs is locked by the same script. Continuing
+-- outputs can be thought of as "threads" in a contract's life, where each
+-- transaction changes the value or the datum of the output. On
 -- each contribution, the script is run to ensure its correctness.
 
 -- | Produce traces of the form
 -- 1. Post a reference script at address of wallet 1
--- 2. Post an output with some value protected by the latter script
--- 3. Post a sequence of @n@ transaction that take the unique output locked by the
---    script, consume it and produce a new output still locked by the script.
+-- 2. Produce an output with some value protected by the latter script
+-- 3. Submit a sequence of @n@ transactions that take the unique UTxO locked by the
+--    script, consume it and produce a new UTxO still locked by the script.
 -- A predicate can be run after each transaction of the sequence.
 txSequence ::
   MonadBlockChain m =>
@@ -182,8 +184,8 @@ txSequence ::
   -- substituted by the index of the transaction (starting at zero).
   -- The string is a debug message when the proposition is false.
   (Integer -> m (Bool, String)) ->
-  -- | The value /added/ to the value of the previous output in the chain.
-  -- The initial output contains 2 Ada.
+  -- | The value /added/ to the value of the previous UTxO in the chain.
+  -- The initial UTxO contains 2 Ada.
   (Integer -> PV2.Value) ->
   m [(Bool, String)]
 txSequence validator chainLength (predicates :: Integer -> m (Bool, String)) values = do
@@ -240,8 +242,8 @@ testSequence ::
   -- | Predicates to run after each transaction.
   (Integer -> forall m. MonadBlockChain m => m (Bool, String)) ->
   -- | Value accumulated on each transaction: for each transaction of the
-  -- sequence, the value of the output is the value of the input + the value
-  -- returned by this function. The initial output contains 2A.
+  -- sequence, the value of the UTxO is the value of the input + the value
+  -- returned by this function. The initial UTxO contains 2A.
   (Integer -> PV2.Value) ->
   InitialDistribution ->
   Assertion
@@ -262,7 +264,7 @@ uniqueScriptOutput =
     ( \_ -> do
         utxos <- runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress Validators.yes)
         return
-          (case utxos of [_] -> True; _ -> False, "Not a single output locked by the validator")
+          (case utxos of [_] -> True; _ -> False, "Not a single UTxO locked by the validator")
     )
     (const $ Pl.adaValueOf 2)
     ( InitialDistribution $
@@ -280,11 +282,11 @@ increasingPot =
     Validators.yes
     6
     ( \i -> do
-        (_, theOutput) : _ <-
+        (_, theUtxo) : _ <-
           runUtxoSearch $ utxosAtSearch (Scripts.validatorAddress Validators.yes)
         return
-          ( outputValue theOutput == Pl.lovelaceValueOf (2_000_000 * (2 + i)),
-            "The amount in the output doesn't match "
+          ( outputValue theUtxo == Pl.lovelaceValueOf (2_000_000 * (2 + i)),
+            "The amount in the UTxO doesn't match "
               ++ show (2_000_000 * (2 + i))
               ++ " lovelace"
           )
