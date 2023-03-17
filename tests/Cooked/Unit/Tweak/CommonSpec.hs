@@ -2,7 +2,9 @@ module Cooked.Unit.Tweak.CommonSpec (tests) where
 
 import Cooked
 import Cooked.MockChain.Staged
+import Cooked.TestUtils
 import Data.Default
+import Data.List
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Value as Pl
@@ -75,5 +77,75 @@ tests =
                         (`elem` [0, 2])
                     )
                     skel
+            ],
+      testGroup "combineModsTweak" $
+        let skel x y z =
+              txSkelTemplate
+                { txSkelOuts =
+                    [ paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf x),
+                      paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf y),
+                      paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf z)
+                    ]
+                }
+            skelIn = skel 0 0 0
+            skelOut x y z = Right ([0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0], skel x y z)
+         in [ testCase "all combinations of modifications" $
+                assertSameSets
+                  [ -- one changed focus
+                    skelOut 1 0 0,
+                    skelOut 2 0 0,
+                    skelOut 0 1 0,
+                    skelOut 0 2 0,
+                    skelOut 0 0 1,
+                    skelOut 0 0 2,
+                    -- two changed foci
+                    skelOut 1 1 0,
+                    skelOut 1 2 0,
+                    skelOut 2 1 0,
+                    skelOut 2 2 0,
+                    skelOut 1 0 1,
+                    skelOut 1 0 2,
+                    skelOut 2 0 1,
+                    skelOut 2 0 2,
+                    skelOut 0 1 1,
+                    skelOut 0 1 2,
+                    skelOut 0 2 1,
+                    skelOut 0 2 2,
+                    -- three changed foci
+                    skelOut 1 1 1,
+                    skelOut 1 1 2,
+                    skelOut 1 2 1,
+                    skelOut 1 2 2,
+                    skelOut 2 1 1,
+                    skelOut 2 1 2,
+                    skelOut 2 2 1,
+                    skelOut 2 2 2
+                  ]
+                  ( runTweak
+                      ( combineModsTweak
+                          (tail . subsequences)
+                          (txSkelOutsL % itraversed % txSkelOutValueL % adaL)
+                          (\i x -> return [(x + 1, i), (x + 2, i)])
+                      )
+                      skelIn
+                  ),
+              testCase "separate modifications" $
+                assertSameSets
+                  [ -- one changed focus
+                    skelOut 1 0 0,
+                    skelOut 2 0 0,
+                    skelOut 0 1 0,
+                    skelOut 0 2 0,
+                    skelOut 0 0 1,
+                    skelOut 0 0 2
+                  ]
+                  ( runTweak
+                      ( combineModsTweak
+                          (map (: []))
+                          (txSkelOutsL % itraversed % txSkelOutValueL % adaL)
+                          (\i x -> return [(x + 1, i), (x + 2, i)])
+                      )
+                      skelIn
+                  )
             ]
     ]

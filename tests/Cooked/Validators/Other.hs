@@ -12,12 +12,16 @@ module Cooked.Validators.Other
     PubKey,
     BoolR,
     yesBoolR,
+    Gearbox (..),
+    ThreeR,
+    yesThreeR,
     BoolD,
     carefulBoolD,
     carelessBoolD,
   )
 where
 
+import Cooked (PrettyCooked (..))
 import qualified Plutus.Script.Utils.Typed as Scripts
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Scripts
 import Plutus.V2.Ledger.Api as PV2
@@ -26,6 +30,8 @@ import PlutusTx
 import PlutusTx.Builtins ()
 import PlutusTx.Lift ()
 import PlutusTx.Prelude
+import Prettyprinter (viaShow)
+import qualified Prelude as Haskell
 
 -- * Boolean redeemer
 
@@ -104,6 +110,38 @@ carelessBoolD =
     wrap = Scripts.mkUntypedValidator
     val :: Value -> Bool -> () -> ScriptContext -> Bool
     val = mkMockValidator (txInfoOutputs . PV2.scriptContextTxInfo)
+
+-- * Redeemer with three values
+
+-- | Arbitrary names, just three values
+data Gearbox = GbRear | GbNeutral | GbForward deriving (Haskell.Show)
+
+instance Eq Gearbox where
+  GbRear == GbRear = True
+  GbNeutral == GbNeutral = True
+  GbForward == GbForward = True
+  _ == _ = False
+
+instance PrettyCooked Gearbox where
+  prettyCookedOpt _ = viaShow
+
+makeLift ''Gearbox
+unstableMakeIsData ''Gearbox
+
+data ThreeR
+
+instance Scripts.ValidatorTypes ThreeR where
+  type RedeemerType ThreeR = Gearbox
+  type DatumType ThreeR = ()
+
+yesThreeR :: Scripts.TypedValidator ThreeR
+yesThreeR =
+  Scripts.mkTypedValidator @ThreeR
+    $$(compile [||val||])
+    $$(compile [||wrap||])
+  where
+    wrap = Scripts.mkUntypedValidator
+    val _ _ _ = True
 
 -- * A datum made of a public key
 
