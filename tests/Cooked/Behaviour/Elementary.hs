@@ -22,7 +22,7 @@ import qualified Plutus.V2.Ledger.Api as PV2
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- | Return the number of Lovelace of the value.
+-- | Return the number of Lovelaces of the value.
 countLovelace :: PV2.Value -> Integer
 countLovelace v = Pl.valueOf v PV2.adaSymbol PV2.adaToken
 
