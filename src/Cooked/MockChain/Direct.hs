@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
@@ -14,6 +15,7 @@
 module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator.Params as Emulator
 import qualified Cardano.Node.Emulator.Validation as Emulator
@@ -213,26 +215,47 @@ instance Default MockChainSt where
   def = mockChainSt0
 
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
-utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initialTxFor i0]]
+utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
   where
     -- Bootstraps an initial transaction resulting in a state where wallets
     -- possess UTxOs fitting a given 'InitialDistribution'
-    initialTxFor :: InitialDistribution -> Ledger.Tx
-    initialTxFor initDist =
-      mempty
-        { Ledger.txMint =
-            fromRight'
-              . Ledger.toCardanoValue
-              $ mconcat (map (mconcat . snd) initDist'),
-          Ledger.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-        }
+    initialTxFor :: InitialDistribution -> Ledger.CardanoTx
+    initialTxFor initDist = Ledger.CardanoEmulatorEraTx $ C.Tx body []
       where
-        initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
+        body :: C.TxBody C.BabbageEra
+        body =
+          fromRight' $
+            C.makeTransactionBody $
+              Ledger.emptyTxBodyContent
+                { C.txMintValue =
+                    flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty)
+                      . C.filterValue (/= C.AdaAssetId)
+                      . fromRight'
+                      . Ledger.toCardanoValue
+                      $ mconcat (map (mconcat . snd) initDist'),
+                  C.txOuts = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist',
+                  C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith spendWit)]
+                }
+
+        spendWit = C.KeyWitness C.KeyWitnessForSpending
+
+        -- This has been taken  from the Test.Cardano.Api.Genesis example transaction
+        genesisKeyHash :: C.Hash C.GenesisUTxOKey
+        genesisKeyHash =
+          C.GenesisUTxOKeyHash $
+            CardanoLedger.KeyHash $
+              "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
 
         initDist' = Map.toList $ unInitialDistribution initDist
 
-        toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Ledger.TxOut
-        toPlTxOut addr value datum = toPlTxOut' addr value datum'
+        initUtxosFor w v = txOut (walletAddress w) v (Nothing @())
+
+        fromRight' :: Show e => Either e a -> a
+        fromRight' x = case x of
+          Left err -> error $ show err
+          Right res -> res
+
+        txOut addr value datum = toCardanoTxOut' addr value datum'
           where
             datum' =
               maybe
@@ -244,9 +267,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
                 )
                 datum
 
-        toPlTxOut' :: Pl.Address -> Pl.Value -> PV2.OutputDatum -> Ledger.TxOut
-        toPlTxOut' addr value datum = Ledger.TxOut $ toCardanoTxOut' addr value datum
-
         toCardanoTxOut' ::
           Pl.Address ->
           Pl.Value ->
@@ -257,11 +277,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
             Ledger.toCardanoTxOut
               theNetworkId
               (PV2.TxOut addr value datum Nothing)
-
-        fromRight' :: Show e => Either e a -> a
-        fromRight' x = case x of
-          Left err -> error $ show err
-          Right res -> res
 
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
@@ -301,7 +316,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-    return (Ledger.CardanoApiTx someCardanoTx)
+    return someCardanoTx
 
 runTransactionValidation ::
   Monad m =>
@@ -320,7 +335,7 @@ runTransactionValidation ::
   -- reference script field of transaction outputs. The 'MockChain' will
   -- remember them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
-  MockChainT m Ledger.SomeCardanoApiTx
+  MockChainT m Ledger.CardanoTx
 runTransactionValidation theParams cardanoTx rawModTx consumedData producedData outputValidators = do
   utxoIndex <- gets mcstIndex
   theSlot <- currentSlot
@@ -331,7 +346,7 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
       -- cardano-api type with the information we need. This wraps the latter
       -- inside the former.
       txWrapped :: Ledger.CardanoTx
-      txWrapped = Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx cardanoTx
+      txWrapped = Ledger.CardanoEmulatorEraTx cardanoTx
 
       mValidationError :: Either Ledger.ValidationErrorInPhase Ledger.ValidationSuccess
       mValidationError = Emulator.validateCardanoTx theParams theSlot cardanoIndex txWrapped
@@ -360,4 +375,4 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
-      return (Ledger.CardanoApiEmulatorEraTx cardanoTx)
+      return (Ledger.CardanoEmulatorEraTx cardanoTx)

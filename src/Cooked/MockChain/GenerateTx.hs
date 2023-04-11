@@ -376,9 +376,9 @@ generateTx genTxParams params datums txOuts validators skel = do
     txAddSignature :: C.Tx C.BabbageEra -> Wallet -> C.Tx C.BabbageEra
     txAddSignature tx wal = case Ledger.addCardanoTxSignature
       (walletSK wal)
-      (Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx tx) of
-      Ledger.CardanoApiTx (Ledger.CardanoApiEmulatorEraTx tx') -> tx'
+      (Ledger.CardanoTx tx C.BabbageEraInCardanoMode) of
+      Ledger.CardanoTx tx' C.BabbageEraInCardanoMode -> tx'
       -- Looking at the implementation of Ledger.addCardanoTxSignature:
       -- It never changes the constructor used, so the above branch
       -- will never happen
-      _ -> error "generateTx: expected CardanoApiTx"
+      _ -> error "generateTx: expected CardanoTx"
