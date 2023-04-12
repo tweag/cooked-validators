@@ -2,8 +2,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
--- | Standard transactions that ought to cover a substantial spectrum of the
--- capabilities of Cooked.
+-- | This module contains "standard" transactions that correspond to nominal
+-- uses of the blockchain. They should cover a substantial spectrum of the
+-- capabilities of Cooked, at least in terms of interactions with the
+-- blockchain (that is, they may not test tweaks and attacks that much).
 module Cooked.Behaviour.Elementary where
 
 import Control.Monad (void)

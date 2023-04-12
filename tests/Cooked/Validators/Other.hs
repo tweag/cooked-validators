@@ -7,6 +7,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
+-- | Validators to be used in tests. Validators defined here use no particular
+-- datum or redeemer type (but not '()', as those are in
+-- 'Cooked.Validators.Unit').
+--
+-- This module should be qualified to avoid clashes with Plutus
+-- > import qualified Cooked.Validators.Other as Validators
 module Cooked.Validators.Other
   ( pkNotInDatum,
     PubKey,
@@ -128,12 +134,14 @@ instance PrettyCooked Gearbox where
 makeLift ''Gearbox
 unstableMakeIsData ''Gearbox
 
+-- | Validators with a redeemer with three values.
 data ThreeR
 
 instance Scripts.ValidatorTypes ThreeR where
   type RedeemerType ThreeR = Gearbox
   type DatumType ThreeR = ()
 
+-- | The validator that always succeeds.
 yesThreeR :: Scripts.TypedValidator ThreeR
 yesThreeR =
   Scripts.mkTypedValidator @ThreeR

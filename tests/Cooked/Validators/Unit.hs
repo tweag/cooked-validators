@@ -7,7 +7,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- | Some validators to be used in test transactions.
+-- | Validators to be used in tests. All validators defined there use () for
+-- datum and redeemer.
 module Cooked.Validators.Unit
   ( Unit,
     yes,
