@@ -239,7 +239,8 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
 
         spendWit = C.KeyWitness C.KeyWitnessForSpending
 
-        -- This has been taken  from the Test.Cardano.Api.Genesis example transaction
+        -- This has been taken  from the Test.Cardano.Api.Genesis example transaction here:
+        -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
         genesisKeyHash :: C.Hash C.GenesisUTxOKey
         genesisKeyHash =
           C.GenesisUTxOKeyHash $
