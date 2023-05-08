@@ -283,20 +283,23 @@ utxoIndex0 = utxoIndex0From def
 
 -- * Direct Interpretation of Operations
 
-toCtxTxTxOut :: C.TxOut C.CtxUTxO era -> C.TxOut C.CtxTx era
-toCtxTxTxOut (C.TxOut addr val d refS) =
-  let dat = case d of
-        C.TxOutDatumNone -> C.TxOutDatumNone
-        C.TxOutDatumHash s h -> C.TxOutDatumHash s h
-        C.TxOutDatumInline s sd -> C.TxOutDatumInline s sd
-   in C.TxOut addr val dat refS
-
 getIndex :: Ledger.UtxoIndex -> Map Pl.TxOutRef Ledger.TxOut
 getIndex =
   Map.fromList
     . map (\(k, v) -> (Ledger.fromCardanoTxIn k, Ledger.TxOut . toCtxTxTxOut $ v))
     . Map.toList
     . C.unUTxO
+  where
+    -- We need to convert a UTxO context TxOut to a Transaction context Tx out.
+    -- One could be forgiven for thinking this exists somewhere, but I couldn't find
+    -- it. It's this complicated because the datum type is indexed by the context.
+    toCtxTxTxOut :: C.TxOut C.CtxUTxO era -> C.TxOut C.CtxTx era
+    toCtxTxTxOut (C.TxOut addr val d refS) =
+      let dat = case d of
+            C.TxOutDatumNone -> C.TxOutDatumNone
+            C.TxOutDatumHash s h -> C.TxOutDatumHash s h
+            C.TxOutDatumInline s sd -> C.TxOutDatumInline s sd
+       in C.TxOut addr val dat refS
 
 instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams

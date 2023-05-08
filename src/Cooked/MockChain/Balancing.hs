@@ -208,6 +208,14 @@ txSkelInputData skel = do
               dHash
         Just datum -> return datum
 
+getEmulatorUTxO ::
+  Map PV2.TxOutRef Ledger.TxOut ->
+  Either Ledger.ToCardanoError (Emulator.UTxO Emulator.EmulatorEra)
+getEmulatorUTxO m =
+  fmap (Ledger.fromPlutusIndex . C.UTxO . Map.fromList) $
+    mapM (\(k, v) -> (,) <$> Ledger.toCardanoTxIn k <*> pure (Ledger.toCtxUTxOTxOut v)) $
+      Map.toList m
+
 -- ensuring that the equation
 --
 -- > value in inputs + minted value = value in outputs + burned value + fee
@@ -234,11 +242,7 @@ setFeeAndBalance balanceWallet skel0 = do
   txSkelUtxos <- txSkelInputUtxos skel
   -- all UTxOs that the txSkel references.
   txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
-  let index =
-        fmap (Ledger.fromPlutusIndex . C.UTxO . Map.fromList) $
-          mapM (\(k, v) -> (,) <$> Ledger.toCardanoTxIn k <*> pure (Ledger.toCtxUTxOTxOut v)) $
-            Map.toList $
-              txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos
+  let index = getEmulatorUTxO $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos
   case index of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
