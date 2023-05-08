@@ -163,7 +163,7 @@ txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: Ledger.CardanoTx -> [(PV2.TxOutRef, PV2.TxOut)]
 utxosFromCardanoTx =
-  map (\(txOut, txOutRef) -> (txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
+  map (\(txOut, txOutRef) -> (Ledger.fromCardanoTxIn txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
 
 txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut

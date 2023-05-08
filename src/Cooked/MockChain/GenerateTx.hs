@@ -267,11 +267,11 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
     txOutRefsToTxSkelInsCollateral =
       left (ToCardanoError "txOutRefsToTxInCollateral")
-        . Pl.toCardanoTxInsCollateral
-        . (toPKTxInput <$>)
+        . fmap toTxInsCollateral
+        . mapM Pl.toCardanoTxIn
       where
-        toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
-        toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
+        toTxInsCollateral [] = C.TxInsCollateralNone
+        toTxInsCollateral ins = C.TxInsCollateral C.CollateralInBabbageEra ins
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)
