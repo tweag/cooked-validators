@@ -9,6 +9,7 @@ module Cooked.MockChain.UtxoSearch
     utxosAtSearch,
     utxosAtLedgerSearch,
     utxosFromCardanoTxSearch,
+    utxosFromTxOutRefsSearch,
     filterWith,
     filterWithPure,
     filterWithOptic,
@@ -58,6 +59,14 @@ utxosAtLedgerSearch = utxosAtLedger >=> ListT.fromFoldable
 -- 'TxInfo'-'TxOut'.
 utxosFromCardanoTxSearch :: Monad m => Ledger.CardanoTx -> UtxoSearch m Pl2.TxOut
 utxosFromCardanoTxSearch = ListT.fromFoldable . utxosFromCardanoTx
+
+-- | Search all 'TxInfo'-'TxOut's corresponding to given the list of
+-- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known output will be
+-- filtered out.
+txOutByRefSearch :: MonadBlockChainBalancing m => [Pl2.TxOutRef] -> UtxoSearch m Pl2.TxOut
+txOutByRefSearch orefs =
+  ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
+    `filterWith` txOutByRef
 
 -- * filtering UTxO searches
 
