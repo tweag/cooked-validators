@@ -9,7 +9,7 @@ module Cooked.MockChain.UtxoSearch
     utxosAtSearch,
     utxosAtLedgerSearch,
     utxosFromCardanoTxSearch,
-    utxosFromTxOutRefsSearch,
+    txOutByRefSearch,
     filterWith,
     filterWithPure,
     filterWithOptic,
