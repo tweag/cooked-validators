@@ -379,14 +379,13 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
     Right _ -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just
-      -- `newUtxoIndex`; the new mcstDatums is computed by removing the datum
-      -- hashes have been consumed and adding those that have been created in
-      -- the transaction.
+      -- `newUtxoIndex`; the new mcstDatums is computed by adding those that
+      -- have been created in the transaction.
       modify'
         ( \st ->
             st
               { mcstIndex = newUtxoIndex,
-                mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData,
+                mcstDatums = mcstDatums st `Map.union` producedData, -- TODO how to remove consumed data? We can't just remove them; the datum might still be sitting at another UTxO
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
