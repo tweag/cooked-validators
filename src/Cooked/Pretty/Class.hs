@@ -103,13 +103,24 @@ instance PrettyCooked Pl.Value where
       prettySingletons docs = prettyItemize "Value:" "-" docs
       prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyAssetClass <> ":" <+> prettyCookedOpt opts amount
-        where
-          prettyAssetClass
-            | symbol == Pl.CurrencySymbol "" = "Lovelace"
-            | symbol == quickCurrencySymbol = "Quick" <+> PP.pretty name
-            | symbol == permanentCurrencySymbol = "Permanent" <+> PP.pretty name
-            | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol <+> PP.pretty name
+        prettyCookedOpt opts (Pl.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
+
+instance PrettyCooked Pl.CurrencySymbol where
+  prettyCookedOpt opts symbol
+    | symbol == Pl.CurrencySymbol "" = "Lovelace"
+    | symbol == quickCurrencySymbol = "Quick"
+    | symbol == permanentCurrencySymbol = "Permanent"
+    | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol
+
+instance PrettyCooked Pl.TokenName where
+  prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Pl.AssetClass where
+  prettyCookedOpt opts (Pl.AssetClass (symbol, name)) =
+    prettyCookedOpt opts symbol
+      <+> if symbol /= Pl.CurrencySymbol ""
+        then prettyCookedOpt opts name
+        else mempty
 
 instance PrettyCooked Pl.ValidationErrorInPhase where
   -- In Plutus V2, most errors no longer have dedicated constructors we can
@@ -119,6 +130,9 @@ instance PrettyCooked Pl.ValidationErrorInPhase where
 
 instance PrettyCooked Pl.POSIXTime where
   prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+
+instance PrettyCooked Pl.ScriptHash where
+  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
 
 instance PrettyCooked a => PrettyCooked [a] where
   prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
