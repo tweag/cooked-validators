@@ -43,6 +43,7 @@ library
       Cooked.Tweak.Common
       Cooked.Tweak.Labels
       Cooked.Tweak.OutPermutations
+      Cooked.Tweak.Signers
       Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange
       Cooked.ValueUtils
