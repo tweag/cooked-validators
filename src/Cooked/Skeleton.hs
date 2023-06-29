@@ -24,6 +24,14 @@ module Cooked.Skeleton
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
+    txOptEnsureMinAdaL,
+    txOptAwaitTxConfirmedL,
+    txOptAutoSlotIncreaseL,
+    txOptUnsafeModTxL,
+    txOptBalanceL,
+    txOptBalanceOutputPolicyL,
+    txOptBalanceWalletL,
+    txOptEmulatorParamsModificationL,
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
@@ -287,6 +295,18 @@ data TxOpts = TxOpts
     txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
   }
   deriving (Eq, Show)
+
+makeLensesFor
+  [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
+    ("txOptAwaitTxConfirmed", "txOptAwaitTxConfirmedL"),
+    ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
+    ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
+    ("txOptBalance", "txOptBalanceL"),
+    ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
+    ("txOptBalanceWallet", "txOptBalanceWalletL"),
+    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")
+  ]
+  ''TxOpts
 
 instance Default TxOpts where
   def =
