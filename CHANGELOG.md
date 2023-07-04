@@ -26,6 +26,7 @@
   `MonadBlockChainBalancing`.
 - An `UtxoSearch` that starts from a list of `TxOutRef`s
 - A transaction option to choose which UTxOs can be spent for balancing
+- Lenses for the fields of `TxOpts`
 
 ### Removed
 
