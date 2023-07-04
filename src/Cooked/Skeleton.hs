@@ -31,6 +31,7 @@ module Cooked.Skeleton
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
     txOptBalanceWalletL,
+    txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     MintsConstrs,
     MintsRedeemer (..),
@@ -304,6 +305,7 @@ makeLensesFor
     ("txOptBalance", "txOptBalanceL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
+    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")
   ]
   ''TxOpts
