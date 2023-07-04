@@ -20,6 +20,7 @@
   parameters for balancing and validation of a transaction
 - A function `combineModsTweak` to construct branching tweaks depending on the
   different combinations of foci of an optic on `TxSkel`
+- New `PrettyCooked` instances for common Plutus types
 
 ### Removed
 
