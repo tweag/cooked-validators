@@ -1,4 +1,4 @@
-module Cooked.Tweak.ValidityRangeSpec (tests) where
+module Cooked.Unit.Tweak.ValidityRangeSpec (tests) where
 
 import Control.Monad (join)
 import Cooked (MonadTweak, awaitSlot, currentSlot, txSkelTemplate)

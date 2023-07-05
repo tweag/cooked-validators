@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Cooked.MinAdaSpec where
+module Cooked.Unit.MinAdaSpec where
 
 import Control.Monad
 import Cooked

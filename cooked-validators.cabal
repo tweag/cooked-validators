@@ -108,28 +108,35 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Cooked.Attack.DatumHijackingSpec
-      Cooked.Attack.DoubleSatSpec
-      Cooked.Attack.DupTokenSpec
-      Cooked.AttackSpec
-      Cooked.InlineDatumsSpec
-      Cooked.LtlSpec
-      Cooked.MinAdaSpec
-      Cooked.MockChain.BlockChainSpec
-      Cooked.MockChainSpec
-      Cooked.ReferenceInputsSpec
-      Cooked.ReferenceScriptsSpec
+      Cooked.Behaviour
+      Cooked.Behaviour.Elementary
+      Cooked.Behaviour.InlineDatumsSpec
+      Cooked.Behaviour.ReferenceInputsSpec
+      Cooked.Behaviour.ReferenceScriptsSpec
+      Cooked.Policies.Unit
       Cooked.ShowBSSpec
       Cooked.TestUtils
-      Cooked.Tweak.CommonSpec
-      Cooked.Tweak.OutPermutationsSpec
-      Cooked.Tweak.ValidityRangeSpec
-      Cooked.TweakSpec
+      Cooked.Unit
+      Cooked.Unit.Attack.DatumHijackingSpec
+      Cooked.Unit.Attack.DoubleSatSpec
+      Cooked.Unit.Attack.DupTokenSpec
+      Cooked.Unit.AttackSpec
+      Cooked.Unit.LtlSpec
+      Cooked.Unit.MinAdaSpec
+      Cooked.Unit.MockChain.BlockChainSpec
+      Cooked.Unit.MockChainSpec
+      Cooked.Unit.Tweak.CommonSpec
+      Cooked.Unit.Tweak.OutPermutationsSpec
+      Cooked.Unit.Tweak.ValidityRangeSpec
+      Cooked.Unit.TweakSpec
+      Cooked.Validators.Other
+      Cooked.Validators.Unit
       Paths_cooked_validators
   autogen-modules:
       Paths_cooked_validators
   hs-source-dirs:
       tests/
+  ghc-options: -Wall
   build-depends:
       QuickCheck
     , aeson
