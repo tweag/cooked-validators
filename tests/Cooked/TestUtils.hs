@@ -29,4 +29,9 @@ assertSubset l r =
     )
 
 assertSameSets :: (Show a, Eq a) => [a] -> [a] -> Assertion
-assertSameSets l r = (length l @?= length r) .&&. assertSubset l r .&&. assertSubset r l
+assertSameSets l r =
+  assertBool
+    ("expected lists of the same length, got " ++ show (length l) ++ " and " ++ show (length r))
+    (length l == length r)
+    .&&. assertSubset l r
+    .&&. assertSubset r l

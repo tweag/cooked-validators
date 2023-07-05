@@ -164,3 +164,6 @@ instance PrettyCooked Bool where
 
 instance PrettyCooked () where
   prettyCookedOpt _ = PP.pretty
+
+instance PrettyCooked Pl.BuiltinData where
+  prettyCookedOpt _ = PP.pretty

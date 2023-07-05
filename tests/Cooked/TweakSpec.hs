@@ -2,6 +2,7 @@ module Cooked.TweakSpec (tests) where
 
 import qualified Cooked.Tweak.CommonSpec as CommonSpec
 import qualified Cooked.Tweak.OutPermutationsSpec as OutPermutationsSpec
+import qualified Cooked.Tweak.TamperDatumSpec as TamperDatumSpec
 import qualified Cooked.Tweak.ValidityRangeSpec as ValidityRangeSpec
 import Test.Tasty
 
@@ -11,5 +12,6 @@ tests =
     "Tweaks"
     [ CommonSpec.tests,
       OutPermutationsSpec.tests,
+      TamperDatumSpec.tests,
       ValidityRangeSpec.tests
     ]
