@@ -224,7 +224,7 @@ resolveTypedDatum out = do
           <$> Just (out' ^. outputOwnerL)
           <*> Just (out' ^. outputStakingCredentialL)
           <*> Just (out' ^. outputValueL)
-          <*> (case out' ^. outputDatumL of PV2.Datum datum -> PV2.fromBuiltinData datum)
+          <*> (let PV2.Datum datum = out' ^. outputDatumL in PV2.fromBuiltinData datum)
           <*> Just (out' ^. outputReferenceScriptL)
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
