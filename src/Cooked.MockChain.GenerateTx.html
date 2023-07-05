@@ -42,7 +42,7 @@
 </span><span id="line-42"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ToCardanoError"><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#ToCardanoError"><span class="hs-identifier hs-var">ToCardanoError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ToCardanoError</span></span><span>
 </span><span id="line-43"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="TxBodyError"><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#TxBodyError"><span class="hs-identifier hs-var">TxBodyError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.TxBodyError</span></span><span>
 </span><span id="line-44"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="GenerateTxErrorGeneral"><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
-</span><span id="line-45"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679542398"><span id="local-6989586621679542400"><span id="local-6989586621679542402"><span class="annot"><span class="annottext">Int -&gt; GenerateTxError -&gt; ShowS
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679544273"><span id="local-6989586621679544275"><span id="local-6989586621679544277"><span class="annot"><span class="annottext">Int -&gt; GenerateTxError -&gt; ShowS
 [GenerateTxError] -&gt; ShowS
 GenerateTxError -&gt; String
 (Int -&gt; GenerateTxError -&gt; ShowS)
@@ -57,7 +57,7 @@ show :: GenerateTxError -&gt; String
 $cshow :: GenerateTxError -&gt; String
 showsPrec :: Int -&gt; GenerateTxError -&gt; ShowS
 $cshowsPrec :: Int -&gt; GenerateTxError -&gt; ShowS
-</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542393"><span id="local-6989586621679542395"><span class="annot"><span class="annottext">GenerateTxError -&gt; GenerateTxError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544268"><span id="local-6989586621679544270"><span class="annot"><span class="annottext">GenerateTxError -&gt; GenerateTxError -&gt; Bool
 (GenerateTxError -&gt; GenerateTxError -&gt; Bool)
 -&gt; (GenerateTxError -&gt; GenerateTxError -&gt; Bool)
 -&gt; Eq GenerateTxError
@@ -83,7 +83,7 @@ $c== :: GenerateTxError -&gt; GenerateTxError -&gt; Bool
 </span><span id="line-57"></span><span>  </span><span class="hs-special">}</span><span>
 </span><span id="line-58"></span><span>
 </span><span id="line-59"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenTxParams"><span class="hs-identifier hs-type">GenTxParams</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-60"></span><span>  </span><span id="local-6989586621679542388"><span class="annot"><span class="annottext">def :: GenTxParams
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679544263"><span class="annot"><span class="annottext">def :: GenTxParams
 </span><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">GenTxParams :: Set TxOutRef -&gt; Fee -&gt; GenTxParams
 </span><a href="Cooked.MockChain.GenerateTx.html#GenTxParams"><span class="hs-identifier hs-type">GenTxParams</span></a></span><span> </span><span class="hs-special">{</span><span class="annot"><span class="annottext">gtpCollateralIns :: Set TxOutRef
 </span><a href="Cooked.MockChain.GenerateTx.html#gtpCollateralIns"><span class="hs-identifier hs-var">gtpCollateralIns</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
@@ -115,20 +115,20 @@ forall a. Monoid a =&gt; a
 -&gt; Map ValidatorHash (Versioned Validator)
 -&gt; TxSkel
 -&gt; Either GenerateTxError (TxBodyContent BuildTx BabbageEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#generateTxBodyContent"><span class="hs-identifier hs-var hs-var">generateTxBodyContent</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenTxParams"><span class="hs-identifier hs-type">GenTxParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679542385"><span id="local-6989586621679542386"><span class="annot"><span class="annottext">Set TxOutRef
+</span><a href="Cooked.MockChain.GenerateTx.html#generateTxBodyContent"><span class="hs-identifier hs-var hs-var">generateTxBodyContent</span></a></span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenTxParams"><span class="hs-identifier hs-type">GenTxParams</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679544260"><span id="local-6989586621679544261"><span class="annot"><span class="annottext">Set TxOutRef
 Fee
 gtpFee :: Fee
 gtpCollateralIns :: Set TxOutRef
 gtpFee :: GenTxParams -&gt; Fee
 gtpCollateralIns :: GenTxParams -&gt; Set TxOutRef
-</span><a href="#local-6989586621679542385"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679542384"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542384"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span id="local-6989586621679542383"><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679542383"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679542382"><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542382"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679542381"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679542381"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span id="local-6989586621679542380"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-79"></span><span>  </span><span id="local-6989586621679542379"><span class="annot"><span class="annottext">[(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))]
-</span><a href="#local-6989586621679542379"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer)
+</span><a href="#local-6989586621679544260"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679544259"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679544259"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span id="local-6989586621679544258"><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679544258"><span class="hs-identifier hs-var">managedData</span></a></span></span><span> </span><span id="local-6989586621679544257"><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544257"><span class="hs-identifier hs-var">managedTxOuts</span></a></span></span><span> </span><span id="local-6989586621679544256"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679544256"><span class="hs-identifier hs-var">managedValidators</span></a></span></span><span> </span><span id="local-6989586621679544255"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-79"></span><span>  </span><span id="local-6989586621679544254"><span class="annot"><span class="annottext">[(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))]
+</span><a href="#local-6989586621679544254"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((TxOutRef, TxSkelRedeemer)
  -&gt; Either
       GenerateTxError
       (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra)))
@@ -143,7 +143,7 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 -&gt; Either
      GenerateTxError
      (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))
-</span><a href="#local-6989586621679542377"><span class="hs-identifier hs-var">txSkelInToTxIn</span></a></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, TxSkelRedeemer)]
+</span><a href="#local-6989586621679544252"><span class="hs-identifier hs-var">txSkelInToTxIn</span></a></span><span> </span><span class="annot"><span class="annottext">([(TxOutRef, TxSkelRedeemer)]
  -&gt; Either
       GenerateTxError
       [(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))])
@@ -156,11 +156,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall k a. Map k a -&gt; [(k, a)]
 </span><span class="hs-identifier hs-var">Map.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Map TxOutRef TxSkelRedeemer
 </span><a href="Cooked.Skeleton.html#txSkelIns"><span class="hs-identifier hs-var hs-var">txSkelIns</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-80"></span><span>  </span><span id="local-6989586621679542374"><span class="annot"><span class="annottext">TxInsReference BuildTx BabbageEra
-</span><a href="#local-6989586621679542374"><span class="hs-identifier hs-var">txInsReference</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679544249"><span class="annot"><span class="annottext">TxInsReference BuildTx BabbageEra
+</span><a href="#local-6989586621679544249"><span class="hs-identifier hs-var">txInsReference</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
 -&gt; Either GenerateTxError (TxInsReference BuildTx BabbageEra)
-</span><a href="#local-6989586621679542373"><span class="hs-identifier hs-var">txOutRefsToTxInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">([TxOutRef]
+</span><a href="#local-6989586621679544248"><span class="hs-identifier hs-var">txOutRefsToTxInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">([TxOutRef]
  -&gt; Either GenerateTxError (TxInsReference BuildTx BabbageEra))
 -&gt; [TxOutRef]
 -&gt; Either GenerateTxError (TxInsReference BuildTx BabbageEra)
@@ -169,19 +169,19 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a. Set a -&gt; [a]
 </span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var hs-var">txSkelInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-81"></span><span>  </span><span id="local-6989586621679542370"><span class="annot"><span class="annottext">TxInsCollateral BabbageEra
-</span><a href="#local-6989586621679542370"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
-</span><a href="#local-6989586621679542369"><span class="hs-identifier hs-var">txOutRefsToTxSkelInsCollateral</span></a></span><span> </span><span class="annot"><span class="annottext">([TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra))
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679544245"><span class="annot"><span class="annottext">TxInsCollateral BabbageEra
+</span><a href="#local-6989586621679544245"><span class="hs-identifier hs-var">txInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
+</span><a href="#local-6989586621679544244"><span class="hs-identifier hs-var">txOutRefsToTxSkelInsCollateral</span></a></span><span> </span><span class="annot"><span class="annottext">([TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra))
 -&gt; [TxOutRef]
 -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
 forall a. Set a -&gt; [a]
 </span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679542386"><span class="hs-identifier hs-var">gtpCollateralIns</span></a></span><span>
-</span><span id="line-82"></span><span>  </span><span id="local-6989586621679542368"><span class="annot"><span class="annottext">[TxOut CtxTx BabbageEra]
-</span><a href="#local-6989586621679542368"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx BabbageEra))
+</span><a href="#local-6989586621679544261"><span class="hs-identifier hs-var">gtpCollateralIns</span></a></span><span>
+</span><span id="line-82"></span><span>  </span><span id="local-6989586621679544243"><span class="annot"><span class="annottext">[TxOut CtxTx BabbageEra]
+</span><a href="#local-6989586621679544243"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx BabbageEra))
 -&gt; [TxSkelOut] -&gt; Either GenerateTxError [TxOut CtxTx BabbageEra]
 forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
@@ -189,14 +189,14 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params
 -&gt; TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx BabbageEra)
 </span><a href="Cooked.MockChain.GenerateTx.html#txSkelOutToCardanoTxOut"><span class="hs-identifier hs-var">txSkelOutToCardanoTxOut</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542384"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; Either GenerateTxError [TxOut CtxTx BabbageEra])
+</span><a href="#local-6989586621679544259"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([TxSkelOut] -&gt; Either GenerateTxError [TxOut CtxTx BabbageEra])
 -&gt; [TxSkelOut] -&gt; Either GenerateTxError [TxOut CtxTx BabbageEra]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOuts"><span class="hs-identifier hs-var hs-var">txSkelOuts</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-83"></span><span>  </span><span id="local-6989586621679542366"><span class="annot"><span class="annottext">(TxValidityLowerBound BabbageEra, TxValidityUpperBound BabbageEra)
-</span><a href="#local-6989586621679542366"><span class="hs-identifier hs-var">txValidityRange</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span id="local-6989586621679544241"><span class="annot"><span class="annottext">(TxValidityLowerBound BabbageEra, TxValidityUpperBound BabbageEra)
+</span><a href="#local-6989586621679544241"><span class="hs-identifier hs-var">txValidityRange</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-84"></span><span>    </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either
      ToCardanoError
@@ -242,28 +242,28 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; SlotRange
 </span><a href="Cooked.Skeleton.html#txSkelValidityRange"><span class="hs-identifier hs-var hs-var">txSkelValidityRange</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-88"></span><span>  </span><span id="local-6989586621679542361"><span class="annot"><span class="annottext">TxMintValue BuildTx BabbageEra
-</span><a href="#local-6989586621679542361"><span class="hs-identifier hs-var">txMintValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-88"></span><span>  </span><span id="local-6989586621679544236"><span class="annot"><span class="annottext">TxMintValue BuildTx BabbageEra
+</span><a href="#local-6989586621679544236"><span class="hs-identifier hs-var">txMintValue</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 -&gt; Either GenerateTxError (TxMintValue BuildTx BabbageEra)
-</span><a href="#local-6989586621679542360"><span class="hs-identifier hs-var">txSkelMintsToTxMintValue</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
+</span><a href="#local-6989586621679544235"><span class="hs-identifier hs-var">txSkelMintsToTxMintValue</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
  -&gt; Either GenerateTxError (TxMintValue BuildTx BabbageEra))
 -&gt; TxSkelMints
 -&gt; Either GenerateTxError (TxMintValue BuildTx BabbageEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMints"><span class="hs-identifier hs-var hs-var">txSkelMints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-89"></span><span>  </span><span id="local-6989586621679542358"><span class="annot"><span class="annottext">TxExtraKeyWitnesses BabbageEra
-</span><a href="#local-6989586621679542358"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-90"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679542357"><span class="annot"><span class="annottext">signers :: [Wallet]
-</span><a href="#local-6989586621679542357"><span class="hs-identifier hs-var hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-89"></span><span>  </span><span id="local-6989586621679544233"><span class="annot"><span class="annottext">TxExtraKeyWitnesses BabbageEra
+</span><a href="#local-6989586621679544233"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679544232"><span class="annot"><span class="annottext">signers :: [Wallet]
+</span><a href="#local-6989586621679544232"><span class="hs-identifier hs-var hs-var">signers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
 </span><a href="Cooked.Skeleton.html#txSkelSigners"><span class="hs-identifier hs-var hs-var">txSkelSigners</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span>
 </span><span id="line-91"></span><span>     </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Bool
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679542357"><span class="hs-identifier hs-var">signers</span></a></span><span>
+</span><a href="#local-6989586621679544232"><span class="hs-identifier hs-var">signers</span></a></span><span>
 </span><span id="line-92"></span><span>          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">GenerateTxError
 -&gt; Either GenerateTxError (TxExtraKeyWitnesses BabbageEra)
 forall a b. a -&gt; Either a b
@@ -318,9 +318,9 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-99"></span><span>                </span><span class="annot"><span class="annottext">[Wallet]
-</span><a href="#local-6989586621679542357"><span class="hs-identifier hs-var">signers</span></a></span><span>
-</span><span id="line-100"></span><span>  </span><span id="local-6989586621679542348"><span class="annot"><span class="annottext">TxTotalCollateral BabbageEra
-</span><a href="#local-6989586621679542348"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544232"><span class="hs-identifier hs-var">signers</span></a></span><span>
+</span><span id="line-100"></span><span>  </span><span id="local-6989586621679544223"><span class="annot"><span class="annottext">TxTotalCollateral BabbageEra
+</span><a href="#local-6989586621679544223"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-101"></span><span>    </span><span class="annot"><span class="annottext">([Value] -&gt; TxTotalCollateral BabbageEra)
 -&gt; Either GenerateTxError [Value]
 -&gt; Either GenerateTxError (TxTotalCollateral BabbageEra)
@@ -369,16 +369,16 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
 </span><span class="hs-identifier hs-var">mapM</span></span><span>
-</span><span id="line-109"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679542339"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542339"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-109"></span><span>          </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679544214"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679544214"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
 </span><span id="line-110"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOut</span></span><span> </span><span class="annot"><span class="annottext">Address
-</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679542337"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679542337"><span class="hs-identifier hs-var">outValue</span></a></span></span><span> </span><span class="annot"><span class="annottext">OutputDatum
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679544212"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679544212"><span class="hs-identifier hs-var">outValue</span></a></span></span><span> </span><span class="annot"><span class="annottext">OutputDatum
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe ScriptHash
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-111"></span><span>                </span><span class="annot"><span class="annottext">GenerateTxError -&gt; Maybe TxOut -&gt; Either GenerateTxError TxOut
 forall e a. e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
 </span><span id="line-112"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; GenerateTxError) -&gt; String -&gt; GenerateTxError
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -388,16 +388,16 @@ forall a. [a] -&gt; [a] -&gt; [a]
 </span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; String
 forall a. Show a =&gt; a -&gt; String
 </span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542339"><span class="hs-identifier hs-var">txOutRef</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544214"><span class="hs-identifier hs-var">txOutRef</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-113"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Map TxOutRef TxOut -&gt; Maybe TxOut
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542339"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542382"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544214"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544257"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-114"></span><span>              </span><span class="annot"><span class="annottext">Value -&gt; Either GenerateTxError Value
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679542337"><span class="hs-identifier hs-var">outValue</span></a></span><span>
+</span><a href="#local-6989586621679544212"><span class="hs-identifier hs-var">outValue</span></a></span><span>
 </span><span id="line-115"></span><span>          </span><span class="hs-special">)</span><span>
 </span><span id="line-116"></span><span>          </span><span class="annot"><span class="annottext">([TxOutRef] -&gt; Either GenerateTxError [Value])
 -&gt; [TxOutRef] -&gt; Either GenerateTxError [Value]
@@ -405,7 +405,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef -&gt; [TxOutRef]
 forall a. Set a -&gt; [a]
 </span><span class="hs-identifier hs-var">Set.toList</span></span><span> </span><span class="annot"><span class="annottext">Set TxOutRef
-</span><a href="#local-6989586621679542386"><span class="hs-identifier hs-var">gtpCollateralIns</span></a></span><span>
+</span><a href="#local-6989586621679544261"><span class="hs-identifier hs-var">gtpCollateralIns</span></a></span><span>
 </span><span id="line-117"></span><span>      </span><span class="hs-special">)</span><span>
 </span><span id="line-118"></span><span>  </span><span class="annot"><span class="annottext">TxBodyContent BuildTx BabbageEra
 -&gt; Either GenerateTxError (TxBodyContent BuildTx BabbageEra)
@@ -438,19 +438,19 @@ TxIns build era
 </span><span class="hs-identifier hs-type">C.TxBodyContent</span></span><span>
 </span><span id="line-120"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">txIns :: [(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))]
 </span><span class="hs-identifier hs-var">C.txIns</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))]
-</span><a href="#local-6989586621679542379"><span class="hs-identifier hs-var">txIns</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544254"><span class="hs-identifier hs-var">txIns</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-121"></span><span>        </span><span class="annot"><span class="annottext">txInsCollateral :: TxInsCollateral BabbageEra
 </span><span class="hs-identifier hs-var">C.txInsCollateral</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxInsCollateral BabbageEra
-</span><a href="#local-6989586621679542370"><span class="hs-identifier hs-var">txInsCollateral</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544245"><span class="hs-identifier hs-var">txInsCollateral</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-122"></span><span>        </span><span class="annot"><span class="annottext">txInsReference :: TxInsReference BuildTx BabbageEra
 </span><span class="hs-identifier hs-var">C.txInsReference</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx BabbageEra
-</span><a href="#local-6989586621679542374"><span class="hs-identifier hs-var">txInsReference</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544249"><span class="hs-identifier hs-var">txInsReference</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-123"></span><span>        </span><span class="annot"><span class="annottext">txOuts :: [TxOut CtxTx BabbageEra]
 </span><span class="hs-identifier hs-var">C.txOuts</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[TxOut CtxTx BabbageEra]
-</span><a href="#local-6989586621679542368"><span class="hs-identifier hs-var">txOuts</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544243"><span class="hs-identifier hs-var">txOuts</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-124"></span><span>        </span><span class="annot"><span class="annottext">txTotalCollateral :: TxTotalCollateral BabbageEra
 </span><span class="hs-identifier hs-var">C.txTotalCollateral</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxTotalCollateral BabbageEra
-</span><a href="#local-6989586621679542348"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544223"><span class="hs-identifier hs-var">txTotalCollateral</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-125"></span><span>        </span><span class="hs-comment">-- WARN For now we are not dealing with return collateral</span><span>
 </span><span id="line-126"></span><span>        </span><span class="annot"><span class="annottext">txReturnCollateral :: TxReturnCollateral CtxTx BabbageEra
 </span><span class="hs-identifier hs-var">C.txReturnCollateral</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxReturnCollateral CtxTx BabbageEra
@@ -467,10 +467,10 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Fee -&gt; Integer
 </span><a href="Cooked.Skeleton.html#feeLovelace"><span class="hs-identifier hs-var hs-var">feeLovelace</span></a></span><span> </span><span class="annot"><span class="annottext">Fee
-</span><a href="#local-6989586621679542385"><span class="hs-identifier hs-var">gtpFee</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544260"><span class="hs-identifier hs-var">gtpFee</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-128"></span><span>        </span><span class="annot"><span class="annottext">txValidityRange :: (TxValidityLowerBound BabbageEra, TxValidityUpperBound BabbageEra)
 </span><span class="hs-identifier hs-var">C.txValidityRange</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(TxValidityLowerBound BabbageEra, TxValidityUpperBound BabbageEra)
-</span><a href="#local-6989586621679542366"><span class="hs-identifier hs-var">txValidityRange</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544241"><span class="hs-identifier hs-var">txValidityRange</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-129"></span><span>        </span><span class="annot"><span class="annottext">txMetadata :: TxMetadataInEra BabbageEra
 </span><span class="hs-identifier hs-var">C.txMetadata</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMetadataInEra BabbageEra
 forall era. TxMetadataInEra era
@@ -481,9 +481,9 @@ forall era. TxAuxScripts era
 </span><span class="hs-identifier hs-var">C.TxAuxScriptsNone</span></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-131"></span><span>        </span><span class="annot"><span class="annottext">txExtraKeyWits :: TxExtraKeyWitnesses BabbageEra
 </span><span class="hs-identifier hs-var">C.txExtraKeyWits</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxExtraKeyWitnesses BabbageEra
-</span><a href="#local-6989586621679542358"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544233"><span class="hs-identifier hs-var">txExtraKeyWits</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-132"></span><span>        </span><span class="annot"><span class="annottext">txProtocolParams :: BuildTxWith BuildTx (Maybe ProtocolParameters)
-</span><a href="#local-6989586621679542315"><span class="hs-identifier hs-var">C.txProtocolParams</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe ProtocolParameters
+</span><a href="#local-6989586621679544190"><span class="hs-identifier hs-var">C.txProtocolParams</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe ProtocolParameters
 -&gt; BuildTxWith BuildTx (Maybe ProtocolParameters)
 forall a. a -&gt; BuildTxWith BuildTx a
 </span><span class="hs-identifier hs-var">C.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">(Maybe ProtocolParameters
@@ -504,38 +504,38 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; Params -&gt; BuildTxWith BuildTx (Maybe ProtocolParameters)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542384"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
+</span><a href="#local-6989586621679544259"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-133"></span><span>        </span><span class="annot"><span class="annottext">txWithdrawals :: TxWithdrawals BuildTx BabbageEra
-</span><a href="#local-6989586621679542312"><span class="hs-identifier hs-var">C.txWithdrawals</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxWithdrawals BuildTx BabbageEra
+</span><a href="#local-6989586621679544187"><span class="hs-identifier hs-var">C.txWithdrawals</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxWithdrawals BuildTx BabbageEra
 forall build era. TxWithdrawals build era
 </span><span class="hs-identifier hs-var">C.TxWithdrawalsNone</span></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-134"></span><span>        </span><span class="annot"><span class="annottext">txCertificates :: TxCertificates BuildTx BabbageEra
-</span><a href="#local-6989586621679542310"><span class="hs-identifier hs-var">C.txCertificates</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxCertificates BuildTx BabbageEra
+</span><a href="#local-6989586621679544185"><span class="hs-identifier hs-var">C.txCertificates</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxCertificates BuildTx BabbageEra
 forall build era. TxCertificates build era
 </span><span class="hs-identifier hs-var">C.TxCertificatesNone</span></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-135"></span><span>        </span><span class="annot"><span class="annottext">txUpdateProposal :: TxUpdateProposal BabbageEra
-</span><a href="#local-6989586621679542308"><span class="hs-identifier hs-var">C.txUpdateProposal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxUpdateProposal BabbageEra
+</span><a href="#local-6989586621679544183"><span class="hs-identifier hs-var">C.txUpdateProposal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxUpdateProposal BabbageEra
 forall era. TxUpdateProposal era
 </span><span class="hs-identifier hs-var">C.TxUpdateProposalNone</span></span><span class="hs-special">,</span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-136"></span><span>        </span><span class="annot"><span class="annottext">txMintValue :: TxMintValue BuildTx BabbageEra
-</span><a href="#local-6989586621679542306"><span class="hs-identifier hs-var">C.txMintValue</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMintValue BuildTx BabbageEra
-</span><a href="#local-6989586621679542361"><span class="hs-identifier hs-var">txMintValue</span></a></span><span class="hs-special">,</span><span>
+</span><a href="#local-6989586621679544181"><span class="hs-identifier hs-var">C.txMintValue</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxMintValue BuildTx BabbageEra
+</span><a href="#local-6989586621679544236"><span class="hs-identifier hs-var">txMintValue</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-137"></span><span>        </span><span class="annot"><span class="annottext">txScriptValidity :: TxScriptValidity BabbageEra
-</span><a href="#local-6989586621679542305"><span class="hs-identifier hs-var">C.txScriptValidity</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxScriptValidity BabbageEra
+</span><a href="#local-6989586621679544180"><span class="hs-identifier hs-var">C.txScriptValidity</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxScriptValidity BabbageEra
 forall era. TxScriptValidity era
 </span><span class="hs-identifier hs-var">C.TxScriptValidityNone</span></span><span> </span><span class="hs-comment">-- That's what plutus-apps does as well</span><span>
 </span><span id="line-138"></span><span>      </span><span class="hs-special">}</span><span>
 </span><span id="line-139"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-140"></span><span>    </span><span class="hs-comment">-- Helper function to throw errors.</span><span>
-</span><span id="line-141"></span><span>    </span><span id="local-6989586621679542575"><span id="local-6989586621679542576"><span class="annot"><a href="#local-6989586621679542336"><span class="hs-identifier hs-type">throwOnNothing</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679542576"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679542575"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679542576"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679542575"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-142"></span><span>    </span><span id="local-6989586621679542336"><span class="annot"><span class="annottext">throwOnNothing :: e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var hs-var">throwOnNothing</span></a></span></span><span> </span><span id="local-6989586621679542303"><span class="annot"><span class="annottext">e
-</span><a href="#local-6989586621679542303"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either e a -&gt; (a -&gt; Either e a) -&gt; Maybe a -&gt; Either e a
+</span><span id="line-141"></span><span>    </span><span id="local-6989586621679544450"><span id="local-6989586621679544451"><span class="annot"><a href="#local-6989586621679544211"><span class="hs-identifier hs-type">throwOnNothing</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679544451"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679544450"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679544451"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679544450"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-142"></span><span>    </span><span id="local-6989586621679544211"><span class="annot"><span class="annottext">throwOnNothing :: e -&gt; Maybe a -&gt; Either e a
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var hs-var">throwOnNothing</span></a></span></span><span> </span><span id="local-6989586621679544178"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679544178"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either e a -&gt; (a -&gt; Either e a) -&gt; Maybe a -&gt; Either e a
 forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
 </span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">e -&gt; Either e a
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">e
-</span><a href="#local-6989586621679542303"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either e a
+</span><a href="#local-6989586621679544178"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; Either e a
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span>
 </span><span id="line-143"></span><span>
@@ -543,7 +543,7 @@ forall a b. b -&gt; Either a b
 </span><span id="line-145"></span><span>    </span><span class="hs-comment">-- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If</span><span>
 </span><span id="line-146"></span><span>    </span><span class="hs-comment">-- you add reference inputs, don't forget to also update the</span><span>
 </span><span id="line-147"></span><span>    </span><span class="hs-comment">-- 'txInsReference'!</span><span>
-</span><span id="line-148"></span><span>    </span><span class="annot"><a href="#local-6989586621679542377"><span class="hs-identifier hs-type">txSkelInToTxIn</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-148"></span><span>    </span><span class="annot"><a href="#local-6989586621679544252"><span class="hs-identifier hs-type">txSkelInToTxIn</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-149"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-150"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span>
 </span><span id="line-151"></span><span>        </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span>
@@ -552,18 +552,18 @@ forall a b. b -&gt; Either a b
 </span><span id="line-154"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">C.BuildTx</span></span><span>
 </span><span id="line-155"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Witness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxTxIn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
 </span><span id="line-156"></span><span>        </span><span class="hs-special">)</span><span>
-</span><span id="line-157"></span><span>    </span><span id="local-6989586621679542377"><span class="annot"><span class="annottext">txSkelInToTxIn :: (TxOutRef, TxSkelRedeemer)
+</span><span id="line-157"></span><span>    </span><span id="local-6989586621679544252"><span class="annot"><span class="annottext">txSkelInToTxIn :: (TxOutRef, TxSkelRedeemer)
 -&gt; Either
      GenerateTxError
      (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra))
-</span><a href="#local-6989586621679542377"><span class="hs-identifier hs-var hs-var">txSkelInToTxIn</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679542301"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542301"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542300"><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679542300"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-158"></span><span>      </span><span id="local-6989586621679542299"><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542299"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679544252"><span class="hs-identifier hs-var hs-var">txSkelInToTxIn</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679544176"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679544176"><span class="hs-identifier hs-var">txOutRef</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544175"><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679544175"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-158"></span><span>      </span><span id="local-6989586621679544174"><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
+</span><a href="#local-6989586621679544174"><span class="hs-identifier hs-var">witness</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
 -&gt; Either GenerateTxError (Witness WitCtxTxIn BabbageEra)
-</span><a href="#local-6989586621679542298"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
-</span><a href="#local-6989586621679542300"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span><span>
+</span><a href="#local-6989586621679544173"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679544175"><span class="hs-identifier hs-var">txSkelRedeemer</span></a></span><span>
 </span><span id="line-159"></span><span>      </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; (TxIn
     -&gt; (TxIn, BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra)))
@@ -582,7 +582,7 @@ Bifunctor p =&gt;
 -&gt; BuildTxWith BuildTx (Witness WitCtxTxIn BabbageEra)
 forall a. a -&gt; BuildTxWith BuildTx a
 </span><span class="hs-identifier hs-var">C.BuildTxWith</span></span><span> </span><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542299"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544174"><span class="hs-identifier hs-var">witness</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-162"></span><span>        </span><span class="annot"><span class="annottext">(Either ToCardanoError TxIn
  -&gt; Either
       GenerateTxError
@@ -594,59 +594,59 @@ forall a. a -&gt; BuildTxWith BuildTx a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542301"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
+</span><a href="#local-6989586621679544176"><span class="hs-identifier hs-var">txOutRef</span></a></span><span>
 </span><span id="line-163"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-164"></span><span>        </span><span class="annot"><a href="#local-6989586621679542296"><span class="hs-identifier hs-type">resolveScriptOutputOwnerAndDatum</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-164"></span><span>        </span><span class="annot"><a href="#local-6989586621679544171"><span class="hs-identifier hs-type">resolveScriptOutputOwnerAndDatum</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-165"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span>
 </span><span id="line-166"></span><span>            </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span>
 </span><span id="line-167"></span><span>            </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.ValidatorHash</span></span><span class="hs-special">,</span><span>
 </span><span id="line-168"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Validator</span></span><span class="hs-special">,</span><span>
 </span><span id="line-169"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">C.ScriptDatum</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxTxIn</span></span><span>
 </span><span id="line-170"></span><span>            </span><span class="hs-special">)</span><span>
-</span><span id="line-171"></span><span>        </span><span id="local-6989586621679542296"><span class="annot"><span class="annottext">resolveScriptOutputOwnerAndDatum :: Either
+</span><span id="line-171"></span><span>        </span><span id="local-6989586621679544171"><span class="annot"><span class="annottext">resolveScriptOutputOwnerAndDatum :: Either
   GenerateTxError
   (ValidatorHash, Versioned Validator, ScriptDatum WitCtxTxIn)
-</span><a href="#local-6989586621679542296"><span class="hs-identifier hs-var hs-var">resolveScriptOutputOwnerAndDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-172"></span><span>          </span><span id="local-6989586621679542295"><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679542295"><span class="hs-identifier hs-var">txOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544171"><span class="hs-identifier hs-var hs-var">resolveScriptOutputOwnerAndDatum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-172"></span><span>          </span><span id="local-6989586621679544170"><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679544170"><span class="hs-identifier hs-var">txOut</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-173"></span><span>            </span><span class="annot"><span class="annottext">GenerateTxError -&gt; Maybe TxOut -&gt; Either GenerateTxError TxOut
 forall e a. e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
 </span><span id="line-174"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: Unknown txOutRef&quot;</span></span><span class="hs-special">)</span><span>
 </span><span id="line-175"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef -&gt; Map TxOutRef TxOut -&gt; Maybe TxOut
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542301"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542382"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-176"></span><span>          </span><span id="local-6989586621679542294"><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542294"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544176"><span class="hs-identifier hs-var">txOutRef</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544257"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-176"></span><span>          </span><span id="local-6989586621679544169"><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679544169"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-177"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Address
 forall o.
 (IsAbstractOutput o, ToCredential (OwnerType o)) =&gt;
 o -&gt; Address
 </span><a href="Cooked.Output.html#outputAddress"><span class="hs-identifier hs-var">outputAddress</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679542295"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-178"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptCredential</span></span><span> </span><span id="local-6989586621679542290"><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542290"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
+</span><a href="#local-6989586621679544170"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-178"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Address</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.ScriptCredential</span></span><span> </span><span id="local-6989586621679544165"><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679544165"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe StakingCredential
 </span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ValidatorHash -&gt; Either GenerateTxError ValidatorHash
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542290"><span class="hs-identifier hs-var">validatorHash</span></a></span><span>
+</span><a href="#local-6989586621679544165"><span class="hs-identifier hs-var">validatorHash</span></a></span><span>
 </span><span id="line-179"></span><span>              </span><span class="annot"><span class="annottext">Address
 </span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; Either GenerateTxError ValidatorHash
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: Output is not a script output&quot;</span></span><span class="hs-special">)</span><span>
-</span><span id="line-180"></span><span>          </span><span id="local-6989586621679542289"><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542289"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-180"></span><span>          </span><span id="local-6989586621679544164"><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679544164"><span class="hs-identifier hs-var">validator</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-181"></span><span>            </span><span class="annot"><span class="annottext">GenerateTxError
 -&gt; Maybe (Versioned Validator)
 -&gt; Either GenerateTxError (Versioned Validator)
 forall e a. e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
 </span><span id="line-182"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: Unknown validator&quot;</span></span><span class="hs-special">)</span><span>
@@ -655,35 +655,35 @@ forall e a. e -&gt; Maybe a -&gt; Either e a
 -&gt; Maybe (Versioned Validator)
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542294"><span class="hs-identifier hs-var">validatorHash</span></a></span><span> </span><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679542381"><span class="hs-identifier hs-var">managedValidators</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-184"></span><span>          </span><span id="local-6989586621679542288"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542288"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544169"><span class="hs-identifier hs-var">validatorHash</span></a></span><span> </span><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679544256"><span class="hs-identifier hs-var">managedValidators</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-184"></span><span>          </span><span id="local-6989586621679544163"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544163"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-185"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; OutputDatum
 forall o.
 (IsAbstractOutput o, ToOutputDatum (DatumType o)) =&gt;
 o -&gt; OutputDatum
 </span><a href="Cooked.Output.html#outputOutputDatum"><span class="hs-identifier hs-var">outputOutputDatum</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679542295"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679544170"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-186"></span><span>              </span><span class="annot"><span class="annottext">OutputDatum
 </span><span class="hs-identifier hs-var">Pl.NoOutputDatum</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">GenerateTxError -&gt; Either GenerateTxError (ScriptDatum WitCtxTxIn)
 forall a b. a -&gt; Either a b
 </span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: No datum found on script output&quot;</span></span><span class="hs-special">)</span><span>
-</span><span id="line-187"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatum</span></span><span> </span><span id="local-6989586621679542284"><span class="annot"><span class="annottext">Datum
-</span><a href="#local-6989586621679542284"><span class="hs-identifier hs-var">_datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><span id="line-187"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatum</span></span><span> </span><span id="local-6989586621679544159"><span class="annot"><span class="annottext">Datum
+</span><a href="#local-6989586621679544159"><span class="hs-identifier hs-var">_datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
 -&gt; Either GenerateTxError (ScriptDatum WitCtxTxIn)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
 </span><span class="hs-identifier hs-var">C.InlineScriptDatum</span></span><span>
-</span><span id="line-188"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatumHash</span></span><span> </span><span id="local-6989586621679542281"><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679542281"><span class="hs-identifier hs-var">datumHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-188"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.OutputDatumHash</span></span><span> </span><span id="local-6989586621679544156"><span class="annot"><span class="annottext">DatumHash
+</span><a href="#local-6989586621679544156"><span class="hs-identifier hs-var">datumHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-189"></span><span>                </span><span class="annot"><span class="annottext">GenerateTxError
 -&gt; Maybe (ScriptDatum WitCtxTxIn)
 -&gt; Either GenerateTxError (ScriptDatum WitCtxTxIn)
 forall e a. e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
 </span><span id="line-190"></span><span>                  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: Datum hash could not be resolved&quot;</span></span><span class="hs-special">)</span><span>
@@ -702,22 +702,22 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; Map DatumHash Datum -&gt; Maybe Datum
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">DatumHash
-</span><a href="#local-6989586621679542281"><span class="hs-identifier hs-var">datumHash</span></a></span><span> </span><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679542383"><span class="hs-identifier hs-var">managedData</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544156"><span class="hs-identifier hs-var">datumHash</span></a></span><span> </span><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679544258"><span class="hs-identifier hs-var">managedData</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-192"></span><span>          </span><span class="annot"><span class="annottext">(ValidatorHash, Versioned Validator, ScriptDatum WitCtxTxIn)
 -&gt; Either
      GenerateTxError
      (ValidatorHash, Versioned Validator, ScriptDatum WitCtxTxIn)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542294"><span class="hs-identifier hs-var">validatorHash</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542289"><span class="hs-identifier hs-var">validator</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542288"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544169"><span class="hs-identifier hs-var">validatorHash</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679544164"><span class="hs-identifier hs-var">validator</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544163"><span class="hs-identifier hs-var">datum</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-193"></span><span>
-</span><span id="line-194"></span><span>        </span><span class="annot"><a href="#local-6989586621679542298"><span class="hs-identifier hs-type">mkWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Witness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxTxIn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-195"></span><span>        </span><span id="local-6989586621679542298"><span class="annot"><span class="annottext">mkWitness :: TxSkelRedeemer
+</span><span id="line-194"></span><span>        </span><span class="annot"><a href="#local-6989586621679544173"><span class="hs-identifier hs-type">mkWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemer"><span class="hs-identifier hs-type">TxSkelRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.Witness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxTxIn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-195"></span><span>        </span><span id="local-6989586621679544173"><span class="annot"><span class="annottext">mkWitness :: TxSkelRedeemer
 -&gt; Either GenerateTxError (Witness WitCtxTxIn BabbageEra)
-</span><a href="#local-6989586621679542298"><span class="hs-identifier hs-var hs-var">mkWitness</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
+</span><a href="#local-6989586621679544173"><span class="hs-identifier hs-var hs-var">mkWitness</span></a></span></span><span> </span><span class="annot"><span class="annottext">TxSkelRedeemer
 </span><a href="Cooked.Skeleton.html#TxSkelNoRedeemerForPK"><span class="hs-identifier hs-var">TxSkelNoRedeemerForPK</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
 -&gt; Either GenerateTxError (Witness WitCtxTxIn BabbageEra)
 forall a b. b -&gt; Either a b
@@ -730,21 +730,21 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall witctx era. KeyWitnessInCtx witctx -&gt; Witness witctx era
 </span><span class="hs-identifier hs-var">C.KeyWitness</span></span><span> </span><span class="annot"><span class="annottext">KeyWitnessInCtx WitCtxTxIn
 </span><span class="hs-identifier hs-var">C.KeyWitnessForSpending</span></span><span>
-</span><span id="line-196"></span><span>        </span><span class="annot"><a href="#local-6989586621679542298"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemerForReferencedScript"><span class="hs-identifier hs-type">TxSkelRedeemerForReferencedScript</span></a></span><span> </span><span id="local-6989586621679542272"><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542272"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-197"></span><span>          </span><span class="hs-special">(</span><span id="local-6989586621679542271"><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542271"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542270"><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542270"><span class="hs-identifier hs-var">validator</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542269"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542269"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either
+</span><span id="line-196"></span><span>        </span><span class="annot"><a href="#local-6989586621679544173"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemerForReferencedScript"><span class="hs-identifier hs-type">TxSkelRedeemerForReferencedScript</span></a></span><span> </span><span id="local-6989586621679544147"><span class="annot"><span class="annottext">redeemer
+</span><a href="#local-6989586621679544147"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-197"></span><span>          </span><span class="hs-special">(</span><span id="local-6989586621679544146"><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679544146"><span class="hs-identifier hs-var">validatorHash</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544145"><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679544145"><span class="hs-identifier hs-var">validator</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544144"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544144"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either
   GenerateTxError
   (ValidatorHash, Versioned Validator, ScriptDatum WitCtxTxIn)
-</span><a href="#local-6989586621679542296"><span class="hs-identifier hs-var">resolveScriptOutputOwnerAndDatum</span></a></span><span>
-</span><span id="line-198"></span><span>          </span><span id="local-6989586621679542268"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542268"><span class="hs-identifier hs-var">validatorOref</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544171"><span class="hs-identifier hs-var">resolveScriptOutputOwnerAndDatum</span></a></span><span>
+</span><span id="line-198"></span><span>          </span><span id="local-6989586621679544143"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679544143"><span class="hs-identifier hs-var">validatorOref</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-199"></span><span>            </span><span class="annot"><span class="annottext">GenerateTxError
 -&gt; Maybe TxOutRef -&gt; Either GenerateTxError TxOutRef
 forall e a. e -&gt; Maybe a -&gt; Either e a
-</span><a href="#local-6989586621679542336"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
+</span><a href="#local-6989586621679544211"><span class="hs-identifier hs-var">throwOnNothing</span></a></span><span>
 </span><span id="line-200"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; GenerateTxError
 </span><a href="Cooked.MockChain.GenerateTx.html#GenerateTxErrorGeneral"><span class="hs-identifier hs-var">GenerateTxErrorGeneral</span></a></span><span> </span><span class="annot"><span class="annottext">String
 </span><span class="hs-string">&quot;txSkelInToTxIn: Can't find reference script. In order to use a reference script, you must include the output where it is stored in the 'txSkelInsReference'.&quot;</span></span><span class="hs-special">)</span><span>
@@ -754,18 +754,18 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(TxOutRef -&gt; Bool) -&gt; Set TxOutRef -&gt; Maybe TxOutRef
 forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">find</span></span><span>
-</span><span id="line-202"></span><span>                </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679542266"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542266"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Map TxOutRef TxOut -&gt; Maybe TxOut
+</span><span id="line-202"></span><span>                </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679544141"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679544141"><span class="hs-identifier hs-var">oref</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Map TxOutRef TxOut -&gt; Maybe TxOut
 forall k a. Ord k =&gt; k -&gt; Map k a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Map.lookup</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542266"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542382"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679544141"><span class="hs-identifier hs-var">oref</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544257"><span class="hs-identifier hs-var">managedTxOuts</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-203"></span><span>                    </span><span class="annot"><span class="annottext">Maybe TxOut
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
-</span><span id="line-204"></span><span>                    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679542265"><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679542265"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679542265"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
+</span><span id="line-204"></span><span>                    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679544140"><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679544140"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679544140"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut
 -&gt; Optic' A_Lens NoIx TxOut (Maybe ScriptHash) -&gt; Maybe ScriptHash
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
@@ -778,20 +778,20 @@ Lens' o (Maybe (ReferenceScriptType o))
 </span><span id="line-205"></span><span>                      </span><span class="annot"><span class="annottext">Maybe ScriptHash
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
 </span><span class="hs-identifier hs-var">False</span></span><span>
-</span><span id="line-206"></span><span>                      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679542262"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679542262"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679542262"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; ScriptHash -&gt; Bool
+</span><span id="line-206"></span><span>                      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679544137"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679544137"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679544137"><span class="hs-identifier hs-var">scriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">ScriptHash -&gt; ScriptHash -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; ScriptHash
 forall a. ToScriptHash a =&gt; a -&gt; ScriptHash
 </span><a href="Cooked.Output.html#toScriptHash"><span class="hs-identifier hs-var">toScriptHash</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542270"><span class="hs-identifier hs-var">validator</span></a></span><span>
+</span><a href="#local-6989586621679544145"><span class="hs-identifier hs-var">validator</span></a></span><span>
 </span><span id="line-207"></span><span>                </span><span class="hs-special">)</span><span>
 </span><span id="line-208"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; Set TxOutRef
 </span><a href="Cooked.Skeleton.html#txSkelInsReference"><span class="hs-identifier hs-var hs-var">txSkelInsReference</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542380"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-209"></span><span>          </span><span id="local-6989586621679542260"><span class="annot"><span class="annottext">TxIn
-</span><a href="#local-6989586621679542260"><span class="hs-identifier hs-var">validatorTxIn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544255"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-209"></span><span>          </span><span id="local-6989586621679544135"><span class="annot"><span class="annottext">TxIn
+</span><a href="#local-6989586621679544135"><span class="hs-identifier hs-var">validatorTxIn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-210"></span><span>            </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either ToCardanoError TxIn -&gt; Either GenerateTxError TxIn
 forall (a :: * -&gt; * -&gt; *) b c d.
@@ -806,9 +806,9 @@ a b c -&gt; a (Either b d) (Either c d)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxIn</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679542268"><span class="hs-identifier hs-var">validatorOref</span></a></span><span>
-</span><span id="line-213"></span><span>          </span><span id="local-6989586621679542259"><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679542259"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544143"><span class="hs-identifier hs-var">validatorOref</span></a></span><span>
+</span><span id="line-213"></span><span>          </span><span id="local-6989586621679544134"><span class="annot"><span class="annottext">ScriptHash
+</span><a href="#local-6989586621679544134"><span class="hs-identifier hs-var">scriptHash</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-214"></span><span>            </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either ToCardanoError ScriptHash
 -&gt; Either GenerateTxError ScriptHash
@@ -821,13 +821,13 @@ a b c -&gt; a (Either b d) (Either c d)
 </span><span class="hs-string">&quot;txSkelInToTxIn: could not convert script hash of referenced script&quot;</span></span><span class="hs-special">)</span><span>
 </span><span id="line-216"></span><span>              </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ValidatorHash -&gt; Either ToCardanoError ScriptHash
 </span><span class="hs-identifier hs-var">Pl.toCardanoScriptHash</span></span><span> </span><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542271"><span class="hs-identifier hs-var">validatorHash</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-217"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679542257"><span class="annot"><span class="annottext">scriptWitnessBuilder :: ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544146"><span class="hs-identifier hs-var">validatorHash</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-217"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679544132"><span class="annot"><span class="annottext">scriptWitnessBuilder :: ScriptDatum WitCtxTxIn
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542257"><span class="hs-identifier hs-var hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542270"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679544132"><span class="hs-identifier hs-var hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679544145"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-218"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Validator
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV1</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -856,10 +856,10 @@ ScriptLanguageInEra lang era
 forall lang.
 TxIn -&gt; Maybe ScriptHash -&gt; PlutusScriptOrReferenceInput lang
 </span><span class="hs-identifier hs-var">C.PReferenceScript</span></span><span> </span><span class="annot"><span class="annottext">TxIn
-</span><a href="#local-6989586621679542260"><span class="hs-identifier hs-var">validatorTxIn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; Maybe ScriptHash
+</span><a href="#local-6989586621679544135"><span class="hs-identifier hs-var">validatorTxIn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; Maybe ScriptHash
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679542259"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544134"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-223"></span><span>                </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Validator
 </span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
@@ -888,10 +888,10 @@ ScriptLanguageInEra lang era
 forall lang.
 TxIn -&gt; Maybe ScriptHash -&gt; PlutusScriptOrReferenceInput lang
 </span><span class="hs-identifier hs-var">C.PReferenceScript</span></span><span> </span><span class="annot"><span class="annottext">TxIn
-</span><a href="#local-6989586621679542260"><span class="hs-identifier hs-var">validatorTxIn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; Maybe ScriptHash
+</span><a href="#local-6989586621679544135"><span class="hs-identifier hs-var">validatorTxIn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ScriptHash -&gt; Maybe ScriptHash
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ScriptHash
-</span><a href="#local-6989586621679542259"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544134"><span class="hs-identifier hs-var">scriptHash</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-228"></span><span>          </span><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
 -&gt; Either GenerateTxError (Witness WitCtxTxIn BabbageEra)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -918,36 +918,36 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542257"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
+</span><a href="#local-6989586621679544132"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
 </span><span id="line-231"></span><span>                </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542269"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679544144"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-232"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; ScriptData
 </span><span class="hs-identifier hs-var">Pl.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; ScriptData) -&gt; BuiltinData -&gt; ScriptData
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">redeemer -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542272"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544147"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-233"></span><span>                </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Pl.zeroExecutionUnits</span></span><span> </span><span class="hs-comment">-- We can't guess that yet, no?</span><span>
-</span><span id="line-234"></span><span>        </span><span class="annot"><a href="#local-6989586621679542298"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemerForScript"><span class="hs-identifier hs-type">TxSkelRedeemerForScript</span></a></span><span> </span><span id="local-6989586621679542242"><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542242"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-235"></span><span>          </span><span class="hs-special">(</span><span id="local-6989586621679542241"><span class="annot"><span class="annottext">ValidatorHash
-</span><a href="#local-6989586621679542241"><span class="hs-identifier hs-var">_validatorHash</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542240"><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542240"><span class="hs-identifier hs-var">validator</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542239"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542239"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either
+</span><span id="line-234"></span><span>        </span><span class="annot"><a href="#local-6989586621679544173"><span class="hs-identifier hs-var">mkWitness</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelRedeemerForScript"><span class="hs-identifier hs-type">TxSkelRedeemerForScript</span></a></span><span> </span><span id="local-6989586621679544117"><span class="annot"><span class="annottext">redeemer
+</span><a href="#local-6989586621679544117"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-235"></span><span>          </span><span class="hs-special">(</span><span id="local-6989586621679544116"><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679544116"><span class="hs-identifier hs-var">_validatorHash</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544115"><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679544115"><span class="hs-identifier hs-var">validator</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544114"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544114"><span class="hs-identifier hs-var">datum</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either
   GenerateTxError
   (ValidatorHash, Versioned Validator, ScriptDatum WitCtxTxIn)
-</span><a href="#local-6989586621679542296"><span class="hs-identifier hs-var">resolveScriptOutputOwnerAndDatum</span></a></span><span>
-</span><span id="line-236"></span><span>          </span><span id="local-6989586621679542238"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
+</span><a href="#local-6989586621679544171"><span class="hs-identifier hs-var">resolveScriptOutputOwnerAndDatum</span></a></span><span>
+</span><span id="line-236"></span><span>          </span><span id="local-6989586621679544113"><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542238"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544113"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-237"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
-</span><a href="#local-6989586621679542240"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-238"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Validator</span></span><span> </span><span id="local-6989586621679542236"><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542236"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679544115"><span class="hs-identifier hs-var">validator</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-238"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Validator</span></span><span> </span><span id="local-6989586621679544111"><span class="annot"><span class="annottext">Script
+</span><a href="#local-6989586621679544111"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV1</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-239"></span><span>                </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; (PlutusScript PlutusScriptV1
@@ -1012,9 +1012,9 @@ AsType plutusScript -&gt; Script -&gt; Either ToCardanoError plutusScript
 forall lang. AsType lang -&gt; AsType (PlutusScript lang)
 </span><span class="hs-identifier hs-var">C.AsPlutusScript</span></span><span> </span><span class="annot"><span class="annottext">AsType PlutusScriptV1
 </span><span class="hs-identifier hs-var">C.AsPlutusScriptV1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542236"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-243"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Validator</span></span><span> </span><span id="local-6989586621679542231"><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542231"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679544111"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-243"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Validator</span></span><span> </span><span id="local-6989586621679544106"><span class="annot"><span class="annottext">Script
+</span><a href="#local-6989586621679544106"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-244"></span><span>                </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; (PlutusScript PlutusScriptV2
@@ -1079,7 +1079,7 @@ AsType plutusScript -&gt; Script -&gt; Either ToCardanoError plutusScript
 forall lang. AsType lang -&gt; AsType (PlutusScript lang)
 </span><span class="hs-identifier hs-var">C.AsPlutusScript</span></span><span> </span><span class="annot"><span class="annottext">AsType PlutusScriptV2
 </span><span class="hs-identifier hs-var">C.AsPlutusScriptV2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542231"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544106"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-248"></span><span>          </span><span class="annot"><span class="annottext">Witness WitCtxTxIn BabbageEra
 -&gt; Either GenerateTxError (Witness WitCtxTxIn BabbageEra)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -1106,24 +1106,24 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxTxIn BabbageEra
-</span><a href="#local-6989586621679542238"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
+</span><a href="#local-6989586621679544113"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
 </span><span id="line-251"></span><span>                </span><span class="annot"><span class="annottext">ScriptDatum WitCtxTxIn
-</span><a href="#local-6989586621679542239"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679544114"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-252"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BuiltinData -&gt; ScriptData
 </span><span class="hs-identifier hs-var">Pl.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; ScriptData) -&gt; BuiltinData -&gt; ScriptData
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">redeemer -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542242"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544117"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-253"></span><span>                </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Pl.zeroExecutionUnits</span></span><span> </span><span class="hs-comment">-- We can't guess that yet, no?</span><span>
 </span><span id="line-254"></span><span>
 </span><span id="line-255"></span><span>    </span><span class="hs-comment">-- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsReference'</span><span>
-</span><span id="line-256"></span><span>    </span><span class="annot"><a href="#local-6989586621679542373"><span class="hs-identifier hs-type">txOutRefsToTxInsReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxInsReference</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-257"></span><span>    </span><span id="local-6989586621679542373"><span class="annot"><span class="annottext">txOutRefsToTxInsReference :: [TxOutRef]
+</span><span id="line-256"></span><span>    </span><span class="annot"><a href="#local-6989586621679544248"><span class="hs-identifier hs-type">txOutRefsToTxInsReference</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxInsReference</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-257"></span><span>    </span><span id="local-6989586621679544248"><span class="annot"><span class="annottext">txOutRefsToTxInsReference :: [TxOutRef]
 -&gt; Either GenerateTxError (TxInsReference BuildTx BabbageEra)
-</span><a href="#local-6989586621679542373"><span class="hs-identifier hs-var hs-var">txOutRefsToTxInsReference</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679544248"><span class="hs-identifier hs-var hs-var">txOutRefsToTxInsReference</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-258"></span><span>      </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; ([TxIn] -&gt; TxInsReference BuildTx BabbageEra)
 -&gt; Either ToCardanoError [TxIn]
@@ -1139,15 +1139,15 @@ Bifunctor p =&gt;
 </span><span id="line-261"></span><span>            </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxInsReference BuildTx BabbageEra
 forall build era. TxInsReference build era
 </span><span class="hs-identifier hs-var">C.TxInsReferenceNone</span></span><span>
-</span><span id="line-262"></span><span>            </span><span id="local-6989586621679542228"><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679542228"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ReferenceTxInsScriptsInlineDatumsSupportedInEra BabbageEra
+</span><span id="line-262"></span><span>            </span><span id="local-6989586621679544103"><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679544103"><span class="hs-identifier hs-var">txIns</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ReferenceTxInsScriptsInlineDatumsSupportedInEra BabbageEra
 -&gt; [TxIn] -&gt; TxInsReference BuildTx BabbageEra
 forall era build.
 ReferenceTxInsScriptsInlineDatumsSupportedInEra era
 -&gt; [TxIn] -&gt; TxInsReference build era
 </span><span class="hs-identifier hs-var">C.TxInsReference</span></span><span> </span><span class="annot"><span class="annottext">ReferenceTxInsScriptsInlineDatumsSupportedInEra BabbageEra
 </span><span class="hs-identifier hs-var">C.ReferenceTxInsScriptsInlineDatumsInBabbageEra</span></span><span> </span><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679542228"><span class="hs-identifier hs-var">txIns</span></a></span><span>
+</span><a href="#local-6989586621679544103"><span class="hs-identifier hs-var">txIns</span></a></span><span>
 </span><span id="line-263"></span><span>        </span><span class="hs-special">)</span><span>
 </span><span id="line-264"></span><span>        </span><span class="annot"><span class="annottext">(Either ToCardanoError [TxIn]
  -&gt; Either GenerateTxError (TxInsReference BuildTx BabbageEra))
@@ -1164,9 +1164,9 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxIn</span></span><span>
 </span><span id="line-265"></span><span>
 </span><span id="line-266"></span><span>    </span><span class="hs-comment">-- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsCollateral'</span><span>
-</span><span id="line-267"></span><span>    </span><span class="annot"><a href="#local-6989586621679542369"><span class="hs-identifier hs-type">txOutRefsToTxSkelInsCollateral</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxInsCollateral</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-268"></span><span>    </span><span id="local-6989586621679542369"><span class="annot"><span class="annottext">txOutRefsToTxSkelInsCollateral :: [TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
-</span><a href="#local-6989586621679542369"><span class="hs-identifier hs-var hs-var">txOutRefsToTxSkelInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-267"></span><span>    </span><span class="annot"><a href="#local-6989586621679544244"><span class="hs-identifier hs-type">txOutRefsToTxSkelInsCollateral</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Pl.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxInsCollateral</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-268"></span><span>    </span><span id="local-6989586621679544244"><span class="annot"><span class="annottext">txOutRefsToTxSkelInsCollateral :: [TxOutRef] -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
+</span><a href="#local-6989586621679544244"><span class="hs-identifier hs-var hs-var">txOutRefsToTxSkelInsCollateral</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-269"></span><span>      </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either ToCardanoError (TxInsCollateral BabbageEra)
 -&gt; Either GenerateTxError (TxInsCollateral BabbageEra)
@@ -1188,7 +1188,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; Either ToCardanoError (TxInsCollateral BabbageEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">[TxIn] -&gt; TxInsCollateral BabbageEra
-</span><a href="#local-6989586621679542225"><span class="hs-identifier hs-var">toTxInsCollateral</span></a></span><span>
+</span><a href="#local-6989586621679544100"><span class="hs-identifier hs-var">toTxInsCollateral</span></a></span><span>
 </span><span id="line-271"></span><span>        </span><span class="annot"><span class="annottext">(Either ToCardanoError [TxIn]
  -&gt; Either ToCardanoError (TxInsCollateral BabbageEra))
 -&gt; ([TxOutRef] -&gt; Either ToCardanoError [TxIn])
@@ -1203,27 +1203,27 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 </span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">TxOutRef -&gt; Either ToCardanoError TxIn
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxIn</span></span><span>
 </span><span id="line-272"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-273"></span><span>        </span><span id="local-6989586621679542225"><span class="annot"><span class="annottext">toTxInsCollateral :: [TxIn] -&gt; TxInsCollateral BabbageEra
-</span><a href="#local-6989586621679542225"><span class="hs-identifier hs-var hs-var">toTxInsCollateral</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxInsCollateral BabbageEra
+</span><span id="line-273"></span><span>        </span><span id="local-6989586621679544100"><span class="annot"><span class="annottext">toTxInsCollateral :: [TxIn] -&gt; TxInsCollateral BabbageEra
+</span><a href="#local-6989586621679544100"><span class="hs-identifier hs-var hs-var">toTxInsCollateral</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxInsCollateral BabbageEra
 forall era. TxInsCollateral era
 </span><span class="hs-identifier hs-var">C.TxInsCollateralNone</span></span><span>
-</span><span id="line-274"></span><span>        </span><span class="annot"><a href="#local-6989586621679542225"><span class="hs-identifier hs-var">toTxInsCollateral</span></a></span><span> </span><span id="local-6989586621679542223"><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679542223"><span class="hs-identifier hs-var">ins</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CollateralSupportedInEra BabbageEra
+</span><span id="line-274"></span><span>        </span><span class="annot"><a href="#local-6989586621679544100"><span class="hs-identifier hs-var">toTxInsCollateral</span></a></span><span> </span><span id="local-6989586621679544098"><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679544098"><span class="hs-identifier hs-var">ins</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CollateralSupportedInEra BabbageEra
 -&gt; [TxIn] -&gt; TxInsCollateral BabbageEra
 forall era.
 CollateralSupportedInEra era -&gt; [TxIn] -&gt; TxInsCollateral era
 </span><span class="hs-identifier hs-var">C.TxInsCollateral</span></span><span> </span><span class="annot"><span class="annottext">CollateralSupportedInEra BabbageEra
 </span><span class="hs-identifier hs-var">C.CollateralInBabbageEra</span></span><span> </span><span class="annot"><span class="annottext">[TxIn]
-</span><a href="#local-6989586621679542223"><span class="hs-identifier hs-var">ins</span></a></span><span>
+</span><a href="#local-6989586621679544098"><span class="hs-identifier hs-var">ins</span></a></span><span>
 </span><span id="line-275"></span><span>
 </span><span id="line-276"></span><span>    </span><span class="hs-comment">-- Convert the 'TxSkelMints' into a 'TxMintValue'</span><span>
-</span><span id="line-277"></span><span>    </span><span class="annot"><a href="#local-6989586621679542360"><span class="hs-identifier hs-type">txSkelMintsToTxMintValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxMintValue</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-278"></span><span>    </span><span id="local-6989586621679542360"><span class="annot"><span class="annottext">txSkelMintsToTxMintValue :: TxSkelMints
+</span><span id="line-277"></span><span>    </span><span class="annot"><a href="#local-6989586621679544235"><span class="hs-identifier hs-type">txSkelMintsToTxMintValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelMints"><span class="hs-identifier hs-type">TxSkelMints</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxMintValue</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BuildTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
+</span><span id="line-278"></span><span>    </span><span id="local-6989586621679544235"><span class="annot"><span class="annottext">txSkelMintsToTxMintValue :: TxSkelMints
 -&gt; Either GenerateTxError (TxMintValue BuildTx BabbageEra)
-</span><a href="#local-6989586621679542360"><span class="hs-identifier hs-var hs-var">txSkelMintsToTxMintValue</span></a></span></span><span> </span><span id="local-6989586621679542220"><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679542220"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679544235"><span class="hs-identifier hs-var hs-var">txSkelMintsToTxMintValue</span></a></span></span><span> </span><span id="local-6989586621679544095"><span class="annot"><span class="annottext">TxSkelMints
+</span><a href="#local-6989586621679544095"><span class="hs-identifier hs-var">mints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-279"></span><span>      </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679542220"><span class="hs-identifier hs-var">mints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; TxSkelMints -&gt; Bool
+</span><a href="#local-6989586621679544095"><span class="hs-identifier hs-var">mints</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; TxSkelMints -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 forall k a. Map k a
@@ -1257,7 +1257,7 @@ MultiAssetSupportedInEra era
       -&gt; TxMintValue BuildTx BabbageEra)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Either GenerateTxError Value
-</span><a href="#local-6989586621679542215"><span class="hs-identifier hs-var">mintVal</span></a></span><span> </span><span class="annot"><span class="annottext">Either
+</span><a href="#local-6989586621679544090"><span class="hs-identifier hs-var">mintVal</span></a></span><span> </span><span class="annot"><span class="annottext">Either
   GenerateTxError
   (BuildTxWith
      BuildTx (Map PolicyId (ScriptWitness WitCtxMint BabbageEra))
@@ -1286,11 +1286,11 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Either
   GenerateTxError
   (Map PolicyId (ScriptWitness WitCtxMint BabbageEra))
-</span><a href="#local-6989586621679542214"><span class="hs-identifier hs-var">witnessMap</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544089"><span class="hs-identifier hs-var">witnessMap</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-282"></span><span>      </span><span class="hs-keyword">where</span><span>
-</span><span id="line-283"></span><span>        </span><span class="annot"><a href="#local-6989586621679542215"><span class="hs-identifier hs-type">mintVal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Value</span></span><span>
-</span><span id="line-284"></span><span>        </span><span id="local-6989586621679542215"><span class="annot"><span class="annottext">mintVal :: Either GenerateTxError Value
-</span><a href="#local-6989586621679542215"><span class="hs-identifier hs-var hs-var">mintVal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-283"></span><span>        </span><span class="annot"><a href="#local-6989586621679544090"><span class="hs-identifier hs-type">mintVal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Value</span></span><span>
+</span><span id="line-284"></span><span>        </span><span id="local-6989586621679544090"><span class="annot"><span class="annottext">mintVal :: Either GenerateTxError Value
+</span><a href="#local-6989586621679544090"><span class="hs-identifier hs-var hs-var">mintVal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-285"></span><span>          </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either ToCardanoError Value -&gt; Either GenerateTxError Value
 forall (a :: * -&gt; * -&gt; *) b c d.
@@ -1317,13 +1317,13 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 -&gt; TxSkelMints -&gt; Either GenerateTxError Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679542220"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><a href="#local-6989586621679544095"><span class="hs-identifier hs-var">mints</span></a></span><span>
 </span><span id="line-289"></span><span>
-</span><span id="line-290"></span><span>        </span><span class="annot"><a href="#local-6989586621679542214"><span class="hs-identifier hs-type">witnessMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.PolicyId</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.ScriptWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxMint</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-291"></span><span>        </span><span id="local-6989586621679542214"><span class="annot"><span class="annottext">witnessMap :: Either
+</span><span id="line-290"></span><span>        </span><span class="annot"><a href="#local-6989586621679544089"><span class="hs-identifier hs-type">witnessMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.PolicyId</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.ScriptWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxMint</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-291"></span><span>        </span><span id="local-6989586621679544089"><span class="annot"><span class="annottext">witnessMap :: Either
   GenerateTxError
   (Map PolicyId (ScriptWitness WitCtxMint BabbageEra))
-</span><a href="#local-6989586621679542214"><span class="hs-identifier hs-var hs-var">witnessMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="#local-6989586621679544089"><span class="hs-identifier hs-var hs-var">witnessMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-292"></span><span>          </span><span class="annot"><span class="annottext">([Map PolicyId (ScriptWitness WitCtxMint BabbageEra)]
  -&gt; Map PolicyId (ScriptWitness WitCtxMint BabbageEra))
 -&gt; Either
@@ -1364,11 +1364,11 @@ forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
 (Traversable t, Monad m) =&gt;
 (a -&gt; m b) -&gt; t a -&gt; m (t b)
 </span><span class="hs-identifier hs-var">mapM</span></span><span>
-</span><span id="line-294"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679542211"><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679542211"><span class="hs-identifier hs-var">policy</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542210"><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679542210"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542209"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679542209"><span class="hs-identifier hs-var">_tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679542208"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679542208"><span class="hs-identifier hs-var">_amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-294"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679544086"><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679544086"><span class="hs-identifier hs-var">policy</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544085"><span class="annot"><span class="annottext">MintsRedeemer
+</span><a href="#local-6989586621679544085"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544084"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679544084"><span class="hs-identifier hs-var">_tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679544083"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679544083"><span class="hs-identifier hs-var">_amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-295"></span><span>                  </span><span class="annot"><span class="annottext">PolicyId
 -&gt; ScriptWitness WitCtxMint BabbageEra
 -&gt; Map PolicyId (ScriptWitness WitCtxMint BabbageEra)
@@ -1396,7 +1396,7 @@ a b c -&gt; a (Either b d) (Either c d)
 </span><span id="line-298"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicyHash -&gt; Either ToCardanoError PolicyId
 </span><span class="hs-identifier hs-var">Pl.toCardanoPolicyId</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; MintingPolicyHash
 </span><span class="hs-identifier hs-var">Pl.mintingPolicyHash</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679542211"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544086"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-299"></span><span>                    </span><span class="annot"><span class="annottext">Either
   GenerateTxError
   (ScriptWitness WitCtxMint BabbageEra
@@ -1409,9 +1409,9 @@ forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f
 </span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
 -&gt; MintsRedeemer
 -&gt; Either GenerateTxError (ScriptWitness WitCtxMint BabbageEra)
-</span><a href="#local-6989586621679542204"><span class="hs-identifier hs-var">mkMintWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
-</span><a href="#local-6989586621679542211"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679542210"><span class="hs-identifier hs-var">redeemer</span></a></span><span>
+</span><a href="#local-6989586621679544079"><span class="hs-identifier hs-var">mkMintWitness</span></a></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679544086"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
+</span><a href="#local-6989586621679544085"><span class="hs-identifier hs-var">redeemer</span></a></span><span>
 </span><span id="line-300"></span><span>              </span><span class="hs-special">)</span><span>
 </span><span id="line-301"></span><span>            </span><span class="annot"><span class="annottext">([(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
  -&gt; Either
@@ -1425,28 +1425,28 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 </span><a href="Cooked.Skeleton.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679542220"><span class="hs-identifier hs-var">mints</span></a></span><span>
+</span><a href="#local-6989586621679544095"><span class="hs-identifier hs-var">mints</span></a></span><span>
 </span><span id="line-302"></span><span>
-</span><span id="line-303"></span><span>        </span><span class="annot"><a href="#local-6989586621679542204"><span class="hs-identifier hs-type">mkMintWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-303"></span><span>        </span><span class="annot"><a href="#local-6989586621679544079"><span class="hs-identifier hs-type">mkMintWitness</span></a></span><span> </span><span class="hs-glyph">::</span><span>
 </span><span id="line-304"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.MintingPolicy</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-305"></span><span>          </span><span class="annot"><a href="Cooked.Skeleton.html#MintsRedeemer"><span class="hs-identifier hs-type">MintsRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-306"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span>
 </span><span id="line-307"></span><span>            </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span>
 </span><span id="line-308"></span><span>            </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.ScriptWitness</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.WitCtxMint</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
-</span><span id="line-309"></span><span>        </span><span id="local-6989586621679542204"><span class="annot"><span class="annottext">mkMintWitness :: Versioned MintingPolicy
+</span><span id="line-309"></span><span>        </span><span id="local-6989586621679544079"><span class="annot"><span class="annottext">mkMintWitness :: Versioned MintingPolicy
 -&gt; MintsRedeemer
 -&gt; Either GenerateTxError (ScriptWitness WitCtxMint BabbageEra)
-</span><a href="#local-6989586621679542204"><span class="hs-identifier hs-var hs-var">mkMintWitness</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.MintingPolicy</span></span><span> </span><span id="local-6989586621679542201"><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542201"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679542200"><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679542200"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679542199"><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679542199"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-310"></span><span>          </span><span id="local-6989586621679542198"><span class="annot"><span class="annottext">ScriptDatum WitCtxMint
+</span><a href="#local-6989586621679544079"><span class="hs-identifier hs-var hs-var">mkMintWitness</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.MintingPolicy</span></span><span> </span><span id="local-6989586621679544076"><span class="annot"><span class="annottext">Script
+</span><a href="#local-6989586621679544076"><span class="hs-identifier hs-var">script</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679544075"><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679544075"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679544074"><span class="annot"><span class="annottext">MintsRedeemer
+</span><a href="#local-6989586621679544074"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-310"></span><span>          </span><span id="local-6989586621679544073"><span class="annot"><span class="annottext">ScriptDatum WitCtxMint
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxMint BabbageEra
-</span><a href="#local-6989586621679542198"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544073"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-311"></span><span>            </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679542200"><span class="hs-identifier hs-var">version</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679544075"><span class="hs-identifier hs-var">version</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-312"></span><span>              </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV1</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-313"></span><span>                </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
@@ -1512,7 +1512,7 @@ AsType plutusScript -&gt; Script -&gt; Either ToCardanoError plutusScript
 forall lang. AsType lang -&gt; AsType (PlutusScript lang)
 </span><span class="hs-identifier hs-var">C.AsPlutusScript</span></span><span> </span><span class="annot"><span class="annottext">AsType PlutusScriptV1
 </span><span class="hs-identifier hs-var">C.AsPlutusScriptV1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542201"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544076"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-317"></span><span>              </span><span class="annot"><span class="annottext">Language
 </span><span class="hs-identifier hs-var">Pl.PlutusV2</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-318"></span><span>                </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
@@ -1578,7 +1578,7 @@ AsType plutusScript -&gt; Script -&gt; Either ToCardanoError plutusScript
 forall lang. AsType lang -&gt; AsType (PlutusScript lang)
 </span><span class="hs-identifier hs-var">C.AsPlutusScript</span></span><span> </span><span class="annot"><span class="annottext">AsType PlutusScriptV2
 </span><span class="hs-identifier hs-var">C.AsPlutusScriptV2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Script
-</span><a href="#local-6989586621679542201"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544076"><span class="hs-identifier hs-var">script</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-322"></span><span>          </span><span class="annot"><span class="annottext">ScriptWitness WitCtxMint BabbageEra
 -&gt; Either GenerateTxError (ScriptWitness WitCtxMint BabbageEra)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -1592,11 +1592,11 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; ScriptData
 -&gt; ExecutionUnits
 -&gt; ScriptWitness WitCtxMint BabbageEra
-</span><a href="#local-6989586621679542198"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
+</span><a href="#local-6989586621679544073"><span class="hs-identifier hs-var">scriptWitnessBuilder</span></a></span><span>
 </span><span id="line-324"></span><span>              </span><span class="annot"><span class="annottext">ScriptDatum WitCtxMint
 </span><span class="hs-identifier hs-var">C.NoScriptDatumForMint</span></span><span> </span><span class="hs-comment">-- This seems to be the only well-typed option (?)</span><span>
 </span><span id="line-325"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679542199"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><a href="#local-6989586621679544074"><span class="hs-identifier hs-var">redeemer</span></a></span><span> </span><span class="hs-keyword">of</span><span>
 </span><span id="line-326"></span><span>                  </span><span class="annot"><span class="annottext">MintsRedeemer
 </span><a href="Cooked.Skeleton.html#NoMintsRedeemer"><span class="hs-identifier hs-var">NoMintsRedeemer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; ScriptData
 </span><span class="hs-identifier hs-var">Pl.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; ScriptData) -&gt; BuiltinData -&gt; ScriptData
@@ -1604,14 +1604,14 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- This is also how plutus-apps is doing it: Using no redeemer means using '()' on-chain</span><span>
-</span><span id="line-327"></span><span>                  </span><span class="annot"><a href="Cooked.Skeleton.html#SomeMintsRedeemer"><span class="hs-identifier hs-type">SomeMintsRedeemer</span></a></span><span> </span><span id="local-6989586621679542194"><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542194"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; ScriptData
+</span><span id="line-327"></span><span>                  </span><span class="annot"><a href="Cooked.Skeleton.html#SomeMintsRedeemer"><span class="hs-identifier hs-type">SomeMintsRedeemer</span></a></span><span> </span><span id="local-6989586621679544069"><span class="annot"><span class="annottext">redeemer
+</span><a href="#local-6989586621679544069"><span class="hs-identifier hs-var">red</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">BuiltinData -&gt; ScriptData
 </span><span class="hs-identifier hs-var">Pl.toCardanoScriptData</span></span><span> </span><span class="annot"><span class="annottext">(BuiltinData -&gt; ScriptData) -&gt; BuiltinData -&gt; ScriptData
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">redeemer -&gt; BuiltinData
 forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span class="hs-identifier hs-var">Pl.toBuiltinData</span></span><span> </span><span class="annot"><span class="annottext">redeemer
-</span><a href="#local-6989586621679542194"><span class="hs-identifier hs-var">red</span></a></span><span>
+</span><a href="#local-6989586621679544069"><span class="hs-identifier hs-var">red</span></a></span><span>
 </span><span id="line-328"></span><span>              </span><span class="hs-special">)</span><span>
 </span><span id="line-329"></span><span>              </span><span class="annot"><span class="annottext">ExecutionUnits
 </span><span class="hs-identifier hs-var">Pl.zeroExecutionUnits</span></span><span> </span><span class="hs-comment">-- This is what plutus-apps does as well, we can't know this yet, no?</span><span>
@@ -1620,9 +1620,9 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 </span><span id="line-332"></span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#txSkelOutToCardanoTxOut"><span class="hs-identifier hs-type">txSkelOutToCardanoTxOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Params</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOut"><span class="hs-identifier hs-type">TxSkelOut</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Cooked.MockChain.GenerateTx.html#GenerateTxError"><span class="hs-identifier hs-type">GenerateTxError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.TxOut</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.CtxTx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span class="hs-special">)</span><span>
 </span><span id="line-333"></span><span id="txSkelOutToCardanoTxOut"><span class="annot"><span class="annottext">txSkelOutToCardanoTxOut :: Params
 -&gt; TxSkelOut -&gt; Either GenerateTxError (TxOut CtxTx BabbageEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#txSkelOutToCardanoTxOut"><span class="hs-identifier hs-var hs-var">txSkelOutToCardanoTxOut</span></a></span></span><span> </span><span id="local-6989586621679542193"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542193"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#Pays"><span class="hs-identifier hs-type">Pays</span></a></span><span> </span><span id="local-6989586621679542191"><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679542191"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.MockChain.GenerateTx.html#txSkelOutToCardanoTxOut"><span class="hs-identifier hs-var hs-var">txSkelOutToCardanoTxOut</span></a></span></span><span> </span><span id="local-6989586621679544068"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679544068"><span class="hs-identifier hs-var">theParams</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Skeleton.html#Pays"><span class="hs-identifier hs-type">Pays</span></a></span><span> </span><span id="local-6989586621679544066"><span class="annot"><span class="annottext">o
+</span><a href="#local-6989586621679544066"><span class="hs-identifier hs-var">output</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-334"></span><span>  </span><span class="annot"><span class="annottext">(ToCardanoError -&gt; GenerateTxError)
 -&gt; Either ToCardanoError (TxOut CtxTx BabbageEra)
 -&gt; Either GenerateTxError (TxOut CtxTx BabbageEra)
@@ -1666,12 +1666,12 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 -&gt; Address -&gt; Either ToCardanoError (AddressInEra BabbageEra)
 </span><span class="hs-identifier hs-var">Pl.toCardanoAddressInEra</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Params -&gt; NetworkId
 </span><span class="hs-identifier hs-var hs-var">Pl.pNetworkId</span></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542193"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o -&gt; Address
+</span><a href="#local-6989586621679544068"><span class="hs-identifier hs-var">theParams</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o -&gt; Address
 forall o.
 (IsAbstractOutput o, ToCredential (OwnerType o)) =&gt;
 o -&gt; Address
 </span><a href="Cooked.Output.html#outputAddress"><span class="hs-identifier hs-var">outputAddress</span></a></span><span> </span><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679542191"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544066"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-337"></span><span>      </span><span class="annot"><span class="annottext">Either
   ToCardanoError
   (TxOutValue BabbageEra
@@ -1693,7 +1693,7 @@ forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-identifier hs-var">Pl.toCardanoValue</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">o -&gt; Value
 forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
 </span><a href="Cooked.Output.html#outputValue"><span class="hs-identifier hs-var">outputValue</span></a></span><span> </span><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679542191"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544066"><span class="hs-identifier hs-var">output</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
 </span><span id="line-338"></span><span>      </span><span class="annot"><span class="annottext">Either
   ToCardanoError
   (TxOutDatum CtxTx BabbageEra
@@ -1704,7 +1704,7 @@ forall o. (IsAbstractOutput o, ToValue (ValueType o)) =&gt; o -&gt; Value
      (ReferenceScript BabbageEra -&gt; TxOut CtxTx BabbageEra)
 forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679542191"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o -&gt; Optic' A_Lens NoIx o TxSkelOutDatum -&gt; TxSkelOutDatum
+</span><a href="#local-6989586621679544066"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o -&gt; Optic' A_Lens NoIx o TxSkelOutDatum -&gt; TxSkelOutDatum
 forall k s (is :: IxList) a.
 Is k A_Getter =&gt;
 s -&gt; Optic' k is s a -&gt; a
@@ -1717,8 +1717,8 @@ forall o. IsAbstractOutput o =&gt; Lens' o (DatumType o)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx BabbageEra
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxOutNoDatum</span></span><span>
-</span><span id="line-340"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatumHash"><span class="hs-identifier hs-type">TxSkelOutDatumHash</span></a></span><span> </span><span id="local-6989586621679542181"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542181"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
+</span><span id="line-340"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatumHash"><span class="hs-identifier hs-type">TxSkelOutDatumHash</span></a></span><span> </span><span id="local-6989586621679544056"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679544056"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DatumHash -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall ctx.
 DatumHash -&gt; Either ToCardanoError (TxOutDatum ctx BabbageEra)
 </span><span class="hs-identifier hs-var">Pl.toCardanoTxOutDatumHash</span></span><span> </span><span class="annot"><span class="annottext">(DatumHash -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra))
@@ -1738,9 +1738,9 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 -&gt; a -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542181"><span class="hs-identifier hs-var">datum</span></a></span><span>
-</span><span id="line-341"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679542176"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542176"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx BabbageEra
+</span><a href="#local-6989586621679544056"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><span id="line-341"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span id="local-6989586621679544051"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679544051"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx BabbageEra
 -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(TxOutDatum CtxTx BabbageEra
@@ -1762,9 +1762,9 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 -&gt; a -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542176"><span class="hs-identifier hs-var">datum</span></a></span><span>
-</span><span id="line-342"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutInlineDatum"><span class="hs-identifier hs-type">TxSkelOutInlineDatum</span></a></span><span> </span><span id="local-6989586621679542173"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542173"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx BabbageEra
+</span><a href="#local-6989586621679544051"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><span id="line-342"></span><span>              </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutInlineDatum"><span class="hs-identifier hs-type">TxSkelOutInlineDatum</span></a></span><span> </span><span id="local-6989586621679544048"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679544048"><span class="hs-identifier hs-var">datum</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">TxOutDatum CtxTx BabbageEra
 -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall a b. b -&gt; Either a b
 </span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(TxOutDatum CtxTx BabbageEra
@@ -1786,7 +1786,7 @@ forall a. ToData a =&gt; a -&gt; BuiltinData
 -&gt; a -&gt; Either ToCardanoError (TxOutDatum CtxTx BabbageEra)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679542173"><span class="hs-identifier hs-var">datum</span></a></span><span>
+</span><a href="#local-6989586621679544048"><span class="hs-identifier hs-var">datum</span></a></span><span>
 </span><span id="line-343"></span><span>          </span><span class="hs-special">)</span><span>
 </span><span id="line-344"></span><span>      </span><span class="annot"><span class="annottext">Either
   ToCardanoError
@@ -1802,7 +1802,7 @@ forall a. ToScript a =&gt; a -&gt; Versioned Script
 -&gt; Maybe (ReferenceScriptType o) -&gt; Maybe (Versioned Script)
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">o
-</span><a href="#local-6989586621679542191"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o
+</span><a href="#local-6989586621679544066"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">o
 -&gt; Optic' A_Lens NoIx o (Maybe (ReferenceScriptType o))
 -&gt; Maybe (ReferenceScriptType o)
 forall k s (is :: IxList) a.
@@ -1837,15 +1837,15 @@ Lens' o (Maybe (ReferenceScriptType o))
 -&gt; Map ValidatorHash (Versioned Validator)
 -&gt; TxSkel
 -&gt; Either GenerateTxError (Tx BabbageEra)
-</span><a href="Cooked.MockChain.GenerateTx.html#generateTx"><span class="hs-identifier hs-var hs-var">generateTx</span></a></span></span><span> </span><span id="local-6989586621679542169"><span class="annot"><span class="annottext">GenTxParams
-</span><a href="#local-6989586621679542169"><span class="hs-identifier hs-var">genTxParams</span></a></span></span><span> </span><span id="local-6989586621679542168"><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542168"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679542167"><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679542167"><span class="hs-identifier hs-var">datums</span></a></span></span><span> </span><span id="local-6989586621679542166"><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542166"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span id="local-6989586621679542165"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679542165"><span class="hs-identifier hs-var">validators</span></a></span></span><span> </span><span id="local-6989586621679542164"><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542164"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-363"></span><span>  </span><span id="local-6989586621679542163"><span class="annot"><span class="annottext">TxBodyContent BuildTx BabbageEra
-</span><a href="#local-6989586621679542163"><span class="hs-identifier hs-var">txBodyContent</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GenTxParams
+</span><a href="Cooked.MockChain.GenerateTx.html#generateTx"><span class="hs-identifier hs-var hs-var">generateTx</span></a></span></span><span> </span><span id="local-6989586621679544044"><span class="annot"><span class="annottext">GenTxParams
+</span><a href="#local-6989586621679544044"><span class="hs-identifier hs-var">genTxParams</span></a></span></span><span> </span><span id="local-6989586621679544043"><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679544043"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span id="local-6989586621679544042"><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679544042"><span class="hs-identifier hs-var">datums</span></a></span></span><span> </span><span id="local-6989586621679544041"><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544041"><span class="hs-identifier hs-var">txOuts</span></a></span></span><span> </span><span id="local-6989586621679544040"><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679544040"><span class="hs-identifier hs-var">validators</span></a></span></span><span> </span><span id="local-6989586621679544039"><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679544039"><span class="hs-identifier hs-var">skel</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-363"></span><span>  </span><span id="local-6989586621679544038"><span class="annot"><span class="annottext">TxBodyContent BuildTx BabbageEra
+</span><a href="#local-6989586621679544038"><span class="hs-identifier hs-var">txBodyContent</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">GenTxParams
 -&gt; Params
 -&gt; Map DatumHash Datum
 -&gt; Map TxOutRef TxOut
@@ -1853,14 +1853,14 @@ Lens' o (Maybe (ReferenceScriptType o))
 -&gt; TxSkel
 -&gt; Either GenerateTxError (TxBodyContent BuildTx BabbageEra)
 </span><a href="Cooked.MockChain.GenerateTx.html#generateTxBodyContent"><span class="hs-identifier hs-var">generateTxBodyContent</span></a></span><span> </span><span class="annot"><span class="annottext">GenTxParams
-</span><a href="#local-6989586621679542169"><span class="hs-identifier hs-var">genTxParams</span></a></span><span> </span><span class="annot"><span class="annottext">Params
-</span><a href="#local-6989586621679542168"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">Map DatumHash Datum
-</span><a href="#local-6989586621679542167"><span class="hs-identifier hs-var">datums</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
-</span><a href="#local-6989586621679542166"><span class="hs-identifier hs-var">txOuts</span></a></span><span> </span><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
-</span><a href="#local-6989586621679542165"><span class="hs-identifier hs-var">validators</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542164"><span class="hs-identifier hs-var">skel</span></a></span><span>
-</span><span id="line-364"></span><span>  </span><span id="local-6989586621679542162"><span class="annot"><span class="annottext">Tx BabbageEra
-</span><a href="#local-6989586621679542162"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><a href="#local-6989586621679544044"><span class="hs-identifier hs-var">genTxParams</span></a></span><span> </span><span class="annot"><span class="annottext">Params
+</span><a href="#local-6989586621679544043"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">Map DatumHash Datum
+</span><a href="#local-6989586621679544042"><span class="hs-identifier hs-var">datums</span></a></span><span> </span><span class="annot"><span class="annottext">Map TxOutRef TxOut
+</span><a href="#local-6989586621679544041"><span class="hs-identifier hs-var">txOuts</span></a></span><span> </span><span class="annot"><span class="annottext">Map ValidatorHash (Versioned Validator)
+</span><a href="#local-6989586621679544040"><span class="hs-identifier hs-var">validators</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
+</span><a href="#local-6989586621679544039"><span class="hs-identifier hs-var">skel</span></a></span><span>
+</span><span id="line-364"></span><span>  </span><span id="local-6989586621679544037"><span class="annot"><span class="annottext">Tx BabbageEra
+</span><a href="#local-6989586621679544037"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
 </span><span id="line-365"></span><span>    </span><span class="annot"><span class="annottext">(TxBodyError -&gt; GenerateTxError)
 -&gt; (TxBody BabbageEra -&gt; Tx BabbageEra)
 -&gt; Either TxBodyError (TxBody BabbageEra)
@@ -1888,18 +1888,18 @@ forall era.
 IsCardanoEra era =&gt;
 TxBodyContent BuildTx era -&gt; Either TxBodyError (TxBody era)
 </span><span class="hs-identifier hs-var">C.makeTransactionBody</span></span><span> </span><span class="annot"><span class="annottext">TxBodyContent BuildTx BabbageEra
-</span><a href="#local-6989586621679542163"><span class="hs-identifier hs-var">txBodyContent</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-373"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679542158"><span class="annot"><span class="annottext">cardanoTxSigned :: Tx BabbageEra
-</span><a href="#local-6989586621679542158"><span class="hs-identifier hs-var hs-var">cardanoTxSigned</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Tx BabbageEra -&gt; Wallet -&gt; Tx BabbageEra)
+</span><a href="#local-6989586621679544038"><span class="hs-identifier hs-var">txBodyContent</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-373"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679544033"><span class="annot"><span class="annottext">cardanoTxSigned :: Tx BabbageEra
+</span><a href="#local-6989586621679544033"><span class="hs-identifier hs-var hs-var">cardanoTxSigned</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Tx BabbageEra -&gt; Wallet -&gt; Tx BabbageEra)
 -&gt; Tx BabbageEra -&gt; [Wallet] -&gt; Tx BabbageEra
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
 </span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra -&gt; Wallet -&gt; Tx BabbageEra
-</span><a href="#local-6989586621679542156"><span class="hs-identifier hs-var">txAddSignature</span></a></span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra
-</span><a href="#local-6989586621679542162"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
+</span><a href="#local-6989586621679544031"><span class="hs-identifier hs-var">txAddSignature</span></a></span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra
+</span><a href="#local-6989586621679544037"><span class="hs-identifier hs-var">cardanoTxUnsigned</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxSkel -&gt; [Wallet]
 </span><a href="Cooked.Skeleton.html#txSkelSigners"><span class="hs-identifier hs-var hs-var">txSkelSigners</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542164"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544039"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-374"></span><span>  </span><span class="annot"><span class="annottext">Tx BabbageEra -&gt; Either GenerateTxError (Tx BabbageEra)
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Tx BabbageEra -&gt; Either GenerateTxError (Tx BabbageEra))
@@ -1914,30 +1914,30 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><a href="Cooked.Skeleton.html#txSkelOpts"><span class="hs-identifier hs-var hs-var">txSkelOpts</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkel -&gt; [RawModTx]) -&gt; TxSkel -&gt; [RawModTx]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TxSkel
-</span><a href="#local-6989586621679542164"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra
-</span><a href="#local-6989586621679542158"><span class="hs-identifier hs-var">cardanoTxSigned</span></a></span><span>
+</span><a href="#local-6989586621679544039"><span class="hs-identifier hs-var">skel</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra
+</span><a href="#local-6989586621679544033"><span class="hs-identifier hs-var">cardanoTxSigned</span></a></span><span>
 </span><span id="line-375"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-376"></span><span>    </span><span class="annot"><a href="#local-6989586621679542156"><span class="hs-identifier hs-type">txAddSignature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span>
-</span><span id="line-377"></span><span>    </span><span id="local-6989586621679542156"><span class="annot"><span class="annottext">txAddSignature :: Tx BabbageEra -&gt; Wallet -&gt; Tx BabbageEra
-</span><a href="#local-6989586621679542156"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679542152"><span class="annot"><span class="annottext">Tx BabbageEra
-</span><a href="#local-6989586621679542152"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span id="local-6989586621679542151"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679542151"><span class="hs-identifier hs-var">wal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">PrivateKey -&gt; CardanoTx -&gt; CardanoTx
+</span><span id="line-376"></span><span>    </span><span class="annot"><a href="#local-6989586621679544031"><span class="hs-identifier hs-type">txAddSignature</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.Tx</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.BabbageEra</span></span><span>
+</span><span id="line-377"></span><span>    </span><span id="local-6989586621679544031"><span class="annot"><span class="annottext">txAddSignature :: Tx BabbageEra -&gt; Wallet -&gt; Tx BabbageEra
+</span><a href="#local-6989586621679544031"><span class="hs-identifier hs-var hs-var">txAddSignature</span></a></span></span><span> </span><span id="local-6989586621679544027"><span class="annot"><span class="annottext">Tx BabbageEra
+</span><a href="#local-6989586621679544027"><span class="hs-identifier hs-var">tx</span></a></span></span><span> </span><span id="local-6989586621679544026"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679544026"><span class="hs-identifier hs-var">wal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">PrivateKey -&gt; CardanoTx -&gt; CardanoTx
 </span><span class="hs-identifier hs-var">Ledger.addCardanoTxSignature</span></span><span>
 </span><span id="line-378"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PrivateKey
 </span><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-var">walletSK</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679542151"><span class="hs-identifier hs-var">wal</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679544026"><span class="hs-identifier hs-var">wal</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-379"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tx BabbageEra -&gt; EraInMode BabbageEra CardanoMode -&gt; CardanoTx
 forall era.
 IsCardanoEra era =&gt;
 Tx era -&gt; EraInMode era CardanoMode -&gt; CardanoTx
 </span><span class="hs-identifier hs-var">Ledger.CardanoTx</span></span><span> </span><span class="annot"><span class="annottext">Tx BabbageEra
-</span><a href="#local-6989586621679542152"><span class="hs-identifier hs-var">tx</span></a></span><span> </span><span class="annot"><span class="annottext">EraInMode BabbageEra CardanoMode
+</span><a href="#local-6989586621679544027"><span class="hs-identifier hs-var">tx</span></a></span><span> </span><span class="annot"><span class="annottext">EraInMode BabbageEra CardanoMode
 </span><span class="hs-identifier hs-var">C.BabbageEraInCardanoMode</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-380"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span id="local-6989586621679542146"><span class="annot"><span class="annottext">Tx era
-</span><a href="#local-6989586621679542146"><span class="hs-identifier hs-var">tx'</span></a></span></span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+</span><span id="line-380"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span id="local-6989586621679544021"><span class="annot"><span class="annottext">Tx era
+</span><a href="#local-6989586621679544021"><span class="hs-identifier hs-var">tx'</span></a></span></span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
 </span><span class="hs-identifier hs-var">C.BabbageEraInCardanoMode</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Tx era
 Tx BabbageEra
-</span><a href="#local-6989586621679542146"><span class="hs-identifier hs-var">tx'</span></a></span><span>
+</span><a href="#local-6989586621679544021"><span class="hs-identifier hs-var">tx'</span></a></span><span>
 </span><span id="line-381"></span><span>      </span><span class="hs-comment">-- Looking at the implementation of Ledger.addCardanoTxSignature:</span><span>
 </span><span id="line-382"></span><span>      </span><span class="hs-comment">-- It never changes the constructor used, so the above branch</span><span>
 </span><span id="line-383"></span><span>      </span><span class="hs-comment">-- will never happen</span><span>
