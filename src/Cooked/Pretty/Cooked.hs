@@ -404,9 +404,9 @@ mPrettyTxOpts
       prettyBalancingUtxos :: BalancingUtxos -> DocCooked
       prettyBalancingUtxos BalancingUtxosAll = "Balance with all UTxOs of the balancing wallet"
       prettyBalancingUtxos BalancingUtxosDatumless = "Balance with datumless UTxOs of the balancing wallet"
-      prettyBalancingUtxos (BalancingUtxosWith txOutRefs) =
+      prettyBalancingUtxos (BalancingUtxosAllowlist txOutRefs) =
         prettyItemize "Only balance with UTxOs of the balancing wallet among:" "-" (prettyCookedOpt opts <$> txOutRefs)
-      prettyBalancingUtxos (BalancingUtxosWithout txOutRefs) =
+      prettyBalancingUtxos (BalancingUtxosBlocklist txOutRefs) =
         prettyItemize "Do not balance with UTxOs among:" "-" (prettyCookedOpt opts <$> txOutRefs)
 
 -- * Pretty-printing

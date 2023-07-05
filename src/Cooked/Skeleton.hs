@@ -211,9 +211,9 @@ data BalancingUtxos
   | -- | Use all UTxOs without datum
     BalancingUtxosDatumless
   | -- | Use only the provided UTxOs
-    BalancingUtxosWith [Pl2.TxOutRef]
+    BalancingUtxosAllowlist [Pl2.TxOutRef]
   | -- | Do not use the provided UTxOs
-    BalancingUtxosWithout [Pl2.TxOutRef]
+    BalancingUtxosBlocklist [Pl2.TxOutRef]
   deriving (Eq, Ord, Show)
 
 instance Default BalancingUtxos where

@@ -245,8 +245,8 @@ setFeeAndBalance balanceWallet skel0 = do
            in case txOptBalancingUtxos . txSkelOpts $ skel0 of
                 BalancingUtxosAll -> utxosAtLedger balanceWalletAddress
                 BalancingUtxosDatumless -> runUtxoSearch (utxosAtLedgerSearch balanceWalletAddress `filterWithPred` noDatumPredicate)
-                BalancingUtxosWith txOutRefs -> filter ((`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
-                BalancingUtxosWithout txOutRefs -> filter (not . (`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
+                BalancingUtxosAllowlist txOutRefs -> filter ((`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
+                BalancingUtxosBlocklist txOutRefs -> filter (not . (`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
 
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
