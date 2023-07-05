@@ -76,7 +76,6 @@ where
 import qualified Cardano.Api as C
 import qualified Cardano.Node.Emulator as Emulator
 import Control.Monad
-import Control.Monad.List (ListT)
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.ValueUtils
@@ -212,19 +211,81 @@ instance Default BalancingUtxos where
   def = BalancingUtxosAll
 
 -- | Set of options to modify the behavior of generating and validating some transaction.
-data TxOpts where
-  TxOpts ::
-    { txOptEnsureMinAda :: Bool,
-      txOptAwaitTxConfirmed :: Bool,
-      txOptAutoSlotIncrease :: Bool,
-      txOptUnsafeModTx :: [RawModTx],
-      txOptBalance :: Bool,
-      txOptBalanceOutputPolicy :: BalanceOutputPolicy,
-      txOptBalanceWallet :: BalancingWallet,
-      txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
-      txOptBalancingUTxOs :: BalancingUtxos
-    } ->
-    TxOpts
+data TxOpts = TxOpts
+  { -- | Performs an adjustment to unbalanced transactions, making sure every
+    -- UTxO that is produced has the necessary minimum amount of Ada.
+    --
+    -- Default is @False@.
+    txOptEnsureMinAda :: Bool,
+    -- | Ignore this for now. Deprecated.
+    txOptAwaitTxConfirmed :: Bool,
+    -- | Whether to increase the slot counter automatically on transaction
+    -- submission.  This is useful for modelling transactions that could be
+    -- submitted in parallel in reality, so there should be no explicit ordering
+    -- of what comes first.
+    --
+    -- Default is @True@.
+    txOptAutoSlotIncrease :: Bool,
+    -- | Applies an arbitrary modification to a transaction after it has been
+    -- potentially adjusted ('txOptEnsureMinAda') and balanced. The name of this
+    -- option contains /unsafe/ to draw attention to the fact that modifying a
+    -- transaction at that stage might make it invalid. Still, this offers a
+    -- hook for being able to alter a transaction in unforeseen ways. It is
+    -- mostly used to test contracts that have been written for custom PABs.
+    --
+    -- One interesting use of this function is to observe a transaction just
+    -- before it is being sent for validation, with
+    --
+    -- > txOptUnsafeModTx = [RawModTxAfterBalancing Debug.Trace.traceShowId]
+    --
+    -- The leftmost function in the list is applied first.
+    --
+    -- Default is @[]@.
+    txOptUnsafeModTx :: [RawModTx],
+    -- | Whether to balance the transaction or not. Balancing ensures that
+    --
+    -- > input + mints == output + fees + burns
+    --
+    -- If you decide to set @txOptBalance = False@ you will have trouble
+    -- satisfying that equation by hand because @fees@ are variable. You will
+    -- likely see a error about value preservation, and should adjust the fees
+    -- accordingly.
+    --
+    -- Default is @True@, and nobody in their right mind will ever set it
+    -- otherwise.
+    txOptBalance :: Bool,
+    -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
+    --
+    -- Default is 'AdjustExistingOutput'.
+    txOptBalanceOutputPolicy :: BalanceOutputPolicy,
+    -- | Which wallet to use to provide outputs for balancing and collaterals.
+    -- Either the first signer by default, or an explicit wallet. In the second
+    -- case, this wallet must be a signer of the transaction. This option WILL
+    -- NOT ensure that it is added in case it is not already present in the list
+    -- of signers.
+    --
+    -- Default is 'BalanceWithFirstSigner'.
+    txOptBalanceWallet :: BalancingWallet,
+    -- | Describes which UTxOs of the balancing wallet can be spent for
+    -- balancing. This is useful to put aside some UTxOs you want to spend in a
+    -- specific context later and prevent premature spending during balancing
+    -- of previous transactions.
+    txOptBalancingUtxos :: BalancingUtxos,
+    -- | Apply an arbitrary modification to the protocol parameters that are
+    -- used to balance and submit the transaction. This is
+    -- obviously a very unsafe thing to do if you want to preserve
+    -- compatibility with the actual chain. It is useful mainly for testing
+    -- purposes, when you might want to use extremely big transactions or
+    -- transactions that exhaust the maximum execution budget. Such a thing
+    -- could be accomplished with
+    --
+    -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
+    --
+    -- for example.
+    --
+    -- Default is 'Nothing'.
+    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
+  }
   deriving (Eq, Show)
 
 instance Default TxOpts where
@@ -237,8 +298,8 @@ instance Default TxOpts where
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
-        txOptEmulatorParamsModification = Nothing,
-        txOptBalancingUTxOs = def
+        txOptBalancingUtxos = def,
+        txOptEmulatorParamsModification = Nothing
       }
 
 -- * Description of the Minting

@@ -242,7 +242,7 @@ setFeeAndBalance balanceWallet skel0 = do
     Map.fromList
       <$> let balanceWalletAddress = walletAddress balanceWallet
               noDatumPredicate = (\case PV2.NoOutputDatum -> True; _ -> False) . outputOutputDatum . txOutV2FromLedger
-           in case txOptBalancingUTxOs . txSkelOpts $ skel0 of
+           in case txOptBalancingUtxos . txSkelOpts $ skel0 of
                 BalancingUtxosAll -> utxosAtLedger balanceWalletAddress
                 BalancingUtxosDatumless -> runUtxoSearch (utxosAtLedgerSearch balanceWalletAddress `filterWithPred` noDatumPredicate)
                 BalancingUtxosWith txOutRefs -> filter ((`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress

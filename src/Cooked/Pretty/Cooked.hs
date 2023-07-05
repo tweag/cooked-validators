@@ -357,8 +357,8 @@ mPrettyTxOpts
       txOptBalance,
       txOptBalanceOutputPolicy,
       txOptBalanceWallet,
-      txOptEmulatorParamsModification,
-      txOptBalancingUTxOs
+      txOptBalancingUtxos,
+      txOptEmulatorParamsModification
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
@@ -367,9 +367,9 @@ mPrettyTxOpts
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
-          prettyIfNot def prettyBalancingUtxos txOptBalancingUTxOs
+          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification
         ]
     where
       prettyIfNot :: Eq a => a -> (a -> DocCooked) -> a -> Maybe DocCooked
