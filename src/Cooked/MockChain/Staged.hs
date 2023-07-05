@@ -37,6 +37,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
+import qualified Data.Map as Map
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
@@ -153,7 +154,7 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
             tell $
               MockChainLog
                 [ MCLogSubmittedTxSkel
-                    (SkelContext (txOutV2FromLedger <$> managedTxOuts) managedDatums)
+                    (SkelContext (txOutV2FromLedger <$> managedTxOuts) $ Map.map fst managedDatums)
                     skel'
                 ]
         tx <- validateTxSkel skel'
