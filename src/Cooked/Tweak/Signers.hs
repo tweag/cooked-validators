@@ -66,15 +66,15 @@ addSignersTweak = modifySignersTweak . (<>)
 addLastSignerTweak :: MonadTweak m => Wallet -> m [Wallet]
 addLastSignerTweak = addSignersTweak . (: [])
 
--- | Remove signers from the transaction and returns the old list of signers
+-- | Remove signers from the transaction and return the old list of signers
 removeSignersTweak :: MonadTweak m => [Wallet] -> m [Wallet]
 removeSignersTweak = modifySignersTweak . (\\)
 
--- | Remove a signer from the transaction and returns the old list of signers
+-- | Remove a signer from the transaction and return the old list of signers
 removeSignerTweak :: MonadTweak m => Wallet -> m [Wallet]
 removeSignerTweak = modifySignersTweak . delete
 
--- | Changes the first signer (adds it if there are no signers) and returns the
+-- | Changes the first signer (adds it if there are no signers) and return the
 -- old list of signers.
 replaceFirstSignerTweak :: MonadTweak m => Wallet -> m [Wallet]
 replaceFirstSignerTweak =
