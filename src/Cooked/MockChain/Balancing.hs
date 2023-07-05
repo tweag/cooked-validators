@@ -216,6 +216,14 @@ txSkelInputData skel = do
               dHash
         Just datum -> return datum
 
+getEmulatorUTxO ::
+  Map PV2.TxOutRef Ledger.TxOut ->
+  Either Ledger.ToCardanoError (Emulator.UTxO Emulator.EmulatorEra)
+getEmulatorUTxO m =
+  fmap (Ledger.fromPlutusIndex . C.UTxO . Map.fromList) $
+    mapM (\(k, v) -> (,) <$> Ledger.toCardanoTxIn k <*> pure (Ledger.toCtxUTxOTxOut v)) $
+      Map.toList m
+
 -- ensuring that the equation
 --
 -- > value in inputs + minted value = value in outputs + burned value + fee
@@ -236,13 +244,24 @@ setFeeAndBalance balanceWallet skel0 = do
     if txOptEnsureMinAda . txSkelOpts $ skel0
       then ensureTxSkelOutsMinAda skel0
       else return skel0
-  -- all UTxOs belonging to the balancing public key
-  balancePKUtxos <- Map.fromList <$> utxosAtLedger (walletAddress balanceWallet)
+
+  -- Candidate UTxOs to spend for balancing
+  balancePKUtxos <-
+    Map.fromList
+      <$> let balanceWalletAddress = walletAddress balanceWallet
+              noDatumPredicate = (\case PV2.NoOutputDatum -> True; _ -> False) . outputOutputDatum . txOutV2FromLedger
+           in case txOptBalancingUtxos . txSkelOpts $ skel0 of
+                BalancingUtxosAll -> utxosAtLedger balanceWalletAddress
+                BalancingUtxosDatumless -> runUtxoSearch (utxosAtLedgerSearch balanceWalletAddress `filterWithPred` noDatumPredicate)
+                BalancingUtxosAllowlist txOutRefs -> filter ((`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
+                BalancingUtxosBlocklist txOutRefs -> filter (not . (`elem` txOutRefs) . fst) <$> utxosAtLedger balanceWalletAddress
+
   -- all UTxOs that the txSkel consumes.
   txSkelUtxos <- txSkelInputUtxos skel
   -- all UTxOs that the txSkel references.
   txSkelReferencedUtxos <- txSkelReferenceInputUtxos skel
-  case Ledger.fromPlutusIndex $ Ledger.UtxoIndex $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos of
+  let index = getEmulatorUTxO $ txSkelReferencedUtxos <> txSkelUtxos <> balancePKUtxos
+  case index of
     Left err -> throwError $ FailWith $ "setFeeAndValidRange: " ++ show err
     Right cUtxoIndex -> do
       -- We start with a high startingFee, but theres a chance that 'w' doesn't have enough funds
@@ -289,16 +308,16 @@ setFeeAndBalance balanceWallet skel0 = do
         Left err -> throwError $ MCECalcFee err
         Right newFee
           | newFee == fee -> do
-            -- Debug.Trace.traceM "Reached fixpoint:"
-            -- Debug.Trace.traceM $ "- fee = " <> show fee
-            -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-            pure (attemptedSkel, fee) -- reached fixpoint
+              -- Debug.Trace.traceM "Reached fixpoint:"
+              -- Debug.Trace.traceM $ "- fee = " <> show fee
+              -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
+              pure (attemptedSkel, fee) -- reached fixpoint
           | n == 0 -> do
-            -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-            pure (attemptedSkel, max newFee fee) -- maximum number of iterations
+              -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
+              pure (attemptedSkel, max newFee fee) -- maximum number of iterations
           | otherwise -> do
-            -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-            calcFee (n - 1) newFee cUtxoIndex skel
+              -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
+              calcFee (n - 1) newFee cUtxoIndex skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19

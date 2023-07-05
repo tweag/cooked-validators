@@ -20,10 +20,10 @@ jobs:
 
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -49,10 +49,10 @@ jobs:
 
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -81,10 +81,10 @@ jobs:
 
     steps:
       - name: Check out repository code (from PR).
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -208,10 +208,10 @@ jobs:
 
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
@@ -274,10 +274,10 @@ jobs:
 
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v20
+        uses: cachix/install-nix-action@v22
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.

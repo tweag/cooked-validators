@@ -237,10 +237,9 @@ tests =
                   @=? skelOut x2 (1 ==)
             ],
       testCase "careful validator" $
-        testFailsFrom'
+        testFails
           def
           (isCekEvaluationFailure def)
-          def
           ( somewhere
               ( datumHijackingAttack @MockContract
                   ( \(ConcreteOutput v _ _ d _) ->

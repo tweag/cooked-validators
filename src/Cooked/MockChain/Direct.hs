@@ -1,9 +1,11 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
@@ -14,6 +16,7 @@
 module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
+import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator.Params as Emulator
 import qualified Cardano.Node.Emulator.Validation as Emulator
@@ -60,8 +63,9 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
     . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
     . mapMaybe extractPayload
+    . map (\(k, v) -> (Ledger.fromCardanoTxIn k, Ledger.fromCardanoTxOutToPV2TxInfoTxOut' v))
     . Map.toList
-    . utxoIndexToTxOutMap
+    . C.unUTxO
     $ mcstIndex
   where
     extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
@@ -71,19 +75,22 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
         txSkelOutDatum <-
           case txOutDatum of
             Pl.NoOutputDatum -> Just TxSkelOutNoDatum
-            Pl.OutputDatum datum -> Map.lookup (Pl.datumHash datum) mcstDatums
-            Pl.OutputDatumHash hash -> Map.lookup hash mcstDatums
+            Pl.OutputDatum datum -> fst <$> Map.lookup (Pl.datumHash datum) mcstDatums
+            Pl.OutputDatumHash hash -> fst <$> Map.lookup hash mcstDatums
         return
           ( txOutAddress,
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the
--- simulation. We keep a map from datum hash to datum in order to display the
--- contents of the state to the user.
+-- simulation.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash TxSkelOutDatum,
+    -- map from datum hash to (datum, count), where count is the number of
+    -- UTxOs that currently have the datum. This map is used  to display the
+    -- contents of the state to the user, and to recover datums for transaction
+    -- generation.
+    mcstDatums :: Map Pl.DatumHash (TxSkelOutDatum, Integer),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Ledger.Slot
   }
@@ -98,11 +105,6 @@ instance Eq MockChainSt where
           validators1 == validators2,
           currentSlot1 == currentSlot2
         ]
-
--- | The 'UtxoIndex' contains 'Ledger.Tx.Internal.TxOut's, but we want a map
--- that contains 'Plutus.V2.Ledger.Api.TxOut'.
-utxoIndexToTxOutMap :: Ledger.UtxoIndex -> Map PV2.TxOutRef PV2.TxOut
-utxoIndexToTxOutMap (Ledger.UtxoIndex utxoMap) = Map.map txOutV2FromLedger utxoMap
 
 instance Default Ledger.Slot where
   def = Ledger.Slot 0
@@ -213,26 +215,48 @@ instance Default MockChainSt where
   def = mockChainSt0
 
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
-utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initialTxFor i0]]
+utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
   where
     -- Bootstraps an initial transaction resulting in a state where wallets
     -- possess UTxOs fitting a given 'InitialDistribution'
-    initialTxFor :: InitialDistribution -> Ledger.Tx
-    initialTxFor initDist =
-      mempty
-        { Ledger.txMint =
-            fromRight'
-              . Ledger.toCardanoValue
-              $ mconcat (map (mconcat . snd) initDist'),
-          Ledger.txOutputs = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist'
-        }
+    initialTxFor :: InitialDistribution -> Ledger.CardanoTx
+    initialTxFor initDist = Ledger.CardanoEmulatorEraTx $ C.Tx body []
       where
-        initUtxosFor w v = toPlTxOut @() (walletAddress w) v Nothing
+        body :: C.TxBody C.BabbageEra
+        body =
+          fromRight' $
+            C.makeTransactionBody $
+              Ledger.emptyTxBodyContent
+                { C.txMintValue =
+                    flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty)
+                      . C.filterValue (/= C.AdaAssetId)
+                      . fromRight'
+                      . Ledger.toCardanoValue
+                      $ mconcat (map (mconcat . snd) initDist'),
+                  C.txOuts = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist',
+                  C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith spendWit)]
+                }
+
+        spendWit = C.KeyWitness C.KeyWitnessForSpending
+
+        -- This has been taken  from the Test.Cardano.Api.Genesis example transaction here:
+        -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
+        genesisKeyHash :: C.Hash C.GenesisUTxOKey
+        genesisKeyHash =
+          C.GenesisUTxOKeyHash $
+            CardanoLedger.KeyHash $
+              "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
 
         initDist' = Map.toList $ unInitialDistribution initDist
 
-        toPlTxOut :: Pl.ToData a => Pl.Address -> Pl.Value -> Maybe a -> Ledger.TxOut
-        toPlTxOut addr value datum = toPlTxOut' addr value datum'
+        initUtxosFor w v = txOut (walletAddress w) v (Nothing @())
+
+        fromRight' :: Show e => Either e a -> a
+        fromRight' x = case x of
+          Left err -> error $ show err
+          Right res -> res
+
+        txOut addr value datum = toCardanoTxOut' addr value datum'
           where
             datum' =
               maybe
@@ -243,9 +267,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
                     . Pl.toBuiltinData
                 )
                 datum
-
-        toPlTxOut' :: Pl.Address -> Pl.Value -> PV2.OutputDatum -> Ledger.TxOut
-        toPlTxOut' addr value datum = Ledger.TxOut $ toCardanoTxOut' addr value datum
 
         toCardanoTxOut' ::
           Pl.Address ->
@@ -258,11 +279,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ Ledger.EmulatorTx $ initi
               theNetworkId
               (PV2.TxOut addr value datum Nothing)
 
-        fromRight' :: Show e => Either e a -> a
-        fromRight' x = case x of
-          Left err -> error $ show err
-          Right res -> res
-
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
 
@@ -271,15 +287,33 @@ utxoIndex0 = utxoIndex0From def
 
 -- * Direct Interpretation of Operations
 
+getIndex :: Ledger.UtxoIndex -> Map Pl.TxOutRef Ledger.TxOut
+getIndex =
+  Map.fromList
+    . map (\(k, v) -> (Ledger.fromCardanoTxIn k, Ledger.TxOut . toCtxTxTxOut $ v))
+    . Map.toList
+    . C.unUTxO
+  where
+    -- We need to convert a UTxO context TxOut to a Transaction context Tx out.
+    -- One could be forgiven for thinking this exists somewhere, but I couldn't find
+    -- it. It's this complicated because the datum type is indexed by the context.
+    toCtxTxTxOut :: C.TxOut C.CtxUTxO era -> C.TxOut C.CtxTx era
+    toCtxTxTxOut (C.TxOut addr val d refS) =
+      let dat = case d of
+            C.TxOutDatumNone -> C.TxOutDatumNone
+            C.TxOutDatumHash s h -> C.TxOutDatumHash s h
+            C.TxOutDatumInline s sd -> C.TxOutDatumInline s sd
+       in C.TxOut addr val dat refS
+
 instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
-  txOutByRefLedger outref = gets $ Map.lookup outref . Ledger.getIndex . mcstIndex
-  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Map.lookup datumHash) <$> gets mcstDatums
+  txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
+  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
 instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
-  allUtxosLedger = gets $ Map.toList . Ledger.getIndex . mcstIndex
+  allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
 
   currentSlot = gets mcstCurrentSlot
 
@@ -301,7 +335,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
         (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-    return (Ledger.CardanoApiTx someCardanoTx)
+    return someCardanoTx
 
 runTransactionValidation ::
   Monad m =>
@@ -320,18 +354,18 @@ runTransactionValidation ::
   -- reference script field of transaction outputs. The 'MockChain' will
   -- remember them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
-  MockChainT m Ledger.SomeCardanoApiTx
+  MockChainT m Ledger.CardanoTx
 runTransactionValidation theParams cardanoTx rawModTx consumedData producedData outputValidators = do
   utxoIndex <- gets mcstIndex
   theSlot <- currentSlot
   let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
-      cardanoIndex = either (error . show) id $ Ledger.fromPlutusIndex utxoIndex
+      cardanoIndex = Ledger.fromPlutusIndex utxoIndex
 
       -- "Ledger.CardanoTx" is a plutus-apps type 'Tx BabbageEra' is a
       -- cardano-api type with the information we need. This wraps the latter
       -- inside the former.
       txWrapped :: Ledger.CardanoTx
-      txWrapped = Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx cardanoTx
+      txWrapped = Ledger.CardanoEmulatorEraTx cardanoTx
 
       mValidationError :: Either Ledger.ValidationErrorInPhase Ledger.ValidationSuccess
       mValidationError = Emulator.validateCardanoTx theParams theSlot cardanoIndex txWrapped
@@ -349,15 +383,18 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
     Right _ -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just
-      -- `newUtxoIndex`; the new mcstDatums is computed by removing the datum
-      -- hashes have been consumed and adding those that have been created in
-      -- the transaction.
+      -- `newUtxoIndex`; the new mcstDatums is computed by adding those that
+      -- have been created in the transaction and removing those that were
+      -- consumed (or reducing their count in the 'mcstDatums').
       modify'
         ( \st ->
             st
               { mcstIndex = newUtxoIndex,
-                mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData,
+                mcstDatums = (mcstDatums st `removeMcstDatums` consumedData) `addMcstDatums` producedData,
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
-      return (Ledger.CardanoApiEmulatorEraTx cardanoTx)
+      return (Ledger.CardanoEmulatorEraTx cardanoTx)
+  where
+    addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
+    removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 0 then Nothing else Just (d, n - 1)

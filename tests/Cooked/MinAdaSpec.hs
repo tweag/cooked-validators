@@ -53,14 +53,13 @@ tests =
   testGroup
     "automatic minAda adjustment of transaction outputs"
     [ testCase "adjusted transaction passes" $ testSucceeds def paymentWithMinAda,
-      testCase "adjusted transaction contains minimal amount" $
-        testFailsFrom'
+      testCase "adjusted transaction contains minimal amount"
+        $ testFails
           def
           ( \case
               MCEValidationError (Pl.Phase1, _) -> testSuccess
               MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
               _ -> testFailure
           )
-          def
-          $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
+        $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))
     ]

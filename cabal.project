@@ -7,7 +7,7 @@ package cardano-crypto-praos
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus-apps.git
-  tag: 385228f6b726a06a655d1b2c8c56cfd5389bf276
+  tag: 4578282f2f66c62a5f451701eca2f8f7d9d77c13
   subdir:
     cardano-node-emulator
     cardano-streaming
@@ -47,12 +47,12 @@ repository cardano-haskell-packages
     d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
 
 -- See CONTRIBUTING.adoc for how to update index-state
-index-state: 2022-12-22T00:00:00Z
+index-state: 2023-05-01T00:00:00Z
 
 -- See CONTRIBUTING.adoc for how to update index-state
 index-state:
-  , hackage.haskell.org 2022-12-22T00:00:00Z
-  , cardano-haskell-packages 2022-12-22T00:00:00Z
+  , hackage.haskell.org 2023-05-01T00:00:00Z
+  , cardano-haskell-packages 2023-05-01T00:00:00Z
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
@@ -76,6 +76,8 @@ allow-newer:
   , servant:aeson
   , servant-client-core:aeson
   , servant-server:aeson
+  , servant-foreign:lens
+  , blockfrost-api:lens
 
 constraints:
   -- cardano-prelude-0.1.0.0 needs
@@ -103,6 +105,9 @@ constraints:
   , aeson >= 2
 
   , hedgehog >= 1.1
+
+  -- ouroboros-consensus-shelley-0.1.0.1 needs
+  , ouroboros-consensus-protocol==0.1.0.1
 
 -- The plugin will typically fail when producing Haddock documentation. However,
 -- in this instance you can simply tell it to defer any errors to runtime (which
@@ -164,15 +169,6 @@ source-repository-package
       lib/test-utils
       lib/text-class
     --sha256: 0i40hp1mdbljjcj4pn3n6zahblkb2jmpm8l4wnb36bya1pzf66fx
-
--- Direct dependency.
-source-repository-package
-    type: git
-    location: https://github.com/Quviq/quickcheck-contractmodel
-    tag: 5cd16ba995f1cd48c2b5f885c702ca6f2a2abbaa
-    subdir:
-      contractmodel
-    --sha256: 17cj4whx2s4hv68azgj54nfp7l61gs6fqdlbaw713yqzmypmsmdd
 
 -- Should follow cardano-wallet.
 source-repository-package

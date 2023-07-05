@@ -20,9 +20,19 @@ module Cooked.Skeleton
     BalancingWallet (..),
     RawModTx (..),
     EmulatorParamsModification (..),
+    BalancingUtxos (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
+    txOptEnsureMinAdaL,
+    txOptAwaitTxConfirmedL,
+    txOptAutoSlotIncreaseL,
+    txOptUnsafeModTxL,
+    txOptBalanceL,
+    txOptBalanceOutputPolicyL,
+    txOptBalanceWalletL,
+    txOptBalancingUtxosL,
+    txOptEmulatorParamsModificationL,
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
@@ -101,6 +111,7 @@ import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
 import qualified Plutus.V1.Ledger.Interval as Pl
 import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
 import qualified Plutus.V2.Ledger.Tx as Pl
+import qualified Plutus.V2.Ledger.Tx as Pl2
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
@@ -193,6 +204,21 @@ applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.
 applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
 applyEmulatorParamsModification Nothing = id
 
+-- | Describes which UTxOs of the balancing wallet can be spent for balancing.
+data BalancingUtxos
+  = -- | Use all UTxOs (default)
+    BalancingUtxosAll
+  | -- | Use all UTxOs without datum
+    BalancingUtxosDatumless
+  | -- | Use only the provided UTxOs
+    BalancingUtxosAllowlist [Pl2.TxOutRef]
+  | -- | Do not use the provided UTxOs
+    BalancingUtxosBlocklist [Pl2.TxOutRef]
+  deriving (Eq, Ord, Show)
+
+instance Default BalancingUtxos where
+  def = BalancingUtxosAll
+
 -- | Set of options to modify the behavior of generating and validating some transaction.
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
@@ -249,6 +275,11 @@ data TxOpts = TxOpts
     --
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
+    -- | Describes which UTxOs of the balancing wallet can be spent for
+    -- balancing. This is useful to put aside some UTxOs you want to spend in a
+    -- specific context later and prevent premature spending during balancing
+    -- of previous transactions.
+    txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is
     -- obviously a very unsafe thing to do if you want to preserve
@@ -266,6 +297,19 @@ data TxOpts = TxOpts
   }
   deriving (Eq, Show)
 
+makeLensesFor
+  [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
+    ("txOptAwaitTxConfirmed", "txOptAwaitTxConfirmedL"),
+    ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
+    ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
+    ("txOptBalance", "txOptBalanceL"),
+    ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
+    ("txOptBalanceWallet", "txOptBalanceWalletL"),
+    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
+    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")
+  ]
+  ''TxOpts
+
 instance Default TxOpts where
   def =
     TxOpts
@@ -276,6 +320,7 @@ instance Default TxOpts where
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
+        txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing
       }
 
@@ -379,32 +424,32 @@ addToTxSkelMints ::
 addToTxSkelMints (pol, red, tName, amount) mints
   | 0 == amount = mints
   | otherwise = case mints Map.!? pol of
-    Nothing ->
-      -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
-      -- new entry:
-      Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
-    Just (_oldRed, innerMap) ->
-      -- Ignore the old redeemer: If it's the same as the new one, nothing will
-      -- change, if not, the new redeemer will be kept.
-      case innerMap NEMap.!? tName of
-        Nothing ->
-          -- The given token name has not yet occurred for the given
-          -- policy. This means that we can just add the new tokens to the
-          -- inner map:
-          Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
-        Just (NonZero oldAmount) ->
-          let newAmount = oldAmount + amount
-           in if newAmount /= 0
-                then -- If the sum of the old amount of tokens and the additional
-                -- tokens is non-zero, we can just update the amount in the
-                -- inner map:
-                  Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
-                else -- If the sum is zero, we'll have to delete the token name
-                -- from the inner map. If that yields a completely empty
-                -- inner map, we'll have to remove the entry altogether:
-                case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
-                  Nothing -> Map.delete pol mints
-                  Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
+      Nothing ->
+        -- The policy isn't yet in the given 'TxSkelMints', so we can just add a
+        -- new entry:
+        Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
+      Just (_oldRed, innerMap) ->
+        -- Ignore the old redeemer: If it's the same as the new one, nothing will
+        -- change, if not, the new redeemer will be kept.
+        case innerMap NEMap.!? tName of
+          Nothing ->
+            -- The given token name has not yet occurred for the given
+            -- policy. This means that we can just add the new tokens to the
+            -- inner map:
+            Map.insert pol (red, NEMap.insert tName (NonZero amount) innerMap) mints
+          Just (NonZero oldAmount) ->
+            let newAmount = oldAmount + amount
+             in if newAmount /= 0
+                  then -- If the sum of the old amount of tokens and the additional
+                  -- tokens is non-zero, we can just update the amount in the
+                  -- inner map:
+                    Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
+                  else -- If the sum is zero, we'll have to delete the token name
+                  -- from the inner map. If that yields a completely empty
+                  -- inner map, we'll have to remove the entry altogether:
+                  case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
+                    Nothing -> Map.delete pol mints
+                    Just newInnerMap -> Map.insert pol (red, newInnerMap) mints
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.

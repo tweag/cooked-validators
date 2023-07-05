@@ -31,6 +31,7 @@ module Cooked.MockChain.BlockChain
     outputDatumFromTxOutRef,
     datumFromTxOutRef,
     resolveDatum,
+    resolveTypedDatum,
     resolveValidator,
     resolveReferenceScript,
     getEnclosingSlot,
@@ -163,7 +164,7 @@ txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 -- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: Ledger.CardanoTx -> [(PV2.TxOutRef, PV2.TxOut)]
 utxosFromCardanoTx =
-  map (\(txOut, txOutRef) -> (txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
+  map (\(txOut, txOutRef) -> (Ledger.fromCardanoTxIn txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
 
 txOutV2FromLedger :: Ledger.TxOut -> PV2.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
@@ -202,6 +203,29 @@ resolveDatum out =
           datum
           (out ^. outputReferenceScriptL)
     PV2.NoOutputDatum -> return Nothing
+
+-- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
+-- datum of the suitable type.
+resolveTypedDatum ::
+  ( IsAbstractOutput out,
+    ToOutputDatum (DatumType out),
+    MonadBlockChainBalancing m,
+    PV2.FromData a
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
+resolveTypedDatum out = do
+  mOut <- resolveDatum out
+  case mOut of
+    Nothing -> return Nothing
+    Just out' ->
+      return $
+        ConcreteOutput
+          <$> Just (out' ^. outputOwnerL)
+          <*> Just (out' ^. outputStakingCredentialL)
+          <*> Just (out' ^. outputValueL)
+          <*> (let PV2.Datum datum = out' ^. outputDatumL in PV2.fromBuiltinData datum)
+          <*> Just (out' ^. outputReferenceScriptL)
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
@@ -349,7 +373,7 @@ awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- | The infinite range of slots ending before or at the given POSIX time
-slotRangeBefore :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
@@ -362,7 +386,7 @@ slotRangeBefore t = do
     else return $ PV2.to (n - 1)
 
 -- | The infinite range of slots starting after or at the given POSIX time
-slotRangeAfter :: MonadBlockChain m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToTimeInterval n

@@ -192,50 +192,49 @@ tests =
     [ testGroup "putting reference scripts on chain and retreiving them" $
         let theRefScript = noValidator
             theRefScriptHash = toScriptHash theRefScript
-         in [ testCase "on a public key output" $
-                testSucceedsFrom'
+         in [ testCase "on a public key output"
+                $ testSucceedsFrom'
                   def
                   ( \mScriptHash _ ->
                       testCounterexample "the script hash on the retrieved output is wrong" $
                         Just theRefScriptHash .==. mScriptHash
                   )
                   def
-                  $ putRefScriptOnWalletOutput (wallet 3) theRefScript
-                    >>= retrieveRefScriptHash,
-              testCase "on a script output" $
-                testSucceedsFrom'
+                $ putRefScriptOnWalletOutput (wallet 3) theRefScript
+                  >>= retrieveRefScriptHash,
+              testCase "on a script output"
+                $ testSucceedsFrom'
                   def
                   ( \mScriptHash _ ->
                       testCounterexample "the script hash on the retrieved output is wrong" $
                         Just theRefScriptHash .==. mScriptHash
                   )
                   def
-                  $ putRefScriptOnScriptOutput yesValidator theRefScript
-                    >>= retrieveRefScriptHash,
-              testCase "retreiving the complete script from its hash" $
-                testSucceedsFrom'
+                $ putRefScriptOnScriptOutput yesValidator theRefScript
+                  >>= retrieveRefScriptHash,
+              testCase "retreiving the complete script from its hash"
+                $ testSucceedsFrom'
                   def
                   ( \mOut _ -> case mOut of
                       Nothing -> testFailure
                       Just out -> Just (Pl.vValidatorScript theRefScript) .==. out ^. outputReferenceScriptL
                   )
                   def
-                  $ putRefScriptOnWalletOutput (wallet 3) theRefScript
-                    >>= fmap fromJust . txOutByRef
-                    >>= resolveReferenceScript
+                $ putRefScriptOnWalletOutput (wallet 3) theRefScript
+                  >>= fmap fromJust . txOutByRef
+                  >>= resolveReferenceScript
             ],
       testGroup
         "checking the presence of reference scripts on the TxInfo"
-        [ testCase "fail if wrong reference script" $
-            testFailsFrom'
+        [ testCase "fail if wrong reference script"
+            $ testFails
               def
               ( isCekEvaluationFailureWithMsg
                   def
                   (== "there is no reference input with the correct script hash")
               )
-              def
-              $ putRefScriptOnWalletOutput (wallet 3) noValidator
-                >>= checkReferenceScriptOnOref (toScriptHash yesValidator),
+            $ putRefScriptOnWalletOutput (wallet 3) noValidator
+              >>= checkReferenceScriptOnOref (toScriptHash yesValidator),
           testCase "succeed if correct reference script" $
             testSucceeds def $
               putRefScriptOnWalletOutput (wallet 3) yesValidator
@@ -243,8 +242,8 @@ tests =
         ],
       testGroup
         "using reference scripts"
-        [ testCase "fail from transaction generation for missing reference scripts" $
-            testFailsFrom'
+        [ testCase "fail from transaction generation for missing reference scripts"
+            $ testFailsFrom
               def
               ( \case
                   MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _ -> testSuccess
@@ -252,33 +251,33 @@ tests =
                   _ -> testFailure
               )
               def
-              $ do
-                (consumedOref, _) : _ <-
-                  runUtxoSearch $
-                    utxosAtSearch (walletAddress $ wallet 1)
-                      `filterWithPred` ((`Value.geq` Pl.lovelaceValueOf 42_000_000) . outputValue)
-                (oref, _) : _ <-
-                  utxosFromCardanoTx
-                    <$> validateTxSkel
-                      txSkelTemplate
-                        { txSkelOuts =
-                            [ paysScript
-                                yesValidator
-                                ()
-                                (Pl.lovelaceValueOf 42_000_000)
-                            ],
-                          txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
-                          txSkelSigners = [wallet 1]
-                        }
-                void $
-                  validateTxSkel
+            $ do
+              (consumedOref, _) : _ <-
+                runUtxoSearch $
+                  utxosAtSearch (walletAddress $ wallet 1)
+                    `filterWithPred` ((`Value.geq` Pl.lovelaceValueOf 42_000_000) . outputValue)
+              (oref, _) : _ <-
+                utxosFromCardanoTx
+                  <$> validateTxSkel
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript consumedOref ()),
+                      { txSkelOuts =
+                          [ paysScript
+                              yesValidator
+                              ()
+                              (Pl.lovelaceValueOf 42_000_000)
+                          ],
+                        txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
                         txSkelSigners = [wallet 1]
-                      },
+                      }
+              void $
+                validateTxSkel
+                  txSkelTemplate
+                    { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript consumedOref ()),
+                      txSkelSigners = [wallet 1]
+                    },
           testCase "fail from transaction generation for mismatching reference scripts" $
             let expectedError = GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
-             in testFailsFrom'
+             in testFailsFrom
                   def
                   ( \case
                       MCEGenerationError err -> err .==. expectedError
@@ -306,8 +305,8 @@ tests =
                           { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript scriptOref ()),
                             txSkelSigners = [wallet 1]
                           },
-          testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'" $
-            testFailsFrom'
+          testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'"
+            $ testFailsFrom
               def
               ( \case
                   MCEValidationError (Pl.Phase1, _) -> testSuccess
@@ -315,37 +314,37 @@ tests =
                   _ -> testFailure
               )
               def
-              $ do
-                scriptOref <- putRefScriptOnWalletOutput (wallet 3) yesValidator
-                (oref, _) : _ <-
-                  utxosFromCardanoTx
-                    <$> validateTxSkel
-                      txSkelTemplate
-                        { txSkelOuts =
-                            [ paysScript
-                                yesValidator
-                                ()
-                                (Pl.lovelaceValueOf 42_000_000)
-                            ],
-                          txSkelSigners = [wallet 1]
-                        }
-                void $
-                  validateTxSkel
+            $ do
+              scriptOref <- putRefScriptOnWalletOutput (wallet 3) yesValidator
+              (oref, _) : _ <-
+                utxosFromCardanoTx
+                  <$> validateTxSkel
                     txSkelTemplate
-                      { txSkelIns = Map.singleton oref (TxSkelRedeemerForScript ()),
-                        txSkelInsReference = Set.singleton scriptOref,
+                      { txSkelOuts =
+                          [ paysScript
+                              yesValidator
+                              ()
+                              (Pl.lovelaceValueOf 42_000_000)
+                          ],
                         txSkelSigners = [wallet 1]
-                      },
+                      }
+              void $
+                validateTxSkel
+                  txSkelTemplate
+                    { txSkelIns = Map.singleton oref (TxSkelRedeemerForScript ()),
+                      txSkelInsReference = Set.singleton scriptOref,
+                      txSkelSigners = [wallet 1]
+                    },
           testCase
             "fail if referenced script's requirement is violated"
-            $ testFailsFrom'
+            $ testFailsFrom
               (def {pcOptPrintTxHashes = True})
               ( isCekEvaluationFailureWithMsg
                   def
                   (== "the required signer is missing")
               )
               def
-              $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
+            $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
           testCase "succeed if referenced script's requirement is met" $
             testSucceeds def $
               useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1))

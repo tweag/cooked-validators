@@ -213,7 +213,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               (GenerateTxErrorGeneral "txSkelInToTxIn: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored")
               $ Map.lookup validatorOref managedTxOuts >>= (^. outputReferenceScriptL)
           when (scriptHashAtOref /= toScriptHash validatorHash) $
-            Left $ GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
+            Left $
+              GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
           validatorTxIn <-
             left
               (ToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits")
@@ -275,11 +276,11 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
     txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> Either GenerateTxError (C.TxInsCollateral C.BabbageEra)
     txOutRefsToTxSkelInsCollateral =
       left (ToCardanoError "txOutRefsToTxInCollateral")
-        . Pl.toCardanoTxInsCollateral
-        . (toPKTxInput <$>)
+        . fmap toTxInsCollateral
+        . mapM Pl.toCardanoTxIn
       where
-        toPKTxInput :: Pl.TxOutRef -> Pl.TxInput
-        toPKTxInput txOutRef = Pl.TxInput txOutRef Pl.TxConsumePublicKeyAddress
+        toTxInsCollateral [] = C.TxInsCollateralNone
+        toTxInsCollateral ins = C.TxInsCollateral C.CollateralInBabbageEra ins
 
     -- Convert the 'TxSkelMints' into a 'TxMintValue'
     txSkelMintsToTxMintValue :: TxSkelMints -> Either GenerateTxError (C.TxMintValue C.BuildTx C.BabbageEra)
@@ -297,8 +298,8 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
 
         witnessMap :: Either GenerateTxError (Map C.PolicyId (C.ScriptWitness C.WitCtxMint C.BabbageEra))
         witnessMap =
-          right mconcat $
-            mapM
+          right mconcat
+            $ mapM
               ( \(policy, redeemer, _tName, _amount) ->
                   Map.singleton
                     <$> left
@@ -306,7 +307,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
                       (Pl.toCardanoPolicyId (Pl.mintingPolicyHash policy))
                     <*> mkMintWitness policy redeemer
               )
-              $ txSkelMintsToList mints
+            $ txSkelMintsToList mints
 
         mkMintWitness ::
           Pl.Versioned Pl.MintingPolicy ->
@@ -384,9 +385,9 @@ generateTx genTxParams params datums txOuts validators skel = do
     txAddSignature :: C.Tx C.BabbageEra -> Wallet -> C.Tx C.BabbageEra
     txAddSignature tx wal = case Ledger.addCardanoTxSignature
       (walletSK wal)
-      (Ledger.CardanoApiTx $ Ledger.CardanoApiEmulatorEraTx tx) of
-      Ledger.CardanoApiTx (Ledger.CardanoApiEmulatorEraTx tx') -> tx'
+      (Ledger.CardanoTx tx C.BabbageEraInCardanoMode) of
+      Ledger.CardanoTx tx' C.BabbageEraInCardanoMode -> tx'
       -- Looking at the implementation of Ledger.addCardanoTxSignature:
       -- It never changes the constructor used, so the above branch
       -- will never happen
-      _ -> error "generateTx: expected CardanoApiTx"
+      _ -> error "generateTx: expected CardanoTx"
