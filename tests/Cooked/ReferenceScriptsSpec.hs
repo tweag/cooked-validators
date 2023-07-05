@@ -350,29 +350,3 @@ tests =
               useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1))
         ]
     ]
-
-foo :: MonadBlockChain m => m ()
-foo = do
-  (consumedOref, _) : _ <-
-    runUtxoSearch $
-      utxosAtSearch (walletAddress $ wallet 1)
-        `filterWithPred` ((`Value.geq` Pl.lovelaceValueOf 42_000_000) . outputValue)
-  (oref, _) : _ <-
-    utxosFromCardanoTx
-      <$> validateTxSkel
-        txSkelTemplate
-          { txSkelOuts =
-              [ paysScript
-                  yesValidator
-                  ()
-                  (Pl.lovelaceValueOf 42_000_000)
-              ],
-            txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
-            txSkelSigners = [wallet 1]
-          }
-  void $
-    validateTxSkel
-      txSkelTemplate
-        { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript consumedOref ()),
-          txSkelSigners = [wallet 1]
-        }
