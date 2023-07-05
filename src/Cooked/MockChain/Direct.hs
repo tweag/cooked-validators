@@ -5,6 +5,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
@@ -74,19 +75,22 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
         txSkelOutDatum <-
           case txOutDatum of
             Pl.NoOutputDatum -> Just TxSkelOutNoDatum
-            Pl.OutputDatum datum -> Map.lookup (Pl.datumHash datum) mcstDatums
-            Pl.OutputDatumHash hash -> Map.lookup hash mcstDatums
+            Pl.OutputDatum datum -> fst <$> Map.lookup (Pl.datumHash datum) mcstDatums
+            Pl.OutputDatumHash hash -> fst <$> Map.lookup hash mcstDatums
         return
           ( txOutAddress,
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
 -- | Slightly more concrete version of 'UtxoState', used to actually run the
--- simulation. We keep a map from datum hash to datum in order to display the
--- contents of the state to the user.
+-- simulation.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
-    mcstDatums :: Map Pl.DatumHash TxSkelOutDatum,
+    -- map from datum hash to (datum, count), where count is the number of
+    -- UTxOs that currently have the datum. This map is used  to display the
+    -- contents of the state to the user, and to recover datums for transaction
+    -- generation.
+    mcstDatums :: Map Pl.DatumHash (TxSkelOutDatum, Integer),
     mcstValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator),
     mcstCurrentSlot :: Ledger.Slot
   }
@@ -305,7 +309,7 @@ instance Monad m => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
-  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Map.lookup datumHash) <$> gets mcstDatums
+  datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
 instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
@@ -379,15 +383,18 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
     Right _ -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just
-      -- `newUtxoIndex`; the new mcstDatums is computed by removing the datum
-      -- hashes have been consumed and adding those that have been created in
-      -- the transaction.
+      -- `newUtxoIndex`; the new mcstDatums is computed by adding those that
+      -- have been created in the transaction and removing those that were
+      -- consumed (or reducing their count in the 'mcstDatums').
       modify'
         ( \st ->
             st
               { mcstIndex = newUtxoIndex,
-                mcstDatums = (mcstDatums st Map.\\ consumedData) `Map.union` producedData,
+                mcstDatums = (mcstDatums st `removeMcstDatums` consumedData) `addMcstDatums` producedData,
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
       return (Ledger.CardanoEmulatorEraTx cardanoTx)
+  where
+    addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
+    removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 0 then Nothing else Just (d, n - 1)

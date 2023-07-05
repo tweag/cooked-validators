@@ -31,6 +31,7 @@ module Cooked.MockChain.BlockChain
     outputDatumFromTxOutRef,
     datumFromTxOutRef,
     resolveDatum,
+    resolveTypedDatum,
     resolveValidator,
     resolveReferenceScript,
     getEnclosingSlot,
@@ -202,6 +203,29 @@ resolveDatum out =
           datum
           (out ^. outputReferenceScriptL)
     PV2.NoOutputDatum -> return Nothing
+
+-- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
+-- datum of the suitable type.
+resolveTypedDatum ::
+  ( IsAbstractOutput out,
+    ToOutputDatum (DatumType out),
+    MonadBlockChainBalancing m,
+    PV2.FromData a
+  ) =>
+  out ->
+  m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
+resolveTypedDatum out = do
+  mOut <- resolveDatum out
+  case mOut of
+    Nothing -> return Nothing
+    Just out' ->
+      return $
+        ConcreteOutput
+          <$> Just (out' ^. outputOwnerL)
+          <*> Just (out' ^. outputStakingCredentialL)
+          <*> Just (out' ^. outputValueL)
+          <*> (let PV2.Datum datum = out' ^. outputDatumL in PV2.fromBuiltinData datum)
+          <*> Just (out' ^. outputReferenceScriptL)
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if

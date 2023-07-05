@@ -33,6 +33,7 @@ module Cooked.Currencies
     quickValue,
     permanentTokenName,
     permanentAssetClass,
+    permanentValue,
     quickCurrencyPolicy,
     quickCurrencySymbol,
     permanentCurrencyPolicy,

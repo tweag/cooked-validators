@@ -22,6 +22,9 @@
   different combinations of foci of an optic on `TxSkel`
 - New `PrettyCooked` instances for common Plutus types
 - Tweaks on signers in the non-lens tweak API
+- A function `resolveTypedDatum` to recover typed data on UTxOs in
+  `MonadBlockChainBalancing`.
+- An `UtxoSearch` that starts from a list of `TxOutRef`s
 
 ### Removed
 
@@ -46,6 +49,12 @@
   2. Rename `Cooked.testFailsFrom'` into `Cooked.testFailsFrom`.
   3. (Bonus) simplify, knowing that ``Cooked.testFailsFrom o x def ==
      Cooked.testFails o x``
+
+### Fixes
+
+- Add forgotten export of `permanentValue`
+- In `MockChainT`: don't delete data on transaction inputs if there are still
+  UTxOs with that datum around. (See PR #354)
 
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
