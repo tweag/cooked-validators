@@ -25,6 +25,7 @@
 - A function `resolveTypedDatum` to recover typed data on UTxOs in
   `MonadBlockChainBalancing`.
 - An `UtxoSearch` that starts from a list of `TxOutRef`s
+- A transaction option to choose which UTxOs can be spent for balancing
 
 ### Removed
 
