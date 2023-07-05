@@ -227,7 +227,7 @@ resolveTypedDatum out = do
           <*> (case out' ^. outputDatumL of PV2.Datum datum -> PV2.fromBuiltinData datum)
           <*> Just (out' ^. outputReferenceScriptL)
 
--- | try to resolve the validator that owns an output: If the output is owned by
+-- | Try to resolve the validator that owns an output: If the output is owned by
 -- a public key, or if the validator's hash is not known (i.e. if
 -- 'validatorFromHash' returns @Nothing@) return @Nothing@.
 resolveValidator ::
