@@ -9,4 +9,5 @@ import Cooked.Tweak.Common as X hiding
   )
 import Cooked.Tweak.Labels as X
 import Cooked.Tweak.OutPermutations as X hiding (distinctPermutations)
+import Cooked.Tweak.Signers as X
 import Cooked.Tweak.TamperDatum as X
