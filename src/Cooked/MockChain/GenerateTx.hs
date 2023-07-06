@@ -214,7 +214,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               $ Map.lookup validatorOref managedTxOuts >>= (^. outputReferenceScriptL)
           when (scriptHashAtOref /= toScriptHash validatorHash) $
             Left $
-              GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
+              GenerateTxErrorGeneral "txSkelInToTxIn: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
           validatorTxIn <-
             left
               (ToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits")
