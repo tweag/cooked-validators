@@ -123,10 +123,18 @@ txSkelInputUtxos :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef 
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
 txSkelReferenceInputUtxosPV2 :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
-txSkelReferenceInputUtxosPV2 = lookupUtxosPV2 . Set.toList . txSkelInsReference
+txSkelReferenceInputUtxosPV2 skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
 
 txSkelReferenceInputUtxos :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
-txSkelReferenceInputUtxos = lookupUtxos . Set.toList . txSkelInsReference
+txSkelReferenceInputUtxos skel =
+  lookupUtxos $
+    mapMaybe
+      ( \case
+          TxSkelRedeemerForReferencedScript oref _ -> Just oref
+          _ -> Nothing
+      )
+      (Map.elems $ txSkelIns skel)
+      ++ (Set.toList . txSkelInsReference $ skel)
 
 -- | All validators which protect transaction inputs
 txSkelInputValidators :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.ValidatorHash (Pl.Versioned PV2.Validator))
@@ -165,7 +173,7 @@ lookupUtxos outRefs = do
             Nothing ->
               throwError $
                 MCEUnknownOutRefError
-                  "lookupUtxosPV2: unknown TxOutRef"
+                  "lookupUtxos: unknown TxOutRef"
                   oRef
             Just out -> return out
           return (oRef, out)
