@@ -19,7 +19,6 @@ source-repository-package
     plutus-chain-index-core
     plutus-contract
     plutus-ledger
-    plutus-pab
     plutus-script-utils
     plutus-tx-constraints
 
