@@ -20,8 +20,6 @@ dependencies:
   - either
   - flat
   - foldl
-  - freer-extras
-  - freer-simple
   - hashable
   - hedgehog-quickcheck
   - lens
