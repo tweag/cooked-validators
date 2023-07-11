@@ -86,7 +86,6 @@ library
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter
@@ -161,7 +160,6 @@ test-suite spec
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , prettyprinter

@@ -35,7 +35,6 @@ dependencies:
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api
-  - plutus-script-utils
   - plutus-tx
   - plutus-tx-plugin
   - prettyprinter
