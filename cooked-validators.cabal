@@ -82,6 +82,7 @@ library
     , optics-core
     , optics-th
     , optics-vl
+    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
@@ -157,6 +158,7 @@ test-suite spec
     , optics-th
     , optics-vl
     , parsec
+    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
