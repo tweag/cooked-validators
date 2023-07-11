@@ -33,7 +33,6 @@ dependencies:
   - optics-vl
   - plutus-contract
   - plutus-core
-  - plutus-ledger
   - plutus-ledger-api
   - plutus-pab
   - plutus-script-utils
