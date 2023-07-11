@@ -11,7 +11,6 @@ source-repository-package
   subdir:
     cardano-node-emulator
     cardano-streaming
-    freer-extras
     marconi-chain-index
     marconi-core
     pab-blockfrost
