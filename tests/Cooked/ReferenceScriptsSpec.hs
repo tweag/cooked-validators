@@ -276,7 +276,7 @@ tests =
                       txSkelSigners = [wallet 1]
                     },
           testCase "fail from transaction generation for mismatching reference scripts" $
-            let expectedError = GenerateTxErrorGeneral "txSkelInToTxIn: The hash of the reference script and the hash of the owner of the input mismatch. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
+            let expectedError = GenerateTxErrorGeneral "txSkelInToTxIn: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
              in testFailsFrom
                   def
                   ( \case
