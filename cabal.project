@@ -15,7 +15,6 @@ source-repository-package
     marconi-chain-index
     marconi-core
     pab-blockfrost
-    plutus-chain-index
     plutus-chain-index-core
     plutus-contract
     plutus-ledger
