@@ -71,8 +71,6 @@ library
     , either
     , flat
     , foldl
-    , freer-extras
-    , freer-simple
     , hashable
     , hedgehog-quickcheck
     , lens
@@ -88,7 +86,6 @@ library
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-pab
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
@@ -148,8 +145,6 @@ test-suite spec
     , either
     , flat
     , foldl
-    , freer-extras
-    , freer-simple
     , hashable
     , hedgehog-quickcheck
     , lens
@@ -166,7 +161,6 @@ test-suite spec
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
-    , plutus-pab
     , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin

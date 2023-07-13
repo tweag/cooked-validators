@@ -20,8 +20,6 @@ dependencies:
   - either
   - flat
   - foldl
-  - freer-extras
-  - freer-simple
   - hashable
   - hedgehog-quickcheck
   - lens
@@ -37,7 +35,6 @@ dependencies:
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api
-  - plutus-pab
   - plutus-script-utils
   - plutus-tx
   - plutus-tx-plugin
