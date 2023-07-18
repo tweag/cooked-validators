@@ -335,13 +335,3 @@ foo = do
                           (<> assetClassValue bazAssetClass 10) -- Add 10 baz tokens
                     )
 ```
-
-### Remove outputs
-
-```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    bar `withTweak` ( do
-                        removeOutputTweak (\Pays out) -> somePredicate out)
-                    )
-```
