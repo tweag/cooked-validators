@@ -140,7 +140,7 @@ foo txOutRef = do
     Just datum <- typedDatumFromTxOutRef @typeOfDatum txOutRef
 ```
 
-### Mint tokens
+### Mint or burn tokens
 
 ```haskell
 import qualified Plutus.Script.Utils.Scripts as Pl
@@ -148,6 +148,7 @@ import qualified Plutus.Script.Utils.Scripts as Pl
 
 * No redeemer: `(Pl.Versioned fooPolicy Pl.PlutusV2, NoMintsRedeemer, "fooName", 3)`
 * With redeemer: `(Pl.Versioned barPolicy Pl.PlutusV2, SomeMintsRedeemer typedRedeemer, "barName", 12)`
+* Burn tokens (negative amount): `(Pl.Versioned bazPolicy Pl.PlutusV2, ..., "bazName", -7)`
 
 ```haskell
 validateTxSkel $
