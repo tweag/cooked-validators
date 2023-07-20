@@ -8,8 +8,8 @@
     * `Tasty.testCase "foo" $ C.testSucceeds foo`
     * `Tasty.testCase "foo" $ C.testFails foo`
 * In the REPL
-    * `printCooked $ runMockChain foo` for `MonadBlockChain` traces
-    * `printCooked $ interpretAndRun foo` for `MonadModalBlockChain` traces
+    * `printCooked $ interpretAndRun foo` for all traces
+    * `printCooked $ runMockChain foo` for `MonadBlockChain` traces only
 
 ### Use a custom initial distribution of value
 
