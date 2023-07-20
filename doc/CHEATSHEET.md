@@ -40,7 +40,9 @@ foo = do
 ```haskell
 foo :: MonadBlockChain m => m ()
 foo = do
+    ...
     (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentTime
+    ...
 ```
 
 ### Wait for at least some amount of time
@@ -48,9 +50,11 @@ foo = do
 ```haskell
 foo :: MonadBlockChain m => m ()
 foo = do
+    ...
     (firstMsOfCurrentSlot, lastMsOfCurrentSlot) <- currentTime
     targetSlot <- getEnclosingSlot $ lastMsOfCurrentSlot + 3_600_000 -- 1 hour
     awaitSlot targetSlot
+    ...
 ```
 
 ### Submit a transaction
