@@ -8,7 +8,8 @@
     * `Tasty.testCase "foo" $ C.testSucceeds foo`
     * `Tasty.testCase "foo" $ C.testFails foo`
 * In the REPL
-    * `printCooked $ runMockChain foo`
+    * `printCooked $ runMockChain foo` for `MonadBlockChain` traces
+    * `printCooked $ interpretAndRun foo` for `MonadModalBlockChain` traces
 
 ### Use a custom initial distribution of value
 
@@ -100,7 +101,7 @@ validateTxSkel $
 * No redeemer: `(txOutRef, TxSkelNoRedeemerForPK)`
 * With redeemer:
     * Regular script: `(txOutRef, TxSkelRedeemerForScript typedRedeemer)`
-    * Reference script: `(txOutRef, TxSkelRedeemerForReferencedScript typedRedeemer)`
+    * Reference script: `(txOutRef, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer)`
 
 ```haskell
 validateTxSkel $
@@ -136,7 +137,7 @@ foo :: MonadBlockChain m => Pl.TxOutRef -> m ()
 foo txOutRef = do
     Just address <- outputAddress <$> txOutByRef txOutRef
     Just value <- valueFromTxOutRef txOutRef
-    Just datum <- typedDatumFromTxOutRef txOutRef
+    Just datum <- typedDatumFromTxOutRef @typeOfDatum txOutRef
 ```
 
 ### Mint tokens
@@ -223,8 +224,7 @@ validateTxSkel $
 validateTxSkel
   txSkelTemplate
     { ...
-      txSkelIns = Map.fromList [(scriptTxOutRefToSpend, TxSkelRedeemerForReferencedScript redeemer), ...],
-      txSkelInsReference = Set.fromList [txOutRefCarryingReferenceScript, ...],
+      txSkelIns = Map.fromList [(scriptTxOutRefToSpend, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
       ...
     }
 ```
@@ -306,7 +306,7 @@ foo :: MonadBlockChain m => m ()
 foo = do
     bar `withTweak` ( do
                         addOutputTweak $ paysScript bazValidator bazDatum bazValue
-                        removeOutputTweak (\Pays out) -> somePredicate out)
+                        removeOutputTweak (\(Pays out) -> somePredicate out)
                         addInputTweak somePkTxOutRef C.TxSkelNoRedeemerForPK
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
                     )

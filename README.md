@@ -98,7 +98,7 @@ Before using `cooked-validators`, you need
 The rendered Haddock for the current `main` branch can be found at
 [https://tweag.github.io/cooked-validators/](https://tweag.github.io/cooked-validators/).
 
-The [CHEATSHEET](doc/CHEATSHEET.md) is nice entry point and helper to keep on
+The [CHEATSHEET](doc/CHEATSHEET.md) is a nice entry point and helper to keep on
 sight. It contains many code snippets to quickly get an intuition of how to do
 things. Use it to discover or search for how to use features of
 `cooked-validators`.
