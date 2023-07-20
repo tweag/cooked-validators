@@ -239,6 +239,44 @@ validateTxSkel
     }
 ```
 
+## Balancing
+
+### Choose which wallet provides UTxOs to balance a transaction
+
+First signer:
+
+```haskell
+validateTxSkel $
+    txSkelTemplate
+        { ...
+          txSkelSigners = [wallet 1, wallet 2]
+          ...
+        }
+```
+
+Another signer:
+
+```haskell
+validateTxSkel $
+    txSkelTemplate
+        { ...
+          txSkelSigners = [wallet 1, wallet 2],
+          txOpts = def {txOptBalanceWallet = BalanceWith (wallet 2)}
+          ...
+        }
+```
+
+### Do not balance with UTxOs carrying a datum
+
+```haskell
+validateTxSkel $
+    txSkelTemplate
+        { ...
+          txOpts = def {txOptBalancingUtxos = BalancingUtxosDatumless}
+          ...
+        }
+```
+
 ## Search through UTxOs on the ledger
 
 ### Fetch all UTxOs on the ledger
