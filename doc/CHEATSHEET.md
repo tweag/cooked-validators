@@ -18,7 +18,7 @@ initDist :: InitialDistribution
 initDist = initialDistribution [(i, [lovelaceValueOf 25_000_000]) | i <- knownWallets]
 ```
 * In a test `Tasty.testCase "foo" $ testSucceedsFrom def initDist foo`
-* In the REPL `printCooked $ runMockChainFrom initDist foo`
+* In the REPL `printCooked $ interpretAndRunWith (runMockChainTFrom initDist) foo`
 
 ### Write a trace or endpoint
 
