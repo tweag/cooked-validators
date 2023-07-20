@@ -1,5 +1,10 @@
 # Cheatsheet
 
+* This cheastsheet is quick reminder, not a tutorial about `cooked-validators`.
+* Minimum prior knowledge (Cardano, general idea of what `cooked-validators` is about) is expected.
+* It reminds how to use or help discover `cooked-validators` features.
+* Code snippets are not usable as is, they give intuition and direction. Adapt them to your use case.
+
 ## Basics
 
 ### Run a trace
