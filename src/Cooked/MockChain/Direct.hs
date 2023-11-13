@@ -397,4 +397,4 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
       return (Ledger.CardanoEmulatorEraTx cardanoTx)
   where
     addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
-    removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 0 then Nothing else Just (d, n - 1)
+    removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)
