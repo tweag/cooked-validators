@@ -209,7 +209,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
-          prettyItemizeNonEmpty "Inputs:" "-" (mapMaybe (prettyTxSkelIn opts skelContext) $ Map.toList ins),
+          prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
           prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs)
         ]
@@ -290,32 +290,33 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
     "Datum (hashed):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
-prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> Maybe DocCooked
+prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
-  (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
-  let (redeemerDoc, ownerDoc) =
-        case txSkelRedeemer of
-          TxSkelRedeemerForScript redeemer ->
-            ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
-              prettyCookedOpt opts (outputAddress output)
+  case lookupOutput skelContext txOutRef of
+    Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
+    Just (output, txSkelOutDatum) ->
+      let (redeemerDoc, ownerDoc) =
+            case txSkelRedeemer of
+              TxSkelRedeemerForScript redeemer ->
+                ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
+                  prettyCookedOpt opts (outputAddress output)
+                )
+              TxSkelRedeemerForReferencedScript refScriptOref redeemer ->
+                ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
+                  prettyCookedOpt opts (outputAddress output)
+                    <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
+                )
+              TxSkelNoRedeemerForPK -> (Nothing, prettyCookedOpt opts (outputAddress output))
+       in prettyItemize
+            ("Spends from" <+> ownerDoc)
+            "-"
+            ( prettyCookedOpt opts (outputValue output)
+                : catMaybes
+                  [ redeemerDoc,
+                    prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+                    getReferenceScriptDoc opts output
+                  ]
             )
-          TxSkelRedeemerForReferencedScript refScriptOref redeemer ->
-            ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
-              prettyCookedOpt opts (outputAddress output)
-                <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
-            )
-          TxSkelNoRedeemerForPK -> (Nothing, prettyCookedOpt opts (outputAddress output))
-  return $
-    prettyItemize
-      ("Spends from" <+> ownerDoc)
-      "-"
-      ( prettyCookedOpt opts (outputValue output)
-          : catMaybes
-            [ redeemerDoc,
-              prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
-              getReferenceScriptDoc opts output
-            ]
-      )
 
 prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Pl.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do
