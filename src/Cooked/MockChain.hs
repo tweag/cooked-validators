@@ -7,10 +7,6 @@ import Cooked.MockChain.Staged as X hiding
   ( MockChainLog,
     MockChainLogEntry,
     StagedMockChain,
-    interpretAndRun,
-    interpretAndRunWith,
-    runTweak,
-    runTweakFrom,
   )
 import Cooked.MockChain.Testing as X
 import Cooked.MockChain.UtxoSearch as X
