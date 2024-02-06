@@ -42,9 +42,8 @@ module Cooked.Currencies
 where
 
 import qualified Ledger.Typed.Scripts as Scripts
-import qualified Plutus.Script.Utils.V1.Scripts as Validation
-import qualified Plutus.V1.Ledger.Scripts as V1
-import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.Script.Utils.V2.Scripts as Validation
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
 import qualified PlutusTx
 import qualified PlutusTx.Builtins.Class as Pl
@@ -72,7 +71,7 @@ mkQuickCurrencyPolicy _ _ = True
 
 quickCurrencyPolicy :: Scripts.MintingPolicy
 quickCurrencyPolicy =
-  V1.mkMintingPolicyScript
+  Pl.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
 quickCurrencySymbol :: Pl.CurrencySymbol
@@ -98,7 +97,7 @@ mkPermanentCurrencyPolicy _ _ = False
 
 permanentCurrencyPolicy :: Scripts.MintingPolicy
 permanentCurrencyPolicy =
-  V1.mkMintingPolicyScript
+  Pl.mkMintingPolicyScript
     $$(PlutusTx.compile [||Scripts.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
 
 permanentCurrencySymbol :: Pl.CurrencySymbol
