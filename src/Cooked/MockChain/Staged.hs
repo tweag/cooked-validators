@@ -20,6 +20,7 @@ module Cooked.MockChain.Staged
     runTweak,
     everywhere,
     withTweak,
+    there,
   )
 where
 
@@ -207,6 +208,13 @@ somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
 everywhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
 everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 
+-- | Apply a 'Tweak' to the nth transaction in a given trace, 0 indexed.
+-- Only successful when this transaction exists and can be modified.
+there :: MonadModalBlockChain m => Integer -> Tweak InterpMockChain b -> m a -> m a
+there n = modifyLtl . mkLtlFormula n
+  where
+    mkLtlFormula x = if (x == 0) then LtlAtom . UntypedTweak else LtlNext . mkLtlFormula (x - 1)
+
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
 -- enables an idiom like
@@ -219,7 +227,7 @@ everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
 -- given @arguments@. Then `withTweak` says "I want to modify the transaction
 -- returned by this endpoint in the following way".
 withTweak :: MonadModalBlockChain m => m x -> Tweak InterpMockChain a -> m x
-withTweak trace tweak = modifyLtl (LtlAtom $ UntypedTweak tweak) trace
+withTweak = flip (there 0)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
 
