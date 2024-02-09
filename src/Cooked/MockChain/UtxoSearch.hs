@@ -14,6 +14,9 @@ module Cooked.MockChain.UtxoSearch
     filterWithPure,
     filterWithOptic,
     filterWithPred,
+    filterWithValuePred,
+    filterWithOnlyAda,
+    filterWithNotOnlyAda,
   )
 where
 
@@ -23,6 +26,7 @@ import qualified Ledger.Tx as Ledger
 import ListT (ListT (..))
 import qualified ListT
 import Optics.Core
+import qualified Plutus.Script.Utils.Value as Pl2
 import qualified Plutus.V2.Ledger.Api as Pl2
 
 -- * The type of UTxO searches
@@ -91,3 +95,13 @@ filterWithOptic as optic = filterWithPure as (^? optic)
 
 filterWithPred :: Monad m => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
 filterWithPred as f = filterWithPure as $ \a -> if f a then Just a else Nothing
+
+filterWithValuePred :: Monad m => UtxoSearch m Pl2.TxOut -> (Pl2.Value -> Bool) -> UtxoSearch m Pl2.Value
+filterWithValuePred as p = filterWithPure as $
+  \txOut -> let val = Pl2.txOutValue txOut in if p val then Just val else Nothing
+
+filterWithOnlyAda :: Monad m => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
+filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Pl2.flattenValue
+
+filterWithNotOnlyAda :: Monad m => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
+filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Pl2.flattenValue
