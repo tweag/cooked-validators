@@ -201,19 +201,22 @@ type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
 somewhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
-somewhere x = modifyLtl (LtlTruth `LtlUntil` LtlAtom (UntypedTweak x))
+somewhere = modifyLtl . LtlUntil LtlTruth . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
 everywhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
-everywhere x = modifyLtl (LtlFalsity `LtlRelease` LtlAtom (UntypedTweak x))
+everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the nth transaction in a given trace, 0 indexed.
 -- Only successful when this transaction exists and can be modified.
 there :: MonadModalBlockChain m => Integer -> Tweak InterpMockChain b -> m a -> m a
 there n = modifyLtl . mkLtlFormula n
   where
-    mkLtlFormula x = if (x == 0) then LtlAtom . UntypedTweak else LtlNext . mkLtlFormula (x - 1)
+    mkLtlFormula x =
+      if x == 0
+        then LtlAtom . UntypedTweak
+        else LtlNext . mkLtlFormula (x - 1)
 
 -- | Apply a 'Tweak' to the next transaction in the given trace. The order of
 -- arguments is reversed compared to 'somewhere' and 'everywhere', because that
