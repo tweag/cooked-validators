@@ -2,7 +2,7 @@
 module Cooked.Tweak.ValidityRange where
 
 import Control.Monad (guard, void)
-import Cooked (awaitSlot, currentSlot)
+import Cooked.MockChain (awaitSlot, currentSlot)
 import Cooked.Skeleton (txSkelValidityRangeL)
 import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
 import Ledger.Slot (Slot (Slot), SlotRange)
