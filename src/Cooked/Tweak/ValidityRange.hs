@@ -5,9 +5,9 @@ import Control.Monad (guard, void)
 import Cooked.MockChain (awaitSlot, currentSlot)
 import Cooked.Skeleton (txSkelValidityRangeL)
 import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
+import Ledger (before, contains, intersection, interval, isEmpty, member, never, singleton)
 import Ledger.Slot (Slot (Slot), SlotRange)
-import Plutus.V1.Ledger.Interval (before, contains, intersection, interval, isEmpty, member, never, singleton)
-import Plutus.V2.Ledger.Api (Extended (Finite), LowerBound (LowerBound), always, ivFrom)
+import Plutus.V2.Ledger.Api (Extended (Finite), Interval (..), LowerBound (..), UpperBound (..), always)
 
 getValidityRangeTweak :: MonadTweak m => m SlotRange
 getValidityRangeTweak = viewTweak txSkelValidityRangeL
@@ -22,6 +22,14 @@ setValidityRangeTweak newRange = do
 -- | Ensures the skeleton makes for an unconstrained validity range
 setAlwaysValidRangeTweak :: MonadTweak m => m SlotRange
 setAlwaysValidRangeTweak = setValidityRangeTweak always
+
+-- | Sets the left bound of the validity range. Leaves the right bound unchanged
+setValidityStartTweak :: MonadTweak m => Slot -> m SlotRange
+setValidityStartTweak left = getValidityRangeTweak >>= setValidityRangeTweak . Interval (LowerBound (Finite left) True) . ivTo
+
+-- | Sets the right bound of the validity range. Leaves the left bound unchanged
+setValidityEndTweak :: MonadTweak m => Slot -> m SlotRange
+setValidityEndTweak right = getValidityRangeTweak >>= setValidityRangeTweak . flip Interval (UpperBound (Finite right) True) . ivFrom
 
 -- | Checks if the validity range satisfies a certain predicate
 validityRangeSatisfiesTweak :: MonadTweak m => (SlotRange -> Bool) -> m Bool
