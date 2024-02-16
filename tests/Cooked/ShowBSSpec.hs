@@ -80,7 +80,7 @@ tests =
                 "Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",123)])])"
               ),
               ( showBS @Pl.Value (quickValue "banana" 4),
-                "Value (fromList [(CurrencySymbol \"35a527970f2e1b64ed7cf429f1594ce8b5f0cf09e37473ab628082bd\",fromList [(TokenName \"62616e616e61\",4)])])"
+                "Value (fromList [(CurrencySymbol \"ce10165e35b6d1e09617cb0f8a2bf6e2fedc347ddd497c8d4b02741c\",fromList [(TokenName \"62616e616e61\",4)])])"
               ),
               ( showBS (Pl.mkConstr 0 [Pl.mkMap [(Pl.mkI 1, Pl.mkList [Pl.mkB "abc"])]]),
                 "BuiltinData (Constr 0 [Map [(I 1,List [B \"616263\"])]])"
