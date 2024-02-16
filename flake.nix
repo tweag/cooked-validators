@@ -74,6 +74,7 @@
             inherit LANG;
 
             shellHook = pre-commit.shellHook + ''
+              export PATH=$PATH:./scripts
               alias cabal-test='cabal --test-option=--color=always test all | grep -vE --color=never "^Writing:.*html$"'
             '';
           };
