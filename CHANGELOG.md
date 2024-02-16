@@ -58,6 +58,7 @@
 - Add forgotten export of `permanentValue`
 - In `MockChainT`: don't delete data on transaction inputs if there are still
   UTxOs with that datum around. (See PR #354)
+- Prettyprint unresolved transaction inputs
 
 ## [[2.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v2.0.0) - 2023-02-28
 
