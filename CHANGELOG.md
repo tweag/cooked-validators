@@ -30,6 +30,7 @@
 - [Cheatsheet](doc/CHEATSHEET.md)
 - API now exposes: `Cooked.Tweak.ValidityRange`, `interpretAndRun`, 
   `interpretAndRunWith`, `runTweak`, `runTweakFrom` and `datumHijackingTarget`
+- `there` modifier to apply a tweak at a precise place in a trace
 
 ### Removed
 
