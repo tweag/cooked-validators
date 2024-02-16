@@ -28,6 +28,8 @@
 - A transaction option to choose which UTxOs can be spent for balancing
 - Lenses for the fields of `TxOpts`
 - [Cheatsheet](doc/CHEATSHEET.md)
+- API now exposes: `Cooked.Tweak.ValidityRange`, `interpretAndRun`, 
+  `interpretAndRunWith`, `runTweak`, `runTweakFrom` and `datumHijackingTarget`
 
 ### Removed
 
