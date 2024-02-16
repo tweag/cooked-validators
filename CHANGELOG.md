@@ -31,6 +31,10 @@
 - API now exposes: `Cooked.Tweak.ValidityRange`, `interpretAndRun`, 
   `interpretAndRunWith`, `runTweak`, `runTweakFrom` and `datumHijackingTarget`
 - `there` modifier to apply a tweak at a precise place in a trace
+- New tweaks to change the start or end of the transaction validity range:
+  `setValidityStartTweak` and `setValidityEndTweak`
+- UTxo searches with predicates over values, including only ada, or not only ada:
+  `filterWithValuePred`, `filterWithOnlyAda` and `filterWithNotOnlyAda`
 
 ### Removed
 
