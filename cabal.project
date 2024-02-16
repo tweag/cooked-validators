@@ -1,6 +1,10 @@
 packages:
   .
 
+package cooked-validators
+  coverage: True
+  library-coverage: True
+  
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
@@ -23,7 +27,6 @@ source-repository-package
     plutus-tx-constraints
 
 -- Everything below this point has been copied from plutus-apps' cabal.project
-
 
 -- Custom repository for cardano haskell packages
 -- See https://github.com/input-output-hk/cardano-haskell-packages on how to use CHaP in a Haskell project.
