@@ -69,9 +69,13 @@
             ## one pinned by HLS.
             buildInputs = buildInputs ++ (with pkgs; [ ormolu hpack hlint ])
               ++ (with hpkgs; [ haskell-language-server ]);
-            inherit (pre-commit) shellHook;
+
             inherit LD_LIBRARY_PATH;
             inherit LANG;
+
+            shellHook = pre-commit.shellHook + ''
+              alias cabal-test='cabal --test-option=--color=always test all | grep -vE --color=never "^Writing:.*html$"'
+            '';
           };
         };
 
