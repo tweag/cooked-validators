@@ -73,9 +73,18 @@
             inherit LD_LIBRARY_PATH;
             inherit LANG;
 
+            # In addition to the pre-commit hooks, this redefines a cabal
+            # command that gets rid of annoying "Writing: .....*.html" output
+            # when running cabal test.
             shellHook = pre-commit.shellHook + ''
-              export PATH=$PATH:./scripts
-              alias cabal-test='cabal --test-option=--color=always test all | grep -vE --color=never "^Writing:.*html$"'
+              function cabal() {
+                    if [ "$1" != "test" ]; then
+                      command cabal $@
+                    else
+                      command cabal --test-option=--color=always $@ | grep -vE --color=never "^Writing:.*html$"
+                    fi
+              }
+              export -f cabal
             '';
           };
         };

@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-
-
-cabal --test-option=--color=always test all | grep -vE --color=never "^Writing:.*html$"
