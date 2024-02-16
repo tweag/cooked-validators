@@ -54,6 +54,7 @@
   2. Rename `Cooked.testFailsFrom'` into `Cooked.testFailsFrom`.
   3. (Bonus) simplify, knowing that ``Cooked.testFailsFrom o x def ==
      Cooked.testFails o x``
+- Quick and permanent value minting policies have been migrated to PlutusV2.
 
 ### Fixes
 
