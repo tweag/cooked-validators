@@ -23,14 +23,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v26
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -52,14 +52,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v26
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
@@ -84,14 +84,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v26
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -99,7 +99,7 @@ jobs:
       ## Example from
       ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
       - name: Accessing the Cabal cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cabal/packages
@@ -157,7 +157,7 @@ jobs:
           '
 
       - name: Upload build and test outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cooked-validators-checks
           path: |
@@ -172,7 +172,7 @@ jobs:
 
     steps:
       - name: Access build and test outputs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: cooked-validators-checks
 
@@ -211,14 +211,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v26
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         with:
           name: tweag-cooked-validators
           ## No auth token: read only cache.
@@ -226,7 +226,7 @@ jobs:
       ## Example from
       ## https://github.com/actions/cache/blob/ac25611caef967612169ab7e95533cf932c32270/examples.md#haskell---cabal
       - name: Accessing the Cabal cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cabal/packages
@@ -254,7 +254,7 @@ jobs:
           '
 
       - name: Upload documentation as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: ./docs
@@ -277,14 +277,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v26
         with:
           extra_nix_config: |
             ## Access token to avoid triggering GitHub's rate limiting.
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Nix caches
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         with:
           name: tweag-cooked-validators
           ## This auth token will give write access to the cache, meaning that
