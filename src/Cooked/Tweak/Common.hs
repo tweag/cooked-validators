@@ -48,7 +48,7 @@ class (MonadPlus m, MonadBlockChainWithoutValidation m) => MonadTweak m where
 
 type Tweak m = StateT TxSkel (ListT m)
 
-instance MonadBlockChainWithoutValidation m => MonadTweak (Tweak m) where
+instance (MonadBlockChainWithoutValidation m) => MonadTweak (Tweak m) where
   getTxSkel = get
   putTxSkel = put
 
@@ -82,7 +82,7 @@ runTweakInChain tweak skel = ListT.alternate $ runStateT tweak skel
 -- If you're trying to apply a tweak to a transaction directly before it's
 -- modified, consider using 'MonadModalBlockChain' and idioms like 'withTweak',
 -- 'somewhere', or 'everywhere'.
-runTweakInChain' :: MonadBlockChainWithoutValidation m => Tweak m a -> TxSkel -> m [(a, TxSkel)]
+runTweakInChain' :: (MonadBlockChainWithoutValidation m) => Tweak m a -> TxSkel -> m [(a, TxSkel)]
 runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
 
 -- | This is a wrapper type used in the implementation of the Staged monad. You
@@ -90,21 +90,21 @@ runTweakInChain' tweak skel = ListT.toList $ runStateT tweak skel
 data UntypedTweak m where
   UntypedTweak :: Tweak m a -> UntypedTweak m
 
-instance Monad m => Semigroup (UntypedTweak m) where
+instance (Monad m) => Semigroup (UntypedTweak m) where
   -- The right tweak is applied first
   UntypedTweak f <> UntypedTweak g = UntypedTweak $ g >> f
 
-instance Monad m => Monoid (UntypedTweak m) where
+instance (Monad m) => Monoid (UntypedTweak m) where
   mempty = UntypedTweak $ return ()
 
 -- * A few fundamental tweaks
 
 -- | The never-applicable tweak.
-failingTweak :: MonadTweak m => m a
+failingTweak :: (MonadTweak m) => m a
 failingTweak = mzero
 
 -- | The tweak that always applies and leaves the transaction unchanged.
-doNothingTweak :: MonadTweak m => m ()
+doNothingTweak :: (MonadTweak m) => m ()
 doNothingTweak = return ()
 
 -- * Constructing Tweaks from Optics

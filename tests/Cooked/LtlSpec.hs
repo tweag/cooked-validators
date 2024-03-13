@@ -24,7 +24,7 @@ instance {-# OVERLAPS #-} Semigroup TestModification where
 instance {-# OVERLAPS #-} Monoid TestModification where
   mempty = id
 
-instance MonadPlus m => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
+instance (MonadPlus m) => InterpLtl TestModification TestBuiltin (WriterT [Integer] m) where
   interpBuiltin GetInteger = return 42
   interpBuiltin (EmitInteger i) =
     get
@@ -55,10 +55,10 @@ my opinion.
 
 -}
 
-somewhere :: MonadModal m => Modification m -> m a -> m a
+somewhere :: (MonadModal m) => Modification m -> m a -> m a
 somewhere x = modifyLtl $ LtlTruth `LtlUntil` LtlAtom x
 
-everywhere :: MonadModal m => Modification m -> m a -> m a
+everywhere :: (MonadModal m) => Modification m -> m a -> m a
 everywhere x = modifyLtl $ LtlFalsity `LtlRelease` LtlAtom x
 
 emitInteger :: Integer -> Staged (LtlOp TestModification TestBuiltin) ()

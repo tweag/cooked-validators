@@ -92,7 +92,7 @@ requireRefScriptValidator =
     wrap = Pl.mkUntypedValidator
 
 putRefScriptOnWalletOutput ::
-  MonadBlockChain m =>
+  (MonadBlockChain m) =>
   Wallet ->
   Pl.TypedValidator MockContract ->
   m Pl.TxOutRef
@@ -111,7 +111,7 @@ putRefScriptOnWalletOutput recipient referencedScript =
         }
 
 putRefScriptOnScriptOutput ::
-  MonadBlockChain m =>
+  (MonadBlockChain m) =>
   Pl.TypedValidator MockContract ->
   Pl.TypedValidator MockContract ->
   m Pl.TxOutRef
@@ -130,7 +130,7 @@ putRefScriptOnScriptOutput recipient referencedScript =
           txSkelSigners = [wallet 1]
         }
 
-retrieveRefScriptHash :: MonadBlockChain m => Pl.TxOutRef -> m (Maybe Pl.ScriptHash)
+retrieveRefScriptHash :: (MonadBlockChain m) => Pl.TxOutRef -> m (Maybe Pl.ScriptHash)
 retrieveRefScriptHash oref = do
   mOut <- txOutByRef oref
   case mOut of
@@ -138,7 +138,7 @@ retrieveRefScriptHash oref = do
     Just out -> return $ out ^. outputReferenceScriptL
 
 checkReferenceScriptOnOref ::
-  MonadBlockChain m =>
+  (MonadBlockChain m) =>
   Pl.ScriptHash ->
   Pl.TxOutRef ->
   m ()
@@ -163,7 +163,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
           txSkelSigners = [wallet 1]
         }
 
-useReferenceScript :: MonadBlockChain m => Wallet -> Pl.TypedValidator MockContract -> m ()
+useReferenceScript :: (MonadBlockChain m) => Wallet -> Pl.TypedValidator MockContract -> m ()
 useReferenceScript spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
   (oref, _) : _ <-

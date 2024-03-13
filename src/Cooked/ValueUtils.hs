@@ -47,5 +47,5 @@ adaL =
           value
     )
   where
-    insertAssocList :: Eq a => [(a, b)] -> a -> b -> [(a, b)]
+    insertAssocList :: (Eq a) => [(a, b)] -> a -> b -> [(a, b)]
     insertAssocList l a b = (a, b) : filter ((/= a) . fst) l

@@ -19,7 +19,7 @@ import Test.Tasty.HUnit
 heavyDatum :: [Integer]
 heavyDatum = take 100 [0 ..]
 
-paymentWithMinAda :: MonadBlockChain m => m Integer
+paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do
   Pl.getLovelace . (^. adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
     <$> validateTxSkel
@@ -34,7 +34,7 @@ paymentWithMinAda = do
           txSkelSigners = [wallet 1]
         }
 
-paymentWithoutMinAda :: MonadBlockChain m => Integer -> m ()
+paymentWithoutMinAda :: (MonadBlockChain m) => Integer -> m ()
 paymentWithoutMinAda paidLovelaces = do
   void $
     validateTxSkel

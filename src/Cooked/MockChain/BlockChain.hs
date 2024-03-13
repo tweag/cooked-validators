@@ -122,7 +122,7 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Returns an output given a reference to it
   txOutByRefLedger :: PV2.TxOutRef -> m (Maybe Ledger.TxOut)
 
-class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
+class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
   allUtxosLedger :: m [(PV2.TxOutRef, Ledger.TxOut)]
 
@@ -137,7 +137,7 @@ class MonadBlockChainBalancing m => MonadBlockChainWithoutValidation m where
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
 -- | The main abstraction of the blockchain.
-class MonadBlockChainWithoutValidation m => MonadBlockChain m where
+class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- | Generates, balances and validates a transaction from a skeleton.
   -- It returns the validated transaction and updates the state of the
   -- blockchain. In 'MockChainT', this means:
@@ -148,13 +148,13 @@ class MonadBlockChainWithoutValidation m => MonadBlockChain m where
   -- - adds the validators on outputs to the 'mcstValidators'.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
-allUtxos :: MonadBlockChainWithoutValidation m => m [(PV2.TxOutRef, PV2.TxOut)]
+allUtxos :: (MonadBlockChainWithoutValidation m) => m [(PV2.TxOutRef, PV2.TxOut)]
 allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
 
-utxosAt :: MonadBlockChainBalancing m => PV2.Address -> m [(PV2.TxOutRef, PV2.TxOut)]
+utxosAt :: (MonadBlockChainBalancing m) => PV2.Address -> m [(PV2.TxOutRef, PV2.TxOut)]
 utxosAt address = fmap (second txOutV2FromLedger) <$> utxosAtLedger address
 
-txOutByRef :: MonadBlockChainBalancing m => PV2.TxOutRef -> m (Maybe PV2.TxOut)
+txOutByRef :: (MonadBlockChainBalancing m) => PV2.TxOutRef -> m (Maybe PV2.TxOut)
 txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
@@ -279,14 +279,14 @@ resolveReferenceScript out =
               (out ^. outputDatumL)
               (Just val)
 
-outputDatumFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.OutputDatum)
+outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => PV2.TxOutRef -> m (Maybe PV2.OutputDatum)
 outputDatumFromTxOutRef oref = do
   mOut <- txOutByRef oref
   case mOut of
     Nothing -> return Nothing
     Just out -> return . Just $ outputOutputDatum out
 
-datumFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.Datum)
+datumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => PV2.TxOutRef -> m (Maybe PV2.Datum)
 datumFromTxOutRef oref = do
   mOutputDatum <- outputDatumFromTxOutRef oref
   case mOutputDatum of
@@ -306,7 +306,7 @@ typedDatumFromTxOutRef oref = do
     Nothing -> return Nothing
     Just (PV2.Datum datum) -> return $ PV2.fromBuiltinData datum
 
-valueFromTxOutRef :: MonadBlockChainWithoutValidation m => PV2.TxOutRef -> m (Maybe PV2.Value)
+valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => PV2.TxOutRef -> m (Maybe PV2.Value)
 valueFromTxOutRef oref = do
   mOut <- txOutByRef oref
   case mOut of
@@ -373,7 +373,7 @@ awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- | The infinite range of slots ending before or at the given POSIX time
-slotRangeBefore :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
@@ -386,7 +386,7 @@ slotRangeBefore t = do
     else return $ PV2.to (n - 1)
 
 -- | The infinite range of slots starting after or at the given POSIX time
-slotRangeAfter :: MonadBlockChainWithoutValidation m => PV2.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter :: (MonadBlockChainWithoutValidation m) => PV2.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToTimeInterval n
@@ -435,17 +435,17 @@ deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChainWithoutV
 
 deriving via (AsTrans (WriterT w) m) instance (Monoid w, MonadBlockChain m) => MonadBlockChain (WriterT w m)
 
-deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ReaderT r m)
 
-deriving via (AsTrans (ReaderT r) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ReaderT r m)
 
-deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
+deriving via (AsTrans (ReaderT r) m) instance (MonadBlockChain m) => MonadBlockChain (ReaderT r m)
 
-deriving via (AsTrans (StateT s) m) instance MonadBlockChainBalancing m => MonadBlockChainBalancing (StateT s m)
+deriving via (AsTrans (StateT s) m) instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (StateT s m)
 
-deriving via (AsTrans (StateT s) m) instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (StateT s m)
+deriving via (AsTrans (StateT s) m) instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (StateT s m)
 
-deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChain (StateT s m)
+deriving via (AsTrans (StateT s) m) instance (MonadBlockChain m) => MonadBlockChain (StateT s m)
 
 -- 'ListT' has no 'MonadTransControl' instance, so the @deriving via ...@
 -- machinery is unusable here. However, there is
@@ -456,17 +456,17 @@ deriving via (AsTrans (StateT s) m) instance MonadBlockChain m => MonadBlockChai
 -- 'MonadBlockChainWithoutValidation' and 'MonadBlockChain' instances for
 -- 'ListT', instead of more black magic...
 
-instance MonadBlockChainBalancing m => MonadBlockChainBalancing (ListT m) where
+instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) where
   getParams = lift getParams
   validatorFromHash = lift . validatorFromHash
   utxosAtLedger = lift . utxosAtLedger
   txOutByRefLedger = lift . txOutByRefLedger
   datumFromHash = lift . datumFromHash
 
-instance MonadBlockChainWithoutValidation m => MonadBlockChainWithoutValidation (ListT m) where
+instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
 
-instance MonadBlockChain m => MonadBlockChain (ListT m) where
+instance (MonadBlockChain m) => MonadBlockChain (ListT m) where
   validateTxSkel = lift . validateTxSkel

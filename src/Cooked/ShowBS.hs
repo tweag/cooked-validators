@@ -37,7 +37,7 @@ class ShowBS a where
 
 -- | analogue of 'shows'
 {-# INLINEABLE showBSs #-}
-showBSs :: ShowBS a => a -> BuiltinString -> BuiltinString
+showBSs :: (ShowBS a) => a -> BuiltinString -> BuiltinString
 showBSs = showBSsPrec 0
 
 -- | Precedence of function applications
@@ -62,7 +62,7 @@ showBSParen True s = literal "(" . s . literal ")"
 
 -- | print an application of a constructor to an argument
 {-# INLINEABLE application1 #-}
-application1 :: ShowBS a => Integer -> BuiltinString -> a -> BuiltinString -> BuiltinString
+application1 :: (ShowBS a) => Integer -> BuiltinString -> a -> BuiltinString -> BuiltinString
 application1 prec f x = showBSParen (app_prec <= prec) $ literal f . literal " " . showBSsPrec app_prec x
 
 -- | like 'application1' with two arguments
@@ -134,7 +134,7 @@ digitToBS x
   | x == 9 = "9"
   | otherwise = "?"
 
-instance ShowBS a => ShowBS [a] where
+instance (ShowBS a) => ShowBS [a] where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec _ = catList "[" "," "]" showBSs
 
@@ -155,7 +155,7 @@ instance ShowBS Bool where
   showBSsPrec _ True = literal "True"
   showBSsPrec _ False = literal "False"
 
-instance ShowBS a => ShowBS (Maybe a) where
+instance (ShowBS a) => ShowBS (Maybe a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec _ Nothing = literal "Nothing"
   showBSsPrec p (Just x) = application1 p "Just" x
@@ -299,21 +299,21 @@ instance ShowBS POSIXTime where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (POSIXTime t) = application1 p "POSIXTime" t
 
-instance ShowBS a => ShowBS (Extended a) where
+instance (ShowBS a) => ShowBS (Extended a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec _ NegInf = literal "NegInf"
   showBSsPrec _ PosInf = literal "PosInf"
   showBSsPrec p (Finite x) = application1 p "Finite" x
 
-instance ShowBS a => ShowBS (LowerBound a) where
+instance (ShowBS a) => ShowBS (LowerBound a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (LowerBound x closure) = application2 p "LowerBound" x closure
 
-instance ShowBS a => ShowBS (UpperBound a) where
+instance (ShowBS a) => ShowBS (UpperBound a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (UpperBound x closure) = application2 p "UpperBound" x closure
 
-instance ShowBS a => ShowBS (Interval a) where
+instance (ShowBS a) => ShowBS (Interval a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (Interval lb ub) = application2 p "Interval" lb ub
 

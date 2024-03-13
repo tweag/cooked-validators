@@ -36,38 +36,38 @@ import qualified Plutus.V2.Ledger.Api as Pl2
 type UtxoSearch m a = ListT m (Pl2.TxOutRef, a)
 
 -- | Given a UTxO search, we can run it to obtain a list of UTxOs.
-runUtxoSearch :: Monad m => UtxoSearch m a -> m [(Pl2.TxOutRef, a)]
+runUtxoSearch :: (Monad m) => UtxoSearch m a -> m [(Pl2.TxOutRef, a)]
 runUtxoSearch = ListT.toList
 
 -- | Search all currently known 'TxOutRef's together with their corresponding
 -- 'TxInfo'-'TxOut'.
-allUtxosSearch :: MonadBlockChain m => UtxoSearch m Pl2.TxOut
+allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m Pl2.TxOut
 allUtxosSearch = allUtxos >>= ListT.fromFoldable
 
 -- | Like 'allUtxosSearch', but returns a Ledger-level representation of the
 -- transaction outputs, which might contain more information.
-allUtxosLedgerSearch :: MonadBlockChain m => UtxoSearch m Ledger.TxOut
+allUtxosLedgerSearch :: (MonadBlockChain m) => UtxoSearch m Ledger.TxOut
 allUtxosLedgerSearch = allUtxosLedger >>= ListT.fromFoldable
 
 -- | Search all 'TxOutRef's at a certain address, together with their
 -- 'TxInfo'-'TxOut'.
-utxosAtSearch :: MonadBlockChainBalancing m => Pl2.Address -> UtxoSearch m Pl2.TxOut
+utxosAtSearch :: (MonadBlockChainBalancing m) => Pl2.Address -> UtxoSearch m Pl2.TxOut
 utxosAtSearch = utxosAt >=> ListT.fromFoldable
 
 -- | Like 'utxosAtSearch', but returns a Ledger-level representation of the
 -- transaction outputs, which might contain more information.
-utxosAtLedgerSearch :: MonadBlockChainBalancing m => Pl2.Address -> UtxoSearch m Ledger.TxOut
+utxosAtLedgerSearch :: (MonadBlockChainBalancing m) => Pl2.Address -> UtxoSearch m Ledger.TxOut
 utxosAtLedgerSearch = utxosAtLedger >=> ListT.fromFoldable
 
 -- | Search all 'TxOutRef's of a transaction, together with their
 -- 'TxInfo'-'TxOut'.
-utxosFromCardanoTxSearch :: Monad m => Ledger.CardanoTx -> UtxoSearch m Pl2.TxOut
+utxosFromCardanoTxSearch :: (Monad m) => Ledger.CardanoTx -> UtxoSearch m Pl2.TxOut
 utxosFromCardanoTxSearch = ListT.fromFoldable . utxosFromCardanoTx
 
 -- | Search all 'TxInfo'-'TxOut's corresponding to given the list of
 -- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known output will be
 -- filtered out.
-txOutByRefSearch :: MonadBlockChainBalancing m => [Pl2.TxOutRef] -> UtxoSearch m Pl2.TxOut
+txOutByRefSearch :: (MonadBlockChainBalancing m) => [Pl2.TxOutRef] -> UtxoSearch m Pl2.TxOut
 txOutByRefSearch orefs =
   ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
     `filterWith` txOutByRef
@@ -76,7 +76,7 @@ txOutByRefSearch orefs =
 
 -- | Transform a 'UtxoSearch' by applying a possibly failing monadic "lookup"
 -- on every output.
-filterWith :: Monad m => UtxoSearch m a -> (a -> m (Maybe b)) -> UtxoSearch m b
+filterWith :: (Monad m) => UtxoSearch m a -> (a -> m (Maybe b)) -> UtxoSearch m b
 filterWith (ListT as) f =
   ListT $
     as >>= \case
@@ -87,21 +87,21 @@ filterWith (ListT as) f =
               Nothing -> bs
               Just b -> return $ Just ((oref, b), filteredRest)
 
-filterWithPure :: Monad m => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m b
+filterWithPure :: (Monad m) => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m b
 filterWithPure as f = filterWith as (return . f)
 
 filterWithOptic :: (Is k An_AffineFold, Monad m) => UtxoSearch m a -> Optic' k is a b -> UtxoSearch m b
 filterWithOptic as optic = filterWithPure as (^? optic)
 
-filterWithPred :: Monad m => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
+filterWithPred :: (Monad m) => UtxoSearch m a -> (a -> Bool) -> UtxoSearch m a
 filterWithPred as f = filterWithPure as $ \a -> if f a then Just a else Nothing
 
-filterWithValuePred :: Monad m => UtxoSearch m Pl2.TxOut -> (Pl2.Value -> Bool) -> UtxoSearch m Pl2.Value
+filterWithValuePred :: (Monad m) => UtxoSearch m Pl2.TxOut -> (Pl2.Value -> Bool) -> UtxoSearch m Pl2.Value
 filterWithValuePred as p = filterWithPure as $
   \txOut -> let val = Pl2.txOutValue txOut in if p val then Just val else Nothing
 
-filterWithOnlyAda :: Monad m => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
+filterWithOnlyAda :: (Monad m) => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
 filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Pl2.flattenValue
 
-filterWithNotOnlyAda :: Monad m => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
+filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Pl2.TxOut -> UtxoSearch m Pl2.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Pl2.flattenValue

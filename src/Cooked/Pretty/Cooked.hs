@@ -145,14 +145,14 @@ instance PrettyCooked MockChainError where
       "-"
       [PP.viaShow err]
 
-instance Show a => PrettyCooked (a, UtxoState) where
+instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =
     prettyItemize
       "End state:"
       "-"
       ["Returns:" <+> PP.viaShow res, prettyCookedOpt opts state]
 
-instance Show a => PrettyCooked (Either MockChainError (a, UtxoState)) where
+instance (Show a) => PrettyCooked (Either MockChainError (a, UtxoState)) where
   prettyCookedOpt opts (Left err) = "🔴" <+> prettyCookedOpt opts err
   prettyCookedOpt opts (Right endState) = "🟢" <+> prettyCookedOpt opts endState
 
@@ -380,7 +380,7 @@ mPrettyTxOpts
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification
         ]
     where
-      prettyIfNot :: Eq a => a -> (a -> DocCooked) -> a -> Maybe DocCooked
+      prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
       prettyIfNot defaultValue f x
         | x == defaultValue && not (pcOptPrintDefaultTxOpts opts) = Nothing
         | otherwise = Just $ f x

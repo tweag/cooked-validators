@@ -42,7 +42,7 @@ import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
 import qualified PlutusTx.Numeric as Pl
 
-balancedTxSkel :: MonadBlockChainBalancing m => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
+balancedTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
 balancedTxSkel skelUnbal = do
   let balancingWallet =
         case txOptBalanceWallet . txSkelOpts $ skelUnbal of
@@ -63,7 +63,7 @@ balancedTxSkel skelUnbal = do
 
 -- | Take the output of 'balancedTxSkel' and turn it into an actual Cardano
 -- transaction.
-balancedTx :: MonadBlockChainBalancing m => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
+balancedTx :: (MonadBlockChainBalancing m) => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
 balancedTx (skel, fee, collateralInputs) = do
   params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
   consumedData <- txSkelInputData skel
@@ -89,7 +89,7 @@ balancedTx (skel, fee, collateralInputs) = do
 -- | Ensure that the transaction outputs have the necessary minimum amount of
 -- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
 -- @True@.
-ensureTxSkelOutsMinAda :: MonadBlockChainBalancing m => TxSkel -> m TxSkel
+ensureTxSkelOutsMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
 ensureTxSkelOutsMinAda skel = do
   theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
   case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
@@ -116,16 +116,16 @@ ensureTxSkelOutsMinAda skel = do
         then ensureTxSkelOutHasMinAda theParams updatedTxSkelOut
         else return txSkelOut
 
-txSkelInputUtxosPV2 :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
+txSkelInputUtxosPV2 :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
 txSkelInputUtxosPV2 = lookupUtxosPV2 . Map.keys . txSkelIns
 
-txSkelInputUtxos :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
-txSkelReferenceInputUtxosPV2 :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
+txSkelReferenceInputUtxosPV2 :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
 txSkelReferenceInputUtxosPV2 skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
 
-txSkelReferenceInputUtxos :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos skel =
   lookupUtxos $
     mapMaybe
@@ -137,7 +137,7 @@ txSkelReferenceInputUtxos skel =
       ++ (Set.toList . txSkelInsReference $ skel)
 
 -- | All validators which protect transaction inputs
-txSkelInputValidators :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.ValidatorHash (Pl.Versioned PV2.Validator))
+txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.ValidatorHash (Pl.Versioned PV2.Validator))
 txSkelInputValidators skel = do
   utxos <- Map.toList <$> lookupUtxosPV2 (Map.keys . txSkelIns $ skel)
   mValidators <-
@@ -160,10 +160,10 @@ txSkelInputValidators skel = do
 -- Go through all of the 'PV2.TxOutRef's in the list and look them up in the
 -- state of the blockchain. If any 'PV2.TxOutRef' can't be resolved, throw an
 -- error.
-lookupUtxosPV2 :: MonadBlockChainBalancing m => [PV2.TxOutRef] -> m (Map PV2.TxOutRef PV2.TxOut)
+lookupUtxosPV2 :: (MonadBlockChainBalancing m) => [PV2.TxOutRef] -> m (Map PV2.TxOutRef PV2.TxOut)
 lookupUtxosPV2 outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
 
-lookupUtxos :: MonadBlockChainBalancing m => [PV2.TxOutRef] -> m (Map PV2.TxOutRef Ledger.TxOut)
+lookupUtxos :: (MonadBlockChainBalancing m) => [PV2.TxOutRef] -> m (Map PV2.TxOutRef Ledger.TxOut)
 lookupUtxos outRefs = do
   Map.fromList
     <$> mapM
@@ -182,13 +182,13 @@ lookupUtxos outRefs = do
 
 -- | look up the UTxOs the transaction consumes, and sum the value contained in
 -- them.
-txSkelInputValue :: MonadBlockChainBalancing m => TxSkel -> m PV2.Value
+txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m PV2.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
   return $ foldMap (PV2.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: MonadBlockChainBalancing m => TxSkel -> m (Map PV2.DatumHash PV2.Datum)
+txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.DatumHash PV2.Datum)
 txSkelInputData skel = do
   txSkelInputs <- Map.elems <$> txSkelInputUtxosPV2 skel
   mDatums <-
@@ -205,7 +205,7 @@ txSkelInputData skel = do
       txSkelInputs
   return . Map.fromList . catMaybes $ mDatums
   where
-    datumFromHashWithError :: MonadBlockChainBalancing m => Pl.DatumHash -> m PV2.Datum
+    datumFromHashWithError :: (MonadBlockChainBalancing m) => Pl.DatumHash -> m PV2.Datum
     datumFromHashWithError dHash = do
       mDatum <- datumFromHash dHash
       case mDatum of
@@ -237,7 +237,7 @@ getEmulatorUTxO m =
 --
 --  This function also adjusts the transaction outputs to contain at least the
 --  minimum Ada amount, if the 'txOptEnsureMinAda option is @True@.
-setFeeAndBalance :: MonadBlockChainBalancing m => Wallet -> TxSkel -> m (TxSkel, Fee)
+setFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> m (TxSkel, Fee)
 setFeeAndBalance balanceWallet skel0 = do
   -- do the min Ada adjustment if it's requested
   skel <-
@@ -287,7 +287,7 @@ setFeeAndBalance balanceWallet skel0 = do
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
 
     calcFee ::
-      MonadBlockChainBalancing m =>
+      (MonadBlockChainBalancing m) =>
       Int ->
       Fee ->
       Emulator.UTxO Emulator.EmulatorEra ->
@@ -346,7 +346,7 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
     C.Lovelace fee -> pure $ Fee fee
 
 -- | Calculates the collateral for a transaction
-calcCollateral :: MonadBlockChainBalancing m => Wallet -> m (Set PV2.TxOutRef)
+calcCollateral :: (MonadBlockChainBalancing m) => Wallet -> m (Set PV2.TxOutRef)
 calcCollateral w = do
   souts <-
     runUtxoSearch $
@@ -360,7 +360,7 @@ calcCollateral w = do
   -- investigated further for a better approach?
   return $ Set.fromList $ take 1 (fst <$> souts)
 
-balanceTxFromAux :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m TxSkel
+balanceTxFromAux :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m TxSkel
 balanceTxFromAux balanceWallet txskel fee = do
   bres@(BalanceTxRes {newInputs, returnValue, availableUtxos}) <- calcBalanceTx balanceWallet txskel fee
   case applyBalanceTx (walletPKHash balanceWallet) bres txskel of
@@ -397,7 +397,7 @@ data BalanceTxRes = BalanceTxRes
 -- | Calculate the changes needed to balance a transaction with money from a
 -- given wallet.  Every transaction that is sent to the chain must be balanced,
 -- that is: @inputs + mints == outputs + fee + burns@.
-calcBalanceTx :: MonadBlockChainBalancing m => Wallet -> TxSkel -> Fee -> m BalanceTxRes
+calcBalanceTx :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m BalanceTxRes
 calcBalanceTx balanceWallet skel fee = do
   inValue <- (<> positivePart (txSkelMintsValue $ txSkelMints skel)) <$> txSkelInputValue skel -- transaction inputs + minted value
   let outValue = txSkelOutputValue skel fee -- transaction outputs + fee + burned value
