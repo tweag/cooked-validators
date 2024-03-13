@@ -163,7 +163,7 @@ outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptT
 outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator on the 'TxInfo'.
-outputTxOut :: IsTxInfoOutput o => o -> Pl.TxOut
+outputTxOut :: (IsTxInfoOutput o) => o -> Pl.TxOut
 outputTxOut o =
   Pl.TxOut
     (outputAddress o)
@@ -227,7 +227,7 @@ instance IsAbstractOutput (ConcreteOutput ownerType datumType valueType referenc
 
 -- | Test if there is no datum on an output.
 isOutputWithoutDatum ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) () (ValueType output) (ReferenceScriptType output))
 isOutputWithoutDatum out = case outputOutputDatum out of
@@ -260,7 +260,7 @@ isOutputWithInlineDatumOfType out =
 
 -- | Test if the output carries some inlined datum.
 isOutputWithInlineDatum ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
 isOutputWithInlineDatum out =
@@ -277,7 +277,7 @@ isOutputWithInlineDatum out =
 
 -- | Test if the output carries some datum hash.
 isOutputWithDatumHash ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) Pl.DatumHash (ValueType output) (ReferenceScriptType output))
 isOutputWithDatumHash out =
@@ -297,7 +297,7 @@ isOutputWithDatumHash out =
 -- | Test if the owner of an output is a specific typed validator. If it is,
 -- return an output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   Pl.TypedValidator a ->
   output ->
   Maybe (ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) (ReferenceScriptType output))
@@ -320,7 +320,7 @@ isScriptOutputFrom validator out =
 -- an output of the same 'DatumType', but with 'Pl.PubKeyHash' as its
 -- 'OwnerType'.
 isPKOutputFrom ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   Pl.PubKeyHash ->
   output ->
   Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output) (ValueType output) (ReferenceScriptType output))
@@ -342,7 +342,7 @@ isPKOutputFrom pkh out = case outputAddress out of
 
 -- | Test if the value on an output contains only Ada.
 isOnlyAdaOutput ::
-  IsTxInfoOutput output =>
+  (IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) (DatumType output) Pl.Ada (ReferenceScriptType output))
 isOnlyAdaOutput out =

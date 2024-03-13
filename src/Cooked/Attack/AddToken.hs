@@ -18,7 +18,7 @@ import qualified PlutusTx.Numeric as Pl
 -- This attack adds an 'AddTokenLbl' with the token name of the additional
 -- minted token(s). It returns additional value minted.
 addTokenAttack ::
-  MonadTweak m =>
+  (MonadTweak m) =>
   -- | For each policy that occurs in some 'Mints' constraint, return a list of
   -- token names together with how many tokens with that name should be
   -- minted.

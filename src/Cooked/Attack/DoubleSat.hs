@@ -122,7 +122,7 @@ doubleSatAttack groupings optic change attacker = do
   addLabelTweak DoubleSatLbl
   where
     -- for each triple of additional inputs, outputs, and mints, calculate its balance
-    deltaBalance :: MonadTweak m => DoubleSatDelta -> m Pl.Value
+    deltaBalance :: (MonadTweak m) => DoubleSatDelta -> m Pl.Value
     deltaBalance (inputs, outputs, mints) = do
       inValue <- foldMap (outputValue . snd) . filter ((`elem` Map.keys inputs) . fst) <$> allUtxos
       return $ inValue <> Pl.negate outValue <> mintValue
@@ -131,7 +131,7 @@ doubleSatAttack groupings optic change attacker = do
         mintValue = txSkelMintsValue mints
 
     -- Helper tweak to add a 'DoubleSatDelta' to a transaction
-    addDoubleSatDeltaTweak :: MonadTweak m => DoubleSatDelta -> m ()
+    addDoubleSatDeltaTweak :: (MonadTweak m) => DoubleSatDelta -> m ()
     addDoubleSatDeltaTweak (ins, outs, mints) =
       mapM_ (uncurry addInputTweak) (Map.toList ins)
         >> mapM_ addOutputTweak outs

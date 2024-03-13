@@ -86,7 +86,7 @@ data Ltl a
 -- <> b@ as the modification that first applies @b@ and then @a@. Attention:
 -- Since we use '<>' to define conjunction, if '<>' is not commutative,
 -- conjunction will also fail to be commutative!
-nowLater :: Monoid a => Ltl a -> [(a, Ltl a)]
+nowLater :: (Monoid a) => Ltl a -> [(a, Ltl a)]
 nowLater LtlTruth = [(mempty, LtlTruth)]
 nowLater LtlFalsity = []
 nowLater (LtlAtom g) = [(g, LtlTruth)]
@@ -120,7 +120,7 @@ finished (LtlRelease _ _) = True
 -- then the third and so on. We'd still like to compute a list of @(doNow,
 -- doLater)@ pairs as in 'nowLater', only that the @doLater@ should again be a
 -- list of formulas.
-nowLaterList :: Monoid a => [Ltl a] -> [(a, [Ltl a])]
+nowLaterList :: (Monoid a) => [Ltl a] -> [(a, [Ltl a])]
 nowLaterList = joinNowLaters . map nowLater
   where
     joinNowLaters [] = [(mempty, [])]
@@ -251,7 +251,7 @@ instance Monad (Staged op) where
 -- (But to write this, @modification@ has to be a 'Monoid' to make
 -- 'nowLaterList' work!) Look at the tests for this module and at
 -- "Cooked.MockChain.Monad.Staged" for examples of how to use this type class.
-class MonadPlus m => InterpLtl modification builtin m where
+class (MonadPlus m) => InterpLtl modification builtin m where
   interpBuiltin :: builtin a -> StateT [Ltl modification] m a
 
 -- | Interpret a 'Staged' computation into a suitable domain, using the function
@@ -297,7 +297,7 @@ interpLtlAndPruneUnfinished f = do
 -- LTL modifications beside the method above.
 
 -- | Monads that allow modificaitons with LTL formulas.
-class Monad m => MonadModal m where
+class (Monad m) => MonadModal m where
   type Modification m :: Type
   modifyLtl :: Ltl (Modification m) -> m a -> m a
 

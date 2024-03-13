@@ -71,7 +71,7 @@ lockTxSkel o v =
       txSkelSigners = [wallet 1]
     }
 
-txLock :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
+txLock :: (MonadBlockChain m) => Pl.TypedValidator MockContract -> m ()
 txLock v = do
   (oref, _) : _ <-
     runUtxoSearch $
@@ -89,7 +89,7 @@ relockTxSkel v o =
     }
 
 txRelock ::
-  MonadBlockChain m =>
+  (MonadBlockChain m) =>
   Pl.TypedValidator MockContract ->
   m ()
 txRelock v = do
@@ -101,7 +101,7 @@ txRelock v = do
         `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
   void $ validateTxSkel $ relockTxSkel v oref
 
-datumHijackingTrace :: MonadBlockChain m => Pl.TypedValidator MockContract -> m ()
+datumHijackingTrace :: (MonadBlockChain m) => Pl.TypedValidator MockContract -> m ()
 datumHijackingTrace v = do
   txLock v
   txRelock v
@@ -190,9 +190,9 @@ tests =
                         Pl.validatorHash val1
                           == Pl.validatorHash v
                           && d
-                          == TxSkelOutInlineDatum SecondLock
+                            == TxSkelOutInlineDatum SecondLock
                           && bound
-                          `Pl.geq` x
+                            `Pl.geq` x
                     )
                     select
                 )

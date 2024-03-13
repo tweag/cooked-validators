@@ -40,7 +40,7 @@ printValidator =
     wrap = Pl.mkUntypedValidator
     print _ _ ctx = Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
 
-printTrace :: MonadBlockChain m => m ()
+printTrace :: (MonadBlockChain m) => m ()
 printTrace = do
   (oref, _) : _ <-
     utxosFromCardanoTx

@@ -96,7 +96,7 @@ barTypedValidator =
         $$(Pl.compile [||barValidator||])
         $$(Pl.compile [||wrap||])
 
-trace1 :: MonadBlockChain m => m ()
+trace1 :: (MonadBlockChain m) => m ()
 trace1 = do
   (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
     utxosFromCardanoTx

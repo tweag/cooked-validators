@@ -112,7 +112,7 @@ malformDatumTweak change = do
     changeTxSkelOutDatum (TxSkelOutDatumHash datum) = map TxSkelOutDatumHash $ changeOnCorrectType datum
     changeTxSkelOutDatum (TxSkelOutInlineDatum datum) = map TxSkelOutInlineDatum $ changeOnCorrectType datum
 
-    changeOnCorrectType :: Typeable b => b -> [Pl.BuiltinData]
+    changeOnCorrectType :: (Typeable b) => b -> [Pl.BuiltinData]
     changeOnCorrectType datum = case typeOf datum `eqTypeRep` (typeRep @a) of
       Just HRefl -> change datum
       Nothing -> []

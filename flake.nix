@@ -1,5 +1,8 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+  ## We need this specific version to target HLS 2.2.0.0
+  ## This is required because we are stuck with GHC 8.10.7 thanks to plutus-apps
+  inputs.nixpkgs.url =
+    "github:NixOS/nixpkgs/5836601367676bb1815f81181b78b5f9829aa302";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";

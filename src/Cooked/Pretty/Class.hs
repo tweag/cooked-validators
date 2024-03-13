@@ -39,11 +39,11 @@ class PrettyCooked a where
 -- when dealing with pretty-printable cooked values.
 --
 -- For example, @printCookedOpt def runMockChain i0 foo@
-printCookedOpt :: PrettyCooked a => PrettyCookedOpts -> a -> IO ()
+printCookedOpt :: (PrettyCooked a) => PrettyCookedOpts -> a -> IO ()
 printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 
 -- | Version of 'printCookedOpt' that uses default pretty printing options.
-printCooked :: PrettyCooked a => a -> IO ()
+printCooked :: (PrettyCooked a) => a -> IO ()
 printCooked = printCookedOpt def
 
 instance PrettyCooked Pl.TxId where
@@ -134,7 +134,7 @@ instance PrettyCooked Pl.POSIXTime where
 instance PrettyCooked Pl.ScriptHash where
   prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
 
-instance PrettyCooked a => PrettyCooked [a] where
+instance (PrettyCooked a) => PrettyCooked [a] where
   prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
 
 instance PrettyCooked Int where

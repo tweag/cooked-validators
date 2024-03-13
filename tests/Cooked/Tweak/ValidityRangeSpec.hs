@@ -22,7 +22,7 @@ toSlotRangeTranslate translation a b =
 
 getSingleResult = fst . head . rights . flip runTweak txSkelTemplate
 
-checkIsValidDuring :: MonadTweak m => m Assertion
+checkIsValidDuring :: (MonadTweak m) => m Assertion
 checkIsValidDuring = do
   b <- hasFullTimeRangeTweak
   b1 <- isValidDuringTweak $ toSlotRange 101 1015
@@ -33,7 +33,7 @@ checkIsValidDuring = do
     assertBool "interval inclusions are wrong" $
       b && b1 && b2 && not b3
 
-checkAddToValidityRange :: MonadTweak m => m Assertion
+checkAddToValidityRange :: (MonadTweak m) => m Assertion
 checkAddToValidityRange = do
   timeOrigin <- currentSlot
   centerAroundValidityRangeTweak (timeOrigin + Slot 100) 80
@@ -52,7 +52,7 @@ checkAddToValidityRange = do
     assertBool "interval intersection is wrong" $
       b && b1 && b2 && not b3 && b4
 
-checkMoveCurrentSlot :: MonadTweak m => m Assertion
+checkMoveCurrentSlot :: (MonadTweak m) => m Assertion
 checkMoveCurrentSlot = do
   setValidityRangeTweak $ toSlotRange 10 20
   waitUntilValidTweak

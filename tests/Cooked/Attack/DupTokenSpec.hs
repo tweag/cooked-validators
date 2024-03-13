@@ -52,7 +52,7 @@ carelessPolicy =
     Pl.mkMintingPolicyScript
       $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
-dupTokenTrace :: MonadBlockChain m => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
+dupTokenTrace :: (MonadBlockChain m) => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
   where
     skel =

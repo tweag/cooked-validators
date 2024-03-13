@@ -251,7 +251,7 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
 
         initUtxosFor w v = txOut (walletAddress w) v (Nothing @())
 
-        fromRight' :: Show e => Either e a -> a
+        fromRight' :: (Show e) => Either e a -> a
         fromRight' x = case x of
           Left err -> error $ show err
           Right res -> res
@@ -305,21 +305,21 @@ getIndex =
             C.TxOutDatumInline s sd -> C.TxOutDatumInline s sd
        in C.TxOut addr val dat refS
 
-instance Monad m => MonadBlockChainBalancing (MockChainT m) where
+instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
   getParams = asks mceParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
   utxosAtLedger addr = filter ((addr ==) . outputAddress . txOutV2FromLedger . snd) <$> allUtxosLedger
 
-instance Monad m => MonadBlockChainWithoutValidation (MockChainT m) where
+instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
 
   currentSlot = gets mcstCurrentSlot
 
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
-instance Monad m => MonadBlockChain (MockChainT m) where
+instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
     (skel, fee, collateralInputs) <- balancedTxSkel skelUnbal
     tx <- balancedTx (skel, fee, collateralInputs)
@@ -338,7 +338,7 @@ instance Monad m => MonadBlockChain (MockChainT m) where
     return someCardanoTx
 
 runTransactionValidation ::
-  Monad m =>
+  (Monad m) =>
   -- | The emulator parameters to use. They might have been changed by the 'txOptEmulatorParamsModification'.
   Emulator.Params ->
   -- | The transaction to validate. It should already be balanced, and include

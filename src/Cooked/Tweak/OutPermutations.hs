@@ -35,7 +35,7 @@ data PermutOutTweakMode = KeepIdentity (Maybe Int) | OmitIdentity (Maybe Int)
 --
 -- (In particular, this is clever enough to generate only the distinct
 -- permutations, even if some outputs are identical.)
-allOutPermutsTweak :: MonadTweak m => PermutOutTweakMode -> m ()
+allOutPermutsTweak :: (MonadTweak m) => PermutOutTweakMode -> m ()
 allOutPermutsTweak mode = do
   oldOut <- viewTweak txSkelOutsL
   msum $
@@ -51,19 +51,19 @@ allOutPermutsTweak mode = do
 
 -- This is implemented so that duplicate entries in the input list don't give
 -- rise to duplicate permutations.
-distinctPermutations :: Eq a => [a] -> [[a]]
+distinctPermutations :: (Eq a) => [a] -> [[a]]
 distinctPermutations = foldr (concatMap . insertSomewhere) [[]] . groupEq
   where
     -- group all equal elements. If we had @Ord a@, we could implement this more
     -- effifiently as @group . sort@.
-    groupEq :: Eq a => [a] -> [[a]]
+    groupEq :: (Eq a) => [a] -> [[a]]
     groupEq l = map (\x -> replicate (count x l) x) $ makeUnique l
       where
-        count :: Eq a => a -> [a] -> Int
+        count :: (Eq a) => a -> [a] -> Int
         count _ [] = 0
         count a (b : bs) = if a /= b then count a bs else 1 + count a bs
 
-        makeUnique :: Eq a => [a] -> [a]
+        makeUnique :: (Eq a) => [a] -> [a]
         makeUnique [] = []
         makeUnique (x : xs) =
           let xs' = makeUnique xs
@@ -77,16 +77,16 @@ distinctPermutations = foldr (concatMap . insertSomewhere) [[]] . groupEq
     insertSomewhere l@(x : xs) r@(y : ys) =
       map (x :) (insertSomewhere xs r) ++ map (y :) (insertSomewhere l ys)
 
-nonIdentityPermutations :: Eq a => [a] -> [[a]]
+nonIdentityPermutations :: (Eq a) => [a] -> [[a]]
 nonIdentityPermutations l = removeFirst l $ distinctPermutations l
   where
-    removeFirst :: Eq a => a -> [a] -> [a]
+    removeFirst :: (Eq a) => a -> [a] -> [a]
     removeFirst _ [] = []
     removeFirst x (y : ys) = if x == y then ys else y : removeFirst x ys
 
 -- | This randomly permutes the outputs of a transaction with a given seed
 -- Can be used to assess if a certain validator is order-dependant
-singleOutPermutTweak :: MonadTweak m => Int -> m ()
+singleOutPermutTweak :: (MonadTweak m) => Int -> m ()
 singleOutPermutTweak seed = do
   outputs <- viewTweak txSkelOutsL
   let outputs' = shuffle' outputs (length outputs) (mkStdGen seed)

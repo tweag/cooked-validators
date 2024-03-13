@@ -18,7 +18,7 @@ import qualified PlutusTx.Numeric as Pl
 -- transaction using 'addLabel'. Returns the 'Value' by which the minted value
 -- was increased.
 dupTokenAttack ::
-  MonadTweak m =>
+  (MonadTweak m) =>
   -- | A function describing how the amount of tokens specified by a 'Mints'
   -- constraint should be changed, depending on the asset class and the amount
   -- specified by the constraint. The given function @f@ should probably satisfy
@@ -37,7 +37,7 @@ dupTokenAttack change attacker = do
   addLabelTweak DupTokenLbl
   return totalIncrement
   where
-    changeMintAmountsTweak :: MonadTweak m => m Pl.Value
+    changeMintAmountsTweak :: (MonadTweak m) => m Pl.Value
     changeMintAmountsTweak = do
       oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =

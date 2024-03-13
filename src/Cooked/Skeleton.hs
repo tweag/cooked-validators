@@ -121,7 +121,7 @@ import Type.Reflection
 type LabelConstrs x = (Show x, Typeable x, Eq x, Ord x)
 
 data TxLabel where
-  TxLabel :: LabelConstrs x => x -> TxLabel
+  TxLabel :: (LabelConstrs x) => x -> TxLabel
 
 instance Eq TxLabel where
   a == x = compare a x == EQ
@@ -337,7 +337,7 @@ type MintsConstrs redeemer =
 -- corresponds to the redeemer @()@ on-chain.
 data MintsRedeemer where
   NoMintsRedeemer :: MintsRedeemer
-  SomeMintsRedeemer :: MintsConstrs redeemer => redeemer -> MintsRedeemer
+  SomeMintsRedeemer :: (MintsConstrs redeemer) => redeemer -> MintsRedeemer
 
 instance Show MintsRedeemer where
   show NoMintsRedeemer = "NoMintsRedeemer"
@@ -580,13 +580,13 @@ data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
   -- | only include the hash on the transaction
-  TxSkelOutDatumHash :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+  TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
   -- | use a 'Pl.OutputDatumHash' on the transaction output, but generate the
   -- transaction in such a way that the complete datum is included in the
   -- 'txInfoData' seen by validators
-  TxSkelOutDatum :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+  TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
   -- | use an inline datum
-  TxSkelOutInlineDatum :: TxSkelOutDatumConstrs a => a -> TxSkelOutDatum
+  TxSkelOutInlineDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
 
 deriving instance Show TxSkelOutDatum
 
@@ -625,7 +625,7 @@ txSkelOutUntypedDatum = \case
   TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
   TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
 
-txSkelOutTypedDatum :: Pl.FromData a => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum :: (Pl.FromData a) => TxSkelOutDatum -> Maybe a
 txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum <=< txSkelOutUntypedDatum
 
 -- ** Smart constructors for transaction outputs
@@ -716,7 +716,7 @@ paysScriptDatumHash validator datum value =
 -- | Pays a script a certain value without any datum. Intended to be used with
 -- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
-paysScriptNoDatum :: Typeable a => Pl.TypedValidator a -> Pl.Value -> TxSkelOut
+paysScriptNoDatum :: (Typeable a) => Pl.TypedValidator a -> Pl.Value -> TxSkelOut
 paysScriptNoDatum validator value =
   Pays
     ( ConcreteOutput
@@ -833,12 +833,12 @@ type SpendsScriptConstrs redeemer =
 
 data TxSkelRedeemer where
   TxSkelNoRedeemerForPK :: TxSkelRedeemer
-  TxSkelRedeemerForScript :: SpendsScriptConstrs redeemer => redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForScript :: (SpendsScriptConstrs redeemer) => redeemer -> TxSkelRedeemer
   -- | The first argument is a reference to the output where the referenced
   -- script is stored.
-  TxSkelRedeemerForReferencedScript :: SpendsScriptConstrs redeemer => Pl.TxOutRef -> redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForReferencedScript :: (SpendsScriptConstrs redeemer) => Pl.TxOutRef -> redeemer -> TxSkelRedeemer
 
-txSkelTypedRedeemer :: Pl.FromData (Pl.RedeemerType a) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
+txSkelTypedRedeemer :: (Pl.FromData (Pl.RedeemerType a)) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing

@@ -51,7 +51,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 -- custom function. This can be used, for example, to supply a custom
 -- 'InitialDistribution' by providing 'runMockChainTFrom'.
 interpretAndRunWith ::
-  (forall m. Monad m => MockChainT m a -> m res) ->
+  (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
   [(res, MockChainLog)]
 interpretAndRunWith f smc = runWriterT $ f $ interpret smc
@@ -129,7 +129,7 @@ instance MonadFail StagedMockChain where
 
 -- * 'InterpLtl' instance
 
-instance MonadPlus m => MonadPlus (MockChainT m) where
+instance (MonadPlus m) => MonadPlus (MockChainT m) where
   mzero = lift mzero
   mplus = combineMockChainT mplus
 
@@ -200,17 +200,17 @@ type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~
 
 -- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
 -- apply at least once.
-somewhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
+somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 somewhere = modifyLtl . LtlUntil LtlTruth . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to every transaction in a given trace. This is also
 -- successful if there are no transactions at all.
-everywhere :: MonadModalBlockChain m => Tweak InterpMockChain b -> m a -> m a
+everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 
 -- | Apply a 'Tweak' to the nth transaction in a given trace, 0 indexed.
 -- Only successful when this transaction exists and can be modified.
-there :: MonadModalBlockChain m => Integer -> Tweak InterpMockChain b -> m a -> m a
+there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
 there n = modifyLtl . mkLtlFormula n
   where
     mkLtlFormula x =
@@ -229,7 +229,7 @@ there n = modifyLtl . mkLtlFormula n
 -- where @endpoint@ builds and validates a single transaction depending on the
 -- given @arguments@. Then `withTweak` says "I want to modify the transaction
 -- returned by this endpoint in the following way".
-withTweak :: MonadModalBlockChain m => m x -> Tweak InterpMockChain a -> m x
+withTweak :: (MonadModalBlockChain m) => m x -> Tweak InterpMockChain a -> m x
 withTweak = flip (there 0)
 
 -- * 'MonadBlockChain' and 'MonadMockChain' instances
