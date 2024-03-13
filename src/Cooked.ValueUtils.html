@@ -7,62 +7,62 @@
 </span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
 </span><span id="line-8"></span><span class="hs-keyword">where</span><span>
 </span><span id="line-9"></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Ada</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">adaSymbol</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">adaToken</span></span><span class="hs-special">)</span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Data.List.html"><span class="hs-identifier">Data.List</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Optics.Core.html"><span class="hs-identifier">Optics.Core</span></a></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Ada.html"><span class="hs-identifier">Plutus.Script.Utils.Ada</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Value.html"><span class="hs-identifier">Plutus.Script.Utils.Value</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#adaSymbol"><span class="hs-identifier">adaSymbol</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#adaToken"><span class="hs-identifier">adaToken</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../PlutusTx.Numeric.html"><span class="hs-identifier">PlutusTx.Numeric</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
 </span><span id="line-15"></span><span>
-</span><span id="line-16"></span><span class="annot"><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-type">flattenValueI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Iso'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.AssetClass</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-16"></span><span class="annot"><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-type">flattenValueI</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Optics.Iso.html#Iso%27"><span class="hs-identifier hs-type">Iso'</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#AssetClass"><span class="hs-identifier hs-type">Pl.AssetClass</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
 </span><span id="line-17"></span><span id="flattenValueI"><span class="annot"><span class="annottext">flattenValueI :: Iso' Value [(AssetClass, Integer)]
 </span><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-var hs-var">flattenValueI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-18"></span><span>  </span><span class="annot"><span class="annottext">(Value -&gt; [(AssetClass, Integer)])
 -&gt; ([(AssetClass, Integer)] -&gt; Value)
 -&gt; Iso' Value [(AssetClass, Integer)]
 forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
-</span><span class="hs-identifier hs-var">iso</span></span><span>
+</span><a href="../Optics.Iso.html#iso"><span class="hs-identifier hs-var">iso</span></a></span><span>
 </span><span id="line-19"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((CurrencySymbol, TokenName, Integer) -&gt; (AssetClass, Integer))
 -&gt; [(CurrencySymbol, TokenName, Integer)]
 -&gt; [(AssetClass, Integer)]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679557103"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679557103"><span class="hs-identifier hs-var">cSymbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679557102"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679557102"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679557101"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557101"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
-</span><span class="hs-identifier hs-var">Pl.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679557103"><span class="hs-identifier hs-var">cSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679557102"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557101"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [(AssetClass, Integer)])
+</span><a href="../GHC.Base.html#map"><span class="hs-identifier hs-var">map</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679635347"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679635347"><span class="hs-identifier hs-var">cSymbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679635346"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679635346"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679635345"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635345"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><a href="../Plutus.V1.Ledger.Value.html#assetClass"><span class="hs-identifier hs-var">Pl.assetClass</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679635347"><span class="hs-identifier hs-var">cSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679635346"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635345"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [(AssetClass, Integer)])
 -&gt; (Value -&gt; [(CurrencySymbol, TokenName, Integer)])
 -&gt; Value
 -&gt; [(AssetClass, Integer)]
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
-</span><span class="hs-identifier hs-var">Pl.flattenValue</span></span><span class="hs-special">)</span><span>
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
+</span><a href="../Plutus.V1.Ledger.Value.html#flattenValue"><span class="hs-identifier hs-var">Pl.flattenValue</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-20"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Value -&gt; (AssetClass, Integer) -&gt; Value)
 -&gt; Value -&gt; [(AssetClass, Integer)] -&gt; Value
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679557096"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679557096"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679557095"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679557095"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679557094"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557094"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679557096"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="../Data.Foldable.html#foldl%27"><span class="hs-identifier hs-var">foldl'</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679635340"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679635340"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679635339"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679635339"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679635338"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635338"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679635340"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
-</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
-</span><span class="hs-identifier hs-var">Pl.assetClassValue</span></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679557095"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557094"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="../GHC.Base.html#%3C%3E"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
+</span><a href="../Plutus.V1.Ledger.Value.html#assetClassValue"><span class="hs-identifier hs-var">Pl.assetClassValue</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679635339"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635338"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
-</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><a href="../GHC.Base.html#mempty"><span class="hs-identifier hs-var">mempty</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-21"></span><span>
 </span><span id="line-22"></span><span class="hs-comment">-- | The positive part of a value. For every asset class in the given value,</span><span>
 </span><span id="line-23"></span><span class="hs-comment">-- this asset class and its amount are included in the output iff the amount is</span><span>
 </span><span id="line-24"></span><span class="hs-comment">-- strictly positive. It holds</span><span>
 </span><span id="line-25"></span><span class="hs-comment">--</span><span>
 </span><span id="line-26"></span><span class="hs-comment">-- &gt; x == positivePart x &lt;&gt; Pl.negate negativePart x</span><span>
-</span><span id="line-27"></span><span class="annot"><a href="Cooked.ValueUtils.html#positivePart"><span class="hs-identifier hs-type">positivePart</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Cooked.ValueUtils.html#positivePart"><span class="hs-identifier hs-type">positivePart</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span>
 </span><span id="line-28"></span><span id="positivePart"><span class="annot"><span class="annottext">positivePart :: Value -&gt; Value
 </span><a href="Cooked.ValueUtils.html#positivePart"><span class="hs-identifier hs-var hs-var">positivePart</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 -&gt; ([(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
@@ -71,54 +71,54 @@ forall a. Monoid a =&gt; a
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">over</span></span><span> </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
+</span><a href="../Optics.Setter.html#over"><span class="hs-identifier hs-var">over</span></a></span><span> </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 </span><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((AssetClass, Integer) -&gt; Bool)
 -&gt; [(AssetClass, Integer)] -&gt; [(AssetClass, Integer)]
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
-</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="annot"><span class="annottext">(((AssetClass, Integer) -&gt; Bool)
+</span><a href="../GHC.List.html#filter"><span class="hs-identifier hs-var">filter</span></a></span><span> </span><span class="annot"><span class="annottext">(((AssetClass, Integer) -&gt; Bool)
  -&gt; [(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
 -&gt; ((AssetClass, Integer) -&gt; Bool)
 -&gt; [(AssetClass, Integer)]
 -&gt; [(AssetClass, Integer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">&lt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Bool)
+</span><a href="../GHC.Classes.html#%3C"><span class="hs-operator hs-var">&lt;</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Bool)
 -&gt; ((AssetClass, Integer) -&gt; Integer)
 -&gt; (AssetClass, Integer)
 -&gt; Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(AssetClass, Integer) -&gt; Integer
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(AssetClass, Integer) -&gt; Integer
 forall a b. (a, b) -&gt; b
-</span><span class="hs-identifier hs-var">snd</span></span><span class="hs-special">)</span><span>
+</span><a href="../Data.Tuple.html#snd"><span class="hs-identifier hs-var">snd</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-29"></span><span>
 </span><span id="line-30"></span><span class="hs-comment">-- | The negative part of a value. For every asset class in the given value,</span><span>
 </span><span id="line-31"></span><span class="hs-comment">-- this asset class and its negated amount are included in the output iff the</span><span>
 </span><span id="line-32"></span><span class="hs-comment">-- amount is strictly negative. It holds</span><span>
 </span><span id="line-33"></span><span class="hs-comment">--</span><span>
 </span><span id="line-34"></span><span class="hs-comment">-- &gt; x == positivePart x &lt;&gt; Pl.negate negativePart x</span><span>
-</span><span id="line-35"></span><span class="annot"><a href="Cooked.ValueUtils.html#negativePart"><span class="hs-identifier hs-type">negativePart</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Cooked.ValueUtils.html#negativePart"><span class="hs-identifier hs-type">negativePart</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span>
 </span><span id="line-36"></span><span id="negativePart"><span class="annot"><span class="annottext">negativePart :: Value -&gt; Value
 </span><a href="Cooked.ValueUtils.html#negativePart"><span class="hs-identifier hs-var hs-var">negativePart</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 </span><a href="Cooked.ValueUtils.html#positivePart"><span class="hs-identifier hs-var">positivePart</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; Value) -&gt; (Value -&gt; Value) -&gt; Value -&gt; Value
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
-</span><span class="hs-identifier hs-var">Pl.negate</span></span><span>
+</span><a href="../PlutusTx.Numeric.html#negate"><span class="hs-identifier hs-var">Pl.negate</span></a></span><span>
 </span><span id="line-37"></span><span>
 </span><span id="line-38"></span><span class="hs-comment">-- | Focus the Ada part in a value.</span><span>
-</span><span id="line-39"></span><span class="annot"><a href="Cooked.ValueUtils.html#adaL"><span class="hs-identifier hs-type">adaL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Pl.Ada</span></span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Cooked.ValueUtils.html#adaL"><span class="hs-identifier hs-type">adaL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Optics.Lens.html#Lens%27"><span class="hs-identifier hs-type">Lens'</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Ada.html#Ada"><span class="hs-identifier hs-type">Pl.Ada</span></a></span><span>
 </span><span id="line-40"></span><span id="adaL"><span class="annot"><span class="annottext">adaL :: Lens' Value Ada
 </span><a href="Cooked.ValueUtils.html#adaL"><span class="hs-identifier hs-var hs-var">adaL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-41"></span><span>  </span><span class="annot"><span class="annottext">(Value -&gt; Ada) -&gt; (Value -&gt; Ada -&gt; Value) -&gt; Lens' Value Ada
 forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
-</span><span class="hs-identifier hs-var">lens</span></span><span>
+</span><a href="../Optics.Lens.html#lens"><span class="hs-identifier hs-var">lens</span></a></span><span>
 </span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">Value -&gt; Ada
-</span><span class="hs-identifier hs-var">Pl.fromValue</span></span><span>
-</span><span id="line-43"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679557087"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679557087"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Pl.Lovelace</span></span><span> </span><span id="local-6989586621679557085"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557085"><span class="hs-identifier hs-var">ada</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><a href="../Plutus.Script.Utils.Ada.html#fromValue"><span class="hs-identifier hs-var">Pl.fromValue</span></a></span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679635331"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679635331"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Ada.html#Lovelace"><span class="hs-identifier hs-type">Pl.Lovelace</span></a></span><span> </span><span id="local-6989586621679635329"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635329"><span class="hs-identifier hs-var">ada</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-44"></span><span>        </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 -&gt; ([(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
 -&gt; Value
@@ -126,41 +126,41 @@ forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
 forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
-</span><span class="hs-identifier hs-var">over</span></span><span>
+</span><a href="../Optics.Setter.html#over"><span class="hs-identifier hs-var">over</span></a></span><span>
 </span><span id="line-45"></span><span>          </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 </span><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span>
-</span><span id="line-46"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679557084"><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679557084"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><span id="line-46"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679635328"><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><a href="#local-6989586621679635328"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
 -&gt; AssetClass -&gt; Integer -&gt; [(AssetClass, Integer)]
 forall a b. Eq a =&gt; [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
-</span><a href="#local-6989586621679557083"><span class="hs-identifier hs-var">insertAssocList</span></a></span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679557084"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
-</span><span class="hs-identifier hs-var">Pl.assetClass</span></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><span class="hs-identifier hs-var">Pl.adaSymbol</span></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><span class="hs-identifier hs-var">Pl.adaToken</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679557085"><span class="hs-identifier hs-var">ada</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679635327"><span class="hs-identifier hs-var">insertAssocList</span></a></span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><a href="#local-6989586621679635328"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><a href="../Plutus.V1.Ledger.Value.html#assetClass"><span class="hs-identifier hs-var">Pl.assetClass</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="../Plutus.Script.Utils.Ada.html#adaSymbol"><span class="hs-identifier hs-var">Pl.adaSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="../Plutus.Script.Utils.Ada.html#adaToken"><span class="hs-identifier hs-var">Pl.adaToken</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679635329"><span class="hs-identifier hs-var">ada</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-47"></span><span>          </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679557087"><span class="hs-identifier hs-var">value</span></a></span><span>
+</span><a href="#local-6989586621679635331"><span class="hs-identifier hs-var">value</span></a></span><span>
 </span><span id="line-48"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-49"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>    </span><span id="local-6989586621679557117"><span id="local-6989586621679557118"><span class="annot"><a href="#local-6989586621679557083"><span class="hs-identifier hs-type">insertAssocList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679557118"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679557118"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679557117"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679557118"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679557117"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679557118"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679557117"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
-</span><span id="line-51"></span><span>    </span><span id="local-6989586621679557083"><span class="annot"><span class="annottext">insertAssocList :: [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
-</span><a href="#local-6989586621679557083"><span class="hs-identifier hs-var hs-var">insertAssocList</span></a></span></span><span> </span><span id="local-6989586621679557080"><span class="annot"><span class="annottext">[(a, b)]
-</span><a href="#local-6989586621679557080"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679557079"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679557079"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679557078"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679557078"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679557079"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679557078"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; [(a, b)] -&gt; [(a, b)]
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679635361"><span id="local-6989586621679635362"><span class="annot"><a href="#local-6989586621679635327"><span class="hs-identifier hs-type">insertAssocList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-type">Eq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679635362"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679635362"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679635361"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679635362"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679635361"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679635362"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679635361"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679635327"><span class="annot"><span class="annottext">insertAssocList :: [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
+</span><a href="#local-6989586621679635327"><span class="hs-identifier hs-var hs-var">insertAssocList</span></a></span></span><span> </span><span id="local-6989586621679635324"><span class="annot"><span class="annottext">[(a, b)]
+</span><a href="#local-6989586621679635324"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679635323"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679635323"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679635322"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679635322"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679635323"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679635322"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; [(a, b)] -&gt; [(a, b)]
 forall a. a -&gt; [a] -&gt; [a]
-</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">((a, b) -&gt; Bool) -&gt; [(a, b)] -&gt; [(a, b)]
+</span><a href="../GHC.Types.html#%3A"><span class="hs-glyph hs-var">:</span></a></span><span> </span><span class="annot"><span class="annottext">((a, b) -&gt; Bool) -&gt; [(a, b)] -&gt; [(a, b)]
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
-</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+</span><a href="../GHC.List.html#filter"><span class="hs-identifier hs-var">filter</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
-</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679557079"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; ((a, b) -&gt; a) -&gt; (a, b) -&gt; Bool
+</span><a href="../GHC.Classes.html#%2F%3D"><span class="hs-operator hs-var">/=</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679635323"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; ((a, b) -&gt; a) -&gt; (a, b) -&gt; Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a
 forall a b. (a, b) -&gt; a
-</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(a, b)]
-</span><a href="#local-6989586621679557080"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><a href="../Data.Tuple.html#fst"><span class="hs-identifier hs-var">fst</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(a, b)]
+</span><a href="#local-6989586621679635324"><span class="hs-identifier hs-var">l</span></a></span><span>
 </span><span id="line-52"></span></pre></body></html>

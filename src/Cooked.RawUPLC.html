@@ -8,12 +8,12 @@
 </span><span id="line-8"></span><span>  </span><span class="hs-special">)</span><span>
 </span><span id="line-9"></span><span class="hs-keyword">where</span><span>
 </span><span id="line-10"></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Flat</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Scripts</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Language</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">PlutusV2</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Validator</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Versioned</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Versioned</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Typed.Scripts</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TScripts</span></span><span>
-</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Unsafe.Coerce</span></span><span>
-</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">UntypedPlutusCore</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UPLC</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Data.ByteString.html"><span class="hs-identifier">Data.ByteString</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Flat.html"><span class="hs-identifier">Flat</span></a></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Ledger.Scripts.html"><span class="hs-identifier">Ledger.Scripts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Cardano.Ledger.Alonzo.Language.html#Language"><span class="hs-identifier">Language</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Cardano.Ledger.Alonzo.Language.html#PlutusV2"><span class="hs-identifier">PlutusV2</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier">Script</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Validator"><span class="hs-identifier">Validator</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier">Versioned</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier">Versioned</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Ledger.Typed.Scripts.html"><span class="hs-identifier">Ledger.Typed.Scripts</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TScripts</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Unsafe.Coerce.html"><span class="hs-identifier">Unsafe.Coerce</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../UntypedPlutusCore.html"><span class="hs-identifier">UntypedPlutusCore</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UPLC</span></span><span>
 </span><span id="line-17"></span><span>
 </span><span id="line-18"></span><span class="hs-comment">-- | Returns a 'TypedValidator' from a UPLC program. The &quot;unsafe&quot; refers to the use of 'unsafeCoerce'</span><span>
 </span><span id="line-19"></span><span class="hs-comment">--  to cast a @TypedValidator Any@, resulting from 'typedValidatorFromUPLC', to a @TypedValidator a@. This</span><span>
@@ -23,19 +23,19 @@
 </span><span id="line-23"></span><span class="hs-comment">--  ensuring that the type variable @a@, below, gets instantiated</span><span>
 </span><span id="line-24"></span><span class="hs-comment">--  to the correct type.</span><span>
 </span><span id="line-25"></span><span class="annot"><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-type">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-26"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679556551"><span class="annot"><a href="#local-6989586621679556551"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UPLC.Program</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-28"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679556551"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679634795"><span class="annot"><a href="#local-6989586621679634795"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><a href="../UntypedPlutusCore.Core.Type.html#Program"><span class="hs-identifier hs-type">UPLC.Program</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.DeBruijn.Internal.html#NamedDeBruijn"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Universe.html#DefaultUni"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Builtins.html#DefaultFun"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679634795"><span class="hs-identifier hs-type">a</span></a></span><span>
 </span><span id="line-29"></span><span id="unsafeTypedValidatorFromUPLC"><span class="annot"><span class="annottext">unsafeTypedValidatorFromUPLC :: Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
 </span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var hs-var">unsafeTypedValidatorFromUPLC</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator Any -&gt; TypedValidator a
 forall a b. a -&gt; b
-</span><span class="hs-identifier hs-var">unsafeCoerce</span></span><span> </span><span class="annot"><span class="annottext">(TypedValidator Any -&gt; TypedValidator a)
+</span><a href="../Unsafe.Coerce.html#unsafeCoerce"><span class="hs-identifier hs-var">unsafeCoerce</span></a></span><span> </span><span class="annot"><span class="annottext">(TypedValidator Any -&gt; TypedValidator a)
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
     -&gt; TypedValidator Any)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; TypedValidator a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun ()
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; TypedValidator Any
 </span><a href="Cooked.RawUPLC.html#typedValidatorFromUPLC"><span class="hs-identifier hs-var">typedValidatorFromUPLC</span></a></span><span>
 </span><span id="line-30"></span><span>
@@ -44,74 +44,74 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-33"></span><span class="hs-comment">--</span><span>
 </span><span id="line-34"></span><span class="hs-comment">-- TODO: At the moment this wraps everything as a PlutusV2 script. Make this more flexible.</span><span>
 </span><span id="line-35"></span><span class="annot"><a href="Cooked.RawUPLC.html#typedValidatorFromUPLC"><span class="hs-identifier hs-type">typedValidatorFromUPLC</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-36"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">UPLC.Program</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-37"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">TScripts.Any</span></span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><a href="../UntypedPlutusCore.Core.Type.html#Program"><span class="hs-identifier hs-type">UPLC.Program</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.DeBruijn.Internal.html#NamedDeBruijn"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Universe.html#DefaultUni"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Builtins.html#DefaultFun"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></a></span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#Any"><span class="hs-identifier hs-type">TScripts.Any</span></a></span><span>
 </span><span id="line-38"></span><span id="typedValidatorFromUPLC"><span class="annot"><span class="annottext">typedValidatorFromUPLC :: Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; TypedValidator Any
 </span><a href="Cooked.RawUPLC.html#typedValidatorFromUPLC"><span class="hs-identifier hs-var hs-var">typedValidatorFromUPLC</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; TypedValidator Any
-</span><span class="hs-identifier hs-var">TScripts.unsafeMkTypedValidator</span></span><span> </span><span class="annot"><span class="annottext">(Versioned Validator -&gt; TypedValidator Any)
+</span><a href="../Ledger.Typed.Scripts.html#unsafeMkTypedValidator"><span class="hs-identifier hs-var">TScripts.unsafeMkTypedValidator</span></a></span><span> </span><span class="annot"><span class="annottext">(Versioned Validator -&gt; TypedValidator Any)
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
     -&gt; Versioned Validator)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; TypedValidator Any
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Validator -&gt; Language -&gt; Versioned Validator)
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(Validator -&gt; Language -&gt; Versioned Validator)
 -&gt; Language -&gt; Validator -&gt; Versioned Validator
 forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
-</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Validator -&gt; Language -&gt; Versioned Validator
+</span><a href="../GHC.Base.html#flip"><span class="hs-identifier hs-var">flip</span></a></span><span> </span><span class="annot"><span class="annottext">Validator -&gt; Language -&gt; Versioned Validator
 forall script. script -&gt; Language -&gt; Versioned script
-</span><span class="hs-identifier hs-var">Versioned</span></span><span> </span><span class="annot"><span class="annottext">Language
-</span><span class="hs-identifier hs-var">PlutusV2</span></span><span> </span><span class="annot"><span class="annottext">(Validator -&gt; Versioned Validator)
+</span><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-var">Versioned</span></a></span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="../Cardano.Ledger.Alonzo.Language.html#PlutusV2"><span class="hs-identifier hs-var">PlutusV2</span></a></span><span> </span><span class="annot"><span class="annottext">(Validator -&gt; Versioned Validator)
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Validator)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; Versioned Validator
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Script -&gt; Validator
-</span><span class="hs-identifier hs-var">Validator</span></span><span> </span><span class="annot"><span class="annottext">(Script -&gt; Validator)
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Script -&gt; Validator
+</span><a href="../Plutus.V1.Ledger.Scripts.html#Validator"><span class="hs-identifier hs-var">Validator</span></a></span><span> </span><span class="annot"><span class="annottext">(Script -&gt; Validator)
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Script)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; Validator
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Script
-</span><a href="#local-6989586621679556534"><span class="hs-identifier hs-var">fromPlc</span></a></span><span>
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Script
+</span><a href="#local-6989586621679634778"><span class="hs-identifier hs-var">fromPlc</span></a></span><span>
 </span><span id="line-39"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-40"></span><span>    </span><span class="hs-comment">-- copied from: github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-ledger-api/src/Plutus/V1/Ledger/Scripts.hs#L169</span><span>
-</span><span id="line-41"></span><span>    </span><span class="annot"><a href="#local-6989586621679556534"><span class="hs-identifier hs-type">fromPlc</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.Program</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script</span></span><span>
-</span><span id="line-42"></span><span>    </span><span id="local-6989586621679556534"><span class="annot"><span class="annottext">fromPlc :: Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Script
-</span><a href="#local-6989586621679556534"><span class="hs-identifier hs-var hs-var">fromPlc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UPLC.Program</span></span><span> </span><span id="local-6989586621679556532"><span class="annot"><span class="annottext">()
-</span><a href="#local-6989586621679556532"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679556531"><span class="annot"><span class="annottext">Version ()
-</span><a href="#local-6989586621679556531"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679556530"><span class="annot"><span class="annottext">Term NamedDeBruijn DefaultUni DefaultFun ()
-</span><a href="#local-6989586621679556530"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-43"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679556529"><span class="annot"><span class="annottext">nameless :: Term DeBruijn DefaultUni DefaultFun ()
-</span><a href="#local-6989586621679556529"><span class="hs-identifier hs-var hs-var">nameless</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(NamedDeBruijn -&gt; DeBruijn)
+</span><span id="line-41"></span><span>    </span><span class="annot"><a href="#local-6989586621679634778"><span class="hs-identifier hs-type">fromPlc</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../UntypedPlutusCore.Core.Type.html#Program"><span class="hs-identifier hs-type">UPLC.Program</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.DeBruijn.Internal.html#NamedDeBruijn"><span class="hs-identifier hs-type">UPLC.NamedDeBruijn</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Universe.html#DefaultUni"><span class="hs-identifier hs-type">UPLC.DefaultUni</span></a></span><span> </span><span class="annot"><a href="../PlutusCore.Default.Builtins.html#DefaultFun"><span class="hs-identifier hs-type">UPLC.DefaultFun</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Script</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679634778"><span class="annot"><span class="annottext">fromPlc :: Program NamedDeBruijn DefaultUni DefaultFun () -&gt; Script
+</span><a href="#local-6989586621679634778"><span class="hs-identifier hs-var hs-var">fromPlc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../UntypedPlutusCore.Core.Type.html#Program"><span class="hs-identifier hs-type">UPLC.Program</span></a></span><span> </span><span id="local-6989586621679634776"><span class="annot"><span class="annottext">()
+</span><a href="#local-6989586621679634776"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679634775"><span class="annot"><span class="annottext">Version ()
+</span><a href="#local-6989586621679634775"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679634774"><span class="annot"><span class="annottext">Term NamedDeBruijn DefaultUni DefaultFun ()
+</span><a href="#local-6989586621679634774"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-43"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679634773"><span class="annot"><span class="annottext">nameless :: Term DeBruijn DefaultUni DefaultFun ()
+</span><a href="#local-6989586621679634773"><span class="hs-identifier hs-var hs-var">nameless</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(NamedDeBruijn -&gt; DeBruijn)
 -&gt; Term NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; Term DeBruijn DefaultUni DefaultFun ()
 forall name name' (uni :: * -&gt; *) fun ann.
 (name -&gt; name') -&gt; Term name uni fun ann -&gt; Term name' uni fun ann
-</span><span class="hs-identifier hs-var">UPLC.termMapNames</span></span><span> </span><span class="annot"><span class="annottext">NamedDeBruijn -&gt; DeBruijn
-</span><span class="hs-identifier hs-var">UPLC.unNameDeBruijn</span></span><span> </span><span class="annot"><span class="annottext">Term NamedDeBruijn DefaultUni DefaultFun ()
-</span><a href="#local-6989586621679556530"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><a href="../UntypedPlutusCore.Subst.html#termMapNames"><span class="hs-identifier hs-var">UPLC.termMapNames</span></a></span><span> </span><span class="annot"><span class="annottext">NamedDeBruijn -&gt; DeBruijn
+</span><a href="../PlutusCore.DeBruijn.Internal.html#unNameDeBruijn"><span class="hs-identifier hs-var">UPLC.unNameDeBruijn</span></a></span><span> </span><span class="annot"><span class="annottext">Term NamedDeBruijn DefaultUni DefaultFun ()
+</span><a href="#local-6989586621679634774"><span class="hs-identifier hs-var">t</span></a></span><span>
 </span><span id="line-44"></span><span>       </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Program DeBruijn DefaultUni DefaultFun () -&gt; Script
-</span><span class="hs-identifier hs-var">Script</span></span><span> </span><span class="annot"><span class="annottext">(Program DeBruijn DefaultUni DefaultFun () -&gt; Script)
+</span><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-var">Script</span></a></span><span> </span><span class="annot"><span class="annottext">(Program DeBruijn DefaultUni DefaultFun () -&gt; Script)
 -&gt; Program DeBruijn DefaultUni DefaultFun () -&gt; Script
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">()
+</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">()
 -&gt; Version ()
 -&gt; Term DeBruijn DefaultUni DefaultFun ()
 -&gt; Program DeBruijn DefaultUni DefaultFun ()
 forall name (uni :: * -&gt; *) fun ann.
 ann
 -&gt; Version ann -&gt; Term name uni fun ann -&gt; Program name uni fun ann
-</span><span class="hs-identifier hs-var">UPLC.Program</span></span><span> </span><span class="annot"><span class="annottext">()
-</span><a href="#local-6989586621679556532"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Version ()
-</span><a href="#local-6989586621679556531"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Term DeBruijn DefaultUni DefaultFun ()
-</span><a href="#local-6989586621679556529"><span class="hs-identifier hs-var">nameless</span></a></span><span>
+</span><a href="../UntypedPlutusCore.Core.Type.html#Program"><span class="hs-identifier hs-var">UPLC.Program</span></a></span><span> </span><span class="annot"><span class="annottext">()
+</span><a href="#local-6989586621679634776"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Version ()
+</span><a href="#local-6989586621679634775"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Term DeBruijn DefaultUni DefaultFun ()
+</span><a href="#local-6989586621679634773"><span class="hs-identifier hs-var">nameless</span></a></span><span>
 </span><span id="line-45"></span><span>
 </span><span id="line-46"></span><span class="hs-comment">-- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs</span><span>
 </span><span id="line-47"></span><span class="hs-comment">--  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84)</span><span>
 </span><span id="line-48"></span><span class="hs-comment">--  applied to a 'TScripts.mkTypedValidator'. If the compiled validator was /not/ wrapped,</span><span>
 </span><span id="line-49"></span><span class="hs-comment">--  stick to 'typedValidatorFromBS'.</span><span>
-</span><span id="line-50"></span><span class="annot"><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromBS"><span class="hs-identifier hs-type">unsafeTypedValidatorFromBS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679556525"><span class="annot"><a href="#local-6989586621679556525"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679556525"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span class="annot"><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromBS"><span class="hs-identifier hs-type">unsafeTypedValidatorFromBS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679634769"><span class="annot"><a href="#local-6989586621679634769"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="../Data.ByteString.Internal.html#ByteString"><span class="hs-identifier hs-type">BS.ByteString</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Data.Either.html#Either"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679634769"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span id="unsafeTypedValidatorFromBS"><span class="annot"><span class="annottext">unsafeTypedValidatorFromBS :: ByteString -&gt; Either String (TypedValidator a)
 </span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromBS"><span class="hs-identifier hs-var hs-var">unsafeTypedValidatorFromBS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(DecodeException -&gt; Either String (TypedValidator a))
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
@@ -120,24 +120,24 @@ ann
      DecodeException (Program NamedDeBruijn DefaultUni DefaultFun ())
 -&gt; Either String (TypedValidator a)
 forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
-</span><span class="hs-identifier hs-var">either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Either String (TypedValidator a)
+</span><a href="../Data.Either.html#either"><span class="hs-identifier hs-var">either</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Either String (TypedValidator a)
 forall a b. a -&gt; Either a b
-</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String (TypedValidator a))
+</span><a href="../Data.Either.html#Left"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String (TypedValidator a))
 -&gt; (DecodeException -&gt; String)
 -&gt; DecodeException
 -&gt; Either String (TypedValidator a)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">DecodeException -&gt; String
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">DecodeException -&gt; String
 forall a. Show a =&gt; a -&gt; String
-</span><span class="hs-identifier hs-var">show</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Either String (TypedValidator a)
+</span><a href="../GHC.Show.html#show"><span class="hs-identifier hs-var">show</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator a -&gt; Either String (TypedValidator a)
 forall a b. b -&gt; Either a b
-</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(TypedValidator a -&gt; Either String (TypedValidator a))
+</span><a href="../Data.Either.html#Right"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">(TypedValidator a -&gt; Either String (TypedValidator a))
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
     -&gt; TypedValidator a)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; Either String (TypedValidator a)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
 forall a.
 Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
 </span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either
@@ -149,15 +149,15 @@ Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
 -&gt; ByteString
 -&gt; Either String (TypedValidator a)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
 -&gt; Either
      DecodeException (Program NamedDeBruijn DefaultUni DefaultFun ())
 forall a b. (Flat a, AsByteString b) =&gt; b -&gt; Decoded a
-</span><span class="hs-identifier hs-var">Flat.unflat</span></span><span>
+</span><a href="../Flat.Run.html#unflat"><span class="hs-identifier hs-var">Flat.unflat</span></a></span><span>
 </span><span id="line-52"></span><span>
 </span><span id="line-53"></span><span class="hs-comment">-- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs</span><span>
 </span><span id="line-54"></span><span class="hs-comment">--  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84).</span><span>
-</span><span id="line-55"></span><span class="annot"><a href="Cooked.RawUPLC.html#typedValidatorFromBS"><span class="hs-identifier hs-type">typedValidatorFromBS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">TScripts.Any</span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Cooked.RawUPLC.html#typedValidatorFromBS"><span class="hs-identifier hs-type">typedValidatorFromBS</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Data.ByteString.Internal.html#ByteString"><span class="hs-identifier hs-type">BS.ByteString</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Data.Either.html#Either"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">TScripts.TypedValidator</span></a></span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#Any"><span class="hs-identifier hs-type">TScripts.Any</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-56"></span><span id="typedValidatorFromBS"><span class="annot"><span class="annottext">typedValidatorFromBS :: ByteString -&gt; Either String (TypedValidator Any)
 </span><a href="Cooked.RawUPLC.html#typedValidatorFromBS"><span class="hs-identifier hs-var hs-var">typedValidatorFromBS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(DecodeException -&gt; Either String (TypedValidator Any))
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
@@ -166,24 +166,24 @@ forall a b. (Flat a, AsByteString b) =&gt; b -&gt; Decoded a
      DecodeException (Program NamedDeBruijn DefaultUni DefaultFun ())
 -&gt; Either String (TypedValidator Any)
 forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
-</span><span class="hs-identifier hs-var">either</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Either String (TypedValidator Any)
+</span><a href="../Data.Either.html#either"><span class="hs-identifier hs-var">either</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Either String (TypedValidator Any)
 forall a b. a -&gt; Either a b
-</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String (TypedValidator Any))
+</span><a href="../Data.Either.html#Left"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Either String (TypedValidator Any))
 -&gt; (DecodeException -&gt; String)
 -&gt; DecodeException
 -&gt; Either String (TypedValidator Any)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">DecodeException -&gt; String
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">DecodeException -&gt; String
 forall a. Show a =&gt; a -&gt; String
-</span><span class="hs-identifier hs-var">show</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator Any -&gt; Either String (TypedValidator Any)
+</span><a href="../GHC.Show.html#show"><span class="hs-identifier hs-var">show</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TypedValidator Any -&gt; Either String (TypedValidator Any)
 forall a b. b -&gt; Either a b
-</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(TypedValidator Any -&gt; Either String (TypedValidator Any))
+</span><a href="../Data.Either.html#Right"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">(TypedValidator Any -&gt; Either String (TypedValidator Any))
 -&gt; (Program NamedDeBruijn DefaultUni DefaultFun ()
     -&gt; TypedValidator Any)
 -&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; Either String (TypedValidator Any)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun ()
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun ()
 -&gt; TypedValidator Any
 forall a.
 Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
@@ -196,9 +196,9 @@ Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
 -&gt; ByteString
 -&gt; Either String (TypedValidator Any)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
-</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ByteString
 -&gt; Either
      DecodeException (Program NamedDeBruijn DefaultUni DefaultFun ())
 forall a b. (Flat a, AsByteString b) =&gt; b -&gt; Decoded a
-</span><span class="hs-identifier hs-var">Flat.unflat</span></span><span>
+</span><a href="../Flat.Run.html#unflat"><span class="hs-identifier hs-var">Flat.unflat</span></a></span><span>
 </span><span id="line-57"></span></pre></body></html>
