@@ -1,6 +1,6 @@
 {-# LANGUAGE NumericUnderscores #-}
 
-module Cooked.Distribution
+module Cooked.InitialDistribution
   ( initialDistribution,
     InitialDistribution (..),
   )

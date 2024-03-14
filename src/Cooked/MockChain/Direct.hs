@@ -26,7 +26,7 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
-import Cooked.Distribution
+import Cooked.InitialDistribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.UtxoState
