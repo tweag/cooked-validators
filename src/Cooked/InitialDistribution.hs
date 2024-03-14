@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TupleSections #-}
 
 module Cooked.InitialDistribution
   ( initialDistribution,
@@ -11,7 +12,9 @@ import Data.Default
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
 import qualified Plutus.Script.Utils.Value as Pl
+import qualified Plutus.V2.Ledger.Api as Pl
 
 -- * Initial distribution of funds
 
@@ -34,8 +37,16 @@ import qualified Plutus.Script.Utils.Value as Pl
 --  >        , (wallet 2 , [Pl.lovelaveValueOf 10_000_000])
 --  >        , (wallet 3 , [Pl.lovelaceValueOf 10_000_000 <> permanentValue "XYZ" 10])
 --  >        ]
+
+-- | This represents what can be placed within Utxos in the initial distribution:
+-- * A value
+-- * A datum with its builtin data representation
+-- * A script hash to represent a reference script
+type UtxoContent = (Pl.Value, Pl.OutputDatum, Maybe Pl.ScriptHash)
+
+-- | An initial distribution associates a list of UtxoContent to wallets
 newtype InitialDistribution = InitialDistribution
-  { unInitialDistribution :: Map Wallet [Pl.Value]
+  { unInitialDistribution :: Map Wallet [UtxoContent]
   }
   deriving (Eq, Show)
 
@@ -46,17 +57,24 @@ instance Semigroup InitialDistribution where
 instance Monoid InitialDistribution where
   mempty = InitialDistribution Map.empty
 
--- | 10 UTxOs with 100 Ada each, for each of the 'knownWallets'.
+-- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets', without any datum nor scripts
 instance Default InitialDistribution where
-  def =
-    InitialDistribution $
-      Map.fromList $
-        zip knownWallets (repeat $ replicate 10 defLovelace)
-    where
-      defLovelace = Pl.lovelaceValueOf 100_000_000
+  def = distributionFromList . zip knownWallets . repeat . replicate 5 . (,Pl.NoOutputDatum,Nothing) . Pl.lovelaceValueOf $ 100_000_000
 
-distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
+distributionFromList :: [(Wallet, [UtxoContent])] -> InitialDistribution
 distributionFromList = InitialDistribution . Map.fromList
 
-initialDistribution :: [(Wallet, [Pl.Value])] -> InitialDistribution
+initialDistribution :: [(Wallet, [UtxoContent])] -> InitialDistribution
 initialDistribution = (def <>) . distributionFromList
+
+unitDistribution :: (Pl.ToData a) => Wallet -> Pl.Value -> a -> Pl.TypedValidator b -> InitialDistribution
+unitDistribution user value datum validator =
+  initialDistribution
+    [ ( user,
+        [ ( value,
+            Pl.OutputDatum $ Pl.Datum $ Pl.toBuiltinData datum,
+            Just $ Pl.validatorHash validator
+          )
+        ]
+      )
+    ]
