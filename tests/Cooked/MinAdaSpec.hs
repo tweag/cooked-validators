@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Cooked.MinAdaSpec where
 

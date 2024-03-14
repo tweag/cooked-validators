@@ -116,7 +116,7 @@ walletSK = Pl.unPaymentPrivateKey . Pl.paymentPrivateKey
 -- because the constructor and accessors to 'MockPrivateKey' are not exported.
 -- Hence, we make an isomorphic datatype, 'unsafeCoerce' to this datatype then
 -- extract whatever we need from it.
-newtype HACK = HACK Cardano.XPrv
+newtype HACK = HACK PrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
 walletStakingSK :: Wallet -> Maybe PrivateKey
@@ -124,7 +124,7 @@ walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
   where
     -- Make sure that you only apply it to @MockPrivateKey@; the function is
     -- polymorphic because @MockPrivateKey@ is not exported either
-    hackUnMockPrivateKey :: a -> Cardano.XPrv
+    hackUnMockPrivateKey :: a -> PrivateKey
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
 
 -- * Initial distribution of funds
