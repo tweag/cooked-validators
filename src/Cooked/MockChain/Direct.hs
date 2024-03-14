@@ -26,6 +26,7 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Cooked.Distribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.UtxoState
@@ -281,7 +282,7 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
           fromRight' $
             Ledger.toCardanoTxOut
               theNetworkId
-              (PV2.TxOut addr value datum Nothing)
+              (PV2.TxOut addr value datum (Just undefined))
 
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?

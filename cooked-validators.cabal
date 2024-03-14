@@ -19,6 +19,7 @@ library
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
       Cooked.Currencies
+      Cooked.Distribution
       Cooked.Ltl
       Cooked.MockChain
       Cooked.MockChain.Balancing
