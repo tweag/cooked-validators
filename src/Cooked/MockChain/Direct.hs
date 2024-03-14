@@ -32,6 +32,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
+import Data.Bifunctor (bimap)
 import Data.Default
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -62,8 +63,12 @@ mcstToUtxoState :: MockChainSt -> UtxoState
 mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
   UtxoState
     . foldr (\(address, utxoValueSet) acc -> Map.insertWith (<>) address utxoValueSet acc) Map.empty
-    . mapMaybe extractPayload
-    . map (\(k, v) -> (Ledger.fromCardanoTxIn k, Ledger.fromCardanoTxOutToPV2TxInfoTxOut' v))
+    . mapMaybe
+      ( extractPayload
+          . bimap
+            Ledger.fromCardanoTxIn
+            Ledger.fromCardanoTxOutToPV2TxInfoTxOut'
+      )
     . Map.toList
     . C.unUTxO
     $ mcstIndex
@@ -244,8 +249,7 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
         genesisKeyHash :: C.Hash C.GenesisUTxOKey
         genesisKeyHash =
           C.GenesisUTxOKeyHash $
-            CardanoLedger.KeyHash $
-              "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
+            CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
 
         initDist' = Map.toList $ unInitialDistribution initDist
 
@@ -290,7 +294,7 @@ utxoIndex0 = utxoIndex0From def
 getIndex :: Ledger.UtxoIndex -> Map Pl.TxOutRef Ledger.TxOut
 getIndex =
   Map.fromList
-    . map (\(k, v) -> (Ledger.fromCardanoTxIn k, Ledger.TxOut . toCtxTxTxOut $ v))
+    . map (bimap Ledger.fromCardanoTxIn (Ledger.TxOut . toCtxTxTxOut))
     . Map.toList
     . C.unUTxO
   where
