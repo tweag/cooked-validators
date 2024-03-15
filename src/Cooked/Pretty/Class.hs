@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | We provide the 'PrettyCooked' class and instances for common Plutus types.
@@ -18,6 +19,7 @@ where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Cooked.Wallet
 import Data.Default
@@ -47,14 +49,14 @@ printCooked :: (PrettyCooked a) => a -> IO ()
 printCooked = printCookedOpt def
 
 instance PrettyCooked Pl.TxId where
-  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance PrettyCooked Pl.TxOutRef where
   prettyCookedOpt opts (Pl.TxOutRef txId index) =
-    prettyHash (pcOptPrintedHashLength opts) txId <> "!" <> prettyCookedOpt opts index
+    prettyHash (pcOptHashes opts) (toHash txId) <> "!" <> prettyCookedOpt opts index
 
 instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
-  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts) . Pl.mintingPolicyHash
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance PrettyCooked Pl.Address where
   prettyCookedOpt opts (Pl.Address addrCr Nothing) = prettyCookedOpt opts addrCr
@@ -72,13 +74,13 @@ instance PrettyCooked Pl.PubKeyHash where
   --
   prettyCookedOpt opts pkh =
     case walletPKHashToId pkh of
-      Nothing -> prettyHash (pcOptPrintedHashLength opts) pkh
+      Nothing -> prettyHash (pcOptHashes opts) (toHash pkh)
       Just walletId ->
-        prettyHash (pcOptPrintedHashLength opts) pkh
+        prettyHash (pcOptHashes opts) (toHash pkh)
           <+> PP.parens ("wallet" <+> PP.viaShow walletId)
 
 instance PrettyCooked Pl.Credential where
-  prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptPrintedHashLength opts) vh
+  prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
   prettyCookedOpt opts (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
 
 instance PrettyCooked Pl.Value where
@@ -110,7 +112,7 @@ instance PrettyCooked Pl.CurrencySymbol where
     | symbol == Pl.CurrencySymbol "" = "Lovelace"
     | symbol == quickCurrencySymbol = "Quick"
     | symbol == permanentCurrencySymbol = "Permanent"
-    | otherwise = prettyHash (pcOptPrintedHashLength opts) symbol
+    | otherwise = prettyHash (pcOptHashes opts) (toHash symbol)
 
 instance PrettyCooked Pl.TokenName where
   prettyCookedOpt _ = PP.pretty
@@ -132,7 +134,7 @@ instance PrettyCooked Pl.POSIXTime where
   prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
 
 instance PrettyCooked Pl.ScriptHash where
-  prettyCookedOpt opts = prettyHash (pcOptPrintedHashLength opts)
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance (PrettyCooked a) => PrettyCooked [a] where
   prettyCookedOpt opts = prettyItemizeNoTitle "-" . map (prettyCookedOpt opts)
