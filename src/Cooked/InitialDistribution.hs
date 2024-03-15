@@ -6,8 +6,8 @@ module Cooked.InitialDistribution
     InitialDistribution (..),
     valueToUTxOContent,
     UTxOContent (..),
-    withDatum,
-    withReferenceScript,
+    addDatum,
+    addReferenceScript,
     datumToUTxOContent,
     referenceScriptToUTxOContent,
     distributionFromList,
@@ -62,17 +62,17 @@ valueToUTxOContent val = UTxOContent val Pl.NoOutputDatum Nothing
 instance Default UTxOContent where
   def = valueToUTxOContent (ada 2)
 
-withDatum :: (Pl.ToData a) => UTxOContent -> a -> UTxOContent
-withDatum content datum = content {ucDatum = toOutputDatum $ Pl.toBuiltinData datum}
+addDatum :: (Pl.ToData a) => UTxOContent -> a -> UTxOContent
+addDatum content datum = content {ucDatum = toOutputDatum $ Pl.toBuiltinData datum}
 
 datumToUTxOContent :: (Pl.ToData a) => a -> UTxOContent
-datumToUTxOContent = withDatum def
+datumToUTxOContent = addDatum def
 
-withReferenceScript :: UTxOContent -> Pl.TypedValidator a -> UTxOContent
-withReferenceScript content script = content {ucScript = Just $ toScriptHash script}
+addReferenceScript :: UTxOContent -> Pl.TypedValidator a -> UTxOContent
+addReferenceScript content script = content {ucScript = Just $ toScriptHash script}
 
 referenceScriptToUTxOContent :: Pl.TypedValidator a -> UTxOContent
-referenceScriptToUTxOContent = withReferenceScript def
+referenceScriptToUTxOContent = addReferenceScript def
 
 -- | An initial distribution associates a list of UTxOContent to
 -- wallets

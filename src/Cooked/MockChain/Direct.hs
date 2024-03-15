@@ -3,10 +3,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -238,8 +238,8 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
                       . C.filterValue (/= C.AdaAssetId)
                       . fromRight'
                       . Ledger.toCardanoValue
-                      $ mconcat (map (mconcat . snd) initDist'),
-                  C.txOuts = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist',
+                      $ mconcat (map (mconcat . map ucValue . snd) initDist'),
+                  C.txOuts = concatMap (\(w, vs) -> map (toCardanoTxOut' w) vs) initDist',
                   C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith spendWit)]
                 }
 
@@ -254,35 +254,15 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
 
         initDist' = Map.toList $ unInitialDistribution initDist
 
-        initUtxosFor w v = txOut (walletAddress w) v (Nothing @())
-
         fromRight' :: (Show e) => Either e a -> a
         fromRight' x = case x of
           Left err -> error $ show err
           Right res -> res
 
-        txOut addr value datum = toCardanoTxOut' addr value datum'
-          where
-            datum' =
-              maybe
-                PV2.NoOutputDatum
-                ( PV2.OutputDatumHash
-                    . Pl.datumHash
-                    . Pl.Datum
-                    . Pl.toBuiltinData
-                )
-                datum
-
-        toCardanoTxOut' ::
-          Pl.Address ->
-          Pl.Value ->
-          PV2.OutputDatum ->
-          C.TxOut C.CtxTx C.BabbageEra
-        toCardanoTxOut' addr value datum =
+        toCardanoTxOut' :: Wallet -> UTxOContent -> C.TxOut C.CtxTx C.BabbageEra
+        toCardanoTxOut' wallet UTxOContent {..} =
           fromRight' $
-            Ledger.toCardanoTxOut
-              theNetworkId
-              (PV2.TxOut addr value datum (Just undefined))
+            Ledger.toCardanoTxOut theNetworkId (PV2.TxOut (walletAddress wallet) ucValue ucDatum ucScript)
 
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
