@@ -64,16 +64,16 @@ prettyHash :: PrettyCookedHashOpts -> Pl.BuiltinByteString -> DocCooked
 prettyHash PrettyCookedHashOpts {..} bbs@(Pl.BuiltinByteString bs) =
   let hexRepresentation :: DocCooked
       hexRepresentation =
-        PP.pretty $
-          ( take pcOptHashLength
-              . concatMap (`Numeric.showHex` "")
-              . ByteString.unpack
-          )
+        "#"
+          <> ( PP.pretty
+                 . take pcOptHashLength
+                 . concatMap (`Numeric.showHex` "")
+                 . ByteString.unpack
+             )
             bs
    in case Map.lookup bbs pcOptHashNames of
-        Nothing -> "#" <> hexRepresentation
+        Nothing -> hexRepresentation
         Just name ->
-          PP.pretty name
-            <+> if pcOptHashVerbose
-              then PP.parens ("#" <> hexRepresentation)
-              else mempty
+          if pcOptHashVerbose
+            then hexRepresentation <+> PP.parens (PP.pretty name)
+            else PP.pretty name
