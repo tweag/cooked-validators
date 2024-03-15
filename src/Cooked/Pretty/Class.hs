@@ -66,18 +66,7 @@ instance PrettyCooked Pl.Address where
     prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
 
 instance PrettyCooked Pl.PubKeyHash where
-  -- If the pubkey is a known wallet
-  -- #abcdef (wallet 3)
-  --
-  -- Otherwise
-  -- #123456
-  --
-  prettyCookedOpt opts pkh =
-    case walletPKHashToId pkh of
-      Nothing -> prettyHash (pcOptHashes opts) (toHash pkh)
-      Just walletId ->
-        prettyHash (pcOptHashes opts) (toHash pkh)
-          <+> PP.parens ("wallet" <+> PP.viaShow walletId)
+  prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance PrettyCooked Pl.Credential where
   prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
