@@ -1,5 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-
 -- | This module provides a convenient way to spread assets between
 -- wallets and scripts at the initialization of the mock chain. These
 -- initial assets can be accompanied by datums and reference scripts.
@@ -24,7 +22,6 @@ import Data.Bifunctor (second)
 import Data.Default
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
@@ -38,22 +35,20 @@ import qualified Plutus.V2.Ledger.Api as Pl
 -- option. The @txCollateral@ is transferred to the node operator in
 -- case the transaction fails to validate.
 --
---  The following specifies a starting state where @wallet 1@ contains
---  two UTxOs, one with 42 Ada and one with 2 Ada and one "TOK" token;
---  @wallet 2@ contains a single UTxO with 10 Ada and @wallet 3@ has
---  10 Ada and a permanent value. See "Cooked.Currencies" for more
+--  The following specifies a starting state where @wallet 1@ owns two
+--  UTxOs, one with 42 Ada and one with 2 Ada and one "TOK" token;
+--  @wallet 2@ owns a single UTxO with 10 Ada and @wallet 3@ has 10
+--  Ada and a permanent value. See "Cooked.Currencies" for more
 --  information on quick and permanent values.
 --
 --  > i0 = InitialDistribution $ M.fromList
---  >        [ (wallet 1 , [ Pl.lovelaveValueOf 42_000_000
---  >                      , Pl.lovelaceValueOf 2_000_000 <> quickValue "TOK" 1
---  >                      ]
---  >        , (wallet 2 , [Pl.lovelaveValueOf 10_000_000])
---  >        , (wallet 3 , [Pl.lovelaceValueOf 10_000_000 <> permanentValue "XYZ" 10])
+--  >        [ (wallet 1 , [ ada 42 , ada 2 <> quickValue "TOK" 1 ]
+--  >        , (wallet 2 , [ ada 10 ])
+--  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
 
 -- | This represents what can be placed within UTxOs in the initial
--- distribution: a value, a datum and a possible reference
+-- distribution: a value, a datum andq a possible reference
 data UTxOContent = UTxOContent
   { ucValue :: Pl.Value,
     ucDatum :: Pl.OutputDatum,
@@ -79,7 +74,8 @@ withReferenceScript content script = content {ucScript = Just $ toScriptHash scr
 referenceScriptToUTxOContent :: Pl.TypedValidator a -> UTxOContent
 referenceScriptToUTxOContent = withReferenceScript def
 
--- | An initial distribution associates a list of UTxOContent to wallets
+-- | An initial distribution associates a list of UTxOContent to
+-- wallets
 newtype InitialDistribution = InitialDistribution
   { unInitialDistribution :: Map Wallet [UTxOContent]
   }
@@ -92,7 +88,8 @@ instance Semigroup InitialDistribution where
 instance Monoid InitialDistribution where
   mempty = InitialDistribution Map.empty
 
--- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets', without any datum nor scripts
+-- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets',
+-- without any datum nor scripts
 instance Default InitialDistribution where
   def =
     distributionFromList
@@ -100,8 +97,7 @@ instance Default InitialDistribution where
       . repeat
       . replicate 5
       . valueToUTxOContent
-      . Pl.lovelaceValueOf
-      $ 100_000_000
+      $ ada 100
 
 distributionFromList :: [(Wallet, [UTxOContent])] -> InitialDistribution
 distributionFromList = InitialDistribution . Map.fromList
