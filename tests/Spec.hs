@@ -1,6 +1,8 @@
 import qualified Cooked.AttackSpec as AttackSpec
-import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 -- import qualified Cooked.BalanceSpec as Ba
+
+import qualified Cooked.InitialDistributionSpec as InitDistrib
+import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 import qualified Cooked.LtlSpec as LtlSpec
 import qualified Cooked.MinAdaSpec as MinAdaSpec
 import qualified Cooked.MockChainSpec as MockChainSpec
@@ -36,5 +38,6 @@ tests =
       TweakSpec.tests,
       LtlSpec.tests,
       MockChainSpec.tests,
-      ShowBSSpec.tests
+      ShowBSSpec.tests,
+      InitDistrib.tests
     ]

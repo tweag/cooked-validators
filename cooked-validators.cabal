@@ -48,6 +48,7 @@ library
       Cooked.Tweak.Signers
       Cooked.Tweak.TamperDatum
       Cooked.Tweak.ValidityRange
+      Cooked.Validators
       Cooked.ValueUtils
       Cooked.Wallet
   other-modules:
@@ -111,6 +112,7 @@ test-suite spec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
+      Cooked.InitialDistributionSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
       Cooked.MinAdaSpec

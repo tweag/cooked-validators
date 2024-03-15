@@ -41,7 +41,7 @@ import qualified Plutus.V2.Ledger.Api as Pl
 --  Ada and a permanent value. See "Cooked.Currencies" for more
 --  information on quick and permanent values.
 --
---  > i0 = InitialDistribution $ M.fromList
+--  > i0 = InitialDistributionFromValueList $
 --  >        [ (wallet 1 , [ ada 42 , ada 2 <> quickValue "TOK" 1 ]
 --  >        , (wallet 2 , [ ada 10 ])
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
@@ -56,8 +56,13 @@ data UTxOContent = UTxOContent
   }
   deriving (Eq, Show)
 
+class ToUTxOContent a where
+  toUTxOContent :: a -> UTxOContent
+
 valueToUTxOContent :: Pl.Value -> UTxOContent
 valueToUTxOContent val = UTxOContent val Pl.NoOutputDatum Nothing
+
+-- TODO: value, datums and script are convertible to utxo content
 
 instance Default UTxOContent where
   def = valueToUTxOContent (ada 2)
