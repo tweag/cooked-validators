@@ -56,13 +56,8 @@ data UTxOContent = UTxOContent
   }
   deriving (Eq, Show)
 
-class ToUTxOContent a where
-  toUTxOContent :: a -> UTxOContent
-
 valueToUTxOContent :: Pl.Value -> UTxOContent
 valueToUTxOContent val = UTxOContent val Pl.NoOutputDatum Nothing
-
--- TODO: value, datums and script are convertible to utxo content
 
 instance Default UTxOContent where
   def = valueToUTxOContent (ada 2)

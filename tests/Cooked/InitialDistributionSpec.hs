@@ -59,7 +59,8 @@ spendReferenceAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelOuts = [paysPK (walletPKHash $ wallet 1) (ada 2)],
-          txSkelIns = Map.singleton scriptTxOutRef (TxSkelRedeemerForReferencedScript referenceScriptTxOutRef ())
+          txSkelIns = Map.singleton scriptTxOutRef (TxSkelRedeemerForReferencedScript referenceScriptTxOutRef ()),
+          txSkelSigners = [wallet 2]
         }
 
 tests :: TestTree

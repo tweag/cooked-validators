@@ -13,6 +13,7 @@ import Control.Monad
 import Cooked
 import Cooked.Attack.DatumHijacking
 import Cooked.MockChain.Staged
+import Cooked.Validators
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -171,7 +172,7 @@ tests =
     [ testGroup "unit tests on a 'TxSkel'" $
         let val1 = carelessValidator
             val2 = carefulValidator
-            thief = datumHijackingTarget @MockContract
+            thief = alwaysTrueValidator @MockContract
             x1 = Pl.lovelaceValueOf 10001
             x2 = Pl.lovelaceValueOf 10000
             x3 = Pl.lovelaceValueOf 9999
