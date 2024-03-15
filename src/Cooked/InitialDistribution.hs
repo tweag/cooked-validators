@@ -1,13 +1,26 @@
 {-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE TupleSections #-}
 
+-- | This module provides a convenient way to spread assets between
+-- wallets and scripts at the initialization of the mock chain. These
+-- initial assets can be accompanied by datums and reference scripts.
 module Cooked.InitialDistribution
   ( initialDistribution,
     InitialDistribution (..),
+    valueToUTxOContent,
+    UTxOContent (..),
+    withDatum,
+    withReferenceScript,
+    datumToUTxOContent,
+    referenceScriptToUTxOContent,
+    distributionFromList,
+    distributionFromValueList,
   )
 where
 
+import Cooked.Output
+import Cooked.ValueUtils
 import Cooked.Wallet
+import Data.Bifunctor (second)
 import Data.Default
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -18,17 +31,18 @@ import qualified Plutus.V2.Ledger.Api as Pl
 
 -- * Initial distribution of funds
 
--- | Describes the initial distribution of UTxOs per wallet. This is important
--- since transaction validation must specify a /collateral/. Hence, wallets
--- must have more than one UTxO to begin with in order to execute a transaction
--- and have some collateral option. The @txCollateral@ is transferred to the
--- node operator in case the transaction fails to validate.
+-- | Describes the initial distribution of UTxOs per wallet. This is
+-- important since transaction validation must specify a
+-- /collateral/. Hence, wallets must have more than one UTxO to begin
+-- with in order to execute a transaction and have some collateral
+-- option. The @txCollateral@ is transferred to the node operator in
+-- case the transaction fails to validate.
 --
---  The following specifies a starting state where @wallet 1@ contains two
---  UTxOs, one with 42 Ada and one with 2 Ada and one "TOK" token; @wallet 2@
---  contains a single UTxO with 10 Ada and @wallet 3@ has 10 Ada and a
---  permanent value. See "Cooked.Currencies" for more information on quick and
---  permanent values.
+--  The following specifies a starting state where @wallet 1@ contains
+--  two UTxOs, one with 42 Ada and one with 2 Ada and one "TOK" token;
+--  @wallet 2@ contains a single UTxO with 10 Ada and @wallet 3@ has
+--  10 Ada and a permanent value. See "Cooked.Currencies" for more
+--  information on quick and permanent values.
 --
 --  > i0 = InitialDistribution $ M.fromList
 --  >        [ (wallet 1 , [ Pl.lovelaveValueOf 42_000_000
@@ -38,15 +52,36 @@ import qualified Plutus.V2.Ledger.Api as Pl
 --  >        , (wallet 3 , [Pl.lovelaceValueOf 10_000_000 <> permanentValue "XYZ" 10])
 --  >        ]
 
--- | This represents what can be placed within Utxos in the initial distribution:
--- * A value
--- * A datum with its builtin data representation
--- * A script hash to represent a reference script
-type UtxoContent = (Pl.Value, Pl.OutputDatum, Maybe Pl.ScriptHash)
+-- | This represents what can be placed within UTxOs in the initial
+-- distribution: a value, a datum and a possible reference
+data UTxOContent = UTxOContent
+  { ucValue :: Pl.Value,
+    ucDatum :: Pl.OutputDatum,
+    ucScript :: Maybe Pl.ScriptHash
+  }
+  deriving (Eq, Show)
 
--- | An initial distribution associates a list of UtxoContent to wallets
+valueToUTxOContent :: Pl.Value -> UTxOContent
+valueToUTxOContent val = UTxOContent val Pl.NoOutputDatum Nothing
+
+instance Default UTxOContent where
+  def = valueToUTxOContent (ada 2)
+
+withDatum :: (Pl.ToData a) => UTxOContent -> a -> UTxOContent
+withDatum content datum = content {ucDatum = toOutputDatum $ Pl.toBuiltinData datum}
+
+datumToUTxOContent :: (Pl.ToData a) => a -> UTxOContent
+datumToUTxOContent = withDatum def
+
+withReferenceScript :: UTxOContent -> Pl.TypedValidator a -> UTxOContent
+withReferenceScript content script = content {ucScript = Just $ toScriptHash script}
+
+referenceScriptToUTxOContent :: Pl.TypedValidator a -> UTxOContent
+referenceScriptToUTxOContent = withReferenceScript def
+
+-- | An initial distribution associates a list of UTxOContent to wallets
 newtype InitialDistribution = InitialDistribution
-  { unInitialDistribution :: Map Wallet [UtxoContent]
+  { unInitialDistribution :: Map Wallet [UTxOContent]
   }
   deriving (Eq, Show)
 
@@ -59,22 +94,20 @@ instance Monoid InitialDistribution where
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets', without any datum nor scripts
 instance Default InitialDistribution where
-  def = distributionFromList . zip knownWallets . repeat . replicate 5 . (,Pl.NoOutputDatum,Nothing) . Pl.lovelaceValueOf $ 100_000_000
+  def =
+    distributionFromList
+      . zip knownWallets
+      . repeat
+      . replicate 5
+      . valueToUTxOContent
+      . Pl.lovelaceValueOf
+      $ 100_000_000
 
-distributionFromList :: [(Wallet, [UtxoContent])] -> InitialDistribution
+distributionFromList :: [(Wallet, [UTxOContent])] -> InitialDistribution
 distributionFromList = InitialDistribution . Map.fromList
 
-initialDistribution :: [(Wallet, [UtxoContent])] -> InitialDistribution
-initialDistribution = (def <>) . distributionFromList
+distributionFromValueList :: [(Wallet, [Pl.Value])] -> InitialDistribution
+distributionFromValueList = distributionFromList . map (second $ map valueToUTxOContent)
 
-unitDistribution :: (Pl.ToData a) => Wallet -> Pl.Value -> a -> Pl.TypedValidator b -> InitialDistribution
-unitDistribution user value datum validator =
-  initialDistribution
-    [ ( user,
-        [ ( value,
-            Pl.OutputDatum $ Pl.Datum $ Pl.toBuiltinData datum,
-            Just $ Pl.validatorHash validator
-          )
-        ]
-      )
-    ]
+initialDistribution :: [(Wallet, [UTxOContent])] -> InitialDistribution
+initialDistribution = (def <>) . distributionFromList

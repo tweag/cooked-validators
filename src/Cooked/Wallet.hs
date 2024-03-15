@@ -2,12 +2,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module defines convenient wrappers for mock chain wallets (around
--- Plutus mock wallets) and initial distributions (that is the initial state
--- associating a list of UTxOs with some initial values to each known wallet).
--- It also exposes a convenient API to construct wallets and distributions,
--- manipulate them, and fetch information (such as public/private keys and
--- staking keys).
+-- | This module defines convenient wrappers for mock chain wallets
+-- (around Plutus mock wallets) with an associate API to construct
+-- them, manipulate them, and fetch information (such as
+-- public/private and staking keys).
 module Cooked.Wallet
   ( knownWallets,
     wallet,
@@ -26,7 +24,7 @@ where
 
 import qualified Cardano.Crypto.Wallet as Cardano
 import Data.Function (on)
-import qualified Data.Map.Strict as Map
+import Data.List (elemIndex)
 import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as Pl
 import qualified Ledger.Credential as Pl
@@ -37,9 +35,9 @@ import Unsafe.Coerce
 
 -- $mockchainwallets
 --
--- Because the mock wallets from the plutus-apps change somewhat often, we
--- provide our own wrapper on top of them to make sure that we can easily deal
--- changes from Plutus.
+-- Because the mock wallets from the plutus-apps change somewhat
+-- often, we provide our own wrapper on top of them to make sure that
+-- we can easily deal changes from Plutus.
 
 type Wallet = Pl.MockWallet
 
@@ -51,32 +49,30 @@ instance Eq Wallet where
 instance Ord Wallet where
   compare = compare `on` Pl.mwWalletId
 
--- | All the wallets corresponding to known Plutus mock wallets. This is a list
--- of 10 wallets which will
+-- | All the wallets corresponding to known Plutus mock wallets. This
+-- is a list of 10 wallets which will
 --
--- - receive funds in the standard initial distribution of cooked-validators,
---   and
+-- - receive funds in the standard initial distribution of
+--   cooked-validators, and
 --
 -- - be pretty-printed as part the final state after running a few
 --   transactions.
 knownWallets :: [Wallet]
 knownWallets = Pl.knownMockWallets
 
--- | Wallet corresponding to a given wallet number (or wallet ID)
+-- | Wallet corresponding to a given wallet number (or wallet ID) with
+-- an offset of 1 to start at 1 instead of 0
 wallet :: Int -> Wallet
 wallet j
-  | j > 0 && j <= 10 = let i = j - 1 in knownWallets !! i
-  | otherwise = Pl.fromWalletNumber (Pl.WalletNumber $ fromIntegral j)
+  | j > 0 && j <= 10 = knownWallets !! (j - 1)
+  | otherwise = Pl.fromWalletNumber $ Pl.WalletNumber (fromIntegral j)
 
--- | Retrieves the id of the known wallet that corresponds to a public key
--- hash, if any.
+-- | Retrieves the id of the known wallet that corresponds to a public
+-- key hash, if any.
 --
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
 walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
-walletPKHashToId = flip Map.lookup walletPKHashToIdMap
-  where
-    walletPKHashToIdMap =
-      Map.fromList . flip zip [1 ..] . map walletPKHash $ knownWallets
+walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
 
 -- | Retrieves a wallet public key (PK)
 walletPK :: Wallet -> Pl.PubKey
@@ -105,17 +101,17 @@ walletAddress w =
 walletSK :: Pl.MockWallet -> PrivateKey
 walletSK = Pl.unPaymentPrivateKey . Pl.paymentPrivateKey
 
--- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is needed
--- because the constructor and accessors to 'MockPrivateKey' are not exported.
--- Hence, we make an isomorphic datatype, 'unsafeCoerce' to this datatype then
--- extract whatever we need from it.
+-- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is
+-- needed because the constructor and accessors to 'MockPrivateKey'
+-- are private.  Hence, we make an isomorphic datatype, 'unsafeCoerce'
+-- to this datatype then extract whatever we need from it.
 newtype HACK = HACK PrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
 walletStakingSK :: Wallet -> Maybe PrivateKey
 walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
   where
-    -- Make sure that you only apply it to @MockPrivateKey@; the function is
+    -- To only be applied to @MockPrivateKey@; the function is
     -- polymorphic because @MockPrivateKey@ is not exported either
     hackUnMockPrivateKey :: a -> PrivateKey
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
