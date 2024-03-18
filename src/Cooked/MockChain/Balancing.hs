@@ -15,6 +15,7 @@ import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
 import qualified Cardano.Node.Emulator as Emulator
+import qualified Cardano.Node.Emulator.Params as Pl
 import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
@@ -98,7 +99,7 @@ ensureTxSkelOutsMinAda skel = do
   where
     ensureTxSkelOutHasMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
     ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
-      cardanoTxOut <- txSkelOutToCardanoTxOut theParams txSkelOut
+      cardanoTxOut <- txSkelOutToCardanoTxOut (Pl.pNetworkId theParams) txSkelOut
       let Pl.Lovelace oldAda = output ^. outputValueL % adaL
           CardanoLedger.Coin requiredAda =
             CardanoLedger.evaluateMinLovelaceOutput (Emulator.emulatorPParams theParams)

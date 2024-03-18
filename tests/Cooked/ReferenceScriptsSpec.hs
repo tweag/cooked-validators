@@ -28,12 +28,6 @@ import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data MockContract
-
-instance Pl.ValidatorTypes MockContract where
-  type RedeemerType MockContract = ()
-  type DatumType MockContract = ()
-
 -- | The validator that always agrees to the transaction
 yesValidator :: Pl.TypedValidator MockContract
 yesValidator =

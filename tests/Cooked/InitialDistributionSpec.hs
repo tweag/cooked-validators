@@ -4,46 +4,34 @@
 module Cooked.InitialDistributionSpec where
 
 import Control.Monad
-import Cooked.InitialDistribution
-import Cooked.MockChain
-import Cooked.MockChain.Testing
-import Cooked.Skeleton
-import Cooked.Validators
-import Cooked.ValueUtils
-import Cooked.Wallet
+import Cooked
 import Data.Default
 import qualified Data.Map as Map
 import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data MockContract
-
-instance Pl.ValidatorTypes MockContract where
-  type RedeemerType MockContract = ()
-  type DatumType MockContract = ()
-
 -- | An initial distribution where wallet 1 owns a UTxO with a datum
 -- of type Int and value 10
 initialDistributionWithDatum =
-  distributionFromList
-    [ (wallet 1, [datumToUTxOContent @Integer 10])
-    ]
+  InitialDistribution
+    [withInlineDatum @Integer (paysPK (walletPKHash $ wallet 1) (ada 2)) 10]
 
 -- | An initial distribution where wallet 1 owns a UTxO with a
 -- reference script corresponding to the always succeed validators
 -- and wallet 2 owns 2 UTxOs with 100 ada
 initialDistributionWithReferenceScript =
-  distributionFromList
-    [ (wallet 1, [referenceScriptToUTxOContent $ alwaysTrueValidator @MockContract]),
-      (wallet 2, replicate 2 (valueToUTxOContent $ ada 100))
-    ]
+  InitialDistribution $
+    (paysPK (walletPKHash $ wallet 1) (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract)
+      : replicate 2 (paysPK (walletPKHash $ wallet 2) (ada 100))
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m Integer
 getValueFromInitialDatum = do
   [(txOutRef, _)] <- runUtxoSearch $ utxosAtSearch $ walletAddress $ wallet 1
   Just datum <- typedDatumFromTxOutRef @Integer txOutRef
   return datum
+
+printAndRun initDist trace = printCooked $ fst <$> interpretAndRunWith (runMockChainTFrom initDist) trace
 
 spendReferenceAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 spendReferenceAlwaysTrueValidator = do

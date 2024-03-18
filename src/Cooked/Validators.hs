@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | This module introduces standard dummy validators to be used in
 -- attacks, traces or tests. More precisely, it introduces the always
@@ -10,6 +11,7 @@
 module Cooked.Validators
   ( alwaysTrueValidator,
     alwaysFalseValidator,
+    MockContract,
   )
 where
 
@@ -32,3 +34,10 @@ alwaysFalseValidator = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||
   where
     tgt :: Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()
     tgt _ _ _ = error "This validator always fails."
+
+-- | A Mock contract type to instantiate validators with
+data MockContract
+
+instance Pl.ValidatorTypes MockContract where
+  type RedeemerType MockContract = ()
+  type DatumType MockContract = ()

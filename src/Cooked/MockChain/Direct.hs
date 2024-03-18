@@ -3,7 +3,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
@@ -29,12 +28,13 @@ import Control.Monad.State.Strict
 import Cooked.InitialDistribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
-import Cooked.Wallet
 import Data.Bifunctor (bimap)
 import Data.Default
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
@@ -44,6 +44,7 @@ import Ledger.Orphans ()
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
+import Optics.Core (view)
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
@@ -215,10 +216,31 @@ mockChainSt0 :: MockChainSt
 mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
+mockChainSt0From i0 =
+  MockChainSt
+    (utxoIndex0From i0)
+    (datumMap0From i0)
+    Map.empty
+    def
 
 instance Default MockChainSt where
   def = mockChainSt0
+
+datumMap0From :: InitialDistribution -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
+datumMap0From (InitialDistribution initDist) =
+  foldl'
+    (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . getDatumHash)
+    Map.empty
+    initDist
+  where
+    getDatumHash :: TxSkelOut -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
+    getDatumHash txSkelOut =
+      let datum = view txSkelOutDatumL txSkelOut
+       in toMap $ (,(datum, 1)) . Pl.datumHash <$> txSkelOutUntypedDatum datum
+
+    toMap :: Maybe (a, b) -> Map a b
+    toMap Nothing = Map.empty
+    toMap (Just (k, v)) = Map.singleton k v
 
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
@@ -238,12 +260,10 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
                       . C.filterValue (/= C.AdaAssetId)
                       . fromRight'
                       . Ledger.toCardanoValue
-                      $ mconcat (map (mconcat . map ucValue . snd) initDist'),
-                  C.txOuts = concatMap (\(w, vs) -> map (toCardanoTxOut' w) vs) initDist',
-                  C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith spendWit)]
+                      $ initDistValue initDist,
+                  C.txOuts = fromRight' . txSkelOutToCardanoTxOut theNetworkId <$> initialDistribution initDist,
+                  C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)]
                 }
-
-        spendWit = C.KeyWitness C.KeyWitnessForSpending
 
         -- This has been taken  from the Test.Cardano.Api.Genesis example transaction here:
         -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
@@ -252,20 +272,15 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
           C.GenesisUTxOKeyHash $
             CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
 
-        initDist' = Map.toList $ unInitialDistribution initDist
-
         fromRight' :: (Show e) => Either e a -> a
         fromRight' x = case x of
           Left err -> error $ show err
           Right res -> res
 
-        toCardanoTxOut' :: Wallet -> UTxOContent -> C.TxOut C.CtxTx C.BabbageEra
-        toCardanoTxOut' wallet UTxOContent {..} =
-          fromRight' $
-            Ledger.toCardanoTxOut theNetworkId (PV2.TxOut (walletAddress wallet) ucValue ucDatum ucScript)
-
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
+        initDistValue :: InitialDistribution -> Pl.Value
+        initDistValue = foldl' (\v -> (v <>) . view txSkelOutValueL) mempty . initialDistribution
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
