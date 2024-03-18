@@ -220,27 +220,33 @@ mockChainSt0From i0 =
   MockChainSt
     (utxoIndex0From i0)
     (datumMap0From i0)
-    Map.empty
+    (referenceScriptMap0From i0)
     def
 
 instance Default MockChainSt where
   def = mockChainSt0
 
+referenceScriptMap0From :: InitialDistribution -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+referenceScriptMap0From (InitialDistribution initDist) = Map.fromList $ mapMaybe unitMaybeFrom initDist
+  where
+    unitMaybeFrom :: TxSkelOut -> Maybe (Pl.ValidatorHash, Pl.Versioned Pl.Validator)
+    unitMaybeFrom (Pays output) = do
+      refScript <- view outputReferenceScriptL output
+      let vScript@(Pl.Versioned script version) = toScript refScript
+          Pl.ScriptHash scriptHash = toScriptHash vScript
+      return (Pl.ValidatorHash scriptHash, Pl.Versioned (Pl.Validator script) version)
+
 datumMap0From :: InitialDistribution -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
 datumMap0From (InitialDistribution initDist) =
   foldl'
-    (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . getDatumHash)
+    (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . unitMapFrom)
     Map.empty
     initDist
   where
-    getDatumHash :: TxSkelOut -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
-    getDatumHash txSkelOut =
+    unitMapFrom :: TxSkelOut -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
+    unitMapFrom txSkelOut =
       let datum = view txSkelOutDatumL txSkelOut
-       in toMap $ (,(datum, 1)) . Pl.datumHash <$> txSkelOutUntypedDatum datum
-
-    toMap :: Maybe (a, b) -> Map a b
-    toMap Nothing = Map.empty
-    toMap (Just (k, v)) = Map.singleton k v
+       in maybe Map.empty (flip Map.singleton (datum, 1) . Pl.datumHash) $ txSkelOutUntypedDatum datum
 
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
@@ -248,7 +254,7 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
     -- Bootstraps an initial transaction resulting in a state where wallets
     -- possess UTxOs fitting a given 'InitialDistribution'
     initialTxFor :: InitialDistribution -> Ledger.CardanoTx
-    initialTxFor initDist = Ledger.CardanoEmulatorEraTx $ C.Tx body []
+    initialTxFor (InitialDistribution initDist) = Ledger.CardanoEmulatorEraTx $ C.Tx body []
       where
         body :: C.TxBody C.BabbageEra
         body =
@@ -260,8 +266,8 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
                       . C.filterValue (/= C.AdaAssetId)
                       . fromRight'
                       . Ledger.toCardanoValue
-                      $ initDistValue initDist,
-                  C.txOuts = fromRight' . txSkelOutToCardanoTxOut theNetworkId <$> initialDistribution initDist,
+                      $ foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist,
+                  C.txOuts = fromRight' . txSkelOutToCardanoTxOut theNetworkId <$> initDist,
                   C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)]
                 }
 
@@ -279,8 +285,6 @@ utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
 
         theNetworkId :: C.NetworkId
         theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
-        initDistValue :: InitialDistribution -> Pl.Value
-        initDistValue = foldl' (\v -> (v <>) . view txSkelOutValueL) mempty . initialDistribution
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
