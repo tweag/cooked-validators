@@ -35,6 +35,9 @@
   `setValidityStartTweak` and `setValidityEndTweak`
 - UTxo searches with predicates over values, including only ada, or not only ada:
   `filterWithValuePred`, `filterWithOnlyAda` and `filterWithNotOnlyAda`
+- New pretty-printing options related to hashes in `pcOptHashes` including the
+  possibility to assign human readable names to hashes (pubkeys, scripts,
+  minting policies)
 
 ### Removed
 
