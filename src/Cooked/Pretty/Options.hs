@@ -76,12 +76,7 @@ data PrettyCookedHashOpts = PrettyCookedHashOpts
     -- | When a given name exists for a hash, this flag also prints the
     -- original hash after the name
     -- By default: @False@
-    pcOptHashVerbose :: Bool,
-    -- | Try to parse token names as hashes and, if applicable, display the
-    -- associated given name.
-    -- By default: @True@
-    -- TODO NOT YET IMPLEMENTED
-    pcOptHashParseTokenNames :: Bool
+    pcOptHashVerbose :: Bool
   }
   deriving (Eq, Show)
 
@@ -90,8 +85,7 @@ instance Default PrettyCookedHashOpts where
     PrettyCookedHashOpts
       { pcOptHashLength = 7,
         pcOptHashNames = defaultHashNames,
-        pcOptHashVerbose = False,
-        pcOptHashParseTokenNames = True
+        pcOptHashVerbose = False
       }
 
 -- | Default hash to names map that assigns Lovelace, Quick, and Permanent to
