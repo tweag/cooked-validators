@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | We provide the 'PrettyCooked' class and instances for common Plutus types.
@@ -17,11 +16,9 @@ module Cooked.Pretty.Class
   )
 where
 
-import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
-import Cooked.Wallet
 import Data.Default
 import qualified Ledger.Index as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
@@ -97,11 +94,7 @@ instance PrettyCooked Pl.Value where
         prettyCookedOpt opts (Pl.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
 
 instance PrettyCooked Pl.CurrencySymbol where
-  prettyCookedOpt opts symbol
-    | symbol == Pl.CurrencySymbol "" = "Lovelace"
-    | symbol == quickCurrencySymbol = "Quick"
-    | symbol == permanentCurrencySymbol = "Permanent"
-    | otherwise = prettyHash (pcOptHashes opts) (toHash symbol)
+  prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
 
 instance PrettyCooked Pl.TokenName where
   prettyCookedOpt _ = PP.pretty

@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
@@ -10,11 +11,13 @@ module Cooked.Pretty.Options
   )
 where
 
+import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Hashable
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusTx.Prelude as Pl
 
 data PrettyCookedOpts = PrettyCookedOpts
@@ -67,7 +70,8 @@ data PrettyCookedHashOpts = PrettyCookedHashOpts
     pcOptHashLength :: Int,
     -- | Association between hashes and given names to ease readability.
     -- For example @Map.singleton (walletPKHash (wallet 1)) "Alice"@
-    -- By default: @Map.empty@
+    -- By default: "defaultHashNames" which assigns Lovelace, Quick, and
+    -- Permanent as names for the associated currency symbols
     pcOptHashNames :: Map Pl.BuiltinByteString String,
     -- | When a given name exists for a hash, this flag also prints the
     -- original hash after the name
@@ -85,10 +89,22 @@ instance Default PrettyCookedHashOpts where
   def =
     PrettyCookedHashOpts
       { pcOptHashLength = 7,
-        pcOptHashNames = Map.empty,
+        pcOptHashNames = defaultHashNames,
         pcOptHashVerbose = False,
         pcOptHashParseTokenNames = True
       }
+
+-- | Default hash to names map that assigns Lovelace, Quick, and Permanent to
+-- the associated currency symbols. This is used as the default for the
+-- pretty-printing option and is recommended to use as a basis to extend with
+-- custom names.
+defaultHashNames :: Map Pl.BuiltinByteString String
+defaultHashNames =
+  hashNamesFromList
+    [ (Pl.CurrencySymbol "", "Lovelace"),
+      (quickCurrencySymbol, "Quick"),
+      (permanentCurrencySymbol, "Permanent")
+    ]
 
 hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Pl.BuiltinByteString String
 hashNamesFromList = Map.fromList . map (first toHash)
