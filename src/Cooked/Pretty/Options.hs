@@ -106,5 +106,7 @@ defaultHashNames =
       (permanentCurrencySymbol, "Permanent")
     ]
 
+-- | Smart constructor for maps to be used in the "pcOptHashNames"
+-- pretty-printing option.
 hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Pl.BuiltinByteString String
 hashNamesFromList = Map.fromList . map (first toHash)
