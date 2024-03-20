@@ -334,18 +334,9 @@ prettyTxSkelInReference opts skelContext txOutRef = do
       )
 
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output =
-  case output ^. outputReferenceScriptL of
-    Nothing -> Nothing
-    Just refScript ->
-      Just $
-        "Reference script hash:"
-          <+> prettyHash (pcOptHashes opts) (toHash . toScriptHash $ refScript)
+getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
 
-lookupOutput ::
-  SkelContext ->
-  Pl.TxOutRef ->
-  Maybe (Pl.TxOut, Maybe TxSkelOutDatum)
+lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, Maybe TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
   return
