@@ -38,6 +38,16 @@
 - New pretty-printing options related to hashes in `pcOptHashes` including the
   possibility to assign human readable names to hashes (pubkeys, scripts,
   minting policies)
+- Initial distributions of funds can now include arbitrat payments
+  instead of only consisting of values belonging to wallets. In
+  particular, we can now initially pay to scripts and have utxos with
+  datums and reference scripts. We can still create an initial
+  distribution in the old fashion way with `distributionFromList` or
+  directly provide a list of payments with `InitialDistribution`.
+- Dummy pre-existing validators in `Cooked.Validators` to be used for
+  testing purposes mainly but also as targets for attacks and tweaks.
+- Small QOL helpers (`ada`, `lovelace` and `adaAssetClass`) to create
+  values in `Cooked.ValueUtils`.
 
 ### Removed
 
@@ -63,6 +73,7 @@
   3. (Bonus) simplify, knowing that ``Cooked.testFailsFrom o x def ==
      Cooked.testFails o x``
 - Quick and permanent value minting policies have been migrated to PlutusV2.
+- Default initial distribution only provides 5 UTxOs per wallet instead of 10.
 
 ### Fixes
 

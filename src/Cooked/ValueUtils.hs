@@ -1,9 +1,13 @@
+{-# LANGUAGE NumericUnderscores #-}
+
 -- | Utilities to work with Value
 module Cooked.ValueUtils
   ( flattenValueI,
     positivePart,
     negativePart,
     adaL,
+    lovelace,
+    ada,
   )
 where
 
@@ -40,12 +44,23 @@ adaL :: Lens' Pl.Value Pl.Ada
 adaL =
   lens
     Pl.fromValue
-    ( \value (Pl.Lovelace ada) ->
+    ( \value (Pl.Lovelace amount) ->
         over
           flattenValueI
-          (\l -> insertAssocList l (Pl.assetClass Pl.adaSymbol Pl.adaToken) ada)
+          (\l -> insertAssocList l adaAssetClass amount)
           value
     )
   where
     insertAssocList :: (Eq a) => [(a, b)] -> a -> b -> [(a, b)]
     insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
+
+-- * Helpers for manipulating ada and lovelace
+
+adaAssetClass :: Pl.AssetClass
+adaAssetClass = Pl.assetClass Pl.adaSymbol Pl.adaToken
+
+lovelace :: Integer -> Pl.Value
+lovelace = Pl.assetClassValue adaAssetClass
+
+ada :: Integer -> Pl.Value
+ada = lovelace . (* 1_000_000)

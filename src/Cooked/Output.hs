@@ -101,6 +101,9 @@ instance ToOutputDatum () where
 instance ToOutputDatum Pl.DatumHash where
   toOutputDatum = Pl.OutputDatumHash
 
+instance ToOutputDatum Pl.BuiltinData where
+  toOutputDatum = toOutputDatum . Pl.Datum
+
 class ToValue a where
   toValue :: a -> Pl.Value
 

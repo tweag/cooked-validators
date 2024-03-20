@@ -88,7 +88,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         (Map.elems $ txSkelIns skel)
         ++ Set.toList (txSkelInsReference skel)
   txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM (txSkelOutToCardanoTxOut theParams) $ txSkelOuts skel
+  txOuts <- mapM (txSkelOutToCardanoTxOut $ Pl.pNetworkId theParams) $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -337,12 +337,13 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
               )
               Pl.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
 
--- Convert a 'TxSkelOut' to the corresponding 'C.TxOut'.
-txSkelOutToCardanoTxOut :: Pl.Params -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
-txSkelOutToCardanoTxOut theParams (Pays output) =
+-- Convert a 'TxSkelOut' to the corresponding 'C.TxOut'. 'networkId'
+-- will usually be retrieved from the parameters using 'Pl.pNetworkId'
+txSkelOutToCardanoTxOut :: Pl.NetworkId -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.BabbageEra)
+txSkelOutToCardanoTxOut networkId (Pays output) =
   left (ToCardanoError "txSkelOutToTxOut") $
     C.TxOut
-      <$> Pl.toCardanoAddressInEra (Pl.pNetworkId theParams) (outputAddress output)
+      <$> Pl.toCardanoAddressInEra networkId (outputAddress output)
       <*> (Pl.toCardanoTxOutValue <$> Pl.toCardanoValue (outputValue output))
       <*> ( case output ^. outputDatumL of
               TxSkelOutNoDatum -> Right Pl.toCardanoTxOutNoDatum

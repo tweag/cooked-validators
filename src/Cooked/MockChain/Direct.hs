@@ -6,7 +6,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -26,14 +25,17 @@ import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Cooked.InitialDistribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
-import Cooked.Wallet
 import Data.Bifunctor (bimap)
 import Data.Default
+import Data.Either.Combinators (mapLeft)
+import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
@@ -43,6 +45,7 @@ import Ledger.Orphans ()
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
+import Optics.Core (view)
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
 import qualified Plutus.V2.Ledger.Api as PV2
@@ -213,78 +216,81 @@ utxoState0 = mcstToUtxoState mockChainSt0
 mockChainSt0 :: MockChainSt
 mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty def
 
+-- * Initial `MockChainSt` from an initial distribution
+
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 = MockChainSt (utxoIndex0From i0) Map.empty Map.empty def
+mockChainSt0From i0 =
+  MockChainSt
+    (utxoIndex0From i0)
+    (datumMap0From i0)
+    (referenceScriptMap0From i0)
+    def
 
 instance Default MockChainSt where
   def = mockChainSt0
 
-utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
-utxoIndex0From i0 = Ledger.initialise [[Ledger.Valid $ initialTxFor i0]]
+-- | Reference scripts from initial distributions should be accounted
+-- for in the `MockChainSt` which is done using this function.
+referenceScriptMap0From :: InitialDistribution -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+referenceScriptMap0From (InitialDistribution initDist) =
+  -- This builds a map of entries from the reference scripts contained
+  -- in the initial distribution
+  Map.fromList $ mapMaybe unitMaybeFrom initDist
   where
-    -- Bootstraps an initial transaction resulting in a state where wallets
-    -- possess UTxOs fitting a given 'InitialDistribution'
-    initialTxFor :: InitialDistribution -> Ledger.CardanoTx
-    initialTxFor initDist = Ledger.CardanoEmulatorEraTx $ C.Tx body []
-      where
-        body :: C.TxBody C.BabbageEra
-        body =
-          fromRight' $
-            C.makeTransactionBody $
-              Ledger.emptyTxBodyContent
-                { C.txMintValue =
-                    flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty)
-                      . C.filterValue (/= C.AdaAssetId)
-                      . fromRight'
-                      . Ledger.toCardanoValue
-                      $ mconcat (map (mconcat . snd) initDist'),
-                  C.txOuts = concatMap (\(w, vs) -> map (initUtxosFor w) vs) initDist',
-                  C.txIns = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith spendWit)]
-                }
+    -- This takes a single output and returns a possible map entry
+    -- when it contains a reference script
+    unitMaybeFrom :: TxSkelOut -> Maybe (Pl.ValidatorHash, Pl.Versioned Pl.Validator)
+    unitMaybeFrom (Pays output) = do
+      refScript <- view outputReferenceScriptL output
+      let vScript@(Pl.Versioned script version) = toScript refScript
+          Pl.ScriptHash scriptHash = toScriptHash vScript
+      return (Pl.ValidatorHash scriptHash, Pl.Versioned (Pl.Validator script) version)
 
-        spendWit = C.KeyWitness C.KeyWitnessForSpending
+-- | Datums from initial distributions should be accounted for in the
+-- `MockChainSt` which is done using this function.
+datumMap0From :: InitialDistribution -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
+datumMap0From (InitialDistribution initDist) =
+  -- This concatenates singleton maps from inputs and accounts for the
+  -- number of occurrences of similar datums
+  foldl' (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . unitMapFrom) Map.empty initDist
+  where
+    -- This takes a single output and creates an empty map if it
+    -- contains no datum, or a singleton map if it contains one
+    unitMapFrom :: TxSkelOut -> Map Pl.DatumHash (TxSkelOutDatum, Integer)
+    unitMapFrom txSkelOut =
+      let datum = view txSkelOutDatumL txSkelOut
+       in maybe Map.empty (flip Map.singleton (datum, 1) . Pl.datumHash) $ txSkelOutUntypedDatum datum
 
-        -- This has been taken  from the Test.Cardano.Api.Genesis example transaction here:
-        -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
-        genesisKeyHash :: C.Hash C.GenesisUTxOKey
-        genesisKeyHash =
-          C.GenesisUTxOKeyHash $
-            CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
-
-        initDist' = Map.toList $ unInitialDistribution initDist
-
-        initUtxosFor w v = txOut (walletAddress w) v (Nothing @())
-
-        fromRight' :: (Show e) => Either e a -> a
-        fromRight' x = case x of
-          Left err -> error $ show err
-          Right res -> res
-
-        txOut addr value datum = toCardanoTxOut' addr value datum'
-          where
-            datum' =
-              maybe
-                PV2.NoOutputDatum
-                ( PV2.OutputDatumHash
-                    . Pl.datumHash
-                    . Pl.Datum
-                    . Pl.toBuiltinData
-                )
-                datum
-
-        toCardanoTxOut' ::
-          Pl.Address ->
-          Pl.Value ->
-          PV2.OutputDatum ->
-          C.TxOut C.CtxTx C.BabbageEra
-        toCardanoTxOut' addr value datum =
-          fromRight' $
-            Ledger.toCardanoTxOut
-              theNetworkId
-              (PV2.TxOut addr value datum Nothing)
-
-        theNetworkId :: C.NetworkId
-        theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
+-- | This creates the initial UtxoIndex from an initial distribution
+-- by submitting an initial transaction with the appropriate content:
+--
+-- - inputs consist of a single dummy pseudo input
+--
+-- - all non-ada assets in outputs are considered minted
+--
+-- - outputs are translated from the `TxSkelOut` list in the initial
+--   distribution
+--
+-- Two things to note:
+--
+-- - We don't know what "Magic" means for the network ID (TODO)
+--
+-- - The genesis key hash has been taken from
+--   https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
+utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
+utxoIndex0From (InitialDistribution initDist) = case mkBody of
+  Left err -> error $ show err
+  Right body -> Ledger.initialise [[Ledger.Valid $ Ledger.CardanoEmulatorEraTx $ C.Tx body []]]
+  where
+    mkBody :: Either GenerateTxError (C.TxBody C.BabbageEra)
+    mkBody = do
+      value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
+      let mintValue = flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty) . C.filterValue (/= C.AdaAssetId) $ value
+          theNetworkId = C.Testnet $ C.NetworkMagic 42
+          genesisKeyHash = C.GenesisUTxOKeyHash $ CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
+          inputs = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)]
+      outputs <- mapM (txSkelOutToCardanoTxOut theNetworkId) initDist
+      mapLeft (TxBodyError "Body error") $ C.makeTransactionBody $ Ledger.emptyTxBodyContent {C.txMintValue = mintValue, C.txOuts = outputs, C.txIns = inputs}
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def

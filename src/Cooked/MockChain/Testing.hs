@@ -7,12 +7,12 @@ module Cooked.MockChain.Testing where
 
 import qualified Control.Exception as E
 import Control.Monad
+import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
 import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
-import Cooked.Wallet
 import Data.Default
 import qualified Data.Text as T
 import Debug.Trace

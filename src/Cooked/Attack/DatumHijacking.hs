@@ -1,31 +1,26 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.Attack.DatumHijacking
   ( redirectScriptOutputTweak,
     datumHijackingAttack,
     DatumHijackingLbl (..),
-    datumHijackingTarget,
   )
 where
 
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
-import Cooked.RawUPLC
 import Cooked.Skeleton
 import Cooked.Tweak
+import Cooked.Validators
 import Optics.Core
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx as Pl
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -101,16 +96,7 @@ datumHijackingAttack change select = do
   addLabelTweak $ DatumHijackingLbl $ Pl.validatorAddress thief
   return redirected
   where
-    thief = datumHijackingTarget @a
+    thief = alwaysTrueValidator @a
 
 newtype DatumHijackingLbl = DatumHijackingLbl Pl.Address
   deriving (Show, Eq, Ord)
-
--- | The trivial validator that always succeds; this is a sufficient target for
--- the datum hijacking attack since we only want to show feasibility of the
--- attack.
-datumHijackingTarget :: Pl.TypedValidator a
-datumHijackingTarget = unsafeTypedValidatorFromUPLC (Pl.getPlc $$(Pl.compile [||tgt||]))
-  where
-    tgt :: Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()
-    tgt _ _ _ = ()
