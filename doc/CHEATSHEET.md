@@ -16,12 +16,32 @@
     * `printCooked $ interpretAndRun foo` for all traces
     * `printCooked $ runMockChain foo` for `MonadBlockChain` traces only
 
-### Use a custom initial distribution of value
+### Custom initial distributions of UTxOs
 
-```haskell
-initDist :: InitialDistribution
-initDist = initialDistribution [(i, [lovelaceValueOf 25_000_000]) | i <- knownWallets]
-```
+#### Creation
+
+* With only values
+  ```haskell
+  initDist :: InitialDistribution
+  initDist = distributionFromList $
+	  [ (wallet 1 , [ ada 42 , ada 2 <> quickValue "TOK" 1 ]
+	  , (wallet 2 , [ ada 10 ])
+	  , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
+	  ]
+  ```
+* With arbitrary payments
+  ```haskell
+  initDist :: InitialDistribution
+  initDist = InitialDistribution
+	  [ paysPK (walletPKHash (wallet 3)) (ada 6)
+      , paysScript fooTypedValidator FooTypedDatum (lovelaceValueOf 6_000_000)
+	  , paysPK (walletPKHash (wallet 2)) (ada 2) `withDatum` fooDatum
+	  , paysPK (walletPKHash (wallet 1)) (ada 2) `withReferenceScript` fooValidator
+	  ]
+  ```
+
+#### Usage
+
 * In a test `Tasty.testCase "foo" $ testSucceedsFrom def initDist foo`
 * In the REPL `printCooked $ interpretAndRunWith (runMockChainTFrom initDist) foo`
 

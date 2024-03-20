@@ -31,7 +31,7 @@ import qualified Plutus.Script.Utils.Value as Pl
 --  Ada and a permanent value. See "Cooked.Currencies" for more
 --  information on quick and permanent values.
 --
---  > i0 = InitialDistributionFromList $
+--  > i0 = distributionFromList $
 --  >        [ (wallet 1 , [ ada 42 , ada 2 <> quickValue "TOK" 1 ]
 --  >        , (wallet 2 , [ ada 10 ])
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
