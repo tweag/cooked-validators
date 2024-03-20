@@ -1,58 +1,53 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
 </span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
 </span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
-</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
-</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
-</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
-</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE TupleSections #-}</span><span>
-</span><span id="line-9"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
-</span><span id="line-10"></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.DatumHijacking</span><span>
-</span><span id="line-12"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier">redirectScriptOutputTweak</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier">datumHijackingAttack</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier">DatumHijackingLbl</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier">datumHijackingTarget</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-16"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-17"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-18"></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Control.Monad.html"><span class="hs-identifier">Control.Monad</span></a></span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Output.html"><span class="hs-identifier">Cooked.Output</span></a></span><span>
-</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.RawUPLC.html"><span class="hs-identifier">Cooked.RawUPLC</span></a></span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Optics.Core.html"><span class="hs-identifier">Optics.Core</span></a></span><span>
-</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html"><span class="hs-identifier">Plutus.Script.Utils.Typed</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.V2.Ledger.Api.html"><span class="hs-identifier">Plutus.V2.Ledger.Api</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../PlutusTx.html"><span class="hs-identifier">PlutusTx</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Type.Reflection.html"><span class="hs-identifier">Type.Reflection</span></a></span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="hs-comment">-- | Redirect script outputs from one validator to another validator of the same</span><span>
-</span><span id="line-32"></span><span class="hs-comment">-- type. Returns the list of outputs it redirected (as they were before the</span><span>
-</span><span id="line-33"></span><span class="hs-comment">-- modification), in the order in which they occurred on the original</span><span>
-</span><span id="line-34"></span><span class="hs-comment">-- transaction.</span><span>
-</span><span id="line-35"></span><span class="hs-comment">--</span><span>
-</span><span id="line-36"></span><span class="hs-comment">-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Pl.TypedValidator a)@</span><span>
-</span><span id="line-37"></span><span class="hs-comment">-- might be useful to construct the optics used by this tweak.</span><span>
-</span><span id="line-38"></span><span id="local-6989586621679645109"><span id="local-6989586621679645112"><span id="local-6989586621679645113"><span id="local-6989586621679645114"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-type">redirectScriptOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-39"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645114"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-40"></span><span>    </span><span class="annot"><a href="../Optics.Internal.Optic.Subtyping.html#Is"><span class="hs-identifier hs-type">Is</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645113"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="../Optics.Internal.Optic.Types.html#A_Traversal"><span class="hs-identifier hs-type">A_Traversal</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-41"></span><span>    </span><span class="annot"><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-type">Show</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-42"></span><span>    </span><span class="annot"><a href="../PlutusTx.IsData.Class.html#ToData"><span class="hs-identifier hs-type">Pl.ToData</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-44"></span><span>  </span><span class="annot"><a href="../Optics.Internal.Optic.html#Optic%27"><span class="hs-identifier hs-type">Optic'</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645113"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645109"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-45"></span><span>  </span><span class="hs-comment">-- | Return @Just@ the new validator, or @Nothing@ if you want to leave this</span><span>
-</span><span id="line-46"></span><span>  </span><span class="hs-comment">-- output unchanged.</span><span>
-</span><span id="line-47"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Maybe.html#Maybe"><span class="hs-identifier hs-type">Maybe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-48"></span><span>  </span><span class="hs-comment">-- | The redirection described by the previous argument might apply to more</span><span>
-</span><span id="line-49"></span><span>  </span><span class="hs-comment">-- than one of the script outputs of the transaction. Use this predicate to</span><span>
-</span><span id="line-50"></span><span>  </span><span class="hs-comment">-- select which of the redirectable script outputs to actually redirect. We</span><span>
-</span><span id="line-51"></span><span>  </span><span class="hs-comment">-- count the redirectable script outputs from the left to the right, starting</span><span>
-</span><span id="line-52"></span><span>  </span><span class="hs-comment">-- with zero.</span><span>
-</span><span id="line-53"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-54"></span><span>  </span><span class="annot"><a href="#local-6989586621679645114"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645112"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span></span></span><span>
-</span><span id="line-55"></span><span id="redirectScriptOutputTweak"><span class="annot"><span class="annottext">redirectScriptOutputTweak :: Optic'
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE TypeApplications #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.DatumHijacking</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier">redirectScriptOutputTweak</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier">datumHijackingAttack</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier">DatumHijackingLbl</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Control.Monad.html"><span class="hs-identifier">Control.Monad</span></a></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Output.html"><span class="hs-identifier">Cooked.Output</span></a></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.Class.html"><span class="hs-identifier">Cooked.Pretty.Class</span></a></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Validators.html"><span class="hs-identifier">Cooked.Validators</span></a></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Optics.Core.html"><span class="hs-identifier">Optics.Core</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html"><span class="hs-identifier">Plutus.Script.Utils.Typed</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.V2.Ledger.Api.html"><span class="hs-identifier">Plutus.V2.Ledger.Api</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Type.Reflection.html"><span class="hs-identifier">Type.Reflection</span></a></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | Redirect script outputs from one validator to another validator of the same</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- type. Returns the list of outputs it redirected (as they were before the</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- modification), in the order in which they occurred on the original</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- transaction.</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Pl.TypedValidator a)@</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- might be useful to construct the optics used by this tweak.</span><span>
+</span><span id="line-33"></span><span id="local-6989586621679646009"><span id="local-6989586621679646012"><span id="local-6989586621679646013"><span id="local-6989586621679646014"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-type">redirectScriptOutputTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646014"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-35"></span><span>    </span><span class="annot"><a href="../Optics.Internal.Optic.Subtyping.html#Is"><span class="hs-identifier hs-type">Is</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646013"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="../Optics.Internal.Optic.Types.html#A_Traversal"><span class="hs-identifier hs-type">A_Traversal</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-type">Show</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><a href="../PlutusTx.IsData.Class.html#ToData"><span class="hs-identifier hs-type">Pl.ToData</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><a href="../Optics.Internal.Optic.html#Optic%27"><span class="hs-identifier hs-type">Optic'</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646013"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646009"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkel"><span class="hs-identifier hs-type">TxSkel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-comment">-- | Return @Just@ the new validator, or @Nothing@ if you want to leave this</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-comment">-- output unchanged.</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Maybe.html#Maybe"><span class="hs-identifier hs-type">Maybe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-comment">-- | The redirection described by the previous argument might apply to more</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-comment">-- than one of the script outputs of the transaction. Use this predicate to</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-comment">-- select which of the redirectable script outputs to actually redirect. We</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-comment">-- count the redirectable script outputs from the left to the right, starting</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-comment">-- with zero.</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><a href="#local-6989586621679646014"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646012"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span></span></span><span>
+</span><span id="line-50"></span><span id="redirectScriptOutputTweak"><span class="annot"><span class="annottext">redirectScriptOutputTweak :: Optic'
   k
   is
   TxSkel
@@ -64,17 +59,17 @@
 -&gt; (Integer -&gt; Bool)
 -&gt; m [ConcreteOutput
         (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
-</span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var hs-var">redirectScriptOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679645037"><span class="annot"><span class="annottext">Optic'
+</span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var hs-var">redirectScriptOutputTweak</span></a></span></span><span> </span><span id="local-6989586621679645961"><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
   (ConcreteOutput
      (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
-</span><a href="#local-6989586621679645037"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679645036"><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645961"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span id="local-6989586621679645960"><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe (TypedValidator a)
-</span><a href="#local-6989586621679645036"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-56"></span><span>  </span><span class="annot"><span class="annottext">Optic'
+</span><a href="#local-6989586621679645960"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
@@ -93,29 +88,29 @@ forall a (m :: * -&gt; *) k (is :: IxList).
 Optic' k is TxSkel a
 -&gt; (a -&gt; Maybe a) -&gt; (Integer -&gt; Bool) -&gt; m [a]
 </span><a href="Cooked.Tweak.Common.html#overMaybeSelectingTweak"><span class="hs-identifier hs-var">overMaybeSelectingTweak</span></a></span><span>
-</span><span id="line-57"></span><span>    </span><span class="annot"><span class="annottext">Optic'
+</span><span id="line-52"></span><span>    </span><span class="annot"><span class="annottext">Optic'
   k
   is
   TxSkel
   (ConcreteOutput
      (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
-</span><a href="#local-6989586621679645037"><span class="hs-identifier hs-var">optic</span></a></span><span>
-</span><span id="line-58"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679645034"><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645961"><span class="hs-identifier hs-var">optic</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679645958"><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
-</span><a href="#local-6989586621679645034"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645958"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe (TypedValidator a)
-</span><a href="#local-6989586621679645036"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645960"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
-</span><a href="#local-6989586621679645034"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">of</span><span>
-</span><span id="line-59"></span><span>        </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
+</span><a href="#local-6989586621679645958"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-54"></span><span>        </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
 </span><a href="../GHC.Maybe.html#Nothing"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe
   (ConcreteOutput
      (TypedValidator a) TxSkelOutDatum Value (Versioned Script))
 forall a. Maybe a
 </span><a href="../GHC.Maybe.html#Nothing"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
-</span><span id="line-60"></span><span>        </span><span class="annot"><a href="../GHC.Maybe.html#Just"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679645033"><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679645033"><span class="hs-identifier hs-var">newValidator</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><span id="line-55"></span><span>        </span><span class="annot"><a href="../GHC.Maybe.html#Just"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679645957"><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679645957"><span class="hs-identifier hs-var">newValidator</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Maybe
      (ConcreteOutput
@@ -134,7 +129,7 @@ forall a. a -&gt; Maybe a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
-</span><a href="#local-6989586621679645034"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645958"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; (ConcreteOutput
       (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
@@ -171,55 +166,55 @@ forall k (is :: IxList) s t a b.
 Is k A_Setter =&gt;
 Optic k is s t a b -&gt; b -&gt; s -&gt; t
 </span><a href="../Optics.Operators.html#.~"><span class="hs-operator hs-var">.~</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679645033"><span class="hs-identifier hs-var">newValidator</span></a></span><span>
-</span><span id="line-61"></span><span>    </span><span class="hs-special">)</span><span>
-</span><span id="line-62"></span><span>
-</span><span id="line-63"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
-</span><span id="line-64"></span><span class="hs-comment">-- different recipient on 'PaysScript' constraints, but leaves the datum as it</span><span>
-</span><span id="line-65"></span><span class="hs-comment">-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in</span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- places where something like 'getContinuingOutputs' should be used. If this</span><span>
-</span><span id="line-67"></span><span class="hs-comment">-- attack goes through, however, a &quot;proper&quot; datum hijacking attack that modifies</span><span>
-</span><span id="line-68"></span><span class="hs-comment">-- the datum in a way that (the relevant part of) the</span><span>
-</span><span id="line-69"></span><span class="hs-comment">-- 'toBuiltinData'-translation stays the same will also work.</span><span>
-</span><span id="line-70"></span><span class="hs-comment">--</span><span>
-</span><span id="line-71"></span><span class="hs-comment">-- A 'DatumHijackingLbl' with the hash of the &quot;thief&quot; validator is added to the</span><span>
-</span><span id="line-72"></span><span class="hs-comment">-- labels of the 'TxSkel' using 'addLabel'.</span><span>
-</span><span id="line-73"></span><span class="hs-comment">--</span><span>
-</span><span id="line-74"></span><span class="hs-comment">-- This attack returns the list of outputs it redirected, in the order in which</span><span>
-</span><span id="line-75"></span><span class="hs-comment">-- they occurred on the original transaction. If no output is redirected, this</span><span>
-</span><span id="line-76"></span><span class="hs-comment">-- attack fails.</span><span>
-</span><span id="line-77"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-78"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679645029"><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679645028"><span class="annot"><a href="#local-6989586621679645028"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
-</span><span id="line-79"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645028"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-80"></span><span>    </span><span class="annot"><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-type">Show</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-81"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-82"></span><span>    </span><span class="annot"><a href="../PlutusTx.IsData.Class.html#ToData"><span class="hs-identifier hs-type">Pl.ToData</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-83"></span><span>    </span><span class="annot"><a href="../Data.Typeable.Internal.html#Typeable"><span class="hs-identifier hs-type">Typeable</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-84"></span><span>    </span><span class="annot"><a href="../Data.Typeable.Internal.html#Typeable"><span class="hs-identifier hs-type">Typeable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-85"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-86"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
-</span><span id="line-87"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
-</span><span id="line-88"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-89"></span><span>  </span><span class="hs-comment">-- | The selection predicate may match more than one output. Use this</span><span>
-</span><span id="line-90"></span><span>  </span><span class="hs-comment">-- predicate to restrict to the i-th of the outputs (counting from the left,</span><span>
-</span><span id="line-91"></span><span>  </span><span class="hs-comment">-- starting at zero) chosen by the selection predicate with this predicate.</span><span>
-</span><span id="line-92"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-93"></span><span>  </span><span class="annot"><a href="#local-6989586621679645028"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
-</span><span id="line-94"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: (ConcreteOutput
+</span><a href="#local-6989586621679645957"><span class="hs-identifier hs-var">newValidator</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | A datum hijacking attack, simplified: This attack tries to substitute a</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- different recipient on 'PaysScript' constraints, but leaves the datum as it</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- is. That is, it tests for careless uses of something like 'txInfoOutputs' in</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- places where something like 'getContinuingOutputs' should be used. If this</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- attack goes through, however, a &quot;proper&quot; datum hijacking attack that modifies</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- the datum in a way that (the relevant part of) the</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- 'toBuiltinData'-translation stays the same will also work.</span><span>
+</span><span id="line-65"></span><span class="hs-comment">--</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- A 'DatumHijackingLbl' with the hash of the &quot;thief&quot; validator is added to the</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- labels of the 'TxSkel' using 'addLabel'.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- This attack returns the list of outputs it redirected, in the order in which</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- they occurred on the original transaction. If no output is redirected, this</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- attack fails.</span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-type">datumHijackingAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679645953"><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679645952"><span class="annot"><a href="#local-6989586621679645952"><span class="hs-identifier hs-type">m</span></a></span></span><span class="hs-operator">.</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645952"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-75"></span><span>    </span><span class="annot"><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-type">Show</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><a href="../PlutusTx.IsData.Class.html#ToData"><span class="hs-identifier hs-type">Pl.ToData</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><a href="../Data.Typeable.Internal.html#Typeable"><span class="hs-identifier hs-type">Typeable</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-type">Pl.DatumType</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><a href="../Data.Typeable.Internal.html#Typeable"><span class="hs-identifier hs-type">Typeable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- | Predicate to select outputs to steal, depending on the intended</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-comment">-- recipient, the datum, and the value.</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-comment">-- | The selection predicate may match more than one output. Use this</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-comment">-- predicate to restrict to the i-th of the outputs (counting from the left,</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-comment">-- starting at zero) chosen by the selection predicate with this predicate.</span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><a href="#local-6989586621679645952"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html#TxSkelOutDatum"><span class="hs-identifier hs-type">TxSkelOutDatum</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Scripts.html#Script"><span class="hs-identifier hs-type">Pl.Script</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-89"></span><span id="datumHijackingAttack"><span class="annot"><span class="annottext">datumHijackingAttack :: (ConcreteOutput
    (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
  -&gt; Bool)
 -&gt; (Integer -&gt; Bool)
 -&gt; m [ConcreteOutput
         (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span id="local-6989586621679645026"><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingAttack"><span class="hs-identifier hs-var hs-var">datumHijackingAttack</span></a></span></span><span> </span><span id="local-6989586621679645950"><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Bool
-</span><a href="#local-6989586621679645026"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679645025"><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679645025"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-95"></span><span>  </span><span id="local-6989586621679645024"><span class="annot"><span class="annottext">[ConcreteOutput
+</span><a href="#local-6989586621679645950"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679645949"><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679645949"><span class="hs-identifier hs-var">select</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-90"></span><span>  </span><span id="local-6989586621679645948"><span class="annot"><span class="annottext">[ConcreteOutput
    (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
-</span><a href="#local-6989586621679645024"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
-</span><span id="line-96"></span><span>    </span><span class="annot"><span class="annottext">Optic'
+</span><a href="#local-6989586621679645948"><span class="hs-identifier hs-var">redirected</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span>
+</span><span id="line-91"></span><span>    </span><span class="annot"><span class="annottext">Optic'
   A_Traversal
   NoIx
   TxSkel
@@ -247,7 +242,7 @@ Optic'
 -&gt; m [ConcreteOutput
         (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
 </span><a href="Cooked.Attack.DatumHijacking.html#redirectScriptOutputTweak"><span class="hs-identifier hs-var">redirectScriptOutputTweak</span></a></span><span>
-</span><span id="line-97"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
+</span><span id="line-92"></span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
 </span><a href="Cooked.Skeleton.html#txSkelOutsL"><span class="hs-identifier hs-var">txSkelOutsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel [TxSkelOut]
 -&gt; Optic
      A_Traversal NoIx [TxSkelOut] [TxSkelOut] TxSkelOut TxSkelOut
@@ -298,23 +293,23 @@ forall ownerType.
 Prism'
   TxSkelOut
   (ConcreteOutput ownerType TxSkelOutDatum Value (Versioned Script))
-</span><a href="Cooked.Skeleton.html#txSkelOutOwnerTypeP"><span class="hs-identifier hs-var">txSkelOutOwnerTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-98"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679645019"><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="Cooked.Skeleton.html#txSkelOutOwnerTypeP"><span class="hs-identifier hs-var">txSkelOutOwnerTypeP</span></a></span><span> </span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>      </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679645943"><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
-</span><a href="#local-6989586621679645019"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645943"><span class="hs-identifier hs-var">output</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
 -&gt; Bool
-</span><a href="#local-6989586621679645026"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
+</span><a href="#local-6989586621679645950"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput
   (TypedValidator a) TxSkelOutDatum Value (Versioned Script)
-</span><a href="#local-6989586621679645019"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Maybe (TypedValidator a)
+</span><a href="#local-6989586621679645943"><span class="hs-identifier hs-var">output</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Maybe (TypedValidator a)
 forall a. a -&gt; Maybe a
 </span><a href="../GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679645018"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
+</span><a href="#local-6989586621679645942"><span class="hs-identifier hs-var">thief</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe (TypedValidator a)
 forall a. Maybe a
 </span><a href="../GHC.Maybe.html#Nothing"><span class="hs-identifier hs-var">Nothing</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-99"></span><span>      </span><span class="annot"><span class="annottext">Integer -&gt; Bool
-</span><a href="#local-6989586621679645025"><span class="hs-identifier hs-var">select</span></a></span><span>
-</span><span id="line-100"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m ()
+</span><span id="line-94"></span><span>      </span><span class="annot"><span class="annottext">Integer -&gt; Bool
+</span><a href="#local-6989586621679645949"><span class="hs-identifier hs-var">select</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; m ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
 </span><a href="../Control.Monad.html#guard"><span class="hs-identifier hs-var">guard</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; (Bool -&gt; Bool) -&gt; Bool -&gt; m ()
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
@@ -327,8 +322,8 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
 </span><a href="../Data.Foldable.html#null"><span class="hs-identifier hs-var">null</span></a></span><span> </span><span class="annot"><span class="annottext">[ConcreteOutput
    (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
-</span><a href="#local-6989586621679645024"><span class="hs-identifier hs-var">redirected</span></a></span><span>
-</span><span id="line-101"></span><span>  </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; m ()
+</span><a href="#local-6989586621679645948"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(DatumHijackingLbl -&gt; m ()) -&gt; DatumHijackingLbl -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
@@ -338,23 +333,23 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a -&gt; Address
 forall a. TypedValidator a -&gt; Address
 </span><a href="../Plutus.Script.Utils.Typed.html#validatorAddress"><span class="hs-identifier hs-var">Pl.validatorAddress</span></a></span><span> </span><span class="annot"><span class="annottext">TypedValidator a
-</span><a href="#local-6989586621679645018"><span class="hs-identifier hs-var">thief</span></a></span><span>
-</span><span id="line-102"></span><span>  </span><span class="annot"><span class="annottext">[ConcreteOutput
+</span><a href="#local-6989586621679645942"><span class="hs-identifier hs-var">thief</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><span class="annottext">[ConcreteOutput
    (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
 -&gt; m [ConcreteOutput
         (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><a href="../GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">[ConcreteOutput
    (TypedValidator a) TxSkelOutDatum Value (Versioned Script)]
-</span><a href="#local-6989586621679645024"><span class="hs-identifier hs-var">redirected</span></a></span><span>
-</span><span id="line-103"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-104"></span><span>    </span><span id="local-6989586621679645018"><span class="annot"><span class="annottext">thief :: TypedValidator a
-</span><a href="#local-6989586621679645018"><span class="hs-identifier hs-var hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
+</span><a href="#local-6989586621679645948"><span class="hs-identifier hs-var">redirected</span></a></span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-99"></span><span>    </span><span id="local-6989586621679645942"><span class="annot"><span class="annottext">thief :: TypedValidator a
+</span><a href="#local-6989586621679645942"><span class="hs-identifier hs-var hs-var">thief</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TypedValidator a
 forall a. TypedValidator a
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-var">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679645029"><span class="hs-identifier hs-type">a</span></a></span><span>
-</span><span id="line-105"></span><span>
-</span><span id="line-106"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Address.html#Address"><span class="hs-identifier hs-type">Pl.Address</span></a></span><span>
-</span><span id="line-107"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679645006"><span id="local-6989586621679645008"><span id="local-6989586621679645010"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
+</span><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier hs-var">alwaysTrueValidator</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679645953"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-keyword">newtype</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DatumHijackingLbl"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#DatumHijackingLbl"><span class="hs-identifier hs-var">DatumHijackingLbl</span></a></span></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Address.html#Address"><span class="hs-identifier hs-type">Pl.Address</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679645929"><span id="local-6989586621679645931"><span id="local-6989586621679645933"><span class="annot"><span class="annottext">Int -&gt; DatumHijackingLbl -&gt; ShowS
 [DatumHijackingLbl] -&gt; ShowS
 DatumHijackingLbl -&gt; String
 (Int -&gt; DatumHijackingLbl -&gt; ShowS)
@@ -369,7 +364,7 @@ show :: DatumHijackingLbl -&gt; String
 $cshow :: DatumHijackingLbl -&gt; String
 showsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
 $cshowsPrec :: Int -&gt; DatumHijackingLbl -&gt; ShowS
-</span><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679645001"><span id="local-6989586621679645003"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
+</span><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679645924"><span id="local-6989586621679645926"><span class="annot"><span class="annottext">DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
 -&gt; Eq DatumHijackingLbl
@@ -378,7 +373,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 == :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
 $c== :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool
-</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679644985"><span id="local-6989586621679644987"><span id="local-6989586621679644989"><span id="local-6989586621679644991"><span id="local-6989586621679644993"><span id="local-6989586621679644995"><span id="local-6989586621679644997"><span class="annot"><span class="annottext">Eq DatumHijackingLbl
+</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679645908"><span id="local-6989586621679645910"><span id="local-6989586621679645912"><span id="local-6989586621679645914"><span id="local-6989586621679645916"><span id="local-6989586621679645918"><span id="local-6989586621679645920"><span class="annot"><span class="annottext">Eq DatumHijackingLbl
 Eq DatumHijackingLbl
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering)
 -&gt; (DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Bool)
@@ -417,30 +412,4 @@ compare :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering
 $ccompare :: DatumHijackingLbl -&gt; DatumHijackingLbl -&gt; Ordering
 $cp1Ord :: Eq DatumHijackingLbl
 </span><a href="../GHC.Classes.html#Ord"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></a></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-108"></span><span>
-</span><span id="line-109"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is a sufficient target for</span><span>
-</span><span id="line-110"></span><span class="hs-comment">-- the datum hijacking attack since we only want to show feasibility of the</span><span>
-</span><span id="line-111"></span><span class="hs-comment">-- attack.</span><span>
-</span><span id="line-112"></span><span id="local-6989586621679645069"><span class="annot"><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-type">datumHijackingTarget</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679645069"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-113"></span><span id="datumHijackingTarget"><span class="annot"><span class="annottext">datumHijackingTarget :: TypedValidator a
-</span><a href="Cooked.Attack.DatumHijacking.html#datumHijackingTarget"><span class="hs-identifier hs-var hs-var">datumHijackingTarget</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-forall a.
-Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-</span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompiledCodeIn
-  DefaultUni
-  DefaultFun
-  (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
-forall (uni :: * -&gt; *) fun a.
-(Closed uni, Everywhere uni Flat, Flat fun,
- Everywhere uni PrettyConst, GShow uni, Pretty fun) =&gt;
-CompiledCodeIn uni fun a -&gt; Program NamedDeBruijn uni fun ()
-</span><a href="../PlutusTx.Code.html#getPlc"><span class="hs-identifier hs-var">Pl.getPlc</span></a></span><span> </span><span class="hs-special">$$(</span><span class="annot"><a href="../PlutusTx.TH.html#compile"><span class="hs-identifier hs-type">Pl.compile</span></a></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">tgt</span><span class="hs-special">||]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-114"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-115"></span><span>    </span><span class="annot"><a href="#local-6989586621679644981"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-116"></span><span>    </span><span id="local-6989586621679644981"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
-</span><a href="#local-6989586621679644981"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-117"></span></pre></body></html>
+</span><span id="line-103"></span></pre></body></html>
