@@ -25,6 +25,32 @@ initDist = initialDistribution [(i, [lovelaceValueOf 25_000_000]) | i <- knownWa
 * In a test `Tasty.testCase "foo" $ testSucceedsFrom def initDist foo`
 * In the REPL `printCooked $ interpretAndRunWith (runMockChainTFrom initDist) foo`
 
+### Give human-readable names to pubkey/script/minting hashes
+
+```haskell
+pcOpts :: C.PrettyCookedOpts
+pcOpts =
+  def
+    { C.pcOptHashes =
+        def
+          { C.pcOptHashNames =
+              defaultHashNames
+                <> C.hashNamesFromList
+                  [ (alice, "Alice"),
+                    (bob, "Bob"),
+                    (carrie, "Carie")
+                  ]
+                <> C.hashNamesFromList
+                  [ (nftCurrencySymbol, "NFT"),
+                    (customCoinsCurrencySymbol, "Custom Coins")
+                  ]
+                <> C.hashNamesFromList
+                  [ (fooValidator, "Foo")
+                  ]
+          }
+    }
+```
+
 ### Write a trace or endpoint
 
 ```haskell

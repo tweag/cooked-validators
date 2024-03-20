@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- | Common tools to help implement pretty-printers in cooked-validators
 module Cooked.Pretty.Common
@@ -12,6 +13,11 @@ module Cooked.Pretty.Common
   )
 where
 
+import Cooked.Pretty.Options (PrettyCookedHashOpts (..))
+import qualified Data.ByteString as ByteString
+import qualified Data.Map as Map
+import qualified Numeric
+import qualified PlutusTx.Builtins.Internal as Pl (BuiltinByteString (..))
 import Prettyprinter (Doc, (<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.String as PP
@@ -54,5 +60,20 @@ prettyEnumerate title bullet items =
     ]
 
 -- | Pretty print a prefix of a hash with a given length.
-prettyHash :: (Show a) => Int -> a -> DocCooked
-prettyHash printedLength = PP.pretty . ('#' :) . take printedLength . show
+prettyHash :: PrettyCookedHashOpts -> Pl.BuiltinByteString -> DocCooked
+prettyHash PrettyCookedHashOpts {..} bbs@(Pl.BuiltinByteString bs) =
+  let hexRepresentation :: DocCooked
+      hexRepresentation =
+        "#"
+          <> ( PP.pretty
+                 . take pcOptHashLength
+                 . concatMap (`Numeric.showHex` "")
+                 . ByteString.unpack
+             )
+            bs
+   in case Map.lookup bbs pcOptHashNames of
+        Nothing -> hexRepresentation
+        Just name ->
+          if pcOptHashVerbose
+            then hexRepresentation <+> PP.parens (PP.pretty name)
+            else PP.pretty name

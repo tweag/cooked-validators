@@ -41,6 +41,7 @@ import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.Pretty.Common
+import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -133,12 +134,12 @@ instance PrettyCooked MockChainError where
     prettyItemize
       "Unknown validator hash:"
       "-"
-      [PP.pretty msg, "hash:" <+> prettyHash (pcOptPrintedHashLength opts) valHash]
+      [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash valHash)]
   prettyCookedOpt opts (MCEUnknownDatum msg dHash) =
     prettyItemize
       "Unknown datum hash:"
       "-"
-      [PP.pretty msg, "hash:" <+> prettyHash (pcOptPrintedHashLength opts) dHash]
+      [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash dHash)]
   prettyCookedOpt _ (OtherMockChainError err) =
     prettyItemize
       "Miscellaneous MockChainError:"
@@ -336,7 +337,10 @@ getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScript
 getReferenceScriptDoc opts output =
   case output ^. outputReferenceScriptL of
     Nothing -> Nothing
-    Just refScript -> Just $ "Reference script hash:" <+> prettyHash (pcOptPrintedHashLength opts) (toScriptHash refScript)
+    Just refScript ->
+      Just $
+        "Reference script hash:"
+          <+> prettyHash (pcOptHashes opts) (toHash . toScriptHash $ refScript)
 
 lookupOutput ::
   SkelContext ->
@@ -510,4 +514,4 @@ prettyPayload
 prettyReferenceScriptHash :: PrettyCookedOpts -> Pl.ScriptHash -> DocCooked
 prettyReferenceScriptHash opts scriptHash =
   "Reference script hash:"
-    <+> prettyHash (pcOptPrintedHashLength opts) scriptHash
+    <+> prettyHash (pcOptHashes opts) (toHash scriptHash)

@@ -1,11 +1,24 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
 module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),
+    PrettyCookedHashOpts (..),
     PCOptTxOutRefs (..),
+    hashNamesFromList,
   )
 where
 
+import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
+import Cooked.Pretty.Hashable
+import Data.Bifunctor (first)
 import Data.Default
+import Data.Map (Map)
+import qualified Data.Map as Map
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified PlutusTx.Prelude as Pl
 
 data PrettyCookedOpts = PrettyCookedOpts
   { -- | Whether to print transaction ids of validated transactions.
@@ -18,15 +31,24 @@ data PrettyCookedOpts = PrettyCookedOpts
     -- default.
     -- By default: False
     pcOptPrintDefaultTxOpts :: Bool,
-    -- | Length of printed hashes (e.g. addresses, transaction ids)
-    -- By default: 7
-    pcOptPrintedHashLength :: Int,
     -- | Whether to print big integers with numeric underscores.
     -- For example @53_000_000@ instead of @53000000@.
     -- By default: True
-    pcOptNumericUnderscores :: Bool
+    pcOptNumericUnderscores :: Bool,
+    -- | Options relative to printing hashes
+    pcOptHashes :: PrettyCookedHashOpts
   }
   deriving (Eq, Show)
+
+instance Default PrettyCookedOpts where
+  def =
+    PrettyCookedOpts
+      { pcOptPrintTxHashes = False,
+        pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
+        pcOptPrintDefaultTxOpts = False,
+        pcOptNumericUnderscores = True,
+        pcOptHashes = def
+      }
 
 -- | Whether to print transaction outputs references.
 data PCOptTxOutRefs
@@ -42,12 +64,43 @@ data PCOptTxOutRefs
     PCOptTxOutRefsPartial
   deriving (Eq, Show)
 
-instance Default PrettyCookedOpts where
+data PrettyCookedHashOpts = PrettyCookedHashOpts
+  { -- | Length of printed hashes (e.g. addresses, transaction ids)
+    -- By default: 7
+    pcOptHashLength :: Int,
+    -- | Association between hashes and given names to ease readability.
+    -- For example @Map.singleton (walletPKHash (wallet 1)) "Alice"@
+    -- By default: "defaultHashNames" which assigns Lovelace, Quick, and
+    -- Permanent as names for the associated currency symbols
+    pcOptHashNames :: Map Pl.BuiltinByteString String,
+    -- | When a given name exists for a hash, this flag also prints the
+    -- original hash after the name
+    -- By default: @False@
+    pcOptHashVerbose :: Bool
+  }
+  deriving (Eq, Show)
+
+instance Default PrettyCookedHashOpts where
   def =
-    PrettyCookedOpts
-      { pcOptPrintTxHashes = False,
-        pcOptPrintTxOutRefs = PCOptTxOutRefsHidden,
-        pcOptPrintDefaultTxOpts = False,
-        pcOptPrintedHashLength = 7,
-        pcOptNumericUnderscores = True
+    PrettyCookedHashOpts
+      { pcOptHashLength = 7,
+        pcOptHashNames = defaultHashNames,
+        pcOptHashVerbose = False
       }
+
+-- | Default hash to names map that assigns Lovelace, Quick, and Permanent to
+-- the associated currency symbols. This is used as the default for the
+-- pretty-printing option and is recommended to use as a basis to extend with
+-- custom names.
+defaultHashNames :: Map Pl.BuiltinByteString String
+defaultHashNames =
+  hashNamesFromList
+    [ (Pl.CurrencySymbol "", "Lovelace"),
+      (quickCurrencySymbol, "Quick"),
+      (permanentCurrencySymbol, "Permanent")
+    ]
+
+-- | Smart constructor for maps to be used in the "pcOptHashNames"
+-- pretty-printing option.
+hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Pl.BuiltinByteString String
+hashNamesFromList = Map.fromList . map (first toHash)
