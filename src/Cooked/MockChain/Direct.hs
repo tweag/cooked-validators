@@ -262,7 +262,7 @@ datumMap0From (InitialDistribution initDist) =
        in maybe Map.empty (flip Map.singleton (datum, 1) . Pl.datumHash) $ txSkelOutUntypedDatum datum
 
 -- | This creates the initial UtxoIndex from an initial distribution
--- by submitted an initial transaction with the appropriate content:
+-- by submitting an initial transaction with the appropriate content:
 --
 -- - inputs consist of a single dummy pseudo input
 --
@@ -270,6 +270,13 @@ datumMap0From (InitialDistribution initDist) =
 --
 -- - outputs are translated from the `TxSkelOut` list in the initial
 --   distribution
+--
+-- Two things to note:
+--
+-- - We don't know what "Magic" means for the network ID (TODO)
+--
+-- - The genesis key hash has been taken from
+--   https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From (InitialDistribution initDist) = case mkBody of
   Left err -> error $ show err
@@ -279,9 +286,7 @@ utxoIndex0From (InitialDistribution initDist) = case mkBody of
     mkBody = do
       value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
       let mintValue = flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty) . C.filterValue (/= C.AdaAssetId) $ value
-          theNetworkId = C.Testnet $ C.NetworkMagic 42 -- TODO PORT what's magic?
-          -- This has been taken  from the Test.Cardano.Api.Genesis example transaction here:
-          -- https://github.com/input-output-hk/cardano-node/blob/543b267d75d3d448e1940f9ec04b42bd01bbb16b/cardano-api/test/Test/Cardano/Api/Genesis.hs#L60
+          theNetworkId = C.Testnet $ C.NetworkMagic 42
           genesisKeyHash = C.GenesisUTxOKeyHash $ CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)]
       outputs <- mapM (txSkelOutToCardanoTxOut theNetworkId) initDist
