@@ -314,7 +314,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
             ( prettyCookedOpt opts (outputValue output)
                 : catMaybes
                   [ redeemerDoc,
-                    prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+                    prettyTxSkelOutDatumMaybe opts =<< txSkelOutDatum,
                     getReferenceScriptDoc opts output
                   ]
             )
@@ -328,7 +328,7 @@ prettyTxSkelInReference opts skelContext txOutRef = do
       "-"
       ( prettyCookedOpt opts (outputValue output)
           : catMaybes
-            [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
+            [ prettyTxSkelOutDatumMaybe opts =<< txSkelOutDatum,
               getReferenceScriptDoc opts output
             ]
       )
@@ -345,16 +345,19 @@ getReferenceScriptDoc opts output =
 lookupOutput ::
   SkelContext ->
   Pl.TxOutRef ->
-  Maybe (Pl.TxOut, TxSkelOutDatum)
+  Maybe (Pl.TxOut, Maybe TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
-  datumHash <-
-    case outputOutputDatum output of
-      Pl.OutputDatum datum -> return (Pl.datumHash datum)
-      Pl.OutputDatumHash datumHash -> return datumHash
-      Pl.NoOutputDatum -> Nothing
-  txSkelOutDatum <- Map.lookup datumHash managedTxSkelOutDatums
-  return (output, txSkelOutDatum)
+  return
+    ( output,
+      do
+        datumHash <-
+          case outputOutputDatum output of
+            Pl.OutputDatum datum -> return (Pl.datumHash datum)
+            Pl.OutputDatumHash datumHash -> return datumHash
+            Pl.NoOutputDatum -> Nothing
+        Map.lookup datumHash managedTxSkelOutDatums
+    )
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default. If no non-default options are in the
