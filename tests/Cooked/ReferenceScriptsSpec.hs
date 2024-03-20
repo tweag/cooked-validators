@@ -28,30 +28,6 @@ import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
--- | The validator that always agrees to the transaction
-yesValidator :: Pl.TypedValidator MockContract
-yesValidator =
-  Pl.mkTypedValidator @MockContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
-  where
-    val :: () -> () -> Pl.ScriptContext -> Bool
-    val _ _ _ = True
-
-    wrap = Pl.mkUntypedValidator
-
--- | The validator that never agrees to the transaction
-noValidator :: Pl.TypedValidator MockContract
-noValidator =
-  Pl.mkTypedValidator @MockContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
-  where
-    val :: () -> () -> Pl.ScriptContext -> Bool
-    val _ _ _ = False
-
-    wrap = Pl.mkUntypedValidator
-
 -- | This validator ensures that the given public key signs the transaction.
 requireSignerValidator :: Pl.PubKeyHash -> Pl.TypedValidator MockContract
 requireSignerValidator =
@@ -182,9 +158,9 @@ useReferenceScript spendingSubmitter theScript = do
 tests :: TestTree
 tests =
   testGroup
-    "reference scripts"
+    "Reference scripts"
     [ testGroup "putting reference scripts on chain and retreiving them" $
-        let theRefScript = noValidator
+        let theRefScript = alwaysFalseValidator
             theRefScriptHash = toScriptHash theRefScript
          in [ testCase "on a public key output"
                 $ testSucceedsFrom'
@@ -204,7 +180,7 @@ tests =
                         Just theRefScriptHash .==. mScriptHash
                   )
                   def
-                $ putRefScriptOnScriptOutput yesValidator theRefScript
+                $ putRefScriptOnScriptOutput alwaysTrueValidator theRefScript
                   >>= retrieveRefScriptHash,
               testCase "retreiving the complete script from its hash"
                 $ testSucceedsFrom'
@@ -227,12 +203,12 @@ tests =
                   def
                   (== "there is no reference input with the correct script hash")
               )
-            $ putRefScriptOnWalletOutput (wallet 3) noValidator
-              >>= checkReferenceScriptOnOref (toScriptHash yesValidator),
+            $ putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
+              >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator),
           testCase "succeed if correct reference script" $
             testSucceeds def $
-              putRefScriptOnWalletOutput (wallet 3) yesValidator
-                >>= checkReferenceScriptOnOref (toScriptHash yesValidator)
+              putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
+                >>= checkReferenceScriptOnOref (toScriptHash alwaysTrueValidator)
         ],
       testGroup
         "using reference scripts"
@@ -256,7 +232,7 @@ tests =
                     txSkelTemplate
                       { txSkelOuts =
                           [ paysScript
-                              yesValidator
+                              (alwaysTrueValidator @MockContract)
                               ()
                               (Pl.lovelaceValueOf 42_000_000)
                           ],
@@ -280,14 +256,14 @@ tests =
                   )
                   def
                   $ do
-                    scriptOref <- putRefScriptOnWalletOutput (wallet 3) noValidator
+                    scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
                     (oref, _) : _ <-
                       utxosFromCardanoTx
                         <$> validateTxSkel
                           txSkelTemplate
                             { txSkelOuts =
                                 [ paysScript
-                                    yesValidator
+                                    (alwaysTrueValidator @MockContract)
                                     ()
                                     (Pl.lovelaceValueOf 42_000_000)
                                 ],
@@ -309,14 +285,14 @@ tests =
               )
               def
             $ do
-              scriptOref <- putRefScriptOnWalletOutput (wallet 3) yesValidator
+              scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
               (oref, _) : _ <-
                 utxosFromCardanoTx
                   <$> validateTxSkel
                     txSkelTemplate
                       { txSkelOuts =
                           [ paysScript
-                              yesValidator
+                              (alwaysTrueValidator @MockContract)
                               ()
                               (Pl.lovelaceValueOf 42_000_000)
                           ],
