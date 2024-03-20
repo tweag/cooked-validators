@@ -266,10 +266,10 @@ datumMap0From (InitialDistribution initDist) =
 --
 -- - inputs consist of a single dummy pseudo input
 --
--- - all assets in outputs are considered minted
+-- - all non-ada assets in outputs are considered minted
 --
 -- - outputs are translated from the `TxSkelOut` list in the initial
--- - distribution
+--   distribution
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From (InitialDistribution initDist) = case mkBody of
   Left err -> error $ show err
