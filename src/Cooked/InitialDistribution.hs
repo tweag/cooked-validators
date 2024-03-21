@@ -46,5 +46,11 @@ instance Default InitialDistribution where
       . replicate 5
       $ ada 100
 
+instance Semigroup InitialDistribution where
+  i <> j = InitialDistribution $ unInitialDistribution i <> unInitialDistribution j
+
+instance Monoid InitialDistribution where
+  mempty = InitialDistribution mempty
+
 distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK (walletPKHash user)) values) []
