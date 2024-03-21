@@ -60,31 +60,22 @@ library
   ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
-    , aeson
     , base >=4.9 && <5
     , bytestring
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
     , cardano-node-emulator
-    , cardano-wallet-core
     , containers
     , data-default
-    , deepseq
     , either
     , flat
-    , foldl
-    , hashable
-    , hedgehog-quickcheck
-    , lens
     , list-t
-    , memory
     , monad-control
     , mtl
     , nonempty-containers
     , optics-core
     , optics-th
-    , optics-vl
     , plutus-contract
     , plutus-core
     , plutus-ledger
@@ -95,8 +86,6 @@ library
     , prettyprinter
     , random
     , random-shuffle
-    , scientific
-    , streaming
     , tasty
     , tasty-hunit
     , tasty-quickcheck
@@ -134,32 +123,23 @@ test-suite spec
       tests/
   build-depends:
       QuickCheck
-    , aeson
     , base >=4.9 && <5
     , bytestring
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
     , cardano-node-emulator
-    , cardano-wallet-core
     , containers
     , cooked-validators
     , data-default
-    , deepseq
     , either
     , flat
-    , foldl
-    , hashable
-    , hedgehog-quickcheck
-    , lens
     , list-t
-    , memory
     , monad-control
     , mtl
     , nonempty-containers
     , optics-core
     , optics-th
-    , optics-vl
     , parsec
     , plutus-contract
     , plutus-core
@@ -171,8 +151,6 @@ test-suite spec
     , prettyprinter
     , random
     , random-shuffle
-    , scientific
-    , streaming
     , tasty
     , tasty-hunit
     , tasty-quickcheck
