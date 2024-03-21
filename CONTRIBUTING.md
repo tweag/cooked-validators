@@ -1,0 +1,171 @@
+# Contributing
+
+Thank you for investing your time in contributing to _Cooked Validators_.
+Bug reports, feature requests and pull requests are all most welcome!
+
+## Short links to important resources
+
+- Do you have a question?
+  Post it using GitHub's [discussions board].
+  Please do not use the issue tracker for those.
+
+- Did you find a bug?
+  Please report it using GitHub's [issue tracker].
+  Select “bug report”.
+
+- Do you want to request an enhancement?
+  Please report it using GitHub's [issue tracker].
+  Select “feature request”.
+
+## Running and testing
+
+### Environment
+
+We recommend using [Nix] to work on _Cooked Validators_.
+Our Nix integration provides everything one needs to contribute:
+
+- The environment `nix develop .#ci` contains the minimal software necessary to build and run it.
+
+- The environment `nix develop .#default` contains that plus everything needed for development, including [Haskell Language Server], [Ormolu], etc.
+
+Alternatively, one can work on _Cooked Validators_ without Nix, using only GHC 8.10.7 and Cabal.
+
+### Running and testing
+
+Unit tests are defined in `/cooked-validators/tests`.
+The `/examples` directory contains more high-level tests under the form of full blown examples.
+Running tests consists in checking in both those directories that `cabal run tests` is happy.
+In a correct environment, this should only be a matter of doing the following:
+
+```console
+$ cd cooked-validators
+$ cabal run tests
+...
+All 74 tests passed (2.22s)
+$ cd ../examples
+$ cabal run tests
+...
+All 16 tests passed (12.32s)
+```
+
+Our continuous integration checks all of this automatically.
+
+## How to submit changes
+
+Changes are submitted by means of [pull requests].
+The process of submitting pull requests has several goals:
+
+- Maintain _Cooked Validators_'s quality.
+
+- Fix problems that are important to users.
+
+- Engage the community in working toward the best possible _Cooked Validators_.
+
+- Enable a sustainable system for _Cooked Validators_'s maintainers to review contributions.
+
+Please follow these steps to have your contribution considered by the maintainers:
+
+- Follow all instructions in the template.
+
+- Follow the [style guides].
+
+- After you submit your pull request, verify that all [status checks] are passing.
+  If a status check is failing, and you believe that the failure is unrelated to your change, please leave a comment on the pull request explaining why you believe the failure is unrelated.
+  A maintainer will re-run the status check for you.
+  If we conclude that the failure was a false positive, then we will open an issue to track that problem with our status check suite.
+
+While the prerequisites above must be satisfied prior to having your pull request reviewed, the reviewer/s may ask you to complete additional design work, tests, or other changes before your pull request can be ultimately accepted.
+
+## How to report a bug
+
+Bugs are tracked using GitHub's [issue tracker].
+Explain the problem and include additional details to help maintainers reproduce the problem:
+
+- Use a clear and descriptive title for the issue to identify the problem.
+
+- Describe the exact steps which reproduce the problem in as many details as possible.
+  Ideally, provide a minimal example file accompanied by a set of Shell commands that trigger the problem.
+  Include links to files or GitHub projects, or copy/pasteable snippets, which you use in those examples.
+  If you're providing snippets in the issue, use Markdown code blocks.
+
+- Describe the behaviour you observed after following the steps and point out what exactly is the problem with that behavior.
+  Explain which behaviour you expected to see instead and why.
+
+- If the problem is related to performance or memory, include a CPU profile capture with your report.
+
+- If the problem wasn't triggered by a specific action, describe what you were doing before the problem happened and share more information using the guidelines below.
+
+Provide more context by answering these questions:
+
+- Which version of `cooked-validators` are you using?
+  Which version of `plutus-apps` are you using?
+  Can you reproduce the problem with the latest tagged version of _Cooked Validators_?
+  Can you reproduce the problem with the latest commit on `main`?
+
+- Can you reliably reproduce the issue?
+  If not, provide details about how often the problem happens and under which conditions it normally happens.
+
+- Are you running Nix to provide the environment?
+  Which version of Nix are you using?
+  Can you reproduce using the `nix develop .#ci` environment?
+
+- What are the name and version of the OS you are using?
+
+## How to request an enhancement
+
+Enhancement requests are tracked using GitHub's [issue tracker].
+
+Before creating enhancement suggestions, please check whether [there is already an issue tracking it][issue tracker].
+When you are creating an enhancement suggestion, please include as many details as possible.
+Fill in the template, including the steps that you imagine you would take if the feature you're requesting existed.
+
+- Use a clear and descriptive title for the issue to identify the suggestion.
+
+- Provide a step-by-step description of the suggested enhancement in as many details as possible.
+
+- Provide specific examples to demonstrate the steps.
+  Include copy/pasteable snippets which you use in those examples, as Markdown code blocks.
+
+- Describe the current behavior and explain which behaviour you expected to see instead and why.
+
+- Explain why this enhancement would be useful to most _Cooked Validators_ users and is not something that can or should be implemented as a community package.
+
+- Specify which version of _Cooked Validators_ you are using.
+  Specify the name and version of the OS you are using.
+
+## Style guides / Coding conventions
+
+[style guides]: #style-guides--coding-conventions
+
+### Haskell style guide
+
+- All Haskell code is formatted with [Ormolu].
+
+- Use explicit import lists.
+
+- Document all your functions using [Haddock]'s syntax.
+
+### Nix style guide
+
+- All Nix code is formatted with [nixfmt].
+
+- Avoid variable bindings that are not used.
+
+- Provide documentation explaining any bit of code that is not standard.
+
+### CI and pre-commit hooks
+
+Most of those coding conventions are enforced automatically by our continuous integration.
+The Nix environment provides pre-commit hooks that check those coding conventions in the exact same way the CI does.
+
+[discussions board]: https://github.com/tweag/cooked-validators/discussions
+[issue tracker]: https://github.com/tweag/cooked-validators/issues
+[pull requests]: https://github.com/tweag/cooked-validators/pulls
+
+[status checks]: https://help.github.com/articles/about-status-checks/
+
+[haskell language server]: https://github.com/haskell/haskell-language-server
+[nix]: https://nixos.org/
+[ormolu]: https://github.com/tweag/ormolu
+[haddock]: https://haskell-haddock.readthedocs.io/en/latest/
+[nixfmt]: https://github.com/serokell/nixfmt
