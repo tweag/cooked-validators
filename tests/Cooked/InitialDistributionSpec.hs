@@ -61,7 +61,7 @@ spendReferenceAlwaysTrueValidator = do
 tests :: TestTree
 tests =
   testGroup
-    "initial distributions"
+    "Initial distributions"
     [ testCase "Reading datums placed in the initial distribution, inlined, hashed or vanilla" $
         testSucceedsFrom' def (\results _ -> testBool $ results == [10, 10, 10]) initialDistributionWithDatum getValueFromInitialDatum,
       testCase "Spending a script placed as a reference script in the initial distribution" $

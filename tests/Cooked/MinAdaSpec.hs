@@ -50,7 +50,7 @@ paymentWithoutMinAda paidLovelaces = do
 tests :: TestTree
 tests =
   testGroup
-    "automatic minAda adjustment of transaction outputs"
+    "MinAda auto adjustment of transaction outputs"
     [ testCase "adjusted transaction passes" $ testSucceeds def paymentWithMinAda,
       testCase "adjusted transaction contains minimal amount"
         $ testFails

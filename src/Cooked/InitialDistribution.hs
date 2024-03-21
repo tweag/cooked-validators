@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-
 -- | This module provides a convenient way to spread assets between
 -- wallets and scripts at the initialization of the mock chain. These
 -- initial assets can be accompanied by datums and reference scripts.
@@ -36,8 +34,7 @@ import qualified Plutus.Script.Utils.Value as Pl
 --  >        , (wallet 2 , [ ada 10 ])
 --  >        , (wallet 3 , [ ada 10 <> permanentValue "XYZ" 10])
 --  >        ]
-data InitialDistribution where
-  InitialDistribution :: {initialDistribution :: [TxSkelOut]} -> InitialDistribution
+newtype InitialDistribution = InitialDistribution {unInitialDistribution :: [TxSkelOut]}
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets',
 -- without any datum nor scripts
@@ -48,6 +45,12 @@ instance Default InitialDistribution where
       . repeat
       . replicate 5
       $ ada 100
+
+instance Semigroup InitialDistribution where
+  i <> j = InitialDistribution $ unInitialDistribution i <> unInitialDistribution j
+
+instance Monoid InitialDistribution where
+  mempty = InitialDistribution mempty
 
 distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK (walletPKHash user)) values) []

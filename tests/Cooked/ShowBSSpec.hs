@@ -65,7 +65,7 @@ printTrace = do
 tests :: TestTree
 tests =
   testGroup
-    "printing to BuiltinString"
+    "BuiltinString serializing"
     [ testCase "a few simple examples" $
         testConjoin $
           map
