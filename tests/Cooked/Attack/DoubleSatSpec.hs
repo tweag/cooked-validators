@@ -130,31 +130,20 @@ bValidator =
 
 -- | In the initial state of the Mockchain, the A and B validators each own
 -- a few UTxOs, with different values
-dsTestMockChainSt :: MockChainSt
-dsTestMockChainSt = case runMockChainRaw def def setup of
-  Left _ -> def -- this branch will not be reached
-  Right (_, mcst) -> mcst
-  where
-    setup = do
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 2_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 3_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 4_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript aValidator ADatum (Pl.lovelaceValueOf 5_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 6_000_000)]}
-      validateTxSkel $ txSkelTemplate {txSkelSigners = [wallet 1], txSkelOuts = [paysScript bValidator BDatum (Pl.lovelaceValueOf 7_000_000)]}
+customInitDist :: InitialDistribution
+customInitDist =
+  def
+    <> InitialDistribution (paysScript aValidator ADatum . ada <$> [2, 3, 4, 5])
+    <> InitialDistribution (paysScript bValidator BDatum . ada <$> [6, 7])
 
 tests :: TestTree
 tests =
   testGroup
     "double satisfaction attack"
     $ let Right ([aUtxo1, aUtxo2, aUtxo3, aUtxo4], _) =
-            runMockChainRaw def dsTestMockChainSt $
-              runUtxoSearch $
-                utxosAtSearch (Pl.validatorAddress aValidator)
+            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Pl.validatorAddress aValidator)
           Right ([bUtxo1, bUtxo2], _) =
-            runMockChainRaw def dsTestMockChainSt $
-              runUtxoSearch $
-                utxosAtSearch (Pl.validatorAddress bValidator)
+            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Pl.validatorAddress bValidator)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
                 Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
@@ -184,7 +173,7 @@ tests =
                     mapMaybe (\case Right (_, skel') -> Just skel'; _ -> Nothing) $
                       runTweakFrom
                         def
-                        dsTestMockChainSt
+                        (mockChainSt0From customInitDist)
                         ( doubleSatAttack
                             splitMode
                             (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
