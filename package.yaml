@@ -22,7 +22,6 @@ dependencies:
   - nonempty-containers
   - optics-core
   - optics-th
-  - plutus-contract
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api
