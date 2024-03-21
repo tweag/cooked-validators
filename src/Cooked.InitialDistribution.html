@@ -43,7 +43,7 @@
 </span><span id="line-42"></span><span class="hs-comment">-- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets',</span><span>
 </span><span id="line-43"></span><span class="hs-comment">-- without any datum nor scripts</span><span>
 </span><span id="line-44"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../Data.Default.Class.html#Default"><span class="hs-identifier hs-type">Default</span></a></span><span> </span><span class="annot"><a href="Cooked.InitialDistribution.html#InitialDistribution"><span class="hs-identifier hs-type">InitialDistribution</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-45"></span><span>  </span><span id="local-6989586621679643454"><span class="annot"><span class="annottext">def :: InitialDistribution
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679643166"><span class="annot"><span class="annottext">def :: InitialDistribution
 </span><a href="../Data.Default.Class.html#def"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">[(Wallet, [Value])] -&gt; InitialDistribution
 </span><a href="Cooked.InitialDistribution.html#distributionFromList"><span class="hs-identifier hs-var">distributionFromList</span></a></span><span>
@@ -85,17 +85,17 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><a href="../Data.Foldable.html#foldl%27"><span class="hs-identifier hs-var">foldl'</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679643446"><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679643446"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679643445"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679643445"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679643444"><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679643444"><span class="hs-identifier hs-var">values</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
-</span><a href="#local-6989586621679643446"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
+</span><a href="../Data.Foldable.html#foldl%27"><span class="hs-identifier hs-var">foldl'</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679643158"><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679643158"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679643157"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679643157"><span class="hs-identifier hs-var">user</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679643156"><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679643156"><span class="hs-identifier hs-var">values</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[TxSkelOut]
+</span><a href="#local-6989586621679643158"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[TxSkelOut] -&gt; [TxSkelOut] -&gt; [TxSkelOut]
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><a href="../GHC.Base.html#%3C%3E"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; TxSkelOut) -&gt; [Value] -&gt; [TxSkelOut]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
 </span><a href="../GHC.Base.html#map"><span class="hs-identifier hs-var">map</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; TxSkelOut
 </span><a href="Cooked.Skeleton.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679643445"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
-</span><a href="#local-6989586621679643444"><span class="hs-identifier hs-var">values</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><a href="#local-6989586621679643157"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Value]
+</span><a href="#local-6989586621679643156"><span class="hs-identifier hs-var">values</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
 </span><span id="line-54"></span></pre></body></html>

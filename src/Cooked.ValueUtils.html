@@ -29,14 +29,14 @@ forall s a b t. (s -&gt; a) -&gt; (b -&gt; t) -&gt; Iso s t a b
 -&gt; [(CurrencySymbol, TokenName, Integer)]
 -&gt; [(AssetClass, Integer)]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><a href="../GHC.Base.html#map"><span class="hs-identifier hs-var">map</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679638782"><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679638782"><span class="hs-identifier hs-var">cSymbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638781"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679638781"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638780"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638780"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><a href="../GHC.Base.html#map"><span class="hs-identifier hs-var">map</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679638494"><span class="annot"><span class="annottext">CurrencySymbol
+</span><a href="#local-6989586621679638494"><span class="hs-identifier hs-var">cSymbol</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638493"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679638493"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638492"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679638492"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
 </span><a href="../Plutus.V1.Ledger.Value.html#assetClass"><span class="hs-identifier hs-var">Pl.assetClass</span></a></span><span> </span><span class="annot"><span class="annottext">CurrencySymbol
-</span><a href="#local-6989586621679638782"><span class="hs-identifier hs-var">cSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679638781"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638780"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [(AssetClass, Integer)])
+</span><a href="#local-6989586621679638494"><span class="hs-identifier hs-var">cSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679638493"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679638492"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(CurrencySymbol, TokenName, Integer)] -&gt; [(AssetClass, Integer)])
 -&gt; (Value -&gt; [(CurrencySymbol, TokenName, Integer)])
 -&gt; Value
 -&gt; [(AssetClass, Integer)]
@@ -48,16 +48,16 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (t :: * -&gt; *) b a.
 Foldable t =&gt;
 (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
-</span><a href="../Data.Foldable.html#foldl%27"><span class="hs-identifier hs-var">foldl'</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679638775"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679638775"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679638774"><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679638774"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638773"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638773"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679638775"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><a href="../Data.Foldable.html#foldl%27"><span class="hs-identifier hs-var">foldl'</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679638487"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679638487"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679638486"><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679638486"><span class="hs-identifier hs-var">ac</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638485"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679638485"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679638487"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
 </span><a href="../GHC.Base.html#%3C%3E"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Value
 </span><a href="../Plutus.V1.Ledger.Value.html#assetClassValue"><span class="hs-identifier hs-var">Pl.assetClassValue</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679638774"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638773"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679638486"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679638485"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
 forall a. Monoid a =&gt; a
 </span><a href="../GHC.Base.html#mempty"><span class="hs-identifier hs-var">mempty</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-25"></span><span>
@@ -120,9 +120,9 @@ forall s a b t. (s -&gt; a) -&gt; (s -&gt; b -&gt; t) -&gt; Lens s t a b
 </span><a href="../Optics.Lens.html#lens"><span class="hs-identifier hs-var">lens</span></a></span><span>
 </span><span id="line-46"></span><span>    </span><span class="annot"><span class="annottext">Value -&gt; Ada
 </span><a href="../Plutus.Script.Utils.Ada.html#fromValue"><span class="hs-identifier hs-var">Pl.fromValue</span></a></span><span>
-</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679638766"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679638766"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Ada.html#Lovelace"><span class="hs-identifier hs-type">Pl.Lovelace</span></a></span><span> </span><span id="local-6989586621679638764"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638764"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679638478"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679638478"><span class="hs-identifier hs-var">value</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Ada.html#Lovelace"><span class="hs-identifier hs-type">Pl.Lovelace</span></a></span><span> </span><span id="local-6989586621679638476"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679638476"><span class="hs-identifier hs-var">amount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
 </span><span id="line-48"></span><span>        </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 -&gt; ([(AssetClass, Integer)] -&gt; [(AssetClass, Integer)])
 -&gt; Value
@@ -133,38 +133,38 @@ Optic k is s t a b -&gt; (a -&gt; b) -&gt; s -&gt; t
 </span><a href="../Optics.Setter.html#over"><span class="hs-identifier hs-var">over</span></a></span><span>
 </span><span id="line-49"></span><span>          </span><span class="annot"><span class="annottext">Iso' Value [(AssetClass, Integer)]
 </span><a href="Cooked.ValueUtils.html#flattenValueI"><span class="hs-identifier hs-var">flattenValueI</span></a></span><span>
-</span><span id="line-50"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679638763"><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679638763"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><span id="line-50"></span><span>          </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679638475"><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><a href="#local-6989586621679638475"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
 -&gt; AssetClass -&gt; Integer -&gt; [(AssetClass, Integer)]
 forall a b. Eq a =&gt; [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
-</span><a href="#local-6989586621679638762"><span class="hs-identifier hs-var">insertAssocList</span></a></span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
-</span><a href="#local-6989586621679638763"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679638474"><span class="hs-identifier hs-var">insertAssocList</span></a></span><span> </span><span class="annot"><span class="annottext">[(AssetClass, Integer)]
+</span><a href="#local-6989586621679638475"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
 </span><a href="Cooked.ValueUtils.html#adaAssetClass"><span class="hs-identifier hs-var">adaAssetClass</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679638764"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679638476"><span class="hs-identifier hs-var">amount</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-51"></span><span>          </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679638766"><span class="hs-identifier hs-var">value</span></a></span><span>
+</span><a href="#local-6989586621679638478"><span class="hs-identifier hs-var">value</span></a></span><span>
 </span><span id="line-52"></span><span>    </span><span class="hs-special">)</span><span>
 </span><span id="line-53"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-54"></span><span>    </span><span id="local-6989586621679638799"><span id="local-6989586621679638800"><span class="annot"><a href="#local-6989586621679638762"><span class="hs-identifier hs-type">insertAssocList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-type">Eq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679638800"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679638800"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679638799"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679638800"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679638799"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679638800"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679638799"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
-</span><span id="line-55"></span><span>    </span><span id="local-6989586621679638762"><span class="annot"><span class="annottext">insertAssocList :: [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
-</span><a href="#local-6989586621679638762"><span class="hs-identifier hs-var hs-var">insertAssocList</span></a></span></span><span> </span><span id="local-6989586621679638760"><span class="annot"><span class="annottext">[(a, b)]
-</span><a href="#local-6989586621679638760"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679638759"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679638759"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679638758"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679638758"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679638759"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679638758"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; [(a, b)] -&gt; [(a, b)]
+</span><span id="line-54"></span><span>    </span><span id="local-6989586621679638511"><span id="local-6989586621679638512"><span class="annot"><a href="#local-6989586621679638474"><span class="hs-identifier hs-type">insertAssocList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-type">Eq</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679638512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679638512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679638511"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679638512"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679638511"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679638512"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679638511"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679638474"><span class="annot"><span class="annottext">insertAssocList :: [(a, b)] -&gt; a -&gt; b -&gt; [(a, b)]
+</span><a href="#local-6989586621679638474"><span class="hs-identifier hs-var hs-var">insertAssocList</span></a></span></span><span> </span><span id="local-6989586621679638472"><span class="annot"><span class="annottext">[(a, b)]
+</span><a href="#local-6989586621679638472"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679638471"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679638471"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679638470"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679638470"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679638471"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679638470"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; [(a, b)] -&gt; [(a, b)]
 forall a. a -&gt; [a] -&gt; [a]
 </span><a href="../GHC.Types.html#%3A"><span class="hs-glyph hs-var">:</span></a></span><span> </span><span class="annot"><span class="annottext">((a, b) -&gt; Bool) -&gt; [(a, b)] -&gt; [(a, b)]
 forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
 </span><a href="../GHC.List.html#filter"><span class="hs-identifier hs-var">filter</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><a href="../GHC.Classes.html#%2F%3D"><span class="hs-operator hs-var">/=</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679638759"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; ((a, b) -&gt; a) -&gt; (a, b) -&gt; Bool
+</span><a href="#local-6989586621679638471"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(a -&gt; Bool) -&gt; ((a, b) -&gt; a) -&gt; (a, b) -&gt; Bool
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">(a, b) -&gt; a
 forall a b. (a, b) -&gt; a
 </span><a href="../Data.Tuple.html#fst"><span class="hs-identifier hs-var">fst</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(a, b)]
-</span><a href="#local-6989586621679638760"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><a href="#local-6989586621679638472"><span class="hs-identifier hs-var">l</span></a></span><span>
 </span><span id="line-56"></span><span>
 </span><span id="line-57"></span><span class="hs-comment">-- * Helpers for manipulating ada and lovelace</span><span>
 </span><span id="line-58"></span><span>

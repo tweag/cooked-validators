@@ -1,13 +1,13 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
 </span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
-</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeSynonymInstances #-}</span><span>
-</span><span id="line-4"></span><span>
-</span><span id="line-5"></span><span class="hs-comment">-- | Pretty-printing options for 'prettyCookedOpt' and their default values.</span><span>
-</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty.Options</span><span>
-</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier">PrettyCookedOpts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedHashOpts"><span class="hs-identifier">PrettyCookedHashOpts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefs"><span class="hs-identifier">PCOptTxOutRefs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
-</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#hashNamesFromList"><span class="hs-identifier">hashNamesFromList</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | Pretty-printing options for 'prettyCookedOpt' and their default values.</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Pretty.Options</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier">PrettyCookedOpts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedHashOpts"><span class="hs-identifier">PrettyCookedHashOpts</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefs"><span class="hs-identifier">PCOptTxOutRefs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#hashNamesFromList"><span class="hs-identifier">hashNamesFromList</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cooked.Pretty.Options.html#defaultHashNames"><span class="hs-identifier">defaultHashNames</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span>
 </span><span id="line-12"></span><span class="hs-keyword">where</span><span>
 </span><span id="line-13"></span><span>
@@ -43,7 +43,7 @@
 </span><span id="line-39"></span><span>    </span><span id="pcOptHashes"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#pcOptHashes"><span class="hs-identifier hs-var hs-var">pcOptHashes</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedHashOpts"><span class="hs-identifier hs-type">PrettyCookedHashOpts</span></a></span><span>
 </span><span id="line-40"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-41"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679639067"><span id="local-6989586621679639069"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679638778"><span id="local-6989586621679638780"><span class="annot"><span class="annottext">PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; (PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool)
 -&gt; Eq PrettyCookedOpts
@@ -52,7 +52,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 == :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
 $c== :: PrettyCookedOpts -&gt; PrettyCookedOpts -&gt; Bool
-</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679639060"><span id="local-6989586621679639062"><span id="local-6989586621679639064"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
+</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638771"><span id="local-6989586621679638773"><span id="local-6989586621679638775"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedOpts -&gt; ShowS
 [PrettyCookedOpts] -&gt; ShowS
 PrettyCookedOpts -&gt; String
 (Int -&gt; PrettyCookedOpts -&gt; ShowS)
@@ -70,7 +70,7 @@ $cshowsPrec :: Int -&gt; PrettyCookedOpts -&gt; ShowS
 </span><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-42"></span><span>
 </span><span id="line-43"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../Data.Default.Class.html#Default"><span class="hs-identifier hs-type">Default</span></a></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedOpts"><span class="hs-identifier hs-type">PrettyCookedOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-44"></span><span>  </span><span id="local-6989586621679639056"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679638767"><span class="annot"><span class="annottext">def :: PrettyCookedOpts
 </span><a href="../Data.Default.Class.html#def"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedOpts :: Bool
 -&gt; PCOptTxOutRefs
@@ -109,7 +109,7 @@ forall a. Default a =&gt; a
 </span><span id="line-62"></span><span>    </span><span class="hs-comment">-- This avoids  the downside of 'PCOptTxOutRefsFull' which disables printing</span><span>
 </span><span id="line-63"></span><span>    </span><span class="hs-comment">-- UTxOs as a group.</span><span>
 </span><span id="line-64"></span><span>    </span><span id="PCOptTxOutRefsPartial"><span class="annot"><a href="Cooked.Pretty.Options.html#PCOptTxOutRefsPartial"><span class="hs-identifier hs-var">PCOptTxOutRefsPartial</span></a></span></span><span>
-</span><span id="line-65"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679639048"><span id="local-6989586621679639050"><span class="annot"><span class="annottext">PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
+</span><span id="line-65"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679638759"><span id="local-6989586621679638761"><span class="annot"><span class="annottext">PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 (PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool)
 -&gt; (PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool) -&gt; Eq PCOptTxOutRefs
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
@@ -117,7 +117,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 == :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
 $c== :: PCOptTxOutRefs -&gt; PCOptTxOutRefs -&gt; Bool
-</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679639042"><span id="local-6989586621679639044"><span id="local-6989586621679639046"><span class="annot"><span class="annottext">Int -&gt; PCOptTxOutRefs -&gt; ShowS
+</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638753"><span id="local-6989586621679638755"><span id="local-6989586621679638757"><span class="annot"><span class="annottext">Int -&gt; PCOptTxOutRefs -&gt; ShowS
 [PCOptTxOutRefs] -&gt; ShowS
 PCOptTxOutRefs -&gt; String
 (Int -&gt; PCOptTxOutRefs -&gt; ShowS)
@@ -151,7 +151,7 @@ $cshowsPrec :: Int -&gt; PCOptTxOutRefs -&gt; ShowS
 </span><span id="line-79"></span><span>    </span><span id="pcOptHashVerbose"><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; Bool
 </span><a href="Cooked.Pretty.Options.html#pcOptHashVerbose"><span class="hs-identifier hs-var hs-var">pcOptHashVerbose</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../GHC.Types.html#Bool"><span class="hs-identifier hs-type">Bool</span></a></span><span>
 </span><span id="line-80"></span><span>  </span><span class="hs-special">}</span><span>
-</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679639034"><span id="local-6989586621679639036"><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool
+</span><span id="line-81"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679638745"><span id="local-6989586621679638747"><span class="annot"><span class="annottext">PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool
 (PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool)
 -&gt; (PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool)
 -&gt; Eq PrettyCookedHashOpts
@@ -160,7 +160,7 @@ forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
 $c/= :: PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool
 == :: PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool
 $c== :: PrettyCookedHashOpts -&gt; PrettyCookedHashOpts -&gt; Bool
-</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679639028"><span id="local-6989586621679639030"><span id="local-6989586621679639032"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedHashOpts -&gt; ShowS
+</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679638739"><span id="local-6989586621679638741"><span id="local-6989586621679638743"><span class="annot"><span class="annottext">Int -&gt; PrettyCookedHashOpts -&gt; ShowS
 [PrettyCookedHashOpts] -&gt; ShowS
 PrettyCookedHashOpts -&gt; String
 (Int -&gt; PrettyCookedHashOpts -&gt; ShowS)
@@ -178,8 +178,8 @@ $cshowsPrec :: Int -&gt; PrettyCookedHashOpts -&gt; ShowS
 </span><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">)</span><span>
 </span><span id="line-82"></span><span>
 </span><span id="line-83"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../Data.Default.Class.html#Default"><span class="hs-identifier hs-type">Default</span></a></span><span> </span><span class="annot"><a href="Cooked.Pretty.Options.html#PrettyCookedHashOpts"><span class="hs-identifier hs-type">PrettyCookedHashOpts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-84"></span><span>  </span><span id="local-6989586621679639026"><span class="annot"><span class="annottext">def :: PrettyCookedHashOpts
-</span><a href="#local-6989586621679639026"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-84"></span><span>  </span><span id="local-6989586621679638737"><span class="annot"><span class="annottext">def :: PrettyCookedHashOpts
+</span><a href="#local-6989586621679638737"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-85"></span><span>    </span><span class="annot"><span class="annottext">PrettyCookedHashOpts :: Int -&gt; Map BuiltinByteString String -&gt; Bool -&gt; PrettyCookedHashOpts
 </span><a href="Cooked.Pretty.Options.html#PrettyCookedHashOpts"><span class="hs-identifier hs-type">PrettyCookedHashOpts</span></a></span><span>
 </span><span id="line-86"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">pcOptHashLength :: Int
@@ -219,7 +219,7 @@ Hashable a =&gt;
 </span><span id="line-102"></span><span>
 </span><span id="line-103"></span><span class="hs-comment">-- | Smart constructor for maps to be used in the &quot;pcOptHashNames&quot;</span><span>
 </span><span id="line-104"></span><span class="hs-comment">-- pretty-printing option.</span><span>
-</span><span id="line-105"></span><span id="local-6989586621679639096"><span class="annot"><a href="Cooked.Pretty.Options.html#hashNamesFromList"><span class="hs-identifier hs-type">hashNamesFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Hashable.html#Hashable"><span class="hs-identifier hs-type">Hashable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679639096"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679639096"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Data.Map.Internal.html#Map"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinByteString"><span class="hs-identifier hs-type">Pl.BuiltinByteString</span></a></span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span></span><span>
+</span><span id="line-105"></span><span id="local-6989586621679638808"><span class="annot"><a href="Cooked.Pretty.Options.html#hashNamesFromList"><span class="hs-identifier hs-type">hashNamesFromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Pretty.Hashable.html#Hashable"><span class="hs-identifier hs-type">Hashable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679638808"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679638808"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Data.Map.Internal.html#Map"><span class="hs-identifier hs-type">Map</span></a></span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinByteString"><span class="hs-identifier hs-type">Pl.BuiltinByteString</span></a></span><span> </span><span class="annot"><a href="../GHC.Base.html#String"><span class="hs-identifier hs-type">String</span></a></span></span><span>
 </span><span id="line-106"></span><span id="hashNamesFromList"><span class="annot"><span class="annottext">hashNamesFromList :: [(a, String)] -&gt; Map BuiltinByteString String
 </span><a href="Cooked.Pretty.Options.html#hashNamesFromList"><span class="hs-identifier hs-var hs-var">hashNamesFromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(BuiltinByteString, String)] -&gt; Map BuiltinByteString String
 forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
