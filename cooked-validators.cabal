@@ -76,7 +76,6 @@ library
     , nonempty-containers
     , optics-core
     , optics-th
-    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
@@ -141,7 +140,6 @@ test-suite spec
     , optics-core
     , optics-th
     , parsec
-    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
