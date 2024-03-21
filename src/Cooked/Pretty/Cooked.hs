@@ -334,27 +334,18 @@ prettyTxSkelInReference opts skelContext txOutRef = do
       )
 
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
-getReferenceScriptDoc opts output =
-  case output ^. outputReferenceScriptL of
-    Nothing -> Nothing
-    Just refScript ->
-      Just $
-        "Reference script hash:"
-          <+> prettyHash (pcOptHashes opts) (toHash . toScriptHash $ refScript)
+getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
 
-lookupOutput ::
-  SkelContext ->
-  Pl.TxOutRef ->
-  Maybe (Pl.TxOut, TxSkelOutDatum)
+lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
-  datumHash <-
-    case outputOutputDatum output of
-      Pl.OutputDatum datum -> return (Pl.datumHash datum)
-      Pl.OutputDatumHash datumHash -> return datumHash
-      Pl.NoOutputDatum -> Nothing
-  txSkelOutDatum <- Map.lookup datumHash managedTxSkelOutDatums
-  return (output, txSkelOutDatum)
+  return
+    ( output,
+      case outputOutputDatum output of
+        Pl.OutputDatum datum -> Map.findWithDefault TxSkelOutNoDatum (Pl.datumHash datum) managedTxSkelOutDatums
+        Pl.OutputDatumHash datumHash -> Map.findWithDefault TxSkelOutNoDatum datumHash managedTxSkelOutDatums
+        Pl.NoOutputDatum -> TxSkelOutNoDatum
+    )
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default. If no non-default options are in the

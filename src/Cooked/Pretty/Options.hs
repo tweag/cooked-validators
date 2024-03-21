@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
 module Cooked.Pretty.Options
@@ -8,6 +7,7 @@ module Cooked.Pretty.Options
     PrettyCookedHashOpts (..),
     PCOptTxOutRefs (..),
     hashNamesFromList,
+    defaultHashNames,
   )
 where
 
