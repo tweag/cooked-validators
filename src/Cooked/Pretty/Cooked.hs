@@ -339,11 +339,13 @@ getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHas
 lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
-  let txSkelOutDatum = case outputOutputDatum output of
+  return
+    ( output,
+      case outputOutputDatum output of
         Pl.OutputDatum datum -> Map.findWithDefault TxSkelOutNoDatum (Pl.datumHash datum) managedTxSkelOutDatums
         Pl.OutputDatumHash datumHash -> Map.findWithDefault TxSkelOutNoDatum datumHash managedTxSkelOutDatums
         Pl.NoOutputDatum -> TxSkelOutNoDatum
-  return (output, txSkelOutDatum)
+    )
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default. If no non-default options are in the
