@@ -314,7 +314,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
             ( prettyCookedOpt opts (outputValue output)
                 : catMaybes
                   [ redeemerDoc,
-                    prettyTxSkelOutDatumMaybe opts =<< txSkelOutDatum,
+                    prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
                     getReferenceScriptDoc opts output
                   ]
             )
@@ -328,7 +328,7 @@ prettyTxSkelInReference opts skelContext txOutRef = do
       "-"
       ( prettyCookedOpt opts (outputValue output)
           : catMaybes
-            [ prettyTxSkelOutDatumMaybe opts =<< txSkelOutDatum,
+            [ prettyTxSkelOutDatumMaybe opts txSkelOutDatum,
               getReferenceScriptDoc opts output
             ]
       )
@@ -336,19 +336,14 @@ prettyTxSkelInReference opts skelContext txOutRef = do
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
 getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
 
-lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, Maybe TxSkelOutDatum)
+lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
-  return
-    ( output,
-      do
-        datumHash <-
-          case outputOutputDatum output of
-            Pl.OutputDatum datum -> return (Pl.datumHash datum)
-            Pl.OutputDatumHash datumHash -> return datumHash
-            Pl.NoOutputDatum -> Nothing
-        Map.lookup datumHash managedTxSkelOutDatums
-    )
+  let txSkelOutDatum = case outputOutputDatum output of
+        Pl.OutputDatum datum -> Map.findWithDefault TxSkelOutNoDatum (Pl.datumHash datum) managedTxSkelOutDatums
+        Pl.OutputDatumHash datumHash -> Map.findWithDefault TxSkelOutNoDatum datumHash managedTxSkelOutDatums
+        Pl.NoOutputDatum -> TxSkelOutNoDatum
+  return (output, txSkelOutDatum)
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
 -- option if its value is non-default. If no non-default options are in the
