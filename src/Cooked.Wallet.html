@@ -43,8 +43,8 @@
 </span><span id="line-43"></span><span>
 </span><span id="line-44"></span><span class="hs-keyword">type</span><span> </span><span id="PrivateKey"><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-var">PrivateKey</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../Cardano.Crypto.Wallet.html#XPrv"><span class="hs-identifier hs-type">Cardano.XPrv</span></a></span><span>
 </span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679638832"><span class="annot"><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-type">Eq</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-47"></span><span>  </span><span id="local-6989586621679638830"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
+</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679639143"><span class="annot"><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-type">Eq</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679639141"><span class="annot"><span class="annottext">== :: Wallet -&gt; Wallet -&gt; Bool
 </span><a href="../GHC.Classes.html#%3D%3D"><span class="hs-operator hs-var hs-var hs-var hs-var">(==)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
 </span><a href="../GHC.Classes.html#%3D%3D"><span class="hs-operator hs-var">(==)</span></a></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Bool)
@@ -53,8 +53,8 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><a href="../Data.Function.html#on"><span class="hs-operator hs-var">`on`</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Digest Blake2b_160
 </span><a href="../Ledger.CardanoWallet.html#mwWalletId"><span class="hs-identifier hs-var hs-var">Pl.mwWalletId</span></a></span><span>
 </span><span id="line-48"></span><span>
-</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679638815"><span id="local-6989586621679638817"><span id="local-6989586621679638819"><span id="local-6989586621679638821"><span id="local-6989586621679638823"><span id="local-6989586621679638825"><span class="annot"><a href="../GHC.Classes.html#Ord"><span class="hs-identifier hs-type">Ord</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-50"></span><span>  </span><span id="local-6989586621679638813"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679639126"><span id="local-6989586621679639128"><span id="local-6989586621679639130"><span id="local-6989586621679639132"><span id="local-6989586621679639134"><span id="local-6989586621679639136"><span class="annot"><a href="../GHC.Classes.html#Ord"><span class="hs-identifier hs-type">Ord</span></a></span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679639124"><span class="annot"><span class="annottext">compare :: Wallet -&gt; Wallet -&gt; Ordering
 </span><a href="../GHC.Classes.html#compare"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering
 forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
 </span><a href="../GHC.Classes.html#compare"><span class="hs-identifier hs-var">compare</span></a></span><span> </span><span class="annot"><span class="annottext">(Digest Blake2b_160 -&gt; Digest Blake2b_160 -&gt; Ordering)
@@ -80,22 +80,22 @@ forall b c a. (b -&gt; b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; a -&gt; c
 </span><span id="line-64"></span><span class="hs-comment">-- an offset of 1 to start at 1 instead of 0</span><span>
 </span><span id="line-65"></span><span class="annot"><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-type">wallet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../GHC.Types.html#Int"><span class="hs-identifier hs-type">Int</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span>
 </span><span id="line-66"></span><span id="wallet"><span class="annot"><span class="annottext">wallet :: Int -&gt; Wallet
-</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679638810"><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679638810"><span class="hs-identifier hs-var">j</span></a></span></span><span>
+</span><a href="Cooked.Wallet.html#wallet"><span class="hs-identifier hs-var hs-var">wallet</span></a></span></span><span> </span><span id="local-6989586621679639121"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679639121"><span class="hs-identifier hs-var">j</span></a></span></span><span>
 </span><span id="line-67"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679638810"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679639121"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><a href="../GHC.Classes.html#%3E"><span class="hs-operator hs-var">&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
 </span><a href="../GHC.Classes.html#%26%26"><span class="hs-operator hs-var">&amp;&amp;</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679638810"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="#local-6989586621679639121"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
 forall a. Ord a =&gt; a -&gt; a -&gt; Bool
 </span><a href="../GHC.Classes.html#%3C%3D"><span class="hs-operator hs-var">&lt;=</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">10</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Wallet]
 </span><a href="Cooked.Wallet.html#knownWallets"><span class="hs-identifier hs-var">knownWallets</span></a></span><span> </span><span class="annot"><span class="annottext">[Wallet] -&gt; Int -&gt; Wallet
 forall a. [a] -&gt; Int -&gt; a
 </span><a href="../GHC.List.html#%21%21"><span class="hs-operator hs-var">!!</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679638810"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+</span><a href="#local-6989586621679639121"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
 forall a. Num a =&gt; a -&gt; a -&gt; a
 </span><a href="../GHC.Num.html#-"><span class="hs-glyph hs-var">-</span></a></span><span> </span><span class="annot"><span class="annottext">Int
 </span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
@@ -107,7 +107,7 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="../Ledger.CardanoWallet.html#WalletNumber"><span class="hs-identifier hs-var">Pl.WalletNumber</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Integer
 forall a b. (Integral a, Num b) =&gt; a -&gt; b
 </span><a href="../GHC.Real.html#fromIntegral"><span class="hs-identifier hs-var">fromIntegral</span></a></span><span> </span><span class="annot"><span class="annottext">Int
-</span><a href="#local-6989586621679638810"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679639121"><span class="hs-identifier hs-var">j</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-69"></span><span>
 </span><span id="line-70"></span><span class="hs-comment">-- | Retrieves the id of the known wallet that corresponds to a public</span><span>
 </span><span id="line-71"></span><span class="hs-comment">-- key hash, if any.</span><span>
@@ -180,8 +180,8 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-93"></span><span class="hs-comment">-- | Retrieves a wallet's address</span><span>
 </span><span id="line-94"></span><span class="annot"><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-type">walletAddress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Address.html#Address"><span class="hs-identifier hs-type">Pl.Address</span></a></span><span>
 </span><span id="line-95"></span><span id="walletAddress"><span class="annot"><span class="annottext">walletAddress :: Wallet -&gt; Address
-</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679638795"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679638795"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><a href="Cooked.Wallet.html#walletAddress"><span class="hs-identifier hs-var hs-var">walletAddress</span></a></span></span><span> </span><span id="local-6989586621679639106"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679639106"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
 </span><span id="line-96"></span><span>  </span><span class="annot"><span class="annottext">Credential -&gt; Maybe StakingCredential -&gt; Address
 </span><a href="../Plutus.V1.Ledger.Address.html#Address"><span class="hs-identifier hs-var">Pl.Address</span></a></span><span>
 </span><span id="line-97"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">PubKeyHash -&gt; Credential
@@ -189,7 +189,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679638795"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679639106"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-98"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Credential -&gt; StakingCredential
 </span><a href="../Plutus.V1.Ledger.Credential.html#StakingHash"><span class="hs-identifier hs-var">Pl.StakingHash</span></a></span><span> </span><span class="annot"><span class="annottext">(Credential -&gt; StakingCredential)
 -&gt; (PubKeyHash -&gt; Credential) -&gt; PubKeyHash -&gt; StakingCredential
@@ -200,7 +200,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><a href="../Data.Functor.html#%3C%24%3E"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe PubKeyHash
 </span><a href="Cooked.Wallet.html#walletStakingPKHash"><span class="hs-identifier hs-var">walletStakingPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679638795"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
+</span><a href="#local-6989586621679639106"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span>
 </span><span id="line-99"></span><span>
 </span><span id="line-100"></span><span class="hs-comment">-- | Retrieves a wallet private key (secret key SK)</span><span>
 </span><span id="line-101"></span><span class="annot"><a href="Cooked.Wallet.html#walletSK"><span class="hs-identifier hs-type">walletSK</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Ledger.CardanoWallet.html#MockWallet"><span class="hs-identifier hs-type">Pl.MockWallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span><span>
@@ -225,7 +225,7 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
 </span><a href="../GHC.Base.html#fmap"><span class="hs-identifier hs-var">fmap</span></a></span><span> </span><span class="annot"><span class="annottext">MockPrivateKey -&gt; XPrv
 forall a. a -&gt; XPrv
-</span><a href="#local-6989586621679638788"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
+</span><a href="#local-6989586621679639099"><span class="hs-identifier hs-var">hackUnMockPrivateKey</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe MockPrivateKey -&gt; Maybe XPrv)
 -&gt; (Wallet -&gt; Maybe MockPrivateKey) -&gt; Wallet -&gt; Maybe XPrv
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><a href="../GHC.Base.html#."><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet -&gt; Maybe MockPrivateKey
@@ -233,13 +233,13 @@ forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span id="line-113"></span><span>  </span><span class="hs-keyword">where</span><span>
 </span><span id="line-114"></span><span>    </span><span class="hs-comment">-- To only be applied to @MockPrivateKey@; the function is</span><span>
 </span><span id="line-115"></span><span>    </span><span class="hs-comment">-- polymorphic because @MockPrivateKey@ is not exported either</span><span>
-</span><span id="line-116"></span><span>    </span><span id="local-6989586621679638853"><span class="annot"><a href="#local-6989586621679638788"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679638853"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span></span><span>
-</span><span id="line-117"></span><span>    </span><span id="local-6989586621679638788"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
-</span><a href="#local-6989586621679638788"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679638786"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679638786"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679638785"><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679638785"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
+</span><span id="line-116"></span><span>    </span><span id="local-6989586621679639164"><span class="annot"><a href="#local-6989586621679639099"><span class="hs-identifier hs-type">hackUnMockPrivateKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679639164"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#PrivateKey"><span class="hs-identifier hs-type">PrivateKey</span></a></span></span><span>
+</span><span id="line-117"></span><span>    </span><span id="local-6989586621679639099"><span class="annot"><span class="annottext">hackUnMockPrivateKey :: a -&gt; XPrv
+</span><a href="#local-6989586621679639099"><span class="hs-identifier hs-var hs-var">hackUnMockPrivateKey</span></a></span></span><span> </span><span id="local-6989586621679639097"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679639097"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="Cooked.Wallet.html#HACK"><span class="hs-identifier hs-type">HACK</span></a></span><span> </span><span id="local-6989586621679639096"><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679639096"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; HACK
 forall a b. a -&gt; b
 </span><a href="../Unsafe.Coerce.html#unsafeCoerce"><span class="hs-identifier hs-var">unsafeCoerce</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679638786"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
-</span><a href="#local-6989586621679638785"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><a href="#local-6989586621679639097"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">XPrv
+</span><a href="#local-6989586621679639096"><span class="hs-identifier hs-var">y</span></a></span><span>
 </span><span id="line-118"></span></pre></body></html>
