@@ -13,6 +13,7 @@ where
 
 import Cooked.Currencies (permanentCurrencySymbol, quickCurrencySymbol)
 import Cooked.Pretty.Hashable
+import Cooked.Wallet (wallet)
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
@@ -99,6 +100,8 @@ defaultHashNames =
       (quickCurrencySymbol, "Quick"),
       (permanentCurrencySymbol, "Permanent")
     ]
+    <> hashNamesFromList
+      ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 10])
 
 -- | Smart constructor for maps to be used in the "pcOptHashNames"
 -- pretty-printing option.
