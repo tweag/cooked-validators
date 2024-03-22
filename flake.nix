@@ -10,7 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = pkgs.haskell.packages.ghc963;
+        hpkgs = pkgs.haskell.packages.ghc964;
 
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
