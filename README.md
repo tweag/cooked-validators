@@ -1,29 +1,29 @@
 # [Cooked Validators](https://github.com/tweag/cooked-validators/)
 
-Copyright Tweag I/O 2023
+Copyright Tweag I/O 2024
 
-With `cooked-validators` you can test Cardano smart contracts (including Plutus v2 features) by writing potentially malicious offchain code.
+With `cooked-validators` you can test Cardano smart contracts by writing potentially malicious offchain code.
 You can also use the library to write "normal" offchain code in a comfortable and flexible way.
 
-In particular, `cooked-validators` helps you
+In particular, `cooked-validators` helps you:
 - interact with smart contracts written in Plutus (as well as any other language
   that compiles to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc),
-  like for example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus),
-  by loading contracts from byte strings),
+  like for example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus)
+  or [Aiken](https://aiken-lang.org/), by loading contracts from byte strings)
 - generate and submit transactions declaratively, while automatically taking
-  care of missing inputs and outputs, balancing, and minimum-Ada constraints,
+  care of missing inputs and outputs, balancing, and minimum-Ada constraints
 - construct sequences of transactions in an easy-to-understand abstraction of
   "the blockchain", which can be instantiated to different actual
-  implementations,
+  implementations
 - run sequences of transactions in a simulated blockchain,
 - apply "tweaks" to transactions right before submitting them, where "tweaks"
   are modifications that are aware of the current state of the simulated
-  blockchain, and
+  blockchain
 - compose and deploy tweaks with flexible idioms inspired by linear temporal
   logic, in order to turn one sequence of transactions into many sequences that
-  might be useful test cases.
+  might be useful test cases, generalized in [Graft](https://github.com/tweag/graft)
 
-The library is geared specifically towards testing and auditing (already existing) on-chain code.
+The library is geared specifically towards testing and auditing on-chain code.
 
 You are free to copy, modify, and distribute `cooked-validators` under the terms
 of the MIT license. We provide `cooked-validators` as a research prototype under
@@ -49,7 +49,7 @@ Before using `cooked-validators`, you need
    source-repository-package
      type: git
      location: https://github.com/tweag/cooked-validators
-     tag: v2.0.0
+     tag: v3.0.0
      subdir:
        cooked-validators
    ```
@@ -69,28 +69,17 @@ Before using `cooked-validators`, you need
            }
    [...]
    - UTxO state:
-     • pubkey #a2c20c7 (wallet 1)
+     • pubkey wallet 1
        - Lovelace: 89_828_471
-       - (×9) Lovelace: 100_000_000
-     • pubkey #80a4f45 (wallet 2)
+       - (×4) Lovelace: 100_000_000
+     • pubkey wallet 2
        - Lovelace: 10_000_000
-       - (×10) Lovelace: 100_000_000
-     • pubkey #2e0ad60 (wallet 3)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #557d23c (wallet 4)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #bf342dd (wallet 5)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #97add5c (wallet 6)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #c605888 (wallet 7)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #8952ed1 (wallet 8)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #dfe12ac (wallet 9)
-       - (×10) Lovelace: 100_000_000
-     • pubkey #a96a668 (wallet 10)
-       - (×10) Lovelace: 100_000_000
+       - (×5) Lovelace: 100_000_000
+     • pubkey wallet 3
+       - (×5) Lovelace: 100_000_000
+     • pubkey wallet 4
+       - (×5) Lovelace: 100_000_000
+   [...]
    ```
 
 ## Documentation
