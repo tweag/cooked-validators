@@ -1,6 +1,6 @@
 cabal-version: 3.4
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -85,6 +85,7 @@ library
     , prettyprinter
     , random
     , random-shuffle
+    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck
@@ -149,6 +150,7 @@ test-suite spec
     , prettyprinter
     , random
     , random-shuffle
+    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck
