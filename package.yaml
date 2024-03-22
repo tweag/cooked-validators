@@ -31,6 +31,7 @@ dependencies:
   - prettyprinter
   - random
   - random-shuffle
+  - strict-sop-core
   - tasty
   - tasty-hunit
   - tasty-quickcheck

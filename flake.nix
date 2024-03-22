@@ -1,8 +1,7 @@
 {
   ## We need this specific version to target HLS 2.2.0.0
   ## This is required because we are stuck with GHC 8.10.7 thanks to plutus-apps
-  inputs.nixpkgs.url =
-    "github:NixOS/nixpkgs/5836601367676bb1815f81181b78b5f9829aa302";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
@@ -11,7 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = pkgs.haskell.packages.ghc8107;
+        hpkgs = pkgs.haskell.packages.ghc963;
 
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
@@ -46,6 +45,7 @@
             xz
             glibcLocales
             postgresql # For pg_config
+            blst # required by cardano-node-emulator
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
@@ -99,10 +99,14 @@
     extra-trusted-substituters = [
       "https://tweag-cooked-validators.cachix.org/"
       "https://pre-commit-hooks.cachix.org/"
+      "https://cache.iog.io"
     ];
     extra-trusted-public-keys = [
       "tweag-cooked-validators.cachix.org-1:g1TP7YtXjkBGXP/VbSTGBOGONSzdfzYwNJM27bn8pik="
       "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
+      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
     ];
+    allow-import-from-derivation = true;
+    accept-flake-config = true;
   };
 }
