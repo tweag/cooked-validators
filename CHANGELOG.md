@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [[3.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v3.0.0) - 2024-03-22
 
 ### Added
 
