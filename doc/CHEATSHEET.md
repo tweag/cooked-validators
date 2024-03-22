@@ -54,8 +54,7 @@ pcOpts =
     { C.pcOptHashes =
         def
           { C.pcOptHashNames =
-              defaultHashNames
-                <> C.hashNamesFromList
+                C.hashNamesFromList
                   [ (alice, "Alice"),
                     (bob, "Bob"),
                     (carrie, "Carie")
@@ -67,6 +66,7 @@ pcOpts =
                 <> C.hashNamesFromList
                   [ (fooValidator, "Foo")
                   ]
+                <> C.defaultHashNames -- IMPORTANT: must be the last element
           }
     }
 ```
