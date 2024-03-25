@@ -1,4 +1,8 @@
 {
+  ## We pin a specific version because there is a known bug where GHC96X
+  ## and HLS 2.6.0.0 do not work together, while nix groups them.
+  ## The issue is described here, and a fix is most likely happening soon.
+  ## https://github.com/haskell/haskell-language-server/issues/4046
   inputs.nixpkgs.url =
     "github:NixOS/nixpkgs/63143ac2c9186be6d9da6035fa22620018c85932";
   inputs.flake-utils.url = "github:numtide/flake-utils";
