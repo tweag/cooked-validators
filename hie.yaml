@@ -1,2 +1,7 @@
 cradle:
   cabal:
+    - path: "./src"
+      component: "lib:cooked-validators"
+
+    - path: "./tests/"
+      component: "cooked-validators:test:spec"
