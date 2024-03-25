@@ -13,9 +13,9 @@ where
 
 import Data.List
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
-import qualified PlutusTx.Numeric as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified PlutusTx.Numeric as PlutusTx
 
 flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =
@@ -37,14 +37,14 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 --
 -- > x == positivePart x <> Pl.negate negativePart x
 negativePart :: Pl.Value -> Pl.Value
-negativePart = positivePart . Pl.negate
+negativePart = positivePart . PlutusTx.negate
 
 -- | Focus the Ada part in a value.
-adaL :: Lens' Pl.Value Pl.Ada
+adaL :: Lens' Pl.Value Ada.Ada
 adaL =
   lens
-    Pl.fromValue
-    ( \value (Pl.Lovelace amount) ->
+    Ada.fromValue
+    ( \value (Ada.Lovelace amount) ->
         over
           flattenValueI
           (\l -> insertAssocList l adaAssetClass amount)
