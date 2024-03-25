@@ -1,7 +1,6 @@
 {
-  ## We need this specific version to target HLS 2.2.0.0
-  ## This is required because we are stuck with GHC 8.10.7 thanks to plutus-apps
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+  inputs.nixpkgs.url =
+    "github:NixOS/nixpkgs/63143ac2c9186be6d9da6035fa22620018c85932";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
@@ -10,7 +9,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        hpkgs = pkgs.haskell.packages.ghc964;
+        hpkgs = pkgs.haskell.packages.ghc963;
 
         pre-commit = pre-commit-hooks.lib.${system}.run {
           src = ./.;
@@ -36,8 +35,7 @@
 
         devShells = let
           ## The minimal dependency set to build the project with `cabal`.
-          buildInputs = ([ hpkgs.ghc ]) ++ (with pkgs; [
-            cabal-install
+          buildInputs = (with hpkgs; [ ghc cabal-install ]) ++ (with pkgs; [
             libsodium
             secp256k1
             pkg-config
@@ -70,8 +68,8 @@
             ## in the `buildInputs`, so as to take precedence. This ensures that the
             ## version of Ormolu available in the path is that of nixpkgs and not the
             ## one pinned by HLS.
-            buildInputs = buildInputs ++ (with pkgs; [ ormolu hpack hlint ])
-              ++ (with hpkgs; [ haskell-language-server ]);
+            buildInputs = buildInputs ++ (with pkgs; [ hpack hlint ])
+              ++ (with hpkgs; [ ormolu haskell-language-server ]);
 
             inherit LD_LIBRARY_PATH;
             inherit LANG;
