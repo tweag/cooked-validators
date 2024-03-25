@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -27,8 +26,8 @@ import Data.Function (on)
 import Data.List (elemIndex)
 import qualified Ledger.Address as Pl
 import qualified Ledger.CardanoWallet as Pl
-import qualified Ledger.Credential as Pl
 import qualified Ledger.Crypto as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import Unsafe.Coerce
 
 -- * MockChain Wallets
@@ -62,10 +61,10 @@ knownWallets = Pl.knownMockWallets
 
 -- | Wallet corresponding to a given wallet number (or wallet ID) with
 -- an offset of 1 to start at 1 instead of 0
-wallet :: Int -> Wallet
+wallet :: Integer -> Wallet
 wallet j
-  | j > 0 && j <= 10 = knownWallets !! (j - 1)
-  | otherwise = Pl.fromWalletNumber $ Pl.WalletNumber (fromIntegral j)
+  | j > 0 && j <= 10 = Pl.knownMockWallet j
+  | otherwise = Pl.fromWalletNumber $ Pl.WalletNumber j
 
 -- | Retrieves the id of the known wallet that corresponds to a public
 -- key hash, if any.
