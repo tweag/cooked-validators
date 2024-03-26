@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# HLINT ignore "Use camelCase" #-}
-{-# HLINT ignore "Use foldr" #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use foldr" #-}
+{-# HLINT ignore "Use camelCase" #-}
 
 -- | Print all the types that occur on the 'TxInfo' to 'BuiltinString'. This is
 -- useful for debugging of validators. You probably do not want to use this in
@@ -18,10 +19,12 @@
 -- mainnet)
 module Cooked.ShowBS (ShowBS (..), showBSs, app_prec) where
 
-import Plutus.V2.Ledger.Api
+import Plutus.Script.Utils.Scripts
+import PlutusLedgerApi.V3
 import qualified PlutusTx.AssocMap as PlMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude
+import Prelude (undefined)
 
 -- | analogue of Haskell's 'Show' class for use in Plutus scripts.
 class ShowBS a where
@@ -69,40 +72,40 @@ application1 prec f x = showBSParen (app_prec <= prec) $ literal f . literal " "
 {-# INLINEABLE application2 #-}
 application2 :: (ShowBS a, ShowBS b) => Integer -> BuiltinString -> a -> b -> BuiltinString -> BuiltinString
 application2 prec f x y =
-  showBSParen (app_prec <= prec) $
-    literal f
-      . literal " "
-      . showBSsPrec app_prec x
-      . literal " "
-      . showBSsPrec app_prec y
+  showBSParen (app_prec <= prec)
+    $ literal f
+    . literal " "
+    . showBSsPrec app_prec x
+    . literal " "
+    . showBSsPrec app_prec y
 
 -- | like 'application1' with three arguments
 {-# INLINEABLE application3 #-}
 application3 :: (ShowBS a, ShowBS b, ShowBS c) => Integer -> BuiltinString -> a -> b -> c -> BuiltinString -> BuiltinString
 application3 prec f x y z =
-  showBSParen (app_prec <= prec) $
-    literal f
-      . literal " "
-      . showBSsPrec app_prec x
-      . literal " "
-      . showBSsPrec app_prec y
-      . literal " "
-      . showBSsPrec app_prec z
+  showBSParen (app_prec <= prec)
+    $ literal f
+    . literal " "
+    . showBSsPrec app_prec x
+    . literal " "
+    . showBSsPrec app_prec y
+    . literal " "
+    . showBSsPrec app_prec z
 
 -- | like 'application1' with four arguments
 {-# INLINEABLE application4 #-}
 application4 :: (ShowBS a, ShowBS b, ShowBS c, ShowBS d) => Integer -> BuiltinString -> a -> b -> c -> d -> BuiltinString -> BuiltinString
 application4 prec f x y z w =
-  showBSParen (app_prec <= prec) $
-    literal f
-      . literal " "
-      . showBSsPrec app_prec x
-      . literal " "
-      . showBSsPrec app_prec y
-      . literal " "
-      . showBSsPrec app_prec z
-      . literal " "
-      . showBSsPrec app_prec w
+  showBSParen (app_prec <= prec)
+    $ literal f
+    . literal " "
+    . showBSsPrec app_prec x
+    . literal " "
+    . showBSsPrec app_prec y
+    . literal " "
+    . showBSsPrec app_prec z
+    . literal " "
+    . showBSsPrec app_prec w
 
 instance ShowBS Integer where
   {-# INLINEABLE showBSsPrec #-}
@@ -223,7 +226,7 @@ instance ShowBS PubKeyHash where
 
 instance ShowBS Credential where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p (ScriptCredential scriptHash) = application1 p "ScriptCredential" scriptHash
+  showBSsPrec p (ScriptCredential hash) = application1 p "ScriptCredential" hash
   showBSsPrec p (PubKeyCredential pkh) = application1 p "PubKeyCredential" pkh
 
 instance ShowBS StakingCredential where
@@ -249,26 +252,26 @@ builtinDataShowBSsPrec p d =
   matchData
     d
     ( \i ds ->
-        showBSParen (app_prec <= p) $
-          literal "Constr "
-            . showBSs i
-            . literal " "
-            . catList "[" "," "]" (builtinDataShowBSsPrec 0) ds
+        showBSParen (app_prec <= p)
+          $ literal "Constr "
+          . showBSs i
+          . literal " "
+          . catList "[" "," "]" (builtinDataShowBSsPrec 0) ds
     )
     ( \alist ->
-        showBSParen (app_prec <= p) $
-          literal "Map "
-            . catList
-              "["
-              ","
-              "]"
-              (\(a, b) -> literal "(" . builtinDataShowBSsPrec 0 a . literal "," . builtinDataShowBSsPrec 0 b . literal ")")
-              alist
+        showBSParen (app_prec <= p)
+          $ literal "Map "
+          . catList
+            "["
+            ","
+            "]"
+            (\(a, b) -> literal "(" . builtinDataShowBSsPrec 0 a . literal "," . builtinDataShowBSsPrec 0 b . literal ")")
+            alist
     )
     ( \list ->
-        showBSParen (app_prec <= p) $
-          literal "List "
-            . catList "[" "," "]" (builtinDataShowBSsPrec 0) list
+        showBSParen (app_prec <= p)
+          $ literal "List "
+          . catList "[" "," "]" (builtinDataShowBSsPrec 0) list
     )
     (\i -> showBSParen (app_prec <= p) $ literal "I " . showBSs i)
     (\bs -> showBSParen (app_prec <= p) $ literal "B " . showBSs bs)
@@ -317,15 +320,40 @@ instance (ShowBS a) => ShowBS (Interval a) where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (Interval lb ub) = application2 p "Interval" lb ub
 
-instance ShowBS DCert where
+-- Comments are copied for the definition of TxCert
+instance ShowBS TxCert where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p (DCertDelegRegKey stCred) = application1 p "DCertDelegRegKey" stCred
-  showBSsPrec p (DCertDelegDeRegKey stCred) = application1 p "DCertDelegDeRegKey" stCred
-  showBSsPrec p (DCertDelegDelegate stCred pkh) = application2 p "DCertDelegDelegate" stCred pkh
-  showBSsPrec p (DCertPoolRegister stCred1 stCred2) = application2 p "DCertPoolRegister" stCred1 stCred2
-  showBSsPrec p (DCertPoolRetire stCred i) = application2 p "DCertPoolRetire" stCred i
-  showBSsPrec _ DCertGenesis = literal "DCertGenesis"
-  showBSsPrec _ DCertMir = literal "DCertMir"
+  -- \| Register staking credential with an optional deposit amount
+  showBSsPrec p (TxCertRegStaking cred maybeDepositAmount) = undefined
+  -- \| Un-Register staking credential with an optional refund amount
+  showBSsPrec p (TxCertUnRegStaking cred maybeDepositAmount) = undefined
+  -- \| Delegate staking credential to a Delegatee
+  showBSsPrec p (TxCertDelegStaking cred delegatee) = undefined
+  -- \| Register and delegate staking credential to a Delegatee in one
+  -- certificate. Noter that deposit is mandatory.
+  showBSsPrec p (TxCertRegDeleg cred delegatee depositAmount) = undefined
+  -- \| Register a DRep with a deposit value. The optional anchor is omitted.
+  showBSsPrec p (TxCertRegDRep dRepCred amount) = undefined
+  -- \| Update a DRep. The optional anchor is omitted.
+  showBSsPrec p (TxCertUpdateDRep dRepCred) = undefined
+  -- \| UnRegister a DRep with mandatory refund value
+  showBSsPrec p (TxCertUnRegDRep dRepCred amount) = undefined
+  -- -- \| A digest of the PoolParams (with poolId and pool VFR)
+  -- showBSsPrec p (TxCertPoolRegister poolId poolVFR) = undefined
+  -- -- \| The retirement certificate and the Epoch in which the
+  -- -- retirement will take place
+  -- showBSsPrec p (TxCertPoolRetire pkh epoch) = undefined
+  -- \| Authorize a Hot credential for a specific Committee member's cold credential
+  showBSsPrec p (TxCertAuthHotCommittee coldCommitteeCred hotCommitteeCred) = undefined
+  showBSsPrec p (TxCertResignColdCommittee coldCommitteeCred) = undefined
+
+instance ShowBS Voter where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p voter = undefined
+
+instance ShowBS GovernanceActionId where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p actionId = undefined
 
 instance ShowBS ScriptPurpose where
   {-# INLINEABLE showBSsPrec #-}
@@ -333,36 +361,55 @@ instance ShowBS ScriptPurpose where
   showBSsPrec p (Spending oref) = application1 p "Spending" oref
   showBSsPrec p (Rewarding stCred) = application1 p "Rewarding" stCred
   showBSsPrec p (Certifying dCert) = application1 p "Certifying" dCert
+  showBSsPrec p (Voting voter actionId) = application2 p "Voting" voter actionId
+  showBSsPrec p (Proposing nb) = application1 p "Proposing" nb
 
 instance ShowBS Redeemer where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (Redeemer builtinData) = application1 p "Redeemer" builtinData
 
+instance ShowBS Vote where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p vote = undefined
+
+instance ShowBS ProposalProcedure where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p proposal = undefined
+
 instance ShowBS TxInfo where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p TxInfo {..} =
-    showBSParen (app_prec <= p) $
-      literal "TxInfo "
-        . showBSsPrec app_prec txInfoInputs
-        . literal " "
-        . showBSsPrec app_prec txInfoReferenceInputs
-        . literal " "
-        . showBSsPrec app_prec txInfoOutputs
-        . literal " "
-        . showBSsPrec app_prec txInfoFee
-        . literal " "
-        . showBSsPrec app_prec txInfoMint
-        . literal " "
-        . showBSsPrec app_prec txInfoDCert
-        . literal " "
-        . showBSsPrec app_prec txInfoWdrl
-        . literal " "
-        . showBSsPrec app_prec txInfoValidRange
-        . literal " "
-        . showBSsPrec app_prec txInfoSignatories
-        . literal " "
-        . showBSsPrec app_prec txInfoRedeemers
-        . literal " "
-        . showBSsPrec app_prec txInfoData
-        . literal " "
-        . showBSsPrec app_prec txInfoId
+    showBSParen (app_prec <= p)
+      $ literal "TxInfo "
+      . literal "\n inputs: "
+      . showBSsPrec app_prec txInfoInputs
+      . literal "\n reference inputs: "
+      . showBSsPrec app_prec txInfoReferenceInputs
+      . literal "\n outputs: "
+      . showBSsPrec app_prec txInfoOutputs
+      . literal "\n fees: "
+      . showBSsPrec app_prec txInfoFee
+      . literal "\n minted value: "
+      . showBSsPrec app_prec txInfoMint
+      . literal "\n certificates: "
+      . showBSsPrec app_prec txInfoTxCerts
+      . literal "\n wdrl: " -- TODO: what is wdrl? Explain better here
+      . showBSsPrec app_prec txInfoWdrl
+      . literal "\n valid range: "
+      . showBSsPrec app_prec txInfoValidRange
+      . literal "\n signatories: "
+      . showBSsPrec app_prec txInfoSignatories
+      . literal "\n redeemers: "
+      . showBSsPrec app_prec txInfoRedeemers
+      . literal "\n datums: "
+      . showBSsPrec app_prec txInfoData
+      . literal "\n transaction id: "
+      . showBSsPrec app_prec txInfoId
+      . literal "\n votes: "
+      . showBSsPrec app_prec txInfoVotes
+      . literal "\n proposals: "
+      . showBSsPrec app_prec txInfoProposalProcedures
+      . literal "\n treasury amount: "
+      . showBSsPrec app_prec txInfoCurrentTreasuryAmount
+      . literal "\n treasury donation: "
+      . showBSsPrec app_prec txInfoTreasuryDonation
