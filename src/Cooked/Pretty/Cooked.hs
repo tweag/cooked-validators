@@ -55,7 +55,7 @@ import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
 
