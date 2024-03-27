@@ -1,15 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 module Cooked.Pretty.Hashable where
 
-import Cooked.Wallet (Wallet, walletPKHash)
+import Cooked.Wallet
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V1.Typed.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V1.Ledger.Tx as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 
 class Hashable a where
   toHash :: a -> Pl.BuiltinByteString

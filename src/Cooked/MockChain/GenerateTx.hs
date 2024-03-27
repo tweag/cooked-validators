@@ -37,7 +37,8 @@ import qualified Ledger.Tx.CardanoAPI as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Wallet.API as Pl
+
+-- import qualified Wallet.API as Pl
 
 data GenerateTxError
   = ToCardanoError String Pl.ToCardanoError
@@ -64,7 +65,7 @@ generateTxBodyContent ::
   -- | Parameters controlling transaction generation.
   GenTxParams ->
   -- | Some parameters, coming from the 'MockChain'.
-  Pl.Params ->
+  Emulator.Params ->
   -- | All of the currently known data on transaction inputs, also coming from the 'MockChain'.
   Map Pl.DatumHash Pl.Datum ->
   -- | All of the currently known UTxOs which will be used as transaction inputs or referenced, also coming from the 'MockChain'.
@@ -88,7 +89,7 @@ generateTxBodyContent GenTxParams {..} theParams managedData managedTxOuts manag
         (Map.elems $ txSkelIns skel)
         ++ Set.toList (txSkelInsReference skel)
   txInsCollateral <- txOutRefsToTxSkelInsCollateral $ Set.toList gtpCollateralIns
-  txOuts <- mapM (txSkelOutToCardanoTxOut $ Pl.pNetworkId theParams) $ txSkelOuts skel
+  txOuts <- mapM (txSkelOutToCardanoTxOut $ Emulator.pNetworkId theParams) $ txSkelOuts skel
   txValidityRange <-
     left
       (ToCardanoError "translating the transaction validity range")
@@ -357,7 +358,7 @@ generateTx ::
   -- | Parameters controlling transaction generation.
   GenTxParams ->
   -- | Some parameters, coming from the 'MockChain'.
-  Pl.Params ->
+  Emulator.Params ->
   -- | All of the currently known data on transaction inputs, also coming from the 'MockChain'.
   Map Pl.DatumHash Pl.Datum ->
   -- | All of the currently known UTxOs which will be used as transaction inputs or referenced, also coming from the 'MockChain'.

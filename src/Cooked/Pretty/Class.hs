@@ -23,7 +23,7 @@ import Data.Default
 import qualified Ledger.Index as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import Prettyprinter ((<+>))
 import qualified Prettyprinter as PP
 import qualified Prettyprinter.Render.Text as PP

@@ -2,8 +2,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -44,10 +42,10 @@ where
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl
+import qualified PlutusLedgerApi.V2.Tx as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 
 -- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
 -- some information about
@@ -81,7 +79,7 @@ instance ToCredential Pl.Credential where
   toCredential = id
 
 instance ToCredential (Pl.TypedValidator a) where
-  toCredential = Pl.ScriptCredential . Pl.validatorHash
+  toCredential = Pl.ScriptCredential . toScriptHash . Pl.validatorHash
 
 instance ToCredential Pl.PubKeyHash where
   toCredential = Pl.PubKeyCredential
@@ -307,7 +305,7 @@ isScriptOutputFrom ::
 isScriptOutputFrom validator out =
   case outputAddress out of
     Pl.Address (Pl.ScriptCredential scriptHash) mStCred ->
-      if scriptHash == Pl.validatorHash validator
+      if scriptHash == toScriptHash validator
         then
           Just $
             ConcreteOutput
