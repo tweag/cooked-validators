@@ -12,6 +12,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Cooked.Skeleton
   ( LabelConstrs,
@@ -108,10 +109,7 @@ import Optics.Core
 import Optics.TH
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
-import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
-import qualified Plutus.V2.Ledger.Tx as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl2
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
@@ -211,9 +209,9 @@ data BalancingUtxos
   | -- | Use all UTxOs without datum
     BalancingUtxosDatumless
   | -- | Use only the provided UTxOs
-    BalancingUtxosAllowlist [Pl2.TxOutRef]
+    BalancingUtxosAllowlist [Pl.TxOutRef]
   | -- | Do not use the provided UTxOs
-    BalancingUtxosBlocklist [Pl2.TxOutRef]
+    BalancingUtxosBlocklist [Pl.TxOutRef]
   deriving (Eq, Ord, Show)
 
 instance Default BalancingUtxos where

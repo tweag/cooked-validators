@@ -21,6 +21,7 @@ module Cooked.ShowBS (ShowBS (..), showBSs, app_prec) where
 
 import Plutus.Script.Utils.Scripts
 import PlutusLedgerApi.V3
+import PlutusLedgerApi.V3.Contexts
 import qualified PlutusTx.AssocMap as PlMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude
@@ -372,9 +373,51 @@ instance ShowBS Vote where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p vote = undefined
 
+instance ShowBS ChangedParameters where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p changeParams = undefined
+
+instance ShowBS ProtocolVersion where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p protocolVersion = undefined
+
+instance ShowBS Constitution where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p constitution = undefined
+
+instance ShowBS ColdCommitteeCredential where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p coldCred = undefined
+
+instance ShowBS Committee where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p committee = undefined
+
+instance ShowBS GovernanceAction where
+  {-# INLINEABLE showBSsPrec #-}
+  -- TODO: there is a new parameter Maybe ScriptHash to be added later on
+  showBSsPrec p (ParameterChange maybeActionId changeParams) = application2 p "ParameterChange" maybeActionId changeParams
+  showBSsPrec p (HardForkInitiation maybeActionId protocolVersion) = application2 p "HardForkInitiation" maybeActionId protocolVersion
+  -- TODO: there is a new parameter Maybe ScriptHash to be added later on
+  showBSsPrec p (TreasuryWithdrawals mapCredLovelace) = application1 p "TreasuryWithdrawals" mapCredLovelace
+  showBSsPrec p (NoConfidence maybeActionId) = application1 p "NoConfidence" maybeActionId
+  -- TODO: UpdateCommittee should be added later on
+  -- showBSsPrec p (UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) = undefined
+  showBSsPrec p (NewConstitution maybeActionId constitution) = application2 p "NewConstitution" maybeActionId constitution
+  showBSsPrec _ InfoAction = literal "InfoAction"
+  -- TODO: this disapears later on, probably replaced by UpdateCommittee
+  showBSsPrec p (NewCommittee maybeActionId coldCredList committee) = application3 p "NewCommittee" maybeActionId coldCredList committee
+
 instance ShowBS ProposalProcedure where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p proposal = undefined
+  showBSsPrec p ProposalProcedure {..} =
+    literal "ProposalProcedure"
+      . literal "\n deposit:"
+      . showBSsPrec p ppDeposit
+      . literal "\n return address"
+      . showBSsPrec p ppReturnAddr
+      . literal "\n governance action"
+      . showBSsPrec p ppGovernanceAction
 
 instance ShowBS TxInfo where
   {-# INLINEABLE showBSsPrec #-}
