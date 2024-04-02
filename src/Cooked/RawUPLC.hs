@@ -41,16 +41,20 @@ typedValidatorFromUPLC = TScripts.unsafeMkTypedValidator . flip Versioned Plutus
     fromPlc :: UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () -> Script
     fromPlc (UPLC.Program a v t) =
       let nameless = UPLC.termMapNames UPLC.unNameDeBruijn t
-       in Script $ UPLC.Program a v nameless
+       in Script undefined -- UPLC.Program a v nameless
+
+-- TODO
 
 -- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
 --  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84)
 --  applied to a 'TScripts.mkTypedValidator'. If the compiled validator was /not/ wrapped,
 --  stick to 'typedValidatorFromBS'.
 unsafeTypedValidatorFromBS :: forall a. BS.ByteString -> Either String (TScripts.TypedValidator a)
-unsafeTypedValidatorFromBS = either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
+unsafeTypedValidatorFromBS = undefined -- either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
+
+-- TODO
 
 -- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
 --  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84).
 typedValidatorFromBS :: BS.ByteString -> Either String (TScripts.TypedValidator TScripts.Any)
-typedValidatorFromBS = either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
+typedValidatorFromBS = undefined -- either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat

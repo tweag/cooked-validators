@@ -13,7 +13,6 @@ import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Ledger as Pl hiding (Value)
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as PV2
 
 -- | A description of who owns what in a blockchain. Owners are addresses
 -- and they each own a 'UtxoPayloadSet'.
@@ -21,7 +20,7 @@ newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
-holdsInState :: PV2.Address -> UtxoState -> PV2.Value
+holdsInState :: Pl.Address -> UtxoState -> Pl.Value
 holdsInState address (UtxoState m) =
   maybe mempty utxoPayloadSetTotal (Map.lookup address m)
 
@@ -40,7 +39,7 @@ newtype UtxoPayloadSet = UtxoPayloadSet
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
   { utxoPayloadTxOutRef :: Pl.TxOutRef,
-    utxoPayloadValue :: PV2.Value,
+    utxoPayloadValue :: Pl.Value,
     utxoPayloadSkelOutDatum :: TxSkelOutDatum,
     utxoPayloadReferenceScript :: Maybe Pl.ScriptHash
   }
@@ -60,5 +59,5 @@ instance Monoid UtxoPayloadSet where
   mempty = UtxoPayloadSet []
 
 -- | Computes the total value in a set
-utxoPayloadSetTotal :: UtxoPayloadSet -> PV2.Value
+utxoPayloadSetTotal :: UtxoPayloadSet -> Pl.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet
