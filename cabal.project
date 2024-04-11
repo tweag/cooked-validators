@@ -8,16 +8,6 @@ package cooked-validators
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/cardano-node-emulator
-  tag: 1e09173b74064bd5990d2d3e48af6510780ea349
-  subdir:
-    cardano-node-emulator
-    plutus-ledger
-    plutus-script-utils
-    freer-extras
-    
 -- Everything below this point has been copied from cardano-node-emulator cabal.project
 
 -- Custom repository for cardano haskell packages
