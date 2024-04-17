@@ -1,60 +1,34 @@
 {-# LANGUAGE RankNTypes #-}
 
+-- | Provides functions to create instances of 'TypedValidator' from a
+--  UPLC program (either as a ShortByteString -- or its alias
+--  SerialisedScript, or a CompiledCode). The "unsafe" refers to the
+--  use of 'unsafeCoerce' to cast a @TypedValidator Any@ into a
+--  suitable type using a @-XTypeApplications@. The programmer is
+--  responsible for ensuring that the type variable @a@ gets
+--  instantiated to the correct type.
 module Cooked.RawUPLC
-  ( unsafeTypedValidatorFromUPLC,
-    typedValidatorFromUPLC,
+  ( typedValidatorFromBS,
+    typedValidatorFromCompiledCode,
     unsafeTypedValidatorFromBS,
-    typedValidatorFromBS,
+    unsafeTypedValidatorFromCompiledCode,
   )
 where
 
-import qualified Data.ByteString as BS
-import qualified Flat
-import Ledger.Scripts (Language (PlutusV2), Script (..), Validator (..), Versioned (Versioned))
-import qualified Ledger.Typed.Scripts as TScripts
+import qualified Ledger.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
+import qualified PlutusTx as Pl
 import Unsafe.Coerce
-import qualified UntypedPlutusCore as UPLC
 
--- | Returns a 'TypedValidator' from a UPLC program. The "unsafe" refers to the use of 'unsafeCoerce'
---  to cast a @TypedValidator Any@, resulting from 'typedValidatorFromUPLC', to a @TypedValidator a@. This
---  enables us to avoid using 'fromBuiltinData' and 'toBuiltinData' all the time.
---
---  This function is meant to be used with @-XTypeApplications@ and the programmer is responsible for
---  ensuring that the type variable @a@, below, gets instantiated
---  to the correct type.
-unsafeTypedValidatorFromUPLC ::
-  forall a.
-  UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () ->
-  TScripts.TypedValidator a
-unsafeTypedValidatorFromUPLC = unsafeCoerce . typedValidatorFromUPLC
+unsafeTypedValidatorFromBS :: forall a. Pl.SerialisedScript -> Pl.TypedValidator a
+unsafeTypedValidatorFromBS = unsafeCoerce . typedValidatorFromBS
 
--- | Returns a 'TypedValidator' from a UPLC program. The resulting typed validator is instantiated to 'TScripts.Any',
---  which means all of its arguments receive a value of type 'BuiltinData'.
---
--- TODO: At the moment this wraps everything as a PlutusV2 script. Make this more flexible.
-typedValidatorFromUPLC ::
-  UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () ->
-  TScripts.TypedValidator TScripts.Any
-typedValidatorFromUPLC = TScripts.unsafeMkTypedValidator . flip Versioned PlutusV2 . Validator . fromPlc
-  where
-    -- copied from: github.com/input-output-hk/plutus/blob/1f31e640e8a258185db01fa899da63f9018c0e85/plutus-ledger-api/src/Plutus/V1/Ledger/Scripts.hs#L169
-    fromPlc :: UPLC.Program UPLC.NamedDeBruijn UPLC.DefaultUni UPLC.DefaultFun () -> Script
-    fromPlc (UPLC.Program a v t) =
-      let nameless = UPLC.termMapNames UPLC.unNameDeBruijn t
-       in Script undefined -- UPLC.Program a v nameless
+unsafeTypedValidatorFromCompiledCode :: forall a. Pl.CompiledCode (Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()) -> Pl.TypedValidator a
+unsafeTypedValidatorFromCompiledCode = unsafeCoerce . typedValidatorFromCompiledCode
 
--- TODO
+typedValidatorFromBS :: Pl.SerialisedScript -> Pl.TypedValidator Pl.Any
+typedValidatorFromBS = Pl.unsafeMkTypedValidator . flip Pl.Versioned Pl.PlutusV3 . Pl.Validator . Pl.Script
 
--- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
---  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84)
---  applied to a 'TScripts.mkTypedValidator'. If the compiled validator was /not/ wrapped,
---  stick to 'typedValidatorFromBS'.
-unsafeTypedValidatorFromBS :: forall a. BS.ByteString -> Either String (TScripts.TypedValidator a)
-unsafeTypedValidatorFromBS = undefined -- either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
-
--- TODO
-
--- | Loads a typed validator from a bytestring that was produced by 'Flat.flat' the outputs
---  of [getPlc](https://github.com/input-output-hk/plutus/blob/master/plutus-tx/src/PlutusTx/Code.hs#L84).
-typedValidatorFromBS :: BS.ByteString -> Either String (TScripts.TypedValidator TScripts.Any)
-typedValidatorFromBS = undefined -- either (Left . show) (Right . unsafeTypedValidatorFromUPLC) . Flat.unflat
+typedValidatorFromCompiledCode :: Pl.CompiledCode (Pl.BuiltinData -> Pl.BuiltinData -> Pl.BuiltinData -> ()) -> Pl.TypedValidator Pl.Any
+typedValidatorFromCompiledCode = typedValidatorFromBS . Pl.serialiseCompiledCode
