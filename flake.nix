@@ -47,7 +47,21 @@
             xz
             glibcLocales
             postgresql # For pg_config
-            blst # required by cardano-node-emulator
+            ## We change the way 'blst' is built so that it takes into
+            ## account the current architecture of the processor. This
+            ## is due to a bug where older processors (>= 10 years)
+            ## would not be supported. This should not change anything
+            ## on newer machines. This could be revised in the future.
+            (blst.overrideAttrs (_: _: {
+              buildPhase = ''
+                runHook preBuild
+                ./build.sh -shared -D__BLST_PORTABLE__ ${
+                  lib.optionalString stdenv.hostPlatform.isWindows
+                  "flavour=mingw64"
+                }
+                runHook postBuild
+              '';
+            }))
           ]);
 
           ## Needed by `pirouette-plutusir` and `cooked`
