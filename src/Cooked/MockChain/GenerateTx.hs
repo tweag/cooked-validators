@@ -101,7 +101,7 @@ throwOnToCardanoError errorMsg = throwOnToCardanoErrorOrApply errorMsg id
 
 -- * Generation functions
 
-txSkelToBodyContent :: TxSkel -> TxGen (C.TxBodyContent C.BuildTx C.BabbageEra)
+txSkelToBodyContent :: TxSkel -> TxGen (C.TxBodyContent C.BuildTx C.ConwayEra)
 txSkelToBodyContent TxSkel {..} = do
   collateralInsList <- asks (Set.toList . gtpCollateralIns . genTxParams)
   txIns <- mapM txSkelInToTxIn $ Map.toList txSkelIns
@@ -116,12 +116,19 @@ txSkelToBodyContent TxSkel {..} = do
         ++ Set.toList txSkelInsReference
   txInsCollateral <- txOutRefsToTxSkelInsCollateral collateralInsList
   txOuts <- mapM txSkelOutToCardanoTxOut txSkelOuts
-  (txValidityLowerBound, txValidityUpperBound) <-
+  (txLowerBound, C.TxValidityUpperBound _ slotMax) <-
     lift
       $ left
         (ToCardanoError "translating the transaction validity range")
         . Pl.toCardanoValidityRange
       $ txSkelValidityRange
+  -- TODO: we recreate those by hand for now. Most likely there exist
+  -- already a helper function to do that, or it will likely be
+  -- created in the future.
+  let txValidityLowerBound = case txLowerBound of
+        C.TxValidityLowerBound _ slotMin -> C.TxValidityLowerBound C.AllegraEraOnwardsConway slotMin
+        C.TxValidityNoLowerBound -> C.TxValidityNoLowerBound
+      txValidityUpperBound = C.TxValidityUpperBound C.ShelleyBasedEraConway slotMax
   txMintValue <- txSkelMintsToTxMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSigners
@@ -129,19 +136,21 @@ txSkelToBodyContent TxSkel {..} = do
       else
         throwOnToCardanoErrorOrApply
           "translating the required signers"
-          (C.TxExtraKeyWitnesses C.AlonzoEraOnwardsBabbage)
+          (C.TxExtraKeyWitnesses C.AlonzoEraOnwardsConway)
           $ mapM (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash) txSkelSigners
   knownTxOuts <- asks managedTxOuts
   txTotalCollateral <-
-    C.TxTotalCollateral C.BabbageEraOnwardsBabbage . C.Lovelace . Pl.getLovelace . Pl.fromValue . mconcat
+    C.TxTotalCollateral C.BabbageEraOnwardsConway . C.Lovelace . Pl.getLovelace . Pl.fromValue . mconcat
       <$> mapM
         ( \txOutRef ->
             Pl.txOutValue
               <$> throwOnLookup ("computing the total collateral: Unknown TxOutRef" ++ show txOutRef) txOutRef knownTxOuts
         )
         collateralInsList
-  txProtocolParams <- asks (C.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
-  txFee <- asks (C.TxFeeExplicit undefined . C.Lovelace . feeLovelace . gtpFee . genTxParams)
+  -- TODO: this is an enormous hack. This should be what's below once cardano-node-emulator upgrades to Conway
+  let txProtocolParams = C.BuildTxWith Nothing
+  -- txProtocolParams <- asks (C.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
+  txFee <- asks (C.TxFeeExplicit C.ShelleyBasedEraConway . C.Lovelace . feeLovelace . gtpFee . genTxParams)
   let txReturnCollateral = C.TxReturnCollateralNone
       txMetadata = C.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = C.TxAuxScriptsNone -- That's what plutus-apps does as well
@@ -159,7 +168,7 @@ txSkelToBodyContent TxSkel {..} = do
 -- 'txInsReference'!
 txSkelInToTxIn ::
   (Pl.TxOutRef, TxSkelRedeemer) ->
-  TxGen (C.TxIn, C.BuildTxWith C.BuildTx (C.Witness C.WitCtxTxIn C.BabbageEra))
+  TxGen (C.TxIn, C.BuildTxWith C.BuildTx (C.Witness C.WitCtxTxIn C.ConwayEra))
 txSkelInToTxIn (txOutRef, txSkelRedeemer) = do
   witness <- txSkelRedeemerToWitness txOutRef txSkelRedeemer
   throwOnToCardanoErrorOrApply
@@ -186,7 +195,7 @@ resolveScriptOutputOwnerAndDatum txOutRef = do
         return $ C.ScriptDatumForTxIn $ Pl.toCardanoScriptData $ Pl.getDatum datum
   return (validatorHash, validator, datum)
 
-txSkelRedeemerToWitness :: Pl.TxOutRef -> TxSkelRedeemer -> TxGen (C.Witness C.WitCtxTxIn C.BabbageEra)
+txSkelRedeemerToWitness :: Pl.TxOutRef -> TxSkelRedeemer -> TxGen (C.Witness C.WitCtxTxIn C.ConwayEra)
 txSkelRedeemerToWitness _ TxSkelNoRedeemerForPK = return $ C.KeyWitness C.KeyWitnessForSpending
 txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
   (Pl.ValidatorHash validatorHash, Pl.Versioned _ version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
@@ -199,18 +208,16 @@ txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOre
       "txSkelInToTxIn: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored"
       validatorOref
       =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
-
   when (scriptHashAtOref /= validatorHash) $
     throwOnString "txSkelInToTxIn: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
   validatorTxIn <-
     throwOnToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits" $ Pl.toCardanoTxIn validatorOref
   scriptHash <-
     throwOnToCardanoError "txSkelInToTxIn: could not convert script hash of referenced script" $ Pl.toCardanoScriptHash $ Pl.ScriptHash validatorHash
-
   let scriptWitnessBuilder = case version of
-        Pl.PlutusV1 -> C.PlutusScriptWitness C.PlutusScriptV1InBabbage C.PlutusScriptV1 (C.PReferenceScript validatorTxIn (Just scriptHash))
-        Pl.PlutusV2 -> C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 (C.PReferenceScript validatorTxIn (Just scriptHash))
-        Pl.PlutusV3 -> undefined
+        Pl.PlutusV1 -> C.PlutusScriptWitness C.PlutusScriptV1InConway C.PlutusScriptV1 (C.PReferenceScript validatorTxIn (Just scriptHash))
+        Pl.PlutusV2 -> C.PlutusScriptWitness C.PlutusScriptV2InConway C.PlutusScriptV2 (C.PReferenceScript validatorTxIn (Just scriptHash))
+        Pl.PlutusV3 -> C.PlutusScriptWitness C.PlutusScriptV3InConway C.PlutusScriptV3 (C.PReferenceScript validatorTxIn (Just scriptHash))
   return $
     C.ScriptWitness C.ScriptWitnessForSpending $
       scriptWitnessBuilder
@@ -218,20 +225,11 @@ txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOre
         (Pl.toCardanoScriptData $ Pl.toBuiltinData redeemer)
         Pl.zeroExecutionUnits -- We can't guess that yet, no?
 txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForScript redeemer) = do
-  (_validatorHash, Pl.Versioned (Pl.Validator script) version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
-  scriptWitnessBuilder <-
-    case version of
-      Pl.PlutusV1 ->
-        throwOnToCardanoErrorOrApply
-          "txSkelIntoTxIn, translating to Cardano API PlutusV1 script"
-          (C.PlutusScriptWitness C.PlutusScriptV1InBabbage C.PlutusScriptV1 . C.PScript)
-          undefined -- (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV1) script)
-      Pl.PlutusV2 ->
-        throwOnToCardanoErrorOrApply
-          "txSkelIntoTxIn, translating to Cardano API PlutusV2 script"
-          (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
-          undefined -- (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
-      Pl.PlutusV3 -> undefined
+  (_validatorHash, Pl.Versioned (Pl.Validator (Pl.Script script)) version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
+  let scriptWitnessBuilder = case version of
+        Pl.PlutusV1 -> C.PlutusScriptWitness C.PlutusScriptV1InConway C.PlutusScriptV1 $ C.PScript $ C.PlutusScriptSerialised script
+        Pl.PlutusV2 -> C.PlutusScriptWitness C.PlutusScriptV2InConway C.PlutusScriptV2 $ C.PScript $ C.PlutusScriptSerialised script
+        Pl.PlutusV3 -> C.PlutusScriptWitness C.PlutusScriptV3InConway C.PlutusScriptV3 $ C.PScript $ C.PlutusScriptSerialised script
   return $
     C.ScriptWitness C.ScriptWitnessForSpending $
       scriptWitnessBuilder
@@ -240,28 +238,28 @@ txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForScript redeemer) = do
         Pl.zeroExecutionUnits -- We can't guess that yet, no?
 
 -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsReference'
-txOutRefsToTxInsReference :: [Pl.TxOutRef] -> TxGen (C.TxInsReference C.BuildTx C.BabbageEra)
+txOutRefsToTxInsReference :: [Pl.TxOutRef] -> TxGen (C.TxInsReference C.BuildTx C.ConwayEra)
 txOutRefsToTxInsReference =
   throwOnToCardanoErrorOrApply
     "txOutRefsToTxInsReference"
     ( \case
         [] -> C.TxInsReferenceNone
-        txIns -> C.TxInsReference C.BabbageEraOnwardsBabbage txIns
+        txIns -> C.TxInsReference C.BabbageEraOnwardsConway txIns
     )
     . mapM Pl.toCardanoTxIn
 
 -- Convert a list of 'Pl.TxOutRef' into a 'C.TxInsCollateral'
-txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> TxGen (C.TxInsCollateral C.BabbageEra)
+txOutRefsToTxSkelInsCollateral :: [Pl.TxOutRef] -> TxGen (C.TxInsCollateral C.ConwayEra)
 txOutRefsToTxSkelInsCollateral =
   throwOnToCardanoError "txOutRefsToTxInCollateral"
     . fmap toTxInsCollateral
     . mapM Pl.toCardanoTxIn
   where
     toTxInsCollateral [] = C.TxInsCollateralNone
-    toTxInsCollateral ins = C.TxInsCollateral C.AlonzoEraOnwardsBabbage ins
+    toTxInsCollateral ins = C.TxInsCollateral C.AlonzoEraOnwardsConway ins
 
 -- Convert the 'TxSkelMints' into a 'TxMintValue'
-txSkelMintsToTxMintValue :: TxSkelMints -> TxGen (C.TxMintValue C.BuildTx C.BabbageEra)
+txSkelMintsToTxMintValue :: TxSkelMints -> TxGen (C.TxMintValue C.BuildTx C.ConwayEra)
 txSkelMintsToTxMintValue mints =
   if mints == Map.empty
     then return C.TxMintNone
@@ -280,23 +278,14 @@ txSkelMintsToTxMintValue mints =
           )
           Map.empty
           (txSkelMintsToList mints)
-      return $ C.TxMintValue C.MaryEraOnwardsBabbage mintVal (C.BuildTxWith witnessMap)
+      return $ C.TxMintValue C.MaryEraOnwardsConway mintVal (C.BuildTxWith witnessMap)
 
-mintingPolicyToMintWitness :: Pl.Versioned Pl.MintingPolicy -> MintsRedeemer -> TxGen (C.ScriptWitness C.WitCtxMint C.BabbageEra)
-mintingPolicyToMintWitness (Pl.Versioned (Pl.MintingPolicy script) version) redeemer = do
-  scriptWitnessBuilder <-
-    case version of
-      Pl.PlutusV1 ->
-        throwOnToCardanoErrorOrApply
-          "txSkelMintsToTxMintValue, translating to Cardano API PlutusV1 script"
-          (C.PlutusScriptWitness C.PlutusScriptV1InBabbage C.PlutusScriptV1 . C.PScript)
-          undefined -- (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV1) script)
-      Pl.PlutusV2 ->
-        throwOnToCardanoErrorOrApply
-          "txSkelMintsToTxMintValue, translating to Cardano API PlutusV2 script"
-          (C.PlutusScriptWitness C.PlutusScriptV2InBabbage C.PlutusScriptV2 . C.PScript)
-          undefined -- (Pl.toCardanoPlutusScript (C.AsPlutusScript C.AsPlutusScriptV2) script)
-      Pl.PlutusV3 -> undefined
+mintingPolicyToMintWitness :: Pl.Versioned Pl.MintingPolicy -> MintsRedeemer -> TxGen (C.ScriptWitness C.WitCtxMint C.ConwayEra)
+mintingPolicyToMintWitness (Pl.Versioned (Pl.MintingPolicy (Pl.Script script)) version) redeemer = do
+  let scriptWitnessBuilder = case version of
+        Pl.PlutusV1 -> C.PlutusScriptWitness C.PlutusScriptV1InConway C.PlutusScriptV1 $ C.PScript $ C.PlutusScriptSerialised script
+        Pl.PlutusV2 -> C.PlutusScriptWitness C.PlutusScriptV2InConway C.PlutusScriptV2 $ C.PScript $ C.PlutusScriptSerialised script
+        Pl.PlutusV3 -> C.PlutusScriptWitness C.PlutusScriptV3InConway C.PlutusScriptV3 $ C.PScript $ C.PlutusScriptSerialised script
   return $
     scriptWitnessBuilder
       C.NoScriptDatumForMint -- This seems to be the only well-typed option (?)
@@ -307,29 +296,82 @@ mintingPolicyToMintWitness (Pl.Versioned (Pl.MintingPolicy script) version) rede
       Pl.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
 
 -- Convert a 'TxSkelOut' to the corresponding 'C.TxOut'.
-txSkelOutToCardanoTxOut :: TxSkelOut -> TxGen (C.TxOut C.CtxTx C.BabbageEra)
+txSkelOutToCardanoTxOut :: TxSkelOut -> TxGen (C.TxOut C.CtxTx C.ConwayEra)
 txSkelOutToCardanoTxOut (Pays output) = do
-  networkId <- asks (Emulator.pNetworkId . params)
-  address <- throwOnToCardanoError "txSkelOutToTxOut: unresolved address" $ Pl.toCardanoAddressInEra networkId (outputAddress output)
-  value <- Pl.toCardanoTxOutValue <$> throwOnToCardanoError "txSkelOutToTxOut: unresolved value" (Pl.toCardanoValue $ outputValue output)
+  address <- myToCardanoAddressInEra $ outputAddress output
+  value <- myToCardanoTxOutValue <$> throwOnToCardanoError "txSkelOutToTxOut: unresolved value" (Pl.toCardanoValue $ outputValue output)
   datum <- case output ^. outputDatumL of
-    TxSkelOutNoDatum -> return Pl.toCardanoTxOutNoDatum
+    TxSkelOutNoDatum -> return C.TxOutDatumNone
     TxSkelOutDatumHash datum ->
-      throwOnToCardanoError "txSkelOutToTxOut: unresolved datum hash" $ Pl.toCardanoTxOutDatumHash $ Pl.datumHash $ Pl.Datum $ Pl.toBuiltinData datum
-    TxSkelOutDatum datum -> return $ Pl.toCardanoTxOutDatumInTx $ Pl.Datum $ Pl.toBuiltinData datum
-    TxSkelOutInlineDatum datum -> return $ Pl.toCardanoTxOutDatumInline $ Pl.Datum $ Pl.toBuiltinData datum
-  let refScript = Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
+      throwOnToCardanoError "txSkelOutToTxOut: unresolved datum hash" $
+        C.TxOutDatumHash C.AlonzoEraOnwardsConway
+          <$> Pl.toCardanoScriptDataHash (Pl.datumHash $ Pl.Datum $ Pl.toBuiltinData datum)
+    TxSkelOutDatum datum ->
+      return
+        $ C.TxOutDatumInTx C.AlonzoEraOnwardsConway
+          . C.unsafeHashableScriptData
+          . C.fromPlutusData
+          . Pl.builtinDataToData
+          . Pl.toBuiltinData
+        $ datum
+    TxSkelOutInlineDatum datum ->
+      return
+        $ C.TxOutDatumInline C.BabbageEraOnwardsConway
+          . C.unsafeHashableScriptData
+          . C.fromPlutusData
+          . Pl.builtinDataToData
+          . Pl.toBuiltinData
+        $ datum
+  let refScript = myToCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
   return $ C.TxOut address value datum refScript
 
-txSkelToCardanoTx :: TxSkel -> TxGen (C.Tx C.BabbageEra)
+-- TODO: All these helpers have been more or less copy pasted from
+-- cardano-node-emulator as they are not ready for Conway yet. Most
+-- likely (and hopefully) they will disappear in the future.
+
+myToCardanoReferenceScript :: Maybe (Pl.Versioned Pl.Script) -> C.ReferenceScript C.ConwayEra
+myToCardanoReferenceScript (Just script) =
+  C.ReferenceScript C.BabbageEraOnwardsConway $ Pl.toCardanoScriptInAnyLang script
+myToCardanoReferenceScript Nothing = C.ReferenceScriptNone
+
+myToCardanoTxOutValue :: C.Value -> C.TxOutValue C.ConwayEra
+myToCardanoTxOutValue = C.TxOutValueShelleyBased C.shelleyBasedEra . C.toMaryValue
+
+myToCardanoAddressInEra :: Pl.Address -> TxGen (C.AddressInEra C.ConwayEra)
+myToCardanoAddressInEra (Pl.Address addressCredential addressStakingCredential) = do
+  networkId <- asks (Emulator.pNetworkId . params)
+  paymentCred <- myToCardanoPaymentCredential addressCredential
+  addressRef <- myToCardanoStakeAddressReference addressStakingCredential
+  return $ C.AddressInEra (C.ShelleyAddressInEra C.ShelleyBasedEraConway) $ C.makeShelleyAddress networkId paymentCred addressRef
+
+myToCardanoPaymentCredential :: Pl.Credential -> TxGen C.PaymentCredential
+myToCardanoPaymentCredential (Pl.PubKeyCredential pubKeyHash) =
+  C.PaymentCredentialByKey
+    <$> throwOnToCardanoError "Error with pubkey credential" (Pl.toCardanoPaymentKeyHash $ Pl.PaymentPubKeyHash pubKeyHash)
+myToCardanoPaymentCredential (Pl.ScriptCredential validatorHash) =
+  C.PaymentCredentialByScript
+    <$> throwOnToCardanoError "Error with script credential" (Pl.toCardanoScriptHash validatorHash)
+
+myToCardanoStakeAddressReference :: Maybe Pl.StakingCredential -> TxGen C.StakeAddressReference
+myToCardanoStakeAddressReference Nothing = return C.NoStakeAddress
+myToCardanoStakeAddressReference (Just (Pl.StakingHash credential)) = C.StakeAddressByValue <$> myToCardanoStakeCredential credential
+myToCardanoStakeAddressReference (Just Pl.StakingPtr {}) = throwOnString "Staking pointers not supported."
+
+myToCardanoStakeCredential :: Pl.Credential -> TxGen C.StakeCredential
+myToCardanoStakeCredential (Pl.PubKeyCredential pubKeyHash) = C.StakeCredentialByKey <$> throwOnToCardanoError "Error with pubkey stake credential" (Pl.toCardanoStakeKeyHash pubKeyHash)
+myToCardanoStakeCredential (Pl.ScriptCredential validatorHash) = C.StakeCredentialByScript <$> throwOnToCardanoError "Error with script stake credential" (Pl.toCardanoScriptHash validatorHash)
+
+-- END OF TODO
+
+txSkelToCardanoTx :: TxSkel -> TxGen (C.Tx C.ConwayEra)
 txSkelToCardanoTx txSkel = do
   txBodyContent <- txSkelToBodyContent txSkel
   cardanoTxUnsigned <- lift $ bimap (TxBodyError "generateTx: ") (flip C.Tx []) (C.createAndValidateTransactionBody undefined txBodyContent)
   cardanoTxSigned <-
     foldM
       ( \tx wal ->
-          case Ledger.addCardanoTxSignature (walletSK wal) (Ledger.CardanoTx tx C.ShelleyBasedEraBabbage) of
-            Ledger.CardanoTx tx' C.ShelleyBasedEraBabbage -> return tx'
+          case Ledger.addCardanoTxSignature (walletSK wal) (Ledger.CardanoTx tx C.ShelleyBasedEraConway) of
+            Ledger.CardanoTx tx' C.ShelleyBasedEraConway -> return tx'
             _ -> throwOnString "txSkelToCardanoTx: Wrong output era"
       )
       cardanoTxUnsigned
@@ -349,6 +391,6 @@ generateTx ::
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   -- | The transaction skeleton to translate.
   TxSkel ->
-  Either GenerateTxError (C.Tx C.BabbageEra)
+  Either GenerateTxError (C.Tx C.ConwayEra)
 generateTx genTxParams params managedData managedTxOuts managedValidators skel =
   runReaderT (txSkelToCardanoTx skel) Context {..}

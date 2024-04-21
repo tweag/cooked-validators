@@ -170,7 +170,7 @@ instance Default BalancingWallet where
 newtype RawModTx
   = -- | Apply modification on transaction after balancing, fee calculation, and
     -- final signing are performed
-    RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
+    RawModTxAfterBalancing (C.Tx C.ConwayEra -> C.Tx C.ConwayEra)
 
 -- This instance always returns @False@, which is no problem, because 'Eq
 -- TxSkel' is only used for tests that never depend on this comparison
@@ -182,7 +182,7 @@ instance Show RawModTx where
 
 -- | Applies a list of modifications right before the transaction is
 -- submitted. The leftmost function in the argument list is applied first.
-applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
+applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.ConwayEra -> C.Tx C.ConwayEra
 applyRawModOnBalancedTx [] = id
 applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
 
