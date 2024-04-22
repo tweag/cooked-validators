@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
@@ -479,7 +480,7 @@ calcBalanceTx balanceWallet skel fee = do
 -- leftover. If the wallet has no UTxO, then there's no way to balance this
 -- transaction.
 applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
-applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
+applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel@TxSkel {..} = do
   -- Here we'll try a few things, in order, until one of them succeeds:
   --
   -- 1. If allowed by the balanceOutputPolicy, pick out the best possible output
@@ -500,62 +501,48 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
   -- TODO: Mustn't every UTxO belonging to the wallet contain at least minAda?
   -- In that case, we could forget about adding several additional inputs. If
   -- one isn't enough, there's nothing we can do, no?
-  let -- All transaction outputs
-      outs :: [TxSkelOut]
-      outs = txSkelOuts skel
+  let bestOuts ::
+        -- \| Current best partition of the outputs
+        Maybe ([TxSkelOut], (TxSkelOut, Integer), [TxSkelOut]) ->
+        -- \| Outputs that have already been checked
+        [TxSkelOut] ->
+        -- \| Outputs that remain to be checked
+        [TxSkelOut] ->
+        -- \| Returns the best (if any) candidate output alongside its
+        -- predecessors and successors
+        Maybe ([TxSkelOut], (TxSkelOut, Integer), [TxSkelOut])
+      bestOuts currentBest _ [] = currentBest
+      bestOuts currentBest processed (txSkelOut : nexts) =
+        case Just txSkelOut >>= isPKOutputFrom balancePK >>= isOutputWithoutDatum >>= isOnlyAdaOutput of
+          Nothing -> bestOuts currentBest (processed ++ [txSkelOut]) nexts
+          Just output ->
+            let (Ada.Lovelace ada) = output ^. outputValueL
+             in let maxLovelace = maybe 0 (\(_, (_, x), _) -> x) currentBest
+                 in if ada < maxLovelace
+                      then -- This is a good candidate but a better one was found before
+                        bestOuts currentBest (processed ++ [txSkelOut]) nexts
+                      else -- This is the best candidate so far
+                        Just (processed, (txSkelOut, ada), nexts)
 
-      -- All transaction outputs that are ada-only, datum-free, and belong to
-      -- 'balancePK', together with the index of the corresponding 'TxSkelOut'
-      -- in 'outs'.
-      candidateOutputsWithIndices :: [(Int, ConcreteOutput Pl.PubKeyHash () Ada.Ada Pl.ScriptHash)]
-      candidateOutputsWithIndices =
-        mapMaybe
-          ( \(i, Pays output) ->
-              case ( isPKOutputFrom balancePK
-                       >=> isOnlyAdaOutput
-                       >=> isOutputWithoutDatum
-                       >=> Just
-                         . toOutputWithReferenceScriptHash
-                   )
-                output of
-                Nothing -> Nothing
-                Just output' -> Just (fromIntegral i, output')
-          )
-          $ zip [0 :: Int ..] outs
-
-      -- The index of the "best possible transaction output", as described
-      -- above.
-      mBestOutputIndex :: Maybe Int
-      mBestOutputIndex = case sortBy
-        ( flip compare
-            `on` (^. outputValueL) -- This lens use means something different than 'outputValue', because it returns 'Pl.Ada'!
-              . snd
-        )
-        candidateOutputsWithIndices of
-        [] -> Nothing
-        (best, _) : _ -> Just best
-
-      ins = txSkelIns skel
   (newIns, newOuts) <-
-    case mBestOutputIndex of
+    case bestOuts Nothing [] txSkelOuts of
       Nothing ->
         -- There's no "best possible transaction output" in the sense described
         -- above.
-        tryAdditionalOutput ins outs
-      Just i ->
-        let (left, bestTxOut : right) = splitAt i outs
-         in case txOptBalanceOutputPolicy $ txSkelOpts skel of
-              AdjustExistingOutput ->
-                let bestTxOutValue = txSkelOutValue bestTxOut
-                    adjustedValue = bestTxOutValue <> returnValue
-                 in if adjustedValue `Pl.geq` Ada.toValue Ledger.minAdaTxOutEstimated -- TODO make this depende on the atual TxOut
-                      then
-                        Just -- (1)
-                          ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
-                            left ++ (bestTxOut & txSkelOutValueL .~ adjustedValue) : right
-                          )
-                      else tryAdditionalInputs ins outs availableUtxos returnValue
-              DontAdjustExistingOutput -> tryAdditionalOutput ins outs
+        tryAdditionalOutput txSkelIns txSkelOuts
+      Just (left, (bestTxOut, _), right) ->
+        case txOptBalanceOutputPolicy txSkelOpts of
+          AdjustExistingOutput ->
+            let bestTxOutValue = txSkelOutValue bestTxOut
+                adjustedValue = bestTxOutValue <> returnValue
+             in if adjustedValue `Pl.geq` Ada.toValue Ledger.minAdaTxOutEstimated -- TODO make this depende on the atual TxOut
+                  then
+                    Just -- (1)
+                      ( txSkelIns <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
+                        left ++ (bestTxOut & txSkelOutValueL .~ adjustedValue) : right
+                      )
+                  else tryAdditionalInputs txSkelIns txSkelOuts availableUtxos returnValue
+          DontAdjustExistingOutput -> tryAdditionalOutput txSkelIns txSkelOuts
   return skel {txSkelIns = newIns, txSkelOuts = newOuts}
   where
     tryAdditionalOutput ::
