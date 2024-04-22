@@ -11,7 +11,8 @@ package cardano-crypto-praos
 source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-node-emulator
-  tag: 1e09173b74064bd5990d2d3e48af6510780ea349
+  -- This should follow the Conway branch until it is merged to main
+  tag: 13ccd1d0f61752d0f8746d4ff11b1b7a4f338d23
   subdir:
     cardano-node-emulator
     plutus-ledger
@@ -35,9 +36,9 @@ repository cardano-haskell-packages
 
 -- See CONTRIBUTING.adoc for how to update index-state
 index-state:
-  , hackage.haskell.org 2024-04-11T00:00:00Z
-  , cardano-haskell-packages 2024-04-11T00:00:00Z
-  
+  , hackage.haskell.org 2024-03-21T00:00:00Z
+  , cardano-haskell-packages 2024-03-21T00:00:00Z
+
 -- We never, ever, want this.
 write-ghc-environment-files: never
 
@@ -63,6 +64,13 @@ package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
 constraints:
-  cardano-api ^>= 8.36
-  , quickcheck-contractmodel ^>= 0.1.6
- 
+  cardano-api ^>= 8.42
+
+source-repository-package
+    type: git
+    location: https://github.com/input-output-hk/quickcheck-contractmodel
+    tag: fdfbbfed09b48dada31bcb4e5b0e0e6d2cffba7f
+    --sha256: sha256-25BrEBetu35rAlNM+rZijjgS4cIG/Q4gcd5YYNqn2Vk=
+    subdir:
+      quickcheck-contractmodel
+      quickcheck-threatmodel

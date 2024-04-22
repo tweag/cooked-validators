@@ -21,7 +21,6 @@ module Cooked.ShowBS (ShowBS (..), showBSs, app_prec) where
 
 import Plutus.Script.Utils.Scripts
 import PlutusLedgerApi.V3
-import PlutusLedgerApi.V3.Contexts
 import qualified PlutusTx.AssocMap as PlMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude
@@ -340,10 +339,10 @@ instance ShowBS TxCert where
   -- \| UnRegister a DRep with mandatory refund value
   showBSsPrec p (TxCertUnRegDRep dRepCred amount) = undefined
   -- -- \| A digest of the PoolParams (with poolId and pool VFR)
-  -- showBSsPrec p (TxCertPoolRegister poolId poolVFR) = undefined
+  showBSsPrec p (TxCertPoolRegister poolId poolVFR) = undefined
   -- -- \| The retirement certificate and the Epoch in which the
   -- -- retirement will take place
-  -- showBSsPrec p (TxCertPoolRetire pkh epoch) = undefined
+  showBSsPrec p (TxCertPoolRetire pkh epoch) = undefined
   -- \| Authorize a Hot credential for a specific Committee member's cold credential
   showBSsPrec p (TxCertAuthHotCommittee coldCommitteeCred hotCommitteeCred) = undefined
   showBSsPrec p (TxCertResignColdCommittee coldCommitteeCred) = undefined
@@ -361,9 +360,9 @@ instance ShowBS ScriptPurpose where
   showBSsPrec p (Minting cs) = application1 p "Minting" cs
   showBSsPrec p (Spending oref) = application1 p "Spending" oref
   showBSsPrec p (Rewarding stCred) = application1 p "Rewarding" stCred
-  showBSsPrec p (Certifying dCert) = application1 p "Certifying" dCert
-  showBSsPrec p (Voting voter actionId) = application2 p "Voting" voter actionId
-  showBSsPrec p (Proposing nb) = application1 p "Proposing" nb
+  showBSsPrec p (Certifying nb txCert) = application2 p "Certifying" nb txCert
+  showBSsPrec p (Voting voter) = application1 p "Voting" voter
+  showBSsPrec p (Proposing nb proposal) = application2 p "Proposing" nb proposal
 
 instance ShowBS Redeemer where
   {-# INLINEABLE showBSsPrec #-}
@@ -393,20 +392,28 @@ instance ShowBS Committee where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p committee = undefined
 
+instance ShowBS Lovelace where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec = showBSsPrec
+
+instance ShowBS Rational where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec = showBSsPrec
+
 instance ShowBS GovernanceAction where
   {-# INLINEABLE showBSsPrec #-}
   -- TODO: there is a new parameter Maybe ScriptHash to be added later on
-  showBSsPrec p (ParameterChange maybeActionId changeParams) = application2 p "ParameterChange" maybeActionId changeParams
+  showBSsPrec p (ParameterChange maybeActionId changeParams mScriptHash) = application3 p "ParameterChange" maybeActionId changeParams mScriptHash
   showBSsPrec p (HardForkInitiation maybeActionId protocolVersion) = application2 p "HardForkInitiation" maybeActionId protocolVersion
   -- TODO: there is a new parameter Maybe ScriptHash to be added later on
-  showBSsPrec p (TreasuryWithdrawals mapCredLovelace) = application1 p "TreasuryWithdrawals" mapCredLovelace
+  showBSsPrec p (TreasuryWithdrawals mapCredLovelace mScriptHash) = application2 p "TreasuryWithdrawals" mapCredLovelace mScriptHash
   showBSsPrec p (NoConfidence maybeActionId) = application1 p "NoConfidence" maybeActionId
   -- TODO: UpdateCommittee should be added later on
-  -- showBSsPrec p (UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) = undefined
+  showBSsPrec p (UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) = application4 p "UpdateCommittee" maybeActionId toRemoveCreds toAddCreds quorum
   showBSsPrec p (NewConstitution maybeActionId constitution) = application2 p "NewConstitution" maybeActionId constitution
   showBSsPrec _ InfoAction = literal "InfoAction"
-  -- TODO: this disapears later on, probably replaced by UpdateCommittee
-  showBSsPrec p (NewCommittee maybeActionId coldCredList committee) = application3 p "NewCommittee" maybeActionId coldCredList committee
+
+-- TODO: this disapears later on, probably replaced by UpdateCommittee
 
 instance ShowBS ProposalProcedure where
   {-# INLINEABLE showBSsPrec #-}
