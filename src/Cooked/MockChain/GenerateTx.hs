@@ -156,7 +156,16 @@ txSkelToBodyContent TxSkel {..} = do
       txVotingProcedures = Nothing -- TODO, same as above
   return C.TxBodyContent {..}
 
-generateBodyContent = undefined
+generateBodyContent ::
+  GenTxParams ->
+  Emulator.Params ->
+  Map Pl.DatumHash Pl.Datum ->
+  Map Pl.TxOutRef Pl.TxOut ->
+  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
+  TxSkel ->
+  Either GenerateTxError (C.TxBodyContent C.BuildTx C.ConwayEra)
+generateBodyContent genTxParams params managedData managedTxOuts managedValidators skel =
+  runReaderT (txSkelToBodyContent skel) Context {..}
 
 -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
 -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
