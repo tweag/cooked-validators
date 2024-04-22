@@ -24,7 +24,7 @@ import Data.List
 import qualified Data.Map as Map
 import qualified Ledger as Pl
 import Optics.Core
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 
 -- * Adding and removing transaction inputs
 

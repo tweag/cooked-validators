@@ -14,9 +14,12 @@ where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
-import qualified Cardano.Node.Emulator as Emulator
-import qualified Cardano.Node.Emulator.Params as Pl
+import qualified Cardano.Ledger.Shelley.Core as CardanoLedger
+import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
+import qualified Cardano.Node.Emulator.Internal.Node.Params as Params
+import qualified Cardano.Node.Emulator.Internal.Node.Validation as Validation
 import Control.Arrow
+import Control.Monad (when, (>=>))
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -37,13 +40,13 @@ import qualified Ledger.Index as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as PV2
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx.Numeric as Pl
 
-balancedTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set PV2.TxOutRef)
+balancedTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Pl.TxOutRef)
 balancedTxSkel skelUnbal = do
   let balancingWallet =
         case txOptBalanceWallet . txSkelOpts $ skelUnbal of
@@ -64,13 +67,13 @@ balancedTxSkel skelUnbal = do
 
 -- | Take the output of 'balancedTxSkel' and turn it into an actual Cardano
 -- transaction.
-balancedTx :: (MonadBlockChainBalancing m) => (TxSkel, Fee, Set PV2.TxOutRef) -> m (C.Tx C.BabbageEra)
+balancedTx :: (MonadBlockChainBalancing m) => (TxSkel, Fee, Set Pl.TxOutRef) -> m (C.Tx C.ConwayEra)
 balancedTx (skel, fee, collateralInputs) = do
   params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
   consumedData <- txSkelInputData skel
   consumedOrReferencedTxOuts <- do
-    ins <- txSkelInputUtxosPV2 skel
-    insRef <- txSkelReferenceInputUtxosPV2 skel
+    ins <- txSkelInputUtxosPl skel
+    insRef <- txSkelReferenceInputUtxosPl skel
     insCollateral <-
       Map.fromList
         <$> mapM
@@ -97,16 +100,17 @@ ensureTxSkelOutsMinAda skel = do
     Left err -> throwError $ MCEGenerationError err
     Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
   where
-    ensureTxSkelOutHasMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
+    ensureTxSkelOutHasMinAda :: Params.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
     ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
       cardanoTxOut <- txSkelOutToCardanoTxOut (Pl.pNetworkId theParams) txSkelOut
-      let Pl.Lovelace oldAda = output ^. outputValueL % adaL
+      let Ada.Lovelace oldAda = output ^. outputValueL % adaL
           CardanoLedger.Coin requiredAda =
-            CardanoLedger.evaluateMinLovelaceOutput (Emulator.emulatorPParams theParams)
-              . C.toShelleyTxOut C.ShelleyBasedEraBabbage
+            CardanoLedger.getMinCoinTxOut
+              (Emulator.emulatorPParams theParams)
+              . C.toShelleyTxOut C.ShelleyBasedEraConway
               . C.toCtxUTxOTxOut
               $ cardanoTxOut
-          updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Pl.Lovelace (max oldAda requiredAda)
+          updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Ada.Lovelace (max oldAda requiredAda)
       -- The following iterative approach to calculate the minimum Ada amount
       -- of a TxOut is necessary, because the additional value might make the
       -- TxOut heavier.
@@ -117,16 +121,16 @@ ensureTxSkelOutsMinAda skel = do
         then ensureTxSkelOutHasMinAda theParams updatedTxSkelOut
         else return txSkelOut
 
-txSkelInputUtxosPV2 :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
-txSkelInputUtxosPV2 = lookupUtxosPV2 . Map.keys . txSkelIns
+txSkelInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelInputUtxosPl = lookupUtxosPl . Map.keys . txSkelIns
 
-txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
-txSkelReferenceInputUtxosPV2 :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef PV2.TxOut)
-txSkelReferenceInputUtxosPV2 skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
+txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxosPl skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
 
-txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.TxOutRef Ledger.TxOut)
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos skel =
   lookupUtxos $
     mapMaybe
@@ -138,13 +142,14 @@ txSkelReferenceInputUtxos skel =
       ++ (Set.toList . txSkelInsReference $ skel)
 
 -- | All validators which protect transaction inputs
-txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.ValidatorHash (Pl.Versioned PV2.Validator))
+txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.ValidatorHash (Pl.Versioned Pl.Validator))
 txSkelInputValidators skel = do
-  utxos <- Map.toList <$> lookupUtxosPV2 (Map.keys . txSkelIns $ skel)
+  utxos <- Map.toList <$> lookupUtxosPl (Map.keys . txSkelIns $ skel)
   mValidators <-
     mapM
       ( \(_oref, out) -> case outputAddress out of
-          PV2.Address (PV2.ScriptCredential valHash) _ -> do
+          Pl.Address (Pl.ScriptCredential (Pl.ScriptHash hash)) _ -> do
+            let valHash = Pl.ValidatorHash hash
             mVal <- validatorFromHash valHash
             case mVal of
               Nothing ->
@@ -158,13 +163,13 @@ txSkelInputValidators skel = do
       utxos
   return . Map.fromList . catMaybes $ mValidators
 
--- Go through all of the 'PV2.TxOutRef's in the list and look them up in the
--- state of the blockchain. If any 'PV2.TxOutRef' can't be resolved, throw an
+-- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
+-- state of the blockchain. If any 'Pl.TxOutRef' can't be resolved, throw an
 -- error.
-lookupUtxosPV2 :: (MonadBlockChainBalancing m) => [PV2.TxOutRef] -> m (Map PV2.TxOutRef PV2.TxOut)
-lookupUtxosPV2 outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
+lookupUtxosPl :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxosPl outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
 
-lookupUtxos :: (MonadBlockChainBalancing m) => [PV2.TxOutRef] -> m (Map PV2.TxOutRef Ledger.TxOut)
+lookupUtxos :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Ledger.TxOut)
 lookupUtxos outRefs = do
   Map.fromList
     <$> mapM
@@ -183,30 +188,30 @@ lookupUtxos outRefs = do
 
 -- | look up the UTxOs the transaction consumes, and sum the value contained in
 -- them.
-txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m PV2.Value
+txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Pl.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
-  return $ foldMap (PV2.txOutValue . txOutV2FromLedger) txSkelInputs
+  return $ foldMap (Pl.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map PV2.DatumHash PV2.Datum)
+txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.DatumHash Pl.Datum)
 txSkelInputData skel = do
-  txSkelInputs <- Map.elems <$> txSkelInputUtxosPV2 skel
+  txSkelInputs <- Map.elems <$> txSkelInputUtxosPl skel
   mDatums <-
     mapM
       ( \output ->
           case output ^. outputDatumL of
-            PV2.NoOutputDatum -> return Nothing
-            PV2.OutputDatum datum ->
+            Pl.NoOutputDatum -> return Nothing
+            Pl.OutputDatum datum ->
               let dHash = Pl.datumHash datum
                in Just . (dHash,) <$> datumFromHashWithError dHash
-            PV2.OutputDatumHash dHash ->
+            Pl.OutputDatumHash dHash ->
               Just . (dHash,) <$> datumFromHashWithError dHash
       )
       txSkelInputs
   return . Map.fromList . catMaybes $ mDatums
   where
-    datumFromHashWithError :: (MonadBlockChainBalancing m) => Pl.DatumHash -> m PV2.Datum
+    datumFromHashWithError :: (MonadBlockChainBalancing m) => Pl.DatumHash -> m Pl.Datum
     datumFromHashWithError dHash = do
       mDatum <- datumFromHash dHash
       case mDatum of
@@ -218,8 +223,8 @@ txSkelInputData skel = do
         Just datum -> return datum
 
 getEmulatorUTxO ::
-  Map PV2.TxOutRef Ledger.TxOut ->
-  Either Ledger.ToCardanoError (Emulator.UTxO Emulator.EmulatorEra)
+  Map Pl.TxOutRef Ledger.TxOut ->
+  Either Ledger.ToCardanoError (Validation.UTxO Validation.EmulatorEra)
 getEmulatorUTxO m =
   fmap (Ledger.fromPlutusIndex . C.UTxO . Map.fromList) $
     mapM (\(k, v) -> (,) <$> Ledger.toCardanoTxIn k <*> pure (Ledger.toCtxUTxOTxOut v)) $
@@ -250,7 +255,7 @@ setFeeAndBalance balanceWallet skel0 = do
   balancePKUtxos <-
     Map.fromList
       <$> let balanceWalletAddress = walletAddress balanceWallet
-              noDatumPredicate = (\case PV2.NoOutputDatum -> True; _ -> False) . outputOutputDatum . txOutV2FromLedger
+              noDatumPredicate = (\case Pl.NoOutputDatum -> True; _ -> False) . outputOutputDatum . txOutV2FromLedger
            in case txOptBalancingUtxos . txSkelOpts $ skel0 of
                 BalancingUtxosAll -> utxosAtLedger balanceWalletAddress
                 BalancingUtxosDatumless -> runUtxoSearch (utxosAtLedgerSearch balanceWalletAddress `filterWithPred` noDatumPredicate)
@@ -291,15 +296,15 @@ setFeeAndBalance balanceWallet skel0 = do
       (MonadBlockChainBalancing m) =>
       Int ->
       Fee ->
-      Emulator.UTxO Emulator.EmulatorEra ->
+      Validation.UTxO Validation.EmulatorEra ->
       TxSkel ->
       m (TxSkel, Fee)
     calcFee n fee cUtxoIndex skel = do
       attemptedSkel <- balanceTxFromAux balanceWallet skel fee
       managedData <- txSkelInputData skel
       managedTxOuts <- do
-        ins <- txSkelInputUtxosPV2 skel
-        insRef <- txSkelReferenceInputUtxosPV2 skel
+        ins <- txSkelInputUtxosPl skel
+        insRef <- txSkelReferenceInputUtxosPl skel
         return $ ins <> insRef
       managedValidators <- txSkelInputValidators skel
       theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
@@ -323,11 +328,11 @@ setFeeAndBalance balanceWallet skel0 = do
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee ::
-  Emulator.Params ->
-  Emulator.UTxO Emulator.EmulatorEra ->
+  Params.Params ->
+  Validation.UTxO Validation.EmulatorEra ->
   Map Pl.DatumHash Pl.Datum ->
-  Map PV2.TxOutRef PV2.TxOut ->
-  Map PV2.ValidatorHash (Pl.Versioned PV2.Validator) ->
+  Map Pl.TxOutRef Pl.TxOut ->
+  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
   Fee ->
   Either MockChainError Fee
@@ -344,10 +349,10 @@ estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators 
       )
       $ Emulator.makeTransactionBody params cUtxoIndex (Ledger.CardanoBuildTx txBodyContent)
   case C.evaluateTransactionFee (Emulator.pProtocolParams params) txBody nkeys 0 of
-    C.Lovelace fee -> pure $ Fee fee
+    Ada.Lovelace fee -> pure $ Fee fee
 
 -- | Calculates the collateral for a transaction
-calcCollateral :: (MonadBlockChainBalancing m) => Wallet -> m (Set PV2.TxOutRef)
+calcCollateral :: (MonadBlockChainBalancing m) => Wallet -> m (Set Pl.TxOutRef)
 calcCollateral w = do
   souts <-
     runUtxoSearch $
@@ -376,22 +381,22 @@ balanceTxFromAux balanceWallet txskel fee = do
           )
           txskel
   where
-    valueAndRefs :: [(PV2.TxOutRef, PV2.TxOut)] -> (PV2.Value, [PV2.TxOutRef])
+    valueAndRefs :: [(Pl.TxOutRef, Pl.TxOut)] -> (Pl.Value, [Pl.TxOutRef])
     valueAndRefs x = (mconcat (outputValue . snd <$> x), fst <$> x)
 
 data BalanceTxRes = BalanceTxRes
   { -- | Inputs that need to be added in order to cover the value in the
     -- transaction outputs
-    newInputs :: [(PV2.TxOutRef, PV2.TxOut)],
+    newInputs :: [(Pl.TxOutRef, Pl.TxOut)],
     -- | The 'newInputs' will add _at least_ the missing value to cover the
     -- outputs, this is the difference of the input value together with the
     -- 'newInputs' and the output value.  This value must be nonnegative in
     -- every asset class.
-    returnValue :: PV2.Value,
+    returnValue :: Pl.Value,
     -- | Some additional UTxOs that could be used as extra inputs. These all
     -- belong to the same wallet that was passed to 'calcBalanceTx' as an
     -- argument, and are sorted in decreasing order of their Ada value.
-    availableUtxos :: [(PV2.TxOutRef, PV2.TxOut)]
+    availableUtxos :: [(Pl.TxOutRef, Pl.TxOut)]
   }
   deriving (Show)
 
@@ -422,7 +427,7 @@ calcBalanceTx balanceWallet skel fee = do
   -- minimum Ada amount required for each output. See this comment for context:
   -- https://github.com/tweag/cooked-validators/issues/71#issuecomment-1016406041
   candidateUtxos <-
-    sortBy (flip compare `on` Pl.fromValue . outputValue . snd)
+    sortBy (flip compare `on` Ada.fromValue . outputValue . snd)
       . filter ((`notElem` inputOrefs) . fst)
       <$> utxosAt (walletAddress balanceWallet)
   case selectNewInputs candidateUtxos [] initialExcess missingValue of
@@ -434,10 +439,10 @@ calcBalanceTx balanceWallet skel fee = do
     Just bTxRes -> return bTxRes
   where
     selectNewInputs ::
-      [(PV2.TxOutRef, PV2.TxOut)] ->
-      [(PV2.TxOutRef, PV2.TxOut)] ->
-      PV2.Value ->
-      PV2.Value ->
+      [(Pl.TxOutRef, Pl.TxOut)] ->
+      [(Pl.TxOutRef, Pl.TxOut)] ->
+      Pl.Value ->
+      Pl.Value ->
       Maybe BalanceTxRes
     selectNewInputs available chosen excess missing =
       case view flattenValueI missing of
@@ -447,11 +452,10 @@ calcBalanceTx balanceWallet skel fee = do
           -- one token of the required asset class (The hope is that it'll
           -- contain at least @n@ such tokens, but we can't yet fail if there are
           -- fewer; we might need to add several UTxOs):
-          case findIndex ((`Pl.geq` Pl.assetClassValue ac 1) . outputValue . snd) available of
-            Nothing -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
-            Just i ->
-              let (left, theChosenUtxo : right) = splitAt i available
-                  available' = left ++ right
+          case break ((`Pl.geq` Pl.assetClassValue ac 1) . outputValue . snd) available of
+            (_, []) -> Nothing -- The wallet owns nothing of the required asset class. We can't balance with this wallet.
+            (left, theChosenUtxo : right) ->
+              let available' = left ++ right
                   chosen' = theChosenUtxo : chosen
                   theChosenValue = outputValue $ snd theChosenUtxo
                   theChosenDifference = missing <> Pl.negate theChosenValue
@@ -474,7 +478,7 @@ calcBalanceTx balanceWallet skel fee = do
 -- UTxO belonging to the wallet to then create the output with the proper
 -- leftover. If the wallet has no UTxO, then there's no way to balance this
 -- transaction.
-applyBalanceTx :: PV2.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
+applyBalanceTx :: Pl.PubKeyHash -> BalanceTxRes -> TxSkel -> Maybe TxSkel
 applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) skel = do
   -- Here we'll try a few things, in order, until one of them succeeds:
   --
@@ -503,14 +507,15 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       -- All transaction outputs that are ada-only, datum-free, and belong to
       -- 'balancePK', together with the index of the corresponding 'TxSkelOut'
       -- in 'outs'.
-      candidateOutputsWithIndices :: [(Int, ConcreteOutput PV2.PubKeyHash () Pl.Ada PV2.ScriptHash)]
+      candidateOutputsWithIndices :: [(Int, ConcreteOutput Pl.PubKeyHash () Ada.Ada Pl.ScriptHash)]
       candidateOutputsWithIndices =
         mapMaybe
           ( \(i, Pays output) ->
               case ( isPKOutputFrom balancePK
                        >=> isOnlyAdaOutput
                        >=> isOutputWithoutDatum
-                       >=> Just . toOutputWithReferenceScriptHash
+                       >=> Just
+                         . toOutputWithReferenceScriptHash
                    )
                 output of
                 Nothing -> Nothing
@@ -533,13 +538,17 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       ins = txSkelIns skel
   (newIns, newOuts) <-
     case mBestOutputIndex of
+      Nothing ->
+        -- There's no "best possible transaction output" in the sense described
+        -- above.
+        tryAdditionalOutput ins outs
       Just i ->
         let (left, bestTxOut : right) = splitAt i outs
          in case txOptBalanceOutputPolicy $ txSkelOpts skel of
               AdjustExistingOutput ->
                 let bestTxOutValue = txSkelOutValue bestTxOut
                     adjustedValue = bestTxOutValue <> returnValue
-                 in if adjustedValue `Pl.geq` Pl.toValue Ledger.minAdaTxOutEstimated -- TODO make thid dependen on the atual TxOut
+                 in if adjustedValue `Pl.geq` Ada.toValue Ledger.minAdaTxOutEstimated -- TODO make this depende on the atual TxOut
                       then
                         Just -- (1)
                           ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
@@ -547,18 +556,14 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                           )
                       else tryAdditionalInputs ins outs availableUtxos returnValue
               DontAdjustExistingOutput -> tryAdditionalOutput ins outs
-      Nothing ->
-        -- There's no "best possible transaction output" in the sense described
-        -- above.
-        tryAdditionalOutput ins outs
   return skel {txSkelIns = newIns, txSkelOuts = newOuts}
   where
     tryAdditionalOutput ::
-      Map PV2.TxOutRef TxSkelRedeemer ->
+      Map Pl.TxOutRef TxSkelRedeemer ->
       [TxSkelOut] ->
-      Maybe (Map PV2.TxOutRef TxSkelRedeemer, [TxSkelOut])
+      Maybe (Map Pl.TxOutRef TxSkelRedeemer, [TxSkelOut])
     tryAdditionalOutput ins outs =
-      if Pl.fromValue returnValue >= Ledger.minAdaTxOutEstimated -- TODO make thid dependen on the atual TxOut
+      if Ada.fromValue returnValue >= Ledger.minAdaTxOutEstimated -- TODO make this depend on the atual TxOut
         then
           Just -- (2)
             ( ins <> Map.fromSet (const TxSkelNoRedeemerForPK) (Set.fromList $ map fst newInputs),
@@ -567,11 +572,11 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         else tryAdditionalInputs ins outs availableUtxos returnValue
 
     tryAdditionalInputs ::
-      Map PV2.TxOutRef TxSkelRedeemer ->
+      Map Pl.TxOutRef TxSkelRedeemer ->
       [TxSkelOut] ->
-      [(PV2.TxOutRef, PV2.TxOut)] ->
+      [(Pl.TxOutRef, Pl.TxOut)] ->
       Pl.Value ->
-      Maybe (Map PV2.TxOutRef TxSkelRedeemer, [TxSkelOut])
+      Maybe (Map Pl.TxOutRef TxSkelRedeemer, [TxSkelOut])
     tryAdditionalInputs ins outs available return =
       case available of
         [] -> Nothing
@@ -584,6 +589,6 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
                     <> Map.singleton newTxOutRef TxSkelNoRedeemerForPK
                 )
               newOuts = outs ++ [paysPK balancePK newReturn]
-           in if newReturn `Pl.geq` Pl.toValue Ledger.minAdaTxOutEstimated -- TODO make thid dependen on the atual TxOut
+           in if newReturn `Pl.geq` Ada.toValue Ledger.minAdaTxOutEstimated -- TODO make thid dependen on the atual TxOut
                 then Just (newIns, newOuts) -- (3)
                 else tryAdditionalInputs newIns newOuts newAvailable newReturn
