@@ -295,11 +295,7 @@ datumFromTxOutRef oref = do
     Nothing -> return Nothing
     Just Pl.NoOutputDatum -> return Nothing
     Just (Pl.OutputDatum datum) -> return $ Just datum
-    Just (Pl.OutputDatumHash datumHash) -> do
-      mDatum <- datumFromHash datumHash
-      case mDatum of
-        Just datum -> return $ Just datum
-        Nothing -> return Nothing
+    Just (Pl.OutputDatumHash datumHash) -> datumFromHash datumHash
 
 typedDatumFromTxOutRef :: (Pl.FromData a, MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe a)
 typedDatumFromTxOutRef oref = do

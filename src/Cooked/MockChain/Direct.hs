@@ -17,8 +17,6 @@ module Cooked.MockChain.Direct where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
-import qualified Cardano.Node.Emulator.Params as Emulator
-import qualified Cardano.Node.Emulator.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except
@@ -47,9 +45,7 @@ import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import Optics.Core (view)
 import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as PV2
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V2 as Pl
 
 -- * Direct Emulation
 
@@ -76,8 +72,8 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
     . C.unUTxO
     $ mcstIndex
   where
-    extractPayload :: (Pl.TxOutRef, PV2.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
-    extractPayload (txOutRef, out@PV2.TxOut {PV2.txOutAddress, PV2.txOutValue, PV2.txOutDatum}) =
+    extractPayload :: (Pl.TxOutRef, Pl.TxOut) -> Maybe (Pl.Address, UtxoPayloadSet)
+    extractPayload (txOutRef, out@Pl.TxOut {Pl.txOutAddress, Pl.txOutValue, Pl.txOutDatum}) =
       do
         let mRefScript = outputReferenceScriptHash out
         txSkelOutDatum <-

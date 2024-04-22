@@ -9,8 +9,8 @@
 module Cooked.MockChain.GenerateTx
   ( GenerateTxError (..),
     GenTxParams (gtpCollateralIns, gtpFee),
-    txSkelToBodyContent,
-    txSkelOutToCardanoTxOut,
+    generateBodyContent,
+    generateTxOut,
     generateTx,
   )
 where
@@ -73,6 +73,9 @@ data Context where
       managedValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
     } ->
     Context
+
+instance Default Context where
+  def = Context def def Map.empty Map.empty Map.empty
 
 -- The domain in which transactions are generated.
 type TxGen a = ReaderT Context (Either GenerateTxError) a
@@ -152,6 +155,8 @@ txSkelToBodyContent TxSkel {..} = do
       txProposalProcedures = Nothing -- TODO, should appear in our skeleton?
       txVotingProcedures = Nothing -- TODO, same as above
   return C.TxBodyContent {..}
+
+generateBodyContent = undefined
 
 -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
 -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
@@ -317,10 +322,21 @@ txSkelOutToCardanoTxOut (Pays output) = do
   let refScript = Pl.toCardanoReferenceScript (toScript <$> output ^. outputReferenceScriptL)
   return $ C.TxOut address value datum refScript
 
+generateTxOut :: C.NetworkId -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.ConwayEra)
+generateTxOut networkId txSkelOut =
+  runReaderT
+    (txSkelOutToCardanoTxOut txSkelOut)
+    (def {params = def {Emulator.pNetworkId = networkId}})
+
 txSkelToCardanoTx :: TxSkel -> TxGen (C.Tx C.ConwayEra)
 txSkelToCardanoTx txSkel = do
   txBodyContent <- txSkelToBodyContent txSkel
-  cardanoTxUnsigned <- lift $ bimap (TxBodyError "generateTx: ") (flip C.Tx []) (C.createAndValidateTransactionBody C.ShelleyBasedEraConway txBodyContent)
+  cardanoTxUnsigned <-
+    lift $
+      bimap
+        (TxBodyError "generateTx: ")
+        (flip C.Tx [])
+        (C.createAndValidateTransactionBody C.ShelleyBasedEraConway txBodyContent)
   cardanoTxSigned <-
     foldM
       ( \tx wal ->

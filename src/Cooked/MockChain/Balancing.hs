@@ -20,7 +20,7 @@ import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
 import qualified Cardano.Node.Emulator.Internal.Node.Params as Params
 import qualified Cardano.Node.Emulator.Internal.Node.Validation as Validation
 import Control.Arrow
-import Control.Monad (when, (>=>))
+import Control.Monad (when)
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -103,7 +103,7 @@ ensureTxSkelOutsMinAda skel = do
   where
     ensureTxSkelOutHasMinAda :: Params.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
     ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
-      cardanoTxOut <- txSkelOutToCardanoTxOut (Pl.pNetworkId theParams) txSkelOut
+      cardanoTxOut <- generateTxOut (Emulator.pNetworkId theParams) txSkelOut
       let Ada.Lovelace oldAda = output ^. outputValueL % adaL
           CardanoLedger.Coin requiredAda =
             CardanoLedger.getMinCoinTxOut
@@ -309,7 +309,7 @@ setFeeAndBalance balanceWallet skel0 = do
         return $ ins <> insRef
       managedValidators <- txSkelInputValidators skel
       theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
-      case estimateTxSkelFee theParams cUtxoIndex managedData managedTxOuts managedValidators attemptedSkel fee of
+      case estimateTxSkelFee theParams managedData managedTxOuts managedValidators attemptedSkel fee of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err
         Left err -> throwError $ MCECalcFee err
@@ -330,27 +330,22 @@ setFeeAndBalance balanceWallet skel0 = do
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee ::
   Params.Params ->
-  Validation.UTxO Validation.EmulatorEra ->
   Map Pl.DatumHash Pl.Datum ->
   Map Pl.TxOutRef Pl.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
   Fee ->
   Either MockChainError Fee
-estimateTxSkelFee params cUtxoIndex managedData managedTxOuts managedValidators skel fee = do
+estimateTxSkelFee params managedData managedTxOuts managedValidators skel fee = do
   txBodyContent <-
     left MCEGenerationError $
-      generateTxBodyContent def {gtpFee = fee} params managedData managedTxOuts managedValidators skel
+      generateBodyContent def {gtpFee = fee} params managedData managedTxOuts managedValidators skel
   let nkeys = C.estimateTransactionKeyWitnessCount txBodyContent
   txBody <-
-    left
-      ( \case
-          Left err -> MCEValidationError err
-          Right err -> MCEGenerationError (ToCardanoError "makeTransactionBody" err)
-      )
-      $ Emulator.makeTransactionBody params cUtxoIndex (Ledger.CardanoBuildTx txBodyContent)
-  case C.evaluateTransactionFee (Emulator.pProtocolParams params) txBody nkeys 0 of
-    Ada.Lovelace fee -> pure $ Fee fee
+    left (MCEGenerationError . TxBodyError "Error creating body when estimating fees") $
+      C.createAndValidateTransactionBody C.ShelleyBasedEraConway txBodyContent
+  case C.evaluateTransactionFee C.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0 of
+    Validation.Coin fee -> pure $ Fee fee
 
 -- | Calculates the collateral for a transaction
 calcCollateral :: (MonadBlockChainBalancing m) => Wallet -> m (Set Pl.TxOutRef)
@@ -512,17 +507,16 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
         -- predecessors and successors
         Maybe ([TxSkelOut], (TxSkelOut, Integer), [TxSkelOut])
       bestOuts currentBest _ [] = currentBest
-      bestOuts currentBest processed (txSkelOut : nexts) =
-        case Just txSkelOut >>= isPKOutputFrom balancePK >>= isOutputWithoutDatum >>= isOnlyAdaOutput of
+      bestOuts currentBest processed (txSkelOut@(Pays output) : nexts) =
+        case isPKOutputFrom balancePK output >>= isOutputWithoutDatum >>= isOnlyAdaOutput of
           Nothing -> bestOuts currentBest (processed ++ [txSkelOut]) nexts
-          Just output ->
-            let (Ada.Lovelace ada) = output ^. outputValueL
-             in let maxLovelace = maybe 0 (\(_, (_, x), _) -> x) currentBest
-                 in if ada < maxLovelace
-                      then -- This is a good candidate but a better one was found before
-                        bestOuts currentBest (processed ++ [txSkelOut]) nexts
-                      else -- This is the best candidate so far
-                        Just (processed, (txSkelOut, ada), nexts)
+          Just output' ->
+            let (Ada.Lovelace ada) = output' ^. outputValueL
+             in if ada < maybe 0 (\(_, (_, x), _) -> x) currentBest
+                  then -- This is a good candidate but a better one was found before
+                    bestOuts currentBest (processed ++ [txSkelOut]) nexts
+                  else -- This is the best candidate so far
+                    Just (processed, (txSkelOut, ada), nexts)
 
   (newIns, newOuts) <-
     case bestOuts Nothing [] txSkelOuts of
