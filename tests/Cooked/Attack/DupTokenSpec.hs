@@ -14,9 +14,9 @@ import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.V3.Contexts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import Test.Tasty
@@ -37,10 +37,10 @@ mkCarefulPolicy tName allowedAmount _ ctx
 
 carefulPolicy :: Pl.TokenName -> Integer -> Pl.Versioned Pl.MintingPolicy
 carefulPolicy tName allowedAmount =
-  flip Pl.Versioned Pl.PlutusV2 . Pl.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
-      `Pl.applyCode` Pl.liftCode tName
-      `Pl.applyCode` Pl.liftCode allowedAmount
+  case ($$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||]) `Pl.applyCode` Pl.liftCodeDef tName)
+    >>= (`Pl.applyCode` Pl.liftCodeDef allowedAmount) of
+    Left s -> error "Can't apply parameters in carefulPolicy"
+    Right code -> flip Pl.Versioned Pl.PlutusV3 . Pl.mkMintingPolicyScript $ code
 
 {-# INLINEABLE mkCarelessPolicy #-}
 mkCarelessPolicy :: () -> Pl.ScriptContext -> Bool
