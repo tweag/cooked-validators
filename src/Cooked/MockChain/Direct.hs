@@ -3,22 +3,25 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Cooked.MockChain.Direct where
 
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Ledger.Shelley.API as CardanoLedger
+import qualified Cardano.Ledger.Shelley.LedgerState as Ledger
+import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
+import qualified Cardano.Node.Emulator.Internal.Node.Validation as Emulator
 import Control.Applicative
 import Control.Arrow
+import Control.Monad (when, (<=<))
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.Reader
@@ -37,7 +40,6 @@ import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
-import qualified Ledger.Blockchain as Ledger
 import qualified Ledger.Index as Ledger
 import Ledger.Orphans ()
 import qualified Ledger.Slot as Ledger
@@ -45,7 +47,7 @@ import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import Optics.Core (view)
 import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified PlutusLedgerApi.V2 as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 
 -- * Direct Emulation
 
@@ -99,6 +101,26 @@ data MockChainSt = MockChainSt
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show)
+
+-- | Generating an emulated state for the emulator from a mockchain
+-- state and some parameters, based on a standard initial state
+mcstToEmulatedLedgerState :: Emulator.Params -> MockChainSt -> Emulator.EmulatedLedgerState
+mcstToEmulatedLedgerState params MockChainSt {..} =
+  let els@(Emulator.EmulatedLedgerState le mps) = Emulator.initialState params
+   in els
+        { Emulator._ledgerEnv = le {CardanoLedger.ledgerSlotNo = fromIntegral mcstCurrentSlot},
+          Emulator._memPoolState =
+            mps
+              { CardanoLedger.lsUTxOState =
+                  Ledger.smartUTxOState
+                    (Emulator.emulatorPParams params)
+                    (Ledger.fromPlutusIndex mcstIndex)
+                    (Emulator.Coin 0)
+                    (Emulator.Coin 0)
+                    def
+                    (Emulator.Coin 0)
+              }
+        }
 
 instance Eq MockChainSt where
   (MockChainSt index1 datums1 validators1 currentSlot1)
@@ -276,17 +298,20 @@ datumMap0From (InitialDistribution initDist) =
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From (InitialDistribution initDist) = case mkBody of
   Left err -> error $ show err
-  Right body -> Ledger.initialise [[Ledger.Valid $ Ledger.CardanoEmulatorEraTx $ C.Tx body []]]
+  -- There may be better ways to generate this initial state, see createGenesisTransaction for instance
+  Right body -> Ledger.initialise [[Emulator.unsafeMakeValid $ Ledger.CardanoEmulatorEraTx $ C.Tx body []]]
   where
-    mkBody :: Either GenerateTxError (C.TxBody C.BabbageEra)
+    mkBody :: Either GenerateTxError (C.TxBody C.ConwayEra)
     mkBody = do
       value <- mapLeft (ToCardanoError "Value error") $ Ledger.toCardanoValue (foldl' (\v -> (v <>) . view txSkelOutValueL) mempty initDist)
-      let mintValue = flip (C.TxMintValue C.MultiAssetInBabbageEra) (C.BuildTxWith mempty) . C.filterValue (/= C.AdaAssetId) $ value
+      let mintValue = flip (C.TxMintValue C.MaryEraOnwardsConway) (C.BuildTxWith mempty) . C.filterValue (/= C.AdaAssetId) $ value
           theNetworkId = C.Testnet $ C.NetworkMagic 42
           genesisKeyHash = C.GenesisUTxOKeyHash $ CardanoLedger.KeyHash "23d51e91ae5adc7ae801e9de4cd54175fb7464ec2680b25686bbb194"
           inputs = [(C.genesisUTxOPseudoTxIn theNetworkId genesisKeyHash, C.BuildTxWith $ C.KeyWitness C.KeyWitnessForSpending)]
-      outputs <- mapM (txSkelOutToCardanoTxOut theNetworkId) initDist
-      mapLeft (TxBodyError "Body error") $ C.makeTransactionBody $ Ledger.emptyTxBodyContent {C.txMintValue = mintValue, C.txOuts = outputs, C.txIns = inputs}
+      outputs <- mapM (generateTxOut theNetworkId) initDist
+      left (TxBodyError "Body error") $
+        C.createAndValidateTransactionBody C.ShelleyBasedEraConway $
+          Ledger.emptyTxBodyContent {C.txMintValue = mintValue, C.txOuts = outputs, C.txIns = inputs}
 
 utxoIndex0 :: Ledger.UtxoIndex
 utxoIndex0 = utxoIndex0From def
@@ -335,7 +360,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       runTransactionValidation
         theParams
         tx
-        (txOptUnsafeModTx $ txSkelOpts skel)
         consumedData
         (txSkelOutputData skel)
         (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
@@ -349,9 +373,7 @@ runTransactionValidation ::
   Emulator.Params ->
   -- | The transaction to validate. It should already be balanced, and include
   -- appropriate fees and collateral.
-  C.Tx C.BabbageEra ->
-  -- | Modifications to apply to the transaction right before it is submitted.
-  [RawModTx] ->
+  C.Tx C.ConwayEra ->
   -- | The data consumed by the transaction
   Map Pl.DatumHash Pl.Datum ->
   -- | The data produced by the transaction
@@ -361,32 +383,24 @@ runTransactionValidation ::
   -- remember them.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   MockChainT m Ledger.CardanoTx
-runTransactionValidation theParams cardanoTx rawModTx consumedData producedData outputValidators = do
+runTransactionValidation theParams (Ledger.CardanoEmulatorEraTx -> txWrapped) consumedData producedData outputValidators = do
   utxoIndex <- gets mcstIndex
-  theSlot <- currentSlot
-  let cardanoIndex :: CardanoLedger.UTxO Emulator.EmulatorEra
-      cardanoIndex = Ledger.fromPlutusIndex utxoIndex
+  eLedgerState <- gets (mcstToEmulatedLedgerState theParams)
 
-      -- "Ledger.CardanoTx" is a plutus-apps type 'Tx BabbageEra' is a
-      -- cardano-api type with the information we need. This wraps the latter
-      -- inside the former.
-      txWrapped :: Ledger.CardanoTx
-      txWrapped = Ledger.CardanoEmulatorEraTx cardanoTx
+  let (_, mValidationResult) = Emulator.validateCardanoTx theParams eLedgerState txWrapped
 
-      mValidationError :: Either Ledger.ValidationErrorInPhase Ledger.ValidationSuccess
-      mValidationError = Emulator.validateCardanoTx theParams theSlot cardanoIndex txWrapped
+      (newUtxoIndex, valError) = case mValidationResult of
+        Ledger.FailPhase1 _ err -> (utxoIndex, Just err)
+        Ledger.FailPhase2 _ err _ ->
+          -- Despite its name, this actually deletes the collateral
+          -- UTxOs from the index
+          (Ledger.insertCollateral txWrapped utxoIndex, Just err)
+        Ledger.Success {} -> (Ledger.insert txWrapped utxoIndex, Nothing)
 
-      newUtxoIndex :: Ledger.UtxoIndex
-      newUtxoIndex = case mValidationError of
-        Left (Ledger.Phase1, _) -> utxoIndex
-        Left (Ledger.Phase2, _) ->
-          -- Despite its name, this actually deletes the collateral UTxOs from
-          -- the index
-          Ledger.insertCollateral txWrapped utxoIndex
-        Right _ -> Ledger.insert txWrapped utxoIndex
-  case mValidationError of
-    Left err -> throwError (MCEValidationError err)
-    Right _ -> do
+  modify' (\st -> st {mcstIndex = newUtxoIndex})
+  case valError of
+    Just err -> throwError (MCEValidationError err)
+    Nothing -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just
       -- `newUtxoIndex`; the new mcstDatums is computed by adding those that
@@ -395,12 +409,11 @@ runTransactionValidation theParams cardanoTx rawModTx consumedData producedData 
       modify'
         ( \st ->
             st
-              { mcstIndex = newUtxoIndex,
-                mcstDatums = (mcstDatums st `removeMcstDatums` consumedData) `addMcstDatums` producedData,
+              { mcstDatums = (mcstDatums st `removeMcstDatums` consumedData) `addMcstDatums` producedData,
                 mcstValidators = mcstValidators st `Map.union` outputValidators
               }
         )
-      return (Ledger.CardanoEmulatorEraTx cardanoTx)
+      return txWrapped
   where
     addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
     removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)
