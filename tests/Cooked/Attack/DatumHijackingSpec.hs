@@ -6,25 +6,23 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
-import Cooked.Attack.DatumHijacking
-import Cooked.MockChain.Staged
-import Cooked.Validators (alwaysTrueValidator)
 import Data.Default
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
-import qualified Plutus.V1.Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
-import qualified PlutusTx as Pl
+import qualified Plutus.Script.Utils.V3.Contexts as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified PlutusLedgerApi.V3 as Pl
+import qualified PlutusTx (compile, makeLift, unstableMakeIsData)
 import qualified PlutusTx.Prelude as Pl
 import Prettyprinter
 import Test.Tasty
@@ -49,8 +47,8 @@ instance Pl.Eq LockDatum where
   SecondLock == SecondLock = True
   _ == _ = False
 
-Pl.makeLift ''LockDatum
-Pl.unstableMakeIsData ''LockDatum
+PlutusTx.makeLift ''LockDatum
+PlutusTx.unstableMakeIsData ''LockDatum
 
 data DHContract
 
@@ -143,8 +141,8 @@ mkCarefulValidator = mkMockValidator Pl.getContinuingOutputs
 carefulValidator :: Pl.TypedValidator DHContract
 carefulValidator =
   Pl.mkTypedValidator @DHContract
-    $$(Pl.compile [||mkCarefulValidator||])
-    $$(Pl.compile [||wrap||])
+    $$(PlutusTx.compile [||mkCarefulValidator||])
+    $$(PlutusTx.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
 
@@ -155,8 +153,8 @@ mkCarelessValidator = mkMockValidator (Pl.txInfoOutputs . Pl.scriptContextTxInfo
 carelessValidator :: Pl.TypedValidator DHContract
 carelessValidator =
   Pl.mkTypedValidator @DHContract
-    $$(Pl.compile [||mkCarelessValidator||])
-    $$(Pl.compile [||wrap||])
+    $$(PlutusTx.compile [||mkCarelessValidator||])
+    $$(PlutusTx.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
 
