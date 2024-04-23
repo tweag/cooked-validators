@@ -69,7 +69,9 @@ import qualified PlutusLedgerApi.V3 as Pl
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
-  MCEValidationError :: Ledger.ValidationError -> MockChainError
+  -- FIXME, maybe the validation phase can be deduced from the nature
+  -- of the error
+  MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
   MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
   -- | Thrown when the balancing wallet owns no output that is pure Ada and
   -- with no datum.

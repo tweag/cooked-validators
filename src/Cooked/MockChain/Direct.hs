@@ -390,16 +390,16 @@ runTransactionValidation theParams (Ledger.CardanoEmulatorEraTx -> txWrapped) co
   let (_, mValidationResult) = Emulator.validateCardanoTx theParams eLedgerState txWrapped
 
       (newUtxoIndex, valError) = case mValidationResult of
-        Ledger.FailPhase1 _ err -> (utxoIndex, Just err)
+        Ledger.FailPhase1 _ err -> (utxoIndex, Just (Ledger.Phase1, err))
         Ledger.FailPhase2 _ err _ ->
           -- Despite its name, this actually deletes the collateral
           -- UTxOs from the index
-          (Ledger.insertCollateral txWrapped utxoIndex, Just err)
+          (Ledger.insertCollateral txWrapped utxoIndex, Just (Ledger.Phase2, err))
         Ledger.Success {} -> (Ledger.insert txWrapped utxoIndex, Nothing)
 
   modify' (\st -> st {mcstIndex = newUtxoIndex})
   case valError of
-    Just err -> throwError (MCEValidationError err)
+    Just err -> throwError (uncurry MCEValidationError err)
     Nothing -> do
       -- Validation succeeded; now we update the UTxO index, the managed
       -- datums, and the managed Validators. The new mcstIndex is just

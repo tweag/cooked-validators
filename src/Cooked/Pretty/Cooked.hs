@@ -68,8 +68,8 @@ instance PrettyCooked TxSkelOutDatum where
   prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
 
 instance PrettyCooked MockChainError where
-  prettyCookedOpt opts (MCEValidationError plutusError) =
-    PP.vsep ["Validation error", PP.indent 2 (prettyCookedOpt opts plutusError)]
+  prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
+    PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
   prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =

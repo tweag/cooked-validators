@@ -125,12 +125,12 @@ testFailsFrom pcOpts predi =
 -- does not rule out the attack being caught by the validator script. For these scenarios it is
 -- paramount to rely on @testFailsFrom' isCekEvaluationFailure@ instead.
 isCekEvaluationFailure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
-isCekEvaluationFailure _ (MCEValidationError (ScriptFailure _)) = testSuccess
+isCekEvaluationFailure _ (MCEValidationError _ (ScriptFailure _)) = testSuccess
 isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderString (prettyCookedOpt pcOpts) e
 
 -- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific error message in the error.
 isCekEvaluationFailureWithMsg :: (IsProp prop) => PrettyCookedOpts -> (String -> Bool) -> MockChainError -> prop
-isCekEvaluationFailureWithMsg _ f (MCEValidationError (ScriptFailure (EvaluationError msgs _)))
+isCekEvaluationFailureWithMsg _ f (MCEValidationError _ (ScriptFailure (EvaluationError msgs _)))
   | any (f . T.unpack) msgs = testSuccess
 isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 

@@ -39,7 +39,7 @@ carefulPolicy :: Pl.TokenName -> Integer -> Pl.Versioned Pl.MintingPolicy
 carefulPolicy tName allowedAmount =
   case ($$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||]) `Pl.applyCode` Pl.liftCodeDef tName)
     >>= (`Pl.applyCode` Pl.liftCodeDef allowedAmount) of
-    Left s -> error "Can't apply parameters in carefulPolicy"
+    Left s -> error $ "Can't apply parameters in carefulPolicy: " ++ show s
     Right code -> flip Pl.Versioned Pl.PlutusV3 . Pl.mkMintingPolicyScript $ code
 
 {-# INLINEABLE mkCarelessPolicy #-}

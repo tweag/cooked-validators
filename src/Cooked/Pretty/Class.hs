@@ -106,6 +106,10 @@ instance PrettyCooked Pl.AssetClass where
         then prettyCookedOpt opts name
         else mempty
 
+instance PrettyCooked Pl.ValidationPhase where
+  prettyCookedOpt _ Pl.Phase1 = "Phase 1"
+  prettyCookedOpt _ Pl.Phase2 = "Phase 2"
+
 instance PrettyCooked Pl.ValidationError where
   prettyCookedOpt _ (Pl.TxOutRefNotFound txIn) = undefined
   prettyCookedOpt _ (Pl.ScriptFailure scriptError) = undefined

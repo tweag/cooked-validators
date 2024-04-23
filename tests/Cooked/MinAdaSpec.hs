@@ -10,7 +10,7 @@ import qualified Ledger.Index as Pl
 import Optics.Core ((^.))
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl hiding (getLovelace)
 import qualified Prettyprinter as PP
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -56,8 +56,8 @@ tests =
         $ testFails
           def
           ( \case
-              MCEValidationError (Pl.Phase1, _) -> testSuccess
-              MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
+              MCEValidationError Pl.Phase1 _ -> testSuccess
+              MCECalcFee (MCEValidationError Pl.Phase1 _) -> testSuccess
               _ -> testFailure
           )
         $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))

@@ -8,6 +8,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Cooked.InlineDatumsSpec where
 
@@ -20,16 +21,13 @@ import Data.Maybe
 import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
 import qualified Ledger.Tx.Internal as Pl (getTxOut)
 import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
-import qualified PlutusTx
-import qualified PlutusTx as Pl
-import qualified PlutusTx.AssocMap as PlMap
+import qualified Plutus.Script.Utils.V3.Contexts as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
+import qualified PlutusTx (compile, makeLift, unstableMakeIsData)
 import qualified PlutusTx.Prelude as Pl
-import qualified PlutusTx.Trace as Pl
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -60,8 +58,8 @@ instance Pl.ValidatorTypes SimpleContract where
 inputDatumValidator :: Bool -> Pl.TypedValidator SimpleContract
 inputDatumValidator =
   Pl.mkTypedValidatorParam @SimpleContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
+    $$(PlutusTx.compile [||val||])
+    $$(PlutusTx.compile [||wrap||])
   where
     val :: Bool -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
     val requireInlineDatum _ _ ctx =
@@ -91,8 +89,8 @@ PlutusTx.makeLift ''OutputDatumKind
 outputDatumValidator :: OutputDatumKind -> Pl.TypedValidator SimpleContract
 outputDatumValidator =
   Pl.mkTypedValidatorParam @SimpleContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
+    $$(PlutusTx.compile [||val||])
+    $$(PlutusTx.compile [||wrap||])
   where
     val :: OutputDatumKind -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
     val requiredOutputKind _ _ ctx =
