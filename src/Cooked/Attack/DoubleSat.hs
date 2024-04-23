@@ -19,8 +19,8 @@ import Cooked.Wallet
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Optics.Core
-import qualified Plutus.V1.Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.Script.Utils.Value as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx.Numeric as Pl
 
 {- Note: What is a double satisfaction attack?

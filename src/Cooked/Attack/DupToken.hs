@@ -9,7 +9,7 @@ import Cooked.Wallet
 import Optics.Core
 import qualified Plutus.Script.Utils.Typed as Pl
 import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.V1.Ledger.Value as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusTx.Numeric as Pl
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a

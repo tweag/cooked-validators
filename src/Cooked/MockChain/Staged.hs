@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Staged
@@ -27,10 +28,11 @@ where
 import qualified Cardano.Node.Emulator as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
+import Control.Monad (MonadPlus (..), msum)
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.Writer.Strict hiding (Alt)
+import Control.Monad.Trans.Writer (WriterT (runWriterT), tell)
 import Cooked.Ltl
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
@@ -43,7 +45,8 @@ import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
 import qualified Ledger.Tx.CardanoAPI as Ledger
 import qualified Ledger.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.Script.Utils.V3.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 
@@ -106,10 +109,7 @@ data MockChainBuiltin a where
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
-  Alt ::
-    StagedMockChain a ->
-    StagedMockChain a ->
-    MockChainBuiltin a
+  Alt :: StagedMockChain a -> StagedMockChain a -> MockChainBuiltin a
   -- for the 'MonadFail' instance
   Fail :: String -> MockChainBuiltin a
   -- for the 'MonadError MockChainError' instance

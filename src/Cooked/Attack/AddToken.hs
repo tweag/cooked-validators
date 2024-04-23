@@ -6,8 +6,7 @@ import Cooked.Tweak
 import Cooked.Wallet
 import qualified Data.Map as Map
 import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.V1.Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusTx.Numeric as Pl
 
 -- | This attack adds extra tokens, depending on the minting policy. It is

@@ -7,7 +7,7 @@ import Cooked.Skeleton (txSkelValidityRangeL)
 import Cooked.Tweak.Common (MonadTweak, setTweak, viewTweak)
 import Ledger (before, contains, intersection, interval, isEmpty, member, never, singleton)
 import Ledger.Slot (Slot (Slot), SlotRange)
-import Plutus.V2.Ledger.Api (Extended (Finite), Interval (..), LowerBound (..), UpperBound (..), always)
+import PlutusLedgerApi.V3 (Extended (Finite), Interval (..), LowerBound (..), UpperBound (..), always)
 
 getValidityRangeTweak :: (MonadTweak m) => m SlotRange
 getValidityRangeTweak = viewTweak txSkelValidityRangeL

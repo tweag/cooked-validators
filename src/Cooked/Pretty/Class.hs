@@ -106,11 +106,11 @@ instance PrettyCooked Pl.AssetClass where
         then prettyCookedOpt opts name
         else mempty
 
-instance PrettyCooked Pl.ValidationErrorInPhase where
-  -- In Plutus V2, most errors no longer have dedicated constructors we can
-  -- pattern match on, they are mostly wrapped as text which makes it difficult
-  -- to improve upon default printing.
-  prettyCookedOpt _ = PP.pretty
+instance PrettyCooked Pl.ValidationError where
+  prettyCookedOpt _ (Pl.TxOutRefNotFound txIn) = undefined
+  prettyCookedOpt _ (Pl.ScriptFailure scriptError) = undefined
+  prettyCookedOpt _ (Pl.CardanoLedgerValidationError text) = undefined
+  prettyCookedOpt _ Pl.MaxCollateralInputsExceeded = undefined
 
 instance PrettyCooked Pl.POSIXTime where
   prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
