@@ -1,7 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
@@ -430,7 +428,8 @@ instance ShowBS GovernanceAction where
 instance ShowBS ProposalProcedure where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p ProposalProcedure {..} =
-    literal "ProposalProcedure"
+    showBSParen (app_prec <= p)
+      $ literal "ProposalProcedure"
       . literal "\n deposit:"
       . showBSsPrec p ppDeposit
       . literal "\n return address"
@@ -475,3 +474,13 @@ instance ShowBS TxInfo where
       . showBSsPrec app_prec txInfoCurrentTreasuryAmount
       . literal "\n treasury donation: "
       . showBSsPrec app_prec txInfoTreasuryDonation
+
+instance ShowBS ScriptContext where
+  {-# INLINEABLE showBSsPrec #-}
+  showBSsPrec p ScriptContext {..} =
+    showBSParen (app_prec <= p)
+      $ literal "Script context:"
+      . literal "\n Script Tx info:"
+      . showBSsPrec p scriptContextTxInfo
+      . literal "\n Script purpose"
+      . showBSsPrec p scriptContextPurpose

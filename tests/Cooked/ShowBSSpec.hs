@@ -33,7 +33,7 @@ instance Pl.ValidatorTypes UnitContract where
 
 {-# INLINEABLE traceValidator #-}
 traceValidator :: () -> Bool -> Pl.ScriptContext -> Bool
-traceValidator _ _ ctx = Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
+traceValidator _ _ ctx = Pl.trace (showBS ctx) False
 
 printValidator :: Pl.TypedValidator UnitContract
 printValidator =
