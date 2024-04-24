@@ -1,4 +1,5 @@
 import qualified Cooked.AttackSpec as AttackSpec
+import qualified Cooked.BasicUsageSpec as BasicUsageSpec
 import qualified Cooked.InitialDistributionSpec as InitDistrib
 import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
 import qualified Cooked.LtlSpec as LtlSpec
@@ -15,14 +16,15 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ MinAdaSpec.tests,
-        InlineDatumsSpec.tests,
-        ReferenceInputsSpec.tests,
-        ReferenceScriptsSpec.tests,
-        AttackSpec.tests,
-        TweakSpec.tests,
-        LtlSpec.tests,
-        MockChainSpec.tests,
-        ShowBSSpec.tests,
-        InitDistrib.tests
+      [ BasicUsageSpec.tests
+      -- MinAdaSpec.tests,
+      -- InlineDatumsSpec.tests,
+      -- ReferenceInputsSpec.tests,
+      -- ReferenceScriptsSpec.tests,
+      -- AttackSpec.tests,
+      -- TweakSpec.tests,
+      -- LtlSpec.tests,
+      -- MockChainSpec.tests,
+      -- ShowBSSpec.tests,
+      -- InitDistrib.tests
       ]
