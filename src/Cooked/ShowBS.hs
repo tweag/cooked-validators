@@ -23,6 +23,7 @@ import PlutusLedgerApi.V3
 import PlutusTx.AssocMap
 import PlutusTx.Builtins
 import PlutusTx.Prelude hiding (toList)
+import PlutusTx.Ratio hiding (negate)
 
 -- | analogue of Haskell's 'Show' class for use in Plutus scripts.
 class ShowBS a where
@@ -410,11 +411,11 @@ instance ShowBS Committee where
 
 instance ShowBS Lovelace where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec = showBSsPrec
+  showBSsPrec p (Lovelace amount) = application1 p "Lovelace" amount
 
 instance ShowBS Rational where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec = showBSsPrec
+  showBSsPrec p rat = application2 p "Rational" (numerator rat) (denominator rat)
 
 instance ShowBS GovernanceAction where
   {-# INLINEABLE showBSsPrec #-}
