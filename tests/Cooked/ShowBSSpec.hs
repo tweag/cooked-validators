@@ -31,15 +31,17 @@ instance Pl.ValidatorTypes UnitContract where
   type RedeemerType UnitContract = Bool
   type DatumType UnitContract = ()
 
+{-# INLINEABLE traceValidator #-}
+traceValidator :: () -> Bool -> Pl.ScriptContext -> Bool
+traceValidator _ _ ctx = Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
+
 printValidator :: Pl.TypedValidator UnitContract
 printValidator =
   Pl.mkTypedValidator @UnitContract
-    $$(Pl.compile [||print||])
+    $$(Pl.compile [||traceValidator||])
     $$(Pl.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
-    -- TODO fix showbs to uncomment this
-    print _ _ ctx = True -- Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
 
 printTrace :: (MonadBlockChain m) => m ()
 printTrace = do
@@ -66,7 +68,7 @@ printTrace = do
 tests :: TestTree
 tests =
   testGroup
-    "BuiltinString serializing"
+    "Printing transaction data as bytestrings"
     [ testCase "a few simple examples" $
         testConjoin $
           map
@@ -81,7 +83,7 @@ tests =
                 "Value (fromList [(CurrencySymbol \"\",fromList [(TokenName \"\",123)])])"
               ),
               ( showBS @Pl.Value (quickValue "banana" 4),
-                "Value (fromList [(CurrencySymbol \"ce10165e35b6d1e09617cb0f8a2bf6e2fedc347ddd497c8d4b02741c\",fromList [(TokenName \"62616e616e61\",4)])])"
+                "Value (fromList [(CurrencySymbol \"5cf8bdd7aa3d027821e6033816847034b0418a8959c40e54b6977f95\",fromList [(TokenName \"62616e616e61\",4)])])"
               ),
               ( showBS (Pl.mkConstr 0 [Pl.mkMap [(Pl.mkI 1, Pl.mkList [Pl.mkB "abc"])]]),
                 "BuiltinData (Constr 0 [Map [(I 1,List [B \"616263\"])]])"
