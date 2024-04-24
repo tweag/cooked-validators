@@ -19,9 +19,9 @@ import qualified Ledger.Index as Pl
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Value
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
 import qualified Prettyprinter as PP
@@ -37,8 +37,8 @@ requireSignerValidator =
   where
     val :: Pl.PubKeyHash -> () -> () -> Pl.ScriptContext -> Bool
     val pkh _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "the required signer is missing" Pl.$
-        Pl.elem pkh (Pl.txInfoSignatories txInfo)
+      Pl.traceIfFalse "the required signer is missing"
+        Pl.$ Pl.elem pkh (Pl.txInfoSignatories txInfo)
 
     wrap = Pl.mkUntypedValidator
 
@@ -52,8 +52,8 @@ requireRefScriptValidator =
   where
     val :: Pl.ScriptHash -> () -> () -> Pl.ScriptContext -> Bool
     val expectedScriptHash _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "there is no reference input with the correct script hash" Pl.$
-        Pl.any
+      Pl.traceIfFalse "there is no reference input with the correct script hash"
+        Pl.$ Pl.any
           ( \(Pl.TxInInfo _ (Pl.TxOut _ _ _ mRefScriptHash)) ->
               Just expectedScriptHash Pl.== mRefScriptHash
           )
@@ -279,8 +279,8 @@ tests =
             $ testFailsFrom
               def
               ( \case
-                  MCEValidationError (Pl.Phase1, _) -> testSuccess
-                  MCECalcFee (MCEValidationError (Pl.Phase1, _)) -> testSuccess
+                  MCEValidationError Pl.Phase1 _ -> testSuccess
+                  MCECalcFee (MCEValidationError Pl.Phase1 _) -> testSuccess
                   _ -> testFailure
               )
               def

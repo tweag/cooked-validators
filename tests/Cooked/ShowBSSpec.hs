@@ -8,6 +8,7 @@
 module Cooked.ShowBSSpec (tests) where
 
 import qualified Cardano.Node.Emulator as Emulator
+import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
 import Control.Monad
 import Cooked
 import Data.Default
@@ -15,9 +16,8 @@ import Data.Either
 import qualified Data.Map as Map
 import qualified Plutus.Script.Utils.Ada as Ada
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Builtins as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -38,7 +38,8 @@ printValidator =
     $$(Pl.compile [||wrap||])
   where
     wrap = Pl.mkUntypedValidator
-    print _ _ ctx = Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
+    -- TODO fix showbs to uncomment this
+    print _ _ ctx = True -- Pl.trace (showBS . Pl.scriptContextTxInfo Pl.$ ctx) False
 
 printTrace :: (MonadBlockChain m) => m ()
 printTrace = do

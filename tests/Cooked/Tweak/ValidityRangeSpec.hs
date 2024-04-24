@@ -1,15 +1,13 @@
 module Cooked.Tweak.ValidityRangeSpec (tests) where
 
 import Control.Monad (join)
-import Cooked (MonadTweak, awaitSlot, currentSlot, txSkelTemplate)
-import Cooked.MockChain.Staged (runTweak)
-import Cooked.Tweak.ValidityRange (centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, intersectValidityRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeValidityRangeNowTweak, setValidityRangeTweak, waitUntilValidTweak)
+import Cooked
 import Data.Default (def)
 import Data.Either (rights)
 import Data.Function (on)
 import Debug.Trace (trace)
+import Ledger (interval)
 import Ledger.Slot (Slot (Slot), getSlot)
-import Plutus.V1.Ledger.Interval (interval)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertBool, testCase)
 

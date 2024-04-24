@@ -7,6 +7,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Cooked.Attack.DoubleSatSpec where
 
@@ -27,9 +28,8 @@ import Ledger.Typed.Scripts
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Eq as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -180,33 +180,33 @@ tests =
                             ( \aOref _aRedeemer -> do
                                 bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
                                 if
-                                    | aOref == fst aUtxo1 ->
-                                        return
-                                          [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
-                                            | (bOref, bOut) <- bUtxos,
-                                              outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
-                                          ]
-                                    | aOref == fst aUtxo2 ->
-                                        return
-                                          [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
-                                            | (bOref, _) <- bUtxos,
-                                              bOref == fst bUtxo1
-                                          ]
-                                    | aOref == fst aUtxo3 ->
-                                        return $
-                                          concatMap
-                                            ( \(bOref, _) ->
-                                                if
-                                                    | bOref == fst bUtxo1 ->
-                                                        [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
-                                                    | bOref == fst bUtxo2 ->
-                                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
-                                                          (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
-                                                        ]
-                                                    | otherwise -> []
-                                            )
-                                            bUtxos
-                                    | otherwise -> return []
+                                  | aOref == fst aUtxo1 ->
+                                      return
+                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                          | (bOref, bOut) <- bUtxos,
+                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                        ]
+                                  | aOref == fst aUtxo2 ->
+                                      return
+                                        [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
+                                          | (bOref, _) <- bUtxos,
+                                            bOref == fst bUtxo1
+                                        ]
+                                  | aOref == fst aUtxo3 ->
+                                      return $
+                                        concatMap
+                                          ( \(bOref, _) ->
+                                              if
+                                                | bOref == fst bUtxo1 ->
+                                                    [(TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)]
+                                                | bOref == fst bUtxo2 ->
+                                                    [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1),
+                                                      (TxSkelRedeemerForScript ARedeemer3, toDelta bOref $ TxSkelRedeemerForScript BRedeemer2)
+                                                    ]
+                                                | otherwise -> []
+                                          )
+                                          bUtxos
+                                  | otherwise -> return []
                             )
                             (wallet 6)
                         )

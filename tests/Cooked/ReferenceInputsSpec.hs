@@ -6,6 +6,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Cooked.ReferenceInputsSpec where
 
@@ -16,8 +17,8 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx
 import qualified PlutusTx as Pl
 import qualified PlutusTx.Prelude as Pl
