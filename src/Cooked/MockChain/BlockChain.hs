@@ -64,6 +64,7 @@ import ListT
 import Optics.Core
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified PlutusLedgerApi.V3 as Pl
+import Type.Reflection
 
 -- * BlockChain monad
 
@@ -88,7 +89,7 @@ data MockChainError where
   MCEUnknownDatum :: String -> Pl.DatumHash -> MockChainError
   -- | Used to provide 'MonadFail' instances.
   FailWith :: String -> MockChainError
-  OtherMockChainError :: (Show err, Eq err) => err -> MockChainError
+  OtherMockChainError :: (Typeable err, Show err, Eq err) => err -> MockChainError
 
 data MCEUnbalanceableError
   = -- | The balancing wallet misses some value to pay what is needed to balance
@@ -101,12 +102,24 @@ data MCEUnbalanceableError
       (Pl.Value, [Pl.TxOutRef]) -- What was spent
       (Pl.Value, [Pl.TxOutRef]) -- What is left to spend
       Pl.Value -- What cannot be given back
-  deriving (Show)
+  deriving (Show, Eq)
 
 deriving instance Show MockChainError
 
 instance Eq MockChainError where
-  (==) = undefined
+  MCEValidationError phase err == MCEValidationError phase' err' = phase == phase' && err == err'
+  MCEUnbalanceable err skel == MCEUnbalanceable err' skel' = err == err' && skel == skel'
+  MCENoSuitableCollateral == MCENoSuitableCollateral = True
+  MCEGenerationError err == MCEGenerationError err' = err == err'
+  MCECalcFee err == MCECalcFee err' = err == err'
+  MCEUnknownOutRefError name outref == MCEUnknownOutRefError name' outref' = name == name' && outref == outref'
+  MCEUnknownValidator name hash == MCEUnknownValidator name' hash' = name == name' && hash == hash'
+  MCEUnknownDatum name hash == MCEUnknownDatum name' hash' = name == name' && hash == hash'
+  FailWith msg == FailWith msg' = msg == msg'
+  OtherMockChainError err == OtherMockChainError err' = case typeOf err `eqTypeRep` typeOf err' of
+    Just HRefl -> err == err'
+    Nothing -> False
+  _ == _ = False
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
