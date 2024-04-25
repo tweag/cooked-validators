@@ -164,8 +164,8 @@ generateBodyContent ::
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
   Either GenerateTxError (C.TxBodyContent C.BuildTx C.ConwayEra)
-generateBodyContent genTxParams params managedData managedTxOuts managedValidators skel =
-  runReaderT (txSkelToBodyContent skel) Context {..}
+generateBodyContent genTxParams params managedData managedTxOuts managedValidators =
+  flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
 -- 'TxSkelIn', into a 'C.TxIn', together with the appropriate witness. If
@@ -332,10 +332,8 @@ txSkelOutToCardanoTxOut (Pays output) = do
   return $ C.TxOut address value datum refScript
 
 generateTxOut :: C.NetworkId -> TxSkelOut -> Either GenerateTxError (C.TxOut C.CtxTx C.ConwayEra)
-generateTxOut networkId txSkelOut =
-  runReaderT
-    (txSkelOutToCardanoTxOut txSkelOut)
-    (def {params = def {Emulator.pNetworkId = networkId}})
+generateTxOut networkId =
+  flip runReaderT (def {params = def {Emulator.pNetworkId = networkId}}) . txSkelOutToCardanoTxOut
 
 txSkelToCardanoTx :: TxSkel -> TxGen (C.Tx C.ConwayEra)
 txSkelToCardanoTx txSkel = do
@@ -371,5 +369,5 @@ generateTx ::
   -- | The transaction skeleton to translate.
   TxSkel ->
   Either GenerateTxError (C.Tx C.ConwayEra)
-generateTx genTxParams params managedData managedTxOuts managedValidators skel =
-  runReaderT (txSkelToCardanoTx skel) Context {..}
+generateTx genTxParams params managedData managedTxOuts managedValidators =
+  flip runReaderT Context {..} . txSkelToCardanoTx

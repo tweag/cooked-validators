@@ -442,38 +442,39 @@ instance ShowBS TxInfo where
   showBSsPrec p TxInfo {..} =
     showBSParen (app_prec <= p)
       $ literal "TxInfo "
-      . literal "\n inputs: "
-      . showBSsPrec app_prec txInfoInputs
-      . literal "\n reference inputs: "
-      . showBSsPrec app_prec txInfoReferenceInputs
-      . literal "\n outputs: "
-      . showBSsPrec app_prec txInfoOutputs
-      . literal "\n fees: "
+      -- . literal "\n inputs: "
+      -- . showBSsPrec app_prec txInfoInputs
+      -- . literal "\n reference inputs: "
+      -- . showBSsPrec app_prec txInfoReferenceInputs
+      -- . literal "\n outputs: "
+      -- . showBSsPrec app_prec txInfoOutputs
+      -- . literal "\n fees: "
       . showBSsPrec app_prec txInfoFee
-      . literal "\n minted value: "
-      . showBSsPrec app_prec txInfoMint
-      . literal "\n certificates: "
-      . showBSsPrec app_prec txInfoTxCerts
-      . literal "\n wdrl: " -- TODO: what is wdrl? Explain better here
-      . showBSsPrec app_prec txInfoWdrl
-      . literal "\n valid range: "
+      -- . literal "\n minted value: "
+      -- . showBSsPrec app_prec txInfoMint
+      -- . literal "\n certificates: "
+      -- . showBSsPrec app_prec txInfoTxCerts
+      -- . literal "\n wdrl: " -- TODO: what is wdrl? Explain better here
+      -- . showBSsPrec app_prec txInfoWdrl
+      -- . literal "\n valid range: "
       . showBSsPrec app_prec txInfoValidRange
-      . literal "\n signatories: "
-      . showBSsPrec app_prec txInfoSignatories
-      . literal "\n redeemers: "
-      . showBSsPrec app_prec txInfoRedeemers
-      . literal "\n datums: "
-      . showBSsPrec app_prec txInfoData
-      . literal "\n transaction id: "
+      -- . literal "\n signatories: "
+      -- . showBSsPrec app_prec txInfoSignatories
+      -- . literal "\n redeemers: "
+      -- . showBSsPrec app_prec txInfoRedeemers
+      -- . literal "\n datums: "
+      -- . showBSsPrec app_prec txInfoData
+      -- . literal "\n transaction id: "
       . showBSsPrec app_prec txInfoId
-      . literal "\n votes: "
-      . showBSsPrec app_prec txInfoVotes
-      . literal "\n proposals: "
-      . showBSsPrec app_prec txInfoProposalProcedures
-      . literal "\n treasury amount: "
-      . showBSsPrec app_prec txInfoCurrentTreasuryAmount
-      . literal "\n treasury donation: "
-      . showBSsPrec app_prec txInfoTreasuryDonation
+
+-- . literal "\n votes: "
+-- . showBSsPrec app_prec txInfoVotes
+-- . literal "\n proposals: "
+-- . showBSsPrec app_prec txInfoProposalProcedures
+-- . literal "\n treasury amount: "
+-- . showBSsPrec app_prec txInfoCurrentTreasuryAmount
+-- . literal "\n treasury donation: "
+-- . showBSsPrec app_prec txInfoTreasuryDonation
 
 instance ShowBS ScriptContext where
   {-# INLINEABLE showBSsPrec #-}
@@ -482,5 +483,6 @@ instance ShowBS ScriptContext where
       $ literal "Script context:"
       . literal "\n Script Tx info:"
       . showBSsPrec p scriptContextTxInfo
-      . literal "\n Script purpose"
-      . showBSsPrec p scriptContextPurpose
+
+-- . literal "\n Script purpose"
+-- . showBSsPrec p scriptContextPurpose

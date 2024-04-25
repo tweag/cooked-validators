@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
@@ -20,7 +21,6 @@ import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
 import qualified Cardano.Node.Emulator.Internal.Node.Params as Params
 import qualified Cardano.Node.Emulator.Internal.Node.Validation as Validation
 import Control.Arrow
-import Control.Monad (when)
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -55,6 +55,7 @@ balancedTxSkel skelUnbal = do
             [] -> error "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
             bw : _ -> bw
           BalanceWith bWallet -> bWallet
+
   let collateralWallet = balancingWallet
   (skel, fee) <-
     if txOptBalance . txSkelOpts $ skelUnbal
@@ -276,8 +277,7 @@ setFeeAndBalance balanceWallet skel0 = do
       -- That feels very much like a hack, and it is. Maybe we should witch to starting with a small
       -- fee and then increasing, but that might require more iterations until its settled.
       -- For now, let's keep it just like the folks from plutus-apps did it.
-      let startingFee = Fee 3000000
-      calcFee 5 startingFee cUtxoIndex skel
+      calcFee 5 (Fee 3_000_000) cUtxoIndex skel
         `catchError` \case
           -- Impossible to balance the transaction
           MCEUnbalanceable _ _ ->
@@ -286,8 +286,8 @@ setFeeAndBalance balanceWallet skel0 = do
             -- since we work on "TxSkel". However, for now, the
             -- implementation of "Pl.minFee" is a constant of 10 lovelace.
             -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
-            let minFee = Fee 10 -- forall tx. Pl.minFee tx = 10 lovelace
-             in calcFee 5 minFee cUtxoIndex skel
+            -- forall tx. Pl.minFee tx = 10 lovelace
+            calcFee 5 (Fee 10) cUtxoIndex skel
           -- Impossible to generate the Cardano transaction at all
           e -> throwError e
   where
@@ -347,6 +347,8 @@ estimateTxSkelFee params managedData managedTxOuts managedValidators skel fee = 
   case C.evaluateTransactionFee C.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0 of
     Validation.Coin fee -> pure $ Fee fee
 
+-- TODO: improve our collateral mechanism
+
 -- | Calculates the collateral for a transaction
 calcCollateral :: (MonadBlockChainBalancing m) => Wallet -> m (Set Pl.TxOutRef)
 calcCollateral w = do
@@ -355,12 +357,12 @@ calcCollateral w = do
       utxosAtSearch (walletAddress w)
         `filterWithPure` isOutputWithoutDatum
         `filterWithPure` isOnlyAdaOutput
-  when (null souts) $
-    throwError MCENoSuitableCollateral
-  -- TODO We only keep one element of the list because we are limited on
-  -- how many collateral inputs a transaction can have. Should this be
-  -- investigated further for a better approach?
-  return $ Set.fromList $ take 1 (fst <$> souts)
+  case souts of
+    [] -> throwError MCENoSuitableCollateral
+    -- TODO We only keep one element of the list because we are limited on
+    -- how many collateral inputs a transaction can have. Should this be
+    -- investigated further for a better approach?
+    ((txOutRef, _) : _) -> return $ Set.singleton txOutRef
 
 balanceTxFromAux :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m TxSkel
 balanceTxFromAux balanceWallet txskel fee = do

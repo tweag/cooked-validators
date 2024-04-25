@@ -22,6 +22,7 @@ module Cooked.Skeleton
     RawModTx (..),
     EmulatorParamsModification (..),
     BalancingUtxos (..),
+    CollateralUtxos (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
@@ -34,6 +35,7 @@ module Cooked.Skeleton
     txOptBalanceWalletL,
     txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
+    txOptCollateralUtxosL,
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
@@ -217,6 +219,20 @@ data BalancingUtxos
 instance Default BalancingUtxos where
   def = BalancingUtxosAll
 
+-- | Describe which UTxOs to use as collaterals
+data CollateralUtxos
+  = -- | Rely on automated computation with UTxOs from the balancing
+    -- wallet
+    CollateralUtxosFromBalancingWallet
+  | -- | Rely on automated computaton with UTxOs from a give wallet
+    CollateraUtxosFromWallet Wallet
+  | -- | Manuallyl provide a set of UTxOs
+    CollateralUtxosFromSet (Set Pl.TxOutRef)
+  deriving (Eq, Show)
+
+instance Default CollateralUtxos where
+  def = CollateralUtxosFromBalancingWallet
+
 -- | Set of options to modify the behavior of generating and validating some transaction.
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
@@ -291,7 +307,13 @@ data TxOpts = TxOpts
     -- for example.
     --
     -- Default is 'Nothing'.
-    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
+    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
+    -- | Which utxos to use as collaterals. They can be given
+    -- manually, or computed automatically from a given, or the
+    -- balancing, wallet.
+    --
+    -- Default is 'CollateralUtxosFromBalancingWallet'
+    txOptCollateralUtxos :: CollateralUtxos
   }
   deriving (Eq, Show)
 
@@ -304,7 +326,8 @@ makeLensesFor
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
-    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")
+    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
+    ("txOptCollateralUtxos", "txOptCollateralUtxosL")
   ]
   ''TxOpts
 
@@ -319,7 +342,8 @@ instance Default TxOpts where
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
         txOptBalancingUtxos = def,
-        txOptEmulatorParamsModification = Nothing
+        txOptEmulatorParamsModification = Nothing,
+        txOptCollateralUtxos = def
       }
 
 -- * Description of the Minting
