@@ -21,7 +21,8 @@ import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
 import qualified Ledger.Index as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Ledger.Scripts as Pl
+import qualified Ledger.Tx.CardanoAPI as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusLedgerApi.V3 as Pl
 import Prettyprinter ((<+>))
@@ -111,10 +112,14 @@ instance PrettyCooked Pl.ValidationPhase where
   prettyCookedOpt _ Pl.Phase2 = "Phase 2"
 
 instance PrettyCooked Pl.ValidationError where
-  prettyCookedOpt _ (Pl.TxOutRefNotFound txIn) = undefined
-  prettyCookedOpt _ (Pl.ScriptFailure scriptError) = undefined
-  prettyCookedOpt _ (Pl.CardanoLedgerValidationError text) = undefined
-  prettyCookedOpt _ Pl.MaxCollateralInputsExceeded = undefined
+  prettyCookedOpt opts (Pl.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Pl.fromCardanoTxIn txIn)
+  prettyCookedOpt opts (Pl.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
+  prettyCookedOpt _ (Pl.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
+  prettyCookedOpt _ Pl.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
+
+instance PrettyCooked Pl.ScriptError where
+  prettyCookedOpt _ (Pl.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
+  prettyCookedOpt _ (Pl.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
 
 instance PrettyCooked Pl.POSIXTime where
   prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n

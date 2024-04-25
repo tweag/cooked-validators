@@ -16,8 +16,7 @@ import Cooked.Pretty
 import Data.Default
 import qualified Data.Text as T
 import Debug.Trace
-import Ledger.Index (ValidationError (ScriptFailure))
-import Ledger.Scripts (ScriptError (EvaluationError))
+import Ledger (ScriptError (EvaluationError), ValidationError (ScriptFailure))
 import qualified Test.QuickCheck as QC
 import qualified Test.Tasty.HUnit as HU
 

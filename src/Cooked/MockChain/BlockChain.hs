@@ -4,10 +4,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
@@ -39,6 +41,15 @@ module Cooked.MockChain.BlockChain
     slotRangeBefore,
     slotRangeAfter,
     slotToTimeInterval,
+    txSkelInputUtxosPl,
+    txSkelInputUtxos,
+    txSkelReferenceInputUtxosPl,
+    txSkelReferenceInputUtxos,
+    txSkelInputValidators,
+    txSkelInputValue,
+    txSkelInputData,
+    lookupUtxos,
+    lookupUtxosPl,
   )
 where
 
@@ -56,6 +67,10 @@ import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Kind
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes, mapMaybe)
+import qualified Data.Set as Set
 import qualified Ledger.Index as Ledger
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
@@ -325,6 +340,107 @@ valueFromTxOutRef oref = do
   case mOut of
     Nothing -> return Nothing
     Just out -> return . Just $ outputValue out
+
+txSkelInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelInputUtxosPl = lookupUtxosPl . Map.keys . txSkelIns
+
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
+txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
+
+txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxosPl skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
+
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
+txSkelReferenceInputUtxos skel =
+  lookupUtxos $
+    mapMaybe
+      ( \case
+          TxSkelRedeemerForReferencedScript oref _ -> Just oref
+          _ -> Nothing
+      )
+      (Map.elems $ txSkelIns skel)
+      ++ (Set.toList . txSkelInsReference $ skel)
+
+-- | All validators which protect transaction inputs
+txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.ValidatorHash (Pl.Versioned Pl.Validator))
+txSkelInputValidators skel = do
+  utxos <- Map.toList <$> lookupUtxosPl (Map.keys . txSkelIns $ skel)
+  mValidators <-
+    mapM
+      ( \(_oref, out) -> case outputAddress out of
+          Pl.Address (Pl.ScriptCredential (Pl.ScriptHash hash)) _ -> do
+            let valHash = Pl.ValidatorHash hash
+            mVal <- validatorFromHash valHash
+            case mVal of
+              Nothing ->
+                throwError $
+                  MCEUnknownValidator
+                    "txSkelInputValidators: unkown validator hash on transaction input"
+                    valHash
+              Just val -> return $ Just (valHash, val)
+          _ -> return Nothing
+      )
+      utxos
+  return . Map.fromList . catMaybes $ mValidators
+
+-- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
+-- state of the blockchain. If any 'Pl.TxOutRef' can't be resolved, throw an
+-- error.
+lookupUtxosPl :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxosPl outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
+
+lookupUtxos :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Ledger.TxOut)
+lookupUtxos outRefs = do
+  Map.fromList
+    <$> mapM
+      ( \oRef -> do
+          mOut <- txOutByRefLedger oRef
+          out <- case mOut of
+            Nothing ->
+              throwError $
+                MCEUnknownOutRefError
+                  "lookupUtxos: unknown TxOutRef"
+                  oRef
+            Just out -> return out
+          return (oRef, out)
+      )
+      outRefs
+
+-- | look up the UTxOs the transaction consumes, and sum the value contained in
+-- them.
+txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Pl.Value
+txSkelInputValue skel = do
+  txSkelInputs <- txSkelInputUtxos skel
+  return $ foldMap (Pl.txOutValue . txOutV2FromLedger) txSkelInputs
+
+-- | Look up the data on UTxOs the transaction consumes.
+txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.DatumHash Pl.Datum)
+txSkelInputData skel = do
+  txSkelInputs <- Map.elems <$> txSkelInputUtxosPl skel
+  mDatums <-
+    mapM
+      ( \output ->
+          case output ^. outputDatumL of
+            Pl.NoOutputDatum -> return Nothing
+            Pl.OutputDatum datum ->
+              let dHash = Pl.datumHash datum
+               in Just . (dHash,) <$> datumFromHashWithError dHash
+            Pl.OutputDatumHash dHash ->
+              Just . (dHash,) <$> datumFromHashWithError dHash
+      )
+      txSkelInputs
+  return . Map.fromList . catMaybes $ mDatums
+  where
+    datumFromHashWithError :: (MonadBlockChainBalancing m) => Pl.DatumHash -> m Pl.Datum
+    datumFromHashWithError dHash = do
+      mDatum <- datumFromHash dHash
+      case mDatum of
+        Nothing ->
+          throwError $
+            MCEUnknownDatum
+              "txSkelInputData: Transaction input with un-resolvable datum hash"
+              dHash
+        Just datum -> return datum
 
 -- ** Slot and Time Management
 

@@ -360,7 +360,6 @@ mPrettyTxOpts
       txOptBalance,
       txOptBalanceOutputPolicy,
       txOptBalanceWallet,
-      txOptBalancingUtxos,
       txOptEmulatorParamsModification
     } =
     prettyItemizeNonEmpty "Options:" "-" $
@@ -370,7 +369,6 @@ mPrettyTxOpts
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
-          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification
         ]
@@ -404,13 +402,6 @@ mPrettyTxOpts
       prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
       prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
-      prettyBalancingUtxos :: BalancingUtxos -> DocCooked
-      prettyBalancingUtxos BalancingUtxosAll = "Balance with all UTxOs of the balancing wallet"
-      prettyBalancingUtxos BalancingUtxosDatumless = "Balance with datumless UTxOs of the balancing wallet"
-      prettyBalancingUtxos (BalancingUtxosAllowlist txOutRefs) =
-        prettyItemize "Only balance with UTxOs of the balancing wallet among:" "-" (prettyCookedOpt opts <$> txOutRefs)
-      prettyBalancingUtxos (BalancingUtxosBlocklist txOutRefs) =
-        prettyItemize "Do not balance with UTxOs among:" "-" (prettyCookedOpt opts <$> txOutRefs)
 
 -- * Pretty-printing
 

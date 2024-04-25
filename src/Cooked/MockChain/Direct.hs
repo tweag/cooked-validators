@@ -40,6 +40,7 @@ import Data.List (foldl')
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
+import qualified Data.Set as Set
 import qualified Ledger.Index as Ledger
 import Ledger.Orphans ()
 import qualified Ledger.Slot as Ledger
@@ -352,68 +353,60 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    (skel, fee, collateralInputs) <- balancedTxSkel skelUnbal
-    tx <- balancedTx (skel, fee, collateralInputs)
-    consumedData <- txSkelInputData skel
-    theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
-    someCardanoTx <-
-      runTransactionValidation
-        theParams
-        tx
-        consumedData
-        (txSkelOutputData skel)
-        (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)
+    -- We balance the skeleton (when requested in the options) and get
+    -- the associated fees and collateral inputs
+    (skel, fees, collateralIns) <- balanceTxSkel skelUnbal
+    -- We apply the optional modifications of the emulator parameters
+    params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
+    -- We retrieve data that will be used in the transaction
+    -- generation process: datums, validators and various kinds of
+    -- inputs. This idea is to provide a rich-enough context for the
+    -- transaction generation to succeed.
+    insData <- txSkelInputData skel
+    insValidators <- txSkelInputValidators skel
+    insMap <- txSkelInputUtxosPl skel
+    refInsMap <- txSkelReferenceInputUtxosPl skel
+    collateralInsMap <- lookupUtxosPl $ Set.toList collateralIns
+    -- We attempt to generate the transaction associated with the
+    -- balanced skeleton and the retrieved data. This is an internal
+    -- generation, there is no validation involved yet.
+    cardanoTx <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+      Left err -> throwError . MCEGenerationError $ err
+      Right tx -> return $ Ledger.CardanoEmulatorEraTx tx
+    -- To run transaction validation we need a minimal ledger state
+    eLedgerState <- gets (mcstToEmulatedLedgerState params)
+    -- We finally run the emulated validation, and we only care about
+    -- the validation result, as we update our own internal state
+    let (_, mValidationResult) = Emulator.validateCardanoTx params eLedgerState cardanoTx
+    -- We retrieve our current utxo index to perform modifications
+    -- associated with the validated transaction.
+    utxoIndex <- gets mcstIndex
+    -- We create a new utxo index with an error when validation failed
+    let (newUtxoIndex, valError) = case mValidationResult of
+          -- In case of a phase 1 error, we give back the same index
+          Ledger.FailPhase1 _ err -> (utxoIndex, Just (Ledger.Phase1, err))
+          -- In case of a phase 2 error, we retrieve the collaterals
+          -- (and yes, despite its name, 'insertCollateral' actually
+          -- takes is away from the index
+          Ledger.FailPhase2 _ err _ -> (Ledger.insertCollateral cardanoTx utxoIndex, Just (Ledger.Phase2, err))
+          -- In case of success, we update the index with all inputs
+          -- and outputs contained in the transaction
+          Ledger.Success {} -> (Ledger.insert cardanoTx utxoIndex, Nothing)
+    -- Now that we have compute a new index, we can update it
+    modify' (\st -> st {mcstIndex = newUtxoIndex})
+    case valError of
+      -- When validation failed for any reason, we throw an error.
+      -- This behavior could be subject to change in the future.
+      Just err -> throwError (uncurry MCEValidationError err)
+      -- Otherwise, we update known validators and datums.
+      Nothing -> do
+        modify' (\st -> st {mcstDatums = (mcstDatums st `removeMcstDatums` insData) `addMcstDatums` txSkelOutputData skel})
+        modify' (\st -> st {mcstValidators = mcstValidators st `Map.union` txSkelOutValidators skel})
+    -- We apply a change of slot when requested in the options
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
-    return someCardanoTx
-
-runTransactionValidation ::
-  (Monad m) =>
-  -- | The emulator parameters to use. They might have been changed by the 'txOptEmulatorParamsModification'.
-  Emulator.Params ->
-  -- | The transaction to validate. It should already be balanced, and include
-  -- appropriate fees and collateral.
-  C.Tx C.ConwayEra ->
-  -- | The data consumed by the transaction
-  Map Pl.DatumHash Pl.Datum ->
-  -- | The data produced by the transaction
-  Map Pl.DatumHash TxSkelOutDatum ->
-  -- | The validators protecting transaction outputs, and the validators in the
-  -- reference script field of transaction outputs. The 'MockChain' will
-  -- remember them.
-  Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
-  MockChainT m Ledger.CardanoTx
-runTransactionValidation theParams (Ledger.CardanoEmulatorEraTx -> txWrapped) consumedData producedData outputValidators = do
-  utxoIndex <- gets mcstIndex
-  eLedgerState <- gets (mcstToEmulatedLedgerState theParams)
-
-  let (_, mValidationResult) = Emulator.validateCardanoTx theParams eLedgerState txWrapped
-
-      (newUtxoIndex, valError) = case mValidationResult of
-        Ledger.FailPhase1 _ err -> (utxoIndex, Just (Ledger.Phase1, err))
-        Ledger.FailPhase2 _ err _ ->
-          -- Despite its name, this actually deletes the collateral
-          -- UTxOs from the index
-          (Ledger.insertCollateral txWrapped utxoIndex, Just (Ledger.Phase2, err))
-        Ledger.Success {} -> (Ledger.insert txWrapped utxoIndex, Nothing)
-
-  modify' (\st -> st {mcstIndex = newUtxoIndex})
-  case valError of
-    Just err -> throwError (uncurry MCEValidationError err)
-    Nothing -> do
-      -- Validation succeeded; now we update the UTxO index, the managed
-      -- datums, and the managed Validators. The new mcstIndex is just
-      -- `newUtxoIndex`; the new mcstDatums is computed by adding those that
-      -- have been created in the transaction and removing those that were
-      -- consumed (or reducing their count in the 'mcstDatums').
-      modify'
-        ( \st ->
-            st
-              { mcstDatums = (mcstDatums st `removeMcstDatums` consumedData) `addMcstDatums` producedData,
-                mcstValidators = mcstValidators st `Map.union` outputValidators
-              }
-        )
-      return txWrapped
-  where
-    addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
-    removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)
+    -- We return the validated transaction
+    return cardanoTx
+    where
+      addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
+      removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)

@@ -21,7 +21,6 @@ module Cooked.Skeleton
     BalancingWallet (..),
     RawModTx (..),
     EmulatorParamsModification (..),
-    BalancingUtxos (..),
     CollateralUtxos (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
@@ -33,7 +32,6 @@ module Cooked.Skeleton
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
     txOptBalanceWalletL,
-    txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     MintsConstrs,
@@ -82,6 +80,7 @@ module Cooked.Skeleton
     txSkelOutputDatumTypeAT,
     SkelContext (..),
     txSkelOutReferenceScripts,
+    txSkelReferenceScript,
   )
 where
 
@@ -204,28 +203,13 @@ applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.
 applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
 applyEmulatorParamsModification Nothing = id
 
--- | Describes which UTxOs of the balancing wallet can be spent for balancing.
-data BalancingUtxos
-  = -- | Use all UTxOs (default)
-    BalancingUtxosAll
-  | -- | Use all UTxOs without datum
-    BalancingUtxosDatumless
-  | -- | Use only the provided UTxOs
-    BalancingUtxosAllowlist [Pl.TxOutRef]
-  | -- | Do not use the provided UTxOs
-    BalancingUtxosBlocklist [Pl.TxOutRef]
-  deriving (Eq, Ord, Show)
-
-instance Default BalancingUtxos where
-  def = BalancingUtxosAll
-
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
   = -- | Rely on automated computation with UTxOs from the balancing
     -- wallet
     CollateralUtxosFromBalancingWallet
   | -- | Rely on automated computaton with UTxOs from a give wallet
-    CollateraUtxosFromWallet Wallet
+    CollateralUtxosFromWallet Wallet
   | -- | Manuallyl provide a set of UTxOs
     CollateralUtxosFromSet (Set Pl.TxOutRef)
   deriving (Eq, Show)
@@ -289,11 +273,6 @@ data TxOpts = TxOpts
     --
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
-    -- | Describes which UTxOs of the balancing wallet can be spent for
-    -- balancing. This is useful to put aside some UTxOs you want to spend in a
-    -- specific context later and prevent premature spending during balancing
-    -- of previous transactions.
-    txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is
     -- obviously a very unsafe thing to do if you want to preserve
@@ -325,7 +304,6 @@ makeLensesFor
     ("txOptBalance", "txOptBalanceL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
-    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL")
   ]
@@ -341,7 +319,6 @@ instance Default TxOpts where
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
-        txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def
       }
@@ -864,6 +841,10 @@ txSkelTypedRedeemer :: (Pl.FromData (Pl.RedeemerType a)) => TxSkelRedeemer -> Ma
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Pl.fromData . Pl.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
+
+txSkelReferenceScript :: TxSkelRedeemer -> Maybe Pl.TxOutRef
+txSkelReferenceScript (TxSkelRedeemerForReferencedScript refScript _) = Just refScript
+txSkelReferenceScript _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
 

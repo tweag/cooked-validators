@@ -8,7 +8,6 @@
 
 module Cooked.MockChain.GenerateTx
   ( GenerateTxError (..),
-    GenTxParams (gtpCollateralIns, gtpFee),
     generateBodyContent,
     generateTxOut,
     generateTx,
@@ -18,7 +17,6 @@ where
 import qualified Cardano.Api as C
 import qualified Cardano.Api.Shelley as C
 import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
-import Control.Arrow
 import Control.Monad
 import Control.Monad.Reader
 import Cooked.Output
@@ -46,36 +44,26 @@ data GenerateTxError
   | GenerateTxErrorGeneral String
   deriving (Show, Eq)
 
--- | The internal (do-not-modify unless you know what you're doing)
--- parameters for 'txSkelToBodyContent'.
-data GenTxParams = GenTxParams
-  { -- | The collateral UTxOs to use for the transaction.
-    --
-    -- It is the duty of the caller to choose and set the collateral
-    -- UTxOs. 'txSkelToBodyContent' will not do it.
-    gtpCollateralIns :: Set Pl.TxOutRef,
-    -- | The transaction fee (in Lovelace)
-    gtpFee :: Fee
-  }
-
-instance Default GenTxParams where
-  def = GenTxParams {gtpCollateralIns = mempty, gtpFee = 0}
-
--- Context in which various parts of transactions will be built This
--- will be used within a reader monad to simplify passing parameters
--- around
+-- | Context in which various parts of transactions will be built
 data Context where
   Context ::
-    { genTxParams :: GenTxParams,
+    { -- | fees to apply to body generation
+      fees :: Fee,
+      -- | collaterals to add to body generation
+      collateralIns :: Set Pl.TxOutRef,
+      -- | parameters of the emulator
       params :: Emulator.Params,
+      -- | datums present in our environment
       managedData :: Map Pl.DatumHash Pl.Datum,
+      -- | txouts present in our environment
       managedTxOuts :: Map Pl.TxOutRef Pl.TxOut,
+      -- | validators present in our environment
       managedValidators :: Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
     } ->
     Context
 
 instance Default Context where
-  def = Context def def Map.empty Map.empty Map.empty
+  def = Context 0 mempty def Map.empty Map.empty Map.empty
 
 -- The domain in which transactions are generated.
 type TxGen a = ReaderT Context (Either GenerateTxError) a
@@ -106,25 +94,13 @@ throwOnToCardanoError = flip throwOnToCardanoErrorOrApply id
 
 txSkelToBodyContent :: TxSkel -> TxGen (C.TxBodyContent C.BuildTx C.ConwayEra)
 txSkelToBodyContent TxSkel {..} = do
-  collateralInsList <- asks (Set.toList . gtpCollateralIns . genTxParams)
+  collateralInsList <- asks (Set.toList . collateralIns)
   txIns <- mapM txSkelInToTxIn $ Map.toList txSkelIns
-  txInsReference <-
-    txOutRefsToTxInsReference $
-      Maybe.mapMaybe
-        ( \case
-            TxSkelRedeemerForReferencedScript oref _ -> Just oref
-            _ -> Nothing
-        )
-        (Map.elems txSkelIns)
-        ++ Set.toList txSkelInsReference
+  txInsReference <- txOutRefsToTxInsReference $ Maybe.mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
   txInsCollateral <- txOutRefsToTxSkelInsCollateral collateralInsList
   txOuts <- mapM txSkelOutToCardanoTxOut txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
-    lift
-      $ left
-        (ToCardanoError "translating the transaction validity range")
-        . Pl.toCardanoValidityRange
-      $ txSkelValidityRange
+    throwOnToCardanoError "translating the transaction validity range" $ Pl.toCardanoValidityRange txSkelValidityRange
   txMintValue <- txSkelMintsToTxMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSigners
@@ -136,15 +112,16 @@ txSkelToBodyContent TxSkel {..} = do
           $ mapM (Pl.toCardanoPaymentKeyHash . Pl.PaymentPubKeyHash . walletPKHash) txSkelSigners
   knownTxOuts <- asks managedTxOuts
   txTotalCollateral <-
-    C.TxTotalCollateral C.BabbageEraOnwardsConway . Pl.Coin . Pl.getLovelace . Pl.fromValue . mconcat
-      <$> mapM
-        ( \txOutRef ->
-            Pl.txOutValue
+    C.TxTotalCollateral C.BabbageEraOnwardsConway . Pl.Coin
+      <$> foldM
+        ( \lovelaces txOutRef ->
+            (lovelaces +) . Pl.getLovelace . Pl.fromValue . Pl.txOutValue
               <$> throwOnLookup ("computing the total collateral: Unknown TxOutRef" ++ show txOutRef) txOutRef knownTxOuts
         )
+        0
         collateralInsList
   txProtocolParams <- asks (C.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
-  txFee <- asks (C.TxFeeExplicit C.ShelleyBasedEraConway . Pl.Coin . feeLovelace . gtpFee . genTxParams)
+  txFee <- asks (C.TxFeeExplicit C.ShelleyBasedEraConway . Pl.Coin . feeLovelace . fees)
   let txReturnCollateral = C.TxReturnCollateralNone
       txMetadata = C.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = C.TxAuxScriptsNone -- That's what plutus-apps does as well
@@ -157,14 +134,15 @@ txSkelToBodyContent TxSkel {..} = do
   return C.TxBodyContent {..}
 
 generateBodyContent ::
-  GenTxParams ->
+  Fee ->
+  Set Pl.TxOutRef ->
   Emulator.Params ->
   Map Pl.DatumHash Pl.Datum ->
   Map Pl.TxOutRef Pl.TxOut ->
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
   TxSkel ->
   Either GenerateTxError (C.TxBodyContent C.BuildTx C.ConwayEra)
-generateBodyContent genTxParams params managedData managedTxOuts managedValidators =
+generateBodyContent fees collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Pl.TxOutRef' and a
@@ -356,18 +334,13 @@ txSkelToCardanoTx txSkel = do
   return $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ txSkel) cardanoTxSigned
 
 generateTx ::
-  -- | Parameters controlling transaction generation.
-  GenTxParams ->
-  -- | Some parameters, coming from the 'MockChain'.
+  Fee ->
+  Set Pl.TxOutRef ->
   Emulator.Params ->
-  -- | All of the currently known data on transaction inputs, also coming from the 'MockChain'.
   Map Pl.DatumHash Pl.Datum ->
-  -- | All of the currently known UTxOs which will be used as transaction inputs or referenced, also coming from the 'MockChain'.
   Map Pl.TxOutRef Pl.TxOut ->
-  -- | All of the currently known validators which protect transaction inputs, also coming from the 'MockChain'.
   Map Pl.ValidatorHash (Pl.Versioned Pl.Validator) ->
-  -- | The transaction skeleton to translate.
   TxSkel ->
   Either GenerateTxError (C.Tx C.ConwayEra)
-generateTx genTxParams params managedData managedTxOuts managedValidators =
+generateTx fees collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToCardanoTx
