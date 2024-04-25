@@ -94,6 +94,7 @@ import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
+import Data.List (foldl')
 import qualified Data.List.NonEmpty as NEList
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -184,8 +185,7 @@ instance Show RawModTx where
 -- | Applies a list of modifications right before the transaction is
 -- submitted. The leftmost function in the argument list is applied first.
 applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.ConwayEra -> C.Tx C.ConwayEra
-applyRawModOnBalancedTx [] = id
-applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
+applyRawModOnBalancedTx = foldl' (\acc (RawModTxAfterBalancing f) -> acc . f) id
 
 -- | Wraps a function that will temporarily change the emulator parameters for
 -- the transaction's balancing and submission.

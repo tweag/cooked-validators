@@ -322,16 +322,14 @@ txSkelToCardanoTx txSkel = do
         (TxBodyError "generateTx: ")
         (flip C.Tx [])
         (C.createAndValidateTransactionBody C.ShelleyBasedEraConway txBodyContent)
-  cardanoTxSigned <-
-    foldM
-      ( \tx wal ->
-          case Ledger.addCardanoTxWitness (Pl.toWitness $ Pl.PaymentPrivateKey $ walletSK wal) (Ledger.CardanoTx tx C.ShelleyBasedEraConway) of
-            Ledger.CardanoTx tx' C.ShelleyBasedEraConway -> return tx'
-            _ -> throwOnString "txSkelToCardanoTx: Wrong output era"
-      )
-      cardanoTxUnsigned
-      (txSkelSigners txSkel)
-  return $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ txSkel) cardanoTxSigned
+  foldM
+    ( \tx wal ->
+        case Ledger.addCardanoTxWitness (Pl.toWitness $ Pl.PaymentPrivateKey $ walletSK wal) (Ledger.CardanoTx tx C.ShelleyBasedEraConway) of
+          Ledger.CardanoTx tx' C.ShelleyBasedEraConway -> return tx'
+          _ -> throwOnString "txSkelToCardanoTx: Wrong output era"
+    )
+    cardanoTxUnsigned
+    (txSkelSigners txSkel)
 
 generateTx ::
   Fee ->

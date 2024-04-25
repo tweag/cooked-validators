@@ -8,7 +8,6 @@
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cooked.MockChain.Direct where
@@ -370,9 +369,11 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the
     -- balanced skeleton and the retrieved data. This is an internal
     -- generation, there is no validation involved yet.
-    cardanoTx <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx' <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
-      Right tx -> return $ Ledger.CardanoEmulatorEraTx tx
+      Right tx -> return tx
+    -- We apply post-generation modification when applicable
+    let cardanoTx = Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) cardanoTx'
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets (mcstToEmulatedLedgerState params)
     -- We finally run the emulated validation, and we only care about

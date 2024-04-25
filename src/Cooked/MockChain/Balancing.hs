@@ -69,7 +69,7 @@ balanceTxSkel skelUnbal = do
 -- @True@.
 ensureTxSkelOutsMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
 ensureTxSkelOutsMinAda skel = do
-  theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
+  theParams <- getParams
   case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
     Left err -> throwError $ MCEGenerationError err
     Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
