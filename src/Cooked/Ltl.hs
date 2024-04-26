@@ -197,7 +197,7 @@ ltlSimpl expr =
 -- * every step can be modified by a @modification@.
 
 -- | Operations for computations that can be modified using LTL formulas.
-data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
+data LtlOp (modification :: Type) (builtin :: Type -> Type) :: Type -> Type where
   -- | The operation that introduces a new LTL formula that should be used to
   -- modify the following computations. Think of this operation as coming
   -- between time steps and adding a new formula to be applied before all of the
@@ -210,7 +210,7 @@ data LtlOp (modification :: *) (builtin :: * -> *) :: * -> * where
 
 -- | The freer monad on @op@. We think of this as the AST of a computation with
 -- operations of types @op a@.
-data Staged (op :: * -> *) :: * -> * where
+data Staged (op :: Type -> Type) :: Type -> Type where
   Return :: a -> Staged op a
   Instr :: op a -> (a -> Staged op b) -> Staged op b
 
