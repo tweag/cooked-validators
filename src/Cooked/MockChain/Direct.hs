@@ -369,11 +369,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the
     -- balanced skeleton and the retrieved data. This is an internal
     -- generation, there is no validation involved yet.
-    cardanoTx' <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
-      Right tx -> return tx
-    -- We apply post-generation modification when applicable
-    let cardanoTx = Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) cardanoTx'
+      -- We apply post-generation modification when applicable
+      Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets (mcstToEmulatedLedgerState params)
     -- We finally run the emulated validation, and we only care about
@@ -410,4 +409,5 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     return cardanoTx
     where
       addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
+      -- FIXME: is this correct? What happens if we remove several similar datums?
       removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)

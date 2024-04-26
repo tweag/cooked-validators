@@ -16,15 +16,15 @@ main =
   defaultMain $
     testGroup
       "cooked-validators"
-      [ BasicUsageSpec.tests
-      -- MinAdaSpec.tests,
-      -- InlineDatumsSpec.tests,
-      -- ReferenceInputsSpec.tests,
-      -- ReferenceScriptsSpec.tests,
-      -- AttackSpec.tests,
-      -- TweakSpec.tests,
-      -- LtlSpec.tests,
-      -- MockChainSpec.tests,
-      -- ShowBSSpec.tests,
-      -- InitDistrib.tests
+      [ BasicUsageSpec.tests,
+        MinAdaSpec.tests,
+        InlineDatumsSpec.tests,
+        ReferenceInputsSpec.tests,
+        ReferenceScriptsSpec.tests,
+        AttackSpec.tests,
+        TweakSpec.tests,
+        LtlSpec.tests,
+        MockChainSpec.tests,
+        ShowBSSpec.tests,
+        InitDistrib.tests
       ]
