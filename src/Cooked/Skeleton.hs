@@ -103,13 +103,13 @@ import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Ledger.Scripts (validatorHash)
-import qualified Ledger.Scripts as Pl hiding (validatorHash)
+import Debug.Trace
 import qualified Ledger.Slot as Pl
-import qualified Ledger.Typed.Scripts as Pl
 import Optics.Core
 import Optics.TH
 import qualified Plutus.Script.Utils.Ada as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Typed as Pl hiding (validatorHash)
 import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
 import qualified PlutusLedgerApi.V3 as Pl
 import qualified PlutusTx.Prelude as Pl
@@ -961,7 +961,7 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
+    . mapMaybe (fmap (\val -> (trace (show val) $ Pl.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs

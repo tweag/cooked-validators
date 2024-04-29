@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
@@ -71,6 +72,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
+import Debug.Trace
 import qualified Ledger.Index as Ledger
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger

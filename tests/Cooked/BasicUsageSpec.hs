@@ -1,11 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Cooked.BasicUsageSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
+import qualified Data.Map as Map
+import Debug.Trace
 import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified PlutusLedgerApi.V3 as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -41,11 +45,33 @@ mintingQuickValue =
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
 
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m (Pl.TxOutRef, Pl.TxOut)
+payToAlwaysTrueValidator = do
+  tx <-
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOuts = [paysScriptNoDatum (alwaysTrueValidator @MockContract) (ada 10)],
+          txSkelSigners = [alice]
+        }
+  return $ head $ utxosFromCardanoTx tx
+
+consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
+consumeAlwaysTrueValidator = do
+  (outref, out) <- payToAlwaysTrueValidator
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelIns = Map.fromList [(outref, TxSkelRedeemerForScript ())],
+          txSkelOuts = [paysPK (walletPKHash alice) (ada 10)],
+          txSkelSigners = [alice]
+        }
+
 tests :: TestTree
 tests =
   testGroup
     "Basic usage"
     [ testCase "Payment from alice to bob, with auto-balancing" $ testSucceedsFrom def def (pkToPk alice bob 10),
       testCase "Circular payments of 10 ada between alice bob and carrie" $ testSucceedsFrom def def multiplePksToPks,
-      testCase "Minting quick tokens" $ testSucceedsFrom def def mintingQuickValue
+      testCase "Minting quick tokens" $ testSucceedsFrom def def mintingQuickValue,
+      testCase "Paying to the always true validator" $ testSucceedsFrom def def payToAlwaysTrueValidator
     ]

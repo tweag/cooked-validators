@@ -37,7 +37,6 @@ library
       Cooked.Pretty.Cooked
       Cooked.Pretty.Hashable
       Cooked.Pretty.Options
-      Cooked.RawUPLC
       Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Tweak

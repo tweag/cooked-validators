@@ -76,6 +76,8 @@ datumHijackingAttack ::
     Show (Pl.DatumType a),
     PrettyCooked (Pl.DatumType a),
     Pl.ToData (Pl.DatumType a),
+    Pl.UnsafeFromData (Pl.DatumType a),
+    Pl.UnsafeFromData (Pl.RedeemerType a),
     Typeable (Pl.DatumType a),
     Typeable a
   ) =>
