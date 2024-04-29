@@ -72,7 +72,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
 import qualified Data.Set as Set
-import Debug.Trace
 import qualified Ledger.Index as Ledger
 import qualified Ledger.Slot as Ledger
 import qualified Ledger.Tx as Ledger
@@ -377,7 +376,7 @@ txSkelInputValidators skel = do
               Nothing ->
                 throwError $
                   MCEUnknownValidator
-                    "txSkelInputValidators: unkown validator hash on transaction input"
+                    "txSkelInputValidators: unknown validator hash on transaction input"
                     valHash
               Just val -> return $ Just (valHash, val)
           _ -> return Nothing

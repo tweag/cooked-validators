@@ -41,8 +41,8 @@ where
 
 import Optics.Core
 import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl hiding (validatorHash)
-import qualified Plutus.Script.Utils.Typed as Pl
+import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Typed as Pl hiding (validatorHash)
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusLedgerApi.V2.Tx as Pl
 import qualified PlutusLedgerApi.V3 as Pl
@@ -79,7 +79,7 @@ instance ToCredential Pl.Credential where
   toCredential = id
 
 instance ToCredential (Pl.TypedValidator a) where
-  toCredential = Pl.ScriptCredential . toScriptHash . Pl.validatorHash
+  toCredential = Pl.ScriptCredential . toScriptHash . Pl.validatorHash . Pl.tvValidator
 
 instance ToCredential Pl.PubKeyHash where
   toCredential = Pl.PubKeyCredential
@@ -139,7 +139,7 @@ instance ToScriptHash Pl.ValidatorHash where
   toScriptHash (Pl.ValidatorHash h) = Pl.ScriptHash h
 
 instance ToScriptHash (Pl.TypedValidator a) where
-  toScriptHash = toScriptHash . Pl.validatorHash
+  toScriptHash = toScriptHash . Pl.tvValidator
 
 -- | An output that can be translated into its script-perspective (as seen on
 -- the 'TxInfo') representation

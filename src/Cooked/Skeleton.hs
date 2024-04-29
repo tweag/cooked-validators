@@ -103,7 +103,6 @@ import qualified Data.Map.NonEmpty as NEMap
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Debug.Trace
 import qualified Ledger.Slot as Pl
 import Optics.Core
 import Optics.TH
@@ -491,7 +490,7 @@ instance IsTxSkelOutAllowedOwner Pl.PubKeyHash where
   toPKHOrValidator = Left
 
 instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
-  toPKHOrValidator = Right . Pl.vValidatorScript
+  toPKHOrValidator = Right . Pl.tvValidator
 
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use one of the smart constructors like 'paysScript' or
@@ -961,7 +960,7 @@ txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
 txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe (fmap (\val -> (trace (show val) $ Pl.validatorHash val, val)) . txSkelOutValidator)
+    . mapMaybe (fmap (\val -> (Pl.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs

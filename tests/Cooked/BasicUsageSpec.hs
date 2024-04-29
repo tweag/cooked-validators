@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
 module Cooked.BasicUsageSpec where
@@ -9,7 +11,11 @@ import Data.Default
 import qualified Data.Map as Map
 import Debug.Trace
 import qualified Plutus.Script.Utils.Scripts as Pl
+import qualified Plutus.Script.Utils.Typed as Pl
+import qualified Plutus.Script.Utils.V3.Generators as Pl
+import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
 import qualified PlutusLedgerApi.V3 as Pl
+import qualified PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -50,7 +56,12 @@ payToAlwaysTrueValidator = do
   tx <-
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysScriptNoDatum (alwaysTrueValidator @MockContract) (ada 10)],
+        { txSkelOuts =
+            [ paysScript
+                (alwaysTrueValidator @MockContract)
+                ()
+                (ada 10)
+            ],
           txSkelSigners = [alice]
         }
   return $ head $ utxosFromCardanoTx tx
@@ -73,5 +84,6 @@ tests =
     [ testCase "Payment from alice to bob, with auto-balancing" $ testSucceedsFrom def def (pkToPk alice bob 10),
       testCase "Circular payments of 10 ada between alice bob and carrie" $ testSucceedsFrom def def multiplePksToPks,
       testCase "Minting quick tokens" $ testSucceedsFrom def def mintingQuickValue,
-      testCase "Paying to the always true validator" $ testSucceedsFrom def def payToAlwaysTrueValidator
+      testCase "Paying to the always true validator" $ testSucceedsFrom def def payToAlwaysTrueValidator,
+      testCase "Consuming the always true validator" $ testSucceedsFrom def def consumeAlwaysTrueValidator
     ]
