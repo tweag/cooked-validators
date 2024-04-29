@@ -401,7 +401,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       -- Otherwise, we update known validators and datums.
       Nothing -> do
         modify' (\st -> st {mcstDatums = (mcstDatums st `removeMcstDatums` insData) `addMcstDatums` txSkelOutputData skel})
-        modify' (\st -> st {mcstValidators = mcstValidators st `Map.union` txSkelOutValidators skel})
+        modify' (\st -> st {mcstValidators = mcstValidators st `Map.union` (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)})
     -- We apply a change of slot when requested in the options
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
