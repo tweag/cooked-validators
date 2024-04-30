@@ -12,7 +12,7 @@ source-repository-package
   type: git
   location: https://github.com/input-output-hk/cardano-node-emulator
   -- This should follow the Conway branch until it is merged to main
-  tag: 13ccd1d0f61752d0f8746d4ff11b1b7a4f338d23
+  tag: 1ad4cace0a8982c167f0c02ccf34a21931f2ce5f
   subdir:
     cardano-node-emulator
     plutus-ledger
