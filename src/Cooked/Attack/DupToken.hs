@@ -8,7 +8,7 @@ import Cooked.Tweak
 import Cooked.Wallet
 import Optics.Core
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
+import qualified Plutus.Script.Utils.V3.Scripts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusTx.Numeric as Pl
 
