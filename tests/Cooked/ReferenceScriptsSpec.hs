@@ -29,30 +29,33 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 -- | This validator ensures that the given public key signs the transaction.
-requireSignerValidator :: Pl.PubKeyHash -> Pl.TypedValidator MockContract
+requireSignerValidator :: (Pl.PubKeyHash, Pl.BuiltinString) -> Pl.TypedValidator MockContract
 requireSignerValidator =
   Pl.mkTypedValidatorParam @MockContract
     $$(Pl.compile [||val||])
     $$(Pl.compile [||wrap||])
   where
-    val :: Pl.PubKeyHash -> () -> () -> Pl.ScriptContext -> Bool
-    val pkh _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "the required signer is missing"
+    val :: (Pl.PubKeyHash, Pl.BuiltinString) -> () -> () -> Pl.ScriptContext -> Bool
+    val (pkh, bs) _ _ (Pl.ScriptContext txInfo _) =
+      Pl.traceIfFalse bs -- FIXME, it used to be statical, "the
+      -- required signer is missing", see
+      -- https://github.com/IntersectMBO/plutus/issues/5949
         Pl.$ Pl.elem pkh (Pl.txInfoSignatories txInfo)
 
     wrap = Pl.mkUntypedValidator
 
 -- | This validator ensures that there is a transaction input that has a
 -- reference script with the given hash.
-requireRefScriptValidator :: Pl.ScriptHash -> Pl.TypedValidator MockContract
+requireRefScriptValidator :: (Pl.ScriptHash, Pl.BuiltinString) -> Pl.TypedValidator MockContract
 requireRefScriptValidator =
   Pl.mkTypedValidatorParam @MockContract
     $$(Pl.compile [||val||])
     $$(Pl.compile [||wrap||])
   where
-    val :: Pl.ScriptHash -> () -> () -> Pl.ScriptContext -> Bool
-    val expectedScriptHash _ _ (Pl.ScriptContext txInfo _) =
-      Pl.traceIfFalse "there is no reference input with the correct script hash"
+    val :: (Pl.ScriptHash, Pl.BuiltinString) -> () -> () -> Pl.ScriptContext -> Bool
+    val (expectedScriptHash, bs) _ _ (Pl.ScriptContext txInfo _) =
+      Pl.traceIfFalse bs -- FIXME same as above "there is no reference
+      -- input with the correct script hash"
         Pl.$ Pl.any
           ( \(Pl.TxInInfo _ (Pl.TxOut _ _ _ mRefScriptHash)) ->
               Just expectedScriptHash Pl.== mRefScriptHash
@@ -119,7 +122,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
         txSkelTemplate
           { txSkelOuts =
               [ paysScript
-                  (requireRefScriptValidator expectedScriptHash)
+                  (requireRefScriptValidator (expectedScriptHash, "there is no reference input with the correct script hash"))
                   ()
                   (Pl.lovelaceValueOf 42_000_000)
               ],
@@ -182,7 +185,7 @@ tests =
                   def
                 $ putRefScriptOnScriptOutput alwaysTrueValidator theRefScript
                   >>= retrieveRefScriptHash,
-              testCase "retreiving the complete script from its hash"
+              testCase "retrieving the complete script from its hash"
                 $ testSucceedsFrom'
                   def
                   ( \mOut _ -> case mOut of
@@ -314,9 +317,9 @@ tests =
                   (== "the required signer is missing")
               )
               def
-            $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2)),
+            $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2, "the required signer is missing")),
           testCase "succeed if referenced script's requirement is met" $
             testSucceeds def $
-              useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1))
+              useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1, "the required signer is missing"))
         ]
     ]
