@@ -13,7 +13,6 @@ import qualified Data.Set as Set
 import qualified Plutus.Script.Utils.Ada as Pl
 import qualified Plutus.Script.Utils.Scripts as Pl
 import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
 import qualified Plutus.Script.Utils.V3.Contexts as Pl
 import qualified Plutus.Script.Utils.Value as Pl
 import qualified PlutusLedgerApi.V3 as Pl
@@ -48,7 +47,7 @@ mkCarelessPolicy _ _ = True
 
 carelessPolicy :: Pl.Versioned Pl.MintingPolicy
 carelessPolicy =
-  flip Pl.Versioned Pl.PlutusV2 $
+  flip Pl.Versioned Pl.PlutusV3 $
     Pl.mkMintingPolicyScript
       $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
 
