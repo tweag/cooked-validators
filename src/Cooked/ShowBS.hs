@@ -186,35 +186,16 @@ instance ShowBS DatumHash where
 
 instance ShowBS BuiltinData where
   {-# INLINEABLE showBS #-}
-  showBS d = showBSParen $ "BuiltinData " <> builtinDataShowBSsPrec d
+  showBS d = showBSParen $ "BuiltinData " <> showData d
 
-{-# INLINEABLE builtinDataShowBSsPrec #-}
-builtinDataShowBSsPrec :: BuiltinData -> BuiltinString
-builtinDataShowBSsPrec d =
+{-# INLINEABLE showData #-}
+showData :: BuiltinData -> BuiltinString
+showData d =
   matchData
     d
-    ( \i ds ->
-        showBSParen
-          $ "Constr "
-          <> showBS i
-          <> " "
-          <> catList "[" "," "]" builtinDataShowBSsPrec ds
-    )
-    ( \alist ->
-        showBSParen
-          $ "Map "
-          <> catList
-            "["
-            ","
-            "]"
-            (\(a, b) -> "(" <> builtinDataShowBSsPrec a <> "," <> builtinDataShowBSsPrec b <> ")")
-            alist
-    )
-    ( \list ->
-        showBSParen
-          $ "List "
-          <> catList "[" "," "]" builtinDataShowBSsPrec list
-    )
+    (\i ds -> showBSParen $ "Constr " <> showBS i <> " " <> catList "[" "," "]" showData ds)
+    (\alist -> showBSParen $ "Map " <> catList "[" "," "]" (\(a, b) -> "(" <> showData a <> "," <> showData b <> ")") alist)
+    (\list -> showBSParen $ "List " <> catList "[" "," "]" showData list)
     (\i -> showBSParen $ "I " <> showBS i)
     (\bs -> showBSParen $ "B " <> showBS bs)
 
