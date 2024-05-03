@@ -63,7 +63,11 @@ showBSParen True s = literal "(" . s . literal ")"
 -- | print an application of a constructor to an argument
 {-# INLINEABLE application1 #-}
 application1 :: (ShowBS a) => Integer -> BuiltinString -> a -> BuiltinString -> BuiltinString
-application1 prec f x = showBSParen (app_prec <= prec) $ literal f . literal " " . showBSsPrec app_prec x
+application1 prec f x =
+  showBSParen (app_prec <= prec)
+    $ literal f
+    . literal " "
+    . showBSsPrec app_prec x
 
 -- | like 'application1' with two arguments
 {-# INLINEABLE application2 #-}
@@ -225,7 +229,15 @@ instance ShowBS Credential where
 instance ShowBS StakingCredential where
   {-# INLINEABLE showBSsPrec #-}
   showBSsPrec p (StakingHash cred) = application1 p "StakingCredential" cred
-  showBSsPrec p (StakingPtr i j k) = application3 p "StakingPtr" i j k
+  showBSsPrec p (StakingPtr i j k) =
+    showBSParen (app_prec <= p)
+      $ literal "StakingPtr"
+      . literal " "
+      . showBSsPrec app_prec i
+      . literal " "
+      . showBSsPrec app_prec j
+      . literal " "
+      . showBSsPrec app_prec k
 
 instance ShowBS Address where
   {-# INLINEABLE showBSsPrec #-}
@@ -285,7 +297,17 @@ instance ShowBS ScriptHash where
 
 instance ShowBS TxOut where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p (TxOut address value datum mRefScriptHash) = application4 p "TxOut" address value datum mRefScriptHash
+  showBSsPrec p (TxOut address value datum mRefScriptHash) =
+    showBSParen (app_prec <= p)
+      $ literal "TxOut"
+      . literal " "
+      . showBSsPrec app_prec address
+      . literal " "
+      . showBSsPrec app_prec value
+      . literal " "
+      . showBSsPrec app_prec datum
+      . literal " "
+      . showBSsPrec app_prec mRefScriptHash
 
 instance ShowBS TxInInfo where
   {-# INLINEABLE showBSsPrec #-}
@@ -340,7 +362,15 @@ instance ShowBS TxCert where
   showBSsPrec p (TxCertDelegStaking cred delegatee) = application2 p "Delegate staking" cred delegatee
   -- \| Register and delegate staking credential to a Delegatee in one
   -- certificate. Noter that deposit is mandatory.
-  showBSsPrec p (TxCertRegDeleg cred delegatee depositAmount) = application3 p "Register and delegate staking" cred delegatee depositAmount
+  showBSsPrec p (TxCertRegDeleg cred delegatee depositAmount) =
+    showBSParen (app_prec <= p)
+      $ literal "Register and delegate staking"
+      . literal " "
+      . showBSsPrec app_prec cred
+      . literal " "
+      . showBSsPrec app_prec delegatee
+      . literal " "
+      . showBSsPrec app_prec depositAmount
   -- \| Register a DRep with a deposit value. The optional anchor is omitted.
   showBSsPrec p (TxCertRegDRep dRepCred amount) = application2 p "Register DRep" dRepCred amount
   -- \| Update a DRep. The optional anchor is omitted.
@@ -424,13 +454,31 @@ instance ShowBS Rational where
 
 instance ShowBS GovernanceAction where
   {-# INLINEABLE showBSsPrec #-}
-  showBSsPrec p (ParameterChange maybeActionId changeParams mScriptHash) = application3 p "ParameterChange" maybeActionId changeParams mScriptHash
+  showBSsPrec p (ParameterChange maybeActionId changeParams mScriptHash) =
+    showBSParen (app_prec <= p)
+      $ literal "Parameter Change"
+      . literal " "
+      . showBSsPrec app_prec maybeActionId
+      . literal " "
+      . showBSsPrec app_prec changeParams
+      . literal " "
+      . showBSsPrec app_prec mScriptHash
   showBSsPrec p (HardForkInitiation maybeActionId protocolVersion) = application2 p "HardForkInitiation" maybeActionId protocolVersion
   showBSsPrec p (TreasuryWithdrawals mapCredLovelace mScriptHash) = application2 p "TreasuryWithdrawals" mapCredLovelace mScriptHash
   showBSsPrec p (NoConfidence maybeActionId) = application1 p "NoConfidence" maybeActionId
-  showBSsPrec p (UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) = application4 p "UpdateCommittee" maybeActionId toRemoveCreds toAddCreds quorum
+  showBSsPrec p (UpdateCommittee maybeActionId toRemoveCreds toAddCreds quorum) =
+    showBSParen (app_prec <= p)
+      $ literal "Info Action"
+      . literal " "
+      . showBSsPrec app_prec maybeActionId
+      . literal " "
+      . showBSsPrec app_prec toRemoveCreds
+      . literal " "
+      . showBSsPrec app_prec toAddCreds
+      . literal " "
+      . showBSsPrec app_prec quorum
   showBSsPrec p (NewConstitution maybeActionId constitution) = application2 p "NewConstitution" maybeActionId constitution
-  showBSsPrec _ InfoAction = literal "InfoAction"
+  showBSsPrec _ InfoAction = literal "InfoAction" --
 
 instance ShowBS ProposalProcedure where
   {-# INLINEABLE showBSsPrec #-}
@@ -448,17 +496,17 @@ instance ShowBS TxInfo where
   showBSsPrec p TxInfo {..} =
     showBSParen (app_prec <= p)
       $ literal "\n inputs: "
-      -- . showBSsPrec app_prec txInfoInputs
+      . showBSsPrec app_prec txInfoInputs
       . literal "\n reference inputs: "
-      -- . showBSsPrec app_prec txInfoReferenceInputs
+      . showBSsPrec app_prec txInfoReferenceInputs
       . literal "\n outputs: "
-      -- . showBSsPrec app_prec txInfoOutputs
+      . showBSsPrec app_prec txInfoOutputs
       . literal "\n fees: "
       . showBSsPrec app_prec txInfoFee
       . literal "\n minted value: "
       . showBSsPrec app_prec txInfoMint
       . literal "\n certificates: "
-      -- . showBSsPrec app_prec txInfoTxCerts
+      . showBSsPrec app_prec txInfoTxCerts
       . literal "\n wdrl: " -- TODO: what is wdrl? Explain better here
       . showBSsPrec app_prec txInfoWdrl
       . literal "\n valid range: "
@@ -466,7 +514,7 @@ instance ShowBS TxInfo where
       . literal "\n signatories: "
       . showBSsPrec app_prec txInfoSignatories
       . literal "\n redeemers: "
-      -- . showBSsPrec app_prec txInfoRedeemers
+      . showBSsPrec app_prec txInfoRedeemers
       . literal "\n datums: "
       . showBSsPrec app_prec txInfoData
       . literal "\n transaction id: "
@@ -474,7 +522,7 @@ instance ShowBS TxInfo where
       . literal "\n votes: "
       . showBSsPrec app_prec txInfoVotes
       . literal "\n proposals: "
-      -- . showBSsPrec app_prec txInfoProposalProcedures
+      . showBSsPrec app_prec txInfoProposalProcedures
       . literal "\n treasury amount: "
       . showBSsPrec app_prec txInfoCurrentTreasuryAmount
       . literal "\n treasury donation: "
@@ -488,5 +536,4 @@ instance ShowBS ScriptContext where
       . literal "\n Script Tx info:"
       . showBSsPrec p scriptContextTxInfo
       . literal "\n Script purpose:"
-
--- . showBSsPrec p scriptContextPurpose
+      . showBSsPrec p scriptContextPurpose
