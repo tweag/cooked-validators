@@ -49,7 +49,33 @@ library:
     -fplugin-opt PlutusTx.Plugin:defer-errors
   default-extensions:
     - ImportQualifiedPost
-    
+    - AllowAmbiguousTypes
+    - ConstraintKinds
+    - DataKinds
+    - DerivingStrategies
+    - DerivingVia
+    - FlexibleContexts
+    - FlexibleInstances
+    - GADTs
+    - GeneralizedNewtypeDeriving
+    - ImportQualifiedPost
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NamedFieldPuns
+    - NumericUnderscores
+    - OverloadedStrings
+    - RankNTypes
+    - RecordWildCards
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - StrictData
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+    - TypeSynonymInstances
+
 tests:
   spec:
     main: Spec.hs
@@ -58,3 +84,21 @@ tests:
     dependencies:
       - cooked-validators
       - parsec
+    default-extensions:
+      - ImportQualifiedPost
+      - DataKinds
+      - FlexibleContexts
+      - FlexibleInstances
+      - GADTs
+      - LambdaCase
+      - MultiParamTypeClasses
+      - MultiWayIf
+      - NumericUnderscores
+      - OverloadedStrings
+      - RankNTypes
+      - ScopedTypeVariables
+      - TemplateHaskell
+      - TupleSections
+      - TypeApplications
+      - TypeFamilies
+      - ViewPatterns

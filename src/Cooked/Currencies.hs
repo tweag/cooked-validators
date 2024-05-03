@@ -1,5 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 -- | This module introduces currencies (namely the /quick values/ and

@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Cooked.Tweak.Labels
   ( addLabelTweak,
     removeLabelTweak,

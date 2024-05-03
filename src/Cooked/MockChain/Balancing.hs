@@ -1,8 +1,3 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Cooked.MockChain.Balancing (balanceTxSkel) where

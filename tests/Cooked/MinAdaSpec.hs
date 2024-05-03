@@ -1,17 +1,14 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE LambdaCase #-}
-
 module Cooked.MinAdaSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Ledger.Index as Pl
+import Ledger.Index qualified as Pl
 import Optics.Core ((^.))
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl hiding (getLovelace)
-import qualified Prettyprinter as PP
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl hiding (getLovelace)
+import Prettyprinter qualified as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 

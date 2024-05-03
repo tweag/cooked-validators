@@ -1,23 +1,18 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
 import Data.Default
-import qualified Data.Set as Set
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Contexts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Set qualified as Set
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Contexts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

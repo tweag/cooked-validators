@@ -1,5 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-
 -- | Utilities to work with Value
 module Cooked.ValueUtils
   ( flattenValueI,

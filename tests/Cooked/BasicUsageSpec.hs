@@ -1,21 +1,16 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Cooked.BasicUsageSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Debug.Trace
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Generators as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Generators qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified
 import Test.Tasty
 import Test.Tasty.HUnit
 

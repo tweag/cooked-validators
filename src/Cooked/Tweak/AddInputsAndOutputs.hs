@@ -1,7 +1,4 @@
 {-# HLINT ignore "Use <&>" #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 -- | Some 'Tweak's that add or remove inputs and outputs from transactions.

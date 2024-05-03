@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-
 -- | Common tools to help implement pretty-printers in cooked-validators
 module Cooked.Pretty.Common
   ( DocCooked,

@@ -1,8 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Cooked.MockChain.Testing where
 
 import Control.Exception qualified as E

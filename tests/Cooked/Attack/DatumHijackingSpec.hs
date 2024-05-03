@@ -1,29 +1,19 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Cooked.Attack.DatumHijackingSpec (tests) where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import Data.Map qualified as Map
+import Data.Set qualified as Set
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Contexts as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx (compile, makeLift, unstableMakeIsData)
-import qualified PlutusTx.Prelude as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Contexts qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified (compile, makeLift, unstableMakeIsData)
+import PlutusTx.Prelude qualified as Pl
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit

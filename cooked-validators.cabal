@@ -58,6 +58,32 @@ library
       src
   default-extensions:
       ImportQualifiedPost
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DataKinds
+      DerivingStrategies
+      DerivingVia
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NumericUnderscores
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      StrictData
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      TypeSynonymInstances
   ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
@@ -123,6 +149,24 @@ test-suite spec
       Paths_cooked_validators
   hs-source-dirs:
       tests/
+  default-extensions:
+      ImportQualifiedPost
+      DataKinds
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NumericUnderscores
+      OverloadedStrings
+      RankNTypes
+      ScopedTypeVariables
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      ViewPatterns
   build-depends:
       QuickCheck
     , base >=4.9 && <5

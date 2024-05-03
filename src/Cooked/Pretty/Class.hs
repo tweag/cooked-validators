@@ -1,6 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | We provide the 'PrettyCooked' class and instances for common Plutus types.
 -- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
 -- printers for Plutus types which already have instances of 'Pretty'. Also,

@@ -1,15 +1,12 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeApplications #-}
-
 -- | Tests for 'Cooked.Tweak.TamperDatum'.
 module Cooked.Tweak.TamperDatumSpec where
 
 import Cooked
 import Cooked.MockChain.Staged (runTweak)
 import Cooked.TestUtils (assertSameSets)
-import qualified Data.Set as Set
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified PlutusTx
+import Data.Set qualified as Set
+import Plutus.Script.Utils.Ada qualified as Pl
+import PlutusTx qualified
 import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@=?))

@@ -1,33 +1,21 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Cooked.InlineDatumsSpec where
 
 import Control.Arrow
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe
-import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
-import qualified Ledger.Tx.Internal as Pl (getTxOut)
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Contexts as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx (compile, makeLift, unstableMakeIsData)
-import qualified PlutusTx.Prelude as Pl
+import Ledger.Tx qualified as Pl (getCardanoTxOutRefs)
+import Ledger.Tx.Internal qualified as Pl (getTxOut)
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Contexts qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified (compile, makeLift, unstableMakeIsData)
+import PlutusTx.Prelude qualified as Pl
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit

@@ -1,30 +1,22 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.ReferenceScriptsSpec where
 
 import Control.Monad
 import Cooked
 import Cooked.MockChain.GenerateTx
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe
-import qualified Data.Set as Set
-import qualified Ledger.Index as Pl
+import Data.Set qualified as Set
+import Ledger.Index qualified as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Value
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
-import qualified Prettyprinter as PP
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Value
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified as Pl
+import PlutusTx.Prelude qualified as Pl
+import Prettyprinter qualified as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 

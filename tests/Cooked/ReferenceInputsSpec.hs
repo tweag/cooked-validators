@@ -1,31 +1,21 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Map qualified as Map
+import Data.Set qualified as Set
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified
+import PlutusTx qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 import Prettyprinter (Pretty)
-import qualified Prettyprinter as PP
-import qualified Test.Tasty as Tasty
-import qualified Test.Tasty.HUnit as Tasty
+import Prettyprinter qualified as PP
+import Test.Tasty qualified as Tasty
+import Test.Tasty.HUnit qualified as Tasty
 
 -- Foo and Bar are two dummy scripts to test reference inputs. They serve no
 -- purpose and make no real sense.

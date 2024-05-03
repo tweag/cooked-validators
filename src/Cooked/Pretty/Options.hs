@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Pretty-printing options for 'prettyCookedOpt' and their default values.
 module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),

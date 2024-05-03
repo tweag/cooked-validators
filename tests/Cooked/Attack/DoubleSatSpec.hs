@@ -1,14 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Cooked.Attack.DoubleSatSpec where
 
 import Control.Arrow
@@ -19,20 +8,20 @@ import Cooked.TestUtils
 import Data.Default
 import Data.List (subsequences)
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Data.Tuple (swap)
-import qualified Debug.Trace
+import Debug.Trace qualified
 import Ledger.Typed.Scripts
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Eq as Pl
-import qualified PlutusTx.Prelude as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified as Pl
+import PlutusTx.Eq qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit

@@ -1,26 +1,19 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.ShowBSSpec (tests) where
 
-import qualified Cardano.Node.Emulator as Emulator
-import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
+import Cardano.Node.Emulator qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Cooked
 import Data.Default
 import Data.Either
-import qualified Data.Map as Map
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Builtins as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Map qualified as Map
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Typed qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx qualified as Pl
+import PlutusTx.Builtins qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 import Text.Parsec

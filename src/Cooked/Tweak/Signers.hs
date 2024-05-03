@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 -- | This module defines 'Tweaks' revolving around the signers of a
 -- transaction. They assume but do not ensure that the list of signers is free
 -- of duplicates.

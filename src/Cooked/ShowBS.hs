@@ -1,8 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- | Print all the types that occur on the 'TxInfo' to 'BuiltinString'. This is
+-- | Print all the types that occur on the 'Context' to 'BuiltinString'. This is
 -- useful for debugging of validators. You probably do not want to use this in
 -- production code, as many of the functions in this module are wildly
 -- inefficient due to limitations of the 'BuiltinString' type.

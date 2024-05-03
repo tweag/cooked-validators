@@ -1,14 +1,11 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.InitialDistributionSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
+import Plutus.Script.Utils.V2.Typed.Scripts.Validators qualified as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

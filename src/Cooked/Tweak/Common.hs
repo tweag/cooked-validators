@@ -1,9 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
 -- our "domain specific language" for attacks.
 module Cooked.Tweak.Common

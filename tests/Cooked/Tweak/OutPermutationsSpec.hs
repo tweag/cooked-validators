@@ -1,7 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Cooked.Tweak.OutPermutationsSpec (tests) where
 
 import Control.Monad (join, replicateM)
@@ -12,7 +8,7 @@ import Cooked.Tweak.OutPermutations
 import Data.Default
 import Data.Either (rights)
 import Data.List (group, groupBy)
-import qualified Plutus.Script.Utils.Ada as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 

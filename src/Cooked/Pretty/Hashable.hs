@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Cooked.Pretty.Hashable where
 
 import Cooked.Wallet

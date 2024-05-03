@@ -1,7 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-
 module Cooked.MockChain.UtxoSearch
   ( runUtxoSearch,
     allUtxosSearch,

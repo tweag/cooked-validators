@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module Cooked.Attack.DupToken (dupTokenAttack, DupTokenLbl (..)) where
 
 import Control.Monad
