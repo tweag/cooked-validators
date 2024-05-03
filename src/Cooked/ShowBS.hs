@@ -466,15 +466,14 @@ instance ShowBS TxInfo where
       . showBSsPrec app_prec txInfoData
       -- . literal "\n transaction id: "
       . showBSsPrec app_prec txInfoId
-
--- . literal "\n votes: "
--- . showBSsPrec app_prec txInfoVotes
--- . literal "\n proposals: "
--- . showBSsPrec app_prec txInfoProposalProcedures
--- . literal "\n treasury amount: "
--- . showBSsPrec app_prec txInfoCurrentTreasuryAmount
--- . literal "\n treasury donation: "
--- . showBSsPrec app_prec txInfoTreasuryDonation
+      -- . literal "\n votes: "
+      -- . showBSsPrec app_prec txInfoVotes
+      -- . literal "\n proposals: "
+      -- . showBSsPrec app_prec txInfoProposalProcedures
+      -- . literal "\n treasury amount: "
+      . showBSsPrec app_prec txInfoCurrentTreasuryAmount
+      -- . literal "\n treasury donation: "
+      . showBSsPrec app_prec txInfoTreasuryDonation
 
 instance ShowBS ScriptContext where
   {-# INLINEABLE showBSsPrec #-}
