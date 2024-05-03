@@ -63,6 +63,12 @@ package cardano-api
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
+-- Haddock needs this to be able to build the documentation
+package plutus-script-utils
+  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
+package plutus-ledger
+  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"        
+  
 constraints:
   cardano-api ^>= 8.42
 
