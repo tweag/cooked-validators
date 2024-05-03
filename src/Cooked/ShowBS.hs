@@ -1,10 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
-{-# HLINT ignore "Use foldr" #-}
-{-# HLINT ignore "Use camelCase" #-}
 
 -- | Print all the types that occur on the 'TxInfo' to 'BuiltinString'. This is
 -- useful for debugging of validators. You probably do not want to use this in
