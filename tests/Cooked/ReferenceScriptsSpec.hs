@@ -104,11 +104,7 @@ putRefScriptOnScriptOutput recipient referencedScript =
         }
 
 retrieveRefScriptHash :: (MonadBlockChain m) => Pl.TxOutRef -> m (Maybe Pl.ScriptHash)
-retrieveRefScriptHash oref = do
-  mOut <- txOutByRef oref
-  case mOut of
-    Nothing -> return Nothing
-    Just out -> return $ out ^. outputReferenceScriptL
+retrieveRefScriptHash = (maybe Nothing (^. outputReferenceScriptL) <$>) . txOutByRef
 
 checkReferenceScriptOnOref ::
   (MonadBlockChain m) =>

@@ -12,8 +12,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
@@ -54,32 +52,32 @@ module Cooked.MockChain.BlockChain
   )
 where
 
-import qualified Cardano.Node.Emulator as Emulator
-import qualified Cardano.Node.Emulator.Internal.Node.TimeSlot as Emulator
+import Cardano.Node.Emulator qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node.TimeSlot qualified as Emulator
 import Control.Arrow
-import Control.Monad ((<=<))
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
-import Control.Monad.Trans.Writer
-import Cooked.MockChain.GenerateTx (GenerateTxError)
+import Control.Monad.Writer
+import Cooked.MockChain.GenerateTx
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Kind
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Data.Set as Set
-import qualified Ledger.Index as Ledger
-import qualified Ledger.Slot as Ledger
-import qualified Ledger.Tx as Ledger
-import qualified Ledger.Tx.CardanoAPI as Ledger
+import Data.Set qualified as Set
+import Ledger.Index qualified as Ledger
+import Ledger.Slot qualified as Ledger
+import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 import Type.Reflection
 
 -- * BlockChain monad

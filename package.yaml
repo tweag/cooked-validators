@@ -47,7 +47,9 @@ library:
     -fno-ignore-interface-pragmas
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
-
+  default-extensions:
+    - ImportQualifiedPost
+    
 tests:
   spec:
     main: Spec.hs
