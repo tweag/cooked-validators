@@ -451,19 +451,19 @@ instance ShowBS TxInfo where
       -- . literal "\n fees: "
       . showBSsPrec app_prec txInfoFee
       -- . literal "\n minted value: "
-      -- . showBSsPrec app_prec txInfoMint
+      . showBSsPrec app_prec txInfoMint
       -- . literal "\n certificates: "
       -- . showBSsPrec app_prec txInfoTxCerts
       -- . literal "\n wdrl: " -- TODO: what is wdrl? Explain better here
-      -- . showBSsPrec app_prec txInfoWdrl
+      . showBSsPrec app_prec txInfoWdrl
       -- . literal "\n valid range: "
       . showBSsPrec app_prec txInfoValidRange
       -- . literal "\n signatories: "
-      -- . showBSsPrec app_prec txInfoSignatories
+      . showBSsPrec app_prec txInfoSignatories
       -- . literal "\n redeemers: "
       -- . showBSsPrec app_prec txInfoRedeemers
       -- . literal "\n datums: "
-      -- . showBSsPrec app_prec txInfoData
+      . showBSsPrec app_prec txInfoData
       -- . literal "\n transaction id: "
       . showBSsPrec app_prec txInfoId
 
@@ -483,6 +483,6 @@ instance ShowBS ScriptContext where
       $ literal "Script context:"
       . literal "\n Script Tx info:"
       . showBSsPrec p scriptContextTxInfo
+      . literal "\n Script purpose"
 
--- . literal "\n Script purpose"
 -- . showBSsPrec p scriptContextPurpose
