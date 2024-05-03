@@ -2,8 +2,8 @@ module Cooked.MockChain.BlockChainSpec (tests) where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import qualified Ledger
-import qualified Ledger.Slot as Ledger
+import Ledger qualified
+import Ledger.Slot qualified as Ledger
 import Test.Tasty
 import Test.Tasty.QuickCheck
 

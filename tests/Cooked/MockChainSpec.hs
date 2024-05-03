@@ -1,6 +1,6 @@
 module Cooked.MockChainSpec (tests) where
 
-import qualified Cooked.MockChain.BlockChainSpec as BlockChainSpec
+import Cooked.MockChain.BlockChainSpec qualified as BlockChainSpec
 import Test.Tasty
 
 tests :: TestTree

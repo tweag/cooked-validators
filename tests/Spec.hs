@@ -1,14 +1,14 @@
-import qualified Cooked.AttackSpec as AttackSpec
-import qualified Cooked.BasicUsageSpec as BasicUsageSpec
-import qualified Cooked.InitialDistributionSpec as InitDistrib
-import qualified Cooked.InlineDatumsSpec as InlineDatumsSpec
-import qualified Cooked.LtlSpec as LtlSpec
-import qualified Cooked.MinAdaSpec as MinAdaSpec
-import qualified Cooked.MockChainSpec as MockChainSpec
-import qualified Cooked.ReferenceInputsSpec as ReferenceInputsSpec
-import qualified Cooked.ReferenceScriptsSpec as ReferenceScriptsSpec
-import qualified Cooked.ShowBSSpec as ShowBSSpec
-import qualified Cooked.TweakSpec as TweakSpec
+import Cooked.AttackSpec qualified as AttackSpec
+import Cooked.BasicUsageSpec qualified as BasicUsageSpec
+import Cooked.InitialDistributionSpec qualified as InitDistrib
+import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
+import Cooked.LtlSpec qualified as LtlSpec
+import Cooked.MinAdaSpec qualified as MinAdaSpec
+import Cooked.MockChainSpec qualified as MockChainSpec
+import Cooked.ReferenceInputsSpec qualified as ReferenceInputsSpec
+import Cooked.ReferenceScriptsSpec qualified as ReferenceScriptsSpec
+import Cooked.ShowBSSpec qualified as ShowBSSpec
+import Cooked.TweakSpec qualified as TweakSpec
 import Test.Tasty
 
 main :: IO ()

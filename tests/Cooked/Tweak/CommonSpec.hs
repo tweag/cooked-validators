@@ -6,8 +6,8 @@ import Cooked.TestUtils
 import Data.Default
 import Data.List
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Value as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
