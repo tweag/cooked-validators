@@ -12,7 +12,7 @@ import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.List
-import qualified Plutus.Script.Utils.Value as Pl
+import Plutus.Script.Utils.Value qualified as Pl
 
 -- * Initial distribution of funds
 

@@ -22,12 +22,12 @@ where
 
 import Control.Monad
 import Cooked.MockChain.BlockChain
-import qualified Ledger.Tx as Ledger
+import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
-import qualified ListT
+import ListT qualified
 import Optics.Core
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 
 -- * The type of UTxO searches
 

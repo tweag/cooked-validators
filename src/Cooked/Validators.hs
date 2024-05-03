@@ -19,12 +19,12 @@ module Cooked.Validators
   )
 where
 
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl hiding (validatorHash)
-import qualified Plutus.Script.Utils.V3.Generators as Pl
-import qualified Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies as Pl
-import qualified PlutusTx.Prelude as PlutusTx
-import qualified PlutusTx.TH as PlutusTx
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl hiding (validatorHash)
+import Plutus.Script.Utils.V3.Generators qualified as Pl
+import Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies qualified as Pl
+import PlutusTx.Prelude qualified as PlutusTx
+import PlutusTx.TH qualified as PlutusTx
 
 validatorToTypedValidator :: Pl.Validator -> Pl.TypedValidator a
 validatorToTypedValidator val =

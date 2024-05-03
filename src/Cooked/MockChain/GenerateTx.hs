@@ -14,9 +14,9 @@ module Cooked.MockChain.GenerateTx
   )
 where
 
-import qualified Cardano.Api as C
-import qualified Cardano.Api.Shelley as C
-import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
+import Cardano.Api qualified as C
+import Cardano.Api.Shelley qualified as C
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad
 import Control.Monad.Reader
 import Cooked.Output
@@ -25,16 +25,16 @@ import Cooked.Wallet
 import Data.Bifunctor
 import Data.Default
 import Data.Map (Map)
-import qualified Data.Map as Map
-import qualified Data.Maybe as Maybe
+import Data.Map qualified as Map
+import Data.Maybe qualified as Maybe
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Ledger as Pl hiding (TxOut, txOutValue, validatorHash)
-import qualified Ledger.Tx as Ledger
-import qualified Ledger.Tx.CardanoAPI as Pl
+import Data.Set qualified as Set
+import Ledger qualified as Pl hiding (TxOut, txOutValue, validatorHash)
+import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Pl
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl (fromValue, getLovelace)
-import qualified PlutusLedgerApi.V3 as Pl hiding (getLovelace)
+import Plutus.Script.Utils.Ada qualified as Pl (fromValue, getLovelace)
+import PlutusLedgerApi.V3 qualified as Pl hiding (getLovelace)
 
 -- * Domain for transaction generation and associated types
 

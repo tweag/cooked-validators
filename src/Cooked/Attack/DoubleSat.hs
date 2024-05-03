@@ -17,11 +17,11 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Optics.Core
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx.Numeric as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx.Numeric qualified as Pl
 
 {- Note: What is a double satisfaction attack?
 

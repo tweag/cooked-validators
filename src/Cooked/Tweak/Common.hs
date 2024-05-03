@@ -37,7 +37,7 @@ import Data.Either.Combinators (rightToMaybe)
 import Data.List
 import Data.Maybe
 import ListT (ListT)
-import qualified ListT
+import ListT qualified
 import Optics.Core
 
 -- * The type of tweaks

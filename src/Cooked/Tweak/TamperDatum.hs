@@ -20,7 +20,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
 import Optics.Core
-import qualified PlutusTx as Pl
+import PlutusTx qualified as Pl
 import Type.Reflection
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a

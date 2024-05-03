@@ -47,17 +47,17 @@ import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
-import qualified Data.List as List
-import qualified Data.Map as Map
+import Data.List qualified as List
+import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 import Prettyprinter ((<+>))
-import qualified Prettyprinter as PP
+import Prettyprinter qualified as PP
 
 -- | The 'PrettyCooked' instance for 'TxSkelOutDatum' prints the datum it
 -- contains according to its own 'PrettyCooked' instance.

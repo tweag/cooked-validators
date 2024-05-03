@@ -7,13 +7,13 @@
 
 module Cooked.MockChain.Balancing (balanceTxSkel) where
 
-import qualified Cardano.Api as C
-import qualified Cardano.Api.Shelley as C
-import qualified Cardano.Ledger.Shelley.API as CardanoLedger
-import qualified Cardano.Ledger.Shelley.Core as CardanoLedger
-import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
-import qualified Cardano.Node.Emulator.Internal.Node.Params as Params
-import qualified Cardano.Node.Emulator.Internal.Node.Validation as Emulator
+import Cardano.Api qualified as C
+import Cardano.Api.Shelley qualified as C
+import Cardano.Ledger.Shelley.API qualified as CardanoLedger
+import Cardano.Ledger.Shelley.Core qualified as CardanoLedger
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Params
+import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
@@ -26,16 +26,16 @@ import Cooked.Wallet
 import Data.Function
 import Data.List
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Ledger.Index as Ledger
+import Data.Set qualified as Set
+import Ledger.Index qualified as Ledger
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx.Numeric as Pl
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx.Numeric qualified as Pl
 
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Pl.TxOutRef)
 balanceTxSkel skelUnbal = do

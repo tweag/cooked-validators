@@ -8,11 +8,11 @@ where
 
 import Cooked.Skeleton (TxSkelOutDatum)
 import Data.Function (on)
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Ledger as Pl hiding (Value)
-import qualified Plutus.Script.Utils.Value as Pl
+import Data.Map.Strict qualified as Map
+import Ledger qualified as Pl hiding (Value)
+import Plutus.Script.Utils.Value qualified as Pl
 
 -- | A description of who owns what in a blockchain. Owners are addresses
 -- and they each own a 'UtxoPayloadSet'.

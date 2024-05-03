@@ -13,9 +13,9 @@ where
 
 import Data.List
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusTx.Numeric as PlutusTx
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusTx.Numeric qualified as PlutusTx
 
 flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
 flattenValueI =

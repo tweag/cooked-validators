@@ -21,10 +21,10 @@ import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.List
-import qualified Data.Map as Map
-import qualified Ledger as Pl
+import Data.Map qualified as Map
+import Ledger qualified as Pl
 import Optics.Core
-import qualified PlutusLedgerApi.V3 as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 
 -- * Adding and removing transaction inputs
 

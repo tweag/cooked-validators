@@ -25,7 +25,7 @@ module Cooked.MockChain.Staged
   )
 where
 
-import qualified Cardano.Node.Emulator as Emulator
+import Cardano.Node.Emulator qualified as Emulator
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Monad (MonadPlus (..), msum)
@@ -40,13 +40,13 @@ import Cooked.MockChain.UtxoState
 import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Data.Default
-import qualified Data.Map as Map
-import qualified Ledger.Slot as Ledger
-import qualified Ledger.Tx as Ledger
-import qualified Ledger.Tx.CardanoAPI as Ledger
-import qualified Ledger.Typed.Scripts as Pl
-import qualified Plutus.Script.Utils.V3.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Data.Map qualified as Map
+import Ledger.Slot qualified as Ledger
+import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
+import Ledger.Typed.Scripts qualified as Pl
+import Plutus.Script.Utils.V3.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 
 -- * Interpreting and running 'StagedMockChain'
 

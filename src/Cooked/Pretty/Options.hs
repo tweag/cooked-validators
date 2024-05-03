@@ -16,9 +16,9 @@ import Cooked.Wallet (wallet)
 import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
-import qualified Data.Map as Map
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Map qualified as Map
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 
 data PrettyCookedOpts = PrettyCookedOpts
   { -- | Whether to print transaction ids of validated transactions.

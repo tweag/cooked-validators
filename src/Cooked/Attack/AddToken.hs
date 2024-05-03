@@ -4,10 +4,10 @@ import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
-import qualified Data.Map as Map
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusTx.Numeric as Pl
+import Data.Map qualified as Map
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusTx.Numeric qualified as Pl
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
 -- different from the 'dupTokenAttack' in that it does not merely try to

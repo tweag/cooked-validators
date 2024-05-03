@@ -19,9 +19,9 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Validators
 import Optics.Core
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same

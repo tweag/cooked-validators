@@ -5,7 +5,7 @@
 
 module Cooked.MockChain.Testing where
 
-import qualified Control.Exception as E
+import Control.Exception qualified as E
 import Control.Monad
 import Cooked.InitialDistribution
 import Cooked.MockChain.BlockChain
@@ -14,11 +14,11 @@ import Cooked.MockChain.Staged
 import Cooked.MockChain.UtxoState
 import Cooked.Pretty
 import Data.Default
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Debug.Trace
 import Ledger (ScriptError (EvaluationError), ValidationError (ScriptFailure))
-import qualified Test.QuickCheck as QC
-import qualified Test.Tasty.HUnit as HU
+import Test.QuickCheck qualified as QC
+import Test.Tasty.HUnit qualified as HU
 
 -- | This module provides a common interface for HUnit and QuickCheck tests.
 -- We do so by abstracting uses of 'HU.Assertion' and 'QC.Property' for @(IsProp prop) => prop@,

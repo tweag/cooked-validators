@@ -40,12 +40,12 @@ module Cooked.Output
 where
 
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl hiding (validatorHash)
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V2.Tx as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl hiding (validatorHash)
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V2.Tx qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 
 -- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
 -- some information about

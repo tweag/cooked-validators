@@ -84,8 +84,8 @@ module Cooked.Skeleton
   )
 where
 
-import qualified Cardano.Api as C
-import qualified Cardano.Node.Emulator as Emulator
+import Cardano.Api qualified as C
+import Cardano.Node.Emulator qualified as Emulator
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -95,23 +95,23 @@ import Data.Default
 import Data.Either.Combinators
 import Data.Function
 import Data.List (foldl')
-import qualified Data.List.NonEmpty as NEList
+import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
-import qualified Data.Map.NonEmpty as NEMap
+import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Ledger.Slot as Pl
+import Data.Set qualified as Set
+import Ledger.Slot qualified as Pl
 import Optics.Core
 import Optics.TH
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl hiding (validatorHash)
-import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
-import qualified PlutusLedgerApi.V3 as Pl
-import qualified PlutusTx.Prelude as Pl
+import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import Plutus.Script.Utils.Typed qualified as Pl hiding (validatorHash)
+import Plutus.Script.Utils.Value qualified as Pl hiding (adaSymbol, adaToken)
+import PlutusLedgerApi.V3 qualified as Pl
+import PlutusTx.Prelude qualified as Pl
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 

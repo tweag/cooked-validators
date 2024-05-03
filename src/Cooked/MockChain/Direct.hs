@@ -12,12 +12,12 @@
 
 module Cooked.MockChain.Direct where
 
-import qualified Cardano.Api as C
-import qualified Cardano.Api.Shelley as C
-import qualified Cardano.Ledger.Shelley.API as CardanoLedger
-import qualified Cardano.Ledger.Shelley.LedgerState as Ledger
-import qualified Cardano.Node.Emulator.Internal.Node.Params as Emulator
-import qualified Cardano.Node.Emulator.Internal.Node.Validation as Emulator
+import Cardano.Api qualified as C
+import Cardano.Api.Shelley qualified as C
+import Cardano.Ledger.Shelley.API qualified as CardanoLedger
+import Cardano.Ledger.Shelley.LedgerState qualified as Ledger
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Applicative
 import Control.Arrow
 import Control.Monad (when, (<=<))
@@ -37,17 +37,17 @@ import Data.Default
 import Data.Either.Combinators (mapLeft)
 import Data.List (foldl')
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import Data.Map.Strict qualified as Map
 import Data.Maybe (mapMaybe)
-import qualified Data.Set as Set
-import qualified Ledger.Index as Ledger
+import Data.Set qualified as Set
+import Ledger.Index qualified as Ledger
 import Ledger.Orphans ()
-import qualified Ledger.Slot as Ledger
-import qualified Ledger.Tx as Ledger
-import qualified Ledger.Tx.CardanoAPI as Ledger
+import Ledger.Slot qualified as Ledger
+import Ledger.Tx qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core (view)
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Plutus.Script.Utils.Scripts qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 
 -- * Direct Emulation
 

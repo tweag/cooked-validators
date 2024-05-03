@@ -20,14 +20,14 @@ import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
-import qualified Ledger.Index as Pl
-import qualified Ledger.Scripts as Pl
-import qualified Ledger.Tx.CardanoAPI as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Ledger.Index qualified as Pl
+import Ledger.Scripts qualified as Pl
+import Ledger.Tx.CardanoAPI qualified as Pl
+import Plutus.Script.Utils.Value qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 import Prettyprinter ((<+>))
-import qualified Prettyprinter as PP
-import qualified Prettyprinter.Render.Text as PP
+import Prettyprinter qualified as PP
+import Prettyprinter.Render.Text qualified as PP
 
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked

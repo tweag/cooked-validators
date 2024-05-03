@@ -21,13 +21,13 @@ module Cooked.Wallet
   )
 where
 
-import qualified Cardano.Crypto.Wallet as Cardano
+import Cardano.Crypto.Wallet qualified as Cardano
 import Data.Function (on)
 import Data.List (elemIndex)
-import qualified Ledger.Address as Pl
-import qualified Ledger.CardanoWallet as Pl
-import qualified Ledger.Crypto as Pl
-import qualified PlutusLedgerApi.V3 as Pl
+import Ledger.Address qualified as Pl
+import Ledger.CardanoWallet qualified as Pl
+import Ledger.Crypto qualified as Pl
+import PlutusLedgerApi.V3 qualified as Pl
 import Unsafe.Coerce
 
 -- * MockChain Wallets

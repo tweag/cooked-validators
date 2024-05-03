@@ -14,13 +14,13 @@ module Cooked.Pretty.Common
 where
 
 import Cooked.Pretty.Options (PrettyCookedHashOpts (..))
-import qualified Data.ByteString as ByteString
-import qualified Data.Map as Map
-import qualified Numeric
-import qualified PlutusTx.Builtins.Internal as Pl (BuiltinByteString (..))
+import Data.ByteString qualified as ByteString
+import Data.Map qualified as Map
+import Numeric qualified
+import PlutusTx.Builtins.Internal qualified as Pl (BuiltinByteString (..))
 import Prettyprinter (Doc, (<+>))
-import qualified Prettyprinter as PP
-import qualified Prettyprinter.Render.String as PP
+import Prettyprinter qualified as PP
+import Prettyprinter.Render.String qualified as PP
 
 type DocCooked = Doc ()
 
