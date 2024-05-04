@@ -20,7 +20,7 @@
 
 #### Creation
 
-* With only values
+* With values only
   ```haskell
   initDist :: InitialDistribution
   initDist = distributionFromList $

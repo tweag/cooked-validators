@@ -9,40 +9,40 @@ module Cooked.Validators
   )
 where
 
-import Plutus.Script.Utils.Scripts qualified as Pl
-import Plutus.Script.Utils.Typed qualified as Pl hiding (validatorHash)
-import Plutus.Script.Utils.V3.Generators qualified as Pl
-import Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
+import Plutus.Script.Utils.V3.Generators qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies qualified as Script
 import PlutusTx.Prelude qualified as PlutusTx
 import PlutusTx.TH qualified as PlutusTx
 
-validatorToTypedValidator :: Pl.Validator -> Pl.TypedValidator a
+validatorToTypedValidator :: Script.Validator -> Script.TypedValidator a
 validatorToTypedValidator val =
-  Pl.TypedValidator
-    { Pl.tvValidator = vValidator,
-      Pl.tvValidatorHash = vValidatorHash,
-      Pl.tvForwardingMPS = vMintingPolicy,
-      Pl.tvForwardingMPSHash = Pl.mintingPolicyHash vMintingPolicy
+  Script.TypedValidator
+    { Script.tvValidator = vValidator,
+      Script.tvValidatorHash = vValidatorHash,
+      Script.tvForwardingMPS = vMintingPolicy,
+      Script.tvForwardingMPSHash = Script.mintingPolicyHash vMintingPolicy
     }
   where
-    vValidator = Pl.Versioned val Pl.PlutusV3
-    vValidatorHash = Pl.validatorHash vValidator
-    forwardingPolicy = Pl.mkForwardingMintingPolicy vValidatorHash
-    vMintingPolicy = Pl.Versioned forwardingPolicy Pl.PlutusV3
+    vValidator = Script.Versioned val Script.PlutusV3
+    vValidatorHash = Script.validatorHash vValidator
+    forwardingPolicy = Script.mkForwardingMintingPolicy vValidatorHash
+    vMintingPolicy = Script.Versioned forwardingPolicy Script.PlutusV3
 
 -- | The trivial validator that always succeds; this is in particular
 -- a sufficient target for the datum hijacking attack since we only
 -- want to show feasibility of the attack.
-alwaysTrueValidator :: forall a. Pl.TypedValidator a
-alwaysTrueValidator = validatorToTypedValidator @a Pl.alwaysSucceedValidator
+alwaysTrueValidator :: forall a. Script.TypedValidator a
+alwaysTrueValidator = validatorToTypedValidator @a Script.alwaysSucceedValidator
 
 -- -- | The trivial validator that always fails
-alwaysFalseValidator :: forall a. Pl.TypedValidator a
-alwaysFalseValidator = validatorToTypedValidator @a $ Pl.mkValidatorScript $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.error ()||])
+alwaysFalseValidator :: forall a. Script.TypedValidator a
+alwaysFalseValidator = validatorToTypedValidator @a $ Script.mkValidatorScript $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.error ()||])
 
 -- -- | A Mock contract type to instantiate validators with
 data MockContract
 
-instance Pl.ValidatorTypes MockContract where
+instance Script.ValidatorTypes MockContract where
   type RedeemerType MockContract = ()
   type DatumType MockContract = ()

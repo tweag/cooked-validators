@@ -12,7 +12,7 @@ import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.List
-import Plutus.Script.Utils.Value qualified as Pl
+import Plutus.Script.Utils.Value qualified as Script
 
 -- * Initial distribution of funds
 
@@ -52,5 +52,5 @@ instance Semigroup InitialDistribution where
 instance Monoid InitialDistribution where
   mempty = InitialDistribution mempty
 
-distributionFromList :: [(Wallet, [Pl.Value])] -> InitialDistribution
+distributionFromList :: [(Wallet, [Script.Value])] -> InitialDistribution
 distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK (walletPKHash user)) values) []

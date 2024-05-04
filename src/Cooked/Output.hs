@@ -33,12 +33,12 @@ module Cooked.Output
 where
 
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Pl
-import Plutus.Script.Utils.Scripts qualified as Pl
-import Plutus.Script.Utils.Typed qualified as Pl hiding (validatorHash)
-import Plutus.Script.Utils.Value qualified as Pl
-import PlutusLedgerApi.V2.Tx qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V2.Tx qualified as Api
+import PlutusLedgerApi.V3 qualified as Api
 
 -- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
 -- some information about
@@ -60,79 +60,79 @@ class IsAbstractOutput o where
   type ValueType o
   type ReferenceScriptType o
   outputOwnerL :: Lens' o (OwnerType o)
-  outputStakingCredentialL :: Lens' o (Maybe Pl.StakingCredential)
+  outputStakingCredentialL :: Lens' o (Maybe Api.StakingCredential)
   outputDatumL :: Lens' o (DatumType o)
   outputValueL :: Lens' o (ValueType o)
   outputReferenceScriptL :: Lens' o (Maybe (ReferenceScriptType o))
 
 class ToCredential a where
-  toCredential :: a -> Pl.Credential
+  toCredential :: a -> Api.Credential
 
-instance ToCredential Pl.Credential where
+instance ToCredential Api.Credential where
   toCredential = id
 
-instance ToCredential (Pl.TypedValidator a) where
-  toCredential = Pl.ScriptCredential . toScriptHash . Pl.validatorHash . Pl.tvValidator
+instance ToCredential (Script.TypedValidator a) where
+  toCredential = Api.ScriptCredential . toScriptHash . Script.tvValidatorHash
 
-instance ToCredential Pl.PubKeyHash where
-  toCredential = Pl.PubKeyCredential
+instance ToCredential Api.PubKeyHash where
+  toCredential = Api.PubKeyCredential
 
 class ToOutputDatum a where
-  toOutputDatum :: a -> Pl.OutputDatum
+  toOutputDatum :: a -> Api.OutputDatum
 
-instance ToOutputDatum Pl.OutputDatum where
+instance ToOutputDatum Api.OutputDatum where
   toOutputDatum = id
 
-instance ToOutputDatum Pl.Datum where
-  toOutputDatum = Pl.OutputDatum
+instance ToOutputDatum Api.Datum where
+  toOutputDatum = Api.OutputDatum
 
 instance ToOutputDatum () where
-  toOutputDatum = const Pl.NoOutputDatum
+  toOutputDatum = const Api.NoOutputDatum
 
-instance ToOutputDatum Pl.DatumHash where
-  toOutputDatum = Pl.OutputDatumHash
+instance ToOutputDatum Api.DatumHash where
+  toOutputDatum = Api.OutputDatumHash
 
-instance ToOutputDatum Pl.BuiltinData where
-  toOutputDatum = toOutputDatum . Pl.Datum
+instance ToOutputDatum Api.BuiltinData where
+  toOutputDatum = toOutputDatum . Api.Datum
 
 class ToValue a where
-  toValue :: a -> Pl.Value
+  toValue :: a -> Api.Value
 
-instance ToValue Pl.Value where
+instance ToValue Api.Value where
   toValue = id
 
-instance ToValue Pl.Ada where
-  toValue = Pl.toValue
+instance ToValue Script.Ada where
+  toValue = Script.toValue
 
 class ToScript a where
-  toScript :: a -> Pl.Versioned Pl.Script
+  toScript :: a -> Script.Versioned Script.Script
 
-instance ToScript (Pl.Versioned Pl.Script) where
+instance ToScript (Script.Versioned Script.Script) where
   toScript = id
 
-instance ToScript (Pl.Versioned Pl.Validator) where
-  toScript (Pl.Versioned (Pl.Validator script) version) = Pl.Versioned script version
+instance ToScript (Script.Versioned Script.Validator) where
+  toScript (Script.Versioned (Script.Validator script) version) = Script.Versioned script version
 
-instance ToScript (Pl.TypedValidator a) where
-  toScript = toScript . Pl.vValidatorScript
+instance ToScript (Script.TypedValidator a) where
+  toScript = toScript . Script.vValidatorScript
 
 class ToScriptHash a where
-  toScriptHash :: a -> Pl.ScriptHash
+  toScriptHash :: a -> Api.ScriptHash
 
-instance ToScriptHash Pl.ScriptHash where
+instance ToScriptHash Api.ScriptHash where
   toScriptHash = id
 
-instance ToScriptHash (Pl.Versioned Pl.Script) where
-  toScriptHash = Pl.scriptHash
+instance ToScriptHash (Script.Versioned Script.Script) where
+  toScriptHash = Script.scriptHash
 
-instance ToScriptHash (Pl.Versioned Pl.Validator) where
+instance ToScriptHash (Script.Versioned Script.Validator) where
   toScriptHash = toScriptHash . toScript
 
-instance ToScriptHash Pl.ValidatorHash where
-  toScriptHash (Pl.ValidatorHash h) = Pl.ScriptHash h
+instance ToScriptHash Script.ValidatorHash where
+  toScriptHash (Script.ValidatorHash h) = Script.ScriptHash h
 
-instance ToScriptHash (Pl.TypedValidator a) where
-  toScriptHash = toScriptHash . Pl.tvValidator
+instance ToScriptHash (Script.TypedValidator a) where
+  toScriptHash = toScriptHash . Script.tvValidator
 
 -- | An output that can be translated into its script-perspective (as seen on
 -- the 'TxInfo') representation
@@ -144,48 +144,48 @@ type IsTxInfoOutput o =
     ToScriptHash (ReferenceScriptType o)
   )
 
-outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Pl.Address
-outputAddress out = Pl.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
+outputAddress :: (IsAbstractOutput o, ToCredential (OwnerType o)) => o -> Api.Address
+outputAddress out = Api.Address (toCredential (out ^. outputOwnerL)) (out ^. outputStakingCredentialL)
 
-outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Pl.OutputDatum
+outputOutputDatum :: (IsAbstractOutput o, ToOutputDatum (DatumType o)) => o -> Api.OutputDatum
 outputOutputDatum = toOutputDatum . (^. outputDatumL)
 
-outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Pl.Value
+outputValue :: (IsAbstractOutput o, ToValue (ValueType o)) => o -> Api.Value
 outputValue = toValue . (^. outputValueL)
 
-outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Pl.ScriptHash
+outputReferenceScriptHash :: (IsAbstractOutput o, ToScriptHash (ReferenceScriptType o)) => o -> Maybe Api.ScriptHash
 outputReferenceScriptHash = (toScriptHash <$>) . (^. outputReferenceScriptL)
 
 -- | Return the output as it is seen by a validator on the 'TxInfo'.
-outputTxOut :: (IsTxInfoOutput o) => o -> Pl.TxOut
+outputTxOut :: (IsTxInfoOutput o) => o -> Api.TxOut
 outputTxOut o =
-  Pl.TxOut
+  Api.TxOut
     (outputAddress o)
     (outputValue o)
     (outputOutputDatum o)
     (outputReferenceScriptHash o)
 
--- * 'Pl.TxOut's are outputs
+-- * 'Api.TxOut's are outputs
 
-instance IsAbstractOutput Pl.TxOut where
-  type OwnerType Pl.TxOut = Pl.Credential
-  type DatumType Pl.TxOut = Pl.OutputDatum
-  type ValueType Pl.TxOut = Pl.Value
-  type ReferenceScriptType Pl.TxOut = Pl.ScriptHash
+instance IsAbstractOutput Api.TxOut where
+  type OwnerType Api.TxOut = Api.Credential
+  type DatumType Api.TxOut = Api.OutputDatum
+  type ValueType Api.TxOut = Api.Value
+  type ReferenceScriptType Api.TxOut = Api.ScriptHash
   outputOwnerL =
-    lensVL Pl.outAddress
+    lensVL Api.outAddress
       % lens
-        Pl.addressCredential
-        (\addr cred -> addr {Pl.addressCredential = cred})
-  outputDatumL = lensVL Pl.outDatum
+        Api.addressCredential
+        (\addr cred -> addr {Api.addressCredential = cred})
+  outputDatumL = lensVL Api.outDatum
   outputStakingCredentialL =
     lens
-      (Pl.addressStakingCredential . Pl.txOutAddress)
+      (Api.addressStakingCredential . Api.txOutAddress)
       ( \out mStCred ->
-          out {Pl.txOutAddress = (Pl.txOutAddress out) {Pl.addressStakingCredential = mStCred}}
+          out {Api.txOutAddress = (Api.txOutAddress out) {Api.addressStakingCredential = mStCred}}
       )
-  outputValueL = lensVL Pl.outValue
-  outputReferenceScriptL = lensVL Pl.outReferenceScript
+  outputValueL = lensVL Api.outValue
+  outputReferenceScriptL = lensVL Api.outReferenceScript
 
 -- * A concrete type for outputs
 
@@ -193,7 +193,7 @@ instance IsAbstractOutput Pl.TxOut where
 data ConcreteOutput ownerType datumType valueType referenceScriptType where
   ConcreteOutput ::
     { concreteOutputOwner :: ownerType,
-      concreteOutputStakingCredential :: Maybe Pl.StakingCredential,
+      concreteOutputStakingCredential :: Maybe Api.StakingCredential,
       concreteOutputValue :: valueType,
       concreteOutputDatum :: datumType,
       concreteOutputReferenceScript :: Maybe referenceScriptType
@@ -225,7 +225,7 @@ isOutputWithoutDatum ::
   output ->
   Maybe (ConcreteOutput (OwnerType output) () (ValueType output) (ReferenceScriptType output))
 isOutputWithoutDatum out = case outputOutputDatum out of
-  Pl.NoOutputDatum ->
+  Api.NoOutputDatum ->
     Just $
       ConcreteOutput
         (out ^. outputOwnerL)
@@ -238,17 +238,17 @@ isOutputWithoutDatum out = case outputOutputDatum out of
 -- | Test if the output carries some inlined datum that can be parsed from
 -- builtin data on to something of a specific type.
 isOutputWithInlineDatumOfType ::
-  (Pl.FromData a, IsTxInfoOutput output) =>
+  (Api.FromData a, IsTxInfoOutput output) =>
   output ->
   Maybe (ConcreteOutput (OwnerType output) a (ValueType output) (ReferenceScriptType output))
 isOutputWithInlineDatumOfType out =
   case outputOutputDatum out of
-    Pl.OutputDatum (Pl.Datum datum) ->
+    Api.OutputDatum (Api.Datum datum) ->
       ConcreteOutput
         (out ^. outputOwnerL)
         (out ^. outputStakingCredentialL)
         (out ^. outputValueL)
-        <$> Pl.fromBuiltinData datum
+        <$> Api.fromBuiltinData datum
         <*> Just (out ^. outputReferenceScriptL)
     _ -> Nothing
 
@@ -256,10 +256,10 @@ isOutputWithInlineDatumOfType out =
 isOutputWithInlineDatum ::
   (IsTxInfoOutput output) =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.Datum (ValueType output) (ReferenceScriptType output))
+  Maybe (ConcreteOutput (OwnerType output) Api.Datum (ValueType output) (ReferenceScriptType output))
 isOutputWithInlineDatum out =
   case outputOutputDatum out of
-    Pl.OutputDatum datum@(Pl.Datum _) ->
+    Api.OutputDatum datum@(Api.Datum _) ->
       Just $
         ConcreteOutput
           (out ^. outputOwnerL)
@@ -273,14 +273,14 @@ isOutputWithInlineDatum out =
 isOutputWithDatumHash ::
   (IsTxInfoOutput output) =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) Pl.DatumHash (ValueType output) (ReferenceScriptType output))
+  Maybe (ConcreteOutput (OwnerType output) Api.DatumHash (ValueType output) (ReferenceScriptType output))
 isOutputWithDatumHash out =
   case outputOutputDatum out of
-    Pl.OutputDatumHash hash ->
+    Api.OutputDatumHash hash ->
       Just $
         ConcreteOutput
           (out ^. outputOwnerL)
-          (Pl.addressStakingCredential . outputAddress $ out)
+          (Api.addressStakingCredential . outputAddress $ out)
           (out ^. outputValueL)
           hash
           (out ^. outputReferenceScriptL)
@@ -292,12 +292,12 @@ isOutputWithDatumHash out =
 -- return an output with the validator type as its 'OwnerType'.
 isScriptOutputFrom ::
   (IsTxInfoOutput output) =>
-  Pl.TypedValidator a ->
+  Script.TypedValidator a ->
   output ->
-  Maybe (ConcreteOutput (Pl.TypedValidator a) (DatumType output) (ValueType output) (ReferenceScriptType output))
+  Maybe (ConcreteOutput (Script.TypedValidator a) (DatumType output) (ValueType output) (ReferenceScriptType output))
 isScriptOutputFrom validator out =
   case outputAddress out of
-    Pl.Address (Pl.ScriptCredential scriptHash) mStCred ->
+    Api.Address (Api.ScriptCredential scriptHash) mStCred ->
       if scriptHash == toScriptHash validator
         then
           Just $
@@ -311,15 +311,15 @@ isScriptOutputFrom validator out =
     _ -> Nothing
 
 -- | Test if the owner of an output is a specific public key. If it is, return
--- an output of the same 'DatumType', but with 'Pl.PubKeyHash' as its
+-- an output of the same 'DatumType', but with 'Api.PubKeyHash' as its
 -- 'OwnerType'.
 isPKOutputFrom ::
   (IsTxInfoOutput output) =>
-  Pl.PubKeyHash ->
+  Api.PubKeyHash ->
   output ->
-  Maybe (ConcreteOutput Pl.PubKeyHash (DatumType output) (ValueType output) (ReferenceScriptType output))
+  Maybe (ConcreteOutput Api.PubKeyHash (DatumType output) (ValueType output) (ReferenceScriptType output))
 isPKOutputFrom pkh out = case outputAddress out of
-  Pl.Address (Pl.PubKeyCredential pkh') _mStCred ->
+  Api.Address (Api.PubKeyCredential pkh') _mStCred ->
     if pkh == pkh'
       then
         Just $
@@ -338,26 +338,26 @@ isPKOutputFrom pkh out = case outputAddress out of
 isOnlyAdaOutput ::
   (IsTxInfoOutput output) =>
   output ->
-  Maybe (ConcreteOutput (OwnerType output) (DatumType output) Pl.Ada (ReferenceScriptType output))
+  Maybe (ConcreteOutput (OwnerType output) (DatumType output) Script.Ada (ReferenceScriptType output))
 isOnlyAdaOutput out =
-  if Pl.isAdaOnlyValue (outputValue out)
+  if Script.isAdaOnlyValue (outputValue out)
     then
       Just $
         ConcreteOutput
           (out ^. outputOwnerL)
           (out ^. outputStakingCredentialL)
-          (Pl.fromValue $ outputValue out)
+          (Script.fromValue $ outputValue out)
           (out ^. outputDatumL)
           (out ^. outputReferenceScriptL)
     else Nothing
 
 -- ** Filtering on the reference script
 
--- | Convert the reference script type on the output to 'Pl.ScriptHash'.
+-- | Convert the reference script type on the output to 'Api.ScriptHash'.
 toOutputWithReferenceScriptHash ::
   (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) =>
   output ->
-  ConcreteOutput (OwnerType output) (DatumType output) (ValueType output) Pl.ScriptHash
+  ConcreteOutput (OwnerType output) (DatumType output) (ValueType output) Api.ScriptHash
 toOutputWithReferenceScriptHash out =
   ConcreteOutput
     (out ^. outputOwnerL)

@@ -32,66 +32,66 @@ module Cooked.Currencies
   )
 where
 
-import Plutus.Script.Utils.Scripts qualified as Pl
-import Plutus.Script.Utils.Typed qualified as Pl
-import Plutus.Script.Utils.Value qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3.Contexts qualified as Api
 import PlutusTx qualified
 import PlutusTx.Builtins.Class qualified as PlutusTx
-import PlutusTx.Prelude (Bool (..), Integer, flip, (.))
-import Prelude (String)
+import PlutusTx.Prelude
+import Prelude qualified as Haskell
 
 -- | Takes a minting policy and a language version and returns the
 -- associated currency symbol
-currencySymbolFromLanguageAndMP :: Pl.Language -> Pl.MintingPolicy -> Pl.CurrencySymbol
-currencySymbolFromLanguageAndMP lang = Pl.scriptCurrencySymbol . flip Pl.Versioned lang
+currencySymbolFromLanguageAndMP :: Script.Language -> Script.MintingPolicy -> Script.CurrencySymbol
+currencySymbolFromLanguageAndMP lang = Script.scriptCurrencySymbol . flip Script.Versioned lang
 
 -- * Quick Values
 
 -- | Token name of a /quick/ asset class; prefixes the name with a
 -- @'q'@ to make it easy to distinguish between quick and permanent
 -- tokens.
-quickTokenName :: String -> Pl.TokenName
-quickTokenName = Pl.TokenName . PlutusTx.stringToBuiltinByteString
+quickTokenName :: Haskell.String -> Script.TokenName
+quickTokenName = Script.TokenName . PlutusTx.stringToBuiltinByteString
 
 -- | /Quick/ asset class from a token name
-quickAssetClass :: String -> Pl.AssetClass
-quickAssetClass = Pl.assetClass quickCurrencySymbol . quickTokenName
+quickAssetClass :: Haskell.String -> Script.AssetClass
+quickAssetClass = Script.assetClass quickCurrencySymbol . quickTokenName
 
 -- | Constructor for /quick/ values from token name and amount
-quickValue :: String -> Integer -> Pl.Value
-quickValue = Pl.assetClassValue . quickAssetClass
+quickValue :: Haskell.String -> Integer -> Script.Value
+quickValue = Script.assetClassValue . quickAssetClass
 
 {-# INLINEABLE mkQuickCurrencyPolicy #-}
-mkQuickCurrencyPolicy :: () -> Pl.ScriptContext -> Bool
+mkQuickCurrencyPolicy :: () -> Api.ScriptContext -> Bool
 mkQuickCurrencyPolicy _ _ = True
 
-quickCurrencyPolicy :: Pl.MintingPolicy
-quickCurrencyPolicy = Pl.mkMintingPolicyScript $$(PlutusTx.compile [||Pl.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
+quickCurrencyPolicy :: Script.MintingPolicy
+quickCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkQuickCurrencyPolicy||])
 
-quickCurrencySymbol :: Pl.CurrencySymbol
-quickCurrencySymbol = currencySymbolFromLanguageAndMP Pl.PlutusV3 quickCurrencyPolicy
+quickCurrencySymbol :: Script.CurrencySymbol
+quickCurrencySymbol = currencySymbolFromLanguageAndMP Script.PlutusV3 quickCurrencyPolicy
 
 -- * Permanent values
 
 -- | Token name of a /permanent/ asset class
-permanentTokenName :: String -> Pl.TokenName
-permanentTokenName = Pl.TokenName . PlutusTx.stringToBuiltinByteString
+permanentTokenName :: Haskell.String -> Script.TokenName
+permanentTokenName = Script.TokenName . PlutusTx.stringToBuiltinByteString
 
 -- | /Permanent/ asset class from a token name
-permanentAssetClass :: String -> Pl.AssetClass
-permanentAssetClass = Pl.assetClass permanentCurrencySymbol . permanentTokenName
+permanentAssetClass :: Haskell.String -> Script.AssetClass
+permanentAssetClass = Script.assetClass permanentCurrencySymbol . permanentTokenName
 
 -- | Constructor for /Permanent/ values from token name and amount
-permanentValue :: String -> Integer -> Pl.Value
-permanentValue = Pl.assetClassValue . permanentAssetClass
+permanentValue :: Haskell.String -> Integer -> Script.Value
+permanentValue = Script.assetClassValue . permanentAssetClass
 
 {-# INLINEABLE mkPermanentCurrencyPolicy #-}
-mkPermanentCurrencyPolicy :: () -> Pl.ScriptContext -> Bool
+mkPermanentCurrencyPolicy :: () -> Api.ScriptContext -> Bool
 mkPermanentCurrencyPolicy _ _ = False
 
-permanentCurrencyPolicy :: Pl.MintingPolicy
-permanentCurrencyPolicy = Pl.mkMintingPolicyScript $$(PlutusTx.compile [||Pl.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
+permanentCurrencyPolicy :: Script.MintingPolicy
+permanentCurrencyPolicy = Script.mkMintingPolicyScript $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkPermanentCurrencyPolicy||])
 
-permanentCurrencySymbol :: Pl.CurrencySymbol
-permanentCurrencySymbol = currencySymbolFromLanguageAndMP Pl.PlutusV3 permanentCurrencyPolicy
+permanentCurrencySymbol :: Script.CurrencySymbol
+permanentCurrencySymbol = currencySymbolFromLanguageAndMP Script.PlutusV3 permanentCurrencyPolicy
