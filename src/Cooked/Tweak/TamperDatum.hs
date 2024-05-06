@@ -13,7 +13,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
 import Optics.Core
-import PlutusTx qualified as Pl
+import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
@@ -26,8 +26,8 @@ tamperDatumTweak ::
   ( MonadTweak m,
     Show a,
     PrettyCooked a,
-    Pl.ToData a,
-    Pl.FromData a,
+    Api.ToData a,
+    Api.FromData a,
     Typeable a
   ) =>
   -- | Use this function to return 'Just' the changed datum, if you want to
@@ -69,11 +69,11 @@ data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 malformDatumTweak ::
   forall a m.
   ( MonadTweak m,
-    Pl.ToData a,
-    Pl.FromData a,
+    Api.ToData a,
+    Api.FromData a,
     Typeable a
   ) =>
-  (a -> [Pl.BuiltinData]) ->
+  (a -> [Api.BuiltinData]) ->
   m ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
@@ -105,7 +105,7 @@ malformDatumTweak change = do
     changeTxSkelOutDatum (TxSkelOutDatumHash datum) = map TxSkelOutDatumHash $ changeOnCorrectType datum
     changeTxSkelOutDatum (TxSkelOutInlineDatum datum) = map TxSkelOutInlineDatum $ changeOnCorrectType datum
 
-    changeOnCorrectType :: (Typeable b) => b -> [Pl.BuiltinData]
+    changeOnCorrectType :: (Typeable b) => b -> [Api.BuiltinData]
     changeOnCorrectType datum = case typeOf datum `eqTypeRep` (typeRep @a) of
       Just HRefl -> change datum
       Nothing -> []

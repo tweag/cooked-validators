@@ -15,8 +15,7 @@ import Data.Bifunctor (first)
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Plutus.Script.Utils.Value qualified as Pl
-import PlutusTx.Prelude qualified as Pl
+import PlutusLedgerApi.V3 qualified as Api
 
 data PrettyCookedOpts = PrettyCookedOpts
   { -- | Whether to print transaction ids of validated transactions.
@@ -70,7 +69,7 @@ data PrettyCookedHashOpts = PrettyCookedHashOpts
     -- For example @Map.singleton (walletPKHash (wallet 1)) "Alice"@
     -- By default: "defaultHashNames" which assigns Lovelace, Quick, and
     -- Permanent as names for the associated currency symbols
-    pcOptHashNames :: Map Pl.BuiltinByteString String,
+    pcOptHashNames :: Map Api.BuiltinByteString String,
     -- | When a given name exists for a hash, this flag also prints the
     -- original hash after the name
     -- By default: @False@
@@ -90,17 +89,17 @@ instance Default PrettyCookedHashOpts where
 -- the associated currency symbols. This is used as the default for the
 -- pretty-printing option and is recommended to use as a basis to extend with
 -- custom names.
-defaultHashNames :: Map Pl.BuiltinByteString String
+defaultHashNames :: Map Api.BuiltinByteString String
 defaultHashNames =
   hashNamesFromList
-    [ (Pl.CurrencySymbol "", "Lovelace"),
+    [ (Api.CurrencySymbol "", "Lovelace"),
       (quickCurrencySymbol, "Quick"),
       (permanentCurrencySymbol, "Permanent")
     ]
     <> hashNamesFromList
-      ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 10])
+      ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 5])
 
 -- | Smart constructor for maps to be used in the "pcOptHashNames"
 -- pretty-printing option.
-hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Pl.BuiltinByteString String
+hashNamesFromList :: (Hashable a) => [(a, String)] -> Map Api.BuiltinByteString String
 hashNamesFromList = Map.fromList . map (first toHash)

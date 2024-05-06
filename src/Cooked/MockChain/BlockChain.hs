@@ -40,7 +40,7 @@ module Cooked.MockChain.BlockChain
 where
 
 import Cardano.Node.Emulator qualified as Emulator
-import Cardano.Node.Emulator.Internal.Node.TimeSlot qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Arrow
 import Control.Monad
 import Control.Monad.Except
@@ -55,7 +55,7 @@ import Cooked.Wallet
 import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe
 import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Ledger.Slot qualified as Ledger
@@ -63,8 +63,8 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import ListT
 import Optics.Core
-import Plutus.Script.Utils.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
 -- * BlockChain monad
@@ -83,11 +83,11 @@ data MockChainError where
   MCECalcFee :: MockChainError -> MockChainError
   -- | Thrown when an output reference should be in the state of the mockchain,
   -- but isn't.
-  MCEUnknownOutRefError :: String -> Pl.TxOutRef -> MockChainError
+  MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
   -- | Same as 'MCEUnknownOutRefError' for validators.
-  MCEUnknownValidator :: String -> Pl.ValidatorHash -> MockChainError
+  MCEUnknownValidator :: String -> Script.ValidatorHash -> MockChainError
   -- | Same as 'MCEUnknownOutRefError' for datums.
-  MCEUnknownDatum :: String -> Pl.DatumHash -> MockChainError
+  MCEUnknownDatum :: String -> Api.DatumHash -> MockChainError
   -- | Used to provide 'MonadFail' instances.
   FailWith :: String -> MockChainError
   OtherMockChainError :: (Typeable err, Show err, Eq err) => err -> MockChainError
@@ -95,14 +95,14 @@ data MockChainError where
 data MCEUnbalanceableError
   = -- | The balancing wallet misses some value to pay what is needed to balance
     -- the transaction.
-    MCEUnbalNotEnoughFunds Wallet Pl.Value
+    MCEUnbalNotEnoughFunds Wallet Api.Value
   | -- | There is value to return to the balancing wallet but not enough to
     -- fullfill the min ada requirement and there is not enough in additional
     -- inputs to make it possible.
     MCEUnbalNotEnoughReturning
-      (Pl.Value, [Pl.TxOutRef]) -- What was spent
-      (Pl.Value, [Pl.TxOutRef]) -- What is left to spend
-      Pl.Value -- What cannot be given back
+      (Api.Value, [Api.TxOutRef]) -- What was spent
+      (Api.Value, [Api.TxOutRef]) -- What is left to spend
+      Api.Value -- What cannot be given back
   deriving (Show, Eq)
 
 deriving instance Show MockChainError
@@ -128,21 +128,21 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   getParams :: m Emulator.Params
 
   -- | Returns a list of all UTxOs at a certain address.
-  utxosAtLedger :: Pl.Address -> m [(Pl.TxOutRef, Ledger.TxOut)]
+  utxosAtLedger :: Api.Address -> m [(Api.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the datum with the given hash or 'Nothing' if there is none
-  datumFromHash :: Pl.DatumHash -> m (Maybe Pl.Datum)
+  datumFromHash :: Api.DatumHash -> m (Maybe Api.Datum)
 
   -- | Returns the full validator corresponding to hash, if that validator owns
   -- something or if it is stored in the reference script field of some UTxO.
-  validatorFromHash :: Pl.ValidatorHash -> m (Maybe (Pl.Versioned Pl.Validator))
+  validatorFromHash :: Script.ValidatorHash -> m (Maybe (Script.Versioned Script.Validator))
 
   -- | Returns an output given a reference to it
-  txOutByRefLedger :: Pl.TxOutRef -> m (Maybe Ledger.TxOut)
+  txOutByRefLedger :: Api.TxOutRef -> m (Maybe Ledger.TxOut)
 
 class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
-  allUtxosLedger :: m [(Pl.TxOutRef, Ledger.TxOut)]
+  allUtxosLedger :: m [(Api.TxOutRef, Ledger.TxOut)]
 
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
@@ -166,13 +166,13 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- - adds the validators on outputs to the 'mcstValidators'.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
-allUtxos :: (MonadBlockChainWithoutValidation m) => m [(Pl.TxOutRef, Pl.TxOut)]
+allUtxos :: (MonadBlockChainWithoutValidation m) => m [(Api.TxOutRef, Api.TxOut)]
 allUtxos = fmap (second txOutV2FromLedger) <$> allUtxosLedger
 
-utxosAt :: (MonadBlockChainBalancing m) => Pl.Address -> m [(Pl.TxOutRef, Pl.TxOut)]
+utxosAt :: (MonadBlockChainBalancing m) => Api.Address -> m [(Api.TxOutRef, Api.TxOut)]
 utxosAt address = fmap (second txOutV2FromLedger) <$> utxosAtLedger address
 
-txOutByRef :: (MonadBlockChainBalancing m) => Pl.TxOutRef -> m (Maybe Pl.TxOut)
+txOutByRef :: (MonadBlockChainBalancing m) => Api.TxOutRef -> m (Maybe Api.TxOut)
 txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
@@ -180,11 +180,11 @@ txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 -- This is useful when writing endpoints and/or traces to fetch utxos of
 -- interest right from the start and avoid querying the chain for them
 -- afterwards using 'allUtxos' or similar functions.
-utxosFromCardanoTx :: Ledger.CardanoTx -> [(Pl.TxOutRef, Pl.TxOut)]
+utxosFromCardanoTx :: Ledger.CardanoTx -> [(Api.TxOutRef, Api.TxOut)]
 utxosFromCardanoTx =
   map (\(txOut, txOutRef) -> (Ledger.fromCardanoTxIn txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
 
-txOutV2FromLedger :: Ledger.TxOut -> Pl.TxOut
+txOutV2FromLedger :: Ledger.TxOut -> Api.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
 -- | Try to resolve the datum on the output: If there's an inline datum, take
@@ -197,10 +197,10 @@ resolveDatum ::
     MonadBlockChainBalancing m
   ) =>
   out ->
-  m (Maybe (ConcreteOutput (OwnerType out) Pl.Datum (ValueType out) (ReferenceScriptType out)))
+  m (Maybe (ConcreteOutput (OwnerType out) Api.Datum (ValueType out) (ReferenceScriptType out)))
 resolveDatum out =
   case outputOutputDatum out of
-    Pl.OutputDatumHash datumHash -> do
+    Api.OutputDatumHash datumHash -> do
       mDatum <- datumFromHash datumHash
       case mDatum of
         Nothing -> return Nothing
@@ -212,7 +212,7 @@ resolveDatum out =
               (out ^. outputValueL)
               datum
               (out ^. outputReferenceScriptL)
-    Pl.OutputDatum datum ->
+    Api.OutputDatum datum ->
       return . Just $
         ConcreteOutput
           (out ^. outputOwnerL)
@@ -220,7 +220,7 @@ resolveDatum out =
           (out ^. outputValueL)
           datum
           (out ^. outputReferenceScriptL)
-    Pl.NoOutputDatum -> return Nothing
+    Api.NoOutputDatum -> return Nothing
 
 -- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
 -- datum of the suitable type.
@@ -228,7 +228,7 @@ resolveTypedDatum ::
   ( IsAbstractOutput out,
     ToOutputDatum (DatumType out),
     MonadBlockChainBalancing m,
-    Pl.FromData a
+    Api.FromData a
   ) =>
   out ->
   m (Maybe (ConcreteOutput (OwnerType out) a (ValueType out) (ReferenceScriptType out)))
@@ -242,7 +242,7 @@ resolveTypedDatum out = do
           <$> Just (out' ^. outputOwnerL)
           <*> Just (out' ^. outputStakingCredentialL)
           <*> Just (out' ^. outputValueL)
-          <*> (let Pl.Datum datum = out' ^. outputDatumL in Pl.fromBuiltinData datum)
+          <*> (let Api.Datum datum = out' ^. outputDatumL in Api.fromBuiltinData datum)
           <*> Just (out' ^. outputReferenceScriptL)
 
 -- | Try to resolve the validator that owns an output: If the output is owned by
@@ -254,12 +254,12 @@ resolveValidator ::
     MonadBlockChainBalancing m
   ) =>
   out ->
-  m (Maybe (ConcreteOutput (Pl.Versioned Pl.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
+  m (Maybe (ConcreteOutput (Script.Versioned Script.Validator) (DatumType out) (ValueType out) (ReferenceScriptType out)))
 resolveValidator out =
   case toCredential (out ^. outputOwnerL) of
-    Pl.PubKeyCredential _ -> return Nothing
-    Pl.ScriptCredential (Pl.ScriptHash hash) -> do
-      mVal <- validatorFromHash (Pl.ValidatorHash hash)
+    Api.PubKeyCredential _ -> return Nothing
+    Api.ScriptCredential (Api.ScriptHash hash) -> do
+      mVal <- validatorFromHash (Script.ValidatorHash hash)
       case mVal of
         Nothing -> return Nothing
         Just val ->
@@ -280,12 +280,12 @@ resolveReferenceScript ::
     MonadBlockChainBalancing m
   ) =>
   out ->
-  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Pl.Versioned Pl.Validator)))
+  m (Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (Script.Versioned Script.Validator)))
 resolveReferenceScript out =
   case outputReferenceScriptHash out of
     Nothing -> return Nothing
-    Just (Pl.ScriptHash hash) -> do
-      mVal <- validatorFromHash (Pl.ValidatorHash hash)
+    Just (Api.ScriptHash hash) -> do
+      mVal <- validatorFromHash (Script.ValidatorHash hash)
       case mVal of
         Nothing -> return Nothing
         Just val ->
@@ -297,46 +297,46 @@ resolveReferenceScript out =
               (out ^. outputDatumL)
               (Just val)
 
-outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe Pl.OutputDatum)
+outputDatumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.OutputDatum)
 outputDatumFromTxOutRef oref = do
   mOut <- txOutByRef oref
   case mOut of
     Nothing -> return Nothing
     Just out -> return . Just $ outputOutputDatum out
 
-datumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe Pl.Datum)
+datumFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Datum)
 datumFromTxOutRef oref = do
   mOutputDatum <- outputDatumFromTxOutRef oref
   case mOutputDatum of
     Nothing -> return Nothing
-    Just Pl.NoOutputDatum -> return Nothing
-    Just (Pl.OutputDatum datum) -> return $ Just datum
-    Just (Pl.OutputDatumHash datumHash) -> datumFromHash datumHash
+    Just Api.NoOutputDatum -> return Nothing
+    Just (Api.OutputDatum datum) -> return $ Just datum
+    Just (Api.OutputDatumHash datumHash) -> datumFromHash datumHash
 
-typedDatumFromTxOutRef :: (Pl.FromData a, MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe a)
+typedDatumFromTxOutRef :: (Api.FromData a, MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe a)
 typedDatumFromTxOutRef oref = do
   mDatum <- datumFromTxOutRef oref
   case mDatum of
     Nothing -> return Nothing
-    Just (Pl.Datum datum) -> return $ Pl.fromBuiltinData datum
+    Just (Api.Datum datum) -> return $ Api.fromBuiltinData datum
 
-valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Pl.TxOutRef -> m (Maybe Pl.Value)
+valueFromTxOutRef :: (MonadBlockChainWithoutValidation m) => Api.TxOutRef -> m (Maybe Api.Value)
 valueFromTxOutRef oref = do
   mOut <- txOutByRef oref
   case mOut of
     Nothing -> return Nothing
     Just out -> return . Just $ outputValue out
 
-txSkelInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelInputUtxosPl = lookupUtxosPl . Map.keys . txSkelIns
 
-txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
+txSkelInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
 txSkelInputUtxos = lookupUtxos . Map.keys . txSkelIns
 
-txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Pl.TxOut)
+txSkelReferenceInputUtxosPl :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Api.TxOut)
 txSkelReferenceInputUtxosPl skel = Map.map txOutV2FromLedger <$> txSkelReferenceInputUtxos skel
 
-txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.TxOutRef Ledger.TxOut)
+txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos skel =
   lookupUtxos $
     mapMaybe
@@ -348,14 +348,14 @@ txSkelReferenceInputUtxos skel =
       ++ (Set.toList . txSkelInsReference $ skel)
 
 -- | All validators which protect transaction inputs
-txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.ValidatorHash (Pl.Versioned Pl.Validator))
+txSkelInputValidators :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Script.ValidatorHash (Script.Versioned Script.Validator))
 txSkelInputValidators skel = do
   utxos <- Map.toList <$> lookupUtxosPl (Map.keys . txSkelIns $ skel)
   mValidators <-
     mapM
       ( \(_oref, out) -> case outputAddress out of
-          Pl.Address (Pl.ScriptCredential (Pl.ScriptHash hash)) _ -> do
-            let valHash = Pl.ValidatorHash hash
+          Api.Address (Api.ScriptCredential (Api.ScriptHash hash)) _ -> do
+            let valHash = Script.ValidatorHash hash
             mVal <- validatorFromHash valHash
             case mVal of
               Nothing ->
@@ -369,13 +369,13 @@ txSkelInputValidators skel = do
       utxos
   return . Map.fromList . catMaybes $ mValidators
 
--- Go through all of the 'Pl.TxOutRef's in the list and look them up in the
--- state of the blockchain. If any 'Pl.TxOutRef' can't be resolved, throw an
+-- Go through all of the 'Api.TxOutRef's in the list and look them up in the
+-- state of the blockchain. If any 'Api.TxOutRef' can't be resolved, throw an
 -- error.
-lookupUtxosPl :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Pl.TxOut)
+lookupUtxosPl :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
 lookupUtxosPl outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
 
-lookupUtxos :: (MonadBlockChainBalancing m) => [Pl.TxOutRef] -> m (Map Pl.TxOutRef Ledger.TxOut)
+lookupUtxos :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Ledger.TxOut)
 lookupUtxos outRefs = do
   Map.fromList
     <$> mapM
@@ -394,30 +394,30 @@ lookupUtxos outRefs = do
 
 -- | look up the UTxOs the transaction consumes, and sum the value contained in
 -- them.
-txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Pl.Value
+txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue skel = do
   txSkelInputs <- txSkelInputUtxos skel
-  return $ foldMap (Pl.txOutValue . txOutV2FromLedger) txSkelInputs
+  return $ foldMap (Api.txOutValue . txOutV2FromLedger) txSkelInputs
 
 -- | Look up the data on UTxOs the transaction consumes.
-txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Pl.DatumHash Pl.Datum)
+txSkelInputData :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.DatumHash Api.Datum)
 txSkelInputData skel = do
   txSkelInputs <- Map.elems <$> txSkelInputUtxosPl skel
   mDatums <-
     mapM
       ( \output ->
           case output ^. outputDatumL of
-            Pl.NoOutputDatum -> return Nothing
-            Pl.OutputDatum datum ->
-              let dHash = Pl.datumHash datum
+            Api.NoOutputDatum -> return Nothing
+            Api.OutputDatum datum ->
+              let dHash = Script.datumHash datum
                in Just . (dHash,) <$> datumFromHashWithError dHash
-            Pl.OutputDatumHash dHash ->
+            Api.OutputDatumHash dHash ->
               Just . (dHash,) <$> datumFromHashWithError dHash
       )
       txSkelInputs
   return . Map.fromList . catMaybes $ mDatums
   where
-    datumFromHashWithError :: (MonadBlockChainBalancing m) => Pl.DatumHash -> m Pl.Datum
+    datumFromHashWithError :: (MonadBlockChainBalancing m) => Api.DatumHash -> m Api.Datum
     datumFromHashWithError dHash = do
       mDatum <- datumFromHash dHash
       case mDatum of
@@ -447,7 +447,7 @@ waitNSlots n =
     else currentSlot >>= awaitSlot . (+ fromIntegral n)
 
 -- | Returns the closed ms interval corresponding to the current slot
-currentTime :: (MonadBlockChainWithoutValidation m) => m (Pl.POSIXTime, Pl.POSIXTime)
+currentTime :: (MonadBlockChainWithoutValidation m) => m (Api.POSIXTime, Api.POSIXTime)
 currentTime = slotToTimeInterval =<< currentSlot
 
 -- | Returns the closed ms interval corresponding to the slot with the given
@@ -462,13 +462,13 @@ currentTime = slotToTimeInterval =<< currentSlot
 -- and
 --
 -- > slotToTimeInterval n == (a, b)   ==>   getEnclosingSlot (a-1) == n-1 && getEnclosingSlot (b+1) == n+1
-slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (Pl.POSIXTime, Pl.POSIXTime)
+slotToTimeInterval :: (MonadBlockChainWithoutValidation m) => Ledger.Slot -> m (Api.POSIXTime, Api.POSIXTime)
 slotToTimeInterval slot = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
   case Emulator.slotToPOSIXTimeRange slotConfig slot of
-    Pl.Interval
-      (Pl.LowerBound (Pl.Finite l) leftclosed)
-      (Pl.UpperBound (Pl.Finite r) rightclosed) ->
+    Api.Interval
+      (Api.LowerBound (Api.Finite l) leftclosed)
+      (Api.UpperBound (Api.Finite r) rightclosed) ->
         return
           ( if leftclosed then l else l + 1,
             if rightclosed then r else r - 1
@@ -477,18 +477,18 @@ slotToTimeInterval slot = do
 
 -- | Return the slot that contains the given time. See 'slotToTimeInterval' for
 -- some equational properties this function satisfies.
-getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Pl.POSIXTime -> m Ledger.Slot
+getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 getEnclosingSlot t = do
   slotConfig <- Emulator.pSlotConfig <$> getParams
   return $ Emulator.posixTimeToEnclosingSlot slotConfig t
 
 -- | Waits until the current slot becomes greater or equal to the slot containing the given POSIX time.
 --  Note that that it might not wait for anything if the current slot is large enough.
-awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Pl.POSIXTime -> m Ledger.Slot
+awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
 -- | The infinite range of slots ending before or at the given POSIX time
-slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Pl.POSIXTime -> m Ledger.SlotRange
+slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
@@ -496,18 +496,14 @@ slotRangeBefore t = do
   -- can include the whole slot. Otherwise, the only way to be sure that the
   -- returned slot range contains no time after @t@ is to go to the preceding
   -- slot.
-  if t == b
-    then return $ Pl.to n
-    else return $ Pl.to (n - 1)
+  return $ Api.to $ if t == b then n else n - 1
 
 -- | The infinite range of slots starting after or at the given POSIX time
-slotRangeAfter :: (MonadBlockChainWithoutValidation m) => Pl.POSIXTime -> m Ledger.SlotRange
+slotRangeAfter :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.SlotRange
 slotRangeAfter t = do
   n <- getEnclosingSlot t
   (a, _) <- slotToTimeInterval n
-  if t == a
-    then return $ Pl.from n
-    else return $ Pl.from (n + 1)
+  return $ Api.from $ if t == a then n else n + 1
 
 -- ** Deriving further 'MonadBlockChain' instances
 

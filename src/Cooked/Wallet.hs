@@ -20,13 +20,13 @@ module Cooked.Wallet
   )
 where
 
-import Cardano.Crypto.Wallet qualified as Cardano
+import Cardano.Crypto.Wallet qualified as Crypto
 import Data.Function (on)
 import Data.List (elemIndex)
-import Ledger.Address qualified as Pl
-import Ledger.CardanoWallet qualified as Pl
-import Ledger.Crypto qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Ledger.Address qualified as Ledger
+import Ledger.CardanoWallet qualified as Ledger
+import Ledger.Crypto qualified as Ledger
+import PlutusLedgerApi.V3 qualified as Api
 import Unsafe.Coerce
 
 -- * MockChain Wallets
@@ -37,15 +37,15 @@ import Unsafe.Coerce
 -- often, we provide our own wrapper on top of them to make sure that
 -- we can easily deal changes from Plutus.
 
-type Wallet = Pl.MockWallet
+type Wallet = Ledger.MockWallet
 
-type PrivateKey = Cardano.XPrv
+type PrivateKey = Crypto.XPrv
 
 instance Eq Wallet where
-  (==) = (==) `on` Pl.mwWalletId
+  (==) = (==) `on` Ledger.mwWalletId
 
 instance Ord Wallet where
-  compare = compare `on` Pl.mwWalletId
+  compare = compare `on` Ledger.mwWalletId
 
 -- | All the wallets corresponding to known Plutus mock wallets. This
 -- is a list of 10 wallets which will
@@ -56,48 +56,48 @@ instance Ord Wallet where
 -- - be pretty-printed as part the final state after running a few
 --   transactions.
 knownWallets :: [Wallet]
-knownWallets = Pl.knownMockWallets
+knownWallets = Ledger.knownMockWallets
 
 -- | Wallet corresponding to a given wallet number (or wallet ID) with
 -- an offset of 1 to start at 1 instead of 0
 wallet :: Integer -> Wallet
 wallet j
-  | j > 0 && j <= 10 = Pl.knownMockWallet j
-  | otherwise = Pl.fromWalletNumber $ Pl.WalletNumber j
+  | j > 0 && j <= 10 = Ledger.knownMockWallet j
+  | otherwise = Ledger.fromWalletNumber $ Ledger.WalletNumber j
 
 -- | Retrieves the id of the known wallet that corresponds to a public
 -- key hash, if any.
 --
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
-walletPKHashToId :: Pl.PubKeyHash -> Maybe Int
+walletPKHashToId :: Ledger.PubKeyHash -> Maybe Int
 walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
 
 -- | Retrieves a wallet public key (PK)
-walletPK :: Wallet -> Pl.PubKey
-walletPK = Pl.unPaymentPubKey . Pl.paymentPubKey
+walletPK :: Wallet -> Ledger.PubKey
+walletPK = Ledger.unPaymentPubKey . Ledger.paymentPubKey
 
 -- | Retrieves a wallet's public staking key (PK), if any
-walletStakingPK :: Wallet -> Maybe Pl.PubKey
-walletStakingPK = fmap Pl.toPublicKey . walletStakingSK
+walletStakingPK :: Wallet -> Maybe Ledger.PubKey
+walletStakingPK = fmap Ledger.toPublicKey . walletStakingSK
 
 -- | Retrieves a wallet's public key hash
-walletPKHash :: Wallet -> Pl.PubKeyHash
-walletPKHash = Pl.pubKeyHash . walletPK
+walletPKHash :: Wallet -> Ledger.PubKeyHash
+walletPKHash = Ledger.pubKeyHash . walletPK
 
 -- | Retrieves a wallet's public staking key hash, if any
-walletStakingPKHash :: Wallet -> Maybe Pl.PubKeyHash
-walletStakingPKHash = fmap Pl.pubKeyHash . walletStakingPK
+walletStakingPKHash :: Wallet -> Maybe Ledger.PubKeyHash
+walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 
 -- | Retrieves a wallet's address
-walletAddress :: Wallet -> Pl.Address
+walletAddress :: Wallet -> Ledger.Address
 walletAddress w =
-  Pl.Address
-    (Pl.PubKeyCredential $ walletPKHash w)
-    (Pl.StakingHash . Pl.PubKeyCredential <$> walletStakingPKHash w)
+  Ledger.Address
+    (Api.PubKeyCredential $ walletPKHash w)
+    (Api.StakingHash . Api.PubKeyCredential <$> walletStakingPKHash w)
 
 -- | Retrieves a wallet private key (secret key SK)
-walletSK :: Pl.MockWallet -> PrivateKey
-walletSK = Pl.unPaymentPrivateKey . Pl.paymentPrivateKey
+walletSK :: Ledger.MockWallet -> PrivateKey
+walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
 -- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is
 -- needed because the constructor and accessors to 'MockPrivateKey'
@@ -107,7 +107,7 @@ newtype HACK = HACK PrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
 walletStakingSK :: Wallet -> Maybe PrivateKey
-walletStakingSK = fmap hackUnMockPrivateKey . Pl.mwStakeKey
+walletStakingSK = fmap hackUnMockPrivateKey . Ledger.mwStakeKey
   where
     -- To only be applied to @MockPrivateKey@; the function is
     -- polymorphic because @MockPrivateKey@ is not exported either

@@ -14,7 +14,7 @@ import Cooked.Pretty.Options (PrettyCookedHashOpts (..))
 import Data.ByteString qualified as ByteString
 import Data.Map qualified as Map
 import Numeric qualified
-import PlutusTx.Builtins.Internal qualified as Pl (BuiltinByteString (..))
+import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prettyprinter (Doc, (<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.String qualified as PP
@@ -57,8 +57,8 @@ prettyEnumerate title bullet items =
     ]
 
 -- | Pretty print a prefix of a hash with a given length.
-prettyHash :: PrettyCookedHashOpts -> Pl.BuiltinByteString -> DocCooked
-prettyHash PrettyCookedHashOpts {..} bbs@(Pl.BuiltinByteString bs) =
+prettyHash :: PrettyCookedHashOpts -> PlutusTx.BuiltinByteString -> DocCooked
+prettyHash PrettyCookedHashOpts {..} bbs@(PlutusTx.BuiltinByteString bs) =
   let hexRepresentation :: DocCooked
       hexRepresentation =
         "#"

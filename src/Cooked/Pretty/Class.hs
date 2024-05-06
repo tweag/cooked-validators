@@ -17,11 +17,12 @@ import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
-import Ledger.Index qualified as Pl
-import Ledger.Scripts qualified as Pl
-import Ledger.Tx.CardanoAPI qualified as Pl
-import Plutus.Script.Utils.Value qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Ledger.Index qualified as Ledger
+import Ledger.Scripts qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 import Prettyprinter.Render.Text qualified as PP
@@ -43,31 +44,31 @@ printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 printCooked :: (PrettyCooked a) => a -> IO ()
 printCooked = printCookedOpt def
 
-instance PrettyCooked Pl.TxId where
+instance PrettyCooked Api.TxId where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.TxOutRef where
-  prettyCookedOpt opts (Pl.TxOutRef txId index) =
+instance PrettyCooked Api.TxOutRef where
+  prettyCookedOpt opts (Api.TxOutRef txId index) =
     prettyHash (pcOptHashes opts) (toHash txId) <> "!" <> prettyCookedOpt opts index
 
-instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
+instance PrettyCooked (Script.Versioned Script.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.Address where
-  prettyCookedOpt opts (Pl.Address addrCr Nothing) = prettyCookedOpt opts addrCr
-  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingHash stakCr))) =
+instance PrettyCooked Api.Address where
+  prettyCookedOpt opts (Api.Address addrCr Nothing) = prettyCookedOpt opts addrCr
+  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingHash stakCr))) =
     prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> prettyCookedOpt opts stakCr)
-  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingPtr p1 p2 p3))) =
+  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingPtr p1 p2 p3))) =
     prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
 
-instance PrettyCooked Pl.PubKeyHash where
+instance PrettyCooked Api.PubKeyHash where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.Credential where
-  prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
-  prettyCookedOpt opts (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
+instance PrettyCooked Api.Credential where
+  prettyCookedOpt opts (Api.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
+  prettyCookedOpt opts (Api.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
 
-instance PrettyCooked Pl.Value where
+instance PrettyCooked Api.Value where
   -- Example output:
   --
   -- > Value:
@@ -81,47 +82,47 @@ instance PrettyCooked Pl.Value where
     prettySingletons
       . map prettySingletonValue
       . filter (\(_, _, n) -> n /= 0)
-      . Pl.flattenValue
+      . Script.flattenValue
     where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
       prettySingletons [doc] = doc
       prettySingletons docs = prettyItemize "Value:" "-" docs
-      prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
+      prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyCookedOpt opts (Pl.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
+        prettyCookedOpt opts (Script.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
 
-instance PrettyCooked Pl.CurrencySymbol where
+instance PrettyCooked Api.CurrencySymbol where
   prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
 
-instance PrettyCooked Pl.TokenName where
+instance PrettyCooked Api.TokenName where
   prettyCookedOpt _ = PP.pretty
 
-instance PrettyCooked Pl.AssetClass where
-  prettyCookedOpt opts (Pl.AssetClass (symbol, name)) =
+instance PrettyCooked Script.AssetClass where
+  prettyCookedOpt opts (Script.AssetClass (symbol, name)) =
     prettyCookedOpt opts symbol
-      <+> if symbol /= Pl.CurrencySymbol ""
+      <+> if symbol /= Api.CurrencySymbol ""
         then prettyCookedOpt opts name
         else mempty
 
-instance PrettyCooked Pl.ValidationPhase where
-  prettyCookedOpt _ Pl.Phase1 = "Phase 1"
-  prettyCookedOpt _ Pl.Phase2 = "Phase 2"
+instance PrettyCooked Ledger.ValidationPhase where
+  prettyCookedOpt _ Ledger.Phase1 = "Phase 1"
+  prettyCookedOpt _ Ledger.Phase2 = "Phase 2"
 
-instance PrettyCooked Pl.ValidationError where
-  prettyCookedOpt opts (Pl.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Pl.fromCardanoTxIn txIn)
-  prettyCookedOpt opts (Pl.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
-  prettyCookedOpt _ (Pl.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
-  prettyCookedOpt _ Pl.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
+instance PrettyCooked Ledger.ValidationError where
+  prettyCookedOpt opts (Ledger.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Ledger.fromCardanoTxIn txIn)
+  prettyCookedOpt opts (Ledger.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
+  prettyCookedOpt _ (Ledger.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
+  prettyCookedOpt _ Ledger.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
 
-instance PrettyCooked Pl.ScriptError where
-  prettyCookedOpt _ (Pl.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
-  prettyCookedOpt _ (Pl.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
+instance PrettyCooked Ledger.ScriptError where
+  prettyCookedOpt _ (Ledger.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
+  prettyCookedOpt _ (Ledger.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
 
-instance PrettyCooked Pl.POSIXTime where
-  prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+instance PrettyCooked Api.POSIXTime where
+  prettyCookedOpt opts (Api.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
 
-instance PrettyCooked Pl.ScriptHash where
+instance PrettyCooked Ledger.ScriptHash where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance (PrettyCooked a) => PrettyCooked [a] where
@@ -155,5 +156,5 @@ instance PrettyCooked Bool where
 instance PrettyCooked () where
   prettyCookedOpt _ = PP.pretty
 
-instance PrettyCooked Pl.BuiltinData where
+instance PrettyCooked Api.BuiltinData where
   prettyCookedOpt _ = PP.pretty
