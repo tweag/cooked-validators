@@ -2,8 +2,8 @@ module Cooked.MockChain.BlockChainSpec (tests) where
 
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.Direct
-import Ledger qualified
 import Ledger.Slot qualified as Ledger
+import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.QuickCheck
 
@@ -32,8 +32,8 @@ tests =
                 Left _err -> False
                 Right ((nl, nr), _) -> nl == n - 1 && nr == n + 1,
           testProperty "time is always included in enclosing slot" $
-            \t -> case runMockChain $ slotToTimeInterval =<< getEnclosingSlot (Ledger.POSIXTime t) of
+            \t -> case runMockChain $ slotToTimeInterval =<< getEnclosingSlot (Api.POSIXTime t) of
               Left _err -> False
-              Right ((Ledger.POSIXTime a, Ledger.POSIXTime b), _) -> a <= t && a <= b
+              Right ((Api.POSIXTime a, Api.POSIXTime b), _) -> a <= t && a <= b
         ]
     ]

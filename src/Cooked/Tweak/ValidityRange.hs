@@ -5,8 +5,8 @@ import Control.Monad
 import Cooked.MockChain
 import Cooked.Skeleton
 import Cooked.Tweak.Common
-import Ledger qualified
-import PlutusLedgerApi.V3 qualified as Api
+import Ledger.Slot qualified as Ledger
+import PlutusLedgerApi.V1.Interval qualified as Api
 
 getValidityRangeTweak :: (MonadTweak m) => m Ledger.SlotRange
 getValidityRangeTweak = viewTweak txSkelValidityRangeL
@@ -36,7 +36,7 @@ validityRangeSatisfiesTweak = (<$> getValidityRangeTweak)
 
 -- | Checks if a given time belongs to the validity range of a transaction
 isValidAtTweak :: (MonadTweak m) => Ledger.Slot -> m Bool
-isValidAtTweak = validityRangeSatisfiesTweak . Ledger.member
+isValidAtTweak = validityRangeSatisfiesTweak . Api.member
 
 -- | Checks if the current validity range includes the current time
 isValidNowTweak :: (MonadTweak m) => m Bool
@@ -44,11 +44,11 @@ isValidNowTweak = currentSlot >>= isValidAtTweak
 
 -- | Checks if a given range is included in the validity range of a transaction
 isValidDuringTweak :: (MonadTweak m) => Ledger.SlotRange -> m Bool
-isValidDuringTweak = validityRangeSatisfiesTweak . flip Ledger.contains
+isValidDuringTweak = validityRangeSatisfiesTweak . flip Api.contains
 
 -- | Checks if the validity range is empty
 hasEmptyTimeRangeTweak :: (MonadTweak m) => m Bool
-hasEmptyTimeRangeTweak = validityRangeSatisfiesTweak Ledger.isEmpty
+hasEmptyTimeRangeTweak = validityRangeSatisfiesTweak Api.isEmpty
 
 -- | Checks if the validity range is unconstrained
 hasFullTimeRangeTweak :: (MonadTweak m) => m Bool
@@ -59,8 +59,8 @@ hasFullTimeRangeTweak = validityRangeSatisfiesTweak (Api.always ==)
 intersectValidityRangeTweak :: (MonadTweak m) => Ledger.SlotRange -> m Ledger.SlotRange
 intersectValidityRangeTweak newRange = do
   oldRange <- viewTweak txSkelValidityRangeL
-  let combinedRange = Ledger.intersection newRange oldRange
-  guard (combinedRange /= Ledger.never)
+  let combinedRange = Api.intersection newRange oldRange
+  guard (combinedRange /= Api.never)
   setTweak txSkelValidityRangeL combinedRange
   return oldRange
 
@@ -70,12 +70,12 @@ centerAroundValidityRangeTweak t r = do
   let radius = Ledger.Slot r
       left = t - radius
       right = t + radius
-      newRange = Ledger.interval left right
+      newRange = Api.interval left right
   setValidityRangeTweak newRange
 
 -- | Makes a transaction range equal to a singleton
 makeValidityRangeSingletonTweak :: (MonadTweak m) => Ledger.Slot -> m Ledger.SlotRange
-makeValidityRangeSingletonTweak = setValidityRangeTweak . Ledger.singleton
+makeValidityRangeSingletonTweak = setValidityRangeTweak . Api.singleton
 
 -- | Makes the transaction validity range comply with the current time
 makeValidityRangeNowTweak :: (MonadTweak m) => m Ledger.SlotRange
@@ -88,11 +88,11 @@ waitUntilValidTweak :: (MonadTweak m) => m Ledger.Slot
 waitUntilValidTweak = do
   now <- currentSlot
   vRange <- getValidityRangeTweak
-  if Ledger.member now vRange
+  if Api.member now vRange
     then return now
     else do
-      guard $ Ledger.before now vRange
-      guard $ not $ Ledger.isEmpty vRange
+      guard $ Api.before now vRange
+      guard $ not $ Api.isEmpty vRange
       later <- case Api.ivFrom vRange of
         Api.LowerBound (Api.Finite left) isClosed ->
           return $ left + Ledger.Slot (toInteger $ fromEnum $ not isClosed)

@@ -5,12 +5,8 @@ import Cooked
 import Data.Default
 import Data.Map qualified as Map
 import Debug.Trace
-import Plutus.Script.Utils.Scripts qualified as Pl
-import Plutus.Script.Utils.Typed qualified as Pl
-import Plutus.Script.Utils.V3.Generators qualified as Pl
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
-import PlutusTx qualified
+import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -40,13 +36,13 @@ mintingQuickValue =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelMints = txSkelMintsFromList [(Pl.Versioned quickCurrencyPolicy Pl.PlutusV3, NoMintsRedeemer, "banana", 10)],
+        { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, NoMintsRedeemer, "banana", 10)],
           txSkelOuts = [paysPK (walletPKHash alice) (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m (Pl.TxOutRef, Pl.TxOut)
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m (Api.TxOutRef, Api.TxOut)
 payToAlwaysTrueValidator = do
   tx <-
     validateTxSkel $

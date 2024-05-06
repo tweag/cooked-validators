@@ -138,7 +138,6 @@ test-suite spec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.ShowBSSpec
-      Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
       Cooked.Tweak.TamperDatumSpec

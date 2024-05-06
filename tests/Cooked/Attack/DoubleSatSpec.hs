@@ -4,7 +4,6 @@ import Control.Arrow
 import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
-import Cooked.TestUtils
 import Data.Default
 import Data.List (subsequences)
 import Data.Map (Map)
@@ -13,15 +12,13 @@ import Data.Maybe
 import Data.Set qualified as Set
 import Data.Tuple (swap)
 import Debug.Trace qualified
-import Ledger.Typed.Scripts
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Pl
-import Plutus.Script.Utils.Typed qualified as Pl
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
-import PlutusTx qualified as Pl
-import PlutusTx.Eq qualified as Pl
-import PlutusTx.Prelude qualified as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx qualified
+import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -37,15 +34,15 @@ data ADatum = ADatum deriving (Show)
 instance PrettyCooked ADatum where
   prettyCooked = viaShow
 
-instance Pl.Eq ADatum where
+instance PlutusTx.Eq ADatum where
   ADatum == ADatum = True
 
-Pl.makeLift ''ADatum
-Pl.unstableMakeIsData ''ADatum
+PlutusTx.makeLift ''ADatum
+PlutusTx.unstableMakeIsData ''ADatum
 
 data ARedeemer = ARedeemer1 | ARedeemer2 | ARedeemer3 deriving (Show)
 
-instance Pl.Eq ARedeemer where
+instance PlutusTx.Eq ARedeemer where
   ARedeemer1 == ARedeemer1 = True
   ARedeemer2 == ARedeemer2 = True
   ARedeemer3 == ARedeemer3 = True
@@ -54,71 +51,71 @@ instance Pl.Eq ARedeemer where
 instance PrettyCooked ARedeemer where
   prettyCooked = viaShow
 
-Pl.makeLift ''ARedeemer
-Pl.unstableMakeIsData ''ARedeemer
+PlutusTx.makeLift ''ARedeemer
+PlutusTx.unstableMakeIsData ''ARedeemer
 
 data AContract
 
-instance Pl.ValidatorTypes AContract where
+instance Script.ValidatorTypes AContract where
   type DatumType AContract = ADatum
   type RedeemerType AContract = ARedeemer
 
 {-# INLINEABLE mkAValidator #-}
-mkAValidator :: ADatum -> ARedeemer -> Pl.ScriptContext -> Bool
+mkAValidator :: ADatum -> ARedeemer -> Api.ScriptContext -> Bool
 mkAValidator _ _ _ = True
 
-aValidator :: Pl.TypedValidator AContract
+aValidator :: Script.TypedValidator AContract
 aValidator =
-  Pl.mkTypedValidator @AContract
-    $$(Pl.compile [||mkAValidator||])
-    $$(Pl.compile [||wrap||])
+  Script.mkTypedValidator @AContract
+    $$(PlutusTx.compile [||mkAValidator||])
+    $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator
+    wrap = Script.mkUntypedValidator
 
 data BDatum = BDatum deriving (Show)
 
 instance PrettyCooked BDatum where
   prettyCooked = viaShow
 
-instance Pl.Eq BDatum where
+instance PlutusTx.Eq BDatum where
   BDatum == BDatum = True
 
-Pl.makeLift ''BDatum
-Pl.unstableMakeIsData ''BDatum
+PlutusTx.makeLift ''BDatum
+PlutusTx.unstableMakeIsData ''BDatum
 
 data BRedeemer = BRedeemer1 | BRedeemer2 deriving (Show)
 
 instance PrettyCooked BRedeemer where
   prettyCooked = viaShow
 
-instance Pl.Eq BRedeemer where
+instance PlutusTx.Eq BRedeemer where
   BRedeemer1 == BRedeemer1 = True
   BRedeemer2 == BRedeemer2 = True
   _ == _ = False
 
-Pl.makeLift ''BRedeemer
-Pl.unstableMakeIsData ''BRedeemer
+PlutusTx.makeLift ''BRedeemer
+PlutusTx.unstableMakeIsData ''BRedeemer
 
 data BContract
 
-instance Pl.ValidatorTypes BContract where
+instance Script.ValidatorTypes BContract where
   type DatumType BContract = BDatum
   type RedeemerType BContract = BRedeemer
 
 {-# INLINEABLE mkBValidator #-}
-mkBValidator :: BDatum -> BRedeemer -> Pl.ScriptContext -> Bool
+mkBValidator :: BDatum -> BRedeemer -> Api.ScriptContext -> Bool
 mkBValidator _ _ _ = True
 
-bValidator :: Pl.TypedValidator BContract
+bValidator :: Script.TypedValidator BContract
 bValidator =
-  Pl.mkTypedValidator @BContract
-    $$(Pl.compile [||mkBValidator||])
-    $$(Pl.compile [||wrap||])
+  Script.mkTypedValidator @BContract
+    $$(PlutusTx.compile [||mkBValidator||])
+    $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator
+    wrap = Script.mkUntypedValidator
 
--- | In the initial state of the Mockchain, the A and B validators each own
--- a few UTxOs, with different values
+-- | In the initial state of the Mockchain, the A and B validators
+-- each own a few UTxOs, with different values
 customInitDist :: InitialDistribution
 customInitDist =
   def
@@ -130,34 +127,36 @@ tests =
   testGroup
     "double satisfaction attack"
     $ let Right ([aUtxo1, aUtxo2, aUtxo3, aUtxo4], _) =
-            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Pl.validatorAddress aValidator)
+            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Script.validatorAddress aValidator)
           Right ([bUtxo1, bUtxo2], _) =
-            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Pl.validatorAddress bValidator)
+            runMockChainFrom customInitDist $ runUtxoSearch $ utxosAtSearch (Script.validatorAddress bValidator)
        in [ testCase "the two test validators have different addresses" $
               assertBool "no, the addresses are the same" $
-                Pl.validatorAddress aValidator /= Pl.validatorAddress bValidator,
+                Script.validatorAddress aValidator /= Script.validatorAddress bValidator,
             testGroup "unit tests on a 'TxSkel'" $
               -- The following tests make sure that, depending on some
-              -- 'TxSkelRedeemerForScript' constraints for UTxOs belonging to the
-              -- 'aValidator' on the input 'TxSkel', the correct additional
-              -- 'TxSkelRedeemerForScript' constraints for UTxOs of the 'bValidator' are on
-              -- the output 'TxSkel's. Both 'DoubleSatSplitMode's are tested.
-              let -- generate an input skeleton from some 'aValidator' UTxOs to
-                  -- be spent.
-                  skelIn :: [(ARedeemer, Pl.TxOutRef)] -> TxSkel
+              -- 'TxSkelRedeemerForScript' constraints for UTxOs
+              -- belonging to the 'aValidator' on the input 'TxSkel',
+              -- the correct additional 'TxSkelRedeemerForScript'
+              -- constraints for UTxOs of the 'bValidator' are on the
+              -- output 'TxSkel's. Both 'DoubleSatSplitMode's are
+              -- tested.
+              let -- generate an input skeleton from some 'aValidator'
+                  -- UTxOs to be spent.
+                  skelIn :: [(ARedeemer, Api.TxOutRef)] -> TxSkel
                   skelIn aInputs =
                     txSkelTemplate
                       { txSkelIns = Map.fromList $ map (second TxSkelRedeemerForScript . swap) aInputs,
-                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000)],
+                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Script.lovelaceValueOf 2_500_000)],
                         txSkelSigners = [wallet 1]
                       }
 
-                  -- apply the 'doubleSatAttack' to the input skeleton to
-                  -- generate a list of output skeleta. The multiway-if
-                  -- statement is what decides which UTxOs belonging to the
-                  -- 'bValidator' to add, depending on the focused input
-                  -- 'aValidator' UTxO.
-                  skelsOut :: ([Pl.TxOutRef] -> [[Pl.TxOutRef]]) -> [(ARedeemer, Pl.TxOutRef)] -> [TxSkel]
+                  -- apply the 'doubleSatAttack' to the input skeleton
+                  -- to generate a list of output skeleta. The
+                  -- multiway-if statement is what decides which UTxOs
+                  -- belonging to the 'bValidator' to add, depending
+                  -- on the focused input 'aValidator' UTxO.
+                  skelsOut :: ([Api.TxOutRef] -> [[Api.TxOutRef]]) -> [(ARedeemer, Api.TxOutRef)] -> [TxSkel]
                   skelsOut splitMode aInputs =
                     mapMaybe (\case Right (_, skel') -> Just skel'; _ -> Nothing) $
                       runTweakFrom
@@ -173,7 +172,7 @@ tests =
                                       return
                                         [ (TxSkelRedeemerForScript ARedeemer2, toDelta bOref $ TxSkelRedeemerForScript BRedeemer1)
                                           | (bOref, bOut) <- bUtxos,
-                                            outputValue bOut == Pl.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
+                                            outputValue bOut == Script.lovelaceValueOf 123 -- not satisfied by any UTxO in 'dsTestMockChain'
                                         ]
                                   | aOref == fst aUtxo2 ->
                                       return
@@ -201,13 +200,15 @@ tests =
                         )
                         (skelIn aInputs)
                     where
-                      toDelta :: Pl.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
+                      toDelta :: Api.TxOutRef -> TxSkelRedeemer -> DoubleSatDelta
                       toDelta oref howSpent = (Map.singleton oref howSpent, [], mempty)
 
-                  -- generate a transaction that spends the given 'aValidator'
-                  -- UTxOs (all with 'ARedeemer') and the 'bValidator' UTxOs
-                  -- with the specified redeemers, while redirecting the value of the inputs from the 'bValidator' to wallet 6
-                  skelExpected :: [(ARedeemer, Pl.TxOutRef)] -> [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))] -> TxSkel
+                  -- generate a transaction that spends the given
+                  -- 'aValidator' UTxOs (all with 'ARedeemer') and the
+                  -- 'bValidator' UTxOs with the specified redeemers,
+                  -- while redirecting the value of the inputs from
+                  -- the 'bValidator' to wallet 6
+                  skelExpected :: [(ARedeemer, Api.TxOutRef)] -> [(BRedeemer, (Api.TxOutRef, Api.TxOut))] -> TxSkel
                   skelExpected aInputs bInputs =
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DoubleSatLbl,
@@ -225,16 +226,16 @@ tests =
                                   <$> aInputs
                               ),
                         txSkelOuts =
-                          [ paysPK (walletPKHash (wallet 2)) (Pl.lovelaceValueOf 2_500_000),
+                          [ paysPK (walletPKHash (wallet 2)) (Script.lovelaceValueOf 2_500_000),
                             paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bInputs)
                           ],
                         txSkelSigners = [wallet 1]
                       }
                in [ testGroup "with separate skeletons for each modification" $
                       let thePredicate ::
-                            [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))] ->
-                            [ ( [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))],
-                                [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]
+                            [(ARedeemer, (Api.TxOutRef, Api.TxOut))] ->
+                            [ ( [(ARedeemer, (Api.TxOutRef, Api.TxOut))],
+                                [(BRedeemer, (Api.TxOutRef, Api.TxOut))]
                               )
                             ] ->
                             Assertion
@@ -301,9 +302,9 @@ tests =
                           ],
                     testGroup "trying all combinations of modifications" $
                       let thePredicate ::
-                            [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))] ->
-                            [ ( [(ARedeemer, (Pl.TxOutRef, Pl.TxOut))],
-                                [(BRedeemer, (Pl.TxOutRef, Pl.TxOut))]
+                            [(ARedeemer, (Api.TxOutRef, Api.TxOut))] ->
+                            [ ( [(ARedeemer, (Api.TxOutRef, Api.TxOut))],
+                                [(BRedeemer, (Api.TxOutRef, Api.TxOut))]
                               )
                             ] ->
                             Assertion

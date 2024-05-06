@@ -3,11 +3,9 @@ module Cooked.MinAdaSpec where
 import Control.Monad
 import Cooked
 import Data.Default
-import Ledger.Index qualified as Pl
+import Ledger.Index qualified as Ledger
 import Optics.Core ((^.))
-import Plutus.Script.Utils.Ada qualified as Pl
-import Plutus.Script.Utils.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl hiding (getLovelace)
+import Plutus.Script.Utils.Ada qualified as Script
 import Prettyprinter qualified as PP
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -17,7 +15,7 @@ heavyDatum = take 100 [0 ..]
 
 paymentWithMinAda :: (MonadBlockChain m) => m Integer
 paymentWithMinAda = do
-  Pl.getLovelace . (^. adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
+  Script.getLovelace . (^. adaL) . outputValue . snd . (!! 0) . utxosFromCardanoTx
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
@@ -38,7 +36,7 @@ paymentWithoutMinAda paidLovelaces = do
         { txSkelOuts =
             [ paysPK
                 (walletPKHash $ wallet 2)
-                (Pl.lovelaceValueOf paidLovelaces)
+                (Script.lovelaceValueOf paidLovelaces)
                 `withDatum` heavyDatum
             ],
           txSkelSigners = [wallet 1]
@@ -53,8 +51,8 @@ tests =
         $ testFails
           def
           ( \case
-              MCEValidationError Pl.Phase1 _ -> testSuccess
-              MCECalcFee (MCEValidationError Pl.Phase1 _) -> testSuccess
+              MCEValidationError Ledger.Phase1 _ -> testSuccess
+              MCECalcFee (MCEValidationError Ledger.Phase1 _) -> testSuccess
               _ -> testFailure
           )
         $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))

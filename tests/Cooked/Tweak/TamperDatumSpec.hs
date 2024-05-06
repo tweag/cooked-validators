@@ -3,9 +3,9 @@ module Cooked.Tweak.TamperDatumSpec where
 
 import Cooked
 import Cooked.MockChain.Staged (runTweak)
-import Cooked.TestUtils (assertSameSets)
+import Cooked.MockChain.Testing
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Ada qualified as Script
 import PlutusTx qualified
 import Prettyprinter (viaShow)
 import Test.Tasty (TestTree, testGroup)
@@ -21,9 +21,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
-                  paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 234) `withDatum` (),
-                  paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
+                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
+                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -34,9 +34,9 @@ tamperDatumTweakTest =
         )
         ( txSkelTemplate
             { txSkelOuts =
-                [ paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                  paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 234) `withDatum` (),
-                  paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
+                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -50,10 +50,10 @@ malformDatumTweakTest =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
                   txSkelOuts =
-                    [ paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
-                      paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 234) `withDatum` (),
-                      paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                      paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
+                    [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
+                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
+                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
                     ]
                 }
             )
@@ -80,10 +80,10 @@ malformDatumTweakTest =
               )
               ( txSkelTemplate
                   { txSkelOuts =
-                      [ paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                        paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 234) `withDatum` (),
-                        paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                        paysPK (walletPKHash $ wallet 1) (Pl.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                      [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
+                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
                       ]
                   }
               )

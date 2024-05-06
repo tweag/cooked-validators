@@ -2,13 +2,11 @@ module Cooked.Tweak.OutPermutationsSpec (tests) where
 
 import Control.Monad (join, replicateM)
 import Cooked
-import Cooked.MockChain.Staged
-import Cooked.TestUtils
 import Cooked.Tweak.OutPermutations
 import Data.Default
 import Data.Either (rights)
 import Data.List (group, groupBy)
-import Plutus.Script.Utils.Ada qualified as Pl
+import Plutus.Script.Utils.Ada qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -64,7 +62,7 @@ tests =
                     )
                   ],
       testGroup "tests for PermutOutTweakMode:" $
-        let [a, b, c] = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 3]
+        let [a, b, c] = (\i -> paysPK (walletPKHash $ wallet i) $ Script.lovelaceValueOf 123) <$> [1 .. 3]
             skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
@@ -76,7 +74,7 @@ tests =
                   (runTweak (allOutPermutsTweak $ KeepIdentity Nothing) $ skel a b c),
               testCase "OmitIdentity (Just 2)" $
                 assertSameSets
-                  (map (Right . ((),)) [skel b a c])
+                  [Right ((), skel b a c)]
                   (runTweak (allOutPermutsTweak $ OmitIdentity $ Just 2) $ skel a b c),
               testCase "OmitIdentity Nothing" $
                 assertSameSets
@@ -84,7 +82,7 @@ tests =
                   (runTweak (allOutPermutsTweak $ OmitIdentity Nothing) $ skel a b c)
             ],
       testGroup "tests for a single random outputs permutation:" $
-        let l = (\i -> paysPK (walletPKHash $ wallet i) $ Pl.lovelaceValueOf 123) <$> [1 .. 5]
+        let l = (\i -> paysPK (walletPKHash $ wallet i) $ Script.lovelaceValueOf 123) <$> [1 .. 5]
             runs = txSkelOuts . snd <$> rights ((\i -> runTweak (singleOutPermutTweak i) txSkelTemplate {txSkelOuts = l}) =<< [1 .. 5])
          in [ testCase "All permutations contain the correct elements" $
                 mapM_ (assertSameSets l) runs,

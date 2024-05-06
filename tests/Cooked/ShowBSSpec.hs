@@ -1,40 +1,39 @@
 module Cooked.ShowBSSpec (tests) where
 
-import Cardano.Node.Emulator qualified as Emulator
-import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
+import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked
 import Data.Default
 import Data.Either
 import Data.Map qualified as Map
-import Plutus.Script.Utils.Ada qualified as Ada
-import Plutus.Script.Utils.Typed qualified as Pl
-import Plutus.Script.Utils.V3.Typed.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
-import PlutusTx qualified as Pl
-import PlutusTx.Builtins qualified as Pl
-import PlutusTx.Prelude qualified as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx qualified
+import PlutusTx.Builtins qualified as PlutusTx
+import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 import Text.Parsec
 
 data UnitContract
 
-instance Pl.ValidatorTypes UnitContract where
+instance Script.ValidatorTypes UnitContract where
   type RedeemerType UnitContract = Bool
   type DatumType UnitContract = ()
 
 {-# INLINEABLE traceValidator #-}
-traceValidator :: () -> Bool -> Pl.ScriptContext -> Bool
-traceValidator _ _ ctx = Pl.trace (showBS ctx) False
+traceValidator :: () -> Bool -> Api.ScriptContext -> Bool
+traceValidator _ _ ctx = PlutusTx.trace (showBS ctx) False
 
-printValidator :: Pl.TypedValidator UnitContract
+printValidator :: Script.TypedValidator UnitContract
 printValidator =
-  Pl.mkTypedValidator @UnitContract
-    $$(Pl.compile [||traceValidator||])
-    $$(Pl.compile [||wrap||])
+  Script.mkTypedValidator @UnitContract
+    $$(PlutusTx.compile [||traceValidator||])
+    $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Pl.mkUntypedValidator
+    wrap = Script.mkUntypedValidator
 
 printTrace :: (MonadBlockChain m) => m ()
 printTrace = do
@@ -47,7 +46,7 @@ printTrace = do
               [ paysScriptInlineDatum
                   printValidator
                   ()
-                  (Ada.lovelaceValueOf 30_000_000)
+                  (Script.lovelaceValueOf 30_000_000)
               ]
           }
   void $
@@ -66,25 +65,25 @@ tests =
         testConjoin $
           map
             (uncurry (@?=))
-            [ (showBS @Pl.Integer 123, "123"),
-              (showBS @Pl.Integer (-123), "-123"),
-              (showBS @[Pl.Integer] [1, 2, 3], "[1,2,3]"),
-              (showBS (Pl.True, Pl.False), "(True,False)"),
-              (showBS @Pl.BuiltinByteString "abca", "\"61626361\""),
-              (showBS @Pl.Value mempty, "(Value (fromList []))"),
-              ( showBS @Pl.Value (Ada.lovelaceValueOf 123),
+            [ (showBS @PlutusTx.Integer 123, "123"),
+              (showBS @PlutusTx.Integer (-123), "-123"),
+              (showBS @[PlutusTx.Integer] [1, 2, 3], "[1,2,3]"),
+              (showBS (PlutusTx.True, PlutusTx.False), "(True,False)"),
+              (showBS @PlutusTx.BuiltinByteString "abca", "\"61626361\""),
+              (showBS @Api.Value mempty, "(Value (fromList []))"),
+              ( showBS @Api.Value (Script.lovelaceValueOf 123),
                 "(Value (fromList [((CurrencySymbol \"\"),(fromList [((TokenName \"\"),123)]))]))"
               ),
-              ( showBS @Pl.Value (quickValue "banana" 4),
+              ( showBS @Api.Value (quickValue "banana" 4),
                 "(Value (fromList [((CurrencySymbol \"5cf8bdd7aa3d027821e6033816847034b0418a8959c40e54b6977f95\"),(fromList [((TokenName \"62616e616e61\"),4)]))]))"
               ),
-              ( showBS (Pl.mkConstr 0 [Pl.mkMap [(Pl.mkI 1, Pl.mkList [Pl.mkB "abc"])]]),
+              ( showBS (PlutusTx.mkConstr 0 [PlutusTx.mkMap [(PlutusTx.mkI 1, PlutusTx.mkList [PlutusTx.mkB "abc"])]]),
                 "(BuiltinData (Constr 0 [(Map [((I 1),(List [(B \"616263\")]))])]))"
               ),
               ( showBS
-                  ( Pl.Interval
-                      (Pl.LowerBound (Pl.Finite $ Pl.POSIXTime 123) True)
-                      (Pl.UpperBound (Pl.Finite $ Pl.POSIXTime 234) False)
+                  ( Api.Interval
+                      (Api.LowerBound (Api.Finite $ Api.POSIXTime 123) True)
+                      (Api.UpperBound (Api.Finite $ Api.POSIXTime 234) False)
                   ),
                 "(Interval (LowerBound (Finite (POSIXTime 123)) True) (UpperBound (Finite (POSIXTime 234)) False))"
               )
