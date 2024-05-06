@@ -35,15 +35,15 @@ import Data.Map qualified as Map
 import Ledger.Slot qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Ledger.Typed.Scripts qualified as Pl
-import Plutus.Script.Utils.V3.Scripts qualified as Pl
-import PlutusLedgerApi.V3 qualified as Pl
+import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
 
--- | Interprets the staged mockchain then runs the resulting computation with a
--- custom function. This can be used, for example, to supply a custom
--- 'InitialDistribution' by providing 'runMockChainTFrom'.
+-- | Interprets the staged mockchain then runs the resulting
+-- computation with a custom function. This can be used, for example,
+-- to supply a custom 'InitialDistribution' by providing
+-- 'runMockChainTFrom'.
 interpretAndRunWith ::
   (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
@@ -57,7 +57,7 @@ interpretAndRun = interpretAndRunWith runMockChainT
 
 data MockChainLogEntry
   = MCLogSubmittedTxSkel SkelContext TxSkel
-  | MCLogNewTx Pl.TxId
+  | MCLogNewTx Api.TxId
   | MCLogFail String
 
 newtype MockChainLog = MockChainLog {unMockChainLog :: [MockChainLogEntry]}
@@ -68,14 +68,15 @@ instance Semigroup MockChainLog where
 instance Monoid MockChainLog where
   mempty = MockChainLog []
 
--- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
--- 'interpret' function for more.
+-- | The semantic domain in which 'StagedMockChain' gets interpreted;
+-- see the 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT MockChainLog [])
 
 -- | The 'interpret' function gives semantics to our traces. One
--- 'StagedMockChain' computation yields a potential list of 'MockChainT'
--- computations, which emit a description of their operation. Recall a
--- 'MockChainT' is a state and except monad composed:
+-- 'StagedMockChain' computation yields a potential list of
+-- 'MockChainT' computations, which emit a description of their
+-- operation. Recall a 'MockChainT' is a state and except monad
+-- composed:
 --
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
@@ -90,13 +91,13 @@ data MockChainBuiltin a where
 
   GetParams :: MockChainBuiltin Emulator.Params
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
-  TxOutByRefLedger :: Pl.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
+  TxOutByRefLedger :: Api.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
   AwaitSlot :: Ledger.Slot -> MockChainBuiltin Ledger.Slot
-  DatumFromHash :: Pl.DatumHash -> MockChainBuiltin (Maybe Pl.Datum)
-  AllUtxosLedger :: MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
-  UtxosAtLedger :: Pl.Address -> MockChainBuiltin [(Pl.TxOutRef, Ledger.TxOut)]
-  ValidatorFromHash :: Pl.ValidatorHash -> MockChainBuiltin (Maybe (Pl.Versioned Pl.Validator))
+  DatumFromHash :: Api.DatumHash -> MockChainBuiltin (Maybe Api.Datum)
+  AllUtxosLedger :: MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
+  UtxosAtLedger :: Api.Address -> MockChainBuiltin [(Api.TxOutRef, Ledger.TxOut)]
+  ValidatorFromHash :: Script.ValidatorHash -> MockChainBuiltin (Maybe (Script.Versioned Script.Validator))
   -- | The empty set of traces
   Empty :: MockChainBuiltin a
   -- | The union of two sets of traces
@@ -185,22 +186,22 @@ runTweakFrom mcenv mcst tweak skel =
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL modifications
--- with 'Tweak's
+-- | A modal mock chain is a mock chain that allows us to use LTL
+-- modifications with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
--- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
--- apply at least once.
+-- | Apply a 'Tweak' to some transaction in the given Trace. The tweak
+-- must apply at least once.
 somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 somewhere = modifyLtl . LtlUntil LtlTruth . LtlAtom . UntypedTweak
 
--- | Apply a 'Tweak' to every transaction in a given trace. This is also
--- successful if there are no transactions at all.
+-- | Apply a 'Tweak' to every transaction in a given trace. This is
+-- also successful if there are no transactions at all.
 everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 
--- | Apply a 'Tweak' to the nth transaction in a given trace, 0 indexed.
--- Only successful when this transaction exists and can be modified.
+-- | Apply a 'Tweak' to the (0-indexed) nth transaction in a given
+-- trace. Successful when this transaction exists and can be modified.
 there :: (MonadModalBlockChain m) => Integer -> Tweak InterpMockChain b -> m a -> m a
 there n = modifyLtl . mkLtlFormula n
   where
@@ -209,17 +210,18 @@ there n = modifyLtl . mkLtlFormula n
         then LtlAtom . UntypedTweak
         else LtlNext . mkLtlFormula (x - 1)
 
--- | Apply a 'Tweak' to the next transaction in the given trace. The order of
--- arguments is reversed compared to 'somewhere' and 'everywhere', because that
--- enables an idiom like
+-- | Apply a 'Tweak' to the next transaction in the given trace. The
+-- order of arguments is reversed compared to 'somewhere' and
+-- 'everywhere', because that enables an idiom like
 --
 -- > do ...
 -- >    endpoint arguments `withTweak` someModification
 -- >    ...
 --
--- where @endpoint@ builds and validates a single transaction depending on the
--- given @arguments@. Then `withTweak` says "I want to modify the transaction
--- returned by this endpoint in the following way".
+-- where @endpoint@ builds and validates a single transaction
+-- depending on the given @arguments@. Then `withTweak` says "I want
+-- to modify the transaction returned by this endpoint in the
+-- following way".
 withTweak :: (MonadModalBlockChain m) => m x -> Tweak InterpMockChain a -> m x
 withTweak = flip (there 0)
 
