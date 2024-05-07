@@ -1,4 +1,5 @@
--- | Pretty-printing options for 'prettyCookedOpt' and their default values.
+-- | This module defines pretty-printing options for 'prettyCookedOpt' and their
+-- default values.
 module Cooked.Pretty.Options
   ( PrettyCookedOpts (..),
     PrettyCookedHashOpts (..),
@@ -18,21 +19,18 @@ import Data.Map qualified as Map
 import PlutusLedgerApi.V3 qualified as Api
 
 data PrettyCookedOpts = PrettyCookedOpts
-  { -- | Whether to print transaction ids of validated transactions.
-    -- By default: False
+  { -- | Whether to print transaction ids of validated transactions. By
+    -- default: False
     pcOptPrintTxHashes :: Bool,
-    -- | Whether to print transaction outputs references.
-    -- By default: hidden
+    -- | Whether to print transaction outputs references. By default: hidden
     pcOptPrintTxOutRefs :: PCOptTxOutRefs,
     -- | Whether to print tx options that have not been modified from their
-    -- default.
-    -- By default: False
+    -- default. By default: False
     pcOptPrintDefaultTxOpts :: Bool,
-    -- | Whether to print big integers with numeric underscores.
-    -- For example @53_000_000@ instead of @53000000@.
-    -- By default: True
+    -- | Whether to print big integers with numeric underscores. For example
+    -- @53_000_000@ instead of @53000000@. By default: True
     pcOptNumericUnderscores :: Bool,
-    -- | Options relative to printing hashes
+    -- | Options related to printing hashes
     pcOptHashes :: PrettyCookedHashOpts
   }
   deriving (Eq, Show)
@@ -52,27 +50,26 @@ data PCOptTxOutRefs
   = -- | Hide them
     PCOptTxOutRefsHidden
   | -- | Always show them.
-    -- Warning: this will disable printing similar UTxOs as a group
-    -- (for instance @(×10) Lovelace: 100_000_000@)
+    --
+    -- Warning: this will disable printing similar UTxOs as a group (for
+    -- instance @(×10) Lovelace: 100_000_000@)
     PCOptTxOutRefsFull
-  | -- | Show them for UTxOs which are not grouped with similar others.
-    -- This avoids  the downside of 'PCOptTxOutRefsFull' which disables printing
-    -- UTxOs as a group.
+  | -- | Show them for UTxOs which are not grouped with similar others. This
+    -- avoids the downside of 'PCOptTxOutRefsFull' which disables printing UTxOs
+    -- as a group.
     PCOptTxOutRefsPartial
   deriving (Eq, Show)
 
 data PrettyCookedHashOpts = PrettyCookedHashOpts
-  { -- | Length of printed hashes (e.g. addresses, transaction ids)
-    -- By default: 7
+  { -- | Length of printed hash prefix. By default: 7
     pcOptHashLength :: Int,
-    -- | Association between hashes and given names to ease readability.
-    -- For example @Map.singleton (walletPKHash (wallet 1)) "Alice"@
-    -- By default: "defaultHashNames" which assigns Lovelace, Quick, and
-    -- Permanent as names for the associated currency symbols
+    -- | Association between hashes and given names to ease readability.  For
+    -- example @Map.singleton (walletPKHash (wallet 1)) "Alice"@ By default:
+    -- "defaultHashNames" which assigns Lovelace, Quick, and Permanent as names
+    -- for the associated currency symbols
     pcOptHashNames :: Map Api.BuiltinByteString String,
-    -- | When a given name exists for a hash, this flag also prints the
-    -- original hash after the name
-    -- By default: @False@
+    -- | When a given name exists for a hash, this flag also prints the original
+    -- hash after the name. By default: @False@
     pcOptHashVerbose :: Bool
   }
   deriving (Eq, Show)

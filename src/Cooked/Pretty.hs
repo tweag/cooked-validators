@@ -1,5 +1,5 @@
--- | This module pretty-printing for transaction skeletons, utxo states,
--- addresses, pubkey hashes, values, etc.
+-- | This module exposes off-chain pretty-printing functions for transaction
+-- skeletons, utxo states, addresses, pubkey hashes, values, etc.
 --
 -- We provide the 'PrettyCooked' class and instances for common Plutus types.
 -- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
@@ -18,8 +18,7 @@
 -- instances. Prefer implementing the 'prettyCookedOpt' function and relay the
 -- 'PrettyCookedOpts' settings to other printers.
 --
--- @
---     data Foo = Bar Pl.Value | Baz Pl.PubkeyHash Pl.Value
+-- @ data Foo = Bar Pl.Value | Baz Pl.PubkeyHash Pl.Value
 --
 --     instance PrettyCooked Foo where
 --       prettyCookedOpt pcOpts (Bar value) =

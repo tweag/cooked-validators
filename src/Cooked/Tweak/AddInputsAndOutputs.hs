@@ -1,4 +1,5 @@
--- | Some 'Tweak's that add or remove inputs and outputs from transactions.
+-- | This module provides some 'Tweak's that add or remove inputs and outputs
+-- from transactions. Some also operate on the minted value.
 module Cooked.Tweak.AddInputsAndOutputs
   ( ensureInputTweak,
     addInputTweak,
@@ -23,8 +24,8 @@ import PlutusLedgerApi.V3 qualified as Api
 -- * Adding and removing transaction inputs
 
 -- | Ensure that a given 'Api.TxOutRef' is being spent with a given
--- 'TxSkelRedeemer'. The return value will be @Just@ the added data,
--- if anything changed.
+-- 'TxSkelRedeemer'. The return value will be @Just@ the added data, if anything
+-- changed.
 ensureInputTweak :: (MonadTweak m) => Api.TxOutRef -> TxSkelRedeemer -> m (Maybe (Api.TxOutRef, TxSkelRedeemer))
 ensureInputTweak oref howConsumed = do
   presentInputs <- viewTweak txSkelInsL
@@ -34,16 +35,16 @@ ensureInputTweak oref howConsumed = do
       overTweak txSkelInsL (Map.insert oref howConsumed)
       return $ Just (oref, howConsumed)
 
--- | Add an input to a transaction. If the given 'Api.TxOutRef' is
--- already being consumed by the transaction, fail.
+-- | Add an input to a transaction. If the given 'Api.TxOutRef' is already being
+-- consumed by the transaction, fail.
 addInputTweak :: (MonadTweak m) => Api.TxOutRef -> TxSkelRedeemer -> m ()
 addInputTweak oref howConsumed = do
   presentInputs <- viewTweak txSkelInsL
   guard (Map.notMember oref presentInputs)
   overTweak txSkelInsL (Map.insert oref howConsumed)
 
--- | Remove transaction inputs according to a given predicate. The
--- returned list contains all removed inputs.
+-- | Remove transaction inputs according to a given predicate. The returned list
+-- contains all removed inputs.
 removeInputTweak :: (MonadTweak m) => (Api.TxOutRef -> TxSkelRedeemer -> Bool) -> m [(Api.TxOutRef, TxSkelRedeemer)]
 removeInputTweak removePred = do
   presentInputs <- viewTweak txSkelInsL
@@ -53,8 +54,8 @@ removeInputTweak removePred = do
 
 -- * Adding and removing transaction outputs
 
--- | Ensure that a certain output is produced by a transaction. The
--- return value will be @Just@ the added output, when applicable.
+-- | Ensure that a certain output is produced by a transaction. The return value
+-- will be @Just@ the added output, when applicable.
 ensureOutputTweak :: (MonadTweak m) => TxSkelOut -> m (Maybe TxSkelOut)
 ensureOutputTweak txSkelOut = do
   presentOutputs <- viewTweak txSkelOutsL
@@ -64,13 +65,13 @@ ensureOutputTweak txSkelOut = do
       addOutputTweak txSkelOut
       return $ Just txSkelOut
 
--- | Add a transaction output, at the end of the current list of
--- outputs, thus retaining the initial outputs order.
+-- | Add a transaction output, at the end of the current list of outputs, thus
+-- retaining the initial outputs order.
 addOutputTweak :: (MonadTweak m) => TxSkelOut -> m ()
 addOutputTweak txSkelOut = overTweak txSkelOutsL (++ [txSkelOut])
 
--- | Remove transaction outputs according to some predicate. The
--- returned list contains all the removed outputs.
+-- | Remove transaction outputs according to some predicate. The returned list
+-- contains all the removed outputs.
 removeOutputTweak :: (MonadTweak m) => (TxSkelOut -> Bool) -> m [TxSkelOut]
 removeOutputTweak removePred = do
   presentOutputs <- viewTweak txSkelOutsL
@@ -80,15 +81,14 @@ removeOutputTweak removePred = do
 
 -- * Adding and removing minted values
 
--- | Add a new entry to the 'TxSkelMints' of the transaction skeleton
--- under modification. As this is implemented in terms of
--- 'addToTxSkelMints', the same caveats apply as do to that function!
+-- | Add a new entry to the 'TxSkelMints' of the transaction skeleton under
+-- modification. As this is implemented in terms of 'addToTxSkelMints', the same
+-- caveats apply as do to that function!
 addMintTweak :: (MonadTweak m) => (Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) -> m ()
 addMintTweak mint = overTweak txSkelMintsL $ addToTxSkelMints mint
 
--- | Remove some entries from the 'TxSkelMints' of a transaction,
--- according to some predicate. The returned list holds the removed
--- entries.
+-- | Remove some entries from the 'TxSkelMints' of a transaction, according to
+-- some predicate. The returned list holds the removed entries.
 removeMintTweak ::
   (MonadTweak m) =>
   ((Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) -> Bool) ->

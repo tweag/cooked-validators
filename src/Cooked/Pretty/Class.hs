@@ -1,8 +1,8 @@
--- | We provide the 'PrettyCooked' class and instances for common Plutus types.
--- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
--- printers for Plutus types which already have instances of 'Pretty'. Also,
--- 'PrettyCooked' makes it possible to optionally modify pretty printing
--- settings 'PrettyCookedOpts' (e.g. length of printed hashes).
+-- | This module provides the 'PrettyCooked' class and instances for common
+-- Plutus types.  We don't rely on 'Pretty' from "Prettyprinter" in order to
+-- define better printers for Plutus types which already have instances of
+-- 'Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify pretty
+-- printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
@@ -33,8 +33,8 @@ class PrettyCooked a where
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
   prettyCookedOpt _ = prettyCooked
 
--- | Use this in the REPL as an alternative to the default 'print' function
--- when dealing with pretty-printable cooked values.
+-- | Use this in the REPL as an alternative to the default 'print' function when
+-- dealing with pretty-printable cooked values.
 --
 -- For example, @printCookedOpt def runMockChain i0 foo@
 printCookedOpt :: (PrettyCooked a) => PrettyCookedOpts -> a -> IO ()

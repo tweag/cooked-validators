@@ -1,3 +1,5 @@
+-- | This module centralizes everything related to our mockchain, while hiding
+-- elements related to logs and inner state.
 module Cooked.MockChain (module X) where
 
 import Cooked.MockChain.Balancing as X

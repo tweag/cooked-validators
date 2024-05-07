@@ -1,5 +1,6 @@
 -- | This module defines 'Tweaks' which are the fundamental building blocks of
--- our "domain specific language" for attacks.
+-- our "domain specific language" for attacks. They are essentially skeleton
+-- modifications aware of the mockchain state.
 module Cooked.Tweak.Common
   ( runTweakInChain,
     runTweakInChain',
@@ -159,7 +160,8 @@ overMaybeSelectingTweak optic mChange select = do
             )
             0
             allFoci
-  setTweak (partsOf optic) $ map (uncurry fromMaybe) evaluatedFoci -- If the second  component of the pair is @Just@, use it.
+  -- If the second component of the pair is @Just@, use it.
+  setTweak (partsOf optic) $ map (uncurry fromMaybe) evaluatedFoci
   return $
     mapMaybe
       (\(original, mNew) -> if isJust mNew then Just original else Nothing)
@@ -177,8 +179,8 @@ overMaybeSelectingTweak optic mChange select = do
 --
 -- __Explanation of the arguments and return value__
 --
--- - Each of the foci of the @Optic k (WithIx is) TxSkel x@ argument is something
---   in the transaction that we might want to modify.
+-- - Each of the foci of the @Optic k (WithIx is) TxSkel x@ argument is
+--   something in the transaction that we might want to modify.
 --
 -- - The @is -> x -> m [(x, l)]@ argument computes a list of possible
 --   modifications for each focus, depending on its index. For each modified
@@ -199,10 +201,10 @@ overMaybeSelectingTweak optic mChange select = do
 -- __Example 1__
 --
 -- Assume the optic has three foci, let's denote them by @a, b, c :: x@, with
--- indices @1, 2, 3 :: Integer@ respectively. Also assume that the @is -> x -> m [(x, l)]@
--- argument returns lists of 2, 3, and 5 elements on @a@, @b@, and @c@,
--- respectively. Let's call those elements @a1, a2@ and @b1, b2, b3@ and @c1,
--- c2, c3, c4, c5@.
+-- indices @1, 2, 3 :: Integer@ respectively. Also assume that the @is -> x -> m
+-- [(x, l)]@ argument returns lists of 2, 3, and 5 elements on @a@, @b@, and
+-- @c@, respectively. Let's call those elements @a1, a2@ and @b1, b2, b3@ and
+-- @c1, c2, c3, c4, c5@.
 --
 -- If the @[ix] -> [[ix]]@ argument is @map (:[])@, you will try every
 -- modification on a separate transaction, since
@@ -294,10 +296,10 @@ combineModsTweak groupings optic changes = do
 
 -- | 'overMaybeTweak' requires a modification that can fail (targeting 'Maybe').
 -- Sometimes, it can prove more convenient to explicitly state which property
--- the foci shoud satisfy to be eligible for a modification that cannot fail instead.
--- 'selectP' provides a prism to make such a selection.
--- The intended use case is 'overTweak (optic % selectP prop) mod'
--- where 'optic' gives the candidate foci, 'prop' is the predicate to be satisfied
--- by the foci, and 'mod' is the modification to be applied to the selected foci.
+-- the foci shoud satisfy to be eligible for a modification that cannot fail
+-- instead.  'selectP' provides a prism to make such a selection.  The intended
+-- use case is 'overTweak (optic % selectP prop) mod' where 'optic' gives the
+-- candidate foci, 'prop' is the predicate to be satisfied by the foci, and
+-- 'mod' is the modification to be applied to the selected foci.
 selectP :: (a -> Bool) -> Prism' a a
 selectP prop = prism' id (\a -> if prop a then Just a else Nothing)

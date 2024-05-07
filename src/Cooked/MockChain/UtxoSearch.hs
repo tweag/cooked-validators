@@ -1,3 +1,6 @@
+-- | This module provides a convenient framework to look through UTxOs and
+-- search relevant ones based on predicates. For instance, it makes it very
+-- convenient to gather all UTxOs at a certain address.
 module Cooked.MockChain.UtxoSearch
   ( runUtxoSearch,
     allUtxosSearch,
@@ -27,21 +30,21 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * The type of UTxO searches
 
--- | If a UTxO is a 'TxOutRef' with some additional information, this
--- type captures a "stream" of UTxOs.
+-- | If a UTxO is a 'TxOutRef' with some additional information, this type
+-- captures a "stream" of UTxOs.
 type UtxoSearch m a = ListT m (Api.TxOutRef, a)
 
 -- | Given a UTxO search, we can run it to obtain a list of UTxOs.
 runUtxoSearch :: (Monad m) => UtxoSearch m a -> m [(Api.TxOutRef, a)]
 runUtxoSearch = ListT.toList
 
--- | Search all currently known 'TxOutRef's together with their
--- corresponding 'TxInfo'-'TxOut'.
+-- | Search all currently known 'TxOutRef's together with their corresponding
+-- 'TxInfo'-'TxOut'.
 allUtxosSearch :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 allUtxosSearch = allUtxos >>= ListT.fromFoldable
 
--- | Like 'allUtxosSearch', but returns a Ledger-level representation
--- of the transaction outputs, which might contain more information.
+-- | Like 'allUtxosSearch', but returns a Ledger-level representation of the
+-- transaction outputs, which might contain more information.
 allUtxosLedgerSearch :: (MonadBlockChain m) => UtxoSearch m Ledger.TxOut
 allUtxosLedgerSearch = allUtxosLedger >>= ListT.fromFoldable
 
@@ -50,8 +53,8 @@ allUtxosLedgerSearch = allUtxosLedger >>= ListT.fromFoldable
 utxosAtSearch :: (MonadBlockChainBalancing m) => Api.Address -> UtxoSearch m Api.TxOut
 utxosAtSearch = utxosAt >=> ListT.fromFoldable
 
--- | Like 'utxosAtSearch', but returns a Ledger-level representation
--- of the transaction outputs, which might contain more information.
+-- | Like 'utxosAtSearch', but returns a Ledger-level representation of the
+-- transaction outputs, which might contain more information.
 utxosAtLedgerSearch :: (MonadBlockChainBalancing m) => Api.Address -> UtxoSearch m Ledger.TxOut
 utxosAtLedgerSearch = utxosAtLedger >=> ListT.fromFoldable
 
@@ -61,8 +64,8 @@ utxosFromCardanoTxSearch :: (Monad m) => Ledger.CardanoTx -> UtxoSearch m Api.Tx
 utxosFromCardanoTxSearch = ListT.fromFoldable . utxosFromCardanoTx
 
 -- | Search all 'TxInfo'-'TxOut's corresponding to given the list of
--- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known
--- output will be filtered out.
+-- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known output will be
+-- filtered out.
 txOutByRefSearch :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> UtxoSearch m Api.TxOut
 txOutByRefSearch orefs =
   ListT.traverse (\o -> return (o, o)) (ListT.fromFoldable orefs)
@@ -70,8 +73,8 @@ txOutByRefSearch orefs =
 
 -- * filtering UTxO searches
 
--- | Transform a 'UtxoSearch' by applying a possibly failing monadic
--- "lookup" on every output.
+-- | Transform a 'UtxoSearch' by applying a possibly failing monadic "lookup" on
+-- every output.
 filterWith :: (Monad m) => UtxoSearch m a -> (a -> m (Maybe b)) -> UtxoSearch m b
 filterWith (ListT as) f =
   ListT $

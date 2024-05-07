@@ -1,5 +1,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | This modules provides a specification for our blockchain monads, in three
+-- layers:
+--
+-- 1. MonadBlockChainBalancing provides what's needing for balancing purposes
+--
+-- 2. MonadBlockChainWithoutValidation adds up remaining primitives without
+-- transaction validation
+--
+-- 3. MonadBlockChain concludes with the addition of transaction validation,
+-- thus modifying the internal index of outputs
+--
+-- In addition, you will find here many helpers functions which can be derived
+-- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
     MCEUnbalanceableError (..),
@@ -72,18 +85,18 @@ import Type.Reflection
 
 -- | The errors that can be produced by the 'MockChainT' monad
 data MockChainError where
-  -- FIXME, maybe the validation phase can be deduced from the nature
-  -- of the error
+  -- FIXME, maybe the validation phase can be deduced from the nature of the
+  -- error
   MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
   MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
-  -- | Thrown when the balancing wallet owns no output that is pure
-  -- Ada and with no datum.
+  -- | Thrown when the balancing wallet owns no output that is pure Ada and with
+  -- no datum.
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   -- | Errors happening at fee calculation time.
   MCECalcFee :: MockChainError -> MockChainError
-  -- | Thrown when an output reference should be in the state of the
-  -- mockchain, but isn't.
+  -- | Thrown when an output reference should be in the state of the mockchain,
+  -- but isn't.
   MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
   -- | Same as 'MCEUnknownOutRefError' for validators.
   MCEUnknownValidator :: String -> Script.ValidatorHash -> MockChainError
@@ -94,12 +107,12 @@ data MockChainError where
   OtherMockChainError :: (Typeable err, Show err, Eq err) => err -> MockChainError
 
 data MCEUnbalanceableError
-  = -- | The balancing wallet misses some value to pay what is needed
-    -- to balance the transaction.
+  = -- | The balancing wallet misses some value to pay what is needed to balance
+    -- the transaction.
     MCEUnbalNotEnoughFunds Wallet Api.Value
-  | -- | There is value to return to the balancing wallet but not
-    -- enough to fullfill the min ada requirement and there is not
-    -- enough in additional inputs to make it possible.
+  | -- | There is value to return to the balancing wallet but not enough to
+    -- fullfill the min ada requirement and there is not enough in additional
+    -- inputs to make it possible.
     MCEUnbalNotEnoughReturning
       (Api.Value, [Api.TxOutRef]) -- What was spent
       (Api.Value, [Api.TxOutRef]) -- What is left to spend
@@ -134,9 +147,8 @@ class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m w
   -- | Returns the datum with the given hash if present.
   datumFromHash :: Api.DatumHash -> m (Maybe Api.Datum)
 
-  -- | Returns the full validator corresponding to hash, if that
-  -- validator owns something or if it is stored in the reference
-  -- script field of some UTxO.
+  -- | Returns the full validator corresponding to hash, if that validator owns
+  -- something or if it is stored in the reference script field of some UTxO.
   validatorFromHash :: Script.ValidatorHash -> m (Maybe (Script.Versioned Script.Validator))
 
   -- | Returns an output given a reference to it
@@ -149,18 +161,18 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
-  -- | Waits until the current slot becomes greater or equal to the
-  -- given slot, and returns the current slot after waiting.
+  -- | Waits until the current slot becomes greater or equal to the given slot,
+  -- and returns the current slot after waiting.
   --
-  -- Note that it might not wait for anything if the current slot is
-  -- large enough.
+  -- Note that it might not wait for anything if the current slot is large
+  -- enough.
   awaitSlot :: Ledger.Slot -> m Ledger.Slot
 
 -- | The main abstraction of the blockchain.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
-  -- | Generates, balances and validates a transaction from a
-  -- skeleton.  It returns the validated transaction and updates the
-  -- state of the blockchain. In 'MockChainT', this means:
+  -- | Generates, balances and validates a transaction from a skeleton.  It
+  -- returns the validated transaction and updates the state of the
+  -- blockchain. In 'MockChainT', this means:
   --
   -- - deletes the consumed outputs from 'mcstIndex'
   -- - adds the produced outputs to 'msctIndex'
@@ -169,8 +181,8 @@ class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
   -- - adds the validators on outputs to the 'mcstValidators'.
   validateTxSkel :: TxSkel -> m Ledger.CardanoTx
 
--- | Validates a skeleton, and retuns the ordered list of produced
--- output references
+-- | Validates a skeleton, and retuns the ordered list of produced output
+-- references
 validateTxSkel' :: (MonadBlockChain m) => TxSkel -> m [Api.TxOutRef]
 validateTxSkel' = (map fst . utxosFromCardanoTx <$>) . validateTxSkel
 
@@ -185,9 +197,9 @@ txOutByRef oref = fmap txOutV2FromLedger <$> txOutByRefLedger oref
 
 -- | Retrieve the ordered list of outputs of the given "CardanoTx".
 --
--- This is useful when writing endpoints and/or traces to fetch utxos
--- of interest right from the start and avoid querying the chain for
--- them afterwards using 'allUtxos' or similar functions.
+-- This is useful when writing endpoints and/or traces to fetch utxos of
+-- interest right from the start and avoid querying the chain for them
+-- afterwards using 'allUtxos' or similar functions.
 utxosFromCardanoTx :: Ledger.CardanoTx -> [(Api.TxOutRef, Api.TxOut)]
 utxosFromCardanoTx =
   map (\(txOut, txOutRef) -> (Ledger.fromCardanoTxIn txOutRef, txOutV2FromLedger txOut)) . Ledger.getCardanoTxOutRefs
@@ -195,10 +207,10 @@ utxosFromCardanoTx =
 txOutV2FromLedger :: Ledger.TxOut -> Api.TxOut
 txOutV2FromLedger = Ledger.fromCardanoTxOutToPV2TxInfoTxOut . Ledger.getTxOut
 
--- | Try to resolve the datum on the output: If there's an inline
--- datum, take that; if there's a datum hash, look the corresponding
--- datum up (with 'datumFromHash'), returning @Nothing@ if it can't be
--- found; if there's no datum or hash at all, return @Nothing@.
+-- | Try to resolve the datum on the output: If there's an inline datum, take
+-- that; if there's a datum hash, look the corresponding datum up (with
+-- 'datumFromHash'), returning @Nothing@ if it can't be found; if there's no
+-- datum or hash at all, return @Nothing@.
 resolveDatum ::
   ( IsAbstractOutput out,
     ToOutputDatum (DatumType out),
@@ -222,8 +234,8 @@ resolveDatum out = do
     )
       <$> mDatum
 
--- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to
--- extract a datum of the suitable type.
+-- | Like 'resolveDatum', but also tries to use 'fromBuiltinData' to extract a
+-- datum of the suitable type.
 resolveTypedDatum ::
   ( IsAbstractOutput out,
     ToOutputDatum (DatumType out),
@@ -248,9 +260,9 @@ resolveTypedDatum out = do
     )
       =<< mOut
 
--- | Try to resolve the validator that owns an output: If the output
--- is owned by a public key, or if the validator's hash is not known
--- (i.e. if 'validatorFromHash' returns @Nothing@) return @Nothing@.
+-- | Try to resolve the validator that owns an output: If the output is owned by
+-- a public key, or if the validator's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@) return @Nothing@.
 resolveValidator ::
   ( IsAbstractOutput out,
     ToCredential (OwnerType out),
@@ -274,10 +286,9 @@ resolveValidator out =
         )
           <$> mVal
 
--- | Try to resolve the reference script on an output: If the output
--- has no reference script, or if the reference script's hash is not
--- known (i.e. if 'validatorFromHash' returns @Nothing@), this
--- function will return @Nothing@.
+-- | Try to resolve the reference script on an output: If the output has no
+-- reference script, or if the reference script's hash is not known (i.e. if
+-- 'validatorFromHash' returns @Nothing@), this function will return @Nothing@.
 resolveReferenceScript ::
   ( IsAbstractOutput out,
     ToScriptHash (ReferenceScriptType out),
@@ -364,9 +375,8 @@ txSkelInputValidators skel = do
       )
       utxos
 
--- | Go through all of the 'Api.TxOutRef's in the list and look them
--- up in the state of the blockchain. If any 'Api.TxOutRef' can't be
--- resolved, throw an error.
+-- | Go through all of the 'Api.TxOutRef's in the list and look them up in the
+-- state of the blockchain, throwing an error if one of them cannot be resolved.
 lookupUtxosPl :: (MonadBlockChainBalancing m) => [Api.TxOutRef] -> m (Map Api.TxOutRef Api.TxOut)
 lookupUtxosPl outRefs = Map.map txOutV2FromLedger <$> lookupUtxos outRefs
 
@@ -375,8 +385,7 @@ lookupUtxos =
   (Map.fromList <$>)
     . mapM (\oRef -> (oRef,) <$> maybeErrM (MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" oRef) id (txOutByRefLedger oRef))
 
--- | look up the UTxOs the transaction consumes, and sum the value
--- contained in them.
+-- | look up the UTxOs the transaction consumes, and sum their values.
 txSkelInputValue :: (MonadBlockChainBalancing m) => TxSkel -> m Api.Value
 txSkelInputValue = (foldMap (Api.txOutValue . txOutV2FromLedger) <$>) . txSkelInputUtxos
 
@@ -408,13 +417,12 @@ txSkelInputData skel = do
 -- $slotandtime
 -- #slotandtime#
 --
--- Slots are integers that monotonically increase and model the
--- passage of time. By looking at the current slot, a validator gets
--- to know that it is being executed within a certain window of
--- wall-clock time. Things can get annoying pretty fast when trying to
--- mock traces and trying to exercise certain branches of certain
--- validators; make sure you also read the docs on 'autoSlotIncrease'
--- to be able to simulate sending transactions in parallel.
+-- Slots are integers that monotonically increase and model the passage of
+-- time. By looking at the current slot, a validator gets to know that it is
+-- being executed within a certain window of wall-clock time. Things can get
+-- annoying pretty fast when trying to mock traces and trying to exercise
+-- certain branches of certain validators; make sure you also read the docs on
+-- 'autoSlotIncrease' to be able to simulate sending transactions in parallel.
 
 -- | Moves n slots fowards
 waitNSlots :: (MonadBlockChainWithoutValidation m) => Integer -> m Ledger.Slot
@@ -427,8 +435,8 @@ waitNSlots n =
 currentTime :: (MonadBlockChainWithoutValidation m) => m (Api.POSIXTime, Api.POSIXTime)
 currentTime = slotToTimeInterval =<< currentSlot
 
--- | Returns the closed ms interval corresponding to the slot with the
--- given number. It holds that
+-- | Returns the closed ms interval corresponding to the slot with the given
+-- number. It holds that
 --
 -- > slotToTimeInterval (getEnclosingSlot t) == (a, b)    ==>   a <= t <= b
 --
@@ -452,14 +460,14 @@ slotToTimeInterval slot = do
           )
     _ -> error "The time interval corresponding to a slot should be finite on both ends."
 
--- | Return the slot that contains the given time. See
--- 'slotToTimeInterval' for some satisfied equational properties.
+-- | Return the slot that contains the given time. See 'slotToTimeInterval' for
+-- some satisfied equational properties.
 getEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 getEnclosingSlot t = (`Emulator.posixTimeToEnclosingSlot` t) . Emulator.pSlotConfig <$> getParams
 
 -- | Waits until the current slot becomes greater or equal to the slot
---  containing the given POSIX time.  Note that that it might not wait
---  for anything if the current slot is large enough.
+--  containing the given POSIX time.  Note that that it might not wait for
+--  anything if the current slot is large enough.
 awaitEnclosingSlot :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Ledger.Slot
 awaitEnclosingSlot = awaitSlot <=< getEnclosingSlot
 
@@ -468,10 +476,9 @@ slotRangeBefore :: (MonadBlockChainWithoutValidation m) => Api.POSIXTime -> m Le
 slotRangeBefore t = do
   n <- getEnclosingSlot t
   (_, b) <- slotToTimeInterval n
-  -- If the given time @t@ happens to be the last millisecond of its
-  -- slot, we can include the whole slot. Otherwise, the only way to
-  -- be sure that the returned slot range contains no time after @t@
-  -- is to go to the preceding slot.
+  -- If the given time @t@ happens to be the last ms of its slot, we can include
+  -- the whole slot. Otherwise, the only way to be sure that the returned slot
+  -- range contains no time after @t@ is to go to the preceding slot.
   return $ Api.to $ if t == b then n else n - 1
 
 -- | The infinite range of slots starting after or at the given time
@@ -483,10 +490,11 @@ slotRangeAfter t = do
 
 -- ** Deriving further 'MonadBlockChain' instances
 
--- | A newtype wrapper to be used with '-XDerivingVia' to derive
--- instances of 'MonadBlockChain' for any 'MonadTransControl'.
+-- | A newtype wrapper to be used with '-XDerivingVia' to derive instances of
+-- 'MonadBlockChain' for any 'MonadTransControl'.
 --
--- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)', you'd write
+-- For example, to derive 'MonadBlockChain m => MonadBlockChain (ReaderT r m)',
+-- you'd write
 --
 -- > deriving via (AsTrans (ReaderT r) m) instance MonadBlockChain m => MonadBlockChain (ReaderT r m)
 --
@@ -534,14 +542,14 @@ deriving via (AsTrans (StateT s) m) instance (MonadBlockChainWithoutValidation m
 
 deriving via (AsTrans (StateT s) m) instance (MonadBlockChain m) => MonadBlockChain (StateT s m)
 
--- 'ListT' has no 'MonadTransControl' instance, so the @deriving via
--- ...@ machinery is unusable here. However, there is
+-- 'ListT' has no 'MonadTransControl' instance, so the @deriving via ...@
+-- machinery is unusable here. However, there is
 --
 -- > MonadError e m => MonadError e (ListT m)
 --
 -- so I decided to go with a bit of code duplication to implement the
--- 'MonadBlockChainWithoutValidation' and 'MonadBlockChain' instances
--- for 'ListT', instead of more black magic...
+-- 'MonadBlockChainWithoutValidation' and 'MonadBlockChain' instances for
+-- 'ListT', instead of more black magic...
 
 instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) where
   getParams = lift getParams

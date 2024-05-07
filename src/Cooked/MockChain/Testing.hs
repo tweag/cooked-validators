@@ -1,3 +1,5 @@
+-- | This modules provides primitives to run tests over mockchain executions and
+-- to give expectation on the result of these runs.
 module Cooked.MockChain.Testing where
 
 import Control.Exception qualified as E
@@ -15,10 +17,10 @@ import Ledger qualified
 import Test.QuickCheck qualified as QC
 import Test.Tasty.HUnit qualified as HU
 
--- | This module provides a common interface for HUnit and QuickCheck
--- tests. We do so by abstracting uses of 'HU.Assertion' and
--- 'QC.Property' for @(IsProp prop) => prop@, then provide instances
--- for both @HU.Asserton@ and @QC.Property@.
+-- | This module provides a common interface for HUnit and QuickCheck tests. We
+-- do so by abstracting uses of 'HU.Assertion' and 'QC.Property' for @(IsProp
+-- prop) => prop@, then provide instances for both @HU.Asserton@ and
+-- @QC.Property@.
 class IsProp prop where
   -- | Displays the string to the user in case of failure
   testCounterexample :: String -> prop -> prop
@@ -63,22 +65,22 @@ infixr 2 .||.
 (.||.) :: (IsProp prop) => prop -> prop -> prop
 a .||. b = testDisjoin [a, b]
 
--- | Ensure that all results produced by the staged mockchain
--- /succeed/, starting from the default initial distribution
+-- | Ensure that all results produced by the staged mockchain /succeed/,
+-- starting from the default initial distribution
 testSucceeds :: (IsProp prop) => PrettyCookedOpts -> StagedMockChain a -> prop
 testSucceeds pcOpts = testSucceedsFrom pcOpts def
 
--- | Ensure that all results produced by the staged mockchain /fail/
--- and that a predicate holds over the error.
+-- | Ensure that all results produced by the staged mockchain /fail/ and that a
+-- predicate holds over the error.
 --
 -- To test that validation fails, use
 -- > testFails def (isCekEvaluationFailure def) e
 testFails :: (IsProp prop, Show a) => PrettyCookedOpts -> (MockChainError -> prop) -> StagedMockChain a -> prop
 testFails pcOpts predi = testFailsFrom pcOpts predi def
 
--- | Ensure that all results produced by the staged mockchain succeed
--- starting from some initial distribution but doesn't impose any
--- additional condition on success.  Use 'testSucceedsFrom'' for that.
+-- | Ensure that all results produced by the staged mockchain succeed starting
+-- from some initial distribution but doesn't impose any additional condition on
+-- success.  Use 'testSucceedsFrom'' for that.
 testSucceedsFrom ::
   (IsProp prop) =>
   PrettyCookedOpts ->
@@ -87,9 +89,9 @@ testSucceedsFrom ::
   prop
 testSucceedsFrom pcOpts = testSucceedsFrom' pcOpts (\_ _ -> testSuccess)
 
--- | Ensure that all results produced by the staged mockchain succeed
--- starting from some initial distribution. Additionally impose a
--- condition over the resulting state and value.
+-- | Ensure that all results produced by the staged mockchain succeed starting
+-- from some initial distribution. Additionally impose a condition over the
+-- resulting state and value.
 testSucceedsFrom' ::
   (IsProp prop) =>
   PrettyCookedOpts ->
@@ -99,8 +101,8 @@ testSucceedsFrom' ::
   prop
 testSucceedsFrom' pcOpts prop = testAllSatisfiesFrom pcOpts (either (testFailureMsg . renderString (prettyCookedOpt pcOpts)) (uncurry prop))
 
--- | Ensure that all results produced by the staged mockchain /fail/
--- starting from some initial distribution.
+-- | Ensure that all results produced by the staged mockchain /fail/ starting
+-- from some initial distribution.
 testFailsFrom ::
   (IsProp prop, Show a) =>
   PrettyCookedOpts ->
@@ -114,29 +116,28 @@ testFailsFrom pcOpts predi =
     (either predi (testFailureMsg . renderString (prettyCookedOpt pcOpts)))
 
 -- | Is satisfied when the given 'MockChainError' is wrapping a
--- @CekEvaluationFailure@.  This is particularly important when
--- writing negative tests. For example, if we are simulating an attack
--- and writing a test with 'testFailsFrom', we might have made a
--- mistake in the attack, yielding a test that fails for reasons such
--- as @ValueLessThanMinAda@ or @ValueNotPreserved@, which does not
--- rule out the attack being caught by the validator script. For these
--- scenarios it is paramount to rely on @testFailsFrom'
+-- @CekEvaluationFailure@.  This is particularly important when writing negative
+-- tests. For example, if we are simulating an attack and writing a test with
+-- 'testFailsFrom', we might have made a mistake in the attack, yielding a test
+-- that fails for reasons such as @ValueLessThanMinAda@ or @ValueNotPreserved@,
+-- which does not rule out the attack being caught by the validator script. For
+-- these scenarios it is paramount to rely on @testFailsFrom'
 -- isCekEvaluationFailure@ instead.
 isCekEvaluationFailure :: (IsProp prop) => PrettyCookedOpts -> MockChainError -> prop
 isCekEvaluationFailure _ (MCEValidationError _ (Ledger.ScriptFailure _)) = testSuccess
 isCekEvaluationFailure pcOpts e = testFailureMsg $ "Expected 'CekEvaluationFailure', got: " ++ renderString (prettyCookedOpt pcOpts) e
 
--- | Similar to 'isCekEvaluationFailure', but enables us to check for
--- a specific error message in the error.
+-- | Similar to 'isCekEvaluationFailure', but enables us to check for a specific
+-- error message in the error.
 isCekEvaluationFailureWithMsg :: (IsProp prop) => PrettyCookedOpts -> (String -> Bool) -> MockChainError -> prop
 isCekEvaluationFailureWithMsg _ f (MCEValidationError _ (Ledger.ScriptFailure (Ledger.EvaluationError msgs _)))
   | any (f . T.unpack) msgs = testSuccess
 isCekEvaluationFailureWithMsg pcOpts _ e = testFailureMsg $ "Expected 'CekEvaluationFailure' with specific messages, got: " ++ renderString (prettyCookedOpt pcOpts) e
 
--- | Ensure that all results produced by the set of traces encoded by
--- the 'StagedMockChain' satisfy the given predicate. If you wish to
--- build custom predicates you can use 'testSatisfiesFrom'' directly
--- and see 'testBinaryRelatedBy' as an example.
+-- | Ensure that all results produced by the set of traces encoded by the
+-- 'StagedMockChain' satisfy the given predicate. If you wish to build custom
+-- predicates you can use 'testSatisfiesFrom'' directly and see
+-- 'testBinaryRelatedBy' as an example.
 testAllSatisfiesFrom ::
   forall prop a.
   (IsProp prop) =>
@@ -150,10 +151,9 @@ testAllSatisfiesFrom pcOpts f = testSatisfiesFrom' (testAll go)
     go :: (Either MockChainError (a, UtxoState), MockChainLog) -> prop
     go (prop, mcLog) = testCounterexample (renderString (prettyCookedOpt pcOpts) mcLog) (f prop)
 
--- | Asserts that the given 'StagedMockChain' produces exactly two
--- outcomes, both of which are successful and have their resulting
--- states related by a given predicate. A typical usage would look
--- like:
+-- | Asserts that the given 'StagedMockChain' produces exactly two outcomes,
+-- both of which are successful and have their resulting states related by a
+-- given predicate. A typical usage would look like:
 --
 -- > testBinaryRelatedBy equalModuloAda myInitDistr $ do
 -- >   x <- trPrepare
@@ -187,16 +187,15 @@ testBinaryRelatedBy pcOpts rel = testSatisfiesFrom' $ \case
   xs -> testFailureMsg $ "Expected exactly two outcomes, received: " ++ show (length xs)
 
 -- | Generalizes 'testBinaryRelatedBy', asserting that the given
--- 'StagedMockChain' produces more than two outcomes, say @[x,y,z,w]@,
--- all of which are successful (i.e. are not a 'MockChainError') and
--- these states are in the same equivalence class of (~); that is,
--- they satisfy:
+-- 'StagedMockChain' produces more than two outcomes, say @[x,y,z,w]@, all of
+-- which are successful (i.e. are not a 'MockChainError') and these states are
+-- in the same equivalence class of (~); that is, they satisfy:
 --
 -- > x ~ y && x ~ z && x ~ z && x ~ w
 --
--- Because @(~)@ should be symmetric and transitive we can estabilish
--- that these states all belong to the same equivalence class. This
--- function does /not/ check each pointwise case.
+-- Because @(~)@ should be symmetric and transitive we can estabilish that these
+-- states all belong to the same equivalence class. This function does /not/
+-- check each pointwise case.
 testOneEquivClass ::
   (IsProp prop) =>
   PrettyCookedOpts ->
@@ -210,23 +209,23 @@ testOneEquivClass pcOpts rel = testSatisfiesFrom' $ \case
   ((Left errX, tx) : _) -> testFailureMsg $ concat ["First outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errX, "\n", renderString (prettyCookedOpt pcOpts) tx]
   ((Right resX, _) : xs) -> go (snd resX) xs
   where
-    -- we can flag a success here because 'xs' above is guarnateed to
-    -- have at least one element since we ruled out the empty and the
-    -- singleton lists in the \case
+    -- we can flag a success here because 'xs' above is guarnateed to have at
+    -- least one element since we ruled out the empty and the singleton lists in
+    -- the \case
     go _resX [] = testSuccess
     go _resX ((Left errY, ty) : _) = testFailureMsg $ concat ["An outcome is a failure: ", renderString (prettyCookedOpt pcOpts) errY, "\n", renderString (prettyCookedOpt pcOpts) ty]
     go resX ((Right (_, resY), _) : ys) = testConjoin [rel resX resY, go resX ys]
 
--- | Asserts that the results produced by running the given
--- 'StagedMockChain' from some speficied 'InitialDistribution' satisfy
--- a given assertion. In this case, the predicate gets the trace
--- descriptions that led to each potential outcome and is responsible
--- for calling 'testCounterexample' communicate these to the user.
+-- | Asserts that the results produced by running the given 'StagedMockChain'
+-- from some speficied 'InitialDistribution' satisfy a given assertion. In this
+-- case, the predicate gets the trace descriptions that led to each potential
+-- outcome and is responsible for calling 'testCounterexample' communicate these
+-- to the user.
 --
--- Although this function is mainly used internally, as a building
--- block for the simpler predicates, it can be useful in building some
--- custom predicates. Check 'testAllSatisfiesFrom' or
--- 'testBinaryRelatedBy' for examples on using this.
+-- Although this function is mainly used internally, as a building block for the
+-- simpler predicates, it can be useful in building some custom
+-- predicates. Check 'testAllSatisfiesFrom' or 'testBinaryRelatedBy' for
+-- examples on using this.
 testSatisfiesFrom' ::
   ([(Either MockChainError (a, UtxoState), MockChainLog)] -> prop) ->
   InitialDistribution ->
@@ -267,15 +266,13 @@ instance IsProp QC.Property where
   testConjoin = QC.conjoin
   testDisjoin = QC.disjoin
 
--- | Here we provide our own universsal quantifier instead of
---  'QC.forAll', so we can monomorphize it to returning a
---  'QC.Property'
+-- | Here we provide our own universsal quantifier instead of 'QC.forAll', so we
+--  can monomorphize it to returning a 'QC.Property'
 forAll :: (Show a) => QC.Gen a -> (a -> QC.Property) -> QC.Property
 forAll = QC.forAll
 
--- TODO: Discuss this instance; its here to enable us to easily run
--- things in a repl but I'm not sure whether to ignore the
--- counterexample messages or not.
+-- TODO: Discuss this instance; its here to enable us to easily run things in a
+-- repl but I'm not sure whether to ignore the counterexample messages or not.
 instance IsProp Bool where
   testCounterexample msg False = trace msg False
   testCounterexample _ True = True

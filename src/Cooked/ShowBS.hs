@@ -1,14 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- | Print all the types that occur on the 'Context' to 'BuiltinString'. This is
--- useful for debugging of validators. You probably do not want to use this in
--- production code, as many of the functions in this module are wildly
--- inefficient due to limitations of the 'BuiltinString' type.
+-- | This module exposes on-chain pretty-printing function for all the types
+-- that occur on the 'ScriptContext' to 'BuiltinString'. This is useful for
+-- debugging of validators. You probably do not want to use this in production
+-- code, as many of the functions in this module are wildly inefficient due to
+-- limitations of the 'BuiltinString' type.
 --
--- If the functions from this module make script execution on your transactions
--- go over budget, consider using 'txOptEmulatorParamsModification' to
--- temporarily loosen the limits (at the cost of breaking compatibility with
--- mainnet)
+-- If the script execution on your transactions go over budget by using this
+-- module, consider using 'txOptEmulatorParamsModification' to temporarily
+-- loosen the limits (at the cost of breaking compatibility with mainnet)
 module Cooked.ShowBS (ShowBS (..)) where
 
 import PlutusLedgerApi.V3 qualified as Api
@@ -17,12 +17,12 @@ import PlutusTx.Builtins qualified as PlutusTx
 import PlutusTx.Prelude hiding (toList)
 import PlutusTx.Ratio qualified as PlutusTx hiding (negate)
 
--- | analogue of Haskell's 'Show' class for use in Plutus scripts.
+-- | analogue of Haskell's 'Show' class to be use in Plutus scripts.
 class ShowBS a where
   -- | analogue of 'show'
   showBS :: a -> BuiltinString
 
--- | print with a surrounding parenthesis, if the boolean argument is true
+-- | print with a surrounding parenthesis
 {-# INLINEABLE showBSParen #-}
 showBSParen :: BuiltinString -> BuiltinString
 showBSParen s = "(" <> s <> ")"
@@ -253,30 +253,17 @@ instance ShowBS Api.Delegatee where
   showBS (Api.DelegVote dRep) = application1 "Delegate vote" dRep
   showBS (Api.DelegStakeVote pkh dRep) = application2 "Delegate stake vote" pkh dRep
 
--- Comments are copied for the definition of TxCert
 instance ShowBS Api.TxCert where
   {-# INLINEABLE showBS #-}
-  -- \| Register staking credential with an optional deposit amount
   showBS (Api.TxCertRegStaking cred maybeDepositAmount) = application2 "Register staking" cred maybeDepositAmount
-  -- \| Un-Register staking credential with an optional refund amount
   showBS (Api.TxCertUnRegStaking cred maybeDepositAmount) = application2 "Unregister staking" cred maybeDepositAmount
-  -- \| Delegate staking credential to a Delegatee
   showBS (Api.TxCertDelegStaking cred delegatee) = application2 "Delegate staking" cred delegatee
-  -- \| Register and delegate staking credential to a Delegatee in one
-  -- certificate. Noter that deposit is mandatory.
   showBS (Api.TxCertRegDeleg cred delegatee depositAmount) = application3 "Register and delegate staking" cred delegatee depositAmount
-  -- \| Register a DRep with a deposit value. The optional anchor is omitted.
   showBS (Api.TxCertRegDRep dRepCred amount) = application2 "Register DRep" dRepCred amount
-  -- \| Update a DRep. The optional anchor is omitted.
   showBS (Api.TxCertUpdateDRep dRepCred) = application1 "Update DRep" dRepCred
-  -- \| UnRegister a DRep with mandatory refund value
   showBS (Api.TxCertUnRegDRep dRepCred amount) = application2 "Unregister DRep" dRepCred amount
-  -- -- \| A digest of the PoolParams (with poolId and pool VFR)
   showBS (Api.TxCertPoolRegister poolId poolVFR) = application2 "Register to pool" poolId poolVFR
-  -- -- \| The retirement certificate and the Epoch in which the
-  -- -- retirement will take place
   showBS (Api.TxCertPoolRetire pkh epoch) = application2 "Retire from pool" pkh epoch
-  -- \| Authorize a Hot credential for a specific Committee member's cold credential
   showBS (Api.TxCertAuthHotCommittee coldCommitteeCred hotCommitteeCred) = application2 "Authorize hot committee " coldCommitteeCred hotCommitteeCred
   showBS (Api.TxCertResignColdCommittee coldCommitteeCred) = application1 "Resign cold committee" coldCommitteeCred
 

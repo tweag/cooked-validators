@@ -1,5 +1,9 @@
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | This modules provides the infrastructure to modify sequences of
+-- transactions using LTL formulaes with atomic modifications. This idea is to
+-- describe when to apply certain modifications within a trace. This is to be
+-- replaced later on with a dependency to https://github.com/tweag/graft.
 module Cooked.Ltl
   ( Ltl (..),
     nowLater,
@@ -22,42 +26,46 @@ import Data.Kind
 -- | Type of LTL formulas with atomic formulas of type @a@. Think of @a@ as a
 -- type of "modifications", then a value of type @Ltl a@ describes where to
 -- apply modifications. Since it does not make (obvious) sense to talk of a
--- negated modification or of one modification (possibly in the future) to
--- imply another modification, implication and negation are absent.
+-- negated modification or of one modification (possibly in the future) to imply
+-- another modification, implication and negation are absent.
 data Ltl a
   = -- | The "do nothing" modification that never fails
     LtlTruth
   | -- | The modification that never applies (i.e. always fails)
     LtlFalsity
-  | -- | The modification that applies a given atomic modification at the current time step
+  | -- | The modification that applies a given atomic modification at the
+    -- | current time step
     LtlAtom a
   | -- | Disjunction will be interpreted in an "intuitionistic" way, i.e. as
     -- branching into the "timeline" where the left disjunct holds and the one
-    -- where the right disjunct holds. In that sense, it is an exclusive or,
-    -- as it does not introduce the branch where both disjuncts hold.
+    -- where the right disjunct holds. In that sense, it is an exclusive or, as
+    -- it does not introduce the branch where both disjuncts hold.
     LtlOr (Ltl a) (Ltl a)
-  | -- | Conjunction will be interpreted as "apply both
-    -- modifications". Attention: The "apply both" operation will be
-    -- user-defined for atomic modifications, so that conjunction may for
-    -- example fail to be commutative if the operation on atomic modification is
-    -- not commutative.
+  | -- | Conjunction will be interpreted as "apply both modifications".
+    -- Attention: The "apply both" operation will be user-defined for atomic
+    -- modifications, so that conjunction may for example fail to be commutative
+    -- if the operation on atomic modification is not commutative.
     LtlAnd (Ltl a) (Ltl a)
   | -- | Assert that the given formula holds at the next time step.
     LtlNext (Ltl a)
-  | -- | Assert that the first formula holds at least until the second one begins
-    -- to hold, which must happen eventually. The formulas
+  | -- | Assert that the first formula holds at least until the second one
+    -- begins to hold, which must happen eventually. The formulas
+    --
     -- > a `LtlUntil` b
     -- and
     -- > b `LtlOr` (a `LtlAnd` LtlNext (a `LtlUntil` b))
+    --
     -- are equivalent.
     LtlUntil (Ltl a) (Ltl a)
   | -- | Assert that the second formula has to be true up to and including the
     -- point when the first one becomes true; if that never happens, the second
     -- formula has to remain true forever. View this as dual to 'LtlUntil'. The
     -- formulas
+    --
     -- > a `LtlRelease` b
     -- and
     -- > b `LtlAnd` (a `LtlOr` LtlNext (a `LtlRelease` b))
+    --
     -- are equivalent.
     LtlRelease (Ltl a) (Ltl a)
   deriving (Show)
@@ -271,8 +279,8 @@ interpLtl (Instr (Builtin b) f) = interpBuiltin b >>= interpLtl . f
 
 -- | Interpret a 'Staged' computation into a suitable domain, using the function
 -- 'interpBuiltin' to interpret the builtins. At the end of the computation,
--- prune branches that still have un'finished' modifications applied to
--- them. See the discussion on the regression test case for PRs 110 and 131 in
+-- prune branches that still have un'finished' modifications applied to them.
+-- See the discussion on the regression test case for PRs 110 and 131 in
 -- 'StagedSpec.hs' for a discussion on why this function has to exist.
 interpLtlAndPruneUnfinished ::
   (InterpLtl modification builtin m) =>
@@ -285,13 +293,13 @@ interpLtlAndPruneUnfinished f = do
 
 -- * Convenience functions
 
--- Users of this module should never use 'StartLtl' and 'StopLtl'
--- explicitly. Here are some safe-to-use functions that should be used
--- instead. Most functions like the ones below should be defined for the class
--- 'MonadModal' because there might be other possibilities to equip a monad with
--- LTL modifications beside the method above.
+-- Users of this module should never use 'StartLtl' and 'StopLtl' explicitly.
+-- Here are some safe-to-use functions that should be used instead. Most
+-- functions like the ones below should be defined for the class 'MonadModal'
+-- because there might be other possibilities to equip a monad with LTL
+-- modifications beside the method above.
 
--- | Monads that allow modificaitons with LTL formulas.
+-- | Monads that allow modifications with LTL formulas.
 class (Monad m) => MonadModal m where
   type Modification m :: Type
   modifyLtl :: Ltl (Modification m) -> m a -> m a

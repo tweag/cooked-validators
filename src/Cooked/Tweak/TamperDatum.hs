@@ -1,3 +1,7 @@
+-- | This module provide tweaks to tamper with output datums in a typed
+-- manner. There are many use cases where slight changes in datum can have a
+-- drastic effect on the bahavior of a contract, and can be unchecked. Here is
+-- the way to test those cases.
 module Cooked.Tweak.TamperDatum
   ( tamperDatumTweak,
     TamperDatumLbl (..),
@@ -51,12 +55,13 @@ data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
--- differences with 'tamperDatumTweak'. First, the tampering function returns 'BuiltinData', allowing it to
--- do pretty much anything with the datums. Second, for every output datum there are zero or more options
--- for how to modify it, and all combinations of these modifications are tried.
+-- differences with 'tamperDatumTweak'. First, the tampering function returns
+-- 'BuiltinData', allowing it to do pretty much anything with the
+-- datums. Second, for every output datum there are zero or more options for how
+-- to modify it, and all combinations of these modifications are tried.
 --
--- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n' possible modifications,
--- this tweak will try
+-- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n'
+-- possible modifications, this tweak will try
 --
 -- >   k_1 + ... + k_n
 -- > + k_1 * k_2 + ... + k_{n-1} * k_n
@@ -112,9 +117,9 @@ malformDatumTweak change = do
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
--- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such that
--- - @length c == length l@, and
--- - for all @0 <= i < length c@, @elem (c !! i) (l !! i)@.
+-- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
+-- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!
+-- i) (l !! i)@.
 --
 -- 'allCombinations', as the name suggests, returns all the possible
 -- combinations of a given list of lists. For instance:

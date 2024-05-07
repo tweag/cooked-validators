@@ -1,18 +1,17 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module implements pretty-printing for Cooked structures such
--- as skeletons and chain state.
+-- | This module implements pretty-printing for Cooked structures such as
+-- skeletons and chain state.
 --
--- It contains orphaned instances of 'PrettyCooked' for Cooked
--- datatypes. They cannot be provided in "Cooked.Pretty.Class" because
--- of dependency cycles and, for ease of maintainability, we chose to
--- centralize all pretty-printing related code in submodules of
--- "Cooked.Pretty" instead of having 'PrettyCooked' instances
--- scattered around.
+-- It contains orphaned instances of 'PrettyCooked' for Cooked datatypes. They
+-- cannot be provided in "Cooked.Pretty.Class" because of dependency cycles and,
+-- for ease of maintainability, we chose to centralize all pretty-printing
+-- related code in submodules of "Cooked.Pretty" instead of having
+-- 'PrettyCooked' instances scattered around.
 --
--- Some structure require additional arguments to be pretty-printed
--- and have therefore no instances 'PrettyCooked' (for example
--- 'TxSkel' needs some 'TxSkelContext').
+-- Some structure require additional arguments to be pretty-printed and have
+-- therefore no instances 'PrettyCooked' (for example 'TxSkel' needs some
+-- 'TxSkelContext').
 module Cooked.Pretty.Cooked
   ( prettyTxSkel,
     prettyBalancingWallet,
@@ -54,8 +53,8 @@ import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
 import Prettyprinter qualified as PP
 
--- | The 'PrettyCooked' instance for 'TxSkelOutDatum' prints the datum
--- it contains according to its own 'PrettyCooked' instance.
+-- | The 'PrettyCooked' instance for 'TxSkelOutDatum' prints the datum it
+-- contains according to its own 'PrettyCooked' instance.
 instance PrettyCooked TxSkelOutDatum where
   prettyCookedOpt _ TxSkelOutNoDatum = mempty
   prettyCookedOpt opts (TxSkelOutDatumHash datum) = prettyCookedOpt opts datum
@@ -65,8 +64,8 @@ instance PrettyCooked TxSkelOutDatum where
 instance PrettyCooked MockChainError where
   prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
-  -- Here we don't print the skel because we lack its context and this
-  -- error is printed alongside the skeleton when a test fails
+  -- Here we don't print the skel because we lack its context and this error is
+  -- printed alongside the skeleton when a test fails
   prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =
     prettyItemize
       "Unbalanceable:"
@@ -162,8 +161,8 @@ instance PrettyCooked MockChainLog where
       . unMockChainLog
     where
       -- In order to avoid printing 'MockChainLogValidateTxSkel' then
-      -- 'MockChainLogNewTx' as two different items, we combine them
-      -- into one single 'DocCooked'
+      -- 'MockChainLogNewTx' as two different items, we combine them into one
+      -- single 'DocCooked'
       go :: [DocCooked] -> [MockChainLogEntry] -> [DocCooked]
       go
         acc
@@ -211,8 +210,8 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
         ]
     )
 
--- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix
--- mentioning this is the balancing wallet
+-- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
+-- this is the balancing wallet
 prettyBalancingWallet :: PrettyCookedOpts -> Wallet -> DocCooked
 prettyBalancingWallet opts w =
   prettyCookedOpt opts (walletPKHash w) <+> "[Balancing]"
@@ -341,9 +340,9 @@ lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
         Api.NoOutputDatum -> TxSkelOutNoDatum
     )
 
--- | Pretty-print a list of transaction skeleton options, only
--- printing an option if its value is non-default. If no non-default
--- options are in the list, return nothing.
+-- | Pretty-print a list of transaction skeleton options, only printing an
+-- option if its value is non-default. If no non-default options are in the
+-- list, return nothing.
 mPrettyTxOpts :: PrettyCookedOpts -> TxOpts -> Maybe DocCooked
 mPrettyTxOpts
   opts
@@ -399,8 +398,8 @@ mPrettyTxOpts
 
 -- * Pretty-printing
 
--- | Pretty print a 'UtxoState'. Print the known wallets first, then
--- unknown pubkeys, then scripts.
+-- | Pretty print a 'UtxoState'. Print the known wallets first, then unknown
+-- pubkeys, then scripts.
 instance PrettyCooked UtxoState where
   prettyCookedOpt opts =
     prettyItemize "UTxO state:" "•"
@@ -423,8 +422,8 @@ instance PrettyCooked UtxoState where
         (Api.Address (Api.ScriptCredential _) _, _) = LT
       addressOrdering (a1, _) (a2, _) = compare a1 a2
 
--- | Pretty prints the state of an address, that is the list of UTxOs
--- (including value and datum), grouped
+-- | Pretty prints the state of an address, that is the list of UTxOs (including
+-- value and datum), grouped
 prettyAddressState :: PrettyCookedOpts -> Api.Address -> UtxoPayloadSet -> DocCooked
 prettyAddressState opts address payloadSet =
   prettyItemize
@@ -450,8 +449,8 @@ prettyAddressState opts address payloadSet =
         PCOptTxOutRefsFull -> map (: [])
         _ -> List.groupBy similar
 
--- | Pretty prints payloads (datum and value corresponding to 1 UTxO)
--- grouped together when they carry same value and datum
+-- | Pretty prints payloads (datum and value corresponding to 1 UTxO) grouped
+-- together when they carry same value and datum
 prettyPayloadGrouped :: PrettyCookedOpts -> [UtxoPayload] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
 prettyPayloadGrouped opts [payload] =

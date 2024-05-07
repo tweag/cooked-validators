@@ -1,3 +1,7 @@
+-- | This module provides primitives to translate elements from our skeleton to
+-- actual transaction elements, including the transaction itself. Ideally, this
+-- module should only export `generateTx` but we need to make visible a few
+-- other primitives that will be used in balancing.
 module Cooked.MockChain.GenerateTx
   ( GenerateTxError (..),
     generateBodyContent,
@@ -63,9 +67,8 @@ type TxGen a = ReaderT Context (Either GenerateTxError) a
 
 -- * Helpers to throw errors in 'TxGen'
 
--- Looks up a key in a map. Throws a 'GenerateTxErrorGeneral' error
--- with a given message when the key is absent, returns the associated
--- value otherwise.
+-- Looks up a key in a map. Throws a 'GenerateTxErrorGeneral' error with a given
+-- message when the key is absent, returns the associated value otherwise.
 throwOnLookup :: (Ord k) => String -> k -> Map k a -> TxGen a
 throwOnLookup errorMsg key = maybe (throwOnString errorMsg) return . Map.lookup key
 
@@ -73,13 +76,13 @@ throwOnLookup errorMsg key = maybe (throwOnString errorMsg) return . Map.lookup 
 throwOnString :: String -> TxGen a
 throwOnString = lift . Left . GenerateTxErrorGeneral
 
--- Lifts a 'ToCardanoError' with an associated error message, or apply
--- a function if a value exists
+-- Lifts a 'ToCardanoError' with an associated error message, or apply a
+-- function if a value exists
 throwOnToCardanoErrorOrApply :: String -> (a -> b) -> Either Ledger.ToCardanoError a -> TxGen b
 throwOnToCardanoErrorOrApply errorMsg f = lift . bimap (ToCardanoError errorMsg) f
 
--- Lifts a 'ToCardanoError' with an associated error message, or
--- leaves the value unchanged if it exists
+-- Lifts a 'ToCardanoError' with an associated error message, or leaves the
+-- value unchanged if it exists
 throwOnToCardanoError :: String -> Either Ledger.ToCardanoError a -> TxGen a
 throwOnToCardanoError = flip throwOnToCardanoErrorOrApply id
 
@@ -139,9 +142,8 @@ generateBodyContent fees collateralIns params managedData managedTxOuts managedV
   flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
--- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate
--- witness. If you add reference inputs, don't forget to also update
--- the 'txInsReference'!
+-- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate witness. If
+-- you add reference inputs, don't forget to also update the 'txInsReference'!
 txSkelInToTxIn ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   TxGen (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
@@ -176,10 +178,9 @@ txSkelRedeemerToWitness _ TxSkelNoRedeemerForPK = return $ Cardano.KeyWitness Ca
 txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
   (Script.ValidatorHash validatorHash, Script.Versioned _ version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
   Api.ScriptHash scriptHashAtOref <-
-    -- In our own MockChainT implementation, this error should never
-    -- been thrown, because we collect the 'managedTxOuts' using
-    -- (eventually) 'lookupUtxos', which will already fail on
-    -- un-resolvable 'TxOutRef's.
+    -- In our own MockChainT implementation, this error should never been
+    -- thrown, because we collect the 'managedTxOuts' using (eventually)
+    -- 'lookupUtxos', which will already fail on un-resolvable 'TxOutRef's.
     throwOnLookup
       "txSkelInToTxIn: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored"
       validatorOref

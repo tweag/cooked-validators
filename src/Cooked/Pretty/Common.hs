@@ -1,4 +1,5 @@
--- | Common tools to help implement pretty-printers in cooked-validators
+-- | This module provides common functions to help implement pretty-printers in
+-- cooked-validators
 module Cooked.Pretty.Common
   ( DocCooked,
     renderString,
@@ -22,8 +23,7 @@ import Prettyprinter.Render.String qualified as PP
 type DocCooked = Doc ()
 
 -- | Use this to convert a pretty-printer to a regular show function using
--- default layout options. This is used in "Testing" because Tasty uses
--- strings.
+-- default layout options. This is used in "Testing" because Tasty uses strings.
 renderString :: (a -> DocCooked) -> a -> String
 renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 

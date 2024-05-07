@@ -1,3 +1,12 @@
+-- | This module provides the description of a transaction skeleton. We have our
+-- own representation of a transaction for three main reasons:
+--
+-- - our transaction skeletons are typed (datums, validators, outputs...)
+--
+-- - with our own wrapper, we are less affected by plutus updates
+--
+-- - we can have default or automated behavior for the parts of the transactions
+-- that are less relevant to testing, such as collaterals or fees
 module Cooked.Skeleton
   ( LabelConstrs,
     TxLabel (..),
@@ -10,9 +19,8 @@ module Cooked.Skeleton
     applyRawModOnBalancedTx,
     TxOpts (..),
     txOptEnsureMinAdaL,
-    txOptAwaitTxConfirmedL,
-    txOptAutoSlotIncreaseL,
     txOptUnsafeModTxL,
+    txOptAutoSlotIncreaseL,
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
     txOptBalanceWalletL,
@@ -129,10 +137,9 @@ instance Ord TxLabel where
 -- with the change during transaction balancing.
 data BalanceOutputPolicy
   = -- | Try to adjust an existing public key output with the change. If no
-    --   suitable output can be found, create a new change output.
+    -- suitable output can be found, create a new change output.
     AdjustExistingOutput
-  | -- | Do not change the existing outputs, always create a new change
-    --   output.
+  | -- | Do not change the existing outputs, always create a new change output.
     DontAdjustExistingOutput
   deriving (Eq, Ord, Show)
 
@@ -151,11 +158,9 @@ instance Default BalancingWallet where
   def = BalanceWithFirstSigner
 
 -- | Wraps a function that will be applied to a transaction right before
--- submitting it.
+-- submission, and after balancing.
 newtype RawModTx
-  = -- | Apply modification on transaction after balancing, fee calculation, and
-    -- final signing are performed
-    RawModTxAfterBalancing (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra)
+  = RawModTxAfterBalancing (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra)
 
 -- This instance always returns @False@, which is no problem, because 'Eq
 -- TxSkel' is only used for tests that never depend on this comparison
@@ -188,27 +193,25 @@ applyEmulatorParamsModification Nothing = id
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
-  = -- | Rely on automated computation with UTxOs from the balancing
-    -- wallet
+  = -- | Rely on automated computation with UTxOs from the balancing wallet
     CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computaton with UTxOs from a give wallet
+  | -- | Rely on automated computaton with UTxOs from a given wallet
     CollateralUtxosFromWallet Wallet
-  | -- | Manuallyl provide a set of UTxOs
+  | -- | Manually provide a set of UTxOs
     CollateralUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Show)
 
 instance Default CollateralUtxos where
   def = CollateralUtxosFromBalancingWallet
 
--- | Set of options to modify the behavior of generating and validating some transaction.
+-- | Set of options to modify the behavior of generating and validating some
+-- transaction.
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
     -- UTxO that is produced has the necessary minimum amount of Ada.
     --
     -- Default is @False@.
     txOptEnsureMinAda :: Bool,
-    -- | Ignore this for now. Deprecated.
-    txOptAwaitTxConfirmed :: Bool,
     -- | Whether to increase the slot counter automatically on transaction
     -- submission.  This is useful for modelling transactions that could be
     -- submitted in parallel in reality, so there should be no explicit ordering
@@ -257,12 +260,11 @@ data TxOpts = TxOpts
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
     -- | Apply an arbitrary modification to the protocol parameters that are
-    -- used to balance and submit the transaction. This is
-    -- obviously a very unsafe thing to do if you want to preserve
-    -- compatibility with the actual chain. It is useful mainly for testing
-    -- purposes, when you might want to use extremely big transactions or
-    -- transactions that exhaust the maximum execution budget. Such a thing
-    -- could be accomplished with
+    -- used to balance and submit the transaction. This is obviously a very
+    -- unsafe thing to do if you want to preserve compatibility with the actual
+    -- chain. It is useful mainly for testing purposes, when you might want to
+    -- use extremely big transactions or transactions that exhaust the maximum
+    -- execution budget. Such a thing could be accomplished with
     --
     -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
     --
@@ -270,9 +272,8 @@ data TxOpts = TxOpts
     --
     -- Default is 'Nothing'.
     txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
-    -- | Which utxos to use as collaterals. They can be given
-    -- manually, or computed automatically from a given, or the
-    -- balancing, wallet.
+    -- | Which utxos to use as collaterals. They can be given manually, or
+    -- computed automatically from a given, or the balancing, wallet.
     --
     -- Default is 'CollateralUtxosFromBalancingWallet'
     txOptCollateralUtxos :: CollateralUtxos
@@ -281,7 +282,6 @@ data TxOpts = TxOpts
 
 makeLensesFor
   [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
-    ("txOptAwaitTxConfirmed", "txOptAwaitTxConfirmedL"),
     ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
     ("txOptBalance", "txOptBalanceL"),
@@ -296,7 +296,6 @@ instance Default TxOpts where
   def =
     TxOpts
       { txOptEnsureMinAda = False,
-        txOptAwaitTxConfirmed = True,
         txOptAutoSlotIncrease = True,
         txOptUnsafeModTx = [],
         txOptBalance = True,
@@ -411,8 +410,8 @@ addToTxSkelMints (pol, red, tName, amount) mints
         -- new entry:
         Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
       Just (_oldRed, innerMap) ->
-        -- Ignore the old redeemer: If it's the same as the new one, nothing will
-        -- change, if not, the new redeemer will be kept.
+        -- Ignore the old redeemer: If it's the same as the new one, nothing
+        -- will change, if not, the new redeemer will be kept.
         case innerMap NEMap.!? tName of
           Nothing ->
             -- The given token name has not yet occurred for the given
@@ -422,12 +421,12 @@ addToTxSkelMints (pol, red, tName, amount) mints
           Just (NonZero oldAmount) ->
             let newAmount = oldAmount + amount
              in if newAmount /= 0
-                  then -- If the sum of the old amount of tokens and the additional
-                  -- tokens is non-zero, we can just update the amount in the
-                  -- inner map:
+                  then -- If the sum of the old amount of tokens and the
+                  -- additional tokens is non-zero, we can just update the
+                  -- amount in the inner map:
                     Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
-                  else -- If the sum is zero, we'll have to delete the token name
-                  -- from the inner map. If that yields a completely empty
+                  else -- If the sum is zero, we'll have to delete the token
+                  -- name from the inner map. If that yields a completely empty
                   -- inner map, we'll have to remove the entry altogether:
                   case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
                     Nothing -> Map.delete pol mints
@@ -481,7 +480,8 @@ instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
 -- 'paysPK' in most cases.
 data TxSkelOut where
   Pays ::
-    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
+    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which
+    -- in turn is only needed in tests.
       Typeable o,
       IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
@@ -551,13 +551,13 @@ type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Api.ToData a, PlutusTx.E
 -- That is:
 --
 -- - Whenever there is a datum, we'll store it in the state of our simulated
---   chain. This will make it possible to retrieve it later, using functions such
---   as 'datumFromHash'.
+--   chain. This will make it possible to retrieve it later, using functions
+--   such as 'datumFromHash'.
 --
--- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will create
---   an output that scripts see on the 'txInfo' as having a datum hash. The
---   difference is whether that hash will be resolvable using validator functions
---   like 'findDatum'.
+-- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will
+--   create an output that scripts see on the 'txInfo' as having a datum
+--   hash. The difference is whether that hash will be resolvable using
+--   validator functions like 'findDatum'.
 data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
@@ -773,7 +773,8 @@ withDatumHash (Pays output) datum =
       (TxSkelOutDatumHash datum)
       (output ^. outputReferenceScriptL)
 
--- | Add a reference script to a transaction output (or replace it if there is already one)
+-- | Add a reference script to a transaction output (or replace it if there is
+-- already one)
 withReferenceScript ::
   ( Show script,
     ToScript script,
@@ -792,7 +793,8 @@ withReferenceScript (Pays output) script =
       (output ^. outputDatumL)
       (Just script)
 
--- | Add a staking credential to a transaction output (or replace it if there is already one)
+-- | Add a staking credential to a transaction output (or replace it if there is
+-- already one)
 withStakingCredential :: TxSkelOut -> Api.StakingCredential -> TxSkelOut
 withStakingCredential (Pays output) stakingCredential =
   Pays $

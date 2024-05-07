@@ -1,3 +1,6 @@
+-- | This module provides tweaks to modify the order of outputs in a transaction
+-- skeleton. This can be useful since some validators expect a certain rigid
+-- output order to make sense of them.
 module Cooked.Tweak.OutPermutations
   ( PermutOutTweakMode (..),
     allOutPermutsTweak,
@@ -84,8 +87,8 @@ nonIdentityPermutations l = removeFirst l $ distinctPermutations l
     removeFirst _ [] = []
     removeFirst x (y : ys) = if x == y then ys else y : removeFirst x ys
 
--- | This randomly permutes the outputs of a transaction with a given seed
--- Can be used to assess if a certain validator is order-dependant
+-- | This randomly permutes the outputs of a transaction with a given seed Can
+-- be used to assess if a certain validator is order-dependant
 singleOutPermutTweak :: (MonadTweak m) => Int -> m ()
 singleOutPermutTweak seed = do
   outputs <- viewTweak txSkelOutsL

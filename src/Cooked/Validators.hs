@@ -1,7 +1,6 @@
--- | This module introduces standard dummy validators to be used in
--- attacks, traces or tests. More precisely, it introduces the always
--- True and always False validators, which will respectively always
--- succeed or always fail.
+-- | This module introduces standard dummy validators to be used in attacks,
+-- traces or tests. More precisely, it introduces the always True and always
+-- False validators, which will respectively always succeed or always fail.
 module Cooked.Validators
   ( alwaysTrueValidator,
     alwaysFalseValidator,
@@ -30,17 +29,17 @@ validatorToTypedValidator val =
     forwardingPolicy = Script.mkForwardingMintingPolicy vValidatorHash
     vMintingPolicy = Script.Versioned forwardingPolicy Script.PlutusV3
 
--- | The trivial validator that always succeds; this is in particular
--- a sufficient target for the datum hijacking attack since we only
--- want to show feasibility of the attack.
+-- | The trivial validator that always succeds; this is in particular a
+-- sufficient target for the datum hijacking attack since we only want to show
+-- feasibility of the attack.
 alwaysTrueValidator :: forall a. Script.TypedValidator a
 alwaysTrueValidator = validatorToTypedValidator @a Script.alwaysSucceedValidator
 
--- -- | The trivial validator that always fails
+-- | The trivial validator that always fails
 alwaysFalseValidator :: forall a. Script.TypedValidator a
 alwaysFalseValidator = validatorToTypedValidator @a $ Script.mkValidatorScript $$(PlutusTx.compile [||\_ _ _ -> PlutusTx.error ()||])
 
--- -- | A Mock contract type to instantiate validators with
+-- | A Mock contract type to instantiate validators with
 data MockContract
 
 instance Script.ValidatorTypes MockContract where

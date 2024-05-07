@@ -1,4 +1,5 @@
--- | This module defines 'Tweaks' revolving around the validity range of a transaction
+-- | This module defines 'Tweaks' revolving around the validity range of a
+-- transaction
 module Cooked.Tweak.ValidityRange where
 
 import Control.Monad
@@ -54,8 +55,8 @@ hasEmptyTimeRangeTweak = validityRangeSatisfiesTweak Api.isEmpty
 hasFullTimeRangeTweak :: (MonadTweak m) => m Bool
 hasFullTimeRangeTweak = validityRangeSatisfiesTweak (Api.always ==)
 
--- | Adds a constraint to the current validity range
--- Returns the old range, and fails is the resulting interval is empty
+-- | Adds a constraint to the current validity range. Returns the old range, and
+-- fails is the resulting interval is empty
 intersectValidityRangeTweak :: (MonadTweak m) => Ledger.SlotRange -> m Ledger.SlotRange
 intersectValidityRangeTweak newRange = do
   oldRange <- viewTweak txSkelValidityRangeL

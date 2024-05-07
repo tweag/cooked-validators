@@ -1,4 +1,4 @@
--- | Utilities to work with Value
+-- | This module provides utilities to work with Value
 module Cooked.ValueUtils
   ( flattenValueI,
     positivePart,

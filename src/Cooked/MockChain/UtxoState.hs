@@ -1,3 +1,6 @@
+-- | This module provides a depiction of the internal state we carry around to
+-- emulate the blockchain index. This is mostly useful in the Direct
+-- implementation of the MonadBlockChain.
 module Cooked.MockChain.UtxoState
   ( UtxoState (..),
     UtxoPayloadSet (..),
@@ -14,8 +17,8 @@ import Data.Map.Strict qualified as Map
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
--- | A description of who owns what in a blockchain. Owners are
--- addresses and they each own a 'UtxoPayloadSet'.
+-- | A description of who owns what in a blockchain. Owners are addresses and
+-- they each own a 'UtxoPayloadSet'.
 newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
   deriving (Eq)
 
@@ -30,10 +33,9 @@ instance Semigroup UtxoState where
 -- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet
   { utxoPayloadSet :: [UtxoPayload]
-  -- We use a list instead of a set because 'Api.Value' doesn't
-  -- implement 'Ord' and because it is possible that we want to
-  -- distinguish between utxo states that have additional utxos, even
-  -- if these could have been merged together.
+  -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
+  -- and because it is possible that we want to distinguish between utxo states
+  -- that have additional utxos, even if these could have been merged together.
   }
   deriving (Show)
 

@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module provides a staged implementation of our `MonadBlockChain`. The
+-- motivation behind this is to be able to modify traces using `Cooked.Ltl` and
+-- `Cooked.Tweak` while they are interpreted.
 module Cooked.MockChain.Staged
   ( interpretAndRunWith,
     interpretAndRun,
@@ -40,10 +43,9 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- * Interpreting and running 'StagedMockChain'
 
--- | Interprets the staged mockchain then runs the resulting
--- computation with a custom function. This can be used, for example,
--- to supply a custom 'InitialDistribution' by providing
--- 'runMockChainTFrom'.
+-- | Interprets the staged mockchain then runs the resulting computation with a
+-- custom function. This can be used, for example, to supply a custom
+-- 'InitialDistribution' by providing 'runMockChainTFrom'.
 interpretAndRunWith ::
   (forall m. (Monad m) => MockChainT m a -> m res) ->
   StagedMockChain a ->
@@ -68,15 +70,14 @@ instance Semigroup MockChainLog where
 instance Monoid MockChainLog where
   mempty = MockChainLog []
 
--- | The semantic domain in which 'StagedMockChain' gets interpreted;
--- see the 'interpret' function for more.
+-- | The semantic domain in which 'StagedMockChain' gets interpreted; see the
+-- 'interpret' function for more.
 type InterpMockChain = MockChainT (WriterT MockChainLog [])
 
 -- | The 'interpret' function gives semantics to our traces. One
--- 'StagedMockChain' computation yields a potential list of
--- 'MockChainT' computations, which emit a description of their
--- operation. Recall a 'MockChainT' is a state and except monad
--- composed:
+-- 'StagedMockChain' computation yields a potential list of 'MockChainT'
+-- computations, which emit a description of their operation. Recall a
+-- 'MockChainT' is a state and except monad composed:
 --
 --  >     MockChainT (WriterT TraceDescr []) a
 --  > =~= st -> (WriterT TraceDescr []) (Either err (a, st))
@@ -186,17 +187,17 @@ runTweakFrom mcenv mcst tweak skel =
 
 -- ** Modalities
 
--- | A modal mock chain is a mock chain that allows us to use LTL
--- modifications with 'Tweak's
+-- | A modal mock chain is a mock chain that allows us to use LTL modifications
+-- with 'Tweak's
 type MonadModalBlockChain m = (MonadBlockChain m, MonadModal m, Modification m ~ UntypedTweak InterpMockChain)
 
--- | Apply a 'Tweak' to some transaction in the given Trace. The tweak
--- must apply at least once.
+-- | Apply a 'Tweak' to some transaction in the given Trace. The tweak must
+-- apply at least once.
 somewhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 somewhere = modifyLtl . LtlUntil LtlTruth . LtlAtom . UntypedTweak
 
--- | Apply a 'Tweak' to every transaction in a given trace. This is
--- also successful if there are no transactions at all.
+-- | Apply a 'Tweak' to every transaction in a given trace. This is also
+-- successful if there are no transactions at all.
 everywhere :: (MonadModalBlockChain m) => Tweak InterpMockChain b -> m a -> m a
 everywhere = modifyLtl . LtlRelease LtlFalsity . LtlAtom . UntypedTweak
 
@@ -210,18 +211,17 @@ there n = modifyLtl . mkLtlFormula n
         then LtlAtom . UntypedTweak
         else LtlNext . mkLtlFormula (x - 1)
 
--- | Apply a 'Tweak' to the next transaction in the given trace. The
--- order of arguments is reversed compared to 'somewhere' and
--- 'everywhere', because that enables an idiom like
+-- | Apply a 'Tweak' to the next transaction in the given trace. The order of
+-- arguments is reversed compared to 'somewhere' and 'everywhere', because that
+-- enables an idiom like
 --
 -- > do ...
 -- >    endpoint arguments `withTweak` someModification
 -- >    ...
 --
--- where @endpoint@ builds and validates a single transaction
--- depending on the given @arguments@. Then `withTweak` says "I want
--- to modify the transaction returned by this endpoint in the
--- following way".
+-- where @endpoint@ builds and validates a single transaction depending on the
+-- given @arguments@. Then `withTweak` says "I want to modify the transaction
+-- returned by this endpoint in the following way".
 withTweak :: (MonadModalBlockChain m) => m x -> Tweak InterpMockChain a -> m x
 withTweak = flip (there 0)
 

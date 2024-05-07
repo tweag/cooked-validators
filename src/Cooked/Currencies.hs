@@ -1,22 +1,20 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
--- | This module introduces currencies (namely the /quick values/ and
--- the /permanent values/) which make it convenient to manipulate
--- assets that are already supposed to exist when running a mock
--- chain. For example, a market maker would exchange Ada against other
--- assets. Yet, when writing traces for such a contract we would need
--- to define a minting policy for those tokens, which is
--- tedious. Moreover, we often want wallets to have some of such
--- tokens from the start (see "Cooked.InitialDistribution").
+-- | This module introduces currencies (namely the /quick values/ and the
+-- /permanent values/) which make it convenient to manipulate assets that are
+-- already supposed to exist when running a mock chain. For example, a market
+-- maker would exchange Ada against other assets. Yet, when writing traces for
+-- such a contract we would need to define a minting policy for those tokens,
+-- which is tedious. Moreover, we often want wallets to have some of such tokens
+-- from the start (see "Cooked.InitialDistribution").
 --
--- The @quick@ prefixed functions provide access to tokens from the
--- @const (const True)@ minting policy. That is, these can be minted
--- and burnt at will, at any point in time.
+-- The @quick@ prefixed functions provide access to tokens from the @const
+-- (const True)@ minting policy. That is, these can be minted and burnt at will,
+-- at any point in time.
 --
--- The @permanent@ prefixed functions provide access to tokens from
--- the @const (const False)@ minting policy. That is, these /cannot/
--- ever be minted or burnt and must be present in an initial
--- distribution.
+-- The @permanent@ prefixed functions provide access to tokens from the @const
+-- (const False)@ minting policy. That is, these /cannot/ ever be minted or
+-- burnt and must be present in an initial distribution.
 module Cooked.Currencies
   ( quickTokenName,
     quickAssetClass,
@@ -41,16 +39,15 @@ import PlutusTx.Builtins.Class qualified as PlutusTx
 import PlutusTx.Prelude
 import Prelude qualified as Haskell
 
--- | Takes a minting policy and a language version and returns the
--- associated currency symbol
+-- | Takes a minting policy and a language version and returns the associated
+-- currency symbol
 currencySymbolFromLanguageAndMP :: Script.Language -> Script.MintingPolicy -> Script.CurrencySymbol
 currencySymbolFromLanguageAndMP lang = Script.scriptCurrencySymbol . flip Script.Versioned lang
 
 -- * Quick Values
 
--- | Token name of a /quick/ asset class; prefixes the name with a
--- @'q'@ to make it easy to distinguish between quick and permanent
--- tokens.
+-- | Token name of a /quick/ asset class; prefixes the name with a @'q'@ to make
+-- it easy to distinguish between quick and permanent tokens.
 quickTokenName :: Haskell.String -> Script.TokenName
 quickTokenName = Script.TokenName . PlutusTx.stringToBuiltinByteString
 

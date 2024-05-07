@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+-- | This module provides an automated attack to try and perform double
+-- satisfaction on a contract.
 module Cooked.Attack.DoubleSat
   ( DoubleSatDelta,
     DoubleSatLbl (..),

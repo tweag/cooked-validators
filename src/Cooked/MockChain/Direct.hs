@@ -1,3 +1,7 @@
+-- | This module provides a direct (not staged) implementation of the
+-- `MonadBlockChain` specification. This rely on the emulator from
+-- cardano-node-emulator for transaction validation, although we have our own
+-- internal state. This choice might be revised in the future.
 module Cooked.MockChain.Direct where
 
 import Cardano.Api qualified as Cardano
@@ -40,9 +44,9 @@ import PlutusLedgerApi.V3 qualified as Api
 
 -- $mockchaindocstr
 --
--- The MockChainT monad provides a direct emulator; that is, it gives
--- us a simple way to call validator scripts directly, without the
--- need for all the complexity the 'Contract' monad introduces.
+-- The MockChainT monad provides a direct emulator; that is, it gives us a
+-- simple way to call validator scripts directly, without the need for all the
+-- complexity the 'Contract' monad introduces.
 --
 -- Running a 'MockChain' produces a 'UtxoState', a simplified view on
 -- 'Api.UtxoIndex', which we also keep in our state.
@@ -75,22 +79,22 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
             UtxoPayloadSet [UtxoPayload txOutRef txOutValue txSkelOutDatum mRefScript]
           )
 
--- | Slightly more concrete version of 'UtxoState', used to actually
--- run the simulation.
+-- | Slightly more concrete version of 'UtxoState', used to actually run the
+-- simulation.
 data MockChainSt = MockChainSt
   { mcstIndex :: Ledger.UtxoIndex,
-    -- map from datum hash to (datum, count), where count is the
-    -- number of UTxOs that currently have the datum. This map is used
-    -- to display the contents of the state to the user, and to
-    -- recover datums for transaction generation.
+    -- map from datum hash to (datum, count), where count is the number of UTxOs
+    -- that currently have the datum. This map is used to display the contents
+    -- of the state to the user, and to recover datums for transaction
+    -- generation.
     mcstDatums :: Map Api.DatumHash (TxSkelOutDatum, Integer),
     mcstValidators :: Map Script.ValidatorHash (Script.Versioned Script.Validator),
     mcstCurrentSlot :: Ledger.Slot
   }
   deriving (Show)
 
--- | Generating an emulated state for the emulator from a mockchain
--- state and some parameters, based on a standard initial state
+-- | Generating an emulated state for the emulator from a mockchain state and
+-- some parameters, based on a standard initial state
 mcstToEmulatedLedgerState :: Emulator.Params -> MockChainSt -> Emulator.EmulatedLedgerState
 mcstToEmulatedLedgerState params MockChainSt {..} =
   let els@(Emulator.EmulatedLedgerState le mps) = Emulator.initialState params
@@ -165,8 +169,8 @@ mapMockChainT ::
   MockChainT n b
 mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
 
--- | Executes a 'MockChainT' from some initial state and environment;
--- does /not/ convert the 'MockChainSt' into a 'UtxoState'.
+-- | Executes a 'MockChainT' from some initial state and environment; does /not/
+-- convert the 'MockChainSt' into a 'UtxoState'.
 runMockChainTRaw ::
   (Monad m) =>
   MockChainEnv ->
@@ -179,10 +183,10 @@ runMockChainTRaw e0 i0 =
     . flip runReaderT e0
     . unMockChain
 
--- | Executes a 'MockChainT' from an initial state set up with the
--- given initial value distribution. Similar to 'runMockChainT', uses
--- the default environment. Returns a 'UtxoState' instead of a
--- 'MockChainSt'. If you need the later, use 'runMockChainTRaw'
+-- | Executes a 'MockChainT' from an initial state set up with the given initial
+-- value distribution. Similar to 'runMockChainT', uses the default
+-- environment. Returns a 'UtxoState' instead of a 'MockChainSt'. If you need
+-- the later, use 'runMockChainTRaw'
 runMockChainTFrom ::
   (Monad m) =>
   InitialDistribution ->
@@ -191,10 +195,9 @@ runMockChainTFrom ::
 runMockChainTFrom i0 =
   fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw def (mockChainSt0From i0)
 
--- | Executes a 'MockChainT' from the canonical initial state and
--- environment.  The canonical environment uses the default
--- 'SlotConfig' and @Cooked.Wallet.wallet 1@ as the sole wallet
--- signing transactions.
+-- | Executes a 'MockChainT' from the canonical initial state and environment.
+-- The canonical environment uses the default 'SlotConfig' and
+-- @Cooked.Wallet.wallet 1@ as the sole wallet signing transactions.
 runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, UtxoState))
 runMockChainT = runMockChainTFrom def
 
@@ -232,16 +235,16 @@ mockChainSt0From i0 =
 instance Default MockChainSt where
   def = mockChainSt0
 
--- | Reference scripts from initial distributions should be accounted
--- for in the `MockChainSt` which is done using this function.
+-- | Reference scripts from initial distributions should be accounted for in the
+-- `MockChainSt` which is done using this function.
 referenceScriptMap0From :: InitialDistribution -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
 referenceScriptMap0From (InitialDistribution initDist) =
-  -- This builds a map of entries from the reference scripts contained
-  -- in the initial distribution
+  -- This builds a map of entries from the reference scripts contained in the
+  -- initial distribution
   Map.fromList $ mapMaybe unitMaybeFrom initDist
   where
-    -- This takes a single output and returns a possible map entry
-    -- when it contains a reference script
+    -- This takes a single output and returns a possible map entry when it
+    -- contains a reference script
     unitMaybeFrom :: TxSkelOut -> Maybe (Script.ValidatorHash, Script.Versioned Script.Validator)
     unitMaybeFrom (Pays output) = do
       refScript <- view outputReferenceScriptL output
@@ -253,19 +256,19 @@ referenceScriptMap0From (InitialDistribution initDist) =
 -- `MockChainSt` which is done using this function.
 datumMap0From :: InitialDistribution -> Map Api.DatumHash (TxSkelOutDatum, Integer)
 datumMap0From (InitialDistribution initDist) =
-  -- This concatenates singleton maps from inputs and accounts for the
-  -- number of occurrences of similar datums
+  -- This concatenates singleton maps from inputs and accounts for the number of
+  -- occurrences of similar datums
   foldl' (\m -> Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) m . unitMapFrom) Map.empty initDist
   where
-    -- This takes a single output and creates an empty map if it
-    -- contains no datum, or a singleton map if it contains one
+    -- This takes a single output and creates an empty map if it contains no
+    -- datum, or a singleton map if it contains one
     unitMapFrom :: TxSkelOut -> Map Api.DatumHash (TxSkelOutDatum, Integer)
     unitMapFrom txSkelOut =
       let datum = view txSkelOutDatumL txSkelOut
        in maybe Map.empty (flip Map.singleton (datum, 1) . Script.datumHash) $ txSkelOutUntypedDatum datum
 
--- | This creates the initial UtxoIndex from an initial distribution
--- by submitting an initial transaction with the appropriate content:
+-- | This creates the initial UtxoIndex from an initial distribution by
+-- submitting an initial transaction with the appropriate content:
 --
 -- - inputs consist of a single dummy pseudo input
 --
@@ -283,8 +286,8 @@ datumMap0From (InitialDistribution initDist) =
 utxoIndex0From :: InitialDistribution -> Ledger.UtxoIndex
 utxoIndex0From (InitialDistribution initDist) = case mkBody of
   Left err -> error $ show err
-  -- TODO: There may be better ways to generate this initial state,
-  -- see createGenesisTransaction for instance
+  -- TODO: There may be better ways to generate this initial state, see
+  -- createGenesisTransaction for instance
   Right body -> Ledger.initialise [[Emulator.unsafeMakeValid $ Ledger.CardanoEmulatorEraTx $ Cardano.Tx body []]]
   where
     mkBody :: Either GenerateTxError (Cardano.TxBody Cardano.ConwayEra)
@@ -311,10 +314,8 @@ getIndex =
     . Map.toList
     . Cardano.unUTxO
   where
-    -- We need to convert a UTxO context TxOut to a Transaction
-    -- context Tx out.  One could be forgiven for thinking this exists
-    -- somewhere, but I couldn't find it. It's this complicated
-    -- because the datum type is indexed by the context.
+    -- We need to convert a UTxO context TxOut to a Transaction context Tx out.
+    -- It's complicated because the datum type is indexed by the context.
     toCtxTxTxOut :: Cardano.TxOut Cardano.CtxUTxO era -> Cardano.TxOut Cardano.CtxTx era
     toCtxTxTxOut (Cardano.TxOut addr val d refS) =
       let dat = case d of
@@ -339,51 +340,50 @@ instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
-    -- We balance the skeleton (when requested in the options) and get
-    -- the associated fees and collateral inputs
+    -- We balance the skeleton (when requested in the options) and get the
+    -- associated fees and collateral inputs
     (skel, fees, collateralIns) <- balanceTxSkel skelUnbal
     -- We apply the optional modifications of the emulator parameters
     params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
-    -- We retrieve data that will be used in the transaction
-    -- generation process: datums, validators and various kinds of
-    -- inputs. This idea is to provide a rich-enough context for the
-    -- transaction generation to succeed.
+    -- We retrieve data that will be used in the transaction generation process:
+    -- datums, validators and various kinds of inputs. This idea is to provide a
+    -- rich-enough context for the transaction generation to succeed.
     insData <- txSkelInputData skel
     insValidators <- txSkelInputValidators skel
     insMap <- txSkelInputUtxosPl skel
     refInsMap <- txSkelReferenceInputUtxosPl skel
     collateralInsMap <- lookupUtxosPl $ Set.toList collateralIns
-    -- We attempt to generate the transaction associated with the
-    -- balanced skeleton and the retrieved data. This is an internal
-    -- generation, there is no validation involved yet.
+    -- We attempt to generate the transaction associated with the balanced
+    -- skeleton and the retrieved data. This is an internal generation, there is
+    -- no validation involved yet.
     cardanoTx <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
     -- To run transaction validation we need a minimal ledger state
     eLedgerState <- gets (mcstToEmulatedLedgerState params)
-    -- We finally run the emulated validation, and we only care about
-    -- the validation result, as we update our own internal state
+    -- We finally run the emulated validation, and we only care about the
+    -- validation result, as we update our own internal state
     let (_, mValidationResult) = Emulator.validateCardanoTx params eLedgerState cardanoTx
-    -- We retrieve our current utxo index to perform modifications
-    -- associated with the validated transaction.
+    -- We retrieve our current utxo index to perform modifications associated
+    -- with the validated transaction.
     utxoIndex <- gets mcstIndex
     -- We create a new utxo index with an error when validation failed
     let (newUtxoIndex, valError) = case mValidationResult of
           -- In case of a phase 1 error, we give back the same index
           Ledger.FailPhase1 _ err -> (utxoIndex, Just (Ledger.Phase1, err))
-          -- In case of a phase 2 error, we retrieve the collaterals
-          -- (and yes, despite its name, 'insertCollateral' actually
-          -- takes is away from the index
+          -- In case of a phase 2 error, we retrieve the collaterals (and yes,
+          -- despite its name, 'insertCollateral' actually takes the collaterals
+          -- away from the index)
           Ledger.FailPhase2 _ err _ -> (Ledger.insertCollateral cardanoTx utxoIndex, Just (Ledger.Phase2, err))
-          -- In case of success, we update the index with all inputs
-          -- and outputs contained in the transaction
+          -- In case of success, we update the index with all inputs and outputs
+          -- contained in the transaction
           Ledger.Success {} -> (Ledger.insert cardanoTx utxoIndex, Nothing)
     -- Now that we have compute a new index, we can update it
     modify' (\st -> st {mcstIndex = newUtxoIndex})
     case valError of
-      -- When validation failed for any reason, we throw an error.
-      -- This behavior could be subject to change in the future.
+      -- When validation failed for any reason, we throw an error. TODO: This
+      -- behavior could be subject to change in the future.
       Just err -> throwError (uncurry MCEValidationError err)
       -- Otherwise, we update known validators and datums.
       Nothing -> do
@@ -396,6 +396,6 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     return cardanoTx
     where
       addMcstDatums stored new = Map.unionWith (\(d, n1) (_, n2) -> (d, n1 + n2)) stored (Map.map (,1) new)
-      -- FIXME: is this correct? What happens if we remove several
-      -- similar datums?
+      -- FIXME: is this correct? What happens if we remove several similar
+      -- datums?
       removeMcstDatums = Map.differenceWith $ \(d, n) _ -> if n == 1 then Nothing else Just (d, n - 1)

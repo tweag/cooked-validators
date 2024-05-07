@@ -1,3 +1,7 @@
+-- | This module provide abstractions around the notion of outputs. The idea is
+-- to use types to carry additional information on which data is carried by
+-- various kinds of concrete outputs used in cooked specifically or in Plutus as
+-- a whole, such as @TxSkelOut@ or @TxOut@.
 module Cooked.Output
   ( IsAbstractOutput,
     OwnerType,

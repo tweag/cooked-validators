@@ -1,9 +1,8 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- | This module defines convenient wrappers for mock chain wallets
--- (around Plutus mock wallets) with an associate API to construct
--- them, manipulate them, and fetch information (such as
--- public/private and staking keys).
+-- | This module defines convenient wrappers for mock chain wallets (around
+-- Plutus mock wallets) with an associate API to construct them, manipulate
+-- them, and fetch information (such as public/private and staking keys).
 module Cooked.Wallet
   ( knownWallets,
     wallet,
@@ -33,9 +32,8 @@ import Unsafe.Coerce
 
 -- $mockchainwallets
 --
--- Because the mock wallets from the plutus-apps change somewhat
--- often, we provide our own wrapper on top of them to make sure that
--- we can easily deal changes from Plutus.
+-- Because mock wallets from plutus-ledger change often, we provide our own
+-- wrapper on top of them to ensure that we can easily deal changes from Plutus.
 
 type Wallet = Ledger.MockWallet
 
@@ -47,26 +45,23 @@ instance Eq Wallet where
 instance Ord Wallet where
   compare = compare `on` Ledger.mwWalletId
 
--- | All the wallets corresponding to known Plutus mock wallets. This
--- is a list of 10 wallets which will
+-- | All the wallets corresponding to known Plutus mock wallets. This is a list
+-- of 10 wallets which will
 --
--- - receive funds in the standard initial distribution of
---   cooked-validators, and
+-- - receive funds in the standard initial distribution of cooked-validators,
 --
--- - be pretty-printed as part the final state after running a few
---   transactions.
+-- - be pretty-printed as part the final state after running a few transactions.
 knownWallets :: [Wallet]
 knownWallets = Ledger.knownMockWallets
 
--- | Wallet corresponding to a given wallet number (or wallet ID) with
--- an offset of 1 to start at 1 instead of 0
+-- | Wallet corresponding to a given wallet number (or wallet ID) with an offset
+-- of 1 to start at 1 instead of 0
 wallet :: Integer -> Wallet
 wallet j
   | j > 0 && j <= 10 = Ledger.knownMockWallet j
   | otherwise = Ledger.fromWalletNumber $ Ledger.WalletNumber j
 
--- | Retrieves the id of the known wallet that corresponds to a public
--- key hash, if any.
+-- | Retrieves the id of the known wallet that corresponds to a public key hash
 --
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
 walletPKHashToId :: Ledger.PubKeyHash -> Maybe Int
@@ -99,17 +94,17 @@ walletAddress w =
 walletSK :: Ledger.MockWallet -> PrivateKey
 walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
--- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is
--- needed because the constructor and accessors to 'MockPrivateKey'
--- are private.  Hence, we make an isomorphic datatype, 'unsafeCoerce'
--- to this datatype then extract whatever we need from it.
+-- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is needed
+-- because the constructor and accessors to 'MockPrivateKey' are private.
+-- Hence, we make an isomorphic datatype, 'unsafeCoerce' to this datatype then
+-- extract whatever we need from it.
 newtype HACK = HACK PrivateKey
 
 -- | Retrieves a wallet's private staking key (secret key SK), if any
 walletStakingSK :: Wallet -> Maybe PrivateKey
 walletStakingSK = fmap hackUnMockPrivateKey . Ledger.mwStakeKey
   where
-    -- To only be applied to @MockPrivateKey@; the function is
-    -- polymorphic because @MockPrivateKey@ is not exported either
+    -- To only be applied to @MockPrivateKey@; the function is polymorphic
+    -- because @MockPrivateKey@ is not exported either
     hackUnMockPrivateKey :: a -> PrivateKey
     hackUnMockPrivateKey x = let HACK y = unsafeCoerce x in y
