@@ -10,6 +10,7 @@ import Optics.Core
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a
@@ -30,14 +31,14 @@ dupTokenAttack ::
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  m Script.Value
+  m Api.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
   addOutputTweak $ paysPK (walletPKHash attacker) totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement
   where
-    changeMintAmountsTweak :: (MonadTweak m) => m Script.Value
+    changeMintAmountsTweak :: (MonadTweak m) => m Api.Value
     changeMintAmountsTweak = do
       oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =

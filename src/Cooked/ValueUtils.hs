@@ -13,9 +13,10 @@ import Data.List
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
-flattenValueI :: Iso' Script.Value [(Script.AssetClass, Integer)]
+flattenValueI :: Iso' Api.Value [(Script.AssetClass, Integer)]
 flattenValueI =
   iso
     (map (\(cSymbol, tName, amount) -> (Script.assetClass cSymbol tName, amount)) . Script.flattenValue)
@@ -26,7 +27,7 @@ flattenValueI =
 -- strictly positive. It holds
 --
 -- > x == positivePart x <> Script.negate negativePart x
-positivePart :: Script.Value -> Script.Value
+positivePart :: Api.Value -> Api.Value
 positivePart = over flattenValueI (filter $ (0 <) . snd)
 
 -- | The negative part of a value. For every asset class in the given value,
@@ -34,11 +35,11 @@ positivePart = over flattenValueI (filter $ (0 <) . snd)
 -- amount is strictly negative. It holds
 --
 -- > x == positivePart x <> Script.negate negativePart x
-negativePart :: Script.Value -> Script.Value
+negativePart :: Api.Value -> Api.Value
 negativePart = positivePart . PlutusTx.negate
 
 -- | Focus the Ada part in a value.
-adaL :: Lens' Script.Value Script.Ada
+adaL :: Lens' Api.Value Script.Ada
 adaL =
   lens
     Script.fromValue
@@ -57,8 +58,8 @@ adaL =
 adaAssetClass :: Script.AssetClass
 adaAssetClass = Script.assetClass Script.adaSymbol Script.adaToken
 
-lovelace :: Integer -> Script.Value
+lovelace :: Integer -> Api.Value
 lovelace = Script.assetClassValue adaAssetClass
 
-ada :: Integer -> Script.Value
+ada :: Integer -> Api.Value
 ada = lovelace . (* 1_000_000)

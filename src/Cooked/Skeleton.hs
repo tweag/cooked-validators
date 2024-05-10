@@ -451,7 +451,7 @@ txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, MintsRedeemer, A
 txSkelMintsFromList = foldr addToTxSkelMints mempty
 
 -- | The value described by a 'TxSkelMints'
-txSkelMintsValue :: TxSkelMints -> Script.Value
+txSkelMintsValue :: TxSkelMints -> Api.Value
 txSkelMintsValue =
   foldMapOf
     (to txSkelMintsToList % folded)
@@ -488,7 +488,7 @@ data TxSkelOut where
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
-      ValueType o ~ Script.Value, -- needed for the 'txSkelOutValueL'
+      ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
       ToScript (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
@@ -510,13 +510,13 @@ txSkelOutDatumL =
     (\(Pays output) -> output ^. outputDatumL)
     (\(Pays output) newDatum -> Pays $ output & outputDatumL .~ newDatum)
 
-txSkelOutValueL :: Lens' TxSkelOut Script.Value
+txSkelOutValueL :: Lens' TxSkelOut Api.Value
 txSkelOutValueL =
   lens
     (\(Pays output) -> outputValue output)
     (\(Pays output) newValue -> Pays $ output & outputValueL .~ newValue)
 
-txSkelOutValue :: TxSkelOut -> Script.Value
+txSkelOutValue :: TxSkelOut -> Api.Value
 txSkelOutValue = (^. txSkelOutValueL)
 
 txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
@@ -535,17 +535,17 @@ type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Api.ToData a, PlutusTx.E
 -- following table explains their differences.
 --
 -- +------------------------+------------------+---------------------+-----------------------+
--- |                        | datum stored in  |                     | 'Pl.OutputDatum'      |
+-- |                        | datum stored in  |                     | 'Api.OutputDatum'     |
 -- |                        | in the simulated | datum resolved      | constructor           |
 -- |                        | chain state      | on the 'txInfoData' | seen by the validator |
 -- +========================+==================+=====================+=======================+
--- | 'TxSkelOutNoDatum'     | no               | no                  | 'Pl.NoOutputDatum'    |
+-- | 'TxSkelOutNoDatum'     | no               | no                  | 'Api.NoOutputDatum'   |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Pl.OutputDatumHash'  |
+-- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Api.OutputDatumHash' |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatum'       | yes              | yes                 | 'Pl.OutputDatumHash'  |
+-- | 'TxSkelOutDatum'       | yes              | yes                 | 'Api.OutputDatumHash' |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Pl.OutputDatum'      |
+-- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Api.OutputDatum'     |
 -- +------------------------+------------------+---------------------+-----------------------+
 --
 -- That is:
@@ -563,7 +563,7 @@ data TxSkelOutDatum where
   TxSkelOutNoDatum :: TxSkelOutDatum
   -- | only include the hash on the transaction
   TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use a 'Pl.OutputDatumHash' on the transaction output, but generate the
+  -- | use a 'Api.OutputDatumHash' on the transaction output, but generate the
   -- transaction in such a way that the complete datum is included in the
   -- 'txInfoData' seen by validators
   TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
@@ -613,7 +613,7 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 -- ** Smart constructors for transaction outputs
 
 -- | Pay a certain value to a public key.
-paysPK :: Api.PubKeyHash -> Script.Value -> TxSkelOut
+paysPK :: Api.PubKeyHash -> Api.Value -> TxSkelOut
 paysPK pkh value =
   Pays
     ( ConcreteOutput
@@ -636,7 +636,7 @@ paysScript ::
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Script.Value ->
+  Api.Value ->
   TxSkelOut
 paysScript validator datum value =
   Pays
@@ -659,7 +659,7 @@ paysScriptInlineDatum ::
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Script.Value ->
+  Api.Value ->
   TxSkelOut
 paysScriptInlineDatum validator datum value =
   Pays
@@ -683,7 +683,7 @@ paysScriptDatumHash ::
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Script.Value ->
+  Api.Value ->
   TxSkelOut
 paysScriptDatumHash validator datum value =
   Pays
@@ -698,7 +698,7 @@ paysScriptDatumHash validator datum value =
 -- | Pays a script a certain value without any datum. Intended to be used with
 -- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
-paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Script.Value -> TxSkelOut
+paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
 paysScriptNoDatum validator value =
   Pays
     ( ConcreteOutput
@@ -936,7 +936,7 @@ newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Fee -> Script.Value
+txSkelOutputValue :: TxSkel -> Fee -> Api.Value
 txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
@@ -974,7 +974,7 @@ txSkelOutOwnerTypeP ::
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType
   ) =>
-  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Script.Value (Script.Versioned Script.Script))
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Api.Value (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays

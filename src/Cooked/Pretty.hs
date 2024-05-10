@@ -18,7 +18,7 @@
 -- instances. Prefer implementing the 'prettyCookedOpt' function and relay the
 -- 'PrettyCookedOpts' settings to other printers.
 --
--- @ data Foo = Bar Pl.Value | Baz Pl.PubkeyHash Pl.Value
+-- @ data Foo = Bar Api.Value | Baz Api.PubkeyHash Api.Value
 --
 --     instance PrettyCooked Foo where
 --       prettyCookedOpt pcOpts (Bar value) =

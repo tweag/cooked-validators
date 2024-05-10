@@ -342,14 +342,7 @@ txSkelReferenceInputUtxosPl = (Map.map txOutV2FromLedger <$>) . txSkelReferenceI
 
 txSkelReferenceInputUtxos :: (MonadBlockChainBalancing m) => TxSkel -> m (Map Api.TxOutRef Ledger.TxOut)
 txSkelReferenceInputUtxos TxSkel {..} =
-  lookupUtxos $
-    mapMaybe
-      ( \case
-          TxSkelRedeemerForReferencedScript oref _ -> Just oref
-          _ -> Nothing
-      )
-      (Map.elems txSkelIns)
-      ++ Set.toList txSkelInsReference
+  lookupUtxos $ mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
 
 -- | Helper to convert Nothing to an error
 maybeErrM :: (MonadBlockChainBalancing m) => MockChainError -> (a -> b) -> m (Maybe a) -> m b

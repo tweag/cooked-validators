@@ -44,7 +44,7 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 
--- | A generalisation of 'Pl.TxOut': With the four type families, we can lift
+-- | A generalisation of 'Api.TxOut': With the four type families, we can lift
 -- some information about
 --
 -- - who owns the output (a public key, a script...?)

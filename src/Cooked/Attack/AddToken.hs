@@ -9,6 +9,7 @@ import Cooked.Wallet
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as ScriptutusTx
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
@@ -33,7 +34,7 @@ addTokenAttack ::
   (Script.Versioned Script.MintingPolicy -> [(Script.TokenName, Integer)]) ->
   -- | The wallet of the attacker where extra tokens will be paid to
   Wallet ->
-  m Script.Value
+  m Api.Value
 addTokenAttack extraTokens attacker = do
   oldMints <- viewTweak txSkelMintsL
   msum $

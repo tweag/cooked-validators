@@ -33,7 +33,7 @@ where
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
-import PlutusLedgerApi.V3.Contexts qualified as Api
+import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Builtins.Class qualified as PlutusTx
 import PlutusTx.Prelude
@@ -56,7 +56,7 @@ quickAssetClass :: Haskell.String -> Script.AssetClass
 quickAssetClass = Script.assetClass quickCurrencySymbol . quickTokenName
 
 -- | Constructor for /quick/ values from token name and amount
-quickValue :: Haskell.String -> Integer -> Script.Value
+quickValue :: Haskell.String -> Integer -> Api.Value
 quickValue = Script.assetClassValue . quickAssetClass
 
 {-# INLINEABLE mkQuickCurrencyPolicy #-}
@@ -80,7 +80,7 @@ permanentAssetClass :: Haskell.String -> Script.AssetClass
 permanentAssetClass = Script.assetClass permanentCurrencySymbol . permanentTokenName
 
 -- | Constructor for /Permanent/ values from token name and amount
-permanentValue :: Haskell.String -> Integer -> Script.Value
+permanentValue :: Haskell.String -> Integer -> Api.Value
 permanentValue = Script.assetClassValue . permanentAssetClass
 
 {-# INLINEABLE mkPermanentCurrencyPolicy #-}

@@ -49,7 +49,7 @@ instance Script.ValidatorTypes DHContract where
 
 -- ** Transactions (and 'TxSkels') for the datum hijacking attack
 
-lockValue :: Script.Value
+lockValue :: Api.Value
 lockValue = Script.lovelaceValueOf 12345678
 
 lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
