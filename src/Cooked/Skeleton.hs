@@ -612,12 +612,21 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 
 -- ** Smart constructors for transaction outputs
 
+class HasPubKeyHash a where
+  toPubKeyHash :: a -> Api.PubKeyHash
+
+instance HasPubKeyHash Api.PubKeyHash where
+  toPubKeyHash = id
+
+instance HasPubKeyHash Wallet where
+  toPubKeyHash = walletPKHash
+
 -- | Pay a certain value to a public key.
-paysPK :: Api.PubKeyHash -> Api.Value -> TxSkelOut
-paysPK pkh value =
+paysPK :: (HasPubKeyHash a) => a -> Api.Value -> TxSkelOut
+paysPK a value =
   Pays
     ( ConcreteOutput
-        pkh
+        (toPubKeyHash a)
         Nothing
         value
         TxSkelOutNoDatum
