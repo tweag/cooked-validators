@@ -15,6 +15,13 @@
 - Top-level comments to all modules
 - `currencySymbolFromLanguageAndMP` to get the right Currency symbol based on a
   plutus version and a minting policy
+- `setParams` in `MonadBlockChainWithoutValidation` to account for future
+  changes of parameters following votes.
+- `txOptCollateralUtxos` to control which utxos should be used as collaterals
+- Missing `Eq` instance for `MockChainError`
+- Full support in `ShowBS` for printing into bytestring the whole transaction
+  context within on-chain code
+- `validatorToTypedValidator` which does what its name indicates
 
 ### Removed
 - Extraneous dependencies in package.yaml
@@ -23,6 +30,9 @@
   added back later on
 - Deprecated skeleton option: `txOptAwaitTxConfirmed`
 - Deprecated use of `*` instead of `Type`
+- Many unused pragmas
+- Orphan default instance for `Ledger.Slot`
+- `txOptBalancingUtxos` which was unused and mostly irrelevant
 
 ### Changed
 - Default era from Babbage to Conway
@@ -34,9 +44,20 @@
   instead of direct git sources
 - Update the cheatsheet to account for various small changes + collaterals
 - `ImportQualifiedPost` by default
+- `MockChainEnv` is gone, replaced by the new mcstParams field in `MockChainSt`
+- The structure of the various steps around transaction validation (fee
+  generation, ensuring min ada...)
+- Regrouped all important validation steps, including modifications requested in
+  skeleton options in the direct implementation of `validateTxSkel`.
+- Homogenized and simplified the functions to generate transaction parts from a
+  `TxSkel` by using a reader monad over various parameters.
 
 ### Fixed
 - A bug where the ledger state would not be updated by consumed collaterals
+- A curious choice where parameter changes for single transactions would be
+  applied several times instead of one
+- Various warnings around incomplete pattern matches when selecting utxos for
+  balancing, with more suitable algorithms
 
 ## [[3.0.0]](https://github.com/tweag/cooked-validators/releases/tag/v3.0.0) - 2024-03-22
 
