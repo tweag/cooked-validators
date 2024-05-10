@@ -199,7 +199,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
     "transaction skeleton:"
     "-"
     ( catMaybes
-        [ prettyItemizeNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
+        [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
           prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,

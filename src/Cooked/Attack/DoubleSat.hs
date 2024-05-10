@@ -11,6 +11,7 @@ where
 
 import Cooked.MockChain.BlockChain
 import Cooked.Output
+import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
@@ -146,3 +147,6 @@ doubleSatAttack groupings optic change attacker = do
 
 data DoubleSatLbl = DoubleSatLbl
   deriving (Eq, Show, Ord)
+
+instance PrettyCooked DoubleSatLbl where
+  prettyCooked _ = "DoubleSat"

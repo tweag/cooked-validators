@@ -53,6 +53,9 @@ tamperDatumTweak change = do
 
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
+instance PrettyCooked TamperDatumLbl where
+  prettyCooked _ = "TamperDatum"
+
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
 -- differences with 'tamperDatumTweak'. First, the tampering function returns
@@ -116,6 +119,9 @@ malformDatumTweak change = do
       Nothing -> []
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
+
+instance PrettyCooked MalformDatumLbl where
+  prettyCooked _ = "MalformDatum"
 
 -- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
 -- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!

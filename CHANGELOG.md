@@ -22,6 +22,7 @@
 - Full support in `ShowBS` for printing into bytestring the whole transaction
   context within on-chain code
 - `validatorToTypedValidator` which does what its name indicates
+- Adding support for `PrettyCooked` for `TxLbl`
 
 ### Removed
 - Extraneous dependencies in package.yaml

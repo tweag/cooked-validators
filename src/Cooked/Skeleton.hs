@@ -109,7 +109,7 @@ import Type.Reflection
 
 -- * Transaction labels
 
-type LabelConstrs x = (Show x, Typeable x, Eq x, Ord x)
+type LabelConstrs x = (PrettyCooked x, Show x, Typeable x, Eq x, Ord x)
 
 data TxLabel where
   TxLabel :: (LabelConstrs x) => x -> TxLabel
@@ -119,6 +119,9 @@ instance Eq TxLabel where
 
 instance Show TxLabel where
   show (TxLabel x) = show x
+
+instance PrettyCooked TxLabel where
+  prettyCookedOpt opts (TxLabel x) = prettyCookedOpt opts x
 
 instance Ord TxLabel where
   compare (TxLabel a) (TxLabel x) =

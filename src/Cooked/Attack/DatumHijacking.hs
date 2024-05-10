@@ -17,6 +17,7 @@ import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+import Prettyprinter ((<+>))
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -99,3 +100,6 @@ datumHijackingAttack change select = do
 
 newtype DatumHijackingLbl = DatumHijackingLbl Api.Address
   deriving (Show, Eq, Ord)
+
+instance PrettyCooked DatumHijackingLbl where
+  prettyCookedOpt opts (DatumHijackingLbl address) = "DatumHijacking" <+> prettyCookedOpt opts address

@@ -3,6 +3,7 @@
 module Cooked.Attack.DupToken (dupTokenAttack, DupTokenLbl (..)) where
 
 import Control.Monad
+import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
@@ -58,3 +59,6 @@ dupTokenAttack change attacker = do
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show, Ord)
+
+instance PrettyCooked DupTokenLbl where
+  prettyCooked _ = "DupToken"
