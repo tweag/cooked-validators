@@ -82,7 +82,8 @@ mcstToUtxoState MockChainSt {mcstIndex, mcstDatums} =
 -- | Slightly more concrete version of 'UtxoState', used to actually run the
 -- simulation.
 data MockChainSt = MockChainSt
-  { mcstIndex :: Ledger.UtxoIndex,
+  { mcstParams :: Emulator.Params,
+    mcstIndex :: Ledger.UtxoIndex,
     -- map from datum hash to (datum, count), where count is the number of UTxOs
     -- that currently have the datum. This map is used to display the contents
     -- of the state to the user, and to recover datums for transaction
@@ -95,16 +96,16 @@ data MockChainSt = MockChainSt
 
 -- | Generating an emulated state for the emulator from a mockchain state and
 -- some parameters, based on a standard initial state
-mcstToEmulatedLedgerState :: Emulator.Params -> MockChainSt -> Emulator.EmulatedLedgerState
-mcstToEmulatedLedgerState params MockChainSt {..} =
-  let els@(Emulator.EmulatedLedgerState le mps) = Emulator.initialState params
+mcstToEmulatedLedgerState :: MockChainSt -> Emulator.EmulatedLedgerState
+mcstToEmulatedLedgerState MockChainSt {..} =
+  let els@(Emulator.EmulatedLedgerState le mps) = Emulator.initialState mcstParams
    in els
         { Emulator._ledgerEnv = le {Shelley.ledgerSlotNo = fromIntegral mcstCurrentSlot},
           Emulator._memPoolState =
             mps
               { Shelley.lsUTxOState =
                   Shelley.smartUTxOState
-                    (Emulator.emulatorPParams params)
+                    (Emulator.emulatorPParams mcstParams)
                     (Ledger.fromPlutusIndex mcstIndex)
                     (Emulator.Coin 0)
                     (Emulator.Coin 0)
@@ -114,24 +115,19 @@ mcstToEmulatedLedgerState params MockChainSt {..} =
         }
 
 instance Eq MockChainSt where
-  (MockChainSt index1 datums1 validators1 currentSlot1)
-    == (MockChainSt index2 datums2 validators2 currentSlot2) =
+  (MockChainSt params1 index1 datums1 validators1 currentSlot1)
+    == (MockChainSt params2 index2 datums2 validators2 currentSlot2) =
       and
-        [ index1 == index2,
+        [ params1 == params2,
+          index1 == index2,
           datums1 == datums2,
           validators1 == validators2,
           currentSlot1 == currentSlot2
         ]
 
-newtype MockChainEnv = MockChainEnv {mceParams :: Emulator.Params}
-  deriving (Show)
-
-instance Default MockChainEnv where
-  def = MockChainEnv def
-
 newtype MockChainT m a = MockChainT
-  {unMockChain :: ReaderT MockChainEnv (StateT MockChainSt (ExceptT MockChainError m)) a}
-  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError, MonadReader MockChainEnv)
+  {unMockChain :: StateT MockChainSt (ExceptT MockChainError m) a}
+  deriving newtype (Functor, Applicative, MonadState MockChainSt, MonadError MockChainError)
 
 type MockChain = MockChainT Identity
 
@@ -144,10 +140,10 @@ instance (Monad m) => MonadFail (MockChainT m) where
   fail = throwError . FailWith
 
 instance MonadTrans MockChainT where
-  lift = MockChainT . lift . lift . lift
+  lift = MockChainT . lift . lift
 
 instance (Monad m, Alternative m) => Alternative (MockChainT m) where
-  empty = MockChainT $ ReaderT $ const $ StateT $ const $ ExceptT empty
+  empty = MockChainT $ StateT $ const $ ExceptT empty
   (<|>) = combineMockChainT (<|>)
 
 combineMockChainT ::
@@ -157,31 +153,25 @@ combineMockChainT ::
   MockChainT m x ->
   MockChainT m x
 combineMockChainT f ma mb = MockChainT $
-  ReaderT $ \r ->
-    StateT $ \s ->
-      let resA = runExceptT $ runStateT (runReaderT (unMockChain ma) r) s
-          resB = runExceptT $ runStateT (runReaderT (unMockChain mb) r) s
-       in ExceptT $ f resA resB
+  StateT $ \s ->
+    let resA = runExceptT $ runStateT (unMockChain ma) s
+        resB = runExceptT $ runStateT (unMockChain mb) s
+     in ExceptT $ f resA resB
 
 mapMockChainT ::
   (m (Either MockChainError (a, MockChainSt)) -> n (Either MockChainError (b, MockChainSt))) ->
   MockChainT m a ->
   MockChainT n b
-mapMockChainT f = MockChainT . mapReaderT (mapStateT (mapExceptT f)) . unMockChain
+mapMockChainT f = MockChainT . mapStateT (mapExceptT f) . unMockChain
 
--- | Executes a 'MockChainT' from some initial state and environment; does /not/
--- convert the 'MockChainSt' into a 'UtxoState'.
+-- | Executes a 'MockChainT' from some initial state; does /not/ convert the
+-- 'MockChainSt' into a 'UtxoState'.
 runMockChainTRaw ::
   (Monad m) =>
-  MockChainEnv ->
   MockChainSt ->
   MockChainT m a ->
   m (Either MockChainError (a, MockChainSt))
-runMockChainTRaw e0 i0 =
-  runExceptT
-    . flip runStateT i0
-    . flip runReaderT e0
-    . unMockChain
+runMockChainTRaw i0 = runExceptT . flip runStateT i0 . unMockChain
 
 -- | Executes a 'MockChainT' from an initial state set up with the given initial
 -- value distribution. Similar to 'runMockChainT', uses the default
@@ -192,8 +182,7 @@ runMockChainTFrom ::
   InitialDistribution ->
   MockChainT m a ->
   m (Either MockChainError (a, UtxoState))
-runMockChainTFrom i0 =
-  fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw def (mockChainSt0From i0)
+runMockChainTFrom i0 = fmap (fmap $ second mcstToUtxoState) . runMockChainTRaw (mockChainSt0From i0)
 
 -- | Executes a 'MockChainT' from the canonical initial state and environment.
 -- The canonical environment uses the default 'SlotConfig' and
@@ -202,12 +191,11 @@ runMockChainT :: (Monad m) => MockChainT m a -> m (Either MockChainError (a, Utx
 runMockChainT = runMockChainTFrom def
 
 -- | See 'runMockChainTRaw'
-runMockChainRaw :: MockChainEnv -> MockChainSt -> MockChain a -> Either MockChainError (a, MockChainSt)
-runMockChainRaw e0 i0 = runIdentity . runMockChainTRaw e0 i0
+runMockChainRaw :: MockChain a -> Either MockChainError (a, MockChainSt)
+runMockChainRaw = runIdentity . runMockChainTRaw def
 
 -- | See 'runMockChainTFrom'
-runMockChainFrom ::
-  InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
+runMockChainFrom :: InitialDistribution -> MockChain a -> Either MockChainError (a, UtxoState)
 runMockChainFrom i0 = runIdentity . runMockChainTFrom i0
 
 -- | See 'runMockChainT'
@@ -220,17 +208,12 @@ utxoState0 :: UtxoState
 utxoState0 = mcstToUtxoState mockChainSt0
 
 mockChainSt0 :: MockChainSt
-mockChainSt0 = MockChainSt utxoIndex0 Map.empty Map.empty 0
+mockChainSt0 = MockChainSt def utxoIndex0 Map.empty Map.empty 0
 
 -- * Initial `MockChainSt` from an initial distribution
 
 mockChainSt0From :: InitialDistribution -> MockChainSt
-mockChainSt0From i0 =
-  MockChainSt
-    (utxoIndex0From i0)
-    (datumMap0From i0)
-    (referenceScriptMap0From i0)
-    0
+mockChainSt0From i0 = MockChainSt def (utxoIndex0From i0) (datumMap0From i0) (referenceScriptMap0From i0) 0
 
 instance Default MockChainSt where
   def = mockChainSt0
@@ -325,7 +308,7 @@ getIndex =
        in Cardano.TxOut addr val dat refS
 
 instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
-  getParams = asks mceParams
+  getParams = gets mcstParams
   validatorFromHash valHash = gets $ Map.lookup valHash . mcstValidators
   txOutByRefLedger outref = gets $ Map.lookup outref . getIndex . mcstIndex
   datumFromHash datumHash = (txSkelOutUntypedDatum <=< Just . fst <=< Map.lookup datumHash) <$> gets mcstDatums
@@ -333,18 +316,21 @@ instance (Monad m) => MonadBlockChainBalancing (MockChainT m) where
 
 instance (Monad m) => MonadBlockChainWithoutValidation (MockChainT m) where
   allUtxosLedger = gets $ Map.toList . getIndex . mcstIndex
-
+  setParams newParams = modify (\st -> st {mcstParams = newParams})
   currentSlot = gets mcstCurrentSlot
-
   awaitSlot s = modify' (\st -> st {mcstCurrentSlot = max s (mcstCurrentSlot st)}) >> currentSlot
 
 instance (Monad m) => MonadBlockChain (MockChainT m) where
   validateTxSkel skelUnbal = do
+    -- We retrieve the current parameters
+    oldParams <- getParams
+    -- We compute the optionally modified parameters
+    let newParams = applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skelUnbal) oldParams
+    -- We change the parameters for the duration of the validation process
+    setParams newParams
     -- We balance the skeleton (when requested in the options) and get the
     -- associated fees and collateral inputs
     (skel, fees, collateralIns) <- balanceTxSkel skelUnbal
-    -- We apply the optional modifications of the emulator parameters
-    params <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -356,15 +342,15 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
-    cardanoTx <- case generateTx fees collateralIns params insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fees collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
     -- To run transaction validation we need a minimal ledger state
-    eLedgerState <- gets (mcstToEmulatedLedgerState params)
+    eLedgerState <- gets mcstToEmulatedLedgerState
     -- We finally run the emulated validation, and we only care about the
     -- validation result, as we update our own internal state
-    let (_, mValidationResult) = Emulator.validateCardanoTx params eLedgerState cardanoTx
+    let (_, mValidationResult) = Emulator.validateCardanoTx newParams eLedgerState cardanoTx
     -- We retrieve our current utxo index to perform modifications associated
     -- with the validated transaction.
     utxoIndex <- gets mcstIndex
@@ -392,6 +378,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We apply a change of slot when requested in the options
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})
+    -- We return the parameters to their original state
+    setParams oldParams
     -- We return the validated transaction
     return cardanoTx
     where

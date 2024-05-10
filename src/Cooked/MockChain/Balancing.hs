@@ -149,7 +149,7 @@ setFeeAndBalance balanceWallet skel0 collateralIns = do
         insRef <- txSkelReferenceInputUtxosPl skel
         return $ ins <> insRef <> collateralUtxos
       managedValidators <- txSkelInputValidators skel
-      theParams <- applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skel) <$> getParams
+      theParams <- getParams
       case estimateTxSkelFee theParams managedData managedTxOuts managedValidators attemptedSkel fee collateralIns of
         -- necessary to capture script failure for failed cases
         Left err@MCEValidationError {} -> throwError err

@@ -89,8 +89,8 @@ interpret = flip evalStateT [] . interpLtlAndPruneUnfinished
 
 data MockChainBuiltin a where
   -- methods of 'MonadBlockChain'
-
   GetParams :: MockChainBuiltin Emulator.Params
+  SetParams :: Emulator.Params -> MockChainBuiltin ()
   ValidateTxSkel :: TxSkel -> MockChainBuiltin Ledger.CardanoTx
   TxOutByRefLedger :: Api.TxOutRef -> MockChainBuiltin (Maybe Ledger.TxOut)
   GetCurrentSlot :: MockChainBuiltin Ledger.Slot
@@ -127,7 +127,8 @@ instance (MonadPlus m) => MonadPlus (MockChainT m) where
   mplus = combineMockChainT mplus
 
 instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockChain where
-  interpBuiltin GetParams = lift $ asks mceParams
+  interpBuiltin GetParams = getParams
+  interpBuiltin (SetParams params) = setParams params
   interpBuiltin (ValidateTxSkel skel) =
     get
       >>= msum
@@ -176,13 +177,13 @@ instance InterpLtl (UntypedTweak InterpMockChain) MockChainBuiltin InterpMockCha
 -- ** Helpers to run tweaks for use in tests for tweaks
 
 runTweak :: Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
-runTweak = runTweakFrom def def
+runTweak = runTweakFrom def
 
-runTweakFrom :: MockChainEnv -> MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
-runTweakFrom mcenv mcst tweak skel =
+runTweakFrom :: MockChainSt -> Tweak InterpMockChain a -> TxSkel -> [Either MockChainError (a, TxSkel)]
+runTweakFrom mcst tweak skel =
   map (right fst . fst)
     . runWriterT
-    . runMockChainTRaw mcenv mcst
+    . runMockChainTRaw mcst
     $ runTweakInChain tweak skel
 
 -- ** Modalities
@@ -243,6 +244,7 @@ instance MonadBlockChainBalancing StagedMockChain where
 
 instance MonadBlockChainWithoutValidation StagedMockChain where
   allUtxosLedger = singletonBuiltin AllUtxosLedger
+  setParams = singletonBuiltin . SetParams
   currentSlot = singletonBuiltin GetCurrentSlot
   awaitSlot = singletonBuiltin . AwaitSlot
 

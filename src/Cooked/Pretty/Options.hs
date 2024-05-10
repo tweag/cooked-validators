@@ -94,7 +94,7 @@ defaultHashNames =
       (permanentCurrencySymbol, "Permanent")
     ]
     <> hashNamesFromList
-      ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 5])
+      ((\i -> (wallet i, "wallet " <> show i)) <$> [1 .. 10])
 
 -- | Smart constructor for maps to be used in the "pcOptHashNames"
 -- pretty-printing option.

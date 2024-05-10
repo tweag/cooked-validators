@@ -158,6 +158,9 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
   -- | Returns a list of all currently known outputs.
   allUtxosLedger :: m [(Api.TxOutRef, Ledger.TxOut)]
 
+  -- | Updates parameters
+  setParams :: Emulator.Params -> m ()
+
   -- | Returns the current slot number
   currentSlot :: m Ledger.Slot
 
@@ -170,7 +173,7 @@ class (MonadBlockChainBalancing m) => MonadBlockChainWithoutValidation m where
 
 -- | The main abstraction of the blockchain.
 class (MonadBlockChainWithoutValidation m) => MonadBlockChain m where
-  -- | Generates, balances and validates a transaction from a skeleton.  It
+  -- | Generates, balances and validates a transaction from a skeleton. It
   -- returns the validated transaction and updates the state of the
   -- blockchain. In 'MockChainT', this means:
   --
@@ -511,6 +514,7 @@ instance (MonadTrans t, MonadBlockChainBalancing m, Monad (t m), MonadError Mock
 
 instance (MonadTrans t, MonadBlockChainWithoutValidation m, Monad (t m), MonadError MockChainError (AsTrans t m)) => MonadBlockChainWithoutValidation (AsTrans t m) where
   allUtxosLedger = lift allUtxosLedger
+  setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
 
@@ -553,6 +557,7 @@ instance (MonadBlockChainBalancing m) => MonadBlockChainBalancing (ListT m) wher
 
 instance (MonadBlockChainWithoutValidation m) => MonadBlockChainWithoutValidation (ListT m) where
   allUtxosLedger = lift allUtxosLedger
+  setParams = lift . setParams
   currentSlot = lift currentSlot
   awaitSlot = lift . awaitSlot
 

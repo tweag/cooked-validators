@@ -160,7 +160,6 @@ tests =
                   skelsOut splitMode aInputs =
                     mapMaybe (\case Right (_, skel') -> Just skel'; _ -> Nothing) $
                       runTweakFrom
-                        def
                         (mockChainSt0From customInitDist)
                         ( doubleSatAttack
                             splitMode
