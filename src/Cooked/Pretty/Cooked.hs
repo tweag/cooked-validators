@@ -353,7 +353,8 @@ mPrettyTxOpts
       txOptBalance,
       txOptBalanceOutputPolicy,
       txOptBalanceWallet,
-      txOptEmulatorParamsModification
+      txOptEmulatorParamsModification,
+      txOptCollateralUtxos
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
@@ -363,7 +364,8 @@ mPrettyTxOpts
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification
+          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
+          prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos
         ]
     where
       prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -395,6 +397,14 @@ mPrettyTxOpts
       prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
       prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
+      prettyCollateralUtxos :: CollateralUtxos -> DocCooked
+      prettyCollateralUtxos col =
+        "Collateral policy:"
+          <+> ( case col of
+                  CollateralUtxosFromBalancingWallet -> "Use balancing wallet"
+                  (CollateralUtxosFromWallet w) -> "Use specific wallet:" <+> prettyCookedOpt opts (walletPKHash w)
+                  (CollateralUtxosFromSet txOutRefs) -> prettyItemize "Use the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs)
+              )
 
 -- * Pretty-printing
 
