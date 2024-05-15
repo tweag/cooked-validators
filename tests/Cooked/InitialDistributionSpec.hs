@@ -1,14 +1,10 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.InitialDistributionSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe (catMaybes)
-import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Pl
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -20,16 +16,16 @@ bob = wallet 2
 
 bobPKH = walletPKHash bob
 
--- | An initial distribution where alice owns a UTxO with a datum
--- of type Int and value 10 for each datum kind
+-- | An initial distribution where alice owns a UTxO with a datum of
+-- type Int and value 10 for each datum kind
 initialDistributionWithDatum =
   InitialDistribution $
     (\f -> f (paysPK alicePKH (ada 2)) 10)
       <$> [withDatum @Integer, withInlineDatum, withDatumHash]
 
--- | An initial distribution where alice owns a UTxO with a
--- reference script corresponding to the always succeed validators
--- and bob owns 2 UTxOs with 100 ada
+-- | An initial distribution where alice owns a UTxO with a reference
+-- script corresponding to the always succeed validators and bob owns
+-- 2 UTxOs with 100 ada
 initialDistributionWithReferenceScript =
   InitialDistribution $
     (paysPK alicePKH (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract)

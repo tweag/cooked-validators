@@ -1,10 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
+-- | This module provide tweaks to tamper with output datums in a typed
+-- manner. There are many use cases where slight changes in datum can have a
+-- drastic effect on the bahavior of a contract, and can be unchecked. Here is
+-- the way to test those cases.
 module Cooked.Tweak.TamperDatum
   ( tamperDatumTweak,
     TamperDatumLbl (..),
@@ -20,7 +17,7 @@ import Cooked.Skeleton
 import Cooked.Tweak.Common
 import Cooked.Tweak.Labels
 import Optics.Core
-import qualified PlutusTx as Pl
+import PlutusLedgerApi.V3 qualified as Api
 import Type.Reflection
 
 -- | A tweak that tries to change the datum on outputs carrying datums of a
@@ -33,8 +30,8 @@ tamperDatumTweak ::
   ( MonadTweak m,
     Show a,
     PrettyCooked a,
-    Pl.ToData a,
-    Pl.FromData a,
+    Api.ToData a,
+    Api.FromData a,
     Typeable a
   ) =>
   -- | Use this function to return 'Just' the changed datum, if you want to
@@ -56,14 +53,18 @@ tamperDatumTweak change = do
 
 data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 
+instance PrettyCooked TamperDatumLbl where
+  prettyCooked _ = "TamperDatum"
+
 -- | A tweak that tries to change the datum on outputs carrying datums of a
 -- certain type with a prescribed tampering function. There are two main
--- differences with 'tamperDatumTweak'. First, the tampering function returns 'BuiltinData', allowing it to
--- do pretty much anything with the datums. Second, for every output datum there are zero or more options
--- for how to modify it, and all combinations of these modifications are tried.
+-- differences with 'tamperDatumTweak'. First, the tampering function returns
+-- 'BuiltinData', allowing it to do pretty much anything with the
+-- datums. Second, for every output datum there are zero or more options for how
+-- to modify it, and all combinations of these modifications are tried.
 --
--- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n' possible modifications,
--- this tweak will try
+-- That is, if there are 'n' output datums, for which there are 'k_1,...,k_n'
+-- possible modifications, this tweak will try
 --
 -- >   k_1 + ... + k_n
 -- > + k_1 * k_2 + ... + k_{n-1} * k_n
@@ -76,11 +77,11 @@ data TamperDatumLbl = TamperDatumLbl deriving (Show, Eq, Ord)
 malformDatumTweak ::
   forall a m.
   ( MonadTweak m,
-    Pl.ToData a,
-    Pl.FromData a,
+    Api.ToData a,
+    Api.FromData a,
     Typeable a
   ) =>
-  (a -> [Pl.BuiltinData]) ->
+  (a -> [Api.BuiltinData]) ->
   m ()
 malformDatumTweak change = do
   outputs <- viewAllTweak (txSkelOutsL % traversed)
@@ -112,16 +113,19 @@ malformDatumTweak change = do
     changeTxSkelOutDatum (TxSkelOutDatumHash datum) = map TxSkelOutDatumHash $ changeOnCorrectType datum
     changeTxSkelOutDatum (TxSkelOutInlineDatum datum) = map TxSkelOutInlineDatum $ changeOnCorrectType datum
 
-    changeOnCorrectType :: (Typeable b) => b -> [Pl.BuiltinData]
+    changeOnCorrectType :: (Typeable b) => b -> [Api.BuiltinData]
     changeOnCorrectType datum = case typeOf datum `eqTypeRep` (typeRep @a) of
       Just HRefl -> change datum
       Nothing -> []
 
 data MalformDatumLbl = MalformDatumLbl deriving (Show, Eq, Ord)
 
--- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such that
--- - @length c == length l@, and
--- - for all @0 <= i < length c@, @elem (c !! i) (l !! i)@.
+instance PrettyCooked MalformDatumLbl where
+  prettyCooked _ = "MalformDatum"
+
+-- | Given a list of lists @l@, we call “combination” of @l@ a list @c@ such
+-- that - @length c == length l@, and - for all @0 <= i < length c@, @elem (c !!
+-- i) (l !! i)@.
 --
 -- 'allCombinations', as the name suggests, returns all the possible
 -- combinations of a given list of lists. For instance:

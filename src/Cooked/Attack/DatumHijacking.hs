@@ -1,10 +1,5 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-
+-- | This module provides an automated attack to try and redirect outputs to a
+-- certain target with a similar datum type.
 module Cooked.Attack.DatumHijacking
   ( redirectScriptOutputTweak,
     datumHijackingAttack,
@@ -19,8 +14,10 @@ import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Validators
 import Optics.Core
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import Prettyprinter ((<+>))
 import Type.Reflection
 
 -- | Redirect script outputs from one validator to another validator of the same
@@ -28,25 +25,26 @@ import Type.Reflection
 -- modification), in the order in which they occurred on the original
 -- transaction.
 --
--- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Pl.TypedValidator a)@
--- might be useful to construct the optics used by this tweak.
+-- Something like @txSkelOutsL % traversed % txSkelOutOwnerTypeP
+-- @(Script.TypedValidator a)@ might be useful to construct the optics used by
+-- this tweak.
 redirectScriptOutputTweak ::
   ( MonadTweak m,
     Is k A_Traversal,
-    Show (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a)
+    Show (Script.DatumType a),
+    Api.ToData (Script.DatumType a)
   ) =>
-  Optic' k is TxSkel (ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script)) ->
+  Optic' k is TxSkel (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)) ->
   -- | Return @Just@ the new validator, or @Nothing@ if you want to leave this
   -- output unchanged.
-  (ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script) -> Maybe (Pl.TypedValidator a)) ->
+  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script) -> Maybe (Script.TypedValidator a)) ->
   -- | The redirection described by the previous argument might apply to more
   -- than one of the script outputs of the transaction. Use this predicate to
   -- select which of the redirectable script outputs to actually redirect. We
   -- count the redirectable script outputs from the left to the right, starting
   -- with zero.
   (Integer -> Bool) ->
-  m [ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script)]
+  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)]
 redirectScriptOutputTweak optic change =
   overMaybeSelectingTweak
     optic
@@ -72,31 +70,36 @@ redirectScriptOutputTweak optic change =
 datumHijackingAttack ::
   forall a m.
   ( MonadTweak m,
-    Show (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
-    Pl.ToData (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
+    Show (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
+    Api.ToData (Script.DatumType a),
+    Api.UnsafeFromData (Script.DatumType a),
+    Api.UnsafeFromData (Script.RedeemerType a),
+    Typeable (Script.DatumType a),
     Typeable a
   ) =>
   -- | Predicate to select outputs to steal, depending on the intended
   -- recipient, the datum, and the value.
-  (ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script) -> Bool) ->
+  (ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script) -> Bool) ->
   -- | The selection predicate may match more than one output. Use this
   -- predicate to restrict to the i-th of the outputs (counting from the left,
   -- starting at zero) chosen by the selection predicate with this predicate.
   (Integer -> Bool) ->
-  m [ConcreteOutput (Pl.TypedValidator a) TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script)]
+  m [ConcreteOutput (Script.TypedValidator a) TxSkelOutDatum Api.Value (Script.Versioned Script.Script)]
 datumHijackingAttack change select = do
   redirected <-
     redirectScriptOutputTweak
-      (txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Pl.TypedValidator a))
+      (txSkelOutsL % traversed % txSkelOutOwnerTypeP @(Script.TypedValidator a))
       (\output -> if change output then Just thief else Nothing)
       select
   guard . not $ null redirected
-  addLabelTweak $ DatumHijackingLbl $ Pl.validatorAddress thief
+  addLabelTweak $ DatumHijackingLbl $ Script.validatorAddress thief
   return redirected
   where
     thief = alwaysTrueValidator @a
 
-newtype DatumHijackingLbl = DatumHijackingLbl Pl.Address
+newtype DatumHijackingLbl = DatumHijackingLbl Api.Address
   deriving (Show, Eq, Ord)
+
+instance PrettyCooked DatumHijackingLbl where
+  prettyCookedOpt opts (DatumHijackingLbl address) = "DatumHijacking" <+> prettyCookedOpt opts address

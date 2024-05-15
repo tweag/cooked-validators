@@ -1,58 +1,52 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
 import Cooked.MockChain.Staged
 import Data.Default
-import qualified Data.Set as Set
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Set qualified as Set
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V3.Contexts qualified as Api
+import PlutusTx qualified
+import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
 
 {-# INLINEABLE mkCarefulPolicy #-}
-mkCarefulPolicy :: Pl.TokenName -> Integer -> () -> Pl.ScriptContext -> Bool
+mkCarefulPolicy :: Api.TokenName -> Integer -> () -> Api.ScriptContext -> Bool
 mkCarefulPolicy tName allowedAmount _ ctx
-  | amnt Pl.== Just allowedAmount = True
-  | otherwise = Pl.trace "tried to mint wrong amount" False
+  | amnt PlutusTx.== Just allowedAmount = True
+  | otherwise = PlutusTx.trace "tried to mint wrong amount" False
   where
-    txi = Pl.scriptContextTxInfo ctx
+    txi = Api.scriptContextTxInfo ctx
 
     amnt :: Maybe Integer
-    amnt = case Pl.flattenValue (Pl.txInfoMint txi) of
-      [(cs, tn, a)] | cs Pl.== Pl.ownCurrencySymbol ctx && tn Pl.== tName -> Just a
+    amnt = case Script.flattenValue (Api.txInfoMint txi) of
+      [(cs, tn, a)] | cs PlutusTx.== Api.ownCurrencySymbol ctx && tn PlutusTx.== tName -> Just a
       _ -> Nothing
 
-carefulPolicy :: Pl.TokenName -> Integer -> Pl.Versioned Pl.MintingPolicy
+carefulPolicy :: Api.TokenName -> Integer -> Script.Versioned Script.MintingPolicy
 carefulPolicy tName allowedAmount =
-  flip Pl.Versioned Pl.PlutusV2 . Pl.mkMintingPolicyScript $
-    $$(Pl.compile [||\n x -> Pl.mkUntypedMintingPolicy (mkCarefulPolicy n x)||])
-      `Pl.applyCode` Pl.liftCode tName
-      `Pl.applyCode` Pl.liftCode allowedAmount
+  case ($$(PlutusTx.compile [||\n x -> Script.mkUntypedMintingPolicy (mkCarefulPolicy n x)||]) `PlutusTx.applyCode` PlutusTx.liftCodeDef tName)
+    >>= (`PlutusTx.applyCode` PlutusTx.liftCodeDef allowedAmount) of
+    Left s -> error $ "Can't apply parameters in carefulPolicy: " ++ show s
+    Right code -> flip Script.Versioned Script.PlutusV3 . Script.mkMintingPolicyScript $ code
 
 {-# INLINEABLE mkCarelessPolicy #-}
-mkCarelessPolicy :: () -> Pl.ScriptContext -> Bool
+mkCarelessPolicy :: () -> Api.ScriptContext -> Bool
 mkCarelessPolicy _ _ = True
 
-carelessPolicy :: Pl.Versioned Pl.MintingPolicy
+carelessPolicy :: Script.Versioned Script.MintingPolicy
 carelessPolicy =
-  flip Pl.Versioned Pl.PlutusV2 $
-    Pl.mkMintingPolicyScript
-      $$(Pl.compile [||Pl.mkUntypedMintingPolicy mkCarelessPolicy||])
+  flip Script.Versioned Script.PlutusV3 $
+    Script.mkMintingPolicyScript
+      $$(PlutusTx.compile [||Script.mkUntypedMintingPolicy mkCarelessPolicy||])
 
-dupTokenTrace :: (MonadBlockChain m) => Pl.Versioned Pl.MintingPolicy -> Pl.TokenName -> Integer -> Wallet -> m ()
+dupTokenTrace :: (MonadBlockChain m) => Script.Versioned Script.MintingPolicy -> Api.TokenName -> Integer -> Wallet -> m ()
 dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
   where
     skel =
@@ -71,12 +65,12 @@ tests =
     "token duplication attack"
     [ testGroup "unit tests on a 'TxSkel'" $
         let attacker = wallet 6
-            tName1 = Pl.tokenName "MockToken1"
-            tName2 = Pl.tokenName "MockToken2"
+            tName1 = Script.tokenName "MockToken1"
+            tName2 = Script.tokenName "MockToken2"
             pol1 = carefulPolicy tName1 1
             pol2 = carelessPolicy
-            ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol1) tName1
-            ac2 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol2) tName2
+            ac1 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol1) tName1
+            ac2 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol2) tName2
             skelIn =
               txSkelTemplate
                 { txSkelMints =
@@ -85,14 +79,14 @@ tests =
                         (pol2, NoMintsRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
-                    [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
-                      paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2)
+                    [ paysPK (walletPKHash (wallet 1)) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
+                      paysPK (walletPKHash (wallet 2)) (Script.assetClassValue ac2 2)
                     ],
                   txSkelSigners = [wallet 3]
                 }
             skelOut select = runTweak (dupTokenAttack select attacker) skelIn
             skelExpected v1 v2 =
-              let increment = Pl.assetClassValue ac1 (v1 - 5) <> Pl.assetClassValue ac2 (v2 - 7)
+              let increment = Script.assetClassValue ac1 (v1 - 5) <> Script.assetClassValue ac2 (v2 - 7)
                in [ Right
                       ( increment,
                         txSkelTemplate
@@ -103,8 +97,8 @@ tests =
                                   (pol2, NoMintsRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
-                              [ paysPK (walletPKHash (wallet 1)) (Pl.assetClassValue ac1 1 <> Pl.lovelaceValueOf 1234),
-                                paysPK (walletPKHash (wallet 2)) (Pl.assetClassValue ac2 2),
+                              [ paysPK (walletPKHash (wallet 1)) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
+                                paysPK (walletPKHash (wallet 2)) (Script.assetClassValue ac2 2),
                                 paysPK (walletPKHash attacker) increment
                               ],
                             txSkelSigners = [wallet 3]
@@ -119,7 +113,7 @@ tests =
                 skelExpected 10 7 @=? skelOut (\ac n -> if ac == ac1 then n + 5 else n)
             ],
       testCase "careful minting policy" $
-        let tName = Pl.tokenName "MockToken"
+        let tName = Script.tokenName "MockToken"
             pol = carefulPolicy tName 1
          in testFails
               def
@@ -129,7 +123,7 @@ tests =
                   (dupTokenTrace pol tName 1 (wallet 1))
               ),
       testCase "careless minting policy" $
-        let tName = Pl.tokenName "MockToken"
+        let tName = Script.tokenName "MockToken"
             pol = carelessPolicy
          in testSucceeds def $
               somewhere
@@ -138,8 +132,8 @@ tests =
       testCase "pre-existing tokens are left alone" $
         let attacker = wallet 6
             pol = carelessPolicy
-            tName1 = Pl.tokenName "mintedToken"
-            ac1 = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash pol) tName1
+            tName1 = Script.tokenName "mintedToken"
+            ac1 = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash pol) tName1
             ac2 = quickAssetClass "preExistingToken"
             skelIn =
               txSkelTemplate
@@ -147,23 +141,23 @@ tests =
                   txSkelOuts =
                     [ paysPK
                         (walletPKHash (wallet 1))
-                        (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2)
+                        (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)
                     ],
                   txSkelSigners = [wallet 2]
                 }
             skelExpected =
               [ Right
-                  ( Pl.assetClassValue ac1 1,
+                  ( Script.assetClassValue ac1 1,
                     txSkelTemplate
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, 2)],
                         txSkelOuts =
                           [ paysPK
                               (walletPKHash (wallet 1))
-                              (Pl.assetClassValue ac1 1 <> Pl.assetClassValue ac2 2),
+                              (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
                             paysPK
                               (walletPKHash attacker)
-                              (Pl.assetClassValue ac1 1)
+                              (Script.assetClassValue ac1 1)
                           ],
                         txSkelSigners = [wallet 2]
                       }

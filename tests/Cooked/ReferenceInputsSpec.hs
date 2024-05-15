@@ -1,100 +1,93 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.ReferenceInputsSpec where
 
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx
-import qualified PlutusTx as Pl
-import qualified PlutusTx.Prelude as Pl
+import Data.Map qualified as Map
+import Data.Set qualified as Set
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx qualified
+import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter (Pretty)
-import qualified Prettyprinter as PP
-import qualified Test.Tasty as Tasty
-import qualified Test.Tasty.HUnit as Tasty
+import Prettyprinter qualified as PP
+import Test.Tasty qualified as Tasty
+import Test.Tasty.HUnit qualified as Tasty
 
--- Foo and Bar are two dummy scripts to test reference inputs. They serve no
--- purpose and make no real sense.
+-- Foo and Bar are two dummy scripts to test reference inputs. They
+-- serve no purpose and make no real sense.
 --
--- Foo contains a pkh in its datum. It can only be spent by ANOTHER public key.
+-- Foo contains a pkh in its datum. It can only be spent by ANOTHER
+-- public key.
 --
--- Bar has no datum nor redeemer. Its outputs can only be spent by a public key
--- who can provide a Foo UTxO containing its pkh as reference input (that is a
--- UTxO they could not actually spend, according the the design of Foo).
+-- Bar has no datum nor redeemer. Its outputs can only be spent by a
+-- public key who can provide a Foo UTxO containing its pkh as
+-- reference input (that is a UTxO they could not actually spend,
+-- according the the design of Foo).
 --
 -- The datum in Foo outputs in expected to be inlined.
 
 data Foo
 
-newtype FooDatum = FooDatum Pl.PubKeyHash deriving (Show)
+newtype FooDatum = FooDatum Api.PubKeyHash deriving (Show)
 
 instance PrettyCooked FooDatum where
   prettyCookedOpt opts (FooDatum pkh) = "FooDatum" PP.<+> prettyCookedOpt opts pkh
 
-instance Pl.Eq FooDatum where
+instance PlutusTx.Eq FooDatum where
   FooDatum pkh1 == FooDatum pkh2 = pkh1 == pkh2
 
 PlutusTx.makeLift ''FooDatum
 PlutusTx.unstableMakeIsData ''FooDatum
 
-instance Pl.ValidatorTypes Foo where
+instance Script.ValidatorTypes Foo where
   type RedeemerType Foo = ()
   type DatumType Foo = FooDatum
 
--- | Outputs can only be spent by pks whose hash is not the one in the datum.
-fooValidator :: FooDatum -> () -> Pl.ScriptContext -> Bool
-fooValidator (FooDatum pkh) _ (Pl.ScriptContext txInfo _) =
-  Pl.not Pl.$ Pl.elem pkh (Pl.txInfoSignatories txInfo)
+-- | Outputs can only be spent by pks whose hash is not the one in the
+-- datum.
+fooValidator :: FooDatum -> () -> Api.ScriptContext -> Bool
+fooValidator (FooDatum pkh) _ (Api.ScriptContext txInfo _) =
+  PlutusTx.not PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
-fooTypedValidator :: Pl.TypedValidator Foo
+fooTypedValidator :: Script.TypedValidator Foo
 fooTypedValidator =
-  let wrap = Pl.mkUntypedValidator
-   in Pl.mkTypedValidator @Foo
-        $$(Pl.compile [||fooValidator||])
-        $$(Pl.compile [||wrap||])
+  let wrap = Script.mkUntypedValidator
+   in Script.mkTypedValidator @Foo
+        $$(PlutusTx.compile [||fooValidator||])
+        $$(PlutusTx.compile [||wrap||])
 
 data Bar
 
-instance Pl.ValidatorTypes Bar where
+instance Script.ValidatorTypes Bar where
   type RedeemerType Bar = ()
   type DatumType Bar = ()
 
--- | Outputs can only be spent by pks who provide a reference input to a Foo in
--- which they are mentioned (in an inlined datum).
-barValidator :: () -> () -> Pl.ScriptContext -> Bool
-barValidator _ _ (Pl.ScriptContext txInfo _) =
-  (Pl.not . Pl.null) (Pl.filter f (Pl.txInfoReferenceInputs txInfo))
+-- | Outputs can only be spent by pks who provide a reference input to
+-- a Foo in which they are mentioned (in an inlined datum).
+barValidator :: () -> () -> Api.ScriptContext -> Bool
+barValidator _ _ (Api.ScriptContext txInfo _) =
+  (PlutusTx.not . PlutusTx.null) (PlutusTx.filter f (Api.txInfoReferenceInputs txInfo))
   where
-    f :: Pl.TxInInfo -> Bool
+    f :: Api.TxInInfo -> Bool
     f
-      ( Pl.TxInInfo
+      ( Api.TxInInfo
           _
-          (Pl.TxOut address _ (Pl.OutputDatum (Pl.Datum datum)) _)
+          (Api.TxOut address _ (Api.OutputDatum (Api.Datum datum)) _)
         ) =
-        case Pl.fromBuiltinData @FooDatum datum of
+        case Api.fromBuiltinData @FooDatum datum of
           Nothing -> False
-          Just (FooDatum pkh) -> Pl.elem pkh (Pl.txInfoSignatories txInfo)
+          Just (FooDatum pkh) -> PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
     f _ = False
 
-barTypedValidator :: Pl.TypedValidator Bar
+barTypedValidator :: Script.TypedValidator Bar
 barTypedValidator =
-  let wrap = Pl.mkUntypedValidator
-   in Pl.mkTypedValidator @Bar
-        $$(Pl.compile [||barValidator||])
-        $$(Pl.compile [||wrap||])
+  let wrap = Script.mkUntypedValidator
+   in Script.mkTypedValidator @Bar
+        $$(PlutusTx.compile [||barValidator||])
+        $$(PlutusTx.compile [||wrap||])
 
 trace1 :: (MonadBlockChain m) => m ()
 trace1 = do
@@ -106,11 +99,11 @@ trace1 = do
               [ paysScriptInlineDatum
                   fooTypedValidator
                   (FooDatum (walletPKHash (wallet 3)))
-                  (Pl.lovelaceValueOf 4_000_000),
+                  (Script.lovelaceValueOf 4_000_000),
                 paysScript
                   barTypedValidator
                   ()
-                  (Pl.lovelaceValueOf 5_000_000)
+                  (Script.lovelaceValueOf 5_000_000)
               ],
             txSkelSigners = [wallet 2]
           }
@@ -122,7 +115,7 @@ trace1 = do
           txSkelOuts =
             [ paysPK
                 (walletPKHash (wallet 4))
-                (Pl.lovelaceValueOf 5_000_000)
+                (Script.lovelaceValueOf 5_000_000)
             ],
           txSkelSigners = [wallet 3]
         }

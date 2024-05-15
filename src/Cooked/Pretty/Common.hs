@@ -1,7 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-
--- | Common tools to help implement pretty-printers in cooked-validators
+-- | This module provides common functions to help implement pretty-printers in
+-- cooked-validators
 module Cooked.Pretty.Common
   ( DocCooked,
     renderString,
@@ -14,19 +12,18 @@ module Cooked.Pretty.Common
 where
 
 import Cooked.Pretty.Options (PrettyCookedHashOpts (..))
-import qualified Data.ByteString as ByteString
-import qualified Data.Map as Map
-import qualified Numeric
-import qualified PlutusTx.Builtins.Internal as Pl (BuiltinByteString (..))
+import Data.ByteString qualified as ByteString
+import Data.Map qualified as Map
+import Numeric qualified
+import PlutusTx.Builtins.Internal qualified as PlutusTx
 import Prettyprinter (Doc, (<+>))
-import qualified Prettyprinter as PP
-import qualified Prettyprinter.Render.String as PP
+import Prettyprinter qualified as PP
+import Prettyprinter.Render.String qualified as PP
 
 type DocCooked = Doc ()
 
 -- | Use this to convert a pretty-printer to a regular show function using
--- default layout options. This is used in "Testing" because Tasty uses
--- strings.
+-- default layout options. This is used in "Testing" because Tasty uses strings.
 renderString :: (a -> DocCooked) -> a -> String
 renderString printer = PP.renderString . PP.layoutPretty PP.defaultLayoutOptions . printer
 
@@ -60,8 +57,8 @@ prettyEnumerate title bullet items =
     ]
 
 -- | Pretty print a prefix of a hash with a given length.
-prettyHash :: PrettyCookedHashOpts -> Pl.BuiltinByteString -> DocCooked
-prettyHash PrettyCookedHashOpts {..} bbs@(Pl.BuiltinByteString bs) =
+prettyHash :: PrettyCookedHashOpts -> PlutusTx.BuiltinByteString -> DocCooked
+prettyHash PrettyCookedHashOpts {..} bbs@(PlutusTx.BuiltinByteString bs) =
   let hexRepresentation :: DocCooked
       hexRepresentation =
         "#"

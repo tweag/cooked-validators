@@ -1,35 +1,19 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
 module Cooked.InlineDatumsSpec where
 
 import Control.Arrow
 import Control.Monad
 import Cooked
 import Data.Default
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Maybe
-import qualified Ledger.Tx as Pl (getCardanoTxOutRefs)
-import qualified Ledger.Tx.Internal as Pl (getTxOut)
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.Script.Utils.V2.Typed.Scripts as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified Plutus.V2.Ledger.Contexts as Pl
-import qualified PlutusTx
-import qualified PlutusTx as Pl
-import qualified PlutusTx.AssocMap as PlMap
-import qualified PlutusTx.Prelude as Pl
-import qualified PlutusTx.Trace as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusLedgerApi.V3.Contexts qualified as Api
+import PlutusTx qualified
+import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -42,7 +26,7 @@ data SimpleContractDatum = FirstPaymentDatum | SecondPaymentDatum deriving (Show
 instance PrettyCooked SimpleContractDatum where
   prettyCooked = viaShow
 
-instance Pl.Eq SimpleContractDatum where
+instance PlutusTx.Eq SimpleContractDatum where
   FirstPaymentDatum == FirstPaymentDatum = True
   SecondPaymentDatum == SecondPaymentDatum = True
   _ == _ = False
@@ -50,33 +34,33 @@ instance Pl.Eq SimpleContractDatum where
 PlutusTx.makeLift ''SimpleContractDatum
 PlutusTx.unstableMakeIsData ''SimpleContractDatum
 
-instance Pl.ValidatorTypes SimpleContract where
+instance Script.ValidatorTypes SimpleContract where
   type RedeemerType SimpleContract = ()
   type DatumType SimpleContract = SimpleContractDatum
 
 -- | This defines two validators: @inputDatumValidator True@ is a validator that
 -- only returns true if the UTxO it is asked to spend has an inline datum,
 -- @inputDatumValidator False@ only returns true if the UTxO has a datum hash.
-inputDatumValidator :: Bool -> Pl.TypedValidator SimpleContract
+inputDatumValidator :: Bool -> Script.TypedValidator SimpleContract
 inputDatumValidator =
-  Pl.mkTypedValidatorParam @SimpleContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
+  Script.mkTypedValidatorParam @SimpleContract
+    $$(PlutusTx.compile [||val||])
+    $$(PlutusTx.compile [||wrap||])
   where
-    val :: Bool -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
+    val :: Bool -> SimpleContractDatum -> () -> Api.ScriptContext -> Bool
     val requireInlineDatum _ _ ctx =
-      let Just (Pl.TxInInfo _ Pl.TxOut {Pl.txOutDatum = inDatum}) = Pl.findOwnInput ctx
+      let Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) = Api.findOwnInput ctx
        in if requireInlineDatum
             then case inDatum of
-              Pl.OutputDatum _ -> True
-              Pl.OutputDatumHash _ -> Pl.trace "I want an inline datum, but I got a hash" False
-              Pl.NoOutputDatum -> Pl.trace "I want an inline datum, but I got neither a datum nor a hash" False
+              Api.OutputDatum _ -> True
+              Api.OutputDatumHash _ -> PlutusTx.trace "I want an inline datum, but I got a hash" False
+              Api.NoOutputDatum -> PlutusTx.trace "I want an inline datum, but I got neither a datum nor a hash" False
             else case inDatum of
-              Pl.OutputDatumHash _ -> True
-              Pl.OutputDatum _ -> Pl.trace "I want a datum hash, but I got an inline datum" False
-              Pl.NoOutputDatum -> Pl.trace "I want a datum hash, but I got neither a datum nor a hash" False
+              Api.OutputDatumHash _ -> True
+              Api.OutputDatum _ -> PlutusTx.trace "I want a datum hash, but I got an inline datum" False
+              Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
 
-    wrap = Pl.mkUntypedValidator
+    wrap = Script.mkUntypedValidator
 
 data OutputDatumKind = OnlyHash | Datum | Inline
 
@@ -88,23 +72,23 @@ PlutusTx.makeLift ''OutputDatumKind
 -- @outputDatumValidator Datum@ requires an output datum with a hash that's in
 -- the 'txInfoData', and @outputDatumValidator Inline@ only returns true if the
 -- output has an inline datum.
-outputDatumValidator :: OutputDatumKind -> Pl.TypedValidator SimpleContract
+outputDatumValidator :: OutputDatumKind -> Script.TypedValidator SimpleContract
 outputDatumValidator =
-  Pl.mkTypedValidatorParam @SimpleContract
-    $$(Pl.compile [||val||])
-    $$(Pl.compile [||wrap||])
+  Script.mkTypedValidatorParam @SimpleContract
+    $$(PlutusTx.compile [||val||])
+    $$(PlutusTx.compile [||wrap||])
   where
-    val :: OutputDatumKind -> SimpleContractDatum -> () -> Pl.ScriptContext -> Bool
+    val :: OutputDatumKind -> SimpleContractDatum -> () -> Api.ScriptContext -> Bool
     val requiredOutputKind _ _ ctx =
-      let [Pl.TxOut {Pl.txOutDatum = outDatum}] = Pl.getContinuingOutputs ctx
-          txi = Pl.scriptContextTxInfo ctx
+      let [Api.TxOut {Api.txOutDatum = outDatum}] = Api.getContinuingOutputs ctx
+          txi = Api.scriptContextTxInfo ctx
        in case (requiredOutputKind, outDatum) of
-            (OnlyHash, Pl.OutputDatumHash h) -> Pl.isNothing (Pl.findDatum h txi)
-            (Datum, Pl.OutputDatumHash h) -> Pl.isJust (Pl.findDatum h txi)
-            (Inline, Pl.OutputDatum d) -> True
+            (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.isNothing (Api.findDatum h txi)
+            (Datum, Api.OutputDatumHash h) -> PlutusTx.isJust (Api.findDatum h txi)
+            (Inline, Api.OutputDatum d) -> True
             _ -> False
 
-    wrap = Pl.mkUntypedValidator
+    wrap = Script.mkUntypedValidator
 
 -- | This defines two single-transaction traces: @listUtxosTestTrace True@ will
 -- pay a script with an inline datum, while @listUtxosTestTrace False@ will use
@@ -112,8 +96,8 @@ outputDatumValidator =
 listUtxosTestTrace ::
   (MonadBlockChain m) =>
   Bool ->
-  Pl.TypedValidator SimpleContract ->
-  m [(Pl.TxOutRef, Pl.TxOut)]
+  Script.TypedValidator SimpleContract ->
+  m [(Api.TxOutRef, Api.TxOut)]
 listUtxosTestTrace useInlineDatum validator =
   utxosFromCardanoTx
     <$> validateTxSkel
@@ -124,7 +108,7 @@ listUtxosTestTrace useInlineDatum validator =
                   then paysScriptInlineDatum validator FirstPaymentDatum
                   else paysScript validator FirstPaymentDatum
               )
-                (Pl.lovelaceValueOf 3_000_000)
+                (Script.lovelaceValueOf 3_000_000)
             ],
           txSkelSigners = [wallet 1]
         }
@@ -140,7 +124,7 @@ spendOutputTestTrace ::
   forall a m.
   (MonadBlockChain m) =>
   Bool ->
-  Pl.TypedValidator SimpleContract ->
+  Script.TypedValidator SimpleContract ->
   m ()
 spendOutputTestTrace useInlineDatum validator = do
   (theTxOutRef, _) : _ <- listUtxosTestTrace useInlineDatum validator
@@ -165,7 +149,7 @@ spendOutputTestTrace useInlineDatum validator = do
 continuingOutputTestTrace ::
   (MonadBlockChain m) =>
   OutputDatumKind ->
-  Pl.TypedValidator SimpleContract ->
+  Script.TypedValidator SimpleContract ->
   m ()
 continuingOutputTestTrace datumKindOnSecondPayment validator = do
   (theTxOutRef, theOutput) : _ <- listUtxosTestTrace True validator
@@ -191,8 +175,8 @@ tests =
     "Inline datums vs. datum hashes"
     [ testCase "the first and second datums have different hashes" $
         assertBool "... they do not" $
-          (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ FirstPaymentDatum)
-            /= (Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ SecondPaymentDatum),
+          (Script.datumHash . Api.Datum . Api.toBuiltinData $ FirstPaymentDatum)
+            /= (Script.datumHash . Api.Datum . Api.toBuiltinData $ SecondPaymentDatum),
       testGroup "from the MockChain's point of view on Transaction outputs (allUtxos)" $
         -- The validator used in these test cases does not actually matter, we
         -- just need some script to pay to.
@@ -202,7 +186,7 @@ tests =
                   case runMockChain (listUtxosTestTrace True theValidator >> allUtxos) of
                     Right (utxos, _endState) ->
                       case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
-                        [Pl.OutputDatum _] -> True
+                        [Api.OutputDatum _] -> True
                         _ -> False
                     _ -> False,
               testCase "the datum hash is retrieved correctly" $
@@ -210,7 +194,7 @@ tests =
                   case runMockChain (listUtxosTestTrace False theValidator >> allUtxos) of
                     Right (utxos, _endState) ->
                       case mapMaybe ((outputOutputDatum <$>) . isScriptOutputFrom theValidator . snd) utxos of
-                        [Pl.OutputDatumHash _] -> True
+                        [Api.OutputDatumHash _] -> True
                         _ -> False
                     _ -> False
             ],

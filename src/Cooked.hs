@@ -10,11 +10,10 @@ where
 import Cooked.Attack as X
 import Cooked.Currencies as X
 import Cooked.InitialDistribution as X
-import qualified Cooked.Ltl as Ltl
+import Cooked.Ltl qualified as Ltl
 import Cooked.MockChain as X
 import Cooked.Output as X
 import Cooked.Pretty as X
-import Cooked.RawUPLC as X
 import Cooked.ShowBS as X
 import Cooked.Skeleton as X
 import Cooked.Tweak as X

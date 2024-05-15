@@ -1,3 +1,6 @@
+-- | This module centralizes Tweaks, that is state-aware skeleton
+-- modifications. These tweaks can be used on specific skeletons, or deployed in
+-- time using `Cooked.Ltl`
 module Cooked.Tweak (module X) where
 
 import Cooked.Tweak.AddInputsAndOutputs as X

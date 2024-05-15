@@ -1,5 +1,4 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
+-- | This module provides tweaks operating on transaction labels
 module Cooked.Tweak.Labels
   ( addLabelTweak,
     removeLabelTweak,

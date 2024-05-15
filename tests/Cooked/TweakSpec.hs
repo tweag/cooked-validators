@@ -1,9 +1,9 @@
 module Cooked.TweakSpec (tests) where
 
-import qualified Cooked.Tweak.CommonSpec as CommonSpec
-import qualified Cooked.Tweak.OutPermutationsSpec as OutPermutationsSpec
-import qualified Cooked.Tweak.TamperDatumSpec as TamperDatumSpec
-import qualified Cooked.Tweak.ValidityRangeSpec as ValidityRangeSpec
+import Cooked.Tweak.CommonSpec qualified as CommonSpec
+import Cooked.Tweak.OutPermutationsSpec qualified as OutPermutationsSpec
+import Cooked.Tweak.TamperDatumSpec qualified as TamperDatumSpec
+import Cooked.Tweak.ValidityRangeSpec qualified as ValidityRangeSpec
 import Test.Tasty
 
 tests :: TestTree

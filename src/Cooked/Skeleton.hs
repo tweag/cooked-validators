@@ -1,18 +1,12 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-
+-- | This module provides the description of a transaction skeleton. We have our
+-- own representation of a transaction for three main reasons:
+--
+-- - our transaction skeletons are typed (datums, validators, outputs...)
+--
+-- - with our own wrapper, we are less affected by plutus updates
+--
+-- - we can have default or automated behavior for the parts of the transactions
+-- that are less relevant to testing, such as collaterals or fees
 module Cooked.Skeleton
   ( LabelConstrs,
     TxLabel (..),
@@ -20,19 +14,18 @@ module Cooked.Skeleton
     BalancingWallet (..),
     RawModTx (..),
     EmulatorParamsModification (..),
-    BalancingUtxos (..),
+    CollateralUtxos (..),
     applyEmulatorParamsModification,
     applyRawModOnBalancedTx,
     TxOpts (..),
     txOptEnsureMinAdaL,
-    txOptAwaitTxConfirmedL,
-    txOptAutoSlotIncreaseL,
     txOptUnsafeModTxL,
+    txOptAutoSlotIncreaseL,
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
     txOptBalanceWalletL,
-    txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
+    txOptCollateralUtxosL,
     MintsConstrs,
     MintsRedeemer (..),
     TxSkelMints,
@@ -79,11 +72,12 @@ module Cooked.Skeleton
     txSkelOutputDatumTypeAT,
     SkelContext (..),
     txSkelOutReferenceScripts,
+    txSkelReferenceScript,
   )
 where
 
-import qualified Cardano.Api as C
-import qualified Cardano.Node.Emulator as Emulator
+import Cardano.Api qualified as Cardano
+import Cardano.Node.Emulator qualified as Emulator
 import Control.Monad
 import Cooked.Output
 import Cooked.Pretty.Class
@@ -92,33 +86,30 @@ import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
-import qualified Data.List.NonEmpty as NEList
+import Data.List (foldl')
+import Data.List.NonEmpty qualified as NEList
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Map qualified as Map
 import Data.Map.NonEmpty (NEMap)
-import qualified Data.Map.NonEmpty as NEMap
+import Data.Map.NonEmpty qualified as NEMap
 import Data.Maybe
 import Data.Set (Set)
-import qualified Data.Set as Set
-import qualified Ledger.Scripts (validatorHash)
-import qualified Ledger.Scripts as Pl hiding (validatorHash)
-import qualified Ledger.Slot as Pl
-import qualified Ledger.Typed.Scripts as Pl
+import Data.Set qualified as Set
+import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
-import qualified Plutus.V1.Ledger.Interval as Pl
-import qualified Plutus.V2.Ledger.Api as Pl hiding (TxOut, adaSymbol, adaToken)
-import qualified Plutus.V2.Ledger.Tx as Pl
-import qualified Plutus.V2.Ledger.Tx as Pl2
-import qualified PlutusTx.Prelude as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
+import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Prelude qualified as PlutusTx
 import Test.QuickCheck (NonZero (..))
 import Type.Reflection
 
 -- * Transaction labels
 
-type LabelConstrs x = (Show x, Typeable x, Eq x, Ord x)
+type LabelConstrs x = (PrettyCooked x, Show x, Typeable x, Eq x, Ord x)
 
 data TxLabel where
   TxLabel :: (LabelConstrs x) => x -> TxLabel
@@ -128,6 +119,9 @@ instance Eq TxLabel where
 
 instance Show TxLabel where
   show (TxLabel x) = show x
+
+instance PrettyCooked TxLabel where
+  prettyCookedOpt opts (TxLabel x) = prettyCookedOpt opts x
 
 instance Ord TxLabel where
   compare (TxLabel a) (TxLabel x) =
@@ -146,10 +140,9 @@ instance Ord TxLabel where
 -- with the change during transaction balancing.
 data BalanceOutputPolicy
   = -- | Try to adjust an existing public key output with the change. If no
-    --   suitable output can be found, create a new change output.
+    -- suitable output can be found, create a new change output.
     AdjustExistingOutput
-  | -- | Do not change the existing outputs, always create a new change
-    --   output.
+  | -- | Do not change the existing outputs, always create a new change output.
     DontAdjustExistingOutput
   deriving (Eq, Ord, Show)
 
@@ -168,11 +161,9 @@ instance Default BalancingWallet where
   def = BalanceWithFirstSigner
 
 -- | Wraps a function that will be applied to a transaction right before
--- submitting it.
+-- submission, and after balancing.
 newtype RawModTx
-  = -- | Apply modification on transaction after balancing, fee calculation, and
-    -- final signing are performed
-    RawModTxAfterBalancing (C.Tx C.BabbageEra -> C.Tx C.BabbageEra)
+  = RawModTxAfterBalancing (Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra)
 
 -- This instance always returns @False@, which is no problem, because 'Eq
 -- TxSkel' is only used for tests that never depend on this comparison
@@ -184,9 +175,8 @@ instance Show RawModTx where
 
 -- | Applies a list of modifications right before the transaction is
 -- submitted. The leftmost function in the argument list is applied first.
-applyRawModOnBalancedTx :: [RawModTx] -> C.Tx C.BabbageEra -> C.Tx C.BabbageEra
-applyRawModOnBalancedTx [] = id
-applyRawModOnBalancedTx (RawModTxAfterBalancing f : fs) = applyRawModOnBalancedTx fs . f
+applyRawModOnBalancedTx :: [RawModTx] -> Cardano.Tx Cardano.ConwayEra -> Cardano.Tx Cardano.ConwayEra
+applyRawModOnBalancedTx = foldl' (\acc (RawModTxAfterBalancing f) -> acc . f) id
 
 -- | Wraps a function that will temporarily change the emulator parameters for
 -- the transaction's balancing and submission.
@@ -204,30 +194,27 @@ applyEmulatorParamsModification :: Maybe EmulatorParamsModification -> Emulator.
 applyEmulatorParamsModification (Just (EmulatorParamsModification f)) = f
 applyEmulatorParamsModification Nothing = id
 
--- | Describes which UTxOs of the balancing wallet can be spent for balancing.
-data BalancingUtxos
-  = -- | Use all UTxOs (default)
-    BalancingUtxosAll
-  | -- | Use all UTxOs without datum
-    BalancingUtxosDatumless
-  | -- | Use only the provided UTxOs
-    BalancingUtxosAllowlist [Pl2.TxOutRef]
-  | -- | Do not use the provided UTxOs
-    BalancingUtxosBlocklist [Pl2.TxOutRef]
-  deriving (Eq, Ord, Show)
+-- | Describe which UTxOs to use as collaterals
+data CollateralUtxos
+  = -- | Rely on automated computation with UTxOs from the balancing wallet
+    CollateralUtxosFromBalancingWallet
+  | -- | Rely on automated computaton with UTxOs from a given wallet
+    CollateralUtxosFromWallet Wallet
+  | -- | Manually provide a set of UTxOs
+    CollateralUtxosFromSet (Set Api.TxOutRef)
+  deriving (Eq, Show)
 
-instance Default BalancingUtxos where
-  def = BalancingUtxosAll
+instance Default CollateralUtxos where
+  def = CollateralUtxosFromBalancingWallet
 
--- | Set of options to modify the behavior of generating and validating some transaction.
+-- | Set of options to modify the behavior of generating and validating some
+-- transaction.
 data TxOpts = TxOpts
   { -- | Performs an adjustment to unbalanced transactions, making sure every
     -- UTxO that is produced has the necessary minimum amount of Ada.
     --
     -- Default is @False@.
     txOptEnsureMinAda :: Bool,
-    -- | Ignore this for now. Deprecated.
-    txOptAwaitTxConfirmed :: Bool,
     -- | Whether to increase the slot counter automatically on transaction
     -- submission.  This is useful for modelling transactions that could be
     -- submitted in parallel in reality, so there should be no explicit ordering
@@ -275,38 +262,36 @@ data TxOpts = TxOpts
     --
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
-    -- | Describes which UTxOs of the balancing wallet can be spent for
-    -- balancing. This is useful to put aside some UTxOs you want to spend in a
-    -- specific context later and prevent premature spending during balancing
-    -- of previous transactions.
-    txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
-    -- used to balance and submit the transaction. This is
-    -- obviously a very unsafe thing to do if you want to preserve
-    -- compatibility with the actual chain. It is useful mainly for testing
-    -- purposes, when you might want to use extremely big transactions or
-    -- transactions that exhaust the maximum execution budget. Such a thing
-    -- could be accomplished with
+    -- used to balance and submit the transaction. This is obviously a very
+    -- unsafe thing to do if you want to preserve compatibility with the actual
+    -- chain. It is useful mainly for testing purposes, when you might want to
+    -- use extremely big transactions or transactions that exhaust the maximum
+    -- execution budget. Such a thing could be accomplished with
     --
     -- > txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits
     --
     -- for example.
     --
     -- Default is 'Nothing'.
-    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification
+    txOptEmulatorParamsModification :: Maybe EmulatorParamsModification,
+    -- | Which utxos to use as collaterals. They can be given manually, or
+    -- computed automatically from a given, or the balancing, wallet.
+    --
+    -- Default is 'CollateralUtxosFromBalancingWallet'
+    txOptCollateralUtxos :: CollateralUtxos
   }
   deriving (Eq, Show)
 
 makeLensesFor
   [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
-    ("txOptAwaitTxConfirmed", "txOptAwaitTxConfirmedL"),
     ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
     ("txOptBalance", "txOptBalanceL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
-    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
-    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL")
+    ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
+    ("txOptCollateralUtxos", "txOptCollateralUtxosL")
   ]
   ''TxOpts
 
@@ -314,20 +299,19 @@ instance Default TxOpts where
   def =
     TxOpts
       { txOptEnsureMinAda = False,
-        txOptAwaitTxConfirmed = True,
         txOptAutoSlotIncrease = True,
         txOptUnsafeModTx = [],
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
-        txOptBalancingUtxos = def,
-        txOptEmulatorParamsModification = Nothing
+        txOptEmulatorParamsModification = Nothing,
+        txOptCollateralUtxos = def
       }
 
 -- * Description of the Minting
 
 type MintsConstrs redeemer =
-  ( Pl.ToData redeemer,
+  ( Api.ToData redeemer,
     Show redeemer,
     PrettyCooked redeemer,
     Typeable redeemer
@@ -355,7 +339,7 @@ instance Ord MintsRedeemer where
       LT -> LT
       GT -> GT
       EQ -> case typeOf a `eqTypeRep` typeOf b of
-        Just HRefl -> compare (Pl.toData a) (Pl.toData b)
+        Just HRefl -> compare (Api.toData a) (Api.toData b)
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
 -- | A description of what a transaction mints. For every policy, there can only
@@ -365,8 +349,8 @@ instance Ord MintsRedeemer where
 -- You'll probably not construct this by hand, but use 'txSkelMintsFromList'.
 type TxSkelMints =
   Map
-    (Pl.Versioned Pl.MintingPolicy)
-    (MintsRedeemer, NEMap Pl.TokenName (NonZero Integer))
+    (Script.Versioned Script.MintingPolicy)
+    (MintsRedeemer, NEMap Api.TokenName (NonZero Integer))
 
 -- | Combining 'TxSkelMints' in a sensible way. In particular, this means that
 --
@@ -418,7 +402,7 @@ instance {-# OVERLAPPING #-} Monoid TxSkelMints where
 -- redeemer per minting policy, and no conflicting mints of the same asset
 -- class, since they'll just cancel.
 addToTxSkelMints ::
-  (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) ->
+  (Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) ->
   TxSkelMints ->
   TxSkelMints
 addToTxSkelMints (pol, red, tName, amount) mints
@@ -429,8 +413,8 @@ addToTxSkelMints (pol, red, tName, amount) mints
         -- new entry:
         Map.insert pol (red, NEMap.singleton tName (NonZero amount)) mints
       Just (_oldRed, innerMap) ->
-        -- Ignore the old redeemer: If it's the same as the new one, nothing will
-        -- change, if not, the new redeemer will be kept.
+        -- Ignore the old redeemer: If it's the same as the new one, nothing
+        -- will change, if not, the new redeemer will be kept.
         case innerMap NEMap.!? tName of
           Nothing ->
             -- The given token name has not yet occurred for the given
@@ -440,12 +424,12 @@ addToTxSkelMints (pol, red, tName, amount) mints
           Just (NonZero oldAmount) ->
             let newAmount = oldAmount + amount
              in if newAmount /= 0
-                  then -- If the sum of the old amount of tokens and the additional
-                  -- tokens is non-zero, we can just update the amount in the
-                  -- inner map:
+                  then -- If the sum of the old amount of tokens and the
+                  -- additional tokens is non-zero, we can just update the
+                  -- amount in the inner map:
                     Map.insert pol (red, NEMap.insert tName (NonZero newAmount) innerMap) mints
-                  else -- If the sum is zero, we'll have to delete the token name
-                  -- from the inner map. If that yields a completely empty
+                  else -- If the sum is zero, we'll have to delete the token
+                  -- name from the inner map. If that yields a completely empty
                   -- inner map, we'll have to remove the entry altogether:
                   case NEMap.nonEmptyMap $ NEMap.delete tName innerMap of
                     Nothing -> Map.delete pol mints
@@ -453,7 +437,7 @@ addToTxSkelMints (pol, red, tName, amount) mints
 
 -- | Convert from 'TxSkelMints' to a list of tuples describing eveything that's
 -- being minted.
-txSkelMintsToList :: TxSkelMints -> [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)]
+txSkelMintsToList :: TxSkelMints -> [(Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer)]
 txSkelMintsToList =
   concatMap
     ( \(p, (r, m)) ->
@@ -466,18 +450,18 @@ txSkelMintsToList =
 -- 'addToTxSkelMints'. So, some non-empty lists (where all amounts for a given
 -- asset class an redeemer add up to zero) might be translated into the empty
 -- 'TxSkelMints'.
-txSkelMintsFromList :: [(Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer)] -> TxSkelMints
+txSkelMintsFromList :: [(Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer)] -> TxSkelMints
 txSkelMintsFromList = foldr addToTxSkelMints mempty
 
 -- | The value described by a 'TxSkelMints'
-txSkelMintsValue :: TxSkelMints -> Pl.Value
+txSkelMintsValue :: TxSkelMints -> Api.Value
 txSkelMintsValue =
   foldMapOf
     (to txSkelMintsToList % folded)
     ( \(policy, _, tName, amount) ->
-        Pl.assetClassValue
-          ( Pl.assetClass
-              (Pl.scriptCurrencySymbol policy)
+        Script.assetClassValue
+          ( Script.assetClass
+              (Script.scriptCurrencySymbol policy)
               tName
           )
           amount
@@ -486,27 +470,28 @@ txSkelMintsValue =
 -- * Transaction outputs
 
 class IsTxSkelOutAllowedOwner a where
-  toPKHOrValidator :: a -> Either Pl.PubKeyHash (Pl.Versioned Pl.Validator)
+  toPKHOrValidator :: a -> Either Api.PubKeyHash (Script.Versioned Script.Validator)
 
-instance IsTxSkelOutAllowedOwner Pl.PubKeyHash where
+instance IsTxSkelOutAllowedOwner Api.PubKeyHash where
   toPKHOrValidator = Left
 
-instance IsTxSkelOutAllowedOwner (Pl.TypedValidator a) where
-  toPKHOrValidator = Right . Pl.vValidatorScript
+instance IsTxSkelOutAllowedOwner (Script.TypedValidator a) where
+  toPKHOrValidator = Right . Script.tvValidator
 
 -- | Transaction outputs. The 'Pays' constructor is really general, and you'll
 -- probably want to use one of the smart constructors like 'paysScript' or
 -- 'paysPK' in most cases.
 data TxSkelOut where
   Pays ::
-    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which in turn is only needed in tests.
+    ( Show o, -- This is needed only for the 'Show' instance of 'TxSkel', which
+    -- in turn is only needed in tests.
       Typeable o,
       IsTxInfoOutput o,
       IsTxSkelOutAllowedOwner (OwnerType o),
       Typeable (OwnerType o),
       ToCredential (OwnerType o),
       DatumType o ~ TxSkelOutDatum,
-      ValueType o ~ Pl.Value, -- needed for the 'txSkelOutValueL'
+      ValueType o ~ Api.Value, -- needed for the 'txSkelOutValueL'
       ToScript (ReferenceScriptType o),
       Show (OwnerType o),
       Show (ReferenceScriptType o),
@@ -528,19 +513,19 @@ txSkelOutDatumL =
     (\(Pays output) -> output ^. outputDatumL)
     (\(Pays output) newDatum -> Pays $ output & outputDatumL .~ newDatum)
 
-txSkelOutValueL :: Lens' TxSkelOut Pl.Value
+txSkelOutValueL :: Lens' TxSkelOut Api.Value
 txSkelOutValueL =
   lens
     (\(Pays output) -> outputValue output)
     (\(Pays output) newValue -> Pays $ output & outputValueL .~ newValue)
 
-txSkelOutValue :: TxSkelOut -> Pl.Value
+txSkelOutValue :: TxSkelOut -> Api.Value
 txSkelOutValue = (^. txSkelOutValueL)
 
-txSkelOutValidator :: TxSkelOut -> Maybe (Pl.Versioned Pl.Validator)
+txSkelOutValidator :: TxSkelOut -> Maybe (Script.Versioned Script.Validator)
 txSkelOutValidator (Pays output) = rightToMaybe (toPKHOrValidator $ output ^. outputOwnerL)
 
-type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Pl.ToData a, Pl.Eq a, Typeable a)
+type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Api.ToData a, PlutusTx.Eq a, Typeable a)
 
 -- | On transaction outputs, we have the options to use
 --
@@ -553,35 +538,35 @@ type TxSkelOutDatumConstrs a = (Show a, PrettyCooked a, Pl.ToData a, Pl.Eq a, Ty
 -- following table explains their differences.
 --
 -- +------------------------+------------------+---------------------+-----------------------+
--- |                        | datum stored in  |                     | 'Pl.OutputDatum'      |
+-- |                        | datum stored in  |                     | 'Api.OutputDatum'     |
 -- |                        | in the simulated | datum resolved      | constructor           |
 -- |                        | chain state      | on the 'txInfoData' | seen by the validator |
 -- +========================+==================+=====================+=======================+
--- | 'TxSkelOutNoDatum'     | no               | no                  | 'Pl.NoOutputDatum'    |
+-- | 'TxSkelOutNoDatum'     | no               | no                  | 'Api.NoOutputDatum'   |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Pl.OutputDatumHash'  |
+-- | 'TxSkelOutDatumHash'   | yes              | no                  | 'Api.OutputDatumHash' |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutDatum'       | yes              | yes                 | 'Pl.OutputDatumHash'  |
+-- | 'TxSkelOutDatum'       | yes              | yes                 | 'Api.OutputDatumHash' |
 -- +------------------------+------------------+---------------------+-----------------------+
--- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Pl.OutputDatum'      |
+-- | 'TxSkelOutInlineDatum' | yes              | no                  | 'Api.OutputDatum'     |
 -- +------------------------+------------------+---------------------+-----------------------+
 --
 -- That is:
 --
 -- - Whenever there is a datum, we'll store it in the state of our simulated
---   chain. This will make it possible to retrieve it later, using functions such
---   as 'datumFromHash'.
+--   chain. This will make it possible to retrieve it later, using functions
+--   such as 'datumFromHash'.
 --
--- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will create
---   an output that scripts see on the 'txInfo' as having a datum hash. The
---   difference is whether that hash will be resolvable using validator functions
---   like 'findDatum'.
+-- - Both of the 'TxSkelOutDatumHash' and 'TxSkelOutDatum' constructors will
+--   create an output that scripts see on the 'txInfo' as having a datum
+--   hash. The difference is whether that hash will be resolvable using
+--   validator functions like 'findDatum'.
 data TxSkelOutDatum where
   -- | use no datum
   TxSkelOutNoDatum :: TxSkelOutDatum
   -- | only include the hash on the transaction
   TxSkelOutDatumHash :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
-  -- | use a 'Pl.OutputDatumHash' on the transaction output, but generate the
+  -- | use a 'Api.OutputDatumHash' on the transaction output, but generate the
   -- transaction in such a way that the complete datum is included in the
   -- 'txInfoData' seen by validators
   TxSkelOutDatum :: (TxSkelOutDatumConstrs a) => a -> TxSkelOutDatum
@@ -600,7 +585,7 @@ instance Ord TxSkelOutDatum where
       LT -> LT
       GT -> GT
       EQ -> case typeOf d1 `eqTypeRep` typeOf d2 of
-        Just HRefl -> compare (Pl.toBuiltinData d1) (Pl.toBuiltinData d2)
+        Just HRefl -> compare (Api.toBuiltinData d1) (Api.toBuiltinData d2)
         Nothing -> error "This branch cannot happen: un-equal type representations that compare to EQ"
   compare (TxSkelOutDatum d1) (TxSkelOutDatum d2) =
     compare (TxSkelOutDatumHash d1) (TxSkelOutDatumHash d2)
@@ -613,48 +598,57 @@ instance Ord TxSkelOutDatum where
   compare _ _ = LT
 
 instance ToOutputDatum TxSkelOutDatum where
-  toOutputDatum TxSkelOutNoDatum = Pl.NoOutputDatum
-  toOutputDatum (TxSkelOutDatumHash datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutDatum datum) = Pl.OutputDatumHash . Pl.datumHash . Pl.Datum . Pl.toBuiltinData $ datum
-  toOutputDatum (TxSkelOutInlineDatum datum) = Pl.OutputDatum . Pl.Datum . Pl.toBuiltinData $ datum
+  toOutputDatum TxSkelOutNoDatum = Api.NoOutputDatum
+  toOutputDatum (TxSkelOutDatumHash datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
+  toOutputDatum (TxSkelOutDatum datum) = Api.OutputDatumHash . Script.datumHash . Api.Datum . Api.toBuiltinData $ datum
+  toOutputDatum (TxSkelOutInlineDatum datum) = Api.OutputDatum . Api.Datum . Api.toBuiltinData $ datum
 
-txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Pl.Datum
+txSkelOutUntypedDatum :: TxSkelOutDatum -> Maybe Api.Datum
 txSkelOutUntypedDatum = \case
   TxSkelOutNoDatum -> Nothing
-  TxSkelOutDatumHash x -> Just (Pl.Datum $ Pl.toBuiltinData x)
-  TxSkelOutDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
-  TxSkelOutInlineDatum x -> Just (Pl.Datum $ Pl.toBuiltinData x)
+  TxSkelOutDatumHash x -> Just (Api.Datum $ Api.toBuiltinData x)
+  TxSkelOutDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
+  TxSkelOutInlineDatum x -> Just (Api.Datum $ Api.toBuiltinData x)
 
-txSkelOutTypedDatum :: (Pl.FromData a) => TxSkelOutDatum -> Maybe a
-txSkelOutTypedDatum = Pl.fromBuiltinData . Pl.getDatum <=< txSkelOutUntypedDatum
+txSkelOutTypedDatum :: (Api.FromData a) => TxSkelOutDatum -> Maybe a
+txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDatum
 
 -- ** Smart constructors for transaction outputs
 
+class HasPubKeyHash a where
+  toPubKeyHash :: a -> Api.PubKeyHash
+
+instance HasPubKeyHash Api.PubKeyHash where
+  toPubKeyHash = id
+
+instance HasPubKeyHash Wallet where
+  toPubKeyHash = walletPKHash
+
 -- | Pay a certain value to a public key.
-paysPK :: Pl.PubKeyHash -> Pl.Value -> TxSkelOut
-paysPK pkh value =
+paysPK :: (HasPubKeyHash a) => a -> Api.Value -> TxSkelOut
+paysPK a value =
   Pays
     ( ConcreteOutput
-        pkh
+        (toPubKeyHash a)
         Nothing
         value
         TxSkelOutNoDatum
-        (Nothing @(Pl.Versioned Pl.Script))
+        (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Pays a script a certain value with a certain datum, using the
 -- 'TxSkelOutDatum' constructor. (See the documentation of 'TxSkelOutDatum'.)
 paysScript ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
+  ( Api.ToData (Script.DatumType a),
+    Show (Script.DatumType a),
+    Typeable (Script.DatumType a),
+    PlutusTx.Eq (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
     Typeable a
   ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
+  Script.TypedValidator a ->
+  Script.DatumType a ->
+  Api.Value ->
   TxSkelOut
 paysScript validator datum value =
   Pays
@@ -663,21 +657,21 @@ paysScript validator datum value =
         Nothing
         value
         (TxSkelOutDatum datum)
-        (Nothing @(Pl.Versioned Pl.Script))
+        (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Pays a script a certain value with a certain inlined datum.
 paysScriptInlineDatum ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
+  ( Api.ToData (Script.DatumType a),
+    Show (Script.DatumType a),
+    Typeable (Script.DatumType a),
+    PlutusTx.Eq (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
     Typeable a
   ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
+  Script.TypedValidator a ->
+  Script.DatumType a ->
+  Api.Value ->
   TxSkelOut
 paysScriptInlineDatum validator datum value =
   Pays
@@ -686,22 +680,22 @@ paysScriptInlineDatum validator datum value =
         Nothing
         value
         (TxSkelOutInlineDatum datum)
-        (Nothing @(Pl.Versioned Pl.Script))
+        (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Pays a script a certain value with a certain hashed (not resolved in
 -- transaction) datum.
 paysScriptDatumHash ::
-  ( Pl.ToData (Pl.DatumType a),
-    Show (Pl.DatumType a),
-    Typeable (Pl.DatumType a),
-    Pl.Eq (Pl.DatumType a),
-    PrettyCooked (Pl.DatumType a),
+  ( Api.ToData (Script.DatumType a),
+    Show (Script.DatumType a),
+    Typeable (Script.DatumType a),
+    PlutusTx.Eq (Script.DatumType a),
+    PrettyCooked (Script.DatumType a),
     Typeable a
   ) =>
-  Pl.TypedValidator a ->
-  Pl.DatumType a ->
-  Pl.Value ->
+  Script.TypedValidator a ->
+  Script.DatumType a ->
+  Api.Value ->
   TxSkelOut
 paysScriptDatumHash validator datum value =
   Pays
@@ -710,13 +704,13 @@ paysScriptDatumHash validator datum value =
         Nothing
         value
         (TxSkelOutDatumHash datum)
-        (Nothing @(Pl.Versioned Pl.Script))
+        (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Pays a script a certain value without any datum. Intended to be used with
 -- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
-paysScriptNoDatum :: (Typeable a) => Pl.TypedValidator a -> Pl.Value -> TxSkelOut
+paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
 paysScriptNoDatum validator value =
   Pays
     ( ConcreteOutput
@@ -724,16 +718,16 @@ paysScriptNoDatum validator value =
         Nothing
         value
         TxSkelOutNoDatum
-        (Nothing @(Pl.Versioned Pl.Script))
+        (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Set the datum in a payment to the given datum (whose type may not fit the
 -- typed validator in case of a script).
 withDatum ::
-  ( Pl.ToData a,
+  ( Api.ToData a,
     Show a,
     Typeable a,
-    Pl.Eq a,
+    PlutusTx.Eq a,
     PrettyCooked a
   ) =>
   TxSkelOut ->
@@ -751,10 +745,10 @@ withDatum (Pays output) datum =
 -- | Set the datum in a payment to the given inlined datum (whose type may not
 -- fit the typed validator in case of a script).
 withInlineDatum ::
-  ( Pl.ToData a,
+  ( Api.ToData a,
     Show a,
     Typeable a,
-    Pl.Eq a,
+    PlutusTx.Eq a,
     PrettyCooked a
   ) =>
   TxSkelOut ->
@@ -773,10 +767,10 @@ withInlineDatum (Pays output) datum =
 -- transaction) datum (whose type may not fit the typed validator in case of a
 -- script).
 withDatumHash ::
-  ( Pl.ToData a,
+  ( Api.ToData a,
     Show a,
     Typeable a,
-    Pl.Eq a,
+    PlutusTx.Eq a,
     PrettyCooked a
   ) =>
   TxSkelOut ->
@@ -791,7 +785,8 @@ withDatumHash (Pays output) datum =
       (TxSkelOutDatumHash datum)
       (output ^. outputReferenceScriptL)
 
--- | Add a reference script to a transaction output (or replace it if there is already one)
+-- | Add a reference script to a transaction output (or replace it if there is
+-- already one)
 withReferenceScript ::
   ( Show script,
     ToScript script,
@@ -810,8 +805,9 @@ withReferenceScript (Pays output) script =
       (output ^. outputDatumL)
       (Just script)
 
--- | Add a staking credential to a transaction output (or replace it if there is already one)
-withStakingCredential :: TxSkelOut -> Pl.StakingCredential -> TxSkelOut
+-- | Add a staking credential to a transaction output (or replace it if there is
+-- already one)
+withStakingCredential :: TxSkelOut -> Api.StakingCredential -> TxSkelOut
 withStakingCredential (Pays output) stakingCredential =
   Pays $
     ConcreteOutput
@@ -824,10 +820,10 @@ withStakingCredential (Pays output) stakingCredential =
 -- * Redeemers for transaction inputs
 
 type SpendsScriptConstrs redeemer =
-  ( Pl.ToData redeemer,
+  ( Api.ToData redeemer,
     Show redeemer,
     PrettyCooked redeemer,
-    Pl.Eq redeemer,
+    PlutusTx.Eq redeemer,
     Typeable redeemer
   )
 
@@ -836,12 +832,16 @@ data TxSkelRedeemer where
   TxSkelRedeemerForScript :: (SpendsScriptConstrs redeemer) => redeemer -> TxSkelRedeemer
   -- | The first argument is a reference to the output where the referenced
   -- script is stored.
-  TxSkelRedeemerForReferencedScript :: (SpendsScriptConstrs redeemer) => Pl.TxOutRef -> redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForReferencedScript :: (SpendsScriptConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
 
-txSkelTypedRedeemer :: (Pl.FromData (Pl.RedeemerType a)) => TxSkelRedeemer -> Maybe (Pl.RedeemerType a)
-txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Pl.fromData . Pl.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Pl.fromData . Pl.toData $ redeemer
+txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
+txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Api.fromData . Api.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
+
+txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
+txSkelReferenceScript (TxSkelRedeemerForReferencedScript refScript _) = Just refScript
+txSkelReferenceScript _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
 
@@ -849,7 +849,7 @@ instance Eq TxSkelRedeemer where
   TxSkelNoRedeemerForPK == TxSkelNoRedeemerForPK = True
   (TxSkelRedeemerForScript r1) == (TxSkelRedeemerForScript r2) =
     case typeOf r1 `eqTypeRep` typeOf r2 of
-      Just HRefl -> r1 Pl.== r2
+      Just HRefl -> r1 PlutusTx.== r2
       Nothing -> False
   (TxSkelRedeemerForReferencedScript o1 r1) == (TxSkelRedeemerForReferencedScript o2 r2) =
     TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
@@ -873,7 +873,7 @@ data TxSkel where
       -- one element. By default, the first signer will pay for fees and
       -- balancing. You can change that with 'txOptBalanceWallet'.
       txSkelSigners :: [Wallet],
-      txSkelValidityRange :: Pl.SlotRange,
+      txSkelValidityRange :: Ledger.SlotRange,
       -- | To each 'TxOutRef' the transaction should consume, add a redeemer
       -- specifying how to spend it. You must make sure that
       --
@@ -882,9 +882,9 @@ data TxSkel where
       --
       -- - On 'TxOutRef's referencing UTxOs belonging to scripts, you must make
       --   sure that the type of the redeemer is appropriate for the script.
-      txSkelIns :: Map Pl.TxOutRef TxSkelRedeemer,
+      txSkelIns :: Map Api.TxOutRef TxSkelRedeemer,
       -- | All outputs referenced by the transaction.
-      txSkelInsReference :: Set Pl.TxOutRef,
+      txSkelInsReference :: Set Api.TxOutRef,
       -- | The outputs of the transaction. These will occur in exactly this
       -- order on the transaction.
       txSkelOuts :: [TxSkelOut]
@@ -913,7 +913,7 @@ txSkelTemplate =
     { txSkelLabel = Set.empty,
       txSkelOpts = def,
       txSkelMints = Map.empty,
-      txSkelValidityRange = Pl.always,
+      txSkelValidityRange = Api.always,
       txSkelSigners = [],
       txSkelIns = Map.empty,
       txSkelInsReference = Set.empty,
@@ -923,12 +923,12 @@ txSkelTemplate =
 -- | The missing information on a 'TxSkel' that can only be resolved by querying
 -- the state of the blockchain.
 data SkelContext = SkelContext
-  { skelContextTxOuts :: Map Pl.TxOutRef Pl.TxOut,
-    skelContextTxSkelOutDatums :: Map Pl.DatumHash TxSkelOutDatum
+  { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
+    skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
   }
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Pl.DatumHash TxSkelOutDatum
+txSkelOutputData :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
 txSkelOutputData =
   foldMapOf
     ( txSkelOutsL
@@ -938,7 +938,7 @@ txSkelOutputData =
     ( \txSkelOutDatum -> do
         maybe
           Map.empty
-          (\datum -> Map.singleton (Pl.datumHash datum) txSkelOutDatum)
+          (\datum -> Map.singleton (Script.datumHash datum) txSkelOutDatum)
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 
@@ -948,21 +948,21 @@ newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
 -- value. This is the right hand side of the "balancing equation":
 --
 -- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Fee -> Pl.Value
+txSkelOutputValue :: TxSkel -> Fee -> Api.Value
 txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
   negativePart (txSkelMintsValue mints)
     <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
-    <> Pl.lovelaceValueOf (feeLovelace fees)
+    <> Script.lovelaceValueOf (feeLovelace fees)
 
 -- | All validators which will receive transaction outputs
-txSkelOutValidators :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+txSkelOutValidators :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
 txSkelOutValidators =
   Map.fromList
-    . mapMaybe (fmap (\script -> (Ledger.Scripts.validatorHash script, script)) . txSkelOutValidator)
+    . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
-txSkelOutReferenceScripts :: TxSkel -> Map Pl.ValidatorHash (Pl.Versioned Pl.Validator)
+txSkelOutReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
 txSkelOutReferenceScripts =
   mconcat
     . map
@@ -970,9 +970,9 @@ txSkelOutReferenceScripts =
           case output ^. outputReferenceScriptL of
             Nothing -> Map.empty
             Just x ->
-              let vScript@(Pl.Versioned script version) = toScript x
-                  Pl.ScriptHash hash = toScriptHash vScript
-               in Map.singleton (Pl.ValidatorHash hash) $ Pl.Versioned (Pl.Validator script) version
+              let vScript@(Script.Versioned script version) = toScript x
+                  Script.ScriptHash hash = toScriptHash vScript
+               in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
     . txSkelOuts
 
@@ -986,7 +986,7 @@ txSkelOutOwnerTypeP ::
     IsTxSkelOutAllowedOwner ownerType,
     Typeable ownerType
   ) =>
-  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Pl.Value (Pl.Versioned Pl.Script))
+  Prism' TxSkelOut (ConcreteOutput ownerType TxSkelOutDatum Api.Value (Script.Versioned Script.Script))
 txSkelOutOwnerTypeP =
   prism'
     Pays
@@ -1005,13 +1005,13 @@ txSkelOutOwnerTypeP =
     )
 
 txSkelOutputDatumTypeAT ::
-  (Pl.FromData a, Typeable a) =>
+  (Api.FromData a, Typeable a) =>
   AffineTraversal' TxSkelOut a
 txSkelOutputDatumTypeAT =
   atraversal
     ( \txSkelOut -> case txSkelOutDatumComplete txSkelOut of
         Nothing -> Left txSkelOut
-        Just (Pl.Datum datum) -> case Pl.fromBuiltinData datum of
+        Just (Api.Datum datum) -> case Api.fromBuiltinData datum of
           Just tyDatum -> Right tyDatum
           Nothing -> Left txSkelOut
     )
@@ -1033,5 +1033,5 @@ txSkelOutputDatumTypeAT =
       Just HRefl -> new
       Nothing -> old
 
-    txSkelOutDatumComplete :: TxSkelOut -> Maybe Pl.Datum
+    txSkelOutDatumComplete :: TxSkelOut -> Maybe Api.Datum
     txSkelOutDatumComplete (Pays output) = txSkelOutUntypedDatum $ output ^. outputDatumL

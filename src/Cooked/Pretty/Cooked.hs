@@ -1,16 +1,11 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- | This module implements pretty-printing for Cooked structures such as
 -- skeletons and chain state.
 --
 -- It contains orphaned instances of 'PrettyCooked' for Cooked datatypes. They
--- cannot be provided in "Cooked.Pretty.Class" because of dependency cycles
--- and, for ease of maintainability, we chose to centralize all pretty-printing
+-- cannot be provided in "Cooked.Pretty.Class" because of dependency cycles and,
+-- for ease of maintainability, we chose to centralize all pretty-printing
 -- related code in submodules of "Cooked.Pretty" instead of having
 -- 'PrettyCooked' instances scattered around.
 --
@@ -47,17 +42,16 @@ import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Default
 import Data.Function (on)
-import qualified Data.List as List
-import qualified Data.Map as Map
+import Data.List qualified as List
+import Data.Map qualified as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import qualified Data.Set as Set
+import Data.Set qualified as Set
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
-import qualified Prettyprinter as PP
+import Prettyprinter qualified as PP
 
 -- | The 'PrettyCooked' instance for 'TxSkelOutDatum' prints the datum it
 -- contains according to its own 'PrettyCooked' instance.
@@ -68,8 +62,8 @@ instance PrettyCooked TxSkelOutDatum where
   prettyCookedOpt opts (TxSkelOutInlineDatum datum) = prettyCookedOpt opts datum
 
 instance PrettyCooked MockChainError where
-  prettyCookedOpt opts (MCEValidationError plutusError) =
-    PP.vsep ["Validation error", PP.indent 2 (prettyCookedOpt opts plutusError)]
+  prettyCookedOpt opts (MCEValidationError plutusPhase plutusError) =
+    PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
   prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =
@@ -205,7 +199,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
     "transaction skeleton:"
     "-"
     ( catMaybes
-        [ prettyItemizeNonEmpty "Labels:" "-" (PP.viaShow <$> Set.toList lbl),
+        [ prettyItemizeNonEmpty "Labels:" "-" (prettyCookedOpt opts <$> Set.toList lbl),
           mPrettyTxOpts opts txopts,
           prettyItemizeNonEmpty "Mints:" "-" (prettyMints opts <$> txSkelMintsToList mints),
           Just $ "Validity interval:" <+> PP.pretty validityRange,
@@ -234,8 +228,7 @@ prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} sig
     aux (s : ss)
       | s == balancingWallet = prettyBalancingWallet opts balancingWallet : aux ss
       | otherwise = prettyCookedOpt opts (walletPKHash s) : aux ss
--- The following case should never happen for real transactions, but if the list
--- of signers is empty, this will lead to no signers being printed.
+-- The following case should never happen for real transactions
 prettySigners _ _ [] = []
 
 -- | Prints a minting specification
@@ -243,7 +236,7 @@ prettySigners _ _ [] = []
 -- Examples without and with redeemer
 -- > #abcdef "Foo" -> 500
 -- > #123456 "Bar" | Redeemer -> 1000
-prettyMints :: PrettyCookedOpts -> (Pl.Versioned Pl.MintingPolicy, MintsRedeemer, Pl.TokenName, Integer) -> DocCooked
+prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) -> DocCooked
 prettyMints opts (policy, NoMintsRedeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
@@ -265,17 +258,17 @@ prettyTxSkelOut opts (Pays output) =
     ( prettyCookedOpt opts (outputValue output)
         : catMaybes
           [ case outputOutputDatum output of
-              Pl.OutputDatum _datum ->
+              Api.OutputDatum _datum ->
                 Just $
                   "Datum (inlined):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
-              Pl.OutputDatumHash _datum ->
+              Api.OutputDatumHash _datum ->
                 Just $
                   "Datum (hashed):"
                     <+> (PP.align . prettyCookedOpt opts)
                       (output ^. outputDatumL)
-              Pl.NoOutputDatum -> Nothing,
+              Api.NoOutputDatum -> Nothing,
             getReferenceScriptDoc opts output
           ]
     )
@@ -291,7 +284,7 @@ prettyTxSkelOutDatumMaybe opts txSkelOutDatum =
     "Datum (hashed):"
       <+> PP.align (prettyCookedOpt opts txSkelOutDatum)
 
-prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Pl.TxOutRef, TxSkelRedeemer) -> DocCooked
+prettyTxSkelIn :: PrettyCookedOpts -> SkelContext -> (Api.TxOutRef, TxSkelRedeemer) -> DocCooked
 prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
   case lookupOutput skelContext txOutRef of
     Nothing -> "Spends" <+> prettyCookedOpt opts txOutRef <+> "(non resolved)"
@@ -319,7 +312,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
                   ]
             )
 
-prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Pl.TxOutRef -> Maybe DocCooked
+prettyTxSkelInReference :: PrettyCookedOpts -> SkelContext -> Api.TxOutRef -> Maybe DocCooked
 prettyTxSkelInReference opts skelContext txOutRef = do
   (output, txSkelOutDatum) <- lookupOutput skelContext txOutRef
   return $
@@ -336,15 +329,15 @@ prettyTxSkelInReference opts skelContext txOutRef = do
 getReferenceScriptDoc :: (IsAbstractOutput output, ToScriptHash (ReferenceScriptType output)) => PrettyCookedOpts -> output -> Maybe DocCooked
 getReferenceScriptDoc opts output = prettyReferenceScriptHash opts . toScriptHash <$> output ^. outputReferenceScriptL
 
-lookupOutput :: SkelContext -> Pl.TxOutRef -> Maybe (Pl.TxOut, TxSkelOutDatum)
+lookupOutput :: SkelContext -> Api.TxOutRef -> Maybe (Api.TxOut, TxSkelOutDatum)
 lookupOutput (SkelContext managedTxOuts managedTxSkelOutDatums) txOutRef = do
   output <- Map.lookup txOutRef managedTxOuts
   return
     ( output,
       case outputOutputDatum output of
-        Pl.OutputDatum datum -> Map.findWithDefault TxSkelOutNoDatum (Pl.datumHash datum) managedTxSkelOutDatums
-        Pl.OutputDatumHash datumHash -> Map.findWithDefault TxSkelOutNoDatum datumHash managedTxSkelOutDatums
-        Pl.NoOutputDatum -> TxSkelOutNoDatum
+        Api.OutputDatum datum -> Map.findWithDefault TxSkelOutNoDatum (Script.datumHash datum) managedTxSkelOutDatums
+        Api.OutputDatumHash datumHash -> Map.findWithDefault TxSkelOutNoDatum datumHash managedTxSkelOutDatums
+        Api.NoOutputDatum -> TxSkelOutNoDatum
     )
 
 -- | Pretty-print a list of transaction skeleton options, only printing an
@@ -360,8 +353,8 @@ mPrettyTxOpts
       txOptBalance,
       txOptBalanceOutputPolicy,
       txOptBalanceWallet,
-      txOptBalancingUtxos,
-      txOptEmulatorParamsModification
+      txOptEmulatorParamsModification,
+      txOptCollateralUtxos
     } =
     prettyItemizeNonEmpty "Options:" "-" $
       catMaybes
@@ -370,9 +363,9 @@ mPrettyTxOpts
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
-          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
-          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification
+          prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
+          prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos
         ]
     where
       prettyIfNot :: (Eq a) => a -> (a -> DocCooked) -> a -> Maybe DocCooked
@@ -404,13 +397,14 @@ mPrettyTxOpts
       prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
       prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
-      prettyBalancingUtxos :: BalancingUtxos -> DocCooked
-      prettyBalancingUtxos BalancingUtxosAll = "Balance with all UTxOs of the balancing wallet"
-      prettyBalancingUtxos BalancingUtxosDatumless = "Balance with datumless UTxOs of the balancing wallet"
-      prettyBalancingUtxos (BalancingUtxosAllowlist txOutRefs) =
-        prettyItemize "Only balance with UTxOs of the balancing wallet among:" "-" (prettyCookedOpt opts <$> txOutRefs)
-      prettyBalancingUtxos (BalancingUtxosBlocklist txOutRefs) =
-        prettyItemize "Do not balance with UTxOs among:" "-" (prettyCookedOpt opts <$> txOutRefs)
+      prettyCollateralUtxos :: CollateralUtxos -> DocCooked
+      prettyCollateralUtxos col =
+        "Collateral policy:"
+          <+> ( case col of
+                  CollateralUtxosFromBalancingWallet -> "Use balancing wallet"
+                  (CollateralUtxosFromWallet w) -> "Use specific wallet:" <+> prettyCookedOpt opts (walletPKHash w)
+                  (CollateralUtxosFromSet txOutRefs) -> prettyItemize "Use the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs)
+              )
 
 -- * Pretty-printing
 
@@ -424,30 +418,30 @@ instance PrettyCooked UtxoState where
       . Map.toList
       . utxoState
     where
-      addressOrdering :: (Pl.Address, a) -> (Pl.Address, a) -> Ordering
+      addressOrdering :: (Api.Address, a) -> (Api.Address, a) -> Ordering
       addressOrdering
-        (a1@(Pl.Address (Pl.PubKeyCredential pkh1) _), _)
-        (a2@(Pl.Address (Pl.PubKeyCredential pkh2) _), _) =
+        (a1@(Api.Address (Api.PubKeyCredential pkh1) _), _)
+        (a2@(Api.Address (Api.PubKeyCredential pkh2) _), _) =
           case (walletPKHashToId pkh1, walletPKHashToId pkh2) of
             (Just i, Just j) -> compare i j
             (Just _, Nothing) -> LT
             (Nothing, Just _) -> GT
             (Nothing, Nothing) -> compare a1 a2
       addressOrdering
-        (Pl.Address (Pl.PubKeyCredential _) _, _)
-        (Pl.Address (Pl.ScriptCredential _) _, _) = LT
+        (Api.Address (Api.PubKeyCredential _) _, _)
+        (Api.Address (Api.ScriptCredential _) _, _) = LT
       addressOrdering (a1, _) (a2, _) = compare a1 a2
 
--- | Pretty prints the state of an address, that is the list of UTxOs
--- (including value and datum), grouped
-prettyAddressState :: PrettyCookedOpts -> Pl.Address -> UtxoPayloadSet -> DocCooked
+-- | Pretty prints the state of an address, that is the list of UTxOs (including
+-- value and datum), grouped
+prettyAddressState :: PrettyCookedOpts -> Api.Address -> UtxoPayloadSet -> DocCooked
 prettyAddressState opts address payloadSet =
   prettyItemize
     (prettyCookedOpt opts address)
     "-"
     ( mapMaybe (prettyPayloadGrouped opts)
         . group
-        . List.sortBy (compare `on` (Ada.fromValue . utxoPayloadValue))
+        . List.sortBy (compare `on` (Script.fromValue . utxoPayloadValue))
         . utxoPayloadSet
         $ payloadSet
     )
@@ -465,8 +459,8 @@ prettyAddressState opts address payloadSet =
         PCOptTxOutRefsFull -> map (: [])
         _ -> List.groupBy similar
 
--- | Pretty prints payloads (datum and value corresponding to 1 UTxO) that have
--- been grouped together when they carry same value and datum
+-- | Pretty prints payloads (datum and value corresponding to 1 UTxO) grouped
+-- together when they carry same value and datum
 prettyPayloadGrouped :: PrettyCookedOpts -> [UtxoPayload] -> Maybe DocCooked
 prettyPayloadGrouped _ [] = Nothing
 prettyPayloadGrouped opts [payload] =
@@ -502,7 +496,7 @@ prettyPayload
       [doc] -> Just $ PP.align doc
       docs -> Just . PP.align . PP.vsep $ docs
 
-prettyReferenceScriptHash :: PrettyCookedOpts -> Pl.ScriptHash -> DocCooked
+prettyReferenceScriptHash :: PrettyCookedOpts -> Script.ScriptHash -> DocCooked
 prettyReferenceScriptHash opts scriptHash =
   "Reference script hash:"
     <+> prettyHash (pcOptHashes opts) (toHash scriptHash)

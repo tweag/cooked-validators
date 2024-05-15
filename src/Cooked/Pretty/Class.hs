@@ -1,11 +1,8 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-
--- | We provide the 'PrettyCooked' class and instances for common Plutus types.
--- We don't rely on 'Pretty' from "Prettyprinter" in order to define better
--- printers for Plutus types which already have instances of 'Pretty'. Also,
--- 'PrettyCooked' makes it possible to optionally modify pretty printing
--- settings 'PrettyCookedOpts' (e.g. length of printed hashes).
+-- | This module provides the 'PrettyCooked' class and instances for common
+-- Plutus types.  We don't rely on 'Pretty' from "Prettyprinter" in order to
+-- define better printers for Plutus types which already have instances of
+-- 'Pretty'. Also, 'PrettyCooked' makes it possible to optionally modify pretty
+-- printing settings 'PrettyCookedOpts' (e.g. length of printed hashes).
 --
 -- When defining a new 'PrettyCooked' instance, prefer implementing
 -- 'prettyCookedOpt' and relay the option parameter to other printers.
@@ -20,13 +17,15 @@ import Cooked.Pretty.Common
 import Cooked.Pretty.Hashable
 import Cooked.Pretty.Options
 import Data.Default
-import qualified Ledger.Index as Pl
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
+import Ledger.Index qualified as Ledger
+import Ledger.Scripts qualified as Ledger
+import Ledger.Tx.CardanoAPI qualified as Ledger
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 import Prettyprinter ((<+>))
-import qualified Prettyprinter as PP
-import qualified Prettyprinter.Render.Text as PP
+import Prettyprinter qualified as PP
+import Prettyprinter.Render.Text qualified as PP
 
 class PrettyCooked a where
   prettyCooked :: a -> DocCooked
@@ -34,8 +33,8 @@ class PrettyCooked a where
   prettyCookedOpt :: PrettyCookedOpts -> a -> DocCooked
   prettyCookedOpt _ = prettyCooked
 
--- | Use this in the REPL as an alternative to the default 'print' function
--- when dealing with pretty-printable cooked values.
+-- | Use this in the REPL as an alternative to the default 'print' function when
+-- dealing with pretty-printable cooked values.
 --
 -- For example, @printCookedOpt def runMockChain i0 foo@
 printCookedOpt :: (PrettyCooked a) => PrettyCookedOpts -> a -> IO ()
@@ -45,31 +44,31 @@ printCookedOpt opts e = PP.putDoc $ prettyCookedOpt opts e <+> PP.line
 printCooked :: (PrettyCooked a) => a -> IO ()
 printCooked = printCookedOpt def
 
-instance PrettyCooked Pl.TxId where
+instance PrettyCooked Api.TxId where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.TxOutRef where
-  prettyCookedOpt opts (Pl.TxOutRef txId index) =
+instance PrettyCooked Api.TxOutRef where
+  prettyCookedOpt opts (Api.TxOutRef txId index) =
     prettyHash (pcOptHashes opts) (toHash txId) <> "!" <> prettyCookedOpt opts index
 
-instance PrettyCooked (Pl.Versioned Pl.MintingPolicy) where
+instance PrettyCooked (Script.Versioned Script.MintingPolicy) where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.Address where
-  prettyCookedOpt opts (Pl.Address addrCr Nothing) = prettyCookedOpt opts addrCr
-  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingHash stakCr))) =
+instance PrettyCooked Api.Address where
+  prettyCookedOpt opts (Api.Address addrCr Nothing) = prettyCookedOpt opts addrCr
+  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingHash stakCr))) =
     prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> prettyCookedOpt opts stakCr)
-  prettyCookedOpt opts (Pl.Address addrCr (Just (Pl.StakingPtr p1 p2 p3))) =
+  prettyCookedOpt opts (Api.Address addrCr (Just (Api.StakingPtr p1 p2 p3))) =
     prettyCookedOpt opts addrCr <+> PP.angles ("staking:" <+> PP.pretty (p1, p2, p3))
 
-instance PrettyCooked Pl.PubKeyHash where
+instance PrettyCooked Api.PubKeyHash where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
-instance PrettyCooked Pl.Credential where
-  prettyCookedOpt opts (Pl.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
-  prettyCookedOpt opts (Pl.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
+instance PrettyCooked Api.Credential where
+  prettyCookedOpt opts (Api.ScriptCredential vh) = "script" <+> prettyHash (pcOptHashes opts) (toHash vh)
+  prettyCookedOpt opts (Api.PubKeyCredential pkh) = "pubkey" <+> prettyCookedOpt opts pkh
 
-instance PrettyCooked Pl.Value where
+instance PrettyCooked Api.Value where
   -- Example output:
   --
   -- > Value:
@@ -83,39 +82,47 @@ instance PrettyCooked Pl.Value where
     prettySingletons
       . map prettySingletonValue
       . filter (\(_, _, n) -> n /= 0)
-      . Pl.flattenValue
+      . Script.flattenValue
     where
       prettySingletons :: [DocCooked] -> DocCooked
       prettySingletons [] = "Empty value"
       prettySingletons [doc] = doc
       prettySingletons docs = prettyItemize "Value:" "-" docs
-      prettySingletonValue :: (Pl.CurrencySymbol, Pl.TokenName, Integer) -> DocCooked
+      prettySingletonValue :: (Api.CurrencySymbol, Api.TokenName, Integer) -> DocCooked
       prettySingletonValue (symbol, name, amount) =
-        prettyCookedOpt opts (Pl.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
+        prettyCookedOpt opts (Script.AssetClass (symbol, name)) <> ":" <+> prettyCookedOpt opts amount
 
-instance PrettyCooked Pl.CurrencySymbol where
+instance PrettyCooked Api.CurrencySymbol where
   prettyCookedOpt opts symbol = prettyHash (pcOptHashes opts) (toHash symbol)
 
-instance PrettyCooked Pl.TokenName where
+instance PrettyCooked Api.TokenName where
   prettyCookedOpt _ = PP.pretty
 
-instance PrettyCooked Pl.AssetClass where
-  prettyCookedOpt opts (Pl.AssetClass (symbol, name)) =
+instance PrettyCooked Script.AssetClass where
+  prettyCookedOpt opts (Script.AssetClass (symbol, name)) =
     prettyCookedOpt opts symbol
-      <+> if symbol /= Pl.CurrencySymbol ""
+      <+> if symbol /= Api.CurrencySymbol ""
         then prettyCookedOpt opts name
         else mempty
 
-instance PrettyCooked Pl.ValidationErrorInPhase where
-  -- In Plutus V2, most errors no longer have dedicated constructors we can
-  -- pattern match on, they are mostly wrapped as text which makes it difficult
-  -- to improve upon default printing.
-  prettyCookedOpt _ = PP.pretty
+instance PrettyCooked Ledger.ValidationPhase where
+  prettyCookedOpt _ Ledger.Phase1 = "Phase 1"
+  prettyCookedOpt _ Ledger.Phase2 = "Phase 2"
 
-instance PrettyCooked Pl.POSIXTime where
-  prettyCookedOpt opts (Pl.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+instance PrettyCooked Ledger.ValidationError where
+  prettyCookedOpt opts (Ledger.TxOutRefNotFound txIn) = "TxOutRef not found" <+> prettyCookedOpt opts (Ledger.fromCardanoTxIn txIn)
+  prettyCookedOpt opts (Ledger.ScriptFailure scriptError) = "Script failure" <+> prettyCookedOpt opts scriptError
+  prettyCookedOpt _ (Ledger.CardanoLedgerValidationError text) = "Cardano ledger validation error " <+> PP.pretty text
+  prettyCookedOpt _ Ledger.MaxCollateralInputsExceeded = "Max collateral inputs exceeded"
 
-instance PrettyCooked Pl.ScriptHash where
+instance PrettyCooked Ledger.ScriptError where
+  prettyCookedOpt _ (Ledger.EvaluationError text string) = "Evaluation error" <+> PP.pretty text <+> PP.pretty string
+  prettyCookedOpt _ (Ledger.EvaluationException string1 string2) = "Evaluation exception" <+> PP.pretty string1 <+> PP.pretty string2
+
+instance PrettyCooked Api.POSIXTime where
+  prettyCookedOpt opts (Api.POSIXTime n) = "POSIXTime" <+> prettyCookedOpt opts n
+
+instance PrettyCooked Ledger.ScriptHash where
   prettyCookedOpt opts = prettyHash (pcOptHashes opts) . toHash
 
 instance (PrettyCooked a) => PrettyCooked [a] where
@@ -149,5 +156,5 @@ instance PrettyCooked Bool where
 instance PrettyCooked () where
   prettyCookedOpt _ = PP.pretty
 
-instance PrettyCooked Pl.BuiltinData where
+instance PrettyCooked Api.BuiltinData where
   prettyCookedOpt _ = PP.pretty

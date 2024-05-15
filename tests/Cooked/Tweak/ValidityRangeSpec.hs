@@ -1,24 +1,22 @@
 module Cooked.Tweak.ValidityRangeSpec (tests) where
 
 import Control.Monad (join)
-import Cooked (MonadTweak, awaitSlot, currentSlot, txSkelTemplate)
-import Cooked.MockChain.Staged (runTweak)
-import Cooked.Tweak.ValidityRange (centerAroundValidityRangeTweak, getValidityRangeTweak, hasFullTimeRangeTweak, intersectValidityRangeTweak, isValidAtTweak, isValidDuringTweak, isValidNowTweak, makeValidityRangeNowTweak, setValidityRangeTweak, waitUntilValidTweak)
+import Cooked
 import Data.Default (def)
 import Data.Either (rights)
 import Data.Function (on)
 import Debug.Trace (trace)
-import Ledger.Slot (Slot (Slot), getSlot)
-import Plutus.V1.Ledger.Interval (interval)
+import Ledger.Slot qualified as Ledger
+import PlutusLedgerApi.V1.Interval qualified as Api
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (Assertion, assertBool, testCase)
 
-toSlotRange = interval `on` Slot
+toSlotRange = Api.interval `on` Ledger.Slot
 
 toSlotRangeTranslate translation a b =
   toSlotRange
-    (getSlot translation + a)
-    (getSlot translation + b)
+    (Ledger.getSlot translation + a)
+    (Ledger.getSlot translation + b)
 
 getSingleResult = fst . head . rights . flip runTweak txSkelTemplate
 
@@ -36,15 +34,15 @@ checkIsValidDuring = do
 checkAddToValidityRange :: (MonadTweak m) => m Assertion
 checkAddToValidityRange = do
   timeOrigin <- currentSlot
-  centerAroundValidityRangeTweak (timeOrigin + Slot 100) 80
+  centerAroundValidityRangeTweak (timeOrigin + Ledger.Slot 100) 80
   b <- isValidDuringTweak $ toSlotRangeTranslate timeOrigin 25 35
-  b1 <- isValidAtTweak (timeOrigin + Slot 130)
+  b1 <- isValidAtTweak (timeOrigin + Ledger.Slot 130)
   intersectValidityRangeTweak $ toSlotRangeTranslate timeOrigin 110 220
-  b2 <- isValidAtTweak (timeOrigin + Slot 130)
+  b2 <- isValidAtTweak (timeOrigin + Ledger.Slot 130)
   now <- currentSlot
-  awaitSlot $ timeOrigin + Slot 130
+  awaitSlot $ timeOrigin + Ledger.Slot 130
   b3 <- isValidNowTweak
-  awaitSlot $ Slot 200
+  awaitSlot $ Ledger.Slot 200
   b3 <- isValidNowTweak
   makeValidityRangeNowTweak
   b4 <- isValidNowTweak

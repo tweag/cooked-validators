@@ -1,14 +1,16 @@
+-- | This module provides an automated attack to mint and give extra tokens to a
+-- certain wallet.
 module Cooked.Attack.AddToken (addTokenAttack, AddTokenLbl (..)) where
 
 import Control.Monad
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
-import qualified Data.Map as Map
-import qualified Plutus.Script.Utils.Scripts as Pl
-import qualified Plutus.V1.Ledger.Value as Pl
-import qualified Plutus.V2.Ledger.Api as Pl
-import qualified PlutusTx.Numeric as Pl
+import Data.Map qualified as Map
+import Plutus.Script.Utils.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Numeric qualified as ScriptutusTx
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
 -- different from the 'dupTokenAttack' in that it does not merely try to
@@ -20,8 +22,7 @@ import qualified PlutusTx.Numeric as Pl
 addTokenAttack ::
   (MonadTweak m) =>
   -- | For each policy that occurs in some 'Mints' constraint, return a list of
-  -- token names together with how many tokens with that name should be
-  -- minted.
+  -- token names together with how many tokens with that name should be minted.
   --
   -- For each of the elements of the returned list, one modified transaction
   -- with the additional tokens will be generated. (This means for example that,
@@ -29,11 +30,11 @@ addTokenAttack ::
   -- lists returned for each of them have n,m, and o elements, respectively,
   -- there'll be n*m*o modified transactions.)
   --
-  -- The redeemer will be the one that's already being used on the transaction.
-  (Pl.Versioned Pl.MintingPolicy -> [(Pl.TokenName, Integer)]) ->
-  -- | The wallet of the attacker. Any extra tokens will be paid to this wallet.
+  -- The redeemer will be unchanged
+  (Script.Versioned Script.MintingPolicy -> [(Script.TokenName, Integer)]) ->
+  -- | The wallet of the attacker where extra tokens will be paid to
   Wallet ->
-  m Pl.Value
+  m Api.Value
 addTokenAttack extraTokens attacker = do
   oldMints <- viewTweak txSkelMintsL
   msum $
@@ -45,8 +46,8 @@ addTokenAttack extraTokens attacker = do
                   let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
                       increment =
                         txSkelMintsValue newMints
-                          <> Pl.negate (txSkelMintsValue oldMints)
-                   in if increment `Pl.geq` mempty
+                          <> ScriptutusTx.negate (txSkelMintsValue oldMints)
+                   in if increment `Script.geq` mempty
                         then do
                           setTweak txSkelMintsL newMints
                           addOutputTweak $ paysPK (walletPKHash attacker) increment
@@ -57,4 +58,4 @@ addTokenAttack extraTokens attacker = do
       )
       (Map.toList oldMints)
 
-newtype AddTokenLbl = AddTokenLbl Pl.TokenName deriving (Show, Eq)
+newtype AddTokenLbl = AddTokenLbl Script.TokenName deriving (Show, Eq)

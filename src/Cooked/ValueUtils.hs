@@ -1,6 +1,4 @@
-{-# LANGUAGE NumericUnderscores #-}
-
--- | Utilities to work with Value
+-- | This module provides utilities to work with Value
 module Cooked.ValueUtils
   ( flattenValueI,
     positivePart,
@@ -13,38 +11,39 @@ where
 
 import Data.List
 import Optics.Core
-import qualified Plutus.Script.Utils.Ada as Pl
-import qualified Plutus.Script.Utils.Value as Pl hiding (adaSymbol, adaToken)
-import qualified PlutusTx.Numeric as Pl
+import Plutus.Script.Utils.Ada qualified as Script
+import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Numeric qualified as PlutusTx
 
-flattenValueI :: Iso' Pl.Value [(Pl.AssetClass, Integer)]
+flattenValueI :: Iso' Api.Value [(Script.AssetClass, Integer)]
 flattenValueI =
   iso
-    (map (\(cSymbol, tName, amount) -> (Pl.assetClass cSymbol tName, amount)) . Pl.flattenValue)
-    (foldl' (\v (ac, amount) -> v <> Pl.assetClassValue ac amount) mempty)
+    (map (\(cSymbol, tName, amount) -> (Script.assetClass cSymbol tName, amount)) . Script.flattenValue)
+    (foldl' (\v (ac, amount) -> v <> Script.assetClassValue ac amount) mempty)
 
 -- | The positive part of a value. For every asset class in the given value,
 -- this asset class and its amount are included in the output iff the amount is
 -- strictly positive. It holds
 --
--- > x == positivePart x <> Pl.negate negativePart x
-positivePart :: Pl.Value -> Pl.Value
+-- > x == positivePart x <> Script.negate negativePart x
+positivePart :: Api.Value -> Api.Value
 positivePart = over flattenValueI (filter $ (0 <) . snd)
 
 -- | The negative part of a value. For every asset class in the given value,
 -- this asset class and its negated amount are included in the output iff the
 -- amount is strictly negative. It holds
 --
--- > x == positivePart x <> Pl.negate negativePart x
-negativePart :: Pl.Value -> Pl.Value
-negativePart = positivePart . Pl.negate
+-- > x == positivePart x <> Script.negate negativePart x
+negativePart :: Api.Value -> Api.Value
+negativePart = positivePart . PlutusTx.negate
 
 -- | Focus the Ada part in a value.
-adaL :: Lens' Pl.Value Pl.Ada
+adaL :: Lens' Api.Value Script.Ada
 adaL =
   lens
-    Pl.fromValue
-    ( \value (Pl.Lovelace amount) ->
+    Script.fromValue
+    ( \value (Script.Lovelace amount) ->
         over
           flattenValueI
           (\l -> insertAssocList l adaAssetClass amount)
@@ -56,11 +55,11 @@ adaL =
 
 -- * Helpers for manipulating ada and lovelace
 
-adaAssetClass :: Pl.AssetClass
-adaAssetClass = Pl.assetClass Pl.adaSymbol Pl.adaToken
+adaAssetClass :: Script.AssetClass
+adaAssetClass = Script.assetClass Script.adaSymbol Script.adaToken
 
-lovelace :: Integer -> Pl.Value
-lovelace = Pl.assetClassValue adaAssetClass
+lovelace :: Integer -> Api.Value
+lovelace = Script.assetClassValue adaAssetClass
 
-ada :: Integer -> Pl.Value
+ada :: Integer -> Api.Value
 ada = lovelace . (* 1_000_000)

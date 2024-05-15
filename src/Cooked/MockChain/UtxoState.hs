@@ -1,3 +1,6 @@
+-- | This module provides a depiction of the internal state we carry around to
+-- emulate the blockchain index. This is mostly useful in the Direct
+-- implementation of the MonadBlockChain.
 module Cooked.MockChain.UtxoState
   ( UtxoState (..),
     UtxoPayloadSet (..),
@@ -8,20 +11,19 @@ where
 
 import Cooked.Skeleton (TxSkelOutDatum)
 import Data.Function (on)
-import qualified Data.List as List
+import Data.List qualified as List
 import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Ledger as Pl hiding (Value)
-import qualified Plutus.Script.Utils.Value as Pl
-import qualified Plutus.V2.Ledger.Api as PV2
+import Data.Map.Strict qualified as Map
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
 
--- | A description of who owns what in a blockchain. Owners are addresses
--- and they each own a 'UtxoPayloadSet'.
-newtype UtxoState = UtxoState {utxoState :: Map Pl.Address UtxoPayloadSet}
+-- | A description of who owns what in a blockchain. Owners are addresses and
+-- they each own a 'UtxoPayloadSet'.
+newtype UtxoState = UtxoState {utxoState :: Map Api.Address UtxoPayloadSet}
   deriving (Eq)
 
 -- | Total value accessible to what's pointed by the address.
-holdsInState :: PV2.Address -> UtxoState -> PV2.Value
+holdsInState :: Api.Address -> UtxoState -> Api.Value
 holdsInState address (UtxoState m) =
   maybe mempty utxoPayloadSetTotal (Map.lookup address m)
 
@@ -31,7 +33,7 @@ instance Semigroup UtxoState where
 -- | Represents a /set/ of payloads.
 newtype UtxoPayloadSet = UtxoPayloadSet
   { utxoPayloadSet :: [UtxoPayload]
-  -- We use a list instead of a set because 'Pl.Value' doesn't implement 'Ord'
+  -- We use a list instead of a set because 'Api.Value' doesn't implement 'Ord'
   -- and because it is possible that we want to distinguish between utxo states
   -- that have additional utxos, even if these could have been merged together.
   }
@@ -39,17 +41,17 @@ newtype UtxoPayloadSet = UtxoPayloadSet
 
 -- | A convenient wrapping of the interesting information of a UTxO.
 data UtxoPayload = UtxoPayload
-  { utxoPayloadTxOutRef :: Pl.TxOutRef,
-    utxoPayloadValue :: PV2.Value,
+  { utxoPayloadTxOutRef :: Api.TxOutRef,
+    utxoPayloadValue :: Api.Value,
     utxoPayloadSkelOutDatum :: TxSkelOutDatum,
-    utxoPayloadReferenceScript :: Maybe Pl.ScriptHash
+    utxoPayloadReferenceScript :: Maybe Api.ScriptHash
   }
   deriving (Eq, Show)
 
 instance Eq UtxoPayloadSet where
   (UtxoPayloadSet xs) == (UtxoPayloadSet ys) = xs' == ys'
     where
-      k (UtxoPayload ref val dat rs) = (ref, Pl.flattenValue val, dat, rs)
+      k (UtxoPayload ref val dat rs) = (ref, Script.flattenValue val, dat, rs)
       xs' = List.sortBy (compare `on` k) xs
       ys' = List.sortBy (compare `on` k) ys
 
@@ -60,5 +62,5 @@ instance Monoid UtxoPayloadSet where
   mempty = UtxoPayloadSet []
 
 -- | Computes the total value in a set
-utxoPayloadSetTotal :: UtxoPayloadSet -> PV2.Value
+utxoPayloadSetTotal :: UtxoPayloadSet -> Api.Value
 utxoPayloadSetTotal = mconcat . fmap utxoPayloadValue . utxoPayloadSet

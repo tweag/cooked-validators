@@ -6,32 +6,22 @@ version: 3.0.0
 
 dependencies:
   - QuickCheck
-  - aeson
   - base >= 4.9 && < 5
   - bytestring
   - cardano-api
   - cardano-crypto
   - cardano-ledger-shelley
   - cardano-node-emulator
-  - cardano-wallet-core
   - containers
   - data-default
-  - deepseq
   - either
   - flat
-  - foldl
-  - hashable
-  - hedgehog-quickcheck
-  - lens
   - list-t
-  - memory
   - monad-control
   - mtl
   - nonempty-containers
   - optics-core
   - optics-th
-  - optics-vl
-  - plutus-contract
   - plutus-core
   - plutus-ledger
   - plutus-ledger-api
@@ -41,8 +31,7 @@ dependencies:
   - prettyprinter
   - random
   - random-shuffle
-  - scientific
-  - streaming
+  - strict-sop-core
   - tasty
   - tasty-hunit
   - tasty-quickcheck
@@ -58,6 +47,34 @@ library:
     -fno-ignore-interface-pragmas
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
+  default-extensions:
+    - ImportQualifiedPost
+    - AllowAmbiguousTypes
+    - ConstraintKinds
+    - DataKinds
+    - DerivingStrategies
+    - DerivingVia
+    - FlexibleContexts
+    - FlexibleInstances
+    - GADTs
+    - GeneralizedNewtypeDeriving
+    - ImportQualifiedPost
+    - LambdaCase
+    - MultiParamTypeClasses
+    - NamedFieldPuns
+    - NumericUnderscores
+    - OverloadedStrings
+    - RankNTypes
+    - RecordWildCards
+    - ScopedTypeVariables
+    - StandaloneDeriving
+    - StrictData
+    - TemplateHaskell
+    - TupleSections
+    - TypeApplications
+    - TypeFamilies
+    - TypeOperators
+    - TypeSynonymInstances
 
 tests:
   spec:
@@ -67,3 +84,21 @@ tests:
     dependencies:
       - cooked-validators
       - parsec
+    default-extensions:
+      - ImportQualifiedPost
+      - DataKinds
+      - FlexibleContexts
+      - FlexibleInstances
+      - GADTs
+      - LambdaCase
+      - MultiParamTypeClasses
+      - MultiWayIf
+      - NumericUnderscores
+      - OverloadedStrings
+      - RankNTypes
+      - ScopedTypeVariables
+      - TemplateHaskell
+      - TupleSections
+      - TypeApplications
+      - TypeFamilies
+      - ViewPatterns

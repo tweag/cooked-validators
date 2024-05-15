@@ -37,7 +37,6 @@ library
       Cooked.Pretty.Cooked
       Cooked.Pretty.Hashable
       Cooked.Pretty.Options
-      Cooked.RawUPLC
       Cooked.ShowBS
       Cooked.Skeleton
       Cooked.Tweak
@@ -57,35 +56,53 @@ library
       Paths_cooked_validators
   hs-source-dirs:
       src
+  default-extensions:
+      ImportQualifiedPost
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DataKinds
+      DerivingStrategies
+      DerivingVia
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      GeneralizedNewtypeDeriving
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      NamedFieldPuns
+      NumericUnderscores
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      StrictData
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      TypeSynonymInstances
   ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
-    , aeson
     , base >=4.9 && <5
     , bytestring
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
     , cardano-node-emulator
-    , cardano-wallet-core
     , containers
     , data-default
-    , deepseq
     , either
     , flat
-    , foldl
-    , hashable
-    , hedgehog-quickcheck
-    , lens
     , list-t
-    , memory
     , monad-control
     , mtl
     , nonempty-containers
     , optics-core
     , optics-th
-    , optics-vl
-    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
@@ -95,8 +112,7 @@ library
     , prettyprinter
     , random
     , random-shuffle
-    , scientific
-    , streaming
+    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck
@@ -112,6 +128,7 @@ test-suite spec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
+      Cooked.BasicUsageSpec
       Cooked.InitialDistributionSpec
       Cooked.InlineDatumsSpec
       Cooked.LtlSpec
@@ -121,7 +138,6 @@ test-suite spec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.ShowBSSpec
-      Cooked.TestUtils
       Cooked.Tweak.CommonSpec
       Cooked.Tweak.OutPermutationsSpec
       Cooked.Tweak.TamperDatumSpec
@@ -132,36 +148,44 @@ test-suite spec
       Paths_cooked_validators
   hs-source-dirs:
       tests/
+  default-extensions:
+      ImportQualifiedPost
+      DataKinds
+      FlexibleContexts
+      FlexibleInstances
+      GADTs
+      LambdaCase
+      MultiParamTypeClasses
+      MultiWayIf
+      NumericUnderscores
+      OverloadedStrings
+      RankNTypes
+      ScopedTypeVariables
+      TemplateHaskell
+      TupleSections
+      TypeApplications
+      TypeFamilies
+      ViewPatterns
   build-depends:
       QuickCheck
-    , aeson
     , base >=4.9 && <5
     , bytestring
     , cardano-api
     , cardano-crypto
     , cardano-ledger-shelley
     , cardano-node-emulator
-    , cardano-wallet-core
     , containers
     , cooked-validators
     , data-default
-    , deepseq
     , either
     , flat
-    , foldl
-    , hashable
-    , hedgehog-quickcheck
-    , lens
     , list-t
-    , memory
     , monad-control
     , mtl
     , nonempty-containers
     , optics-core
     , optics-th
-    , optics-vl
     , parsec
-    , plutus-contract
     , plutus-core
     , plutus-ledger
     , plutus-ledger-api
@@ -171,8 +195,7 @@ test-suite spec
     , prettyprinter
     , random
     , random-shuffle
-    , scientific
-    , streaming
+    , strict-sop-core
     , tasty
     , tasty-hunit
     , tasty-quickcheck

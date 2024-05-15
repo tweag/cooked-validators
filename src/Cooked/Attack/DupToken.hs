@@ -1,16 +1,18 @@
-{-# LANGUAGE FlexibleContexts #-}
-
+-- | This module provides an automated attack to duplicate tokens minted in a
+-- transaction.
 module Cooked.Attack.DupToken (dupTokenAttack, DupTokenLbl (..)) where
 
 import Control.Monad
+import Cooked.Pretty
 import Cooked.Skeleton
 import Cooked.Tweak
 import Cooked.Wallet
 import Optics.Core
-import qualified Plutus.Script.Utils.Typed as Pl
-import qualified Plutus.Script.Utils.V2.Scripts as Pl
-import qualified Plutus.V1.Ledger.Value as Pl
-import qualified PlutusTx.Numeric as Pl
+import Plutus.Script.Utils.Typed qualified as Script
+import Plutus.Script.Utils.V3.Scripts qualified as Script
+import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Numeric qualified as PlutusTx
 
 -- | A token duplication attack increases values in 'Mints'-constraints of a
 -- 'TxSkel' according to some conditions, and pays the extra minted value to a
@@ -25,27 +27,27 @@ dupTokenAttack ::
   -- @f ac i > i@ for all @ac@ and @i@, i.e. it should increase the minted
   -- amount. If it does *not* increase the minted amount, the amount will be
   -- left unchanged.
-  (Pl.AssetClass -> Integer -> Integer) ->
+  (Script.AssetClass -> Integer -> Integer) ->
   -- | The wallet of the attacker. Any additional tokens that are minted by the
   -- modified transaction but were not minted by the original transaction are
   -- paid to this wallet.
   Wallet ->
-  m Pl.Value
+  m Api.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
   addOutputTweak $ paysPK (walletPKHash attacker) totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement
   where
-    changeMintAmountsTweak :: (MonadTweak m) => m Pl.Value
+    changeMintAmountsTweak :: (MonadTweak m) => m Api.Value
     changeMintAmountsTweak = do
       oldMintsList <- viewTweak $ txSkelMintsL % to txSkelMintsToList
       let newMintsList =
             map
-              ( \(Pl.Versioned policy version, redeemer, tName, oldAmount) ->
-                  let ac = Pl.assetClass (Pl.mpsSymbol $ Pl.mintingPolicyHash policy) tName
+              ( \(Script.Versioned policy version, redeemer, tName, oldAmount) ->
+                  let ac = Script.assetClass (Script.mpsSymbol $ Script.mintingPolicyHash policy) tName
                       newAmount = change ac oldAmount
-                   in (Pl.Versioned policy version, redeemer, tName, max newAmount oldAmount)
+                   in (Script.Versioned policy version, redeemer, tName, max newAmount oldAmount)
               )
               oldMintsList
       guard $ newMintsList /= oldMintsList
@@ -53,7 +55,10 @@ dupTokenAttack change attacker = do
           newValue = txSkelMintsValue newMints
           oldValue = txSkelMintsValue $ txSkelMintsFromList oldMintsList
       setTweak txSkelMintsL newMints
-      return $ newValue <> Pl.negate oldValue
+      return $ newValue <> PlutusTx.negate oldValue
 
 data DupTokenLbl = DupTokenLbl
   deriving (Eq, Show, Ord)
+
+instance PrettyCooked DupTokenLbl where
+  prettyCooked _ = "DupToken"

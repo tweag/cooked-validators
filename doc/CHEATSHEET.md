@@ -20,7 +20,7 @@
 
 #### Creation
 
-* With only values
+* With values only
   ```haskell
   initDist :: InitialDistribution
   initDist = distributionFromList $
@@ -33,10 +33,10 @@
   ```haskell
   initDist :: InitialDistribution
   initDist = InitialDistribution
-	  [ paysPK (walletPKHash (wallet 3)) (ada 6)
-      , paysScript fooTypedValidator FooTypedDatum (lovelaceValueOf 6_000_000)
-	  , paysPK (walletPKHash (wallet 2)) (ada 2) `withDatum` fooDatum
-	  , paysPK (walletPKHash (wallet 1)) (ada 2) `withReferenceScript` fooValidator
+	  [ paysPK (wallet 3) (ada 6)
+      , paysScript fooTypedValidator FooTypedDatum (ada 6)
+	  , paysPK (wallet 2) (ada 2) `withDatum` fooDatum
+	  , paysPK (wallet 1) (ada 2) `withReferenceScript` fooValidator
 	  ]
   ```
 
@@ -103,22 +103,38 @@ foo = do
     ...
 ```
 
-### Submit a transaction
+### Submit a transaction for validation and...
 
-```haskell
-foo :: MonadBlockChain m => m ()
-foo = do
-    ...
-    cardanoTx <-
-      validateTxSkel $
-        txSkelTemplate
-            { txSkelIns = ...,
-              txSkelOuts = ...,
-              txSkelMints = ...,
-              txSkelSigners = ...
-            }
-    ...
-```
+* ... get the validated Cardano transaction
+  ```haskell
+  foo :: MonadBlockChain m => m ()
+  foo = do
+          ...
+		  cardanoTx <-
+            validateTxSkel $
+			  txSkelTemplate
+			    { txSkelIns = ...,
+                  txSkelOuts = ...,
+				  txSkelMints = ...,
+				  txSkelSigners = ...
+		        }
+		  ...
+  ```
+* ... get the generated `TxOutRef`s
+  ```haskell
+  foo :: MonadBlockChain m => m ()
+  foo = do
+          ...
+		  txOutRefs <-
+            validateTxSkel' $
+		  	  txSkelTemplate
+			    { txSkelIns = ...,
+                  txSkelOuts = ...,
+                  txSkelMints = ...,
+                  txSkelSigners = ...
+                }
+          ...
+  ```
 
 ### Use wallets
 
@@ -129,58 +145,63 @@ foo = do
 ### Sign a transaction with a wallet
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelSigners = [wallet 1]
-          ...
-        }
+txSkelTemplate
+    { ...
+      txSkelSigners = [wallet 1]
+      ...
+    }
 ```
 
 ### Pay (transaction output)
 
-* `paysPK (walletPKHash (wallet 3)) (lovelaceValueOf 6_000_000)`
-* `paysScript fooTypedValidator FooTypedDatum (lovelaceValueOf 6_000_000)`
+* `paysPK (wallet 3) (ada 6)`
+* `paysScript fooTypedValidator FooTypedDatum (ada 6)`
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelOuts = [paysPK ..., paysScript ...]
-          ...
-        }
+txSkelTemplate
+    { ...
+      txSkelOuts = [paysPK ..., paysScript ...]
+      ...
+    }
 ```
 
 ### Spend some UTxOs
 
-* No redeemer: `(txOutRef, TxSkelNoRedeemerForPK)`
+* No redeemer: `TxSkelNoRedeemerForPK`
 * With redeemer:
-    * Regular script: `(txOutRef, TxSkelRedeemerForScript typedRedeemer)`
-    * Reference script: `(txOutRef, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer)`
+    * Regular script: `TxSkelRedeemerForScript typedRedeemer`
+    * Reference script: `TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer`
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelIns = Map.fromList [(txOutRef1, ...), (txOutRef2, ...)]
-          ...
-        }
+txSkelTemplate
+    { ...
+      txSkelIns = Map.fromList [(txOutRef1, myRedeemer1), (txOutRef2, myRedeemer2]
+      ...
+    }
 ```
 
-### Get `TxOutRef`s from transaction outputs
+### Return `TxOutRef`s from transaction outputs from...
 
-```haskell
-endpointFoo :: MonadBlockChain m => m (Pl.TxOutRef, Pl.TxOutRef)
-endpointFoo = do
+* ... the Cardano transaction
+  ```haskell
+  endpointFoo :: MonadBlockChain m => m (Api.TxOutRef, Api.TxOutRef)
+  endpointFoo = do
     cTx <- validateTxSkel $ txSkelTemplate { ..., ... }
     let (txOutRef1, _) : (txOutRef2, _) : _ = utxosFromCardanoTx cTx
     return (txOutRef1, txOutRef2)
-```
+  ```
+* ... the returns `TxOutRef`s
+  ```haskell
+  endpointFoo :: MonadBlockChain m => m (Api.TxOutRef, Api.TxOutRef)
+  endpointFoo = do
+    txOutRef1 : txOutRef2 : _ <- validateTxSkel' $ txSkelTemplate { ..., ... }
+    return (txOutRef1, txOutRef2)
+  ```
 
 ### Resolve a `TxOutRef` (get the corresponding `TxOut`)
 
 ```haskell
-foo :: MonadBlockChain m => Pl.TxOutRef -> m ()
+foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
     Just txOut <- txOutByRef txOutRef
 ```
@@ -188,7 +209,7 @@ foo txOutRef = do
 ### Resolve the address, value, and datum of a `TxOutRef`
 
 ```haskell
-foo :: MonadBlockChain m => Pl.TxOutRef -> m ()
+foo :: MonadBlockChain m => Api.TxOutRef -> m ()
 foo txOutRef = do
     Just address <- outputAddress <$> txOutByRef txOutRef
     Just value <- valueFromTxOutRef txOutRef
@@ -197,40 +218,34 @@ foo txOutRef = do
 
 ### Mint or burn tokens
 
-```haskell
-import qualified Plutus.Script.Utils.Scripts as Pl
-```
-
-* No redeemer: `(Pl.Versioned fooPolicy Pl.PlutusV2, NoMintsRedeemer, "fooName", 3)`
-* With redeemer: `(Pl.Versioned barPolicy Pl.PlutusV2, SomeMintsRedeemer typedRedeemer, "barName", 12)`
-* Burn tokens (negative amount): `(Pl.Versioned bazPolicy Pl.PlutusV2, ..., "bazName", -7)`
+* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, NoMintsRedeemer, "fooName", 3)`
+* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, SomeMintsRedeemer typedRedeemer, "barName", 12)`
+* Burn tokens (negative amount): `(Script.Versioned bazPolicy Script.PlutusV3, ..., "bazName", -7)`
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelMints = txSkelMintsFromList
-            [ (Pl.Versioned fooPolicy Pl.PlutusV2, ..., ..., ...),
-              (Pl.Versioned barPolicy Pl.PlutusV2, ..., ..., ...)
-            ]
-          ...
-        }
+txSkelTemplate
+  { ...
+    txSkelMints = txSkelMintsFromList
+      [ (Script.Versioned fooPolicy Script.PlutusV3, ..., ..., ...),
+        (Script.Versioned barPolicy Script.PlutusV3, ..., ..., ...)
+      ]
+    ...
+  }
 ```
 
 ### Automatically provide enough Ada to output UTxOs
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txOpts = def {txOptEnsureMinAda = True}
-          ...
-        }
+txSkelTemplate
+    { ...
+      txOpts = def {txOptEnsureMinAda = True}
+      ...
+    }
 ```
 
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
-* `initialDistribution [(..., ... <> permanentValue "customToken" 1000), ...]`
+* `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`
 * `paysPK ... (permanentValue "customToken" 7)`
 
 ### Provide a datum in a pubkey transaction output
@@ -240,28 +255,27 @@ validateTxSkel $
 ### Inline a datum in a transaction output
 
 * ``paysPK ... `withInlineDatum` FooTypedDatum``
-* `paysScriptInlineDatum fooTypedValidator FooTypedDatum (lovelaceValueOf 6_000_000)`
+* `paysScriptInlineDatum fooTypedValidator FooTypedDatum (ada 6)`
 
 ### Provide a hashed datum, that is not resolved in the transaction, in a transaction output
 
 * ``paysPK ... `withDatumHash` FooTypedDatum``
-* `paysScriptDatumHash fooTypedValidator FooTypedDatum (lovelaceValueOf 6_000_000)`
+* `paysScriptDatumHash fooTypedValidator FooTypedDatum (ada 6)`
 
 ### Pay a script a datum whose type may not match the validator's
 
-* ``paysScriptNoDatum fooTypedValidator (lovelaceValueOf 6_000_000) `withDatum` FooTypedDatum``
-* ``paysScriptNoDatum fooTypedValidator (lovelaceValueOf 6_000_000) `withInlineDatum` FooTypedDatum``
-* ``paysScriptNoDatum fooTypedValidator (lovelaceValueOf 6_000_000) `withDatumHash` FooTypedDatum``
+* ``paysScriptNoDatum fooTypedValidator (ada 6) `withDatum` FooTypedDatum``
+* ``paysScriptNoDatum fooTypedValidator (ada 6) `withInlineDatum` FooTypedDatum``
+* ``paysScriptNoDatum fooTypedValidator (ada 6) `withDatumHash` FooTypedDatum``
 
 ### Use reference inputs in a transaction
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
-          ...
-        }
+txSkelTemplate
+    { ...
+      txSkelInsReference = Set.fromList [txOutRef1, txOutRef2, ...]
+      ...
+    }
 ```
 
 ### Include a reference script in a transaction output
@@ -277,50 +291,80 @@ validateTxSkel $
 ### Spend a referenced script output
 
 ```haskell
-validateTxSkel
-  txSkelTemplate
-    { ...
-      txSkelIns = Map.fromList [(scriptTxOutRefToSpend, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
-      ...
-    }
+txSkelTemplate
+  { ...
+    txSkelIns = Map.fromList [(scriptTxOutRefToSpend, TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript redeemer), ...],
+    ...
+  }
 ```
 
 ## Balancing
 
 ### Choose which wallet provides UTxOs to balance a transaction
 
-First signer:
+First signer (default):
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelSigners = [wallet 1, wallet 2]
-          ...
-        }
+txSkelTemplate
+  { ...
+    txSkelSigners = [wallet 1, wallet 2]
+    ...
+  }
 ```
 
 Another signer:
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txSkelSigners = [wallet 1, wallet 2],
-          txOpts = def {txOptBalanceWallet = BalanceWith (wallet 2)}
-          ...
-        }
+txSkelTemplate
+  { ...
+    txSkelSigners = [wallet 1, wallet 2],
+    txOpts = def {txOptBalanceWallet = BalanceWith (wallet 2)}
+    ...
+  }
 ```
 
 ### Do not balance with UTxOs carrying a datum
 
 ```haskell
-validateTxSkel $
-    txSkelTemplate
-        { ...
-          txOpts = def {txOptBalancingUtxos = BalancingUtxosDatumless}
-          ...
-        }
+txSkelTemplate
+  { ...
+    txOpts = def {txOptBalancingUtxos = BalancingUtxosDatumless}
+    ...
+  }
+```
+
+## Provide collaterals
+
+From first signer (default):
+
+```
+txSkelTemplate
+  { ...
+    txSkelSigners = [wallet 1, wallet 2]
+    ...
+  }
+```
+
+From another wallet:
+
+```
+txSkelTemplate
+  { ...
+    txSkelSigners = [wallet 1],
+	txSkelCollateralUtxos = CollateralUtxosFromWallet (wallet 2)
+    ...
+  }
+```
+
+From a direct Utxo list:
+
+```
+txSkelTemplate
+  { ...
+    txSkelSigners = [wallet 1],
+	txSkelCollateralUtxos = CollateralUtxosFromSet (Set.fromList [txOutRef1, txOutRef2])
+    ...
+  }
 ```
 
 ## Search through UTxOs on the ledger
@@ -331,7 +375,7 @@ validateTxSkel $
 foo :: MonadBlockChain m => m ()
 foo = do
     ...
-    -- searchResults :: [(Pl.TxOutRef, Pl.TxOut)]
+    -- searchResults :: [(Api.TxOutRef, Api.TxOut)]
     searchResults <- runUtxoSearch $ allUtxos
     ...
 ```
@@ -342,7 +386,7 @@ foo = do
 foo :: MonadBlockChain m => m () 
 foo = do                  
     ...
-    -- searchResults :: [(Pl.TxOutRef, Pl.TxOut)]
+    -- searchResults :: [(Api.TxOutRef, Api.TxOut)]
     searchResults <- runUtxoSearch $ utxosAtSearch (walletAddress (wallet 2))
     ...
 ```
@@ -355,7 +399,7 @@ foo = do
     ...
     searchResults <-
       runUtxoSearch $
-        allUtxos `filterWithPred` ((== Pl.lovelaceValueOf 10_000_000) . outputValue)
+        allUtxos `filterWithPred` ((== ada 10) . outputValue)
     ...
 ```
 
@@ -379,7 +423,7 @@ foo = do
       runUtxoSearch $
         utxosAtSearch (walletAddress (wallet 2))
           `filterWithPure` isOutputWithoutDatum
-          `filterWithPred` ((== Pl.lovelaceValueOf 10_000_000) . outputValue)
+          `filterWithPred` ((== ada 10) . outputValue)
     ...
 ```
 
