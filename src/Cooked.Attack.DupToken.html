@@ -1,69 +1,75 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
-</span><span id="line-2"></span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides an automated attack to duplicate tokens minted in a</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- transaction.</span><span>
 </span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Attack.DupToken</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier">dupTokenAttack</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier">DupTokenLbl</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
 </span><span id="line-4"></span><span>
-</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Control.Monad.html"><span class="hs-identifier">Control.Monad</span></a></span><span>
-</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
-</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
-</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
-</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../Optics.Core.html"><span class="hs-identifier">Optics.Core</span></a></span><span>
-</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html"><span class="hs-identifier">Plutus.Script.Utils.Typed</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.V2.Scripts.html"><span class="hs-identifier">Plutus.Script.Utils.V2.Scripts</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html"><span class="hs-identifier">Plutus.V1.Ledger.Value</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../PlutusTx.Numeric.html"><span class="hs-identifier">PlutusTx.Numeric</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-14"></span><span>
-</span><span id="line-15"></span><span class="hs-comment">-- | A token duplication attack increases values in 'Mints'-constraints of a</span><span>
-</span><span id="line-16"></span><span class="hs-comment">-- 'TxSkel' according to some conditions, and pays the extra minted value to a</span><span>
-</span><span id="line-17"></span><span class="hs-comment">-- given recipient wallet. This adds a 'DupTokenLbl' to the labels of the</span><span>
-</span><span id="line-18"></span><span class="hs-comment">-- transaction using 'addLabel'. Returns the 'Value' by which the minted value</span><span>
-</span><span id="line-19"></span><span class="hs-comment">-- was increased.</span><span>
-</span><span id="line-20"></span><span id="local-6989586621679646399"><span class="annot"><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-type">dupTokenAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
-</span><span id="line-21"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646399"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
-</span><span id="line-22"></span><span>  </span><span class="hs-comment">-- | A function describing how the amount of tokens specified by a 'Mints'</span><span>
-</span><span id="line-23"></span><span>  </span><span class="hs-comment">-- constraint should be changed, depending on the asset class and the amount</span><span>
-</span><span id="line-24"></span><span>  </span><span class="hs-comment">-- specified by the constraint. The given function @f@ should probably satisfy</span><span>
-</span><span id="line-25"></span><span>  </span><span class="hs-comment">-- @f ac i &gt; i@ for all @ac@ and @i@, i.e. it should increase the minted</span><span>
-</span><span id="line-26"></span><span>  </span><span class="hs-comment">-- amount. If it does *not* increase the minted amount, the amount will be</span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-comment">-- left unchanged.</span><span>
-</span><span id="line-28"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#AssetClass"><span class="hs-identifier hs-type">Pl.AssetClass</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../GHC.Integer.Type.html#Integer"><span class="hs-identifier hs-type">Integer</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-29"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker. Any additional tokens that are minted by the</span><span>
-</span><span id="line-30"></span><span>  </span><span class="hs-comment">-- modified transaction but were not minted by the original transaction are</span><span>
-</span><span id="line-31"></span><span>  </span><span class="hs-comment">-- paid to this wallet.</span><span>
-</span><span id="line-32"></span><span>  </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-33"></span><span>  </span><span class="annot"><a href="#local-6989586621679646399"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span></span><span>
-</span><span id="line-34"></span><span id="dupTokenAttack"><span class="annot"><span class="annottext">dupTokenAttack :: (AssetClass -&gt; Integer -&gt; Integer) -&gt; Wallet -&gt; m Value
-</span><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-var hs-var">dupTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679646398"><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
-</span><a href="#local-6989586621679646398"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679646397"><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679646397"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-35"></span><span>  </span><span id="local-6989586621679646396"><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679646396"><span class="hs-identifier hs-var">totalIncrement</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m Value
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Pretty.html"><span class="hs-identifier">Cooked.Pretty</span></a></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Skeleton.html"><span class="hs-identifier">Cooked.Skeleton</span></a></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Tweak.html"><span class="hs-identifier">Cooked.Tweak</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Wallet.html"><span class="hs-identifier">Cooked.Wallet</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V3.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Numeric</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- | A token duplication attack increases values in 'Mints'-constraints of a</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- 'TxSkel' according to some conditions, and pays the extra minted value to a</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- given recipient wallet. This adds a 'DupTokenLbl' to the labels of the</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- transaction using 'addLabel'. Returns the 'Value' by which the minted value</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- was increased.</span><span>
+</span><span id="line-22"></span><span id="local-6989586621679701599"><span class="annot"><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-type">dupTokenAttack</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679701599"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-comment">-- | A function describing how the amount of tokens specified by a 'Mints'</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-comment">-- constraint should be changed, depending on the asset class and the amount</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-comment">-- specified by the constraint. The given function @f@ should probably satisfy</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-comment">-- @f ac i &gt; i@ for all @ac@ and @i@, i.e. it should increase the minted</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-comment">-- amount. If it does *not* increase the minted amount, the amount will be</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-comment">-- left unchanged.</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.AssetClass</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-comment">-- | The wallet of the attacker. Any additional tokens that are minted by the</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-comment">-- modified transaction but were not minted by the original transaction are</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-comment">-- paid to this wallet.</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><a href="Cooked.Wallet.html#Wallet"><span class="hs-identifier hs-type">Wallet</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="#local-6989586621679701599"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-36"></span><span id="dupTokenAttack"><span class="annot"><span class="annottext">dupTokenAttack :: forall (m :: * -&gt; *).
+MonadTweak m =&gt;
+(AssetClass -&gt; Integer -&gt; Integer) -&gt; Wallet -&gt; m Value
+</span><a href="Cooked.Attack.DupToken.html#dupTokenAttack"><span class="hs-identifier hs-var hs-var">dupTokenAttack</span></a></span></span><span> </span><span id="local-6989586621679701728"><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679701728"><span class="hs-identifier hs-var">change</span></a></span></span><span> </span><span id="local-6989586621679701729"><span class="annot"><span class="annottext">Wallet
+</span><a href="#local-6989586621679701729"><span class="hs-identifier hs-var">attacker</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679701730"><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679701730"><span class="hs-identifier hs-var">totalIncrement</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m Value
 forall (m :: * -&gt; *). MonadTweak m =&gt; m Value
-</span><a href="#local-6989586621679646395"><span class="hs-identifier hs-var">changeMintAmountsTweak</span></a></span><span>
-</span><span id="line-36"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
+</span><a href="#local-6989586621679701731"><span class="hs-identifier hs-var">changeMintAmountsTweak</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">TxSkelOut -&gt; m ()
 forall (m :: * -&gt; *). MonadTweak m =&gt; TxSkelOut -&gt; m ()
 </span><a href="Cooked.Tweak.AddInputsAndOutputs.html#addOutputTweak"><span class="hs-identifier hs-var">addOutputTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelOut -&gt; m ()) -&gt; TxSkelOut -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; TxSkelOut
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">PubKeyHash -&gt; Value -&gt; TxSkelOut
+forall a. HasPubKeyHash a =&gt; a -&gt; Value -&gt; TxSkelOut
 </span><a href="Cooked.Skeleton.html#paysPK"><span class="hs-identifier hs-var">paysPK</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Wallet -&gt; PubKeyHash
 </span><a href="Cooked.Wallet.html#walletPKHash"><span class="hs-identifier hs-var">walletPKHash</span></a></span><span> </span><span class="annot"><span class="annottext">Wallet
-</span><a href="#local-6989586621679646397"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679646396"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
-</span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">DupTokenLbl -&gt; m ()
+</span><a href="#local-6989586621679701729"><span class="hs-identifier hs-var">attacker</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679701730"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="annottext">DupTokenLbl -&gt; m ()
 forall (m :: * -&gt; *) x. (MonadTweak m, LabelConstrs x) =&gt; x -&gt; m ()
 </span><a href="Cooked.Tweak.Labels.html#addLabelTweak"><span class="hs-identifier hs-var">addLabelTweak</span></a></span><span> </span><span class="annot"><span class="annottext">DupTokenLbl
 </span><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span><span>
-</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">Value -&gt; m Value
+</span><span id="line-40"></span><span>  </span><span class="annot"><span class="annottext">Value -&gt; m Value
+forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><a href="../GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679646396"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
-</span><span id="line-39"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-40"></span><span>    </span><span id="local-6989586621679646469"><span class="annot"><a href="#local-6989586621679646395"><span class="hs-identifier hs-type">changeMintAmountsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679646469"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679646469"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="../Plutus.V1.Ledger.Value.html#Value"><span class="hs-identifier hs-type">Pl.Value</span></a></span></span><span>
-</span><span id="line-41"></span><span>    </span><span id="local-6989586621679646395"><span class="annot"><span class="annottext">changeMintAmountsTweak :: m Value
-</span><a href="#local-6989586621679646395"><span class="hs-identifier hs-var hs-var">changeMintAmountsTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
-</span><span id="line-42"></span><span>      </span><span id="local-6989586621679646389"><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646389"><span class="hs-identifier hs-var">oldMintsList</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic'
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679701730"><span class="hs-identifier hs-var">totalIncrement</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679701617"><span class="annot"><a href="#local-6989586621679701731"><span class="hs-identifier hs-type">changeMintAmountsTweak</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Tweak.Common.html#MonadTweak"><span class="hs-identifier hs-type">MonadTweak</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679701617"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679701617"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-43"></span><span>    </span><span id="local-6989586621679701731"><span class="annot"><span class="annottext">changeMintAmountsTweak :: forall (m :: * -&gt; *). MonadTweak m =&gt; m Value
+</span><a href="#local-6989586621679701731"><span class="hs-identifier hs-var hs-var">changeMintAmountsTweak</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-44"></span><span>      </span><span id="local-6989586621679701778"><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679701778"><span class="hs-identifier hs-var">oldMintsList</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Optic'
   A_Getter
-  '[]
+  NoIx
   TxSkel
   [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; m [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
@@ -72,149 +78,150 @@ forall (m :: * -&gt; *) k (is :: IxList) a.
 Optic' k is TxSkel a -&gt; m a
 </span><a href="Cooked.Tweak.Common.html#viewTweak"><span class="hs-identifier hs-var">viewTweak</span></a></span><span> </span><span class="annot"><span class="annottext">(Optic'
    A_Getter
-   '[]
+   NoIx
    TxSkel
    [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
  -&gt; m [(Versioned MintingPolicy, MintsRedeemer, TokenName,
         Integer)])
 -&gt; Optic'
      A_Getter
-     '[]
+     NoIx
      TxSkel
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; m [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 -&gt; Optic
      A_Getter
-     '[]
+     NoIx
      TxSkelMints
      TxSkelMints
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; Optic'
      A_Getter
-     '[]
+     NoIx
      TxSkel
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 forall k l m (is :: IxList) (js :: IxList) (ks :: IxList) s t u v a
        b.
 (JoinKinds k l m, AppendIndices is js ks) =&gt;
 Optic k is s t u v -&gt; Optic l js u v a b -&gt; Optic m ks s t a b
-</span><a href="../Optics.Internal.Optic.html#%25"><span class="hs-operator hs-var">%</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
+</span><span class="hs-operator hs-var">%</span></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints
  -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)])
 -&gt; Optic
      A_Getter
-     '[]
+     NoIx
      TxSkelMints
      TxSkelMints
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
      [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 forall s a. (s -&gt; a) -&gt; Getter s a
-</span><a href="../Optics.Getter.html#to"><span class="hs-identifier hs-var">to</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
 -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 </span><a href="Cooked.Skeleton.html#txSkelMintsToList"><span class="hs-identifier hs-var">txSkelMintsToList</span></a></span><span>
-</span><span id="line-43"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679646383"><span class="annot"><span class="annottext">newMintsList :: [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646383"><span class="hs-identifier hs-var hs-var">newMintsList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-44"></span><span>            </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)
+</span><span id="line-45"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679701784"><span class="annot"><span class="annottext">newMintsList :: [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679701784"><span class="hs-identifier hs-var hs-var">newMintsList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-46"></span><span>            </span><span class="annot"><span class="annottext">((Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)
  -&gt; (Versioned MintingPolicy, MintsRedeemer, TokenName, Integer))
 -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
-</span><a href="../GHC.Base.html#map"><span class="hs-identifier hs-var">map</span></a></span><span>
-</span><span id="line-45"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-type">Pl.Versioned</span></a></span><span> </span><span id="local-6989586621679646381"><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679646381"><span class="hs-identifier hs-var">policy</span></a></span></span><span> </span><span id="local-6989586621679646380"><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679646380"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679646379"><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679646379"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679646378"><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679646378"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679646377"><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679646377"><span class="hs-identifier hs-var">oldAmount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-46"></span><span>                  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679646376"><span class="annot"><span class="annottext">ac :: AssetClass
-</span><a href="#local-6989586621679646376"><span class="hs-identifier hs-var hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
-</span><a href="../Plutus.V1.Ledger.Value.html#assetClass"><span class="hs-identifier hs-var">Pl.assetClass</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicyHash -&gt; CurrencySymbol
-</span><a href="../Plutus.V1.Ledger.Value.html#mpsSymbol"><span class="hs-identifier hs-var">Pl.mpsSymbol</span></a></span><span> </span><span class="annot"><span class="annottext">(MintingPolicyHash -&gt; CurrencySymbol)
+</span><span class="hs-identifier hs-var">map</span></span><span>
+</span><span id="line-47"></span><span>              </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Script.Versioned</span></span><span> </span><span id="local-6989586621679701786"><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679701786"><span class="hs-identifier hs-var">policy</span></a></span></span><span> </span><span id="local-6989586621679701787"><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679701787"><span class="hs-identifier hs-var">version</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679701788"><span class="annot"><span class="annottext">MintsRedeemer
+</span><a href="#local-6989586621679701788"><span class="hs-identifier hs-var">redeemer</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679701789"><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679701789"><span class="hs-identifier hs-var">tName</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679701790"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679701790"><span class="hs-identifier hs-var">oldAmount</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-48"></span><span>                  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679701791"><span class="annot"><span class="annottext">ac :: AssetClass
+</span><a href="#local-6989586621679701791"><span class="hs-identifier hs-var hs-var">ac</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CurrencySymbol -&gt; TokenName -&gt; AssetClass
+</span><span class="hs-identifier hs-var">Script.assetClass</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicyHash -&gt; CurrencySymbol
+</span><span class="hs-identifier hs-var">Script.mpsSymbol</span></span><span> </span><span class="annot"><span class="annottext">(MintingPolicyHash -&gt; CurrencySymbol)
 -&gt; MintingPolicyHash -&gt; CurrencySymbol
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; MintingPolicyHash
-</span><a href="../Plutus.Script.Utils.V2.Scripts.html#mintingPolicyHash"><span class="hs-identifier hs-var">Pl.mintingPolicyHash</span></a></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679646381"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679646378"><span class="hs-identifier hs-var">tName</span></a></span><span>
-</span><span id="line-47"></span><span>                      </span><span id="local-6989586621679646372"><span class="annot"><span class="annottext">newAmount :: Integer
-</span><a href="#local-6989586621679646372"><span class="hs-identifier hs-var hs-var">newAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
-</span><a href="#local-6989586621679646398"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
-</span><a href="#local-6989586621679646376"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679646377"><span class="hs-identifier hs-var">oldAmount</span></a></span><span>
-</span><span id="line-48"></span><span>                   </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicy -&gt; Language -&gt; Versioned MintingPolicy
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; MintingPolicyHash
+</span><span class="hs-identifier hs-var">Script.mintingPolicyHash</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679701786"><span class="hs-identifier hs-var">policy</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679701789"><span class="hs-identifier hs-var">tName</span></a></span><span>
+</span><span id="line-49"></span><span>                      </span><span id="local-6989586621679701795"><span class="annot"><span class="annottext">newAmount :: Integer
+</span><a href="#local-6989586621679701795"><span class="hs-identifier hs-var hs-var">newAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AssetClass -&gt; Integer -&gt; Integer
+</span><a href="#local-6989586621679701728"><span class="hs-identifier hs-var">change</span></a></span><span> </span><span class="annot"><span class="annottext">AssetClass
+</span><a href="#local-6989586621679701791"><span class="hs-identifier hs-var">ac</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679701790"><span class="hs-identifier hs-var">oldAmount</span></a></span><span>
+</span><span id="line-50"></span><span>                   </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MintingPolicy -&gt; Language -&gt; Versioned MintingPolicy
 forall script. script -&gt; Language -&gt; Versioned script
-</span><a href="../Plutus.Script.Utils.Scripts.html#Versioned"><span class="hs-identifier hs-var">Pl.Versioned</span></a></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
-</span><a href="#local-6989586621679646381"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679646380"><span class="hs-identifier hs-var">version</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
-</span><a href="#local-6989586621679646379"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
-</span><a href="#local-6989586621679646378"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+</span><span class="hs-identifier hs-var">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679701786"><span class="hs-identifier hs-var">policy</span></a></span><span> </span><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679701787"><span class="hs-identifier hs-var">version</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">MintsRedeemer
+</span><a href="#local-6989586621679701788"><span class="hs-identifier hs-var">redeemer</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TokenName
+</span><a href="#local-6989586621679701789"><span class="hs-identifier hs-var">tName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
 forall a. Ord a =&gt; a -&gt; a -&gt; a
-</span><a href="../GHC.Classes.html#max"><span class="hs-identifier hs-var">max</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679646372"><span class="hs-identifier hs-var">newAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
-</span><a href="#local-6989586621679646377"><span class="hs-identifier hs-var">oldAmount</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-49"></span><span>              </span><span class="hs-special">)</span><span>
-</span><span id="line-50"></span><span>              </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646389"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
-</span><span id="line-51"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; m ()
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679701795"><span class="hs-identifier hs-var">newAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679701790"><span class="hs-identifier hs-var">oldAmount</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>              </span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>              </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679701778"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
+</span><span id="line-53"></span><span>      </span><span class="annot"><span class="annottext">Bool -&gt; m ()
 forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
-</span><a href="../Control.Monad.html#guard"><span class="hs-identifier hs-var">guard</span></a></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; Bool -&gt; m ()
+</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; m ()) -&gt; Bool -&gt; m ()
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646383"><span class="hs-identifier hs-var">newMintsList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679701784"><span class="hs-identifier hs-var">newMintsList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; [(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; Bool
 forall a. Eq a =&gt; a -&gt; a -&gt; Bool
-</span><a href="../GHC.Classes.html#%2F%3D"><span class="hs-operator hs-var">/=</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646389"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
-</span><span id="line-52"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679646369"><span class="annot"><span class="annottext">newMints :: TxSkelMints
-</span><a href="#local-6989586621679646369"><span class="hs-identifier hs-var hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><a href="#local-6989586621679701778"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
+</span><span id="line-54"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679701798"><span class="annot"><span class="annottext">newMints :: TxSkelMints
+</span><a href="#local-6989586621679701798"><span class="hs-identifier hs-var hs-var">newMints</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsFromList"><span class="hs-identifier hs-var">txSkelMintsFromList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646383"><span class="hs-identifier hs-var">newMintsList</span></a></span><span>
-</span><span id="line-53"></span><span>          </span><span id="local-6989586621679646367"><span class="annot"><span class="annottext">newValue :: Value
-</span><a href="#local-6989586621679646367"><span class="hs-identifier hs-var hs-var">newValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
+</span><a href="#local-6989586621679701784"><span class="hs-identifier hs-var">newMintsList</span></a></span><span>
+</span><span id="line-55"></span><span>          </span><span id="local-6989586621679701800"><span class="annot"><span class="annottext">newValue :: Value
+</span><a href="#local-6989586621679701800"><span class="hs-identifier hs-var hs-var">newValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
 </span><a href="Cooked.Skeleton.html#txSkelMintsValue"><span class="hs-identifier hs-var">txSkelMintsValue</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679646369"><span class="hs-identifier hs-var">newMints</span></a></span><span>
-</span><span id="line-54"></span><span>          </span><span id="local-6989586621679646365"><span class="annot"><span class="annottext">oldValue :: Value
-</span><a href="#local-6989586621679646365"><span class="hs-identifier hs-var hs-var">oldValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
+</span><a href="#local-6989586621679701798"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-56"></span><span>          </span><span id="local-6989586621679701802"><span class="annot"><span class="annottext">oldValue :: Value
+</span><a href="#local-6989586621679701802"><span class="hs-identifier hs-var hs-var">oldValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxSkelMints -&gt; Value
 </span><a href="Cooked.Skeleton.html#txSkelMintsValue"><span class="hs-identifier hs-var">txSkelMintsValue</span></a></span><span> </span><span class="annot"><span class="annottext">(TxSkelMints -&gt; Value) -&gt; TxSkelMints -&gt; Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
 -&gt; TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsFromList"><span class="hs-identifier hs-var">txSkelMintsFromList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Versioned MintingPolicy, MintsRedeemer, TokenName, Integer)]
-</span><a href="#local-6989586621679646389"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
-</span><span id="line-55"></span><span>      </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints -&gt; TxSkelMints -&gt; m ()
+</span><a href="#local-6989586621679701778"><span class="hs-identifier hs-var">oldMintsList</span></a></span><span>
+</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints -&gt; TxSkelMints -&gt; m ()
 forall (m :: * -&gt; *) k (is :: IxList) a.
 (MonadTweak m, Is k A_Setter) =&gt;
 Optic' k is TxSkel a -&gt; a -&gt; m ()
 </span><a href="Cooked.Tweak.Common.html#setTweak"><span class="hs-identifier hs-var">setTweak</span></a></span><span> </span><span class="annot"><span class="annottext">Lens' TxSkel TxSkelMints
 </span><a href="Cooked.Skeleton.html#txSkelMintsL"><span class="hs-identifier hs-var">txSkelMintsL</span></a></span><span> </span><span class="annot"><span class="annottext">TxSkelMints
-</span><a href="#local-6989586621679646369"><span class="hs-identifier hs-var">newMints</span></a></span><span>
-</span><span id="line-56"></span><span>      </span><span class="annot"><span class="annottext">Value -&gt; m Value
+</span><a href="#local-6989586621679701798"><span class="hs-identifier hs-var">newMints</span></a></span><span>
+</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">Value -&gt; m Value
+forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
-</span><a href="../GHC.Base.html#return"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; m Value) -&gt; Value -&gt; m Value
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Value -&gt; m Value) -&gt; Value -&gt; m Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../GHC.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679646367"><span class="hs-identifier hs-var">newValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679701800"><span class="hs-identifier hs-var">newValue</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value -&gt; Value
 forall a. Semigroup a =&gt; a -&gt; a -&gt; a
-</span><a href="../GHC.Base.html#%3C%3E"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; Value
 forall a. AdditiveGroup a =&gt; a -&gt; a
-</span><a href="../PlutusTx.Numeric.html#negate"><span class="hs-identifier hs-var">Pl.negate</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679646365"><span class="hs-identifier hs-var">oldValue</span></a></span><span>
-</span><span id="line-57"></span><span>
-</span><span id="line-58"></span><span class="hs-keyword">data</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span>
-</span><span id="line-59"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679646359"><span id="local-6989586621679646361"><span class="annot"><span class="annottext">DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+</span><span class="hs-identifier hs-var">PlutusTx.negate</span></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679701802"><span class="hs-identifier hs-var">oldValue</span></a></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-keyword">data</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DupTokenLbl"><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-var">DupTokenLbl</span></a></span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679701806"><span id="local-6989586621679701808"><span class="annot"><span class="annottext">DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
 -&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool) -&gt; Eq DupTokenLbl
 forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
-/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 $c== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-</span><a href="../GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679646352"><span id="local-6989586621679646354"><span id="local-6989586621679646356"><span class="annot"><span class="annottext">Int -&gt; DupTokenLbl -&gt; ShowS
+== :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+$c/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+/= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679701812"><span id="local-6989586621679701814"><span id="local-6989586621679701817"><span class="annot"><span class="annottext">Int -&gt; DupTokenLbl -&gt; ShowS
 [DupTokenLbl] -&gt; ShowS
 DupTokenLbl -&gt; String
 (Int -&gt; DupTokenLbl -&gt; ShowS)
@@ -223,15 +230,15 @@ DupTokenLbl -&gt; String
 -&gt; Show DupTokenLbl
 forall a.
 (Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
-showList :: [DupTokenLbl] -&gt; ShowS
-$cshowList :: [DupTokenLbl] -&gt; ShowS
-show :: DupTokenLbl -&gt; String
-$cshow :: DupTokenLbl -&gt; String
-showsPrec :: Int -&gt; DupTokenLbl -&gt; ShowS
 $cshowsPrec :: Int -&gt; DupTokenLbl -&gt; ShowS
-</span><a href="../GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679646336"><span id="local-6989586621679646338"><span id="local-6989586621679646340"><span id="local-6989586621679646342"><span id="local-6989586621679646344"><span id="local-6989586621679646346"><span id="local-6989586621679646348"><span class="annot"><span class="annottext">Eq DupTokenLbl
-Eq DupTokenLbl
--&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering)
+showsPrec :: Int -&gt; DupTokenLbl -&gt; ShowS
+$cshow :: DupTokenLbl -&gt; String
+show :: DupTokenLbl -&gt; String
+$cshowList :: [DupTokenLbl] -&gt; ShowS
+showList :: [DupTokenLbl] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679701823"><span id="local-6989586621679701825"><span id="local-6989586621679701827"><span id="local-6989586621679701830"><span id="local-6989586621679701833"><span id="local-6989586621679701836"><span id="local-6989586621679701839"><span class="annot"><span class="annottext">Eq DupTokenLbl
+Eq DupTokenLbl =&gt;
+(DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering)
 -&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
 -&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
 -&gt; (DupTokenLbl -&gt; DupTokenLbl -&gt; Bool)
@@ -243,8 +250,8 @@ DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
 DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering
 DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
 forall a.
-Eq a
--&gt; (a -&gt; a -&gt; Ordering)
+Eq a =&gt;
+(a -&gt; a -&gt; Ordering)
 -&gt; (a -&gt; a -&gt; Bool)
 -&gt; (a -&gt; a -&gt; Bool)
 -&gt; (a -&gt; a -&gt; Bool)
@@ -252,20 +259,25 @@ Eq a
 -&gt; (a -&gt; a -&gt; a)
 -&gt; (a -&gt; a -&gt; a)
 -&gt; Ord a
-min :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
-$cmin :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
-max :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
-$cmax :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
-&gt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c&gt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-&gt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c&gt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-&lt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c&lt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-&lt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-$c&lt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
-compare :: DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering
 $ccompare :: DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering
-$cp1Ord :: Eq DupTokenLbl
-</span><a href="../GHC.Classes.html#Ord"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></a></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
-</span><span id="line-60"></span></pre></body></html>
+compare :: DupTokenLbl -&gt; DupTokenLbl -&gt; Ordering
+$c&lt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+&lt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+$c&lt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+&lt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+$c&gt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+&gt; :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+$c&gt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+&gt;= :: DupTokenLbl -&gt; DupTokenLbl -&gt; Bool
+$cmax :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
+max :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
+$cmin :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
+min :: DupTokenLbl -&gt; DupTokenLbl -&gt; DupTokenLbl
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679701844"><span class="annot"><a href="Cooked.Pretty.Class.html#PrettyCooked"><span class="hs-identifier hs-type">PrettyCooked</span></a></span><span> </span><span class="annot"><a href="Cooked.Attack.DupToken.html#DupTokenLbl"><span class="hs-identifier hs-type">DupTokenLbl</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>  </span><span id="local-6989586621679701849"><span class="annot"><span class="annottext">prettyCooked :: DupTokenLbl -&gt; DocCooked
+</span><a href="#local-6989586621679701849"><span class="hs-identifier hs-var hs-var hs-var hs-var">prettyCooked</span></a></span></span><span> </span><span class="annot"><span class="annottext">DupTokenLbl
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DocCooked
+</span><span class="hs-string">&quot;DupToken&quot;</span></span><span>
+</span><span id="line-65"></span></pre></body></html>

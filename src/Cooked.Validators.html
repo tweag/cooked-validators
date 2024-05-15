@@ -1,90 +1,84 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DataKinds #-}</span><span>
-</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
-</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
-</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE NoImplicitPrelude #-}</span><span>
-</span><span id="line-5"></span><span>
-</span><span id="line-6"></span><span class="hs-comment">-- | This module introduces standard dummy validators to be used in</span><span>
-</span><span id="line-7"></span><span class="hs-comment">-- attacks, traces or tests. More precisely, it introduces the always</span><span>
-</span><span id="line-8"></span><span class="hs-comment">-- True and always False validators, which will respectively always</span><span>
-</span><span id="line-9"></span><span class="hs-comment">-- succeed or always fail.</span><span>
-</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Validators</span><span>
-</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier">alwaysTrueValidator</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier">alwaysFalseValidator</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier">MockContract</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-14"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-15"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-16"></span><span>
-</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.RawUPLC.html"><span class="hs-identifier">Cooked.RawUPLC</span></a></span><span>
-</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.V2.Typed.Scripts.Validators.html"><span class="hs-identifier">Plutus.Script.Utils.V2.Typed.Scripts.Validators</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../PlutusTx.html"><span class="hs-identifier">PlutusTx</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Pl</span></span><span>
-</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="../PlutusTx.Prelude.html"><span class="hs-identifier">PlutusTx.Prelude</span></a></span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is in particular</span><span>
-</span><span id="line-23"></span><span class="hs-comment">-- a sufficient target for the datum hijacking attack since we only</span><span>
-</span><span id="line-24"></span><span class="hs-comment">-- want to show feasibility of the attack.</span><span>
-</span><span id="line-25"></span><span id="local-6989586621679638968"><span class="annot"><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier hs-type">alwaysTrueValidator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679638968"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-26"></span><span id="alwaysTrueValidator"><span class="annot"><span class="annottext">alwaysTrueValidator :: TypedValidator a
-</span><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier hs-var hs-var">alwaysTrueValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-forall a.
-Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-</span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="annot"><span class="annottext">(Program NamedDeBruijn DefaultUni DefaultFun ()
- -&gt; TypedValidator a)
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
--&gt; TypedValidator a
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../PlutusTx.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CompiledCodeIn
-  DefaultUni
-  DefaultFun
-  (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
-forall (uni :: * -&gt; *) fun a.
-(Closed uni, Everywhere uni Flat, Flat fun,
- Everywhere uni PrettyConst, GShow uni, Pretty fun) =&gt;
-CompiledCodeIn uni fun a -&gt; Program NamedDeBruijn uni fun ()
-</span><a href="../PlutusTx.Code.html#getPlc"><span class="hs-identifier hs-var">Pl.getPlc</span></a></span><span> </span><span class="hs-special">$$(</span><span class="annot"><a href="../PlutusTx.TH.html#compile"><span class="hs-identifier hs-type">Pl.compile</span></a></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">tgt</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
-</span><span id="line-27"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-28"></span><span>    </span><span class="annot"><a href="#local-6989586621679638964"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-29"></span><span>    </span><span id="local-6989586621679638964"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
-</span><a href="#local-6989586621679638964"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="hs-comment">-- | The trivial validator that always fails</span><span>
-</span><span id="line-32"></span><span id="local-6989586621679638960"><span class="annot"><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier hs-type">alwaysFalseValidator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#TypedValidator"><span class="hs-identifier hs-type">Pl.TypedValidator</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679638960"><span class="hs-identifier hs-type">a</span></a></span></span><span>
-</span><span id="line-33"></span><span id="alwaysFalseValidator"><span class="annot"><span class="annottext">alwaysFalseValidator :: TypedValidator a
-</span><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier hs-var hs-var">alwaysFalseValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-forall a.
-Program NamedDeBruijn DefaultUni DefaultFun () -&gt; TypedValidator a
-</span><a href="Cooked.RawUPLC.html#unsafeTypedValidatorFromUPLC"><span class="hs-identifier hs-var">unsafeTypedValidatorFromUPLC</span></a></span><span> </span><span class="annot"><span class="annottext">(Program NamedDeBruijn DefaultUni DefaultFun ()
- -&gt; TypedValidator a)
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
--&gt; TypedValidator a
-forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><a href="../PlutusTx.Base.html#%24"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CompiledCodeIn
-  DefaultUni
-  DefaultFun
-  (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
--&gt; Program NamedDeBruijn DefaultUni DefaultFun ()
-forall (uni :: * -&gt; *) fun a.
-(Closed uni, Everywhere uni Flat, Flat fun,
- Everywhere uni PrettyConst, GShow uni, Pretty fun) =&gt;
-CompiledCodeIn uni fun a -&gt; Program NamedDeBruijn uni fun ()
-</span><a href="../PlutusTx.Code.html#getPlc"><span class="hs-identifier hs-var">Pl.getPlc</span></a></span><span> </span><span class="hs-special">$$(</span><span class="annot"><a href="../PlutusTx.TH.html#compile"><span class="hs-identifier hs-type">Pl.compile</span></a></span><span> </span><span class="hs-special">[||</span><span class="hs-identifier">tgt</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
-</span><span id="line-34"></span><span>  </span><span class="hs-keyword">where</span><span>
-</span><span id="line-35"></span><span>    </span><span class="annot"><a href="#local-6989586621679638959"><span class="hs-identifier hs-type">tgt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../PlutusTx.Builtins.Internal.html#BuiltinData"><span class="hs-identifier hs-type">Pl.BuiltinData</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span>    </span><span id="local-6989586621679638959"><span class="annot"><span class="annottext">tgt :: BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ()
-</span><a href="#local-6989586621679638959"><span class="hs-identifier hs-var hs-var">tgt</span></a></span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">BuiltinData
-</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; ()
-forall a. () -&gt; a
-</span><a href="../PlutusTx.Builtins.html#error"><span class="hs-identifier hs-var">error</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module introduces standard dummy validators to be used in attacks,</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- traces or tests. More precisely, it introduces the always True and always</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- False validators, which will respectively always succeed or always fail.</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cooked.Validators</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier">alwaysTrueValidator</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>    </span><span class="annot"><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier">alwaysFalseValidator</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier">MockContract</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Scripts</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Typed</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">validatorHash</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V3.Generators</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.Prelude</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx.TH</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">PlutusTx</span></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span id="local-6989586621679687959"><span class="annot"><a href="Cooked.Validators.html#validatorToTypedValidator"><span class="hs-identifier hs-type">validatorToTypedValidator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Validator</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679687959"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-19"></span><span id="validatorToTypedValidator"><span class="annot"><span class="annottext">validatorToTypedValidator :: forall a. Validator -&gt; TypedValidator a
+</span><a href="Cooked.Validators.html#validatorToTypedValidator"><span class="hs-identifier hs-var hs-var">validatorToTypedValidator</span></a></span></span><span> </span><span id="local-6989586621679687988"><span class="annot"><span class="annottext">Validator
+</span><a href="#local-6989586621679687988"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">tvValidator :: Versioned Validator
+</span><span class="hs-identifier hs-var">Script.tvValidator</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679687991"><span class="hs-identifier hs-var">vValidator</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>      </span><span class="annot"><span class="annottext">tvValidatorHash :: ValidatorHash
+</span><span class="hs-identifier hs-var">Script.tvValidatorHash</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679687993"><span class="hs-identifier hs-var">vValidatorHash</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>      </span><span class="annot"><span class="annottext">tvForwardingMPS :: Versioned MintingPolicy
+</span><span class="hs-identifier hs-var">Script.tvForwardingMPS</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679687995"><span class="hs-identifier hs-var">vMintingPolicy</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-24"></span><span>      </span><span class="annot"><span class="annottext">tvForwardingMPSHash :: MintingPolicyHash
+</span><span class="hs-identifier hs-var">Script.tvForwardingMPSHash</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; MintingPolicyHash
+</span><span class="hs-identifier hs-var">Script.mintingPolicyHash</span></span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy
+</span><a href="#local-6989586621679687995"><span class="hs-identifier hs-var">vMintingPolicy</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>    </span><span id="local-6989586621679687991"><span class="annot"><span class="annottext">vValidator :: Versioned Validator
+</span><a href="#local-6989586621679687991"><span class="hs-identifier hs-var hs-var">vValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Validator -&gt; Language -&gt; Versioned Validator
+forall script. script -&gt; Language -&gt; Versioned script
+</span><span class="hs-identifier hs-var">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Validator
+</span><a href="#local-6989586621679687988"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Language
+</span><span class="hs-identifier hs-var">Script.PlutusV3</span></span><span>
+</span><span id="line-28"></span><span>    </span><span id="local-6989586621679687993"><span class="annot"><span class="annottext">vValidatorHash :: ValidatorHash
+</span><a href="#local-6989586621679687993"><span class="hs-identifier hs-var hs-var">vValidatorHash</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned Validator -&gt; ValidatorHash
+</span><span class="hs-identifier hs-var">Script.validatorHash</span></span><span> </span><span class="annot"><span class="annottext">Versioned Validator
+</span><a href="#local-6989586621679687991"><span class="hs-identifier hs-var">vValidator</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span id="local-6989586621679688001"><span class="annot"><span class="annottext">forwardingPolicy :: MintingPolicy
+</span><a href="#local-6989586621679688001"><span class="hs-identifier hs-var hs-var">forwardingPolicy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ValidatorHash -&gt; MintingPolicy
+</span><span class="hs-identifier hs-var">Script.mkForwardingMintingPolicy</span></span><span> </span><span class="annot"><span class="annottext">ValidatorHash
+</span><a href="#local-6989586621679687993"><span class="hs-identifier hs-var">vValidatorHash</span></a></span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679687995"><span class="annot"><span class="annottext">vMintingPolicy :: Versioned MintingPolicy
+</span><a href="#local-6989586621679687995"><span class="hs-identifier hs-var hs-var">vMintingPolicy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; Language -&gt; Versioned MintingPolicy
+forall script. script -&gt; Language -&gt; Versioned script
+</span><span class="hs-identifier hs-var">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy
+</span><a href="#local-6989586621679688001"><span class="hs-identifier hs-var">forwardingPolicy</span></a></span><span> </span><span class="annot"><span class="annottext">Language
+</span><span class="hs-identifier hs-var">Script.PlutusV3</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | The trivial validator that always succeds; this is in particular a</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- sufficient target for the datum hijacking attack since we only want to show</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- feasibility of the attack.</span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier hs-type">alwaysTrueValidator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679687968"><span class="annot"><a href="#local-6989586621679687968"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679687968"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-36"></span><span id="alwaysTrueValidator"><span class="annot"><span class="annottext">alwaysTrueValidator :: forall a. TypedValidator a
+</span><a href="Cooked.Validators.html#alwaysTrueValidator"><span class="hs-identifier hs-var hs-var">alwaysTrueValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. Validator -&gt; TypedValidator a
+</span><a href="Cooked.Validators.html#validatorToTypedValidator"><span class="hs-identifier hs-var">validatorToTypedValidator</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679687968"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">Validator
+</span><span class="hs-identifier hs-var">Script.alwaysSucceedValidator</span></span><span>
 </span><span id="line-37"></span><span>
-</span><span id="line-38"></span><span class="hs-comment">-- | A Mock contract type to instantiate validators with</span><span>
-</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="MockContract"><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-var">MockContract</span></a></span></span><span>
-</span><span id="line-40"></span><span>
-</span><span id="line-41"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#ValidatorTypes"><span class="hs-identifier hs-type">Pl.ValidatorTypes</span></a></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-keyword">where</span><span>
-</span><span id="line-42"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="RedeemerType"><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#RedeemerType"><span class="hs-identifier hs-var">RedeemerType</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-43"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="DatumType"><span class="annot"><a href="../Plutus.Script.Utils.Typed.html#DatumType"><span class="hs-identifier hs-var">DatumType</span></a></span></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
-</span><span id="line-44"></span></pre></body></html>
+</span><span id="line-38"></span><span class="annot"><span class="hs-comment">-- | The trivial validator that always fails</span></span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier hs-type">alwaysFalseValidator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679688004"><span class="annot"><a href="#local-6989586621679688004"><span class="hs-identifier hs-type">a</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.TypedValidator</span></span><span> </span><span class="annot"><a href="#local-6989586621679688004"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-40"></span><span id="alwaysFalseValidator"><span class="annot"><span class="annottext">alwaysFalseValidator :: forall a. TypedValidator a
+</span><a href="Cooked.Validators.html#alwaysFalseValidator"><span class="hs-identifier hs-var hs-var">alwaysFalseValidator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a. Validator -&gt; TypedValidator a
+</span><a href="Cooked.Validators.html#validatorToTypedValidator"><span class="hs-identifier hs-var">validatorToTypedValidator</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="#local-6989586621679688004"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><span class="annottext">(Validator -&gt; TypedValidator a) -&gt; Validator -&gt; TypedValidator a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CompiledCode (BuiltinData -&gt; BuiltinData -&gt; BuiltinData -&gt; ())
+-&gt; Validator
+</span><span class="hs-identifier hs-var">Script.mkValidatorScript</span></span><span> </span><span class="hs-special">$$</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.compile</span></span><span> </span><span class="hs-special">[||</span><span class="hs-glyph">\</span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PlutusTx.error</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">||]</span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="annot"><span class="hs-comment">-- | A Mock contract type to instantiate validators with</span></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">data</span><span> </span><span id="MockContract"><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-var">MockContract</span></a></span></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.ValidatorTypes</span></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="RedeemerType"><span class="annot"><span class="hs-identifier hs-var">RedeemerType</span></span></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="DatumType"><span class="annot"><span class="hs-identifier hs-var">DatumType</span></span></span><span> </span><span class="annot"><a href="Cooked.Validators.html#MockContract"><span class="hs-identifier hs-type">MockContract</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span></pre></body></html>
