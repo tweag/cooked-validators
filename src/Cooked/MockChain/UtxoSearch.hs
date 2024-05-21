@@ -6,9 +6,9 @@ module Cooked.MockChain.UtxoSearch where
 import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
-import Cooked.Classes
 import Cooked.MockChain.BlockChain
 import Cooked.Output
+import Cooked.Wrappers
 import Data.Maybe
 import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
@@ -99,12 +99,12 @@ negateF f a = maybe (Just a) (const Nothing) <$> f a
 
 -- | Search all 'TxOutRef's at a certain address, together with their
 -- 'TxInfo'-'TxOut'.
-utxosAtSearch :: (MonadBlockChainBalancing m, HasAddress addr) => addr -> UtxoSearch m Api.TxOut
+utxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Api.TxOut
 utxosAtSearch = lift . (utxosAt >=> ListT.fromFoldable) . toAddress
 
 -- | Like 'utxosAtSearch', but returns a Ledger-level representation of the
 -- transaction outputs, which might contain more information.
-utxosAtLedgerSearch :: (MonadBlockChainBalancing m, HasAddress addr) => addr -> UtxoSearch m Ledger.TxOut
+utxosAtLedgerSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Ledger.TxOut
 utxosAtLedgerSearch = lift . (utxosAtLedger >=> ListT.fromFoldable) . toAddress
 
 -- | Search all currently known 'TxOutRef's together with their corresponding
@@ -152,7 +152,7 @@ vanillaUtxosSearch =
     *+* pureFilter isOutputWithoutDatum
     *+* pureBoolFilter (isNothing . view outputReferenceScriptL)
 
-vanillaUtxosAtSearch :: (MonadBlockChainBalancing m, HasAddress addr) => addr -> UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
+vanillaUtxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
 vanillaUtxosAtSearch addr =
   utxosAtSearch addr
     *+* pureAlwaysFilter fromAbstractOutput

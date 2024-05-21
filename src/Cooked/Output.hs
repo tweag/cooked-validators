@@ -24,7 +24,7 @@ module Cooked.Output
     outputValue,
     outputReferenceScriptHash,
     outputTxOut,
-    ConcreteOutput (ConcreteOutput),
+    ConcreteOutput (..),
     toOutputWithReferenceScriptHash,
     isOutputWithoutDatum,
     isOutputWithInlineDatum,
@@ -37,7 +37,7 @@ module Cooked.Output
   )
 where
 
-import Cooked.Classes
+import Cooked.Wrappers
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)

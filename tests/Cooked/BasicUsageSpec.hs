@@ -20,7 +20,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK (walletPKHash recipient) (ada amount)],
+        { txSkelOuts = [paysPK recipient amount],
           txSkelSigners = [sender]
         }
 
@@ -37,7 +37,7 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, NoMintsRedeemer, "banana", 10)],
-          txSkelOuts = [paysPK (walletPKHash alice) (quickValue "banana" 10)],
+          txSkelOuts = [paysPK alice (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
@@ -51,7 +51,7 @@ payToAlwaysTrueValidator = do
             [ paysScript
                 (alwaysTrueValidator @MockContract)
                 ()
-                (ada 10)
+                (10 :: Integer)
             ],
           txSkelSigners = [alice]
         }
@@ -64,7 +64,7 @@ consumeAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, TxSkelRedeemerForScript ())],
-          txSkelOuts = [paysPK (walletPKHash alice) (ada 10)],
+          txSkelOuts = [paysPK alice (10 :: Integer)],
           txSkelSigners = [alice]
         }
 

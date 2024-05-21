@@ -119,8 +119,8 @@ bValidator =
 customInitDist :: InitialDistribution
 customInitDist =
   def
-    <> InitialDistribution (paysScript aValidator ADatum . ada <$> [2, 3, 4, 5])
-    <> InitialDistribution (paysScript bValidator BDatum . ada <$> [6, 7])
+    <> InitialDistribution (paysScript aValidator ADatum <$> [2 :: Integer, 3, 4, 5])
+    <> InitialDistribution (paysScript bValidator BDatum <$> [6 :: Integer, 7])
 
 tests :: TestTree
 tests =

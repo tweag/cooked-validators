@@ -3,7 +3,7 @@
 -- the use of the rest of cooked-validators. For instance, when paying
 -- to a wallet, all we need is its address. Retrieving it will
 -- walletAddress is inconvenient as we know a wallet possess an
--- address. By creating a type class `HasAddress` we overcome this
+-- address. By creating a type class `ToAddress` we overcome this
 -- limitation and allow payments directly both to addresses or
 -- wallets.
 module Cooked.Wrappers where
@@ -15,26 +15,26 @@ import Plutus.Script.Utils.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
 -- | Objects from which and address can be extracted
-class HasAddress a where
+class ToAddress a where
   toAddress :: a -> Api.Address
 
-instance HasAddress Wallet where
+instance ToAddress Wallet where
   toAddress = walletAddress
 
-instance HasAddress Api.Address where
+instance ToAddress Api.Address where
   toAddress = id
 
-instance HasAddress (Script.TypedValidator a) where
+instance ToAddress (Script.TypedValidator a) where
   toAddress = Script.validatorAddress
 
 -- | Objects from which a public key hash can be extracted
-class HasPubKeyHash a where
+class ToPubKeyHash a where
   toPubKeyHash :: a -> Api.PubKeyHash
 
-instance HasPubKeyHash Api.PubKeyHash where
+instance ToPubKeyHash Api.PubKeyHash where
   toPubKeyHash = id
 
-instance HasPubKeyHash Wallet where
+instance ToPubKeyHash Wallet where
   toPubKeyHash = walletPKHash
 
 -- | Objects from which a credential can be extracted
@@ -78,6 +78,9 @@ instance ToValue Api.Value where
 
 instance ToValue Script.Ada where
   toValue = Script.toValue
+
+instance ToValue Integer where
+  toValue = toValue . Script.Lovelace . (* 1_000_000)
 
 -- | Objects from which a versioned script can be extracted
 class ToScript a where

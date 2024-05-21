@@ -79,11 +79,11 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Monad
-import Cooked.Classes
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.ValueUtils
 import Cooked.Wallet
+import Cooked.Wrappers
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
@@ -617,14 +617,14 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 -- ** Smart constructors for transaction outputs
 
 -- | Pay a certain value to a public key.
-paysPK :: (HasPubKeyHash a) => a -> Api.Value -> TxSkelOut
-paysPK a value =
+paysPK :: (ToPubKeyHash a, ToValue v) => a -> v -> TxSkelOut
+paysPK pkh value =
   Pays
     ( ConcreteOutput
-        (toPubKeyHash a)
+        (toPubKeyHash pkh)
         Nothing
         TxSkelOutNoDatum
-        value
+        (toValue value)
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -636,11 +636,12 @@ paysScript ::
     Typeable (Script.DatumType a),
     PlutusTx.Eq (Script.DatumType a),
     PrettyCooked (Script.DatumType a),
-    Typeable a
+    Typeable a,
+    ToValue value
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Api.Value ->
+  value ->
   TxSkelOut
 paysScript validator datum value =
   Pays
@@ -648,7 +649,7 @@ paysScript validator datum value =
         validator
         Nothing
         (TxSkelOutDatum datum)
-        value
+        (toValue value)
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -659,11 +660,12 @@ paysScriptInlineDatum ::
     Typeable (Script.DatumType a),
     PlutusTx.Eq (Script.DatumType a),
     PrettyCooked (Script.DatumType a),
-    Typeable a
+    Typeable a,
+    ToValue value
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Api.Value ->
+  value ->
   TxSkelOut
 paysScriptInlineDatum validator datum value =
   Pays
@@ -671,7 +673,7 @@ paysScriptInlineDatum validator datum value =
         validator
         Nothing
         (TxSkelOutInlineDatum datum)
-        value
+        (toValue value)
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -683,11 +685,12 @@ paysScriptDatumHash ::
     Typeable (Script.DatumType a),
     PlutusTx.Eq (Script.DatumType a),
     PrettyCooked (Script.DatumType a),
-    Typeable a
+    Typeable a,
+    ToValue value
   ) =>
   Script.TypedValidator a ->
   Script.DatumType a ->
-  Api.Value ->
+  value ->
   TxSkelOut
 paysScriptDatumHash validator datum value =
   Pays
@@ -695,119 +698,49 @@ paysScriptDatumHash validator datum value =
         validator
         Nothing
         (TxSkelOutDatumHash datum)
-        value
+        (toValue value)
         (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Pays a script a certain value without any datum. Intended to be used with
 -- 'withDatum', 'withDatumHash', or 'withInlineDatum' to try a datum whose type
 -- does not match the validator's.
-paysScriptNoDatum :: (Typeable a) => Script.TypedValidator a -> Api.Value -> TxSkelOut
+paysScriptNoDatum :: (Typeable a, ToValue value) => Script.TypedValidator a -> value -> TxSkelOut
 paysScriptNoDatum validator value =
   Pays
     ( ConcreteOutput
         validator
         Nothing
         TxSkelOutNoDatum
-        value
+        (toValue value)
         (Nothing @(Script.Versioned Script.Script))
     )
 
 -- | Set the datum in a payment to the given datum (whose type may not fit the
 -- typed validator in case of a script).
-withDatum ::
-  ( Api.ToData a,
-    Show a,
-    Typeable a,
-    PlutusTx.Eq a,
-    PrettyCooked a
-  ) =>
-  TxSkelOut ->
-  a ->
-  TxSkelOut
-withDatum (Pays output) datum =
-  Pays $
-    ConcreteOutput
-      (output ^. outputOwnerL)
-      (output ^. outputStakingCredentialL)
-      (TxSkelOutDatum datum)
-      (output ^. outputValueL)
-      (output ^. outputReferenceScriptL)
+withDatum :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
+withDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatum datum}
 
 -- | Set the datum in a payment to the given inlined datum (whose type may not
 -- fit the typed validator in case of a script).
-withInlineDatum ::
-  ( Api.ToData a,
-    Show a,
-    Typeable a,
-    PlutusTx.Eq a,
-    PrettyCooked a
-  ) =>
-  TxSkelOut ->
-  a ->
-  TxSkelOut
-withInlineDatum (Pays output) datum =
-  Pays $
-    ConcreteOutput
-      (output ^. outputOwnerL)
-      (output ^. outputStakingCredentialL)
-      (TxSkelOutInlineDatum datum)
-      (output ^. outputValueL)
-      (output ^. outputReferenceScriptL)
+withInlineDatum :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
+withInlineDatum (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutInlineDatum datum}
 
 -- | Set the datum in a payment to the given hashed (not resolved in the
 -- transaction) datum (whose type may not fit the typed validator in case of a
 -- script).
-withDatumHash ::
-  ( Api.ToData a,
-    Show a,
-    Typeable a,
-    PlutusTx.Eq a,
-    PrettyCooked a
-  ) =>
-  TxSkelOut ->
-  a ->
-  TxSkelOut
-withDatumHash (Pays output) datum =
-  Pays $
-    ConcreteOutput
-      (output ^. outputOwnerL)
-      (output ^. outputStakingCredentialL)
-      (TxSkelOutDatumHash datum)
-      (output ^. outputValueL)
-      (output ^. outputReferenceScriptL)
+withDatumHash :: (Api.ToData a, Show a, Typeable a, PlutusTx.Eq a, PrettyCooked a) => TxSkelOut -> a -> TxSkelOut
+withDatumHash (Pays output) datum = Pays $ (fromAbstractOutput output) {concreteOutputDatum = TxSkelOutDatumHash datum}
 
 -- | Add a reference script to a transaction output (or replace it if there is
 -- already one)
-withReferenceScript ::
-  ( Show script,
-    ToScript script,
-    Typeable script,
-    ToScriptHash script
-  ) =>
-  TxSkelOut ->
-  script ->
-  TxSkelOut
-withReferenceScript (Pays output) script =
-  Pays $
-    ConcreteOutput
-      (output ^. outputOwnerL)
-      (output ^. outputStakingCredentialL)
-      (output ^. outputDatumL)
-      (output ^. outputValueL)
-      (Just script)
+withReferenceScript :: (Show script, ToScript script, Typeable script, ToScriptHash script) => TxSkelOut -> script -> TxSkelOut
+withReferenceScript (Pays output) script = Pays $ (fromAbstractOutput output) {concreteOutputReferenceScript = Just script}
 
 -- | Add a staking credential to a transaction output (or replace it if there is
 -- already one)
 withStakingCredential :: TxSkelOut -> Api.StakingCredential -> TxSkelOut
-withStakingCredential (Pays output) stakingCredential =
-  Pays $
-    ConcreteOutput
-      (output ^. outputOwnerL)
-      (Just stakingCredential)
-      (output ^. outputDatumL)
-      (output ^. outputValueL)
-      (output ^. outputReferenceScriptL)
+withStakingCredential (Pays output) stakingCredential = Pays $ (fromAbstractOutput output) {concreteOutputStakingCredential = Just stakingCredential}
 
 -- * Redeemers for transaction inputs
 

@@ -4,8 +4,6 @@ module Cooked.ValueUtils
     positivePart,
     negativePart,
     adaL,
-    lovelace,
-    ada,
   )
 where
 
@@ -52,14 +50,4 @@ adaL =
   where
     insertAssocList :: (Eq a) => [(a, b)] -> a -> b -> [(a, b)]
     insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
-
--- * Helpers for manipulating ada and lovelace
-
-adaAssetClass :: Script.AssetClass
-adaAssetClass = Script.assetClass Script.adaSymbol Script.adaToken
-
-lovelace :: Integer -> Api.Value
-lovelace = Script.assetClassValue adaAssetClass
-
-ada :: Integer -> Api.Value
-ada = lovelace . (* 1_000_000)
+    adaAssetClass = Script.assetClass Script.adaSymbol Script.adaToken

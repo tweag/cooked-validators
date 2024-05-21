@@ -10,17 +10,13 @@ import Test.Tasty.HUnit
 
 alice = wallet 1
 
-alicePKH = walletPKHash alice
-
 bob = wallet 2
-
-bobPKH = walletPKHash bob
 
 -- | An initial distribution where alice owns a UTxO with a datum of
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum =
   InitialDistribution $
-    (\f -> f (paysPK alicePKH (ada 2)) 10)
+    (\f -> f (paysPK alice (2 :: Integer)) 10)
       <$> [withDatum @Integer, withInlineDatum, withDatumHash]
 
 -- | An initial distribution where alice owns a UTxO with a reference
@@ -28,28 +24,27 @@ initialDistributionWithDatum =
 -- 2 UTxOs with 100 ada
 initialDistributionWithReferenceScript =
   InitialDistribution $
-    (paysPK alicePKH (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract)
-      : replicate 2 (paysPK bobPKH (ada 100))
+    (paysPK alice (2 :: Integer) `withReferenceScript` alwaysTrueValidator @MockContract)
+      : replicate 2 (paysPK bob (100 :: Integer))
 
 getValueFromInitialDatum :: (MonadBlockChain m) => m [Integer]
 getValueFromInitialDatum = do
-  aliceUtxos <- runUtxoSearch $ utxosAtSearch $ walletAddress alice
+  aliceUtxos <- runUtxoSearch $ utxosAtSearch alice
   catMaybes <$> mapM (typedDatumFromTxOutRef @Integer . fst) aliceUtxos
 
 spendReferenceAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 spendReferenceAlwaysTrueValidator = do
-  [(referenceScriptTxOutRef, _)] <- runUtxoSearch $ utxosAtSearch $ walletAddress alice
-  tx <-
-    validateTxSkel $
+  [(referenceScriptTxOutRef, _)] <- runUtxoSearch $ utxosAtSearch alice
+  (scriptTxOutRef : _) <-
+    validateTxSkel' $
       txSkelTemplate
-        { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 2)],
+        { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (2 :: Integer)],
           txSkelSigners = [bob]
         }
-  let (scriptTxOutRef, _) : _ = utxosFromCardanoTx tx
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK alicePKH (ada 2)],
+        { txSkelOuts = [paysPK alice (2 :: Integer)],
           txSkelIns = Map.singleton scriptTxOutRef (TxSkelRedeemerForReferencedScript referenceScriptTxOutRef ()),
           txSkelSigners = [bob]
         }
