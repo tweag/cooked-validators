@@ -101,8 +101,8 @@ malformDatumTweak change = do
                   ConcreteOutput
                     (out ^. outputOwnerL)
                     (out ^. outputStakingCredentialL)
-                    datum
                     (out ^. outputValueL)
+                    datum
                     (out ^. outputReferenceScriptL)
             )
             datums

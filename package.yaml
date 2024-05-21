@@ -75,7 +75,6 @@ library:
     - TypeFamilies
     - TypeOperators
     - TypeSynonymInstances
-    - ViewPatterns
 
 tests:
   spec:
