@@ -79,6 +79,7 @@ where
 import Cardano.Api qualified as Cardano
 import Cardano.Node.Emulator qualified as Emulator
 import Control.Monad
+import Cooked.Classes
 import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.ValueUtils
@@ -615,15 +616,6 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 
 -- ** Smart constructors for transaction outputs
 
-class HasPubKeyHash a where
-  toPubKeyHash :: a -> Api.PubKeyHash
-
-instance HasPubKeyHash Api.PubKeyHash where
-  toPubKeyHash = id
-
-instance HasPubKeyHash Wallet where
-  toPubKeyHash = walletPKHash
-
 -- | Pay a certain value to a public key.
 paysPK :: (HasPubKeyHash a) => a -> Api.Value -> TxSkelOut
 paysPK a value =
@@ -631,8 +623,8 @@ paysPK a value =
     ( ConcreteOutput
         (toPubKeyHash a)
         Nothing
-        value
         TxSkelOutNoDatum
+        value
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -655,8 +647,8 @@ paysScript validator datum value =
     ( ConcreteOutput
         validator
         Nothing
-        value
         (TxSkelOutDatum datum)
+        value
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -678,8 +670,8 @@ paysScriptInlineDatum validator datum value =
     ( ConcreteOutput
         validator
         Nothing
-        value
         (TxSkelOutInlineDatum datum)
+        value
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -702,8 +694,8 @@ paysScriptDatumHash validator datum value =
     ( ConcreteOutput
         validator
         Nothing
-        value
         (TxSkelOutDatumHash datum)
+        value
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -716,8 +708,8 @@ paysScriptNoDatum validator value =
     ( ConcreteOutput
         validator
         Nothing
-        value
         TxSkelOutNoDatum
+        value
         (Nothing @(Script.Versioned Script.Script))
     )
 
@@ -738,8 +730,8 @@ withDatum (Pays output) datum =
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
-      (output ^. outputValueL)
       (TxSkelOutDatum datum)
+      (output ^. outputValueL)
       (output ^. outputReferenceScriptL)
 
 -- | Set the datum in a payment to the given inlined datum (whose type may not
@@ -759,8 +751,8 @@ withInlineDatum (Pays output) datum =
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
-      (output ^. outputValueL)
       (TxSkelOutInlineDatum datum)
+      (output ^. outputValueL)
       (output ^. outputReferenceScriptL)
 
 -- | Set the datum in a payment to the given hashed (not resolved in the
@@ -781,8 +773,8 @@ withDatumHash (Pays output) datum =
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
-      (output ^. outputValueL)
       (TxSkelOutDatumHash datum)
+      (output ^. outputValueL)
       (output ^. outputReferenceScriptL)
 
 -- | Add a reference script to a transaction output (or replace it if there is
@@ -801,8 +793,8 @@ withReferenceScript (Pays output) script =
     ConcreteOutput
       (output ^. outputOwnerL)
       (output ^. outputStakingCredentialL)
-      (output ^. outputValueL)
       (output ^. outputDatumL)
+      (output ^. outputValueL)
       (Just script)
 
 -- | Add a staking credential to a transaction output (or replace it if there is
@@ -813,8 +805,8 @@ withStakingCredential (Pays output) stakingCredential =
     ConcreteOutput
       (output ^. outputOwnerL)
       (Just stakingCredential)
-      (output ^. outputValueL)
       (output ^. outputDatumL)
+      (output ^. outputValueL)
       (output ^. outputReferenceScriptL)
 
 -- * Redeemers for transaction inputs
@@ -998,8 +990,8 @@ txSkelOutOwnerTypeP =
                   ConcreteOutput
                     owner
                     (output ^. outputStakingCredentialL)
-                    (output ^. outputValueL)
                     (output ^. outputDatumL)
+                    (output ^. outputValueL)
                     (toScript <$> output ^. outputReferenceScriptL)
               Nothing -> Nothing
     )
