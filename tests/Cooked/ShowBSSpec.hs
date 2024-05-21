@@ -37,18 +37,12 @@ printValidator =
 
 printTrace :: (MonadBlockChain m) => m ()
 printTrace = do
-  (oref, _) : _ <-
-    utxosFromCardanoTx
-      <$> validateTxSkel
-        txSkelTemplate
-          { txSkelSigners = [wallet 1],
-            txSkelOuts =
-              [ paysScriptInlineDatum
-                  printValidator
-                  ()
-                  (Script.lovelaceValueOf 30_000_000)
-              ]
-          }
+  oref : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelSigners = [wallet 1],
+          txSkelOuts = [paysScriptInlineDatum printValidator () (30 :: Integer)]
+        }
   void $
     validateTxSkel
       txSkelTemplate

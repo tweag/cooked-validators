@@ -10,19 +10,17 @@ import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 
+alice = wallet 1
+
+mkSkel :: [Integer] -> TxSkel
+mkSkel l = set txSkelOutsL (paysPK alice . Script.Lovelace <$> l) txSkelTemplate
+
 tests :: TestTree
 tests =
   testGroup
     "building blocks for tweaks"
     [ testGroup "overMaybeSelectingTweak" $
-        let skel =
-              txSkelTemplate
-                { txSkelOuts =
-                    [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 123),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 345)
-                    ]
-                }
+        let skel = mkSkel [123, 234, 345]
          in [ testCase "return empty list and don't change anything if no applicable modifications" $ -- this one is a regression test
                 [Right ([], skel)]
                   @=? runTweak
@@ -33,17 +31,7 @@ tests =
                     )
                     skel,
               testCase "select applied modification by index" $
-                [ Right
-                    ( [Script.lovelaceValueOf 345],
-                      txSkelTemplate
-                        { txSkelOuts =
-                            [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 123),
-                              paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234),
-                              paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789)
-                            ]
-                        }
-                    )
-                ]
+                [Right ([Script.lovelaceValueOf 345], mkSkel [123, 234, 789])]
                   @=? runTweak
                     ( overMaybeSelectingTweak
                         (txSkelOutsL % traversed % txSkelOutValueL)
@@ -56,19 +44,7 @@ tests =
                     )
                     skel,
               testCase "return unmodified foci in the right order" $
-                [ Right
-                    ( [ Script.lovelaceValueOf 123,
-                        Script.lovelaceValueOf 345
-                      ],
-                      txSkelTemplate
-                        { txSkelOuts =
-                            [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789),
-                              paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234),
-                              paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789)
-                            ]
-                        }
-                    )
-                ]
+                [Right ([Script.lovelaceValueOf 123, Script.lovelaceValueOf 345], mkSkel [789, 234, 789])]
                   @=? runTweak
                     ( overMaybeSelectingTweak
                         (txSkelOutsL % traversed % txSkelOutValueL)
@@ -78,16 +54,8 @@ tests =
                     skel
             ],
       testGroup "combineModsTweak" $
-        let skel x y z =
-              txSkelTemplate
-                { txSkelOuts =
-                    [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf x),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf y),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf z)
-                    ]
-                }
-            skelIn = skel 0 0 0
-            skelOut x y z = Right ([0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0], skel x y z)
+        let skelIn = mkSkel [0, 0, 0]
+            skelOut x y z = Right ([0 | x /= 0] ++ [1 | y /= 0] ++ [2 | z /= 0], mkSkel [x, y, z])
          in [ testCase "all combinations of modifications" $
                 assertSameSets
                   [ -- one changed focus

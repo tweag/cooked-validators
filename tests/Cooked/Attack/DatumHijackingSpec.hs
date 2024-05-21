@@ -57,7 +57,7 @@ lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
       txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
-      txSkelOuts = [paysScriptInlineDatum @_ v FirstLock lockValue],
+      txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
       txSkelSigners = [wallet 1]
     }
 

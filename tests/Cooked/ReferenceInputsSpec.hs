@@ -91,32 +91,21 @@ barTypedValidator =
 
 trace1 :: (MonadBlockChain m) => m ()
 trace1 = do
-  (txOutRefFoo, _) : (txOutRefBar, _) : _ <-
-    utxosFromCardanoTx
-      <$> validateTxSkel
-        txSkelTemplate
-          { txSkelOuts =
-              [ paysScriptInlineDatum
-                  fooTypedValidator
-                  (FooDatum (walletPKHash (wallet 3)))
-                  (Script.lovelaceValueOf 4_000_000),
-                paysScript
-                  barTypedValidator
-                  ()
-                  (Script.lovelaceValueOf 5_000_000)
-              ],
-            txSkelSigners = [wallet 2]
-          }
+  txOutRefFoo : txOutRefBar : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelOuts =
+            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) (4 :: Integer),
+              paysScript barTypedValidator () (5 :: Integer)
+            ],
+          txSkelSigners = [wallet 2]
+        }
   void $
     validateTxSkel
       txSkelTemplate
         { txSkelIns = Map.singleton txOutRefBar $ TxSkelRedeemerForScript (),
           txSkelInsReference = Set.singleton txOutRefFoo,
-          txSkelOuts =
-            [ paysPK
-                (walletPKHash (wallet 4))
-                (Script.lovelaceValueOf 5_000_000)
-            ],
+          txSkelOuts = [paysPK (wallet 4) (5 :: Integer)],
           txSkelSigners = [wallet 3]
         }
 

@@ -134,13 +134,7 @@ setFeeAndBalance balanceWallet skel0 collateralIns = do
   where
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
 
-    calcFee ::
-      (MonadBlockChainBalancing m) =>
-      Int ->
-      Fee ->
-      TxSkel ->
-      Map Api.TxOutRef Api.TxOut ->
-      m (TxSkel, Fee)
+    calcFee :: (MonadBlockChainBalancing m) => Int -> Fee -> TxSkel -> Map Api.TxOutRef Api.TxOut -> m (TxSkel, Fee)
     calcFee n fee skel collateralUtxos = do
       attemptedSkel <- balanceTxFromAux balanceWallet skel fee
       managedData <- txSkelInputData skel

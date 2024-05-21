@@ -44,13 +44,11 @@ addTokenAttack extraTokens attacker = do
             map
               ( \(tName, amount) ->
                   let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
-                      increment =
-                        txSkelMintsValue newMints
-                          <> ScriptutusTx.negate (txSkelMintsValue oldMints)
+                      increment = txSkelMintsValue newMints <> ScriptutusTx.negate (txSkelMintsValue oldMints)
                    in if increment `Script.geq` mempty
                         then do
                           setTweak txSkelMintsL newMints
-                          addOutputTweak $ paysPK (walletPKHash attacker) increment
+                          addOutputTweak $ paysPK attacker increment
                           return increment
                         else failingTweak
               )

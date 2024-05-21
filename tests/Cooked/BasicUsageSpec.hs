@@ -42,24 +42,19 @@ mintingQuickValue =
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m (Api.TxOutRef, Api.TxOut)
-payToAlwaysTrueValidator = do
-  tx <-
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts =
-            [ paysScript
-                (alwaysTrueValidator @MockContract)
-                ()
-                (10 :: Integer)
-            ],
-          txSkelSigners = [alice]
-        }
-  return $ head $ utxosFromCardanoTx tx
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
+payToAlwaysTrueValidator =
+  head
+    <$> ( validateTxSkel' $
+            txSkelTemplate
+              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (10 :: Integer)],
+                txSkelSigners = [alice]
+              }
+        )
 
 consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 consumeAlwaysTrueValidator = do
-  (outref, out) <- payToAlwaysTrueValidator
+  outref <- payToAlwaysTrueValidator
   void $
     validateTxSkel $
       txSkelTemplate

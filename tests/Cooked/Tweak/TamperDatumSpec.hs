@@ -14,6 +14,8 @@ import Test.Tasty.HUnit (testCase, (@=?))
 instance PrettyCooked (Integer, Integer) where
   prettyCookedOpt _ = viaShow
 
+alice = wallet 1
+
 tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
     [ Right
@@ -21,9 +23,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
-                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 54 :: Integer),
+                  paysPK alice (Script.Lovelace 234) `withDatum` (),
+                  paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -34,9 +36,9 @@ tamperDatumTweakTest =
         )
         ( txSkelTemplate
             { txSkelOuts =
-                [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                  paysPK alice (Script.Lovelace 234) `withDatum` (),
+                  paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -50,10 +52,10 @@ malformDatumTweakTest =
               txSkelTemplate
                 { txSkelLabel = Set.singleton $ TxLabel MalformDatumLbl,
                   txSkelOuts =
-                    [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                      paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
+                    [ paysPK alice (Script.Lovelace 789) `withDatum` PlutusTx.toBuiltinData datum1,
+                      paysPK alice (Script.Lovelace 234) `withDatum` (),
+                      paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                      paysPK alice (Script.Lovelace 567) `withDatum` PlutusTx.toBuiltinData datum4
                     ]
                 }
             )
@@ -80,10 +82,10 @@ malformDatumTweakTest =
               )
               ( txSkelTemplate
                   { txSkelOuts =
-                      [ paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
-                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 234) `withDatum` (),
-                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                        paysPK (walletPKHash $ wallet 1) (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                      [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                        paysPK alice (Script.Lovelace 234) `withDatum` (),
+                        paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                        paysPK alice (Script.Lovelace 567) `withDatum` (84 :: Integer, 85 :: Integer)
                       ]
                   }
               )
