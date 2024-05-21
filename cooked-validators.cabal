@@ -18,7 +18,6 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
-      Cooked.Classes
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
@@ -51,6 +50,7 @@ library
       Cooked.Validators
       Cooked.ValueUtils
       Cooked.Wallet
+      Cooked.Wrappers
   other-modules:
       Paths_cooked_validators
   autogen-modules:
