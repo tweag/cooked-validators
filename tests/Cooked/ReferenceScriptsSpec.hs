@@ -217,8 +217,7 @@ tests =
             $ do
               (consumedOref, _) : _ <-
                 runUtxoSearch $
-                  utxosAtSearch (walletAddress $ wallet 1)
-                    `filterWithPred` ((`Script.geq` Script.lovelaceValueOf 42_000_000) . outputValue)
+                  utxosAtSearch (wallet 1) *+* pureBoolFilter ((`Script.geq` ada 42) . outputValue)
               (oref, _) : _ <-
                 utxosFromCardanoTx
                   <$> validateTxSkel
