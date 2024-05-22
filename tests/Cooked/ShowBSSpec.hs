@@ -41,7 +41,7 @@ printTrace = do
     validateTxSkel'
       txSkelTemplate
         { txSkelSigners = [wallet 1],
-          txSkelOuts = [paysScriptInlineDatum printValidator () (30 :: Integer)]
+          txSkelOuts = [paysScriptInlineDatum printValidator () 30]
         }
   void $
     validateTxSkel

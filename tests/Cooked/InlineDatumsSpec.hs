@@ -103,7 +103,7 @@ listUtxosTestTrace useInlineDatum validator =
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [(if useInlineDatum then paysScriptInlineDatum validator else paysScript validator) FirstPaymentDatum (3 :: Integer)],
+          txSkelOuts = [(if useInlineDatum then paysScriptInlineDatum validator else paysScript validator) FirstPaymentDatum 3],
           txSkelSigners = [wallet 1]
         }
 

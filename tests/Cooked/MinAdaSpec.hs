@@ -19,7 +19,7 @@ paymentWithMinAda = do
     <$> validateTxSkel
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts = [paysPK (wallet 2) (0 :: Integer) `withDatum` heavyDatum],
+          txSkelOuts = [paysPK (wallet 2) 0 `withDatum` heavyDatum],
           txSkelSigners = [wallet 1]
         }
 

@@ -95,8 +95,8 @@ trace1 = do
     validateTxSkel'
       txSkelTemplate
         { txSkelOuts =
-            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) (4 :: Integer),
-              paysScript barTypedValidator () (5 :: Integer)
+            [ paysScriptInlineDatum fooTypedValidator (FooDatum (walletPKHash (wallet 3))) 4,
+              paysScript barTypedValidator () 5
             ],
           txSkelSigners = [wallet 2]
         }
@@ -105,7 +105,7 @@ trace1 = do
       txSkelTemplate
         { txSkelIns = Map.singleton txOutRefBar $ TxSkelRedeemerForScript (),
           txSkelInsReference = Set.singleton txOutRefFoo,
-          txSkelOuts = [paysPK (wallet 4) (5 :: Integer)],
+          txSkelOuts = [paysPK (wallet 4) 5],
           txSkelSigners = [wallet 3]
         }
 

@@ -23,9 +23,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 54 :: Integer),
+                [ paysPK alice (Script.Lovelace 789) `withDatum` (52, 54),
                   paysPK alice (Script.Lovelace 234) `withDatum` (),
-                  paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                  paysPK alice (Script.Lovelace 567) `withDatum` (76, 77)
                 ]
             }
         )
@@ -36,9 +36,9 @@ tamperDatumTweakTest =
         )
         ( txSkelTemplate
             { txSkelOuts =
-                [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                [ paysPK alice (Script.Lovelace 789) `withDatum` (52, 53),
                   paysPK alice (Script.Lovelace 234) `withDatum` (),
-                  paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer)
+                  paysPK alice (Script.Lovelace 567) `withDatum` (76, 77)
                 ]
             }
         )
@@ -54,20 +54,20 @@ malformDatumTweakTest =
                   txSkelOuts =
                     [ paysPK alice (Script.Lovelace 789) `withDatum` PlutusTx.toBuiltinData datum1,
                       paysPK alice (Script.Lovelace 234) `withDatum` (),
-                      paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                      paysPK alice (Script.Lovelace 567) `withDatum` (76, 77),
                       paysPK alice (Script.Lovelace 567) `withDatum` PlutusTx.toBuiltinData datum4
                     ]
                 }
             )
      in assertSameSets
-          [ txSkelWithDatums1And4 (52 :: Integer, ()) (84 :: Integer, 85 :: Integer), -- datum1 changed, datum4 untouched
-            txSkelWithDatums1And4 False (84 :: Integer, 85 :: Integer), -- datum1 changed, datum4 untouched
-            txSkelWithDatums1And4 (52 :: Integer, ()) (84 :: Integer, ()), -- datum1 changed, datum4 as well
+          [ txSkelWithDatums1And4 (52, ()) (84, 85), -- datum1 changed, datum4 untouched
+            txSkelWithDatums1And4 False (84, 85), -- datum1 changed, datum4 untouched
+            txSkelWithDatums1And4 (52, ()) (84, ()), -- datum1 changed, datum4 as well
             txSkelWithDatums1And4 False False, -- datum1 changed, datum4 as well
-            txSkelWithDatums1And4 (52 :: Integer, ()) False, -- datum1 changed, datum4 as well
-            txSkelWithDatums1And4 False (84 :: Integer, ()), -- datum1 changed, datum4 as well
-            txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) (84 :: Integer, ()), -- datum1 untouched, datum4 changed
-            txSkelWithDatums1And4 (52 :: Integer, 53 :: Integer) False -- datum1 untouched, datum4 changed
+            txSkelWithDatums1And4 (52, ()) False, -- datum1 changed, datum4 as well
+            txSkelWithDatums1And4 False (84, ()), -- datum1 changed, datum4 as well
+            txSkelWithDatums1And4 (52, 53) (84, ()), -- datum1 untouched, datum4 changed
+            txSkelWithDatums1And4 (52, 53) False -- datum1 untouched, datum4 changed
           ]
           ( runTweak
               ( malformDatumTweak @(Integer, Integer)
@@ -82,10 +82,10 @@ malformDatumTweakTest =
               )
               ( txSkelTemplate
                   { txSkelOuts =
-                      [ paysPK alice (Script.Lovelace 789) `withDatum` (52 :: Integer, 53 :: Integer),
+                      [ paysPK alice (Script.Lovelace 789) `withDatum` (52, 53),
                         paysPK alice (Script.Lovelace 234) `withDatum` (),
-                        paysPK alice (Script.Lovelace 567) `withDatum` (76 :: Integer, 77 :: Integer),
-                        paysPK alice (Script.Lovelace 567) `withDatum` (84 :: Integer, 85 :: Integer)
+                        paysPK alice (Script.Lovelace 567) `withDatum` (76, 77),
+                        paysPK alice (Script.Lovelace 567) `withDatum` (84, 85)
                       ]
                   }
               )

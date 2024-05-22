@@ -47,7 +47,7 @@ payToAlwaysTrueValidator =
   head
     <$> ( validateTxSkel' $
             txSkelTemplate
-              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (10 :: Integer)],
+              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () 10],
                 txSkelSigners = [alice]
               }
         )
@@ -59,7 +59,7 @@ consumeAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, TxSkelRedeemerForScript ())],
-          txSkelOuts = [paysPK alice (10 :: Integer)],
+          txSkelOuts = [paysPK alice 10],
           txSkelSigners = [alice]
         }
 
