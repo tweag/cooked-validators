@@ -83,6 +83,7 @@ import Cooked.Output
 import Cooked.Pretty.Class
 import Cooked.ValueUtils
 import Cooked.Wallet
+import Cooked.Wrappers
 import Data.Default
 import Data.Either.Combinators
 import Data.Function
@@ -615,17 +616,8 @@ txSkelOutTypedDatum = Api.fromBuiltinData . Api.getDatum <=< txSkelOutUntypedDat
 
 -- ** Smart constructors for transaction outputs
 
-class HasPubKeyHash a where
-  toPubKeyHash :: a -> Api.PubKeyHash
-
-instance HasPubKeyHash Api.PubKeyHash where
-  toPubKeyHash = id
-
-instance HasPubKeyHash Wallet where
-  toPubKeyHash = walletPKHash
-
 -- | Pay a certain value to a public key.
-paysPK :: (HasPubKeyHash a) => a -> Api.Value -> TxSkelOut
+paysPK :: (ToPubKeyHash a) => a -> Api.Value -> TxSkelOut
 paysPK a value =
   Pays
     ( ConcreteOutput

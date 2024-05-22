@@ -50,6 +50,7 @@ library
       Cooked.Validators
       Cooked.ValueUtils
       Cooked.Wallet
+      Cooked.Wrappers
   other-modules:
       Paths_cooked_validators
   autogen-modules:

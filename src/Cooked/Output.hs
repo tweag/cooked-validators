@@ -36,10 +36,10 @@ module Cooked.Output
   )
 where
 
+import Cooked.Wrappers
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
+import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -68,75 +68,6 @@ class IsAbstractOutput o where
   outputDatumL :: Lens' o (DatumType o)
   outputValueL :: Lens' o (ValueType o)
   outputReferenceScriptL :: Lens' o (Maybe (ReferenceScriptType o))
-
-class ToCredential a where
-  toCredential :: a -> Api.Credential
-
-instance ToCredential Api.Credential where
-  toCredential = id
-
-instance ToCredential (Script.TypedValidator a) where
-  toCredential = Api.ScriptCredential . toScriptHash . Script.tvValidatorHash
-
-instance ToCredential Api.PubKeyHash where
-  toCredential = Api.PubKeyCredential
-
-class ToOutputDatum a where
-  toOutputDatum :: a -> Api.OutputDatum
-
-instance ToOutputDatum Api.OutputDatum where
-  toOutputDatum = id
-
-instance ToOutputDatum Api.Datum where
-  toOutputDatum = Api.OutputDatum
-
-instance ToOutputDatum () where
-  toOutputDatum = const Api.NoOutputDatum
-
-instance ToOutputDatum Api.DatumHash where
-  toOutputDatum = Api.OutputDatumHash
-
-instance ToOutputDatum Api.BuiltinData where
-  toOutputDatum = toOutputDatum . Api.Datum
-
-class ToValue a where
-  toValue :: a -> Api.Value
-
-instance ToValue Api.Value where
-  toValue = id
-
-instance ToValue Script.Ada where
-  toValue = Script.toValue
-
-class ToScript a where
-  toScript :: a -> Script.Versioned Script.Script
-
-instance ToScript (Script.Versioned Script.Script) where
-  toScript = id
-
-instance ToScript (Script.Versioned Script.Validator) where
-  toScript (Script.Versioned (Script.Validator script) version) = Script.Versioned script version
-
-instance ToScript (Script.TypedValidator a) where
-  toScript = toScript . Script.vValidatorScript
-
-class ToScriptHash a where
-  toScriptHash :: a -> Api.ScriptHash
-
-instance ToScriptHash Api.ScriptHash where
-  toScriptHash = id
-
-instance ToScriptHash (Script.Versioned Script.Script) where
-  toScriptHash = Script.scriptHash
-
-instance ToScriptHash (Script.Versioned Script.Validator) where
-  toScriptHash = toScriptHash . toScript
-
-instance ToScriptHash Script.ValidatorHash where
-  toScriptHash (Script.ValidatorHash h) = Script.ScriptHash h
-
-instance ToScriptHash (Script.TypedValidator a) where
-  toScriptHash = toScriptHash . Script.tvValidator
 
 -- | An output that can be translated into its script-perspective (as seen on
 -- the 'TxInfo') representation
