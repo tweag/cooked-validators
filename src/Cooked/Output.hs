@@ -38,7 +38,6 @@ where
 
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2.Tx qualified as Api
