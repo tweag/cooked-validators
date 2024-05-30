@@ -34,6 +34,7 @@ module Cooked.Output
     isPKOutputFrom,
     isOnlyAdaOutput,
     fromAbstractOutput,
+    isReferenceScriptOutputFrom,
   )
 where
 
@@ -176,8 +177,8 @@ isOutputWithDatumHash _ = Nothing
 
 -- ** Filtering on the owner
 
--- | Test if the owner of an output is a specific typed validator. If it is,
--- return an output with the validator type as its 'OwnerType'.
+-- | Test if the owner of an output is a specific script. If it is,
+-- return an output with the script type as its 'OwnerType'.
 isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
 isScriptOutputFrom validator out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out, scriptHash == toScriptHash validator = Just $ (fromAbstractOutput out) {concreteOutputOwner = validator}
 isScriptOutputFrom _ _ = Nothing
@@ -201,3 +202,8 @@ isOnlyAdaOutput _ = Nothing
 -- | Convert the reference script type on the output to 'Api.ScriptHash'.
 toOutputWithReferenceScriptHash :: (IsTxInfoOutput out) => out -> ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash
 toOutputWithReferenceScriptHash out = (fromAbstractOutput out) {concreteOutputReferenceScript = toScriptHash <$> out ^. outputReferenceScriptL}
+
+-- | Test if the reference script in an output is a specific script
+isReferenceScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) Api.ScriptHash)
+isReferenceScriptOutputFrom script out | Just x <- out ^. outputReferenceScriptL, toScriptHash x == toScriptHash script = Just $ toOutputWithReferenceScriptHash out
+isReferenceScriptOutputFrom _ _ = Nothing

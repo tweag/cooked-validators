@@ -27,7 +27,8 @@
 - A type class `ToPubKeyHash` to allows direct payments to wallets
 - A type class `ToAddress` to retrieve addresses from various entities
 - Default language extension `ExtendedDefaultRules`
-- New utxos search `vanillaOutputsAtSearch` and `scriptOutputsSearch`
+- New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`
+  and `referenceScriptOutputsSearch`
 
 ### Removed
 - Extraneous dependencies in package.yaml

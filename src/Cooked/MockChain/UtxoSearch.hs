@@ -19,6 +19,7 @@ module Cooked.MockChain.UtxoSearch
     vanillaOutputsAtSearch,
     filterWithAlways,
     scriptOutputsSearch,
+    referenceScriptOutputsSearch,
   )
 where
 
@@ -125,7 +126,13 @@ vanillaOutputsAtSearch addr =
     `filterWithPred` (isNothing . view outputReferenceScriptL)
 
 scriptOutputsSearch :: (MonadBlockChain m, ToScriptHash s) => s -> UtxoSearch m (ConcreteOutput s Api.OutputDatum Api.Value Api.ScriptHash)
-scriptOutputsSearch tv =
+scriptOutputsSearch s =
   allUtxosSearch
     `filterWithAlways` fromAbstractOutput
-    `filterWithPure` isScriptOutputFrom tv
+    `filterWithPure` isScriptOutputFrom s
+
+referenceScriptOutputsSearch :: (MonadBlockChain m, ToScriptHash s) => s -> UtxoSearch m (ConcreteOutput Api.Credential Api.OutputDatum Api.Value Api.ScriptHash)
+referenceScriptOutputsSearch s =
+  allUtxosSearch
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isReferenceScriptOutputFrom s
