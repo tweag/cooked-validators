@@ -25,6 +25,9 @@
 - Adding support for `PrettyCooked` for `TxLbl`
 - Module `Wrapper.hs` to expose translation type classes
 - A type class `ToPubKeyHash` to allows direct payments to wallets
+- A type class `ToAddress` to retrieve addresses from various entities
+- Default language extension `ExtendedDefaultRules`
+- New utxos search `vanillaUtxoSearchAt` and `scriptOutputSearch`
 
 ### Removed
 - Extraneous dependencies in package.yaml
