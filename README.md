@@ -111,8 +111,8 @@ nor a ready-to-use recipes book.
 - We also have a
 [repository](https://github.com/tweag/cooked-smart-contracts) of
 example contracts with offchain code and tests written using
-`cooked-validators`. Note that these examples are not maintained and
-thus written with various versions of the tool.
+`cooked-validators`. Note that some examples are not maintained and
+thus written using older versions of cooked-validators.
 
 - Please also look at our
 [issues](https://github.com/tweag/cooked-validators/issues) for
