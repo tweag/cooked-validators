@@ -30,6 +30,8 @@ module Cooked.Output
     isOnlyAdaOutput,
     fromAbstractOutput,
     isReferenceScriptOutputFrom,
+    isStakingCredentialOutputFrom,
+    isEmptyStakingCredentialOutput,
   )
 where
 
@@ -187,6 +189,18 @@ isScriptOutputFrom _ _ = Nothing
 isPKOutputFrom :: (IsTxInfoOutput out) => Api.PubKeyHash -> out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
 isPKOutputFrom pkh out | Api.Address (Api.PubKeyCredential pkh') _ <- outputAddress out, pkh == pkh' = Just $ (fromAbstractOutput out) {concreteOutputOwner = pkh}
 isPKOutputFrom _ _ = Nothing
+
+-- ** Filtering on the staking credential
+
+-- | Test if the given output possesses a certain staking credential
+isStakingCredentialOutputFrom :: (IsTxInfoOutput out, ToCredential cred) => cred -> out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
+isStakingCredentialOutputFrom cred out | Just (Api.StakingHash cred') <- out ^. outputStakingCredentialL, toCredential cred == cred' = Just $ fromAbstractOutput out
+isStakingCredentialOutputFrom _ _ = Nothing
+
+-- | Test if the give output does not possess any staking credential
+isEmptyStakingCredentialOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput (OwnerType out) (DatumType out) (ValueType out) (ReferenceScriptType out))
+isEmptyStakingCredentialOutput out | Nothing <- out ^. outputStakingCredentialL = Just $ fromAbstractOutput out
+isEmptyStakingCredentialOutput _ = Nothing
 
 -- ** Filtering on the value
 
