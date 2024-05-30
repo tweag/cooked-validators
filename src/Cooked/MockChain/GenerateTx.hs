@@ -15,6 +15,7 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Reader
+import Cooked.Conversion.ToScript
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet

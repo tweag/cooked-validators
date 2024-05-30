@@ -24,9 +24,10 @@ module Cooked.MockChain.UtxoSearch
 where
 
 import Control.Monad
+import Cooked.Conversion.ToAddress
+import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.BlockChain
 import Cooked.Output
-import Cooked.Wrappers
 import Data.Maybe
 import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))

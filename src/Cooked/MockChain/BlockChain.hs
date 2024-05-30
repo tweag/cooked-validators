@@ -62,6 +62,9 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
+import Cooked.Conversion.ToCredential
+import Cooked.Conversion.ToOutputDatum
+import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.GenerateTx
 import Cooked.Output
 import Cooked.Skeleton

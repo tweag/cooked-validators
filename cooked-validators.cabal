@@ -18,6 +18,14 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
+      Cooked.Conversion
+      Cooked.Conversion.ToAddress
+      Cooked.Conversion.ToCredential
+      Cooked.Conversion.ToOutputDatum
+      Cooked.Conversion.ToPubKeyHash
+      Cooked.Conversion.ToScript
+      Cooked.Conversion.ToScriptHash
+      Cooked.Conversion.ToValue
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
@@ -50,7 +58,6 @@ library
       Cooked.Validators
       Cooked.ValueUtils
       Cooked.Wallet
-      Cooked.Wrappers
   other-modules:
       Paths_cooked_validators
   autogen-modules:

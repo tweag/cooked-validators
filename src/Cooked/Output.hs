@@ -13,11 +13,6 @@ module Cooked.Output
     outputDatumL,
     outputValueL,
     outputReferenceScriptL,
-    ToCredential (..),
-    ToOutputDatum (..),
-    ToValue (..),
-    ToScript (..),
-    ToScriptHash (..),
     IsTxInfoOutput,
     outputAddress,
     outputOutputDatum,
@@ -38,7 +33,10 @@ module Cooked.Output
   )
 where
 
-import Cooked.Wrappers
+import Cooked.Conversion.ToCredential
+import Cooked.Conversion.ToOutputDatum
+import Cooked.Conversion.ToScriptHash
+import Cooked.Conversion.ToValue
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
