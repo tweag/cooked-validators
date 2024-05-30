@@ -114,7 +114,6 @@ example contracts with offchain code and tests written using
 `cooked-validators`. Note that some examples are not maintained and
 thus written using older versions of cooked-validators.
 
-- Please also look at our
-[issues](https://github.com/tweag/cooked-validators/issues) for
-problems that we're already aware of, and feel free to open new
-issues!
+- Feel free to visit our
+[issue tracker](https://github.com/tweag/cooked-validators/issues) to seek help about
+known problems, or report new issues!
