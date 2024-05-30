@@ -40,7 +40,6 @@ where
 import Cooked.Wrappers
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V2.Tx qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
@@ -179,7 +178,7 @@ isOutputWithDatumHash _ = Nothing
 
 -- | Test if the owner of an output is a specific typed validator. If it is,
 -- return an output with the validator type as its 'OwnerType'.
-isScriptOutputFrom :: (IsTxInfoOutput out) => Script.TypedValidator a -> out -> Maybe (ConcreteOutput (Script.TypedValidator a) (DatumType out) (ValueType out) (ReferenceScriptType out))
+isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
 isScriptOutputFrom validator out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out, scriptHash == toScriptHash validator = Just $ (fromAbstractOutput out) {concreteOutputOwner = validator}
 isScriptOutputFrom _ _ = Nothing
 

@@ -165,7 +165,7 @@ tests =
                             splitMode
                             (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
                             ( \aOref _aRedeemer -> do
-                                bUtxos <- runUtxoSearch $ scriptOutputSearch bValidator
+                                bUtxos <- runUtxoSearch $ scriptOutputsSearch bValidator
                                 if
                                   | aOref == fst aUtxo1 ->
                                       return

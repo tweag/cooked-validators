@@ -188,7 +188,7 @@ estimateTxSkelFee params managedData managedTxOuts managedValidators skel fees c
 -- | Calculates the collateral for a transaction
 getCollateralInputs :: (MonadBlockChainBalancing m) => Wallet -> m (Set Api.TxOutRef)
 getCollateralInputs w = do
-  souts <- runUtxoSearch $ vanillaUtxosAtSearch w
+  souts <- runUtxoSearch $ vanillaOutputsAtSearch w
   case souts of
     [] -> throwError MCENoSuitableCollateral
     -- TODO We only keep one element of the list because we are limited on how

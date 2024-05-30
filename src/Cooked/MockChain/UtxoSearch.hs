@@ -16,9 +16,9 @@ module Cooked.MockChain.UtxoSearch
     filterWithValuePred,
     filterWithOnlyAda,
     filterWithNotOnlyAda,
-    vanillaUtxosAtSearch,
+    vanillaOutputsAtSearch,
     filterWithAlways,
-    scriptOutputSearch,
+    scriptOutputsSearch,
   )
 where
 
@@ -32,7 +32,6 @@ import ListT (ListT (..))
 import ListT qualified
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -116,16 +115,17 @@ filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flatten
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
 
-vanillaUtxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
-vanillaUtxosAtSearch addr =
+-- A vanilla output only possesses an ada-only value
+vanillaOutputsAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
+vanillaOutputsAtSearch addr =
   utxosAtSearch addr
     `filterWithAlways` fromAbstractOutput
     `filterWithPure` isOnlyAdaOutput
     `filterWithPure` isOutputWithoutDatum
     `filterWithPred` (isNothing . view outputReferenceScriptL)
 
-scriptOutputSearch :: (MonadBlockChain m) => Script.TypedValidator a -> UtxoSearch m (ConcreteOutput (Script.TypedValidator a) Api.OutputDatum Api.Value Api.ScriptHash)
-scriptOutputSearch tv =
+scriptOutputsSearch :: (MonadBlockChain m, ToScriptHash s) => s -> UtxoSearch m (ConcreteOutput s Api.OutputDatum Api.Value Api.ScriptHash)
+scriptOutputsSearch tv =
   allUtxosSearch
     `filterWithAlways` fromAbstractOutput
     `filterWithPure` isScriptOutputFrom tv
