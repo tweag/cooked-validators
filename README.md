@@ -106,8 +106,8 @@ intuition of how to do things. Use it to discover or search for how to
 use features of `cooked-validators`. Note that this is not a tutorial
 nor a ready-to-use recipes book.
 
-- The [IMPORTS](doc.IMPORTS.md) file is a nice source of information
-  to understand the dependencies we use and how we name them.
+- The [IMPORTS](doc/IMPORTS.md) file describes and helps
+  to understand our dependencies and naming conventions for imports.
 
 - We also have a
 [repository](https://github.com/tweag/cooked-smart-contracts) of
