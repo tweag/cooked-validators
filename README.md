@@ -12,7 +12,7 @@ In particular, `cooked-validators` allows the user to:
 - interact with smart contracts written in Plutus or any other language
   that compiles to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc),
   like for example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus)
-  or [Aiken](https://aiken-lang.org/), by loading contracts from byte strings.
+  or [Aiken](https://aiken-lang.org/), by loading contracts from byte strings
 - declaratively define transactions in a high level, type-retaining
   data structure, and submitting them for validation, while
   automatically taking care of missing inputs and outputs, balancing,
