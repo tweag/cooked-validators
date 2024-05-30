@@ -63,7 +63,7 @@ the `packages` stanza.
    ```
    where `myTag` is either a commit hash in the repo, or a tag, such as v4.0.0 (see [available releases]{https://github.com/tweag/cooked-validators/releases}).
    
-## An example of usage of `cooked-validators`
+### Example
    
 1. Make your project
    [depend](https://cabal.readthedocs.io/en/stable/getting-started.html#adding-dependencies)
