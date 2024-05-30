@@ -97,8 +97,8 @@ the `packages` stanza.
 
 ## Documentation
 
-- The rendered Haddock for the current `main` branch can be found at
-[https://tweag.github.io/cooked-validators/](https://tweag.github.io/cooked-validators/).
+- The rendered Haddock for the current `main` branch can be found
+  [here](https://tweag.github.io/cooked-validators/).
 
 - The [CHEATSHEET](doc/CHEATSHEET.md) is a nice entry point and helper
 to keep on sight. It contains many code snippets to quickly get an
