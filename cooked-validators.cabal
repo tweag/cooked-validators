@@ -64,6 +64,7 @@ library
       DataKinds
       DerivingStrategies
       DerivingVia
+      ExtendedDefaultRules
       FlexibleContexts
       FlexibleInstances
       GADTs
@@ -85,6 +86,7 @@ library
       TypeFamilies
       TypeOperators
       TypeSynonymInstances
+      ViewPatterns
   ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck
@@ -152,6 +154,7 @@ test-suite spec
   default-extensions:
       ImportQualifiedPost
       DataKinds
+      ExtendedDefaultRules
       FlexibleContexts
       FlexibleInstances
       GADTs

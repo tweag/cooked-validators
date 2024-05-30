@@ -147,7 +147,7 @@ tests =
                   skelIn aInputs =
                     txSkelTemplate
                       { txSkelIns = Map.fromList $ map (second TxSkelRedeemerForScript . swap) aInputs,
-                        txSkelOuts = [paysPK (walletPKHash (wallet 2)) (Script.lovelaceValueOf 2_500_000)],
+                        txSkelOuts = [paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000)],
                         txSkelSigners = [wallet 1]
                       }
 
@@ -165,7 +165,7 @@ tests =
                             splitMode
                             (txSkelInsL % itraversed) -- we know that every 'TxOutRef' in the inputs points to a UTxO that the 'aValidator' owns
                             ( \aOref _aRedeemer -> do
-                                bUtxos <- runUtxoSearch $ allUtxosSearch `filterWithPure` isScriptOutputFrom bValidator
+                                bUtxos <- runUtxoSearch $ scriptOutputSearch bValidator
                                 if
                                   | aOref == fst aUtxo1 ->
                                       return
@@ -225,8 +225,8 @@ tests =
                                   <$> aInputs
                               ),
                         txSkelOuts =
-                          [ paysPK (walletPKHash (wallet 2)) (Script.lovelaceValueOf 2_500_000),
-                            paysPK (walletPKHash (wallet 6)) (foldMap (outputValue . snd . snd) bInputs)
+                          [ paysPK (wallet 2) (Script.lovelaceValueOf 2_500_000),
+                            paysPK (wallet 6) (foldMap (outputValue . snd . snd) bInputs)
                           ],
                         txSkelSigners = [wallet 1]
                       }

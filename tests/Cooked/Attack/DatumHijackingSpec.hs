@@ -65,7 +65,7 @@ txLock :: (MonadBlockChain m) => Script.TypedValidator DHContract -> m ()
 txLock v = do
   (oref, _) : _ <-
     runUtxoSearch $
-      utxosAtSearch (walletAddress $ wallet 1)
+      utxosAtSearch (wallet 1)
         `filterWithPred` ((`Script.geq` lockValue) . outputValue)
   void $ validateTxSkel $ lockTxSkel oref v
 
@@ -85,7 +85,7 @@ txRelock ::
 txRelock v = do
   (oref, _) : _ <-
     runUtxoSearch $
-      utxosAtSearch (Script.validatorAddress v)
+      utxosAtSearch v
         `filterWith` resolveDatum
         `filterWithPure` isOutputWithInlineDatumOfType @LockDatum
         `filterWithPred` ((FirstLock ==) . (^. outputDatumL))
@@ -176,7 +176,7 @@ tests =
             skelOut bound select =
               runTweak
                 ( datumHijackingAttack @DHContract
-                    ( \(ConcreteOutput v _ x d _) ->
+                    ( \(ConcreteOutput v _ d x _) ->
                         Script.validatorHash val1
                           == Script.validatorHash v
                           && d
@@ -204,15 +204,15 @@ tests =
          in [ testCase "no modified transactions if no interesting outputs to steal" $ [] @=? skelOut mempty (const True),
               testCase "one modified transaction for one interesting output" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock) Nothing],
+                    ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing],
                       skelExpected thief val1
                     )
                 ]
                   @=? skelOut x2 (0 ==),
               testCase "two modified transactions for two interesting outputs" $
                 [ Right
-                    ( [ ConcreteOutput val1 Nothing x3 (TxSkelOutInlineDatum SecondLock) Nothing,
-                        ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock) Nothing
+                    ( [ ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x3 Nothing,
+                        ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x2 Nothing
                       ],
                       skelExpected thief thief
                     )
@@ -220,7 +220,7 @@ tests =
                   @=? skelOut x2 (const True),
               testCase "select second interesting output to get one modified transaction" $
                 [ Right
-                    ( [ConcreteOutput val1 Nothing x2 (TxSkelOutInlineDatum SecondLock) Nothing],
+                    ( [ConcreteOutput val1 Nothing (TxSkelOutInlineDatum SecondLock) x2 Nothing],
                       skelExpected val1 thief
                     )
                 ]
@@ -232,7 +232,7 @@ tests =
           (isCekEvaluationFailure def)
           ( somewhere
               ( datumHijackingAttack @DHContract
-                  ( \(ConcreteOutput v _ _ d _) ->
+                  ( \(ConcreteOutput v _ d _ _) ->
                       Script.validatorHash v == Script.validatorHash carefulValidator
                         && d == TxSkelOutInlineDatum SecondLock
                   )
@@ -245,7 +245,7 @@ tests =
           def
           ( somewhere
               ( datumHijackingAttack @DHContract
-                  ( \(ConcreteOutput v _ _ d _) ->
+                  ( \(ConcreteOutput v _ d _ _) ->
                       Script.validatorHash v == Script.validatorHash carelessValidator
                         && d == TxSkelOutInlineDatum SecondLock
                   )

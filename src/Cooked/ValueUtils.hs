@@ -44,14 +44,11 @@ adaL =
   lens
     Script.fromValue
     ( \value (Script.Lovelace amount) ->
-        over
-          flattenValueI
-          (\l -> insertAssocList l adaAssetClass amount)
-          value
+        over flattenValueI (insertAssocList adaAssetClass amount) value
     )
   where
-    insertAssocList :: (Eq a) => [(a, b)] -> a -> b -> [(a, b)]
-    insertAssocList l a b = (a, b) : filter ((/= a) . fst) l
+    insertAssocList :: (Eq a) => a -> b -> [(a, b)] -> [(a, b)]
+    insertAssocList a b l = (a, b) : filter ((/= a) . fst) l
 
 -- * Helpers for manipulating ada and lovelace
 

@@ -35,7 +35,7 @@ dupTokenAttack ::
   m Api.Value
 dupTokenAttack change attacker = do
   totalIncrement <- changeMintAmountsTweak
-  addOutputTweak $ paysPK (walletPKHash attacker) totalIncrement
+  addOutputTweak $ paysPK attacker totalIncrement
   addLabelTweak DupTokenLbl
   return totalIncrement
   where

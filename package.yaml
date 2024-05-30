@@ -54,6 +54,7 @@ library:
     - DataKinds
     - DerivingStrategies
     - DerivingVia
+    - ExtendedDefaultRules
     - FlexibleContexts
     - FlexibleInstances
     - GADTs
@@ -75,6 +76,7 @@ library:
     - TypeFamilies
     - TypeOperators
     - TypeSynonymInstances
+    - ViewPatterns
 
 tests:
   spec:
@@ -87,6 +89,7 @@ tests:
     default-extensions:
       - ImportQualifiedPost
       - DataKinds
+      - ExtendedDefaultRules
       - FlexibleContexts
       - FlexibleInstances
       - GADTs
