@@ -8,7 +8,7 @@ offchain code will be specifically geared to testing and auditing the
 smart contract in question with further builtin capabilities of the
 library.
 
-In particular, `cooked-validators` allows to:
+In particular, `cooked-validators` allows the user to:
 - interact with smart contracts written in Plutus or any other language
   that compiles to [UPLC](https://plutonomicon.github.io/plutonomicon/uplc),
   like for example [Plutarch](https://github.com/Plutonomicon/plutarch-plutus)
