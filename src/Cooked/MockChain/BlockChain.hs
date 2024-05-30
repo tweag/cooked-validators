@@ -231,8 +231,8 @@ resolveDatum out = do
         ConcreteOutput
           (out ^. outputOwnerL)
           (out ^. outputStakingCredentialL)
-          (out ^. outputValueL)
           mDat
+          (out ^. outputValueL)
           (out ^. outputReferenceScriptL)
     )
       <$> mDatum
@@ -257,8 +257,8 @@ resolveTypedDatum out = do
           ConcreteOutput
             (out' ^. outputOwnerL)
             (out' ^. outputStakingCredentialL)
-            (out' ^. outputValueL)
             dat
+            (out' ^. outputValueL)
             (out' ^. outputReferenceScriptL)
     )
       =<< mOut
@@ -283,8 +283,8 @@ resolveValidator out =
             ConcreteOutput
               val
               (out ^. outputStakingCredentialL)
-              (out ^. outputValueL)
               (out ^. outputDatumL)
+              (out ^. outputValueL)
               (out ^. outputReferenceScriptL)
         )
           <$> mVal
@@ -307,8 +307,8 @@ resolveReferenceScript out =
             ConcreteOutput
               (out ^. outputOwnerL)
               (out ^. outputStakingCredentialL)
-              (out ^. outputValueL)
               (out ^. outputDatumL)
+              (out ^. outputValueL)
               . Just
               <$> mVal
         )

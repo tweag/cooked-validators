@@ -8,8 +8,8 @@ module Cooked.InitialDistribution
 where
 
 import Cooked.Skeleton
-import Cooked.ValueUtils
 import Cooked.Wallet
+import Cooked.Wrappers
 import Data.Default
 import Data.List
 import PlutusLedgerApi.V3 qualified as Api
@@ -36,7 +36,7 @@ newtype InitialDistribution = InitialDistribution {unInitialDistribution :: [TxS
 
 -- | 5 UTxOs with 100 Ada each, for each of the 'knownWallets'
 instance Default InitialDistribution where
-  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ ada 100
+  def = distributionFromList . zip knownWallets . repeat . replicate 5 $ toValue @Integer 100
 
 instance Semigroup InitialDistribution where
   i <> j = InitialDistribution $ unInitialDistribution i <> unInitialDistribution j
@@ -46,4 +46,4 @@ instance Monoid InitialDistribution where
 
 -- | Creating a initial distribution with simple values assigned to wallets
 distributionFromList :: [(Wallet, [Api.Value])] -> InitialDistribution
-distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK (walletPKHash user)) values) []
+distributionFromList = InitialDistribution . foldl' (\x (user, values) -> x <> map (paysPK user) values) []
