@@ -24,7 +24,7 @@
 - `validatorToTypedValidator` which does what its name indicates
 - Adding support for `PrettyCooked` for `TxLbl`
 - Module `Wrapper.hs` to expose translation type classes
-- A type class `ToPubKeyHash` to allows direct payments to wallets
+- A type class `ToPubKeyHash` to allow direct payments to wallets
 - A type class `ToAddress` to retrieve addresses from various entities
 - Default language extension `ExtendedDefaultRules`
 - New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`
