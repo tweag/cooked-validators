@@ -61,7 +61,7 @@ the `packages` stanza.
    ```
    where `myTag` is either a commit hash in the repo, or a tag, such as v4.0.0
    (see [available
-   releases]{https://github.com/tweag/cooked-validators/releases}).
+   releases](https://github.com/tweag/cooked-validators/releases)).
    
 ### Example
    
