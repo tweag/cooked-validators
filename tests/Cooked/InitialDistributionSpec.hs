@@ -15,7 +15,7 @@ bob = wallet 2
 -- | An initial distribution where alice owns a UTxO with a datum of
 -- type Int and value 10 for each datum kind
 initialDistributionWithDatum =
-  InitialDistribution $ [withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (ada 2)] <*> [10]
+  InitialDistribution $ [withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (ada 2)] <*> [10 :: Integer]
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
