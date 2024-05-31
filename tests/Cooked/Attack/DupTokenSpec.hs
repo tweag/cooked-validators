@@ -55,7 +55,7 @@ dupTokenTrace pol tName amount recipient = void $ validateTxSkel skel
        in txSkelTemplate
             { txSkelOpts = def {txOptEnsureMinAda = True},
               txSkelMints = mints,
-              txSkelOuts = [paysPK (walletPKHash recipient) mintedValue],
+              txSkelOuts = [paysPK recipient mintedValue],
               txSkelSigners = [wallet 3]
             }
 
@@ -79,8 +79,8 @@ tests =
                         (pol2, NoMintsRedeemer, tName2, 7)
                       ],
                   txSkelOuts =
-                    [ paysPK (walletPKHash (wallet 1)) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
-                      paysPK (walletPKHash (wallet 2)) (Script.assetClassValue ac2 2)
+                    [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
+                      paysPK (wallet 2) (Script.assetClassValue ac2 2)
                     ],
                   txSkelSigners = [wallet 3]
                 }
@@ -97,9 +97,9 @@ tests =
                                   (pol2, NoMintsRedeemer, tName2, v2)
                                 ],
                             txSkelOuts =
-                              [ paysPK (walletPKHash (wallet 1)) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
-                                paysPK (walletPKHash (wallet 2)) (Script.assetClassValue ac2 2),
-                                paysPK (walletPKHash attacker) increment
+                              [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.lovelaceValueOf 1234),
+                                paysPK (wallet 2) (Script.assetClassValue ac2 2),
+                                paysPK attacker increment
                               ],
                             txSkelSigners = [wallet 3]
                           }
@@ -138,11 +138,7 @@ tests =
             skelIn =
               txSkelTemplate
                 { txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, 1)],
-                  txSkelOuts =
-                    [ paysPK
-                        (walletPKHash (wallet 1))
-                        (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)
-                    ],
+                  txSkelOuts = [paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2)],
                   txSkelSigners = [wallet 2]
                 }
             skelExpected =
@@ -152,12 +148,8 @@ tests =
                       { txSkelLabel = Set.singleton $ TxLabel DupTokenLbl,
                         txSkelMints = txSkelMintsFromList [(pol, NoMintsRedeemer, tName1, 2)],
                         txSkelOuts =
-                          [ paysPK
-                              (walletPKHash (wallet 1))
-                              (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
-                            paysPK
-                              (walletPKHash attacker)
-                              (Script.assetClassValue ac1 1)
+                          [ paysPK (wallet 1) (Script.assetClassValue ac1 1 <> Script.assetClassValue ac2 2),
+                            paysPK attacker (Script.assetClassValue ac1 1)
                           ],
                         txSkelSigners = [wallet 2]
                       }

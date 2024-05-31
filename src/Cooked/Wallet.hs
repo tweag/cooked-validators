@@ -64,7 +64,7 @@ wallet j
 -- | Retrieves the id of the known wallet that corresponds to a public key hash
 --
 -- @walletPKHashToId (walletPKHash (wallet 3)) == Just 3@
-walletPKHashToId :: Ledger.PubKeyHash -> Maybe Int
+walletPKHashToId :: Api.PubKeyHash -> Maybe Int
 walletPKHashToId = (succ <$>) . flip elemIndex (walletPKHash <$> knownWallets)
 
 -- | Retrieves a wallet public key (PK)
@@ -76,22 +76,22 @@ walletStakingPK :: Wallet -> Maybe Ledger.PubKey
 walletStakingPK = fmap Ledger.toPublicKey . walletStakingSK
 
 -- | Retrieves a wallet's public key hash
-walletPKHash :: Wallet -> Ledger.PubKeyHash
+walletPKHash :: Wallet -> Api.PubKeyHash
 walletPKHash = Ledger.pubKeyHash . walletPK
 
 -- | Retrieves a wallet's public staking key hash, if any
-walletStakingPKHash :: Wallet -> Maybe Ledger.PubKeyHash
+walletStakingPKHash :: Wallet -> Maybe Api.PubKeyHash
 walletStakingPKHash = fmap Ledger.pubKeyHash . walletStakingPK
 
 -- | Retrieves a wallet's address
-walletAddress :: Wallet -> Ledger.Address
+walletAddress :: Wallet -> Api.Address
 walletAddress w =
-  Ledger.Address
+  Api.Address
     (Api.PubKeyCredential $ walletPKHash w)
     (Api.StakingHash . Api.PubKeyCredential <$> walletStakingPKHash w)
 
 -- | Retrieves a wallet private key (secret key SK)
-walletSK :: Ledger.MockWallet -> PrivateKey
+walletSK :: Wallet -> PrivateKey
 walletSK = Ledger.unPaymentPrivateKey . Ledger.paymentPrivateKey
 
 -- FIXME Massive hack to be able to open a 'MockPrivateKey'; this is needed

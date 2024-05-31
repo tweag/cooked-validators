@@ -16,15 +16,24 @@ module Cooked.MockChain.UtxoSearch
     filterWithValuePred,
     filterWithOnlyAda,
     filterWithNotOnlyAda,
+    vanillaOutputsAtSearch,
+    filterWithAlways,
+    scriptOutputsSearch,
+    referenceScriptOutputsSearch,
   )
 where
 
 import Control.Monad
+import Cooked.Conversion.ToAddress
+import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.BlockChain
+import Cooked.Output
+import Data.Maybe
 import Ledger.Tx qualified as Ledger
 import ListT (ListT (..))
 import ListT qualified
 import Optics.Core
+import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 
@@ -50,13 +59,13 @@ allUtxosLedgerSearch = allUtxosLedger >>= ListT.fromFoldable
 
 -- | Search all 'TxOutRef's at a certain address, together with their
 -- 'TxInfo'-'TxOut'.
-utxosAtSearch :: (MonadBlockChainBalancing m) => Api.Address -> UtxoSearch m Api.TxOut
-utxosAtSearch = utxosAt >=> ListT.fromFoldable
+utxosAtSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Api.TxOut
+utxosAtSearch = utxosAt . toAddress >=> ListT.fromFoldable
 
 -- | Like 'utxosAtSearch', but returns a Ledger-level representation of the
 -- transaction outputs, which might contain more information.
-utxosAtLedgerSearch :: (MonadBlockChainBalancing m) => Api.Address -> UtxoSearch m Ledger.TxOut
-utxosAtLedgerSearch = utxosAtLedger >=> ListT.fromFoldable
+utxosAtLedgerSearch :: (MonadBlockChainBalancing m, ToAddress addr) => addr -> UtxoSearch m Ledger.TxOut
+utxosAtLedgerSearch = utxosAtLedger . toAddress >=> ListT.fromFoldable
 
 -- | Search all 'TxOutRef's of a transaction, together with their
 -- 'TxInfo'-'TxOut'.
@@ -89,6 +98,9 @@ filterWith (ListT as) f =
 filterWithPure :: (Monad m) => UtxoSearch m a -> (a -> Maybe b) -> UtxoSearch m b
 filterWithPure as f = filterWith as (return . f)
 
+filterWithAlways :: (Monad m) => UtxoSearch m a -> (a -> b) -> UtxoSearch m b
+filterWithAlways as f = filterWithPure as (Just . f)
+
 filterWithOptic :: (Is k An_AffineFold, Monad m) => UtxoSearch m a -> Optic' k is a b -> UtxoSearch m b
 filterWithOptic as optic = filterWithPure as (^? optic)
 
@@ -104,3 +116,36 @@ filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flatten
 
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
+
+-- A vanilla output only possesses an ada-only value and does not have a staking
+-- credential, a datum or a reference script. A vanilla UTxO is a perfect
+-- candidate to be used for fee, balancing or collateral.
+vanillaOutputsAtSearch ::
+  (MonadBlockChainBalancing m, ToAddress addr) =>
+  addr ->
+  UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
+vanillaOutputsAtSearch addr =
+  utxosAtSearch addr
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isOnlyAdaOutput
+    `filterWithPure` isOutputWithoutDatum
+    `filterWithPure` isEmptyStakingCredentialOutput
+    `filterWithPred` (isNothing . view outputReferenceScriptL)
+
+scriptOutputsSearch ::
+  (MonadBlockChain m, ToScriptHash s) =>
+  s ->
+  UtxoSearch m (ConcreteOutput s Api.OutputDatum Api.Value Api.ScriptHash)
+scriptOutputsSearch s =
+  allUtxosSearch
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isScriptOutputFrom s
+
+referenceScriptOutputsSearch ::
+  (MonadBlockChain m, ToScriptHash s) =>
+  s ->
+  UtxoSearch m (ConcreteOutput Api.Credential Api.OutputDatum Api.Value Api.ScriptHash)
+referenceScriptOutputsSearch s =
+  allUtxosSearch
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isReferenceScriptOutputFrom s

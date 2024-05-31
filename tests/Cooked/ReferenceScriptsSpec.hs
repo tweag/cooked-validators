@@ -64,16 +64,11 @@ putRefScriptOnWalletOutput ::
   Script.TypedValidator MockContract ->
   m Api.TxOutRef
 putRefScriptOnWalletOutput recipient referencedScript =
-  fst . head . utxosFromCardanoTx
-    <$> validateTxSkel
+  head
+    <$> validateTxSkel'
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts =
-            [ paysPK
-                (walletPKHash recipient)
-                (Script.lovelaceValueOf 1)
-                `withReferenceScript` referencedScript
-            ],
+          txSkelOuts = [paysPK recipient (Script.lovelaceValueOf 1) `withReferenceScript` referencedScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -83,17 +78,11 @@ putRefScriptOnScriptOutput ::
   Script.TypedValidator MockContract ->
   m Api.TxOutRef
 putRefScriptOnScriptOutput recipient referencedScript =
-  fst . head . utxosFromCardanoTx
-    <$> validateTxSkel
+  head
+    <$> validateTxSkel'
       txSkelTemplate
         { txSkelOpts = def {txOptEnsureMinAda = True},
-          txSkelOuts =
-            [ paysScript
-                recipient
-                ()
-                (Script.lovelaceValueOf 1)
-                `withReferenceScript` referencedScript
-            ],
+          txSkelOuts = [paysScript recipient () (Script.lovelaceValueOf 1) `withReferenceScript` referencedScript],
           txSkelSigners = [wallet 1]
         }
 
@@ -106,18 +95,12 @@ checkReferenceScriptOnOref ::
   Api.TxOutRef ->
   m ()
 checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
-  (oref, _) : _ <-
-    utxosFromCardanoTx
-      <$> validateTxSkel
-        txSkelTemplate
-          { txSkelOuts =
-              [ paysScript
-                  (requireRefScriptValidator (expectedScriptHash, "there is no reference input with the correct script hash"))
-                  ()
-                  (Script.lovelaceValueOf 42_000_000)
-              ],
-            txSkelSigners = [wallet 1]
-          }
+  oref : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelOuts = [paysScript (requireRefScriptValidator (expectedScriptHash, "there is no reference input with the correct script hash")) () (ada 42)],
+          txSkelSigners = [wallet 1]
+        }
   void $
     validateTxSkel
       txSkelTemplate
@@ -129,18 +112,12 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
 useReferenceScript :: (MonadBlockChain m) => Wallet -> Script.TypedValidator MockContract -> m ()
 useReferenceScript spendingSubmitter theScript = do
   scriptOref <- putRefScriptOnWalletOutput (wallet 3) theScript
-  (oref, _) : _ <-
-    utxosFromCardanoTx
-      <$> validateTxSkel
-        txSkelTemplate
-          { txSkelOuts =
-              [ paysScript
-                  theScript
-                  ()
-                  (Script.lovelaceValueOf 42_000_000)
-              ],
-            txSkelSigners = [wallet 1]
-          }
+  oref : _ <-
+    validateTxSkel'
+      txSkelTemplate
+        { txSkelOuts = [paysScript theScript () (ada 42)],
+          txSkelSigners = [wallet 1]
+        }
   void $
     validateTxSkel
       txSkelTemplate
@@ -217,21 +194,15 @@ tests =
             $ do
               (consumedOref, _) : _ <-
                 runUtxoSearch $
-                  utxosAtSearch (walletAddress $ wallet 1)
+                  utxosAtSearch (wallet 1)
                     `filterWithPred` ((`Script.geq` Script.lovelaceValueOf 42_000_000) . outputValue)
-              (oref, _) : _ <-
-                utxosFromCardanoTx
-                  <$> validateTxSkel
-                    txSkelTemplate
-                      { txSkelOuts =
-                          [ paysScript
-                              (alwaysTrueValidator @MockContract)
-                              ()
-                              (Script.lovelaceValueOf 42_000_000)
-                          ],
-                        txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
-                        txSkelSigners = [wallet 1]
-                      }
+              oref : _ <-
+                validateTxSkel'
+                  txSkelTemplate
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                      txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
+                      txSkelSigners = [wallet 1]
+                    }
               void $
                 validateTxSkel
                   txSkelTemplate
@@ -250,18 +221,12 @@ tests =
                   def
                   $ do
                     scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
-                    (oref, _) : _ <-
-                      utxosFromCardanoTx
-                        <$> validateTxSkel
-                          txSkelTemplate
-                            { txSkelOuts =
-                                [ paysScript
-                                    (alwaysTrueValidator @MockContract)
-                                    ()
-                                    (Script.lovelaceValueOf 42_000_000)
-                                ],
-                              txSkelSigners = [wallet 1]
-                            }
+                    oref : _ <-
+                      validateTxSkel'
+                        txSkelTemplate
+                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                            txSkelSigners = [wallet 1]
+                          }
                     void $
                       validateTxSkel
                         txSkelTemplate
@@ -279,18 +244,12 @@ tests =
               def
             $ do
               scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysTrueValidator
-              (oref, _) : _ <-
-                utxosFromCardanoTx
-                  <$> validateTxSkel
-                    txSkelTemplate
-                      { txSkelOuts =
-                          [ paysScript
-                              (alwaysTrueValidator @MockContract)
-                              ()
-                              (Script.lovelaceValueOf 42_000_000)
-                          ],
-                        txSkelSigners = [wallet 1]
-                      }
+              oref : _ <-
+                validateTxSkel'
+                  txSkelTemplate
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                      txSkelSigners = [wallet 1]
+                    }
               void $
                 validateTxSkel
                   txSkelTemplate

@@ -20,7 +20,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK (walletPKHash recipient) (ada amount)],
+        { txSkelOuts = [paysPK (recipient) (ada amount)],
           txSkelSigners = [sender]
         }
 
@@ -37,34 +37,29 @@ mintingQuickValue =
     validateTxSkel $
       txSkelTemplate
         { txSkelMints = txSkelMintsFromList [(Script.Versioned quickCurrencyPolicy Script.PlutusV3, NoMintsRedeemer, "banana", 10)],
-          txSkelOuts = [paysPK (walletPKHash alice) (quickValue "banana" 10)],
+          txSkelOuts = [paysPK alice (quickValue "banana" 10)],
           txSkelSigners = [alice],
           txSkelOpts = def {txOptEnsureMinAda = True}
         }
 
-payToAlwaysTrueValidator :: (MonadBlockChain m) => m (Api.TxOutRef, Api.TxOut)
-payToAlwaysTrueValidator = do
-  tx <-
-    validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts =
-            [ paysScript
-                (alwaysTrueValidator @MockContract)
-                ()
-                (ada 10)
-            ],
-          txSkelSigners = [alice]
-        }
-  return $ head $ utxosFromCardanoTx tx
+payToAlwaysTrueValidator :: (MonadBlockChain m) => m Api.TxOutRef
+payToAlwaysTrueValidator =
+  head
+    <$> ( validateTxSkel' $
+            txSkelTemplate
+              { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 10)],
+                txSkelSigners = [alice]
+              }
+        )
 
 consumeAlwaysTrueValidator :: (MonadBlockChain m) => m ()
 consumeAlwaysTrueValidator = do
-  (outref, out) <- payToAlwaysTrueValidator
+  outref <- payToAlwaysTrueValidator
   void $
     validateTxSkel $
       txSkelTemplate
         { txSkelIns = Map.fromList [(outref, TxSkelRedeemerForScript ())],
-          txSkelOuts = [paysPK (walletPKHash alice) (ada 10)],
+          txSkelOuts = [paysPK alice (ada 10)],
           txSkelSigners = [alice]
         }
 

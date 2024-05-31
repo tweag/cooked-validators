@@ -10,7 +10,7 @@ import Data.Map qualified as Map
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.Numeric qualified as ScriptutusTx
+import PlutusTx.Numeric qualified as PlutusTx
 
 -- | This attack adds extra tokens, depending on the minting policy. It is
 -- different from the 'dupTokenAttack' in that it does not merely try to
@@ -44,13 +44,11 @@ addTokenAttack extraTokens attacker = do
             map
               ( \(tName, amount) ->
                   let newMints = addToTxSkelMints (policy, redeemer, tName, amount) oldMints
-                      increment =
-                        txSkelMintsValue newMints
-                          <> ScriptutusTx.negate (txSkelMintsValue oldMints)
+                      increment = txSkelMintsValue newMints <> PlutusTx.negate (txSkelMintsValue oldMints)
                    in if increment `Script.geq` mempty
                         then do
                           setTweak txSkelMintsL newMints
-                          addOutputTweak $ paysPK (walletPKHash attacker) increment
+                          addOutputTweak $ paysPK attacker increment
                           return increment
                         else failingTweak
               )

@@ -18,6 +18,14 @@ library
       Cooked.Attack.DatumHijacking
       Cooked.Attack.DoubleSat
       Cooked.Attack.DupToken
+      Cooked.Conversion
+      Cooked.Conversion.ToAddress
+      Cooked.Conversion.ToCredential
+      Cooked.Conversion.ToOutputDatum
+      Cooked.Conversion.ToPubKeyHash
+      Cooked.Conversion.ToScript
+      Cooked.Conversion.ToScriptHash
+      Cooked.Conversion.ToValue
       Cooked.Currencies
       Cooked.InitialDistribution
       Cooked.Ltl
@@ -84,6 +92,7 @@ library
       TypeFamilies
       TypeOperators
       TypeSynonymInstances
+      ViewPatterns
   ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors
   build-depends:
       QuickCheck

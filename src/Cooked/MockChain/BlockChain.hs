@@ -62,6 +62,9 @@ import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
+import Cooked.Conversion.ToCredential
+import Cooked.Conversion.ToOutputDatum
+import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.GenerateTx
 import Cooked.Output
 import Cooked.Skeleton
@@ -231,8 +234,8 @@ resolveDatum out = do
         ConcreteOutput
           (out ^. outputOwnerL)
           (out ^. outputStakingCredentialL)
-          (out ^. outputValueL)
           mDat
+          (out ^. outputValueL)
           (out ^. outputReferenceScriptL)
     )
       <$> mDatum
@@ -257,8 +260,8 @@ resolveTypedDatum out = do
           ConcreteOutput
             (out' ^. outputOwnerL)
             (out' ^. outputStakingCredentialL)
-            (out' ^. outputValueL)
             dat
+            (out' ^. outputValueL)
             (out' ^. outputReferenceScriptL)
     )
       =<< mOut
@@ -283,8 +286,8 @@ resolveValidator out =
             ConcreteOutput
               val
               (out ^. outputStakingCredentialL)
-              (out ^. outputValueL)
               (out ^. outputDatumL)
+              (out ^. outputValueL)
               (out ^. outputReferenceScriptL)
         )
           <$> mVal
@@ -307,8 +310,8 @@ resolveReferenceScript out =
             ConcreteOutput
               (out ^. outputOwnerL)
               (out ^. outputStakingCredentialL)
-              (out ^. outputValueL)
               (out ^. outputDatumL)
+              (out ^. outputValueL)
               . Just
               <$> mVal
         )

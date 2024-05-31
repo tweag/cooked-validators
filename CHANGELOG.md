@@ -23,6 +23,11 @@
   context within on-chain code
 - `validatorToTypedValidator` which does what its name indicates
 - Adding support for `PrettyCooked` for `TxLbl`
+- Module `Wrapper.hs` to expose translation type classes
+- A type class `ToPubKeyHash` to allow direct payments to wallets
+- A type class `ToAddress` to retrieve addresses from various entities
+- New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`
+  and `referenceScriptOutputsSearch`
 
 ### Removed
 - Extraneous dependencies in package.yaml
@@ -39,7 +44,7 @@
 - Default era from Babbage to Conway
 - No longer rely on deprecated plutus-apps, but instead
   [cardano-node-emulator](https://github.com/IntersectMBO/cardano-node-emulator)
-- From GHC 8.10.4 to 9.6.3
+- From GHC 8.10.4 to 9.6.5 and associated versions of HLS
 - Rely mostly on
   [CHaP](https://github.com/IntersectMBO/cardano-haskell-packages?tab=readme-ov-file)
   instead of direct git sources
