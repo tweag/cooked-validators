@@ -47,6 +47,7 @@ library:
     -fno-ignore-interface-pragmas
     -fignore-hpc-changes
     -fno-omit-interface-pragmas
+    -fplugin-opt PlutusTx.Plugin:defer-errors
     -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   default-extensions:
     - ImportQualifiedPost
