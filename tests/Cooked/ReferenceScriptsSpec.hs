@@ -8,7 +8,6 @@ import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
-import Ledger.Index qualified as Pl
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -17,7 +16,6 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
-import Prettyprinter qualified as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 
