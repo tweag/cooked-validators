@@ -94,9 +94,7 @@ library
       TypeOperators
       TypeSynonymInstances
       ViewPatterns
-
-  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors,preserve-logging
-
+  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:
       QuickCheck
     , base >=4.9 && <5
@@ -179,7 +177,7 @@ test-suite spec
       TypeApplications
       TypeFamilies
       ViewPatterns
-  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors,preserve-logging
+  ghc-options: -Wall -Wno-missed-extra-shared-lib -fobject-code -fno-ignore-interface-pragmas -fignore-hpc-changes -fno-omit-interface-pragmas -fplugin-opt PlutusTx.Plugin:defer-errors -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   build-depends:
       QuickCheck
     , base >=4.9 && <5
