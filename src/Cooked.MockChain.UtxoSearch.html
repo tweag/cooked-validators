@@ -16,37 +16,46 @@
 </span><span id="line-16"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier">filterWithValuePred</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-17"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithOnlyAda"><span class="hs-identifier">filterWithOnlyAda</span></a></span><span class="hs-special">,</span><span>
 </span><span id="line-18"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithNotOnlyAda"><span class="hs-identifier">filterWithNotOnlyAda</span></a></span><span class="hs-special">,</span><span>
-</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span>
-</span><span id="line-20"></span><span class="hs-keyword">where</span><span>
-</span><span id="line-21"></span><span>
-</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
-</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html"><span class="hs-identifier">Cooked.MockChain.BlockChain</span></a></span><span>
-</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
-</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
-</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-keyword">qualified</span><span>
-</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
-</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
-</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
-</span><span id="line-30"></span><span>
-</span><span id="line-31"></span><span class="annot"><span class="hs-comment">-- * The type of UTxO searches</span></span><span>
-</span><span id="line-32"></span><span>
-</span><span id="line-33"></span><span class="hs-comment">-- | If a UTxO is a 'TxOutRef' with some additional information, this type</span><span>
-</span><span id="line-34"></span><span class="hs-comment">-- captures a &quot;stream&quot; of UTxOs.</span><span>
-</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span id="UtxoSearch"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-var">UtxoSearch</span></a></span></span><span> </span><span id="local-6989586621679696529"><span class="annot"><a href="#local-6989586621679696529"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679696530"><span class="annot"><a href="#local-6989586621679696530"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span class="annot"><a href="#local-6989586621679696529"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679696530"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-36"></span><span>
-</span><span id="line-37"></span><span class="annot"><span class="hs-comment">-- | Given a UTxO search, we can run it to obtain a list of UTxOs.</span></span><span>
-</span><span id="line-38"></span><span id="local-6989586621679696408"><span id="local-6989586621679696409"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#runUtxoSearch"><span class="hs-identifier hs-type">runUtxoSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696408"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696408"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696409"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679696408"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679696409"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
-</span><span id="line-39"></span><span id="runUtxoSearch"><span class="annot"><span class="annottext">runUtxoSearch :: forall (m :: * -&gt; *) a.
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#vanillaOutputsAtSearch"><span class="hs-identifier">vanillaOutputsAtSearch</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-identifier">filterWithAlways</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#scriptOutputsSearch"><span class="hs-identifier">scriptOutputsSearch</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#referenceScriptOutputsSearch"><span class="hs-identifier">referenceScriptOutputsSearch</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToAddress.html"><span class="hs-identifier">Cooked.Conversion.ToAddress</span></a></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToScriptHash.html"><span class="hs-identifier">Cooked.Conversion.ToScriptHash</span></a></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.MockChain.BlockChain.html"><span class="hs-identifier">Cooked.MockChain.BlockChain</span></a></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Cooked.Output.html"><span class="hs-identifier">Cooked.Output</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Ledger.Tx</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Ledger</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">ListT</span></span><span> </span><span class="hs-keyword">qualified</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Optics.Core</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Ada</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Plutus.Script.Utils.Value</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Script</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">PlutusLedgerApi.V3</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Api</span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="annot"><span class="hs-comment">-- * The type of UTxO searches</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | If a UTxO is a 'TxOutRef' with some additional information, this type</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- captures a &quot;stream&quot; of UTxOs.</span><span>
+</span><span id="line-44"></span><span class="hs-keyword">type</span><span> </span><span id="UtxoSearch"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-var">UtxoSearch</span></a></span></span><span> </span><span id="local-6989586621679698978"><span class="annot"><a href="#local-6989586621679698978"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span id="local-6989586621679698979"><span class="annot"><a href="#local-6989586621679698979"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span class="annot"><a href="#local-6989586621679698978"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679698979"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="annot"><span class="hs-comment">-- | Given a UTxO search, we can run it to obtain a list of UTxOs.</span></span><span>
+</span><span id="line-47"></span><span id="local-6989586621679698788"><span id="local-6989586621679698789"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#runUtxoSearch"><span class="hs-identifier hs-type">runUtxoSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698788"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698788"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698789"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679698788"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679698789"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span></span><span>
+</span><span id="line-48"></span><span id="runUtxoSearch"><span class="annot"><span class="annottext">runUtxoSearch :: forall (m :: * -&gt; *) a.
 Monad m =&gt;
 UtxoSearch m a -&gt; m [(TxOutRef, a)]
 </span><a href="Cooked.MockChain.UtxoSearch.html#runUtxoSearch"><span class="hs-identifier hs-var hs-var">runUtxoSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, a) -&gt; m [(TxOutRef, a)]
 forall (m :: * -&gt; *) a. Monad m =&gt; ListT m a -&gt; m [a]
 </span><span class="hs-identifier hs-var">ListT.toList</span></span><span>
-</span><span id="line-40"></span><span>
-</span><span id="line-41"></span><span class="hs-comment">-- | Search all currently known 'TxOutRef's together with their corresponding</span><span>
-</span><span id="line-42"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
-</span><span id="line-43"></span><span id="local-6989586621679696417"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-type">allUtxosSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696417"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696417"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
-</span><span id="line-44"></span><span id="allUtxosSearch"><span class="annot"><span class="annottext">allUtxosSearch :: forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | Search all currently known 'TxOutRef's together with their corresponding</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
+</span><span id="line-52"></span><span id="local-6989586621679698797"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-type">allUtxosSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698797"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698797"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
+</span><span id="line-53"></span><span id="allUtxosSearch"><span class="annot"><span class="annottext">allUtxosSearch :: forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
 </span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-var hs-var">allUtxosSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ListT m [(TxOutRef, TxOut)]
 forall (m :: * -&gt; *).
 MonadBlockChainWithoutValidation m =&gt;
@@ -61,11 +70,11 @@ forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
 f a -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT.fromFoldable</span></span><span>
-</span><span id="line-45"></span><span>
-</span><span id="line-46"></span><span class="hs-comment">-- | Like 'allUtxosSearch', but returns a Ledger-level representation of the</span><span>
-</span><span id="line-47"></span><span class="hs-comment">-- transaction outputs, which might contain more information.</span><span>
-</span><span id="line-48"></span><span id="local-6989586621679696436"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#allUtxosLedgerSearch"><span class="hs-identifier hs-type">allUtxosLedgerSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696436"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696436"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOut</span></span></span><span>
-</span><span id="line-49"></span><span id="allUtxosLedgerSearch"><span class="annot"><span class="annottext">allUtxosLedgerSearch :: forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- | Like 'allUtxosSearch', but returns a Ledger-level representation of the</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- transaction outputs, which might contain more information.</span><span>
+</span><span id="line-57"></span><span id="local-6989586621679698816"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#allUtxosLedgerSearch"><span class="hs-identifier hs-type">allUtxosLedgerSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698816"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698816"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOut</span></span></span><span>
+</span><span id="line-58"></span><span id="allUtxosLedgerSearch"><span class="annot"><span class="annottext">allUtxosLedgerSearch :: forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
 </span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosLedgerSearch"><span class="hs-identifier hs-var hs-var">allUtxosLedgerSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ListT m [(TxOutRef, TxOut)]
 forall (m :: * -&gt; *).
 MonadBlockChainWithoutValidation m =&gt;
@@ -80,20 +89,25 @@ forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
 f a -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT.fromFoldable</span></span><span>
-</span><span id="line-50"></span><span>
-</span><span id="line-51"></span><span class="hs-comment">-- | Search all 'TxOutRef's at a certain address, together with their</span><span>
-</span><span id="line-52"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
-</span><span id="line-53"></span><span id="local-6989586621679696439"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosAtSearch"><span class="hs-identifier hs-type">utxosAtSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696439"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696439"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
-</span><span id="line-54"></span><span id="utxosAtSearch"><span class="annot"><span class="annottext">utxosAtSearch :: forall (m :: * -&gt; *).
-MonadBlockChainBalancing m =&gt;
-Address -&gt; UtxoSearch m TxOut
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | Search all 'TxOutRef's at a certain address, together with their</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
+</span><span id="line-62"></span><span id="local-6989586621679698819"><span id="local-6989586621679698820"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosAtSearch"><span class="hs-identifier hs-type">utxosAtSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698819"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToAddress.html#ToAddress"><span class="hs-identifier hs-type">ToAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698820"><span class="hs-identifier hs-type">addr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679698820"><span class="hs-identifier hs-type">addr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698819"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span></span><span>
+</span><span id="line-63"></span><span id="utxosAtSearch"><span class="annot"><span class="annottext">utxosAtSearch :: forall (m :: * -&gt; *) addr.
+(MonadBlockChainBalancing m, ToAddress addr) =&gt;
+addr -&gt; UtxoSearch m TxOut
 </span><a href="Cooked.MockChain.UtxoSearch.html#utxosAtSearch"><span class="hs-identifier hs-var hs-var">utxosAtSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; ListT m [(TxOutRef, TxOut)]
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 Address -&gt; m [(TxOutRef, TxOut)]
 </span><a href="Cooked.MockChain.BlockChain.html#utxosAt"><span class="hs-identifier hs-var">utxosAt</span></a></span><span> </span><span class="annot"><span class="annottext">(Address -&gt; ListT m [(TxOutRef, TxOut)])
+-&gt; (addr -&gt; Address) -&gt; addr -&gt; ListT m [(TxOutRef, TxOut)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">addr -&gt; Address
+forall a. ToAddress a =&gt; a -&gt; Address
+</span><a href="Cooked.Conversion.ToAddress.html#toAddress"><span class="hs-identifier hs-var">toAddress</span></a></span><span> </span><span class="annot"><span class="annottext">(addr -&gt; ListT m [(TxOutRef, TxOut)])
 -&gt; ([(TxOutRef, TxOut)] -&gt; ListT m (TxOutRef, TxOut))
--&gt; Address
+-&gt; addr
 -&gt; ListT m (TxOutRef, TxOut)
 forall (m :: * -&gt; *) a b c.
 Monad m =&gt;
@@ -103,20 +117,25 @@ forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
 f a -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT.fromFoldable</span></span><span>
-</span><span id="line-55"></span><span>
-</span><span id="line-56"></span><span class="hs-comment">-- | Like 'utxosAtSearch', but returns a Ledger-level representation of the</span><span>
-</span><span id="line-57"></span><span class="hs-comment">-- transaction outputs, which might contain more information.</span><span>
-</span><span id="line-58"></span><span id="local-6989586621679696448"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosAtLedgerSearch"><span class="hs-identifier hs-type">utxosAtLedgerSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696448"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Address</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696448"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOut</span></span></span><span>
-</span><span id="line-59"></span><span id="utxosAtLedgerSearch"><span class="annot"><span class="annottext">utxosAtLedgerSearch :: forall (m :: * -&gt; *).
-MonadBlockChainBalancing m =&gt;
-Address -&gt; UtxoSearch m TxOut
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- | Like 'utxosAtSearch', but returns a Ledger-level representation of the</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- transaction outputs, which might contain more information.</span><span>
+</span><span id="line-67"></span><span id="local-6989586621679698835"><span id="local-6989586621679698836"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosAtLedgerSearch"><span class="hs-identifier hs-type">utxosAtLedgerSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698835"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToAddress.html#ToAddress"><span class="hs-identifier hs-type">ToAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698836"><span class="hs-identifier hs-type">addr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679698836"><span class="hs-identifier hs-type">addr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698835"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.TxOut</span></span></span></span><span>
+</span><span id="line-68"></span><span id="utxosAtLedgerSearch"><span class="annot"><span class="annottext">utxosAtLedgerSearch :: forall (m :: * -&gt; *) addr.
+(MonadBlockChainBalancing m, ToAddress addr) =&gt;
+addr -&gt; UtxoSearch m TxOut
 </span><a href="Cooked.MockChain.UtxoSearch.html#utxosAtLedgerSearch"><span class="hs-identifier hs-var hs-var">utxosAtLedgerSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Address -&gt; ListT m [(TxOutRef, TxOut)]
 forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 Address -&gt; m [(TxOutRef, TxOut)]
 </span><a href="Cooked.MockChain.BlockChain.html#utxosAtLedger"><span class="hs-identifier hs-var">utxosAtLedger</span></a></span><span> </span><span class="annot"><span class="annottext">(Address -&gt; ListT m [(TxOutRef, TxOut)])
+-&gt; (addr -&gt; Address) -&gt; addr -&gt; ListT m [(TxOutRef, TxOut)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">addr -&gt; Address
+forall a. ToAddress a =&gt; a -&gt; Address
+</span><a href="Cooked.Conversion.ToAddress.html#toAddress"><span class="hs-identifier hs-var">toAddress</span></a></span><span> </span><span class="annot"><span class="annottext">(addr -&gt; ListT m [(TxOutRef, TxOut)])
 -&gt; ([(TxOutRef, TxOut)] -&gt; ListT m (TxOutRef, TxOut))
--&gt; Address
+-&gt; addr
 -&gt; ListT m (TxOutRef, TxOut)
 forall (m :: * -&gt; *) a b c.
 Monad m =&gt;
@@ -126,11 +145,11 @@ forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
 f a -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT.fromFoldable</span></span><span>
-</span><span id="line-60"></span><span>
-</span><span id="line-61"></span><span class="hs-comment">-- | Search all 'TxOutRef's of a transaction, together with their</span><span>
-</span><span id="line-62"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
-</span><span id="line-63"></span><span id="local-6989586621679696450"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosFromCardanoTxSearch"><span class="hs-identifier hs-type">utxosFromCardanoTxSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696450"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696450"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
-</span><span id="line-64"></span><span id="utxosFromCardanoTxSearch"><span class="annot"><span class="annottext">utxosFromCardanoTxSearch :: forall (m :: * -&gt; *). Monad m =&gt; CardanoTx -&gt; UtxoSearch m TxOut
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Search all 'TxOutRef's of a transaction, together with their</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- 'TxInfo'-'TxOut'.</span><span>
+</span><span id="line-72"></span><span id="local-6989586621679698839"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#utxosFromCardanoTxSearch"><span class="hs-identifier hs-type">utxosFromCardanoTxSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698839"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ledger.CardanoTx</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698839"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
+</span><span id="line-73"></span><span id="utxosFromCardanoTxSearch"><span class="annot"><span class="annottext">utxosFromCardanoTxSearch :: forall (m :: * -&gt; *). Monad m =&gt; CardanoTx -&gt; UtxoSearch m TxOut
 </span><a href="Cooked.MockChain.UtxoSearch.html#utxosFromCardanoTxSearch"><span class="hs-identifier hs-var hs-var">utxosFromCardanoTxSearch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(TxOutRef, TxOut)] -&gt; ListT m (TxOutRef, TxOut)
 forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
@@ -142,34 +161,34 @@ f a -&gt; ListT m a
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CardanoTx -&gt; [(TxOutRef, TxOut)]
 </span><a href="Cooked.MockChain.BlockChain.html#utxosFromCardanoTx"><span class="hs-identifier hs-var">utxosFromCardanoTx</span></a></span><span>
-</span><span id="line-65"></span><span>
-</span><span id="line-66"></span><span class="hs-comment">-- | Search all 'TxInfo'-'TxOut's corresponding to given the list of</span><span>
-</span><span id="line-67"></span><span class="hs-comment">-- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known output will be</span><span>
-</span><span id="line-68"></span><span class="hs-comment">-- filtered out.</span><span>
-</span><span id="line-69"></span><span id="local-6989586621679696456"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#txOutByRefSearch"><span class="hs-identifier hs-type">txOutByRefSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696456"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696456"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
-</span><span id="line-70"></span><span id="txOutByRefSearch"><span class="annot"><span class="annottext">txOutByRefSearch :: forall (m :: * -&gt; *).
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- | Search all 'TxInfo'-'TxOut's corresponding to given the list of</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- 'TxOutRef's. Any 'TxOutRef' that doesn't correspond to a known output will be</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- filtered out.</span><span>
+</span><span id="line-78"></span><span id="local-6989586621679698842"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#txOutByRefSearch"><span class="hs-identifier hs-type">txOutByRefSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698842"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Api.TxOutRef</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698842"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span></span><span>
+</span><span id="line-79"></span><span id="txOutByRefSearch"><span class="annot"><span class="annottext">txOutByRefSearch :: forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 [TxOutRef] -&gt; UtxoSearch m TxOut
-</span><a href="Cooked.MockChain.UtxoSearch.html#txOutByRefSearch"><span class="hs-identifier hs-var hs-var">txOutByRefSearch</span></a></span></span><span> </span><span id="local-6989586621679696594"><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679696594"><span class="hs-identifier hs-var">orefs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-71"></span><span>  </span><span class="annot"><span class="annottext">(TxOutRef -&gt; m (TxOutRef, TxOutRef))
+</span><a href="Cooked.MockChain.UtxoSearch.html#txOutByRefSearch"><span class="hs-identifier hs-var hs-var">txOutByRefSearch</span></a></span></span><span> </span><span id="local-6989586621679699048"><span class="annot"><span class="annottext">[TxOutRef]
+</span><a href="#local-6989586621679699048"><span class="hs-identifier hs-var">orefs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="annottext">(TxOutRef -&gt; m (TxOutRef, TxOutRef))
 -&gt; ListT m TxOutRef -&gt; ListT m (TxOutRef, TxOutRef)
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 (a -&gt; m b) -&gt; ListT m a -&gt; ListT m b
-</span><span class="hs-identifier hs-var">ListT.traverse</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679696596"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679696596"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOutRef) -&gt; m (TxOutRef, TxOutRef)
+</span><span class="hs-identifier hs-var">ListT.traverse</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679699050"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679699050"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(TxOutRef, TxOutRef) -&gt; m (TxOutRef, TxOutRef)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679696596"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679696596"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOutRef] -&gt; ListT m TxOutRef
+</span><a href="#local-6989586621679699050"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679699050"><span class="hs-identifier hs-var">o</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxOutRef] -&gt; ListT m TxOutRef
 forall (m :: * -&gt; *) (f :: * -&gt; *) a.
 (Monad m, Foldable f) =&gt;
 f a -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT.fromFoldable</span></span><span> </span><span class="annot"><span class="annottext">[TxOutRef]
-</span><a href="#local-6989586621679696594"><span class="hs-identifier hs-var">orefs</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-72"></span><span>    </span><span class="annot"><span class="annottext">ListT m (TxOutRef, TxOutRef)
+</span><a href="#local-6989586621679699048"><span class="hs-identifier hs-var">orefs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><span class="annottext">ListT m (TxOutRef, TxOutRef)
 -&gt; (TxOutRef -&gt; m (Maybe TxOut)) -&gt; UtxoSearch m TxOut
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
@@ -179,19 +198,19 @@ forall (m :: * -&gt; *).
 MonadBlockChainBalancing m =&gt;
 TxOutRef -&gt; m (Maybe TxOut)
 </span><a href="Cooked.MockChain.BlockChain.html#txOutByRef"><span class="hs-identifier hs-var">txOutByRef</span></a></span><span>
-</span><span id="line-73"></span><span>
-</span><span id="line-74"></span><span class="annot"><span class="hs-comment">-- * filtering UTxO searches</span></span><span>
-</span><span id="line-75"></span><span>
-</span><span id="line-76"></span><span class="hs-comment">-- | Transform a 'UtxoSearch' by applying a possibly failing monadic &quot;lookup&quot; on</span><span>
-</span><span id="line-77"></span><span class="hs-comment">-- every output.</span><span>
-</span><span id="line-78"></span><span id="local-6989586621679696462"><span id="local-6989586621679696463"><span id="local-6989586621679696464"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-type">filterWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696462"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696462"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696463"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679696463"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679696462"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679696464"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696462"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696464"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
-</span><span id="line-79"></span><span id="filterWith"><span class="annot"><span class="annottext">filterWith :: forall (m :: * -&gt; *) a b.
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="annot"><span class="hs-comment">-- * filtering UTxO searches</span></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Transform a 'UtxoSearch' by applying a possibly failing monadic &quot;lookup&quot; on</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- every output.</span><span>
+</span><span id="line-87"></span><span id="local-6989586621679698848"><span id="local-6989586621679698849"><span id="local-6989586621679698850"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-type">filterWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698848"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698848"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698849"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679698849"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679698848"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679698850"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698848"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698850"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-88"></span><span id="filterWith"><span class="annot"><span class="annottext">filterWith :: forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; m (Maybe b)) -&gt; UtxoSearch m b
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-var hs-var">filterWith</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span id="local-6989586621679696605"><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
-</span><a href="#local-6989586621679696605"><span class="hs-keyword hs-var">as</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679696606"><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
-</span><a href="#local-6989586621679696606"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
-</span><span id="line-80"></span><span>  </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-var hs-var">filterWith</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span id="local-6989586621679699059"><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
+</span><a href="#local-6989586621679699059"><span class="hs-keyword hs-var">as</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679699060"><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
+</span><a href="#local-6989586621679699060"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-89"></span><span>  </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
 -&gt; ListT m (TxOutRef, b)
 forall (m :: * -&gt; *) a. m (Maybe (a, ListT m a)) -&gt; ListT m a
 </span><span class="hs-identifier hs-var">ListT</span></span><span> </span><span class="annot"><span class="annottext">(m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
@@ -200,15 +219,15 @@ forall (m :: * -&gt; *) a. m (Maybe (a, ListT m a)) -&gt; ListT m a
 -&gt; ListT m (TxOutRef, b)
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-81"></span><span>    </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
-</span><a href="#local-6989586621679696605"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
+</span><span id="line-90"></span><span>    </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
+</span><a href="#local-6989586621679699059"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, a), ListT m (TxOutRef, a)))
 -&gt; (Maybe ((TxOutRef, a), ListT m (TxOutRef, a))
     -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b))))
 -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
 forall a b. m a -&gt; (a -&gt; m b) -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-82"></span><span>      </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, a), ListT m (TxOutRef, a))
+</span><span id="line-91"></span><span>      </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, a), ListT m (TxOutRef, a))
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, b), ListT m (TxOutRef, b))
 -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
 forall a. a -&gt; m a
@@ -216,33 +235,33 @@ forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, b), ListT m (TxOutRef, b))
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-83"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679696607"><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679696607"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679696608"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679696608"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679696609"><span class="annot"><span class="annottext">ListT m (TxOutRef, a)
-</span><a href="#local-6989586621679696609"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
-</span><span id="line-84"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679696610"><span class="annot"><span class="annottext">filteredRest :: ListT m (TxOutRef, b)
-</span><a href="#local-6989586621679696610"><span class="hs-identifier hs-var">filteredRest</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span id="local-6989586621679696611"><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
-</span><a href="#local-6989586621679696611"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, a)
+</span><span id="line-92"></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679699061"><span class="annot"><span class="annottext">TxOutRef
+</span><a href="#local-6989586621679699061"><span class="hs-identifier hs-var">oref</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679699062"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679699062"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span id="local-6989586621679699063"><span class="annot"><span class="annottext">ListT m (TxOutRef, a)
+</span><a href="#local-6989586621679699063"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-93"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679699064"><span class="annot"><span class="annottext">filteredRest :: ListT m (TxOutRef, b)
+</span><a href="#local-6989586621679699064"><span class="hs-identifier hs-var">filteredRest</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ListT</span></span><span> </span><span id="local-6989586621679699065"><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
+</span><a href="#local-6989586621679699065"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, a)
 -&gt; (a -&gt; m (Maybe b)) -&gt; ListT m (TxOutRef, b)
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; m (Maybe b)) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-var">filterWith</span></a></span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, a)
-</span><a href="#local-6989586621679696609"><span class="hs-identifier hs-var">rest</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
-</span><a href="#local-6989586621679696606"><span class="hs-identifier hs-var">f</span></a></span><span>
-</span><span id="line-85"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
-</span><a href="#local-6989586621679696606"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679696608"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">m (Maybe b)
+</span><a href="#local-6989586621679699063"><span class="hs-identifier hs-var">rest</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
+</span><a href="#local-6989586621679699060"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-94"></span><span>         </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">a -&gt; m (Maybe b)
+</span><a href="#local-6989586621679699060"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679699062"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">m (Maybe b)
 -&gt; (Maybe b -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b))))
 -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
 forall a b. m a -&gt; (a -&gt; m b) -&gt; m b
 forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
 </span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
-</span><span id="line-86"></span><span>              </span><span class="annot"><span class="annottext">Maybe b
+</span><span id="line-95"></span><span>              </span><span class="annot"><span class="annottext">Maybe b
 </span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
-</span><a href="#local-6989586621679696611"><span class="hs-identifier hs-var">bs</span></a></span><span>
-</span><span id="line-87"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679696612"><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679696612"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, b), ListT m (TxOutRef, b))
+</span><a href="#local-6989586621679699065"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-96"></span><span>              </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679699066"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679699066"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe ((TxOutRef, b), ListT m (TxOutRef, b))
 -&gt; m (Maybe ((TxOutRef, b), ListT m (TxOutRef, b)))
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
@@ -255,110 +274,128 @@ forall a b. (a -&gt; b) -&gt; a -&gt; b
 -&gt; Maybe ((TxOutRef, b), ListT m (TxOutRef, b))
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">TxOutRef
-</span><a href="#local-6989586621679696607"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
-</span><a href="#local-6989586621679696612"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, b)
-</span><a href="#local-6989586621679696610"><span class="hs-identifier hs-var">filteredRest</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-88"></span><span>
-</span><span id="line-89"></span><span id="local-6989586621679696475"><span id="local-6989586621679696476"><span id="local-6989586621679696477"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-type">filterWithPure</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696475"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696475"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696476"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679696476"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679696477"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696475"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696477"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
-</span><span id="line-90"></span><span id="filterWithPure"><span class="annot"><span class="annottext">filterWithPure :: forall (m :: * -&gt; *) a b.
+</span><a href="#local-6989586621679699061"><span class="hs-identifier hs-var">oref</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679699066"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ListT m (TxOutRef, b)
+</span><a href="#local-6989586621679699064"><span class="hs-identifier hs-var">filteredRest</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span id="local-6989586621679698861"><span id="local-6989586621679698862"><span id="local-6989586621679698863"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-type">filterWithPure</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698861"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698861"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698862"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679698862"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679698863"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698861"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698863"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-99"></span><span id="filterWithPure"><span class="annot"><span class="annottext">filterWithPure :: forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var hs-var">filterWithPure</span></a></span></span><span> </span><span id="local-6989586621679696616"><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696616"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679696617"><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679696617"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; m (Maybe b)) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var hs-var">filterWithPure</span></a></span></span><span> </span><span id="local-6989586621679699070"><span class="annot"><span class="annottext">UtxoSearch m a
+</span><a href="#local-6989586621679699070"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679699071"><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679699071"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; m (Maybe b)) -&gt; UtxoSearch m b
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; m (Maybe b)) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWith"><span class="hs-identifier hs-var">filterWith</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696616"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe b -&gt; m (Maybe b)
+</span><a href="#local-6989586621679699070"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe b -&gt; m (Maybe b)
 forall a. a -&gt; m a
 forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
 </span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Maybe b -&gt; m (Maybe b)) -&gt; (a -&gt; Maybe b) -&gt; a -&gt; m (Maybe b)
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe b
-</span><a href="#local-6989586621679696617"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-91"></span><span>
-</span><span id="line-92"></span><span id="local-6989586621679696482"><span id="local-6989586621679696485"><span id="local-6989586621679696486"><span id="local-6989586621679696487"><span id="local-6989586621679696488"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithOptic"><span class="hs-identifier hs-type">filterWithOptic</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679696482"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineFold</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696485"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696485"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696486"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679696482"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696487"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696486"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696488"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696485"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696488"><span class="hs-identifier hs-type">b</span></a></span></span></span></span></span></span><span>
-</span><span id="line-93"></span><span id="filterWithOptic"><span class="annot"><span class="annottext">filterWithOptic :: forall k (m :: * -&gt; *) a (is :: IxList) b.
-(Is k An_AffineFold, Monad m) =&gt;
-UtxoSearch m a -&gt; Optic' k is a b -&gt; UtxoSearch m b
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithOptic"><span class="hs-identifier hs-var hs-var">filterWithOptic</span></a></span></span><span> </span><span id="local-6989586621679696622"><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696622"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679696623"><span class="annot"><span class="annottext">Optic' k is a b
-</span><a href="#local-6989586621679696623"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="#local-6989586621679699071"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span id="local-6989586621679698867"><span id="local-6989586621679698868"><span id="local-6989586621679698869"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-identifier hs-type">filterWithAlways</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698867"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698867"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698868"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679698868"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679698869"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698867"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698869"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-102"></span><span id="filterWithAlways"><span class="annot"><span class="annottext">filterWithAlways :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-identifier hs-var hs-var">filterWithAlways</span></a></span></span><span> </span><span id="local-6989586621679699074"><span class="annot"><span class="annottext">UtxoSearch m a
+</span><a href="#local-6989586621679699074"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679699075"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679699075"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var">filterWithPure</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696622"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Optic' k is a b -&gt; Maybe b
+</span><a href="#local-6989586621679699074"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; Maybe b
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(b -&gt; Maybe b) -&gt; (a -&gt; b) -&gt; a -&gt; Maybe b
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679699075"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span id="local-6989586621679698874"><span id="local-6989586621679698877"><span id="local-6989586621679698878"><span id="local-6989586621679698879"><span id="local-6989586621679698880"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithOptic"><span class="hs-identifier hs-type">filterWithOptic</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Is</span></span><span> </span><span class="annot"><a href="#local-6989586621679698874"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">An_AffineFold</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698877"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698877"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698878"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Optic'</span></span><span> </span><span class="annot"><a href="#local-6989586621679698874"><span class="hs-identifier hs-type">k</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698879"><span class="hs-identifier hs-type">is</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698878"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698880"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698877"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698880"><span class="hs-identifier hs-type">b</span></a></span></span></span></span></span></span><span>
+</span><span id="line-105"></span><span id="filterWithOptic"><span class="annot"><span class="annottext">filterWithOptic :: forall k (m :: * -&gt; *) a (is :: IxList) b.
+(Is k An_AffineFold, Monad m) =&gt;
+UtxoSearch m a -&gt; Optic' k is a b -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithOptic"><span class="hs-identifier hs-var hs-var">filterWithOptic</span></a></span></span><span> </span><span id="local-6989586621679699080"><span class="annot"><span class="annottext">UtxoSearch m a
+</span><a href="#local-6989586621679699080"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679699081"><span class="annot"><span class="annottext">Optic' k is a b
+</span><a href="#local-6989586621679699081"><span class="hs-identifier hs-var">optic</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var">filterWithPure</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a
+</span><a href="#local-6989586621679699080"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Optic' k is a b -&gt; Maybe b
 forall k s (is :: IxList) a.
 Is k An_AffineFold =&gt;
 s -&gt; Optic' k is s a -&gt; Maybe a
 </span><span class="hs-operator hs-var">^?</span></span><span> </span><span class="annot"><span class="annottext">Optic' k is a b
-</span><a href="#local-6989586621679696623"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">)</span><span>
-</span><span id="line-94"></span><span>
-</span><span id="line-95"></span><span id="local-6989586621679696499"><span id="local-6989586621679696500"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithPred"><span class="hs-identifier hs-type">filterWithPred</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696499"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696499"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696500"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679696500"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696499"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696500"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
-</span><span id="line-96"></span><span id="filterWithPred"><span class="annot"><span class="annottext">filterWithPred :: forall (m :: * -&gt; *) a.
+</span><a href="#local-6989586621679699081"><span class="hs-identifier hs-var">optic</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span id="local-6989586621679698891"><span id="local-6989586621679698892"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithPred"><span class="hs-identifier hs-type">filterWithPred</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698891"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698891"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698892"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679698892"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698891"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698892"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-108"></span><span id="filterWithPred"><span class="annot"><span class="annottext">filterWithPred :: forall (m :: * -&gt; *) a.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Bool) -&gt; UtxoSearch m a
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPred"><span class="hs-identifier hs-var hs-var">filterWithPred</span></a></span></span><span> </span><span id="local-6989586621679696627"><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696627"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679696628"><span class="annot"><span class="annottext">a -&gt; Bool
-</span><a href="#local-6989586621679696628"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; Maybe a) -&gt; UtxoSearch m a
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPred"><span class="hs-identifier hs-var hs-var">filterWithPred</span></a></span></span><span> </span><span id="local-6989586621679699085"><span class="annot"><span class="annottext">UtxoSearch m a
+</span><a href="#local-6989586621679699085"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679699086"><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679699086"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a -&gt; (a -&gt; Maybe a) -&gt; UtxoSearch m a
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var">filterWithPure</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m a
-</span><a href="#local-6989586621679696627"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((a -&gt; Maybe a) -&gt; UtxoSearch m a)
+</span><a href="#local-6989586621679699085"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((a -&gt; Maybe a) -&gt; UtxoSearch m a)
 -&gt; (a -&gt; Maybe a) -&gt; UtxoSearch m a
 forall a b. (a -&gt; b) -&gt; a -&gt; b
-</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679696629"><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679696629"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
-</span><a href="#local-6989586621679696628"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679696629"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679699087"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679699087"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+</span><a href="#local-6989586621679699086"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679699087"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
-</span><a href="#local-6989586621679696629"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679699087"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe a
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-97"></span><span>
-</span><span id="line-98"></span><span id="local-6989586621679696503"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-type">filterWithValuePred</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696503"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696503"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696503"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
-</span><span id="line-99"></span><span id="filterWithValuePred"><span class="annot"><span class="annottext">filterWithValuePred :: forall (m :: * -&gt; *).
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span id="local-6989586621679698895"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-type">filterWithValuePred</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698895"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698895"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698895"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-111"></span><span id="filterWithValuePred"><span class="annot"><span class="annottext">filterWithValuePred :: forall (m :: * -&gt; *).
 Monad m =&gt;
 UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-var hs-var">filterWithValuePred</span></a></span></span><span> </span><span id="local-6989586621679696632"><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696632"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679696633"><span class="annot"><span class="annottext">Value -&gt; Bool
-</span><a href="#local-6989586621679696633"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (TxOut -&gt; Maybe Value) -&gt; UtxoSearch m Value
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-var hs-var">filterWithValuePred</span></a></span></span><span> </span><span id="local-6989586621679699090"><span class="annot"><span class="annottext">UtxoSearch m TxOut
+</span><a href="#local-6989586621679699090"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span id="local-6989586621679699091"><span class="annot"><span class="annottext">Value -&gt; Bool
+</span><a href="#local-6989586621679699091"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (TxOut -&gt; Maybe Value) -&gt; UtxoSearch m Value
 forall (m :: * -&gt; *) a b.
 Monad m =&gt;
 UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-identifier hs-var">filterWithPure</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696632"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((TxOut -&gt; Maybe Value) -&gt; UtxoSearch m Value)
+</span><a href="#local-6989586621679699090"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((TxOut -&gt; Maybe Value) -&gt; UtxoSearch m Value)
 -&gt; (TxOut -&gt; Maybe Value) -&gt; UtxoSearch m Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span>
-</span><span id="line-100"></span><span>  </span><span class="hs-glyph">\</span><span id="local-6989586621679696634"><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679696634"><span class="hs-identifier hs-var">txOut</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679696635"><span class="annot"><span class="annottext">val :: Value
-</span><a href="#local-6989586621679696635"><span class="hs-identifier hs-var hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Value
+</span><span id="line-112"></span><span>  </span><span class="hs-glyph">\</span><span id="local-6989586621679699092"><span class="annot"><span class="annottext">TxOut
+</span><a href="#local-6989586621679699092"><span class="hs-identifier hs-var">txOut</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679699093"><span class="annot"><span class="annottext">val :: Value
+</span><a href="#local-6989586621679699093"><span class="hs-identifier hs-var hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; Value
 </span><span class="hs-identifier hs-var">Api.txOutValue</span></span><span> </span><span class="annot"><span class="annottext">TxOut
-</span><a href="#local-6989586621679696634"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Bool
-</span><a href="#local-6989586621679696633"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679696635"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Maybe Value
+</span><a href="#local-6989586621679699092"><span class="hs-identifier hs-var">txOut</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Bool
+</span><a href="#local-6989586621679699091"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Value
+</span><a href="#local-6989586621679699093"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Value -&gt; Maybe Value
 forall a. a -&gt; Maybe a
 </span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Value
-</span><a href="#local-6989586621679696635"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Value
+</span><a href="#local-6989586621679699093"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Value
 forall a. Maybe a
 </span><span class="hs-identifier hs-var">Nothing</span></span><span>
-</span><span id="line-101"></span><span>
-</span><span id="line-102"></span><span id="local-6989586621679696506"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithOnlyAda"><span class="hs-identifier hs-type">filterWithOnlyAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696506"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696506"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
-</span><span id="line-103"></span><span id="filterWithOnlyAda"><span class="annot"><span class="annottext">filterWithOnlyAda :: forall (m :: * -&gt; *).
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span id="local-6989586621679698898"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithOnlyAda"><span class="hs-identifier hs-type">filterWithOnlyAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679698898"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698898"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698898"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-115"></span><span id="filterWithOnlyAda"><span class="annot"><span class="annottext">filterWithOnlyAda :: forall (m :: * -&gt; *).
 Monad m =&gt;
 UtxoSearch m TxOut -&gt; UtxoSearch m Value
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithOnlyAda"><span class="hs-identifier hs-var hs-var">filterWithOnlyAda</span></a></span></span><span> </span><span id="local-6989586621679696644"><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696644"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithOnlyAda"><span class="hs-identifier hs-var hs-var">filterWithOnlyAda</span></a></span></span><span> </span><span id="local-6989586621679699102"><span class="annot"><span class="annottext">UtxoSearch m TxOut
+</span><a href="#local-6989586621679699102"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 forall (m :: * -&gt; *).
 Monad m =&gt;
 UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-var">filterWithValuePred</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696644"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((Value -&gt; Bool) -&gt; UtxoSearch m Value)
+</span><a href="#local-6989586621679699102"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((Value -&gt; Bool) -&gt; UtxoSearch m Value)
 -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
@@ -376,18 +413,18 @@ forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
 </span><span class="hs-identifier hs-var">Script.flattenValue</span></span><span>
-</span><span id="line-104"></span><span>
-</span><span id="line-105"></span><span id="local-6989586621679696647"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithNotOnlyAda"><span class="hs-identifier hs-type">filterWithNotOnlyAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679696647"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696647"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679696647"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
-</span><span id="line-106"></span><span id="filterWithNotOnlyAda"><span class="annot"><span class="annottext">filterWithNotOnlyAda :: forall (m :: * -&gt; *).
+</span><span id="line-116"></span><span>
+</span><span id="line-117"></span><span id="local-6989586621679699105"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#filterWithNotOnlyAda"><span class="hs-identifier hs-type">filterWithNotOnlyAda</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679699105"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679699105"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.TxOut</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679699105"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span></span><span>
+</span><span id="line-118"></span><span id="filterWithNotOnlyAda"><span class="annot"><span class="annottext">filterWithNotOnlyAda :: forall (m :: * -&gt; *).
 Monad m =&gt;
 UtxoSearch m TxOut -&gt; UtxoSearch m Value
-</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithNotOnlyAda"><span class="hs-identifier hs-var hs-var">filterWithNotOnlyAda</span></a></span></span><span> </span><span id="local-6989586621679696654"><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696654"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithNotOnlyAda"><span class="hs-identifier hs-var hs-var">filterWithNotOnlyAda</span></a></span></span><span> </span><span id="local-6989586621679699112"><span class="annot"><span class="annottext">UtxoSearch m TxOut
+</span><a href="#local-6989586621679699112"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 forall (m :: * -&gt; *).
 Monad m =&gt;
 UtxoSearch m TxOut -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 </span><a href="Cooked.MockChain.UtxoSearch.html#filterWithValuePred"><span class="hs-identifier hs-var">filterWithValuePred</span></a></span><span> </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
-</span><a href="#local-6989586621679696654"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((Value -&gt; Bool) -&gt; UtxoSearch m Value)
+</span><a href="#local-6989586621679699112"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">((Value -&gt; Bool) -&gt; UtxoSearch m Value)
 -&gt; (Value -&gt; Bool) -&gt; UtxoSearch m Value
 forall a b. (a -&gt; b) -&gt; a -&gt; b
 </span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
@@ -405,4 +442,296 @@ forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
 forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
 </span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Value -&gt; [(CurrencySymbol, TokenName, Integer)]
 </span><span class="hs-identifier hs-var">Script.flattenValue</span></span><span>
-</span><span id="line-107"></span></pre></body></html>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- A vanilla output only possesses an ada-only value and does not have a staking</span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- credential, a datum or a reference script. A vanilla UTxO is a perfect</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- candidate to be used for fee, balancing or collateral.</span><span>
+</span><span id="line-123"></span><span id="local-6989586621679698907"><span id="local-6989586621679698908"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#vanillaOutputsAtSearch"><span class="hs-identifier hs-type">vanillaOutputsAtSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChainBalancing"><span class="hs-identifier hs-type">MonadBlockChainBalancing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698907"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToAddress.html#ToAddress"><span class="hs-identifier hs-type">ToAddress</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698908"><span class="hs-identifier hs-type">addr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-125"></span><span>  </span><span class="annot"><a href="#local-6989586621679698908"><span class="hs-identifier hs-type">addr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-126"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698907"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Ada</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-127"></span><span id="vanillaOutputsAtSearch"><span class="annot"><span class="annottext">vanillaOutputsAtSearch :: forall (m :: * -&gt; *) addr.
+(MonadBlockChainBalancing m, ToAddress addr) =&gt;
+addr -&gt; UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+</span><a href="Cooked.MockChain.UtxoSearch.html#vanillaOutputsAtSearch"><span class="hs-identifier hs-var hs-var">vanillaOutputsAtSearch</span></a></span></span><span> </span><span id="local-6989586621679699152"><span class="annot"><span class="annottext">addr
+</span><a href="#local-6989586621679699152"><span class="hs-identifier hs-var">addr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-128"></span><span>  </span><span class="annot"><span class="annottext">addr -&gt; UtxoSearch m TxOut
+forall (m :: * -&gt; *) addr.
+(MonadBlockChainBalancing m, ToAddress addr) =&gt;
+addr -&gt; UtxoSearch m TxOut
+</span><a href="Cooked.MockChain.UtxoSearch.html#utxosAtSearch"><span class="hs-identifier hs-var">utxosAtSearch</span></a></span><span> </span><span class="annot"><span class="annottext">addr
+</span><a href="#local-6989586621679699152"><span class="hs-identifier hs-var">addr</span></a></span><span>
+</span><span id="line-129"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
+-&gt; (TxOut
+    -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-operator hs-var">`filterWithAlways`</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash
+TxOut
+-&gt; ConcreteOutput
+     (OwnerType TxOut)
+     (DatumType TxOut)
+     (ValueType TxOut)
+     (ReferenceScriptType TxOut)
+forall out.
+IsAbstractOutput out =&gt;
+out
+-&gt; ConcreteOutput
+     (OwnerType out)
+     (DatumType out)
+     (ValueType out)
+     (ReferenceScriptType out)
+</span><a href="Cooked.Output.html#fromAbstractOutput"><span class="hs-identifier hs-var">fromAbstractOutput</span></a></span><span>
+</span><span id="line-130"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch
+  m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; (ConcreteOutput Credential OutputDatum Value ScriptHash
+    -&gt; Maybe (ConcreteOutput Credential OutputDatum Ada ScriptHash))
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Ada ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput Credential OutputDatum Value ScriptHash
+-&gt; Maybe (ConcreteOutput Credential OutputDatum Ada ScriptHash)
+ConcreteOutput Credential OutputDatum Value ScriptHash
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        (DatumType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        Ada
+        (ReferenceScriptType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash)))
+forall out.
+IsTxInfoOutput out =&gt;
+out
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType out) (DatumType out) Ada (ReferenceScriptType out))
+</span><a href="Cooked.Output.html#isOnlyAdaOutput"><span class="hs-identifier hs-var">isOnlyAdaOutput</span></a></span><span>
+</span><span id="line-131"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m (ConcreteOutput Credential OutputDatum Ada ScriptHash)
+-&gt; (ConcreteOutput Credential OutputDatum Ada ScriptHash
+    -&gt; Maybe (ConcreteOutput Credential () Ada ScriptHash))
+-&gt; UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput Credential OutputDatum Ada ScriptHash
+-&gt; Maybe (ConcreteOutput Credential () Ada ScriptHash)
+ConcreteOutput Credential OutputDatum Ada ScriptHash
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType (ConcreteOutput Credential OutputDatum Ada ScriptHash))
+        ()
+        (ValueType (ConcreteOutput Credential OutputDatum Ada ScriptHash))
+        (ReferenceScriptType
+           (ConcreteOutput Credential OutputDatum Ada ScriptHash)))
+forall out.
+IsTxInfoOutput out =&gt;
+out
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType out) () (ValueType out) (ReferenceScriptType out))
+</span><a href="Cooked.Output.html#isOutputWithoutDatum"><span class="hs-identifier hs-var">isOutputWithoutDatum</span></a></span><span>
+</span><span id="line-132"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+-&gt; (ConcreteOutput Credential () Ada ScriptHash
+    -&gt; Maybe (ConcreteOutput Credential () Ada ScriptHash))
+-&gt; UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">ConcreteOutput Credential () Ada ScriptHash
+-&gt; Maybe (ConcreteOutput Credential () Ada ScriptHash)
+ConcreteOutput Credential () Ada ScriptHash
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType (ConcreteOutput Credential () Ada ScriptHash))
+        (DatumType (ConcreteOutput Credential () Ada ScriptHash))
+        (ValueType (ConcreteOutput Credential () Ada ScriptHash))
+        (ReferenceScriptType
+           (ConcreteOutput Credential () Ada ScriptHash)))
+forall out.
+IsTxInfoOutput out =&gt;
+out
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType out)
+        (DatumType out)
+        (ValueType out)
+        (ReferenceScriptType out))
+</span><a href="Cooked.Output.html#isEmptyStakingCredentialOutput"><span class="hs-identifier hs-var">isEmptyStakingCredentialOutput</span></a></span><span>
+</span><span id="line-133"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+-&gt; (ConcreteOutput Credential () Ada ScriptHash -&gt; Bool)
+-&gt; UtxoSearch m (ConcreteOutput Credential () Ada ScriptHash)
+forall (m :: * -&gt; *) a.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Bool) -&gt; UtxoSearch m a
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPred"><span class="hs-operator hs-var">`filterWithPred`</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe ScriptHash -&gt; Bool
+forall a. Maybe a -&gt; Bool
+</span><span class="hs-identifier hs-var">isNothing</span></span><span> </span><span class="annot"><span class="annottext">(Maybe ScriptHash -&gt; Bool)
+-&gt; (ConcreteOutput Credential () Ada ScriptHash
+    -&gt; Maybe ScriptHash)
+-&gt; ConcreteOutput Credential () Ada ScriptHash
+-&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Optic'
+  A_Lens
+  NoIx
+  (ConcreteOutput Credential () Ada ScriptHash)
+  (Maybe ScriptHash)
+-&gt; ConcreteOutput Credential () Ada ScriptHash -&gt; Maybe ScriptHash
+forall k (is :: IxList) s a.
+Is k A_Getter =&gt;
+Optic' k is s a -&gt; s -&gt; a
+</span><span class="hs-identifier hs-var">view</span></span><span> </span><span class="annot"><span class="annottext">Optic'
+  A_Lens
+  NoIx
+  (ConcreteOutput Credential () Ada ScriptHash)
+  (Maybe ScriptHash)
+Lens'
+  (ConcreteOutput Credential () Ada ScriptHash)
+  (Maybe
+     (ReferenceScriptType
+        (ConcreteOutput Credential () Ada ScriptHash)))
+forall o.
+IsAbstractOutput o =&gt;
+Lens' o (Maybe (ReferenceScriptType o))
+</span><a href="Cooked.Output.html#outputReferenceScriptL"><span class="hs-identifier hs-var">outputReferenceScriptL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>
+</span><span id="line-135"></span><span id="local-6989586621679698948"><span id="local-6989586621679698949"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#scriptOutputsSearch"><span class="hs-identifier hs-type">scriptOutputsSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-136"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698948"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToScriptHash.html#ToScriptHash"><span class="hs-identifier hs-type">ToScriptHash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698949"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-137"></span><span>  </span><span class="annot"><a href="#local-6989586621679698949"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-138"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698948"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698949"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.OutputDatum</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-139"></span><span id="scriptOutputsSearch"><span class="annot"><span class="annottext">scriptOutputsSearch :: forall (m :: * -&gt; *) s.
+(MonadBlockChain m, ToScriptHash s) =&gt;
+s -&gt; UtxoSearch m (ConcreteOutput s OutputDatum Value ScriptHash)
+</span><a href="Cooked.MockChain.UtxoSearch.html#scriptOutputsSearch"><span class="hs-identifier hs-var hs-var">scriptOutputsSearch</span></a></span></span><span> </span><span id="local-6989586621679699178"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679699178"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-140"></span><span>  </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
+</span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-var">allUtxosSearch</span></a></span><span>
+</span><span id="line-141"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
+-&gt; (TxOut
+    -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-operator hs-var">`filterWithAlways`</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash
+TxOut
+-&gt; ConcreteOutput
+     (OwnerType TxOut)
+     (DatumType TxOut)
+     (ValueType TxOut)
+     (ReferenceScriptType TxOut)
+forall out.
+IsAbstractOutput out =&gt;
+out
+-&gt; ConcreteOutput
+     (OwnerType out)
+     (DatumType out)
+     (ValueType out)
+     (ReferenceScriptType out)
+</span><a href="Cooked.Output.html#fromAbstractOutput"><span class="hs-identifier hs-var">fromAbstractOutput</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch
+  m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; (ConcreteOutput Credential OutputDatum Value ScriptHash
+    -&gt; Maybe (ConcreteOutput s OutputDatum Value ScriptHash))
+-&gt; UtxoSearch m (ConcreteOutput s OutputDatum Value ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">s
+-&gt; ConcreteOutput Credential OutputDatum Value ScriptHash
+-&gt; Maybe
+     (ConcreteOutput
+        s
+        (DatumType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        (ValueType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        (ReferenceScriptType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash)))
+forall out s.
+(IsTxInfoOutput out, ToScriptHash s) =&gt;
+s
+-&gt; out
+-&gt; Maybe
+     (ConcreteOutput
+        s (DatumType out) (ValueType out) (ReferenceScriptType out))
+</span><a href="Cooked.Output.html#isScriptOutputFrom"><span class="hs-identifier hs-var">isScriptOutputFrom</span></a></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679699178"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span id="local-6989586621679698954"><span id="local-6989586621679698955"><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#referenceScriptOutputsSearch"><span class="hs-identifier hs-type">referenceScriptOutputsSearch</span></a></span><span> </span><span class="hs-glyph">::</span><span>
+</span><span id="line-145"></span><span>  </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.MockChain.BlockChain.html#MonadBlockChain"><span class="hs-identifier hs-type">MonadBlockChain</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698954"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cooked.Conversion.ToScriptHash.html#ToScriptHash"><span class="hs-identifier hs-type">ToScriptHash</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698955"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-146"></span><span>  </span><span class="annot"><a href="#local-6989586621679698955"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-147"></span><span>  </span><span class="annot"><a href="Cooked.MockChain.UtxoSearch.html#UtxoSearch"><span class="hs-identifier hs-type">UtxoSearch</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679698954"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cooked.Output.html#ConcreteOutput"><span class="hs-identifier hs-type">ConcreteOutput</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Credential</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.OutputDatum</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Api.ScriptHash</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-148"></span><span id="referenceScriptOutputsSearch"><span class="annot"><span class="annottext">referenceScriptOutputsSearch :: forall (m :: * -&gt; *) s.
+(MonadBlockChain m, ToScriptHash s) =&gt;
+s
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+</span><a href="Cooked.MockChain.UtxoSearch.html#referenceScriptOutputsSearch"><span class="hs-identifier hs-var hs-var">referenceScriptOutputsSearch</span></a></span></span><span> </span><span id="local-6989586621679699198"><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679699198"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
+forall (m :: * -&gt; *). MonadBlockChain m =&gt; UtxoSearch m TxOut
+</span><a href="Cooked.MockChain.UtxoSearch.html#allUtxosSearch"><span class="hs-identifier hs-var">allUtxosSearch</span></a></span><span>
+</span><span id="line-150"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch m TxOut
+-&gt; (TxOut
+    -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithAlways"><span class="hs-operator hs-var">`filterWithAlways`</span></a></span><span> </span><span class="annot"><span class="annottext">TxOut -&gt; ConcreteOutput Credential OutputDatum Value ScriptHash
+TxOut
+-&gt; ConcreteOutput
+     (OwnerType TxOut)
+     (DatumType TxOut)
+     (ValueType TxOut)
+     (ReferenceScriptType TxOut)
+forall out.
+IsAbstractOutput out =&gt;
+out
+-&gt; ConcreteOutput
+     (OwnerType out)
+     (DatumType out)
+     (ValueType out)
+     (ReferenceScriptType out)
+</span><a href="Cooked.Output.html#fromAbstractOutput"><span class="hs-identifier hs-var">fromAbstractOutput</span></a></span><span>
+</span><span id="line-151"></span><span>    </span><span class="annot"><span class="annottext">UtxoSearch
+  m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+-&gt; (ConcreteOutput Credential OutputDatum Value ScriptHash
+    -&gt; Maybe (ConcreteOutput Credential OutputDatum Value ScriptHash))
+-&gt; UtxoSearch
+     m (ConcreteOutput Credential OutputDatum Value ScriptHash)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+UtxoSearch m a -&gt; (a -&gt; Maybe b) -&gt; UtxoSearch m b
+</span><a href="Cooked.MockChain.UtxoSearch.html#filterWithPure"><span class="hs-operator hs-var">`filterWithPure`</span></a></span><span> </span><span class="annot"><span class="annottext">s
+-&gt; ConcreteOutput Credential OutputDatum Value ScriptHash
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        (DatumType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        (ValueType
+           (ConcreteOutput Credential OutputDatum Value ScriptHash))
+        ScriptHash)
+forall out s.
+(IsTxInfoOutput out, ToScriptHash s) =&gt;
+s
+-&gt; out
+-&gt; Maybe
+     (ConcreteOutput
+        (OwnerType out) (DatumType out) (ValueType out) ScriptHash)
+</span><a href="Cooked.Output.html#isReferenceScriptOutputFrom"><span class="hs-identifier hs-var">isReferenceScriptOutputFrom</span></a></span><span> </span><span class="annot"><span class="annottext">s
+</span><a href="#local-6989586621679699198"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-152"></span></pre></body></html>

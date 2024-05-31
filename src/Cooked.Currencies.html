@@ -43,8 +43,8 @@
 </span><span id="line-43"></span><span class="hs-comment">-- currency symbol</span><span>
 </span><span id="line-44"></span><span class="annot"><a href="Cooked.Currencies.html#currencySymbolFromLanguageAndMP"><span class="hs-identifier hs-type">currencySymbolFromLanguageAndMP</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.Language</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.MintingPolicy</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Script.CurrencySymbol</span></span><span>
 </span><span id="line-45"></span><span id="currencySymbolFromLanguageAndMP"><span class="annot"><span class="annottext">currencySymbolFromLanguageAndMP :: Language -&gt; MintingPolicy -&gt; CurrencySymbol
-</span><a href="Cooked.Currencies.html#currencySymbolFromLanguageAndMP"><span class="hs-identifier hs-var hs-var">currencySymbolFromLanguageAndMP</span></a></span></span><span> </span><span id="local-6989586621679686021"><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679686021"><span class="hs-identifier hs-var">lang</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; CurrencySymbol
+</span><a href="Cooked.Currencies.html#currencySymbolFromLanguageAndMP"><span class="hs-identifier hs-var hs-var">currencySymbolFromLanguageAndMP</span></a></span></span><span> </span><span id="local-6989586621679688424"><span class="annot"><span class="annottext">Language
+</span><a href="#local-6989586621679688424"><span class="hs-identifier hs-var">lang</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Versioned MintingPolicy -&gt; CurrencySymbol
 </span><span class="hs-identifier hs-var">Script.scriptCurrencySymbol</span></span><span> </span><span class="annot"><span class="annottext">(Versioned MintingPolicy -&gt; CurrencySymbol)
 -&gt; (MintingPolicy -&gt; Versioned MintingPolicy)
 -&gt; MintingPolicy
@@ -56,7 +56,7 @@ forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
 </span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">MintingPolicy -&gt; Language -&gt; Versioned MintingPolicy
 forall script. script -&gt; Language -&gt; Versioned script
 </span><span class="hs-identifier hs-var">Script.Versioned</span></span><span> </span><span class="annot"><span class="annottext">Language
-</span><a href="#local-6989586621679686021"><span class="hs-identifier hs-var">lang</span></a></span><span>
+</span><a href="#local-6989586621679688424"><span class="hs-identifier hs-var">lang</span></a></span><span>
 </span><span id="line-46"></span><span>
 </span><span id="line-47"></span><span class="annot"><span class="hs-comment">-- * Quick Values</span></span><span>
 </span><span id="line-48"></span><span>
