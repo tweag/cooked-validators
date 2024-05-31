@@ -6,7 +6,6 @@ import Data.Default
 import Ledger.Index qualified as Ledger
 import Optics.Core ((^.))
 import Plutus.Script.Utils.Ada qualified as Script
-import Prettyprinter qualified as PP
 import Test.Tasty
 import Test.Tasty.HUnit
 

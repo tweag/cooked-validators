@@ -5,13 +5,11 @@ import Cooked
 import Data.Default
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PlutusTx
-import Prettyprinter (Pretty)
 import Prettyprinter qualified as PP
 import Test.Tasty qualified as Tasty
 import Test.Tasty.HUnit qualified as Tasty
@@ -72,14 +70,10 @@ barValidator _ _ (Api.ScriptContext txInfo _) =
   (PlutusTx.not . PlutusTx.null) (PlutusTx.filter f (Api.txInfoReferenceInputs txInfo))
   where
     f :: Api.TxInInfo -> Bool
-    f
-      ( Api.TxInInfo
-          _
-          (Api.TxOut address _ (Api.OutputDatum (Api.Datum datum)) _)
-        ) =
-        case Api.fromBuiltinData @FooDatum datum of
-          Nothing -> False
-          Just (FooDatum pkh) -> PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
+    f (Api.TxInInfo _ (Api.TxOut _ _ (Api.OutputDatum (Api.Datum datum)) _)) =
+      case Api.fromBuiltinData @FooDatum datum of
+        Nothing -> False
+        Just (FooDatum pkh) -> PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
     f _ = False
 
 barTypedValidator :: Script.TypedValidator Bar

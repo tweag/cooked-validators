@@ -2,7 +2,6 @@ module Cooked.Attack.DupTokenSpec (tests) where
 
 import Control.Monad
 import Cooked
-import Cooked.MockChain.Staged
 import Data.Default
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Ada qualified as Script

@@ -1,9 +1,9 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- | Tests for 'Cooked.Tweak.TamperDatum'.
 module Cooked.Tweak.TamperDatumSpec where
 
 import Cooked
-import Cooked.MockChain.Staged (runTweak)
-import Cooked.MockChain.Testing
 import Data.Set qualified as Set
 import Plutus.Script.Utils.Ada qualified as Script
 import PlutusTx qualified
@@ -14,8 +14,10 @@ import Test.Tasty.HUnit (testCase, (@=?))
 instance PrettyCooked (Integer, Integer) where
   prettyCookedOpt _ = viaShow
 
+alice :: Wallet
 alice = wallet 1
 
+tamperDatumTweakTest :: TestTree
 tamperDatumTweakTest =
   testCase "tamperDatumTweak" $
     [ Right
@@ -43,6 +45,7 @@ tamperDatumTweakTest =
             }
         )
 
+malformDatumTweakTest :: TestTree
 malformDatumTweakTest =
   testCase "malformDatumTweak" $
     let txSkelWithDatums1And4 :: (PlutusTx.ToData a, PlutusTx.ToData b) => a -> b -> Either MockChainError ((), TxSkel)

@@ -1,12 +1,10 @@
 module Cooked.InlineDatumsSpec where
 
-import Control.Arrow
 import Control.Monad
 import Cooked
 import Data.Default
 import Data.Map qualified as Map
 import Data.Maybe
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts qualified as Script
@@ -17,7 +15,6 @@ import PlutusTx.Prelude qualified as PlutusTx
 import Prettyprinter
 import Test.Tasty
 import Test.Tasty.HUnit
-import Type.Reflection
 
 data SimpleContract
 
@@ -49,8 +46,9 @@ inputDatumValidator =
   where
     val :: Bool -> SimpleContractDatum -> () -> Api.ScriptContext -> Bool
     val requireInlineDatum _ _ ctx =
-      let Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) = Api.findOwnInput ctx
-       in if requireInlineDatum
+      case Api.findOwnInput ctx of
+        Just (Api.TxInInfo _ Api.TxOut {Api.txOutDatum = inDatum}) ->
+          if requireInlineDatum
             then case inDatum of
               Api.OutputDatum _ -> True
               Api.OutputDatumHash _ -> PlutusTx.trace "I want an inline datum, but I got a hash" False
@@ -59,6 +57,7 @@ inputDatumValidator =
               Api.OutputDatumHash _ -> True
               Api.OutputDatum _ -> PlutusTx.trace "I want a datum hash, but I got an inline datum" False
               Api.NoOutputDatum -> PlutusTx.trace "I want a datum hash, but I got neither a datum nor a hash" False
+        Nothing -> False
 
     wrap = Script.mkUntypedValidator
 
@@ -80,13 +79,15 @@ outputDatumValidator =
   where
     val :: OutputDatumKind -> SimpleContractDatum -> () -> Api.ScriptContext -> Bool
     val requiredOutputKind _ _ ctx =
-      let [Api.TxOut {Api.txOutDatum = outDatum}] = Api.getContinuingOutputs ctx
-          txi = Api.scriptContextTxInfo ctx
-       in case (requiredOutputKind, outDatum) of
-            (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.isNothing (Api.findDatum h txi)
-            (Datum, Api.OutputDatumHash h) -> PlutusTx.isJust (Api.findDatum h txi)
-            (Inline, Api.OutputDatum d) -> True
-            _ -> False
+      case Api.getContinuingOutputs ctx of
+        [Api.TxOut {Api.txOutDatum = outDatum}] ->
+          let txi = Api.scriptContextTxInfo ctx
+           in case (requiredOutputKind, outDatum) of
+                (OnlyHash, Api.OutputDatumHash h) -> PlutusTx.isNothing (Api.findDatum h txi)
+                (Datum, Api.OutputDatumHash h) -> PlutusTx.isJust (Api.findDatum h txi)
+                (Inline, Api.OutputDatum _) -> True
+                _ -> False
+        _ -> False
 
     wrap = Script.mkUntypedValidator
 
@@ -115,7 +116,6 @@ listUtxosTestTrace useInlineDatum validator =
 -- This is used to test whether a validator will correctly see the
 -- _input data_ of a transaction as inline datums or datum hashes.
 spendOutputTestTrace ::
-  forall a m.
   (MonadBlockChain m) =>
   Bool ->
   Script.TypedValidator SimpleContract ->

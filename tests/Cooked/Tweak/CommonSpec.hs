@@ -1,8 +1,6 @@
 module Cooked.Tweak.CommonSpec (tests) where
 
 import Cooked
-import Cooked.MockChain.Staged
-import Data.Default
 import Data.List
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
@@ -10,6 +8,7 @@ import Plutus.Script.Utils.Value qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
 
+alice :: Wallet
 alice = wallet 1
 
 mkSkel :: [Integer] -> TxSkel

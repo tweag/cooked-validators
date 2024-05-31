@@ -45,8 +45,10 @@ library:
     -Wno-missed-extra-shared-lib
     -fobject-code
     -fno-ignore-interface-pragmas
+    -fignore-hpc-changes
     -fno-omit-interface-pragmas
     -fplugin-opt PlutusTx.Plugin:defer-errors
+    -fplugin-opt PlutusTx.Plugin:conservative-optimisation
   default-extensions:
     - ImportQualifiedPost
     - AllowAmbiguousTypes
@@ -82,6 +84,16 @@ tests:
     main: Spec.hs
     source-dirs:
       - tests/
+    ghc-options:
+      -Wall
+      -Wno-missed-extra-shared-lib
+      -Wno-type-defaults
+      -fobject-code
+      -fno-ignore-interface-pragmas
+      -fignore-hpc-changes
+      -fno-omit-interface-pragmas
+      -fplugin-opt PlutusTx.Plugin:defer-errors
+      -fplugin-opt PlutusTx.Plugin:conservative-optimisation
     dependencies:
       - cooked-validators
       - parsec
