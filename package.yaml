@@ -54,7 +54,6 @@ library:
     - DataKinds
     - DerivingStrategies
     - DerivingVia
-    - ExtendedDefaultRules
     - FlexibleContexts
     - FlexibleInstances
     - GADTs
@@ -89,7 +88,6 @@ tests:
     default-extensions:
       - ImportQualifiedPost
       - DataKinds
-      - ExtendedDefaultRules
       - FlexibleContexts
       - FlexibleInstances
       - GADTs

@@ -71,7 +71,6 @@ library
       DataKinds
       DerivingStrategies
       DerivingVia
-      ExtendedDefaultRules
       FlexibleContexts
       FlexibleInstances
       GADTs
@@ -161,7 +160,6 @@ test-suite spec
   default-extensions:
       ImportQualifiedPost
       DataKinds
-      ExtendedDefaultRules
       FlexibleContexts
       FlexibleInstances
       GADTs
