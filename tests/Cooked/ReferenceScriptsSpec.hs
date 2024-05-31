@@ -23,33 +23,30 @@ import Test.Tasty.HUnit
 
 -- | This validator ensures that the given public key signs the
 -- transaction.
-requireSignerValidator :: (Api.PubKeyHash, PlutusTx.BuiltinString) -> Script.TypedValidator MockContract
+requireSignerValidator :: Api.PubKeyHash -> Script.TypedValidator MockContract
 requireSignerValidator =
   Script.mkTypedValidatorParam @MockContract
     $$(PlutusTx.compile [||val||])
     $$(PlutusTx.compile [||wrap||])
   where
-    val :: (Api.PubKeyHash, PlutusTx.BuiltinString) -> () -> () -> Api.ScriptContext -> Bool
-    val (pkh, bs) _ _ (Api.ScriptContext txInfo _) =
-      PlutusTx.traceIfFalse bs -- FIXME, it used to be statical, "the
-      -- required signer is missing", see
-      -- https://github.com/IntersectMBO/plutus/issues/5949
+    val :: Api.PubKeyHash -> () -> () -> Api.ScriptContext -> Bool
+    val pkh _ _ (Api.ScriptContext txInfo _) =
+      PlutusTx.traceIfFalse "the required signer is missing"
         PlutusTx.$ PlutusTx.elem pkh (Api.txInfoSignatories txInfo)
 
     wrap = Script.mkUntypedValidator
 
 -- | This validator ensures that there is a transaction input that has
 -- a reference script with the given hash.
-requireRefScriptValidator :: (Api.ScriptHash, PlutusTx.BuiltinString) -> Script.TypedValidator MockContract
+requireRefScriptValidator :: Api.ScriptHash -> Script.TypedValidator MockContract
 requireRefScriptValidator =
   Script.mkTypedValidatorParam @MockContract
     $$(PlutusTx.compile [||val||])
     $$(PlutusTx.compile [||wrap||])
   where
-    val :: (Api.ScriptHash, PlutusTx.BuiltinString) -> () -> () -> Api.ScriptContext -> Bool
-    val (expectedScriptHash, bs) _ _ (Api.ScriptContext txInfo _) =
-      PlutusTx.traceIfFalse bs -- FIXME same as above "there is no reference
-      -- input with the correct script hash"
+    val :: Api.ScriptHash -> () -> () -> Api.ScriptContext -> Bool
+    val expectedScriptHash _ _ (Api.ScriptContext txInfo _) =
+      PlutusTx.traceIfFalse "there is no reference input with the correct script hash"
         PlutusTx.$ PlutusTx.any
           ( \(Api.TxInInfo _ (Api.TxOut _ _ _ mRefScriptHash)) ->
               Just expectedScriptHash PlutusTx.== mRefScriptHash
@@ -98,7 +95,7 @@ checkReferenceScriptOnOref expectedScriptHash refScriptOref = do
   oref : _ <-
     validateTxSkel'
       txSkelTemplate
-        { txSkelOuts = [paysScript (requireRefScriptValidator (expectedScriptHash, "there is no reference input with the correct script hash")) () (ada 42)],
+        { txSkelOuts = [paysScript (requireRefScriptValidator expectedScriptHash) () (ada 42)],
           txSkelSigners = [wallet 1]
         }
   void $
@@ -266,9 +263,9 @@ tests =
                   (== "the required signer is missing")
               )
               def
-            $ useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 2, "the required signer is missing")),
+            $ useReferenceScript (wallet 1) (requireSignerValidator $ walletPKHash $ wallet 2),
           testCase "succeed if referenced script's requirement is met" $
             testSucceeds def $
-              useReferenceScript (wallet 1) (requireSignerValidator (walletPKHash $ wallet 1, "the required signer is missing"))
+              useReferenceScript (wallet 1) (requireSignerValidator $ walletPKHash $ wallet 1)
         ]
     ]
