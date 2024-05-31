@@ -26,7 +26,6 @@
 - Module `Wrapper.hs` to expose translation type classes
 - A type class `ToPubKeyHash` to allow direct payments to wallets
 - A type class `ToAddress` to retrieve addresses from various entities
-- Default language extension `ExtendedDefaultRules`
 - New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`
   and `referenceScriptOutputsSearch`
 

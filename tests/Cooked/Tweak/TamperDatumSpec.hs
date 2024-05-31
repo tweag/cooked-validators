@@ -25,9 +25,9 @@ tamperDatumTweakTest =
           txSkelTemplate
             { txSkelLabel = Set.singleton $ TxLabel TamperDatumLbl,
               txSkelOuts =
-                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52, 54),
+                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 54 :: Integer),
                   paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76, 77)
+                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -38,9 +38,9 @@ tamperDatumTweakTest =
         )
         ( txSkelTemplate
             { txSkelOuts =
-                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52, 53),
+                [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
                   paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76, 77)
+                  paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer)
                 ]
             }
         )
@@ -57,7 +57,7 @@ malformDatumTweakTest =
                   txSkelOuts =
                     [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` PlutusTx.toBuiltinData datum1,
                       paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76, 77),
+                      paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
                       paysPK alice (Script.lovelaceValueOf 567) `withDatum` PlutusTx.toBuiltinData datum4
                     ]
                 }
@@ -85,10 +85,10 @@ malformDatumTweakTest =
               )
               ( txSkelTemplate
                   { txSkelOuts =
-                      [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52, 53),
+                      [ paysPK alice (Script.lovelaceValueOf 789) `withDatum` (52 :: Integer, 53 :: Integer),
                         paysPK alice (Script.lovelaceValueOf 234) `withDatum` (),
-                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76, 77),
-                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84, 85)
+                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (76 :: Integer, 77 :: Integer),
+                        paysPK alice (Script.lovelaceValueOf 567) `withDatum` (84 :: Integer, 85 :: Integer)
                       ]
                   }
               )
