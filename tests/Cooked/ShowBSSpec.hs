@@ -4,7 +4,6 @@ import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Cooked
 import Data.Default
-import Data.Either
 import Data.Map qualified as Map
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
@@ -15,7 +14,6 @@ import PlutusTx.Builtins qualified as PlutusTx
 import PlutusTx.Prelude qualified as PlutusTx
 import Test.Tasty
 import Test.Tasty.HUnit
-import Text.Parsec
 
 data UnitContract
 

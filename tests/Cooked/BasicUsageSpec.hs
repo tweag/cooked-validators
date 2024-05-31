@@ -4,7 +4,6 @@ import Control.Monad
 import Cooked
 import Data.Default
 import Data.Map qualified as Map
-import Debug.Trace
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -20,7 +19,7 @@ pkToPk sender recipient amount =
   void $
     validateTxSkel $
       txSkelTemplate
-        { txSkelOuts = [paysPK (recipient) (ada amount)],
+        { txSkelOuts = [paysPK recipient (ada amount)],
           txSkelSigners = [sender]
         }
 

@@ -8,18 +8,19 @@ import Data.Maybe (catMaybes)
 import Test.Tasty
 import Test.Tasty.HUnit
 
-alice = wallet 1
-
-bob = wallet 2
+alice, bob :: Wallet
+(alice, bob) = (wallet 1, wallet 2)
 
 -- | An initial distribution where alice owns a UTxO with a datum of
 -- type Int and value 10 for each datum kind
+initialDistributionWithDatum :: InitialDistribution
 initialDistributionWithDatum =
   InitialDistribution $ [withDatum, withInlineDatum, withDatumHash] <*> [paysPK alice (ada 2)] <*> [10]
 
 -- | An initial distribution where alice owns a UTxO with a reference
 -- script corresponding to the always succeed validators and bob owns
 -- 2 UTxOs with 100 ada
+initialDistributionWithReferenceScript :: InitialDistribution
 initialDistributionWithReferenceScript =
   InitialDistribution $
     (paysPK alice (ada 2) `withReferenceScript` alwaysTrueValidator @MockContract)

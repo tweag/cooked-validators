@@ -1,11 +1,9 @@
 module Cooked.Tweak.OutPermutationsSpec (tests) where
 
-import Control.Monad (join, replicateM)
 import Cooked
 import Cooked.Tweak.OutPermutations
-import Data.Default
 import Data.Either (rights)
-import Data.List (group, groupBy)
+import Data.List (group)
 import Plutus.Script.Utils.Ada qualified as Script
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -62,7 +60,9 @@ tests =
                     )
                   ],
       testGroup "tests for PermutOutTweakMode:" $
-        let [a, b, c] = (\i -> paysPK (wallet i) $ Script.lovelaceValueOf 123) <$> [1 .. 3]
+        let a = paysPK (wallet 1) $ Script.lovelaceValueOf 123
+            b = paysPK (wallet 2) $ Script.lovelaceValueOf 123
+            c = paysPK (wallet 3) $ Script.lovelaceValueOf 123
             skel x y z = txSkelTemplate {txSkelOuts = [x, y, z]}
          in [ testCase "KeepIdentity (Just 2)" $
                 assertSameSets
