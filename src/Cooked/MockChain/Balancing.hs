@@ -8,7 +8,6 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Ledger.Shelley.Core qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
-import Control.Arrow
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
@@ -26,7 +25,6 @@ import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Optics.Core hiding (chosen)
 import Plutus.Script.Utils.Ada qualified as Script
-import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
@@ -110,16 +108,13 @@ setFeeAndBalance balanceWallet skel0 collateralIns = do
       then ensureTxSkelOutsMinAda skel0
       else return skel0
 
-  -- all UTxOs used as collaterals
-  collateralUtxosPl <- lookupUtxosPl (Set.toList collateralIns)
-
   -- We start with a high startingFee, but theres a chance that 'w' doesn't have
   -- enough funds so we'll see an unbalanceable error; in that case, we switch
   -- to the minimum fee and try again.  That feels very much like a hack, and it
   -- is. Maybe we should witch to starting with a small fee and then increasing,
   -- but that might require more iterations until its settled.  For now, let's
   -- keep it just like the folks from plutus-apps did it.
-  calcFee 5 (Fee 3_000_000) skel collateralUtxosPl
+  calcFee 5 (Fee 3_000_000) skel
     `catchError` \case
       -- Impossible to balance the transaction
       MCEUnbalanceable _ _ ->
@@ -128,60 +123,53 @@ setFeeAndBalance balanceWallet skel0 collateralIns = do
         -- "Api.minFee" is a constant of 10 lovelace.
         -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
         -- forall tx. Api.minFee tx = 10 lovelace
-        calcFee 5 (Fee 10) skel collateralUtxosPl
+        calcFee 5 (Fee 10) skel
       -- Impossible to generate the Cardano transaction at all
       e -> throwError e
   where
     -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
 
-    calcFee :: (MonadBlockChainBalancing m) => Int -> Fee -> TxSkel -> Map Api.TxOutRef Api.TxOut -> m (TxSkel, Fee)
-    calcFee n fee skel collateralUtxos = do
+    calcFee :: (MonadBlockChainBalancing m) => Int -> Fee -> TxSkel -> m (TxSkel, Fee)
+    calcFee n fee skel = do
       attemptedSkel <- balanceTxFromAux balanceWallet skel fee
-      managedData <- txSkelInputData skel
-      managedTxOuts <- do
-        ins <- txSkelInputUtxosPl skel
-        insRef <- txSkelReferenceInputUtxosPl skel
-        return $ ins <> insRef <> collateralUtxos
-      managedValidators <- txSkelInputValidators skel
-      theParams <- getParams
-      case estimateTxSkelFee theParams managedData managedTxOuts managedValidators attemptedSkel fee collateralIns of
-        -- necessary to capture script failure for failed cases
-        Left err@MCEValidationError {} -> throwError err
-        Left err -> throwError $ MCECalcFee err
-        Right newFee
-          | newFee == fee -> do
-              -- Debug.Trace.traceM "Reached fixpoint:"
-              -- Debug.Trace.traceM $ "- fee = " <> show fee
-              -- Debug.Trace.traceM $ "- skeleton = " <> show (attemptedSkel {_txSkelFee = fee})
-              pure (attemptedSkel, fee) -- reached fixpoint
-          | n == 0 -> do
-              -- Debug.Trace.traceM $ "Max iteration reached: newFee = " <> show newFee
-              pure (attemptedSkel, max newFee fee) -- maximum number of iterations
-          | otherwise -> do
-              -- Debug.Trace.traceM $ "New iteration: newfee = " <> show newFee
-              calcFee (n - 1) newFee skel collateralUtxos
+
+      newFee <-
+        estimateTxSkelFee attemptedSkel fee collateralIns `catchError` \case
+          err@MCEValidationError {} -> throwError err
+          err -> throwError $ MCECalcFee err
+
+      if newFee == fee
+        then return (attemptedSkel, fee) -- reached fixpoint
+        else
+          if n == 0
+            then return (attemptedSkel, max newFee fee) -- maximum number of iterations
+            else calcFee (n - 1) newFee skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
 estimateTxSkelFee ::
-  Emulator.Params ->
-  Map Api.DatumHash Api.Datum ->
-  Map Api.TxOutRef Api.TxOut ->
-  Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
+  (MonadBlockChainBalancing m) =>
   TxSkel ->
   Fee ->
   Set Api.TxOutRef ->
-  Either MockChainError Fee
-estimateTxSkelFee params managedData managedTxOuts managedValidators skel fees collateralIns = do
-  txBodyContent <-
-    left MCEGenerationError $
-      generateBodyContent fees collateralIns params managedData managedTxOuts managedValidators skel
+  m Fee
+estimateTxSkelFee skel fee collateralIns = do
+  params <- getParams
+  managedData <- txSkelInputData skel
+  managedTxOuts <- do
+    ins <- txSkelInputUtxosPl skel
+    insRef <- txSkelReferenceInputUtxosPl skel
+    collateralUtxos <- lookupUtxosPl (Set.toList collateralIns)
+    return $ ins <> insRef <> collateralUtxos
+  managedValidators <- txSkelInputValidators skel
+  txBodyContent <- case generateBodyContent fee collateralIns params managedData managedTxOuts managedValidators skel of
+    Left err -> throwError $ MCEGenerationError err
+    Right txBodyContent -> return txBodyContent
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
-  txBody <-
-    left (MCEGenerationError . TxBodyError "Error creating body when estimating fees") $
-      Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent
-  case Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0 of
-    Emulator.Coin fee -> pure $ Fee fee
+      pParams = Emulator.pEmulatorPParams params
+  case Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent of
+    Left err -> throwError $ MCEGenerationError (TxBodyError "Error creating body when estimating fees" err)
+    Right txBody | Emulator.Coin fee' <- Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway pParams txBody nkeys 0 -> return $ Fee fee'
 
 -- TODO: improve our collateral mechanism
 
