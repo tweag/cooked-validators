@@ -138,12 +138,10 @@ setFeeAndBalance balanceWallet skel0 collateralIns = do
           err@MCEValidationError {} -> throwError err
           err -> throwError $ MCECalcFee err
 
-      if newFee == fee
-        then return (attemptedSkel, fee) -- reached fixpoint
-        else
-          if n == 0
-            then return (attemptedSkel, max newFee fee) -- maximum number of iterations
-            else calcFee (n - 1) newFee skel
+      case n == 0 of
+        _ | newFee == fee -> return (attemptedSkel, fee) -- reached fixpoint
+        True -> return (attemptedSkel, max newFee fee) -- maximum number of iterations
+        False -> calcFee (n - 1) newFee skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
