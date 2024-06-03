@@ -30,31 +30,38 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
-balanceTxSkel skelUnbal = do
+balanceTxSkel skel = do
   -- We retrieve the balancing wallet, who is central in the balancing
   -- process. Any missing asset will be searched within its utxos.
   let balancingWallet =
-        case txOptBalanceWallet . txSkelOpts $ skelUnbal of
-          BalanceWithFirstSigner -> case txSkelSigners skelUnbal of
+        case txOptBalanceWallet . txSkelOpts $ skel of
+          BalanceWithFirstSigner -> case txSkelSigners skel of
             [] -> error "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
             bw : _ -> bw
           BalanceWith bWallet -> bWallet
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
-  collateralInputs <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
+  collateralInputs <- case txOptCollateralUtxos . txSkelOpts $ skel of
     CollateralUtxosFromBalancingWallet -> getCollateralInputs balancingWallet
     CollateralUtxosFromWallet cWallet -> getCollateralInputs cWallet
     CollateralUtxosFromSet utxos -> return utxos
 
+  -- We do the min Ada adjustment if it's requested
+  skelMinAda <-
+    if txOptEnsureMinAda . txSkelOpts $ skel
+      then ensureTxSkelOutsMinAda skel
+      else return skel
+
   -- We compute the balanced skeleton with the associated fees
-  (skel, fees) <-
-    if txOptBalance . txSkelOpts $ skelUnbal
-      then setFeeAndBalance balancingWallet skelUnbal collateralInputs
-      else return (skelUnbal, Fee 0)
+  (skelBalanced, fees) <-
+    if txOptBalance . txSkelOpts $ skelMinAda
+      then -- We start with a small fee and then increase it
+        calcFee balancingWallet 5 (Fee 10) collateralInputs skelMinAda
+      else return (skelMinAda, Fee 0)
 
   -- We return the new skeleton, the fees and the collateral inputs
-  return (skel, fees, collateralInputs)
+  return (skelBalanced, fees, collateralInputs)
 
 -- | Ensure that the transaction outputs have the necessary minimum amount of
 -- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
@@ -100,48 +107,23 @@ ensureTxSkelOutsMinAda skel = do
 --
 --  This function also adjusts the transaction outputs to contain at least the
 --  minimum Ada amount, if the 'txOptEnsureMinAda is @True@.
-setFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Set Api.TxOutRef -> m (TxSkel, Fee)
-setFeeAndBalance balanceWallet skel0 collateralIns = do
-  -- do the min Ada adjustment if it's requested
-  skel <-
-    if txOptEnsureMinAda . txSkelOpts $ skel0
-      then ensureTxSkelOutsMinAda skel0
-      else return skel0
+--
 
-  -- We start with a high startingFee, but theres a chance that 'w' doesn't have
-  -- enough funds so we'll see an unbalanceable error; in that case, we switch
-  -- to the minimum fee and try again.  That feels very much like a hack, and it
-  -- is. Maybe we should witch to starting with a small fee and then increasing,
-  -- but that might require more iterations until its settled.  For now, let's
-  -- keep it just like the folks from plutus-apps did it.
-  calcFee 5 (Fee 3_000_000) skel
-    `catchError` \case
-      -- Impossible to balance the transaction
-      MCEUnbalanceable _ _ ->
-        -- WARN "Api.minFee" takes an actual Tx but we no longer provide it
-        -- since we work on "TxSkel". However, for now, the implementation of
-        -- "Api.minFee" is a constant of 10 lovelace.
-        -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Index.hs#L116
-        -- forall tx. Api.minFee tx = 10 lovelace
-        calcFee 5 (Fee 10) skel
-      -- Impossible to generate the Cardano transaction at all
-      e -> throwError e
-  where
-    -- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
+-- | Balances a skeleton and computes fees from an original amount, with a maximum of n recursive calls
+-- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
+calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> TxSkel -> m (TxSkel, Fee)
+calcFee balanceWallet n fee collateralIns skel = do
+  attemptedSkel <- balanceTxFromAux balanceWallet skel fee
 
-    calcFee :: (MonadBlockChainBalancing m) => Int -> Fee -> TxSkel -> m (TxSkel, Fee)
-    calcFee n fee skel = do
-      attemptedSkel <- balanceTxFromAux balanceWallet skel fee
+  newFee <-
+    estimateTxSkelFee attemptedSkel fee collateralIns `catchError` \case
+      err@MCEValidationError {} -> throwError err
+      err -> throwError $ MCECalcFee err
 
-      newFee <-
-        estimateTxSkelFee attemptedSkel fee collateralIns `catchError` \case
-          err@MCEValidationError {} -> throwError err
-          err -> throwError $ MCECalcFee err
-
-      case n == 0 of
-        _ | newFee == fee -> return (attemptedSkel, fee) -- reached fixpoint
-        True -> return (attemptedSkel, max newFee fee) -- maximum number of iterations
-        False -> calcFee (n - 1) newFee skel
+  case n == 0 of
+    _ | newFee == fee -> return (attemptedSkel, fee) -- reached fixpoint
+    True -> throwError $ MCECalcFee $ OtherMockChainError @String "Maximum number of iterations reached during fee calculation"
+    False -> calcFee balanceWallet (n - 1) newFee collateralIns skel
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
