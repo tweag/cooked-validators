@@ -5,7 +5,6 @@
 module Cooked.MockChain.Balancing (balanceTxSkel) where
 
 import Cardano.Api.Shelley qualified as Cardano
-import Cardano.Ledger.Shelley.Core qualified as Shelley
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad.Except
@@ -33,12 +32,11 @@ balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set A
 balanceTxSkel skel = do
   -- We retrieve the balancing wallet, who is central in the balancing
   -- process. Any missing asset will be searched within its utxos.
-  let balancingWallet =
-        case txOptBalanceWallet . txSkelOpts $ skel of
-          BalanceWithFirstSigner -> case txSkelSigners skel of
-            [] -> error "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
-            bw : _ -> bw
-          BalanceWith bWallet -> bWallet
+  balancingWallet <- case txOptBalanceWallet . txSkelOpts $ skel of
+    BalanceWithFirstSigner -> case txSkelSigners skel of
+      [] -> fail "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
+      bw : _ -> return bw
+    BalanceWith bWallet -> return bWallet
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
@@ -47,52 +45,15 @@ balanceTxSkel skel = do
     CollateralUtxosFromWallet cWallet -> getCollateralInputs cWallet
     CollateralUtxosFromSet utxos -> return utxos
 
-  -- We do the min Ada adjustment if it's requested
-  skelMinAda <-
-    if txOptEnsureMinAda . txSkelOpts $ skel
-      then ensureTxSkelOutsMinAda skel
-      else return skel
-
-  -- We compute the balanced skeleton with the associated fees
+  -- We compute the balanced skeleton with the associated fees when requested
+  -- we start with a fee of 10 an increase it a maximum of 5 times
   (skelBalanced, fees) <-
-    if txOptBalance . txSkelOpts $ skelMinAda
-      then -- We start with a small fee and then increase it
-        calcFee balancingWallet 5 (Fee 10) collateralInputs skelMinAda
-      else return (skelMinAda, Fee 0)
+    if txOptBalance . txSkelOpts $ skel
+      then calcFee balancingWallet 5 (Fee 10) collateralInputs skel
+      else return (skel, Fee 0)
 
   -- We return the new skeleton, the fees and the collateral inputs
   return (skelBalanced, fees, collateralInputs)
-
--- | Ensure that the transaction outputs have the necessary minimum amount of
--- Ada on them. This will only be applied if the 'txOptEnsureMinAda' is set to
--- @True@.
-ensureTxSkelOutsMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
-ensureTxSkelOutsMinAda skel = do
-  theParams <- getParams
-  case mapM (ensureTxSkelOutHasMinAda theParams) $ skel ^. txSkelOutsL of
-    Left err -> throwError $ MCEGenerationError err
-    Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
-  where
-    ensureTxSkelOutHasMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
-    ensureTxSkelOutHasMinAda theParams txSkelOut@(Pays output) = do
-      cardanoTxOut <- generateTxOut (Emulator.pNetworkId theParams) txSkelOut
-      let Script.Lovelace oldAda = output ^. outputValueL % adaL
-          Emulator.Coin requiredAda =
-            Shelley.getMinCoinTxOut
-              (Emulator.emulatorPParams theParams)
-              . Cardano.toShelleyTxOut Cardano.ShelleyBasedEraConway
-              . Cardano.toCtxUTxOTxOut
-              $ cardanoTxOut
-          updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Script.Lovelace (max oldAda requiredAda)
-      -- The following iterative approach to calculate the minimum Ada amount of
-      -- a TxOut is necessary, because the additional value might make the TxOut
-      -- heavier.
-      --
-      -- It is inspired by
-      -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
-      if oldAda < requiredAda
-        then ensureTxSkelOutHasMinAda theParams updatedTxSkelOut
-        else return txSkelOut
 
 -- ensuring that the equation
 --
@@ -150,8 +111,6 @@ estimateTxSkelFee skel fee collateralIns = do
   case Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent of
     Left err -> throwError $ MCEGenerationError (TxBodyError "Error creating body when estimating fees" err)
     Right txBody | Emulator.Coin fee' <- Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway pParams txBody nkeys 0 -> return $ Fee fee'
-
--- TODO: improve our collateral mechanism
 
 -- | Calculates the collateral for a transaction
 getCollateralInputs :: (MonadBlockChainBalancing m) => Wallet -> m (Set Api.TxOutRef)

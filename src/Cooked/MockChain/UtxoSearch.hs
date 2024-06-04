@@ -16,6 +16,7 @@ module Cooked.MockChain.UtxoSearch
     filterWithValuePred,
     filterWithOnlyAda,
     filterWithNotOnlyAda,
+    onlyValueOutputsAtSearch,
     vanillaOutputsAtSearch,
     filterWithAlways,
     scriptOutputsSearch,
@@ -117,6 +118,17 @@ filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flatten
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
 
+onlyValueOutputsAtSearch ::
+  (MonadBlockChainBalancing m, ToAddress addr) =>
+  addr ->
+  UtxoSearch m (ConcreteOutput Api.Credential () Api.Value Api.ScriptHash)
+onlyValueOutputsAtSearch addr =
+  utxosAtSearch addr
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isOutputWithoutDatum
+    `filterWithPure` isEmptyStakingCredentialOutput
+    `filterWithPred` (isNothing . view outputReferenceScriptL)
+
 -- A vanilla output only possesses an ada-only value and does not have a staking
 -- credential, a datum or a reference script. A vanilla UTxO is a perfect
 -- candidate to be used for fee, balancing or collateral.
@@ -125,12 +137,8 @@ vanillaOutputsAtSearch ::
   addr ->
   UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
 vanillaOutputsAtSearch addr =
-  utxosAtSearch addr
-    `filterWithAlways` fromAbstractOutput
+  onlyValueOutputsAtSearch addr
     `filterWithPure` isOnlyAdaOutput
-    `filterWithPure` isOutputWithoutDatum
-    `filterWithPure` isEmptyStakingCredentialOutput
-    `filterWithPred` (isNothing . view outputReferenceScriptL)
 
 scriptOutputsSearch ::
   (MonadBlockChain m, ToScriptHash s) =>

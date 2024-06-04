@@ -22,6 +22,7 @@ import Cooked.InitialDistribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -330,9 +331,12 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let newParams = applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skelUnbal) oldParams
     -- We change the parameters for the duration of the validation process
     setParams newParams
-    -- We balance the skeleton (when requested in the options) and get the
-    -- associated fees and collateral inputs
-    (skel, fees, collateralIns) <- balanceTxSkel skelUnbal
+    -- We ensure that the outputs have the required minimal amount of ada, when
+    -- requested in the skeleton options
+    minAdaSkelUnbal <- ensureTxSkelMinAda skelUnbal
+    -- We balance the skeleton and get the associated fees and collateral
+    -- inputs, when requested in the skeleton options
+    (skel, fees, collateralIns) <- balanceTxSkel minAdaSkelUnbal
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
