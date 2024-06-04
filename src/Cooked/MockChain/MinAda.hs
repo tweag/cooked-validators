@@ -1,3 +1,5 @@
+-- | This module provides functions to ensure outputs are furnished with enough
+-- ada to satisfy the minimum ada constraint, by themselves or within skeletons.
 module Cooked.MockChain.MinAda
   ( toTxSkelOutMinAda,
     toTxSkelMinAda,
@@ -20,6 +22,8 @@ import Cooked.ValueUtils
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 
+-- | This ensures the output skeleton satisfies the min ada constraint when
+-- specified in the options, while leaving it unchanged otherwise.
 ensureTxSkelMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
 ensureTxSkelMinAda skel =
   if txOptEnsureMinAda . txSkelOpts $ skel

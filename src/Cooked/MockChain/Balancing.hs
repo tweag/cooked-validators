@@ -28,6 +28,13 @@ import Plutus.Script.Utils.Value qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
+-- | This is the main entry point of our balancing mechanism. This function
+-- takes a skeleton and makes an attempt at balancing it using existing utxos
+-- from the balancing wallet. Note that the input skeleton might, or might not,
+-- but properly adjusted with minimal ada in existing utxo. The balancing
+-- mechanism will not attempt to modify existing paiement, but will ensure
+-- additional payments satisfy the min ada constraint. This balancing only
+-- occurs when requested in the skeleton options.
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
 balanceTxSkel skelUnbal = do
   -- We retrieve the balancing wallet, who is central in the balancing
