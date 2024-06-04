@@ -29,18 +29,18 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
-balanceTxSkel skel = do
+balanceTxSkel skelUnbal = do
   -- We retrieve the balancing wallet, who is central in the balancing
   -- process. Any missing asset will be searched within its utxos.
-  balancingWallet <- case txOptBalanceWallet . txSkelOpts $ skel of
-    BalanceWithFirstSigner -> case txSkelSigners skel of
+  balancingWallet <- case txOptBalanceWallet . txSkelOpts $ skelUnbal of
+    BalanceWithFirstSigner -> case txSkelSigners skelUnbal of
       [] -> fail "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
       bw : _ -> return bw
     BalanceWith bWallet -> return bWallet
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
-  collateralInputs <- case txOptCollateralUtxos . txSkelOpts $ skel of
+  collateralInputs <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
     CollateralUtxosFromBalancingWallet -> getCollateralInputs balancingWallet
     CollateralUtxosFromWallet cWallet -> getCollateralInputs cWallet
     CollateralUtxosFromSet utxos -> return utxos
@@ -48,9 +48,9 @@ balanceTxSkel skel = do
   -- We compute the balanced skeleton with the associated fees when requested
   -- we start with a fee of 10 an increase it a maximum of 5 times
   (skelBalanced, fees) <-
-    if txOptBalance . txSkelOpts $ skel
-      then calcFee balancingWallet 5 (Fee 10) collateralInputs skel
-      else return (skel, Fee 0)
+    if txOptBalance . txSkelOpts $ skelUnbal
+      then calcFee balancingWallet 5 (Fee 10) collateralInputs skelUnbal
+      else return (skelUnbal, Fee 0)
 
   -- We return the new skeleton, the fees and the collateral inputs
   return (skelBalanced, fees, collateralInputs)
