@@ -1,7 +1,6 @@
 -- | This module handles auto-balancing of transaction skeleton. This includes
--- computation of fees and collaterals as well as ensuring outputs have the
--- required minimum ada. Most of the balancing process can be customized through
--- `TxSkelOpts`
+-- computation of fees and collaterals because their computation cannot be
+-- separated from the balancing.
 module Cooked.MockChain.Balancing (balanceTxSkel) where
 
 import Cardano.Api.Shelley qualified as Cardano
@@ -72,13 +71,10 @@ balanceTxSkel skelUnbal = do
 -- outputs. This means that fee calculation and balancing are tied together. We
 -- follow /plutus-apps/ in breaking this mutual dependency with a fixpoint
 -- iteration, which should compute realistic fees.
---
---  This function also adjusts the transaction outputs to contain at least the
---  minimum Ada amount, if the 'txOptEnsureMinAda is @True@.
---
 
--- | Balances a skeleton and computes fees from an original amount, with a maximum of n recursive calls
--- Inspired by https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
+-- | Balances a skeleton and computes fees from an original amount, with a
+-- maximum of n recursive calls Inspired by
+-- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
 calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> TxSkel -> m (TxSkel, Fee)
 calcFee balanceWallet n fee collateralIns skel = do
   attemptedSkel <- balanceTxFromAux balanceWallet skel fee
@@ -95,12 +91,7 @@ calcFee balanceWallet n fee collateralIns skel = do
 
 -- | This funcion is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee ::
-  (MonadBlockChainBalancing m) =>
-  TxSkel ->
-  Fee ->
-  Set Api.TxOutRef ->
-  m Fee
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Set Api.TxOutRef -> m Fee
 estimateTxSkelFee skel fee collateralIns = do
   params <- getParams
   managedData <- txSkelInputData skel
