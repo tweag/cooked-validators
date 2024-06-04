@@ -333,7 +333,10 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     setParams newParams
     -- We ensure that the outputs have the required minimal amount of ada, when
     -- requested in the skeleton options
-    minAdaSkelUnbal <- ensureTxSkelMinAda skelUnbal
+    minAdaSkelUnbal <-
+      if txOptEnsureMinAda . txSkelOpts $ skelUnbal
+        then toTxSkelWithMinAda skelUnbal
+        else return skelUnbal
     -- We balance the skeleton and get the associated fees and collateral
     -- inputs, when requested in the skeleton options
     (skel, fees, collateralIns) <- balanceTxSkel minAdaSkelUnbal

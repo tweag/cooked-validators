@@ -1,9 +1,9 @@
 -- | This module provides functions to ensure outputs are furnished with enough
 -- ada to satisfy the minimum ada constraint, by themselves or within skeletons.
 module Cooked.MockChain.MinAda
-  ( toTxSkelOutMinAda,
-    toTxSkelMinAda,
-    ensureTxSkelMinAda,
+  ( toTxSkelOutWithMinAda,
+    toTxSkelWithMinAda,
+    getTxSkelOutMinAda,
   )
 where
 
@@ -16,47 +16,44 @@ import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Control.Monad.Except
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
-import Cooked.Output
 import Cooked.Skeleton
 import Cooked.ValueUtils
 import Optics.Core
 import Plutus.Script.Utils.Ada qualified as Script
 
--- | This ensures the output skeleton satisfies the min ada constraint when
--- specified in the options, while leaving it unchanged otherwise.
-ensureTxSkelMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
-ensureTxSkelMinAda skel =
-  if txOptEnsureMinAda . txSkelOpts $ skel
-    then toTxSkelMinAda skel
-    else return skel
+-- | This provides the minimum amount of ada required in a given `TxSkelOut`. As
+-- we need to transform our output into a Cardano output to compute this value,
+-- this function can fail.
+getTxSkelOutMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError Integer
+getTxSkelOutMinAda Emulator.Params {..} txSkelOut =
+  Cardano.unCoin
+    . Shelley.getMinCoinTxOut pEmulatorPParams
+    . Cardano.toShelleyTxOut Cardano.ShelleyBasedEraConway
+    . Cardano.toCtxUTxOTxOut
+    <$> generateTxOut pNetworkId txSkelOut
 
--- | To that the transaction outputs have the necessary minimum amount of
--- Ada on them. This will only be applied if the 'txOptToMinAda' is set to
--- @True@.
-toTxSkelMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
-toTxSkelMinAda skel = do
+-- | This transforms an output into another output which necessarily contains at
+-- least the minimal required ada. If the previous quantity of ada was
+-- sufficient, it remains unchanged. This requires an iterative process, as
+-- adding ada into an output can potentially increase its size and thus make it
+-- require more minimal ada (although this remains to be witnessed in practice).
+-- This approach was inspired by
+-- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
+toTxSkelOutWithMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
+toTxSkelOutWithMinAda params txSkelOut = do
+  let Script.Lovelace oldAda = txSkelOut ^. txSkelOutValueL % adaL
+  requiredAda <- getTxSkelOutMinAda params txSkelOut
+  let updatedTxSkelOut = txSkelOut & txSkelOutValueL % adaL .~ Script.Lovelace (max oldAda requiredAda)
+  if oldAda < requiredAda
+    then toTxSkelOutWithMinAda params updatedTxSkelOut
+    else return updatedTxSkelOut
+
+-- | This transforms a skeleton by replacing all its `TxSkelOut` by their
+-- updated variants with their minimal amount of required ada. Any error raised
+-- in the transformation process is transformed into an `MCEGenerationError`
+toTxSkelWithMinAda :: (MonadBlockChainBalancing m) => TxSkel -> m TxSkel
+toTxSkelWithMinAda skel = do
   theParams <- getParams
-  case mapM (toTxSkelOutMinAda theParams) $ skel ^. txSkelOutsL of
+  case mapM (toTxSkelOutWithMinAda theParams) $ skel ^. txSkelOutsL of
     Left err -> throwError $ MCEGenerationError err
     Right newTxSkelOuts -> return $ skel & txSkelOutsL .~ newTxSkelOuts
-
-toTxSkelOutMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError TxSkelOut
-toTxSkelOutMinAda theParams txSkelOut@(Pays output) = do
-  cardanoTxOut <- generateTxOut (Emulator.pNetworkId theParams) txSkelOut
-  let Script.Lovelace oldAda = output ^. outputValueL % adaL
-      Cardano.Coin requiredAda =
-        Shelley.getMinCoinTxOut
-          (Emulator.emulatorPParams theParams)
-          . Cardano.toShelleyTxOut Cardano.ShelleyBasedEraConway
-          . Cardano.toCtxUTxOTxOut
-          $ cardanoTxOut
-      updatedTxSkelOut = Pays $ output & outputValueL % adaL .~ Script.Lovelace (max oldAda requiredAda)
-  -- The following iterative approach to calculate the minimum Ada amount of
-  -- a TxOut is necessary, because the additional value might make the TxOut
-  -- heavier.
-  --
-  -- It is inspired by
-  -- https://github.com/input-output-hk/plutus-apps/blob/8706e6c7c525b4973a7b6d2ed7c9d0ef9cd4ef46/plutus-ledger/src/Ledger/Index.hs#L124
-  if oldAda < requiredAda
-    then toTxSkelOutMinAda theParams updatedTxSkelOut
-    else return txSkelOut
