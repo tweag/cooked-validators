@@ -15,7 +15,7 @@ import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Monad
 import Control.Monad.Reader
-import Cooked.Conversion.ToScript
+import Cooked.Conversion
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
@@ -23,16 +23,16 @@ import Data.Bifunctor
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe qualified as Maybe
+import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Numeric qualified as PlutusTx
 
 -- * Domain for transaction generation and associated types
 
@@ -49,6 +49,8 @@ data Context where
       fees :: Fee,
       -- | collaterals to add to body generation
       collateralIns :: Set Api.TxOutRef,
+      -- | wallet to return collaterals to
+      returnCollateralWallet :: Wallet,
       -- | parameters of the emulator
       params :: Emulator.Params,
       -- | datums present in our environment
@@ -61,7 +63,7 @@ data Context where
     Context
 
 instance Default Context where
-  def = Context 0 mempty def Map.empty Map.empty Map.empty
+  def = Context 0 mempty (wallet 1) def Map.empty Map.empty Map.empty
 
 -- The domain in which transactions are generated.
 type TxGen a = ReaderT Context (Either GenerateTxError) a
@@ -91,10 +93,9 @@ throwOnToCardanoError = flip throwOnToCardanoErrorOrApply id
 
 txSkelToBodyContent :: TxSkel -> TxGen (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToBodyContent TxSkel {..} = do
-  collateralInsList <- asks (Set.toList . collateralIns)
   txIns <- mapM txSkelInToTxIn $ Map.toList txSkelIns
-  txInsReference <- txOutRefsToTxInsReference $ Maybe.mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
-  txInsCollateral <- txOutRefsToTxSkelInsCollateral collateralInsList
+  txInsReference <- txOutRefsToTxInsReference $ mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
+  (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet
   txOuts <- mapM txSkelOutToCardanoTxOut txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
     throwOnToCardanoError "translating the transaction validity range" $ Ledger.toCardanoValidityRange txSkelValidityRange
@@ -107,20 +108,9 @@ txSkelToBodyContent TxSkel {..} = do
           "translating the required signers"
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
-  knownTxOuts <- asks managedTxOuts
-  txTotalCollateral <-
-    Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway . Emulator.Coin
-      <$> foldM
-        ( \lovelaces txOutRef ->
-            (lovelaces +) . Script.getLovelace . Script.fromValue . Api.txOutValue
-              <$> throwOnLookup ("computing the total collateral: Unknown TxOutRef" ++ show txOutRef) txOutRef knownTxOuts
-        )
-        0
-        collateralInsList
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
   txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . feeLovelace . fees)
-  let txReturnCollateral = Cardano.TxReturnCollateralNone
-      txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
+  let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
@@ -132,6 +122,7 @@ txSkelToBodyContent TxSkel {..} = do
 
 generateBodyContent ::
   Fee ->
+  Wallet ->
   Set Api.TxOutRef ->
   Emulator.Params ->
   Map Api.DatumHash Api.Datum ->
@@ -139,7 +130,7 @@ generateBodyContent ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-generateBodyContent fees collateralIns params managedData managedTxOuts managedValidators =
+generateBodyContent fees returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
@@ -226,12 +217,43 @@ txOutRefsToTxInsReference =
     )
     . mapM Ledger.toCardanoTxIn
 
--- Convert a list of 'Api.TxOutRef' into a 'Cardano.TxInsCollateral'
-txOutRefsToTxSkelInsCollateral :: [Api.TxOutRef] -> TxGen (Cardano.TxInsCollateral Cardano.ConwayEra)
-txOutRefsToTxSkelInsCollateral =
-  throwOnToCardanoError "txOutRefsToTxInCollateral"
-    . fmap toTxInsCollateral
-    . mapM Ledger.toCardanoTxIn
+-- Computes the collateral triplet from the fees and the collateral inputs in
+-- the context
+toCollateralTriplet ::
+  TxGen
+    ( Cardano.TxInsCollateral Cardano.ConwayEra,
+      Cardano.TxTotalCollateral Cardano.ConwayEra,
+      Cardano.TxReturnCollateral Cardano.CtxTx Cardano.ConwayEra
+    )
+toCollateralTriplet = do
+  knownTxOuts <- asks managedTxOuts
+  returnCollateralWallet <- asks returnCollateralWallet
+  networkId <- asks (Emulator.pNetworkId . params)
+  collateralInsList <- asks (Set.toList . collateralIns)
+  collateralInsValue <-
+    let collateralInsResolved = mapMaybe (`Map.lookup` knownTxOuts) collateralInsList
+     in if length collateralInsResolved /= length collateralInsList
+          then throwOnString "toCollateralTriplet: unresolved txOutRefs"
+          else return $ mconcat (Api.txOutValue <$> collateralInsResolved)
+  collateralPercentage <- asks (toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
+  coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . feeLovelace . fees)
+  txReturnCollateralValue <-
+    Ledger.toCardanoTxOutValue
+      <$> throwOnToCardanoError
+        "toCollateralTriplet: cannot build return collateral value"
+        (Ledger.toCardanoValue (collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)))
+  address <-
+    throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
+      Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+  let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway coinTotalCollateral
+      txReturnCollateral =
+        Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $
+          Cardano.TxOut address txReturnCollateralValue Cardano.TxOutDatumNone Cardano.ReferenceScriptNone
+  txInsCollateral <-
+    throwOnToCardanoError
+      "txOutRefsToTxInCollateral"
+      (toTxInsCollateral <$> mapM Ledger.toCardanoTxIn collateralInsList)
+  return (txInsCollateral, txTotalCollateral, txReturnCollateral)
   where
     toTxInsCollateral [] = Cardano.TxInsCollateralNone
     toTxInsCollateral ins = Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway ins
@@ -278,7 +300,7 @@ txSkelOutToCardanoTxOut :: TxSkelOut -> TxGen (Cardano.TxOut Cardano.CtxTx Carda
 txSkelOutToCardanoTxOut (Pays output) = do
   networkId <- asks $ Emulator.pNetworkId . params
   address <- throwOnToCardanoError "txSkelOutToCardanoTxOut: wrong address" $ Ledger.toCardanoAddressInEra networkId (outputAddress output)
-  value <- Ledger.toCardanoTxOutValue <$> throwOnToCardanoError "txSkelOutToCardanoTxOut: unresolved value" (Ledger.toCardanoValue $ outputValue output)
+  value <- Ledger.toCardanoTxOutValue <$> throwOnToCardanoError "txSkelOutToCardanoTxOut: cannot build value" (Ledger.toCardanoValue $ outputValue output)
   datum <- case output ^. outputDatumL of
     TxSkelOutNoDatum -> return Cardano.TxOutDatumNone
     TxSkelOutDatumHash datum ->
@@ -328,6 +350,7 @@ txSkelToCardanoTx txSkel = do
 
 generateTx ::
   Fee ->
+  Wallet ->
   Set Api.TxOutRef ->
   Emulator.Params ->
   Map Script.DatumHash Script.Datum ->
@@ -335,5 +358,5 @@ generateTx ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.Tx Cardano.ConwayEra)
-generateTx fees collateralIns params managedData managedTxOuts managedValidators =
+generateTx fees returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToCardanoTx

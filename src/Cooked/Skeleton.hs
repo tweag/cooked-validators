@@ -201,12 +201,15 @@ applyEmulatorParamsModification Nothing = id
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
-  = -- | Rely on automated computation with UTxOs from the balancing wallet
+  = -- | Rely on automated computation with vanilla UTxOs from the balancing
+    -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computaton with UTxOs from a given wallet
+  | -- | Rely on automated computation with vanilla UTxOs from a given
+    -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromWallet Wallet
-  | -- | Manually provide a set of UTxOs
-    CollateralUtxosFromSet (Set Api.TxOutRef)
+  | -- | Manually provide a set of candidate UTxOs to be used as collaterals
+    -- alongside a wallet to send return collaterals back to.
+    CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
   deriving (Eq, Show)
 
 instance Default CollateralUtxos where

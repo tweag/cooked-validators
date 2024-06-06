@@ -390,22 +390,23 @@ mPrettyTxOpts
       prettyBalanceWallet (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
       prettyUnsafeModTx :: [RawModTx] -> DocCooked
       prettyUnsafeModTx [] = "No transaction modifications"
-      prettyUnsafeModTx xs =
-        let n = length xs
-         in PP.pretty n
-              <+> "transaction"
-              <+> PP.plural "modification" "modifications" n
+      prettyUnsafeModTx (length -> n) = PP.pretty n <+> "transaction" <+> PP.plural "modification" "modifications" n
       prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
       prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
       prettyCollateralUtxos :: CollateralUtxos -> DocCooked
-      prettyCollateralUtxos col =
-        "Collateral policy:"
-          <+> ( case col of
-                  CollateralUtxosFromBalancingWallet -> "Use balancing wallet"
-                  (CollateralUtxosFromWallet w) -> "Use specific wallet:" <+> prettyCookedOpt opts (walletPKHash w)
-                  (CollateralUtxosFromSet txOutRefs) -> prettyItemize "Use the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs)
-              )
+      prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
+        prettyItemize "Collateral policy:" "-" ["Use vanilla utxos from balancing wallet", "Send return collaterals to balancing wallet"]
+      prettyCollateralUtxos (CollateralUtxosFromWallet w)
+        | prettyWallet <- prettyCookedOpt opts (walletPKHash w) =
+            prettyItemize "Collateral policy:" "-" ["Use vanilla utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
+      prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
+        prettyItemize
+          "Collateral policy:"
+          "-"
+          [ prettyItemize "Choose among the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs),
+            "Send return collaterals to" <+> prettyCookedOpt opts (walletPKHash w)
+          ]
 
 -- * Pretty-printing
 

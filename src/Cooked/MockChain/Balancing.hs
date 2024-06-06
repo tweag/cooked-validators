@@ -30,11 +30,11 @@ import PlutusTx.Numeric qualified as PlutusTx
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and makes an attempt at balancing it using existing utxos
 -- from the balancing wallet. Note that the input skeleton might, or might not,
--- but properly adjusted with minimal ada in existing utxo. The balancing
+-- be properly adjusted with minimal ada in existing utxo. The balancing
 -- mechanism will not attempt to modify existing paiement, but will ensure
 -- additional payments satisfy the min ada constraint. This balancing only
 -- occurs when requested in the skeleton options.
-balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
+balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef, Wallet)
 balanceTxSkel skelUnbal = do
   -- We retrieve the balancing wallet, who is central in the balancing
   -- process. Any missing asset will be searched within its utxos.
@@ -44,22 +44,29 @@ balanceTxSkel skelUnbal = do
       bw : _ -> return bw
     BalanceWith bWallet -> return bWallet
 
+  -- Initial fees is extremely large and should cover any transaction fee. When
+  -- the balancing is not required, this fee will be applied. Otherwise, a
+  -- dychotomic search will happen between this fee and 0 until an optimal fee
+  -- is found.
+  let initialFee = Fee 5_000_000
+
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
-  collateralInputs <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
-    CollateralUtxosFromBalancingWallet -> getCollateralInputs balancingWallet
-    CollateralUtxosFromWallet cWallet -> getCollateralInputs cWallet
-    CollateralUtxosFromSet utxos -> return utxos
+  (collateralInputs, returnCollateralWallet) <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
+    CollateralUtxosFromBalancingWallet -> (,balancingWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch balancingWallet)
+    CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch cWallet)
+    CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
-  -- We compute the balanced skeleton with the associated fees when requested
-  -- we start with a fee of 10 an increase it a maximum of 5 times
-  (skelBalanced, fees) <-
+  -- We either return the original skeleton with default fees and associated
+  -- collaterals when no balancing is requested. Or, we return the balanced
+  -- skeleton with adjusted fees and collaterals, which are computed with a
+  -- maximum of 5 balancing iterations (empirically sufficient).
+  (txSkelBal, fee) <-
     if txOptBalance . txSkelOpts $ skelUnbal
-      then calcFee balancingWallet 5 (Fee 10) collateralInputs skelUnbal
-      else return (skelUnbal, Fee 0)
+      then calcFee balancingWallet 5 initialFee collateralInputs returnCollateralWallet skelUnbal
+      else return (skelUnbal, initialFee)
 
-  -- We return the new skeleton, the fees and the collateral inputs
-  return (skelBalanced, fees, collateralInputs)
+  return (txSkelBal, fee, collateralInputs, returnCollateralWallet)
 
 -- ensuring that the equation
 --
@@ -75,24 +82,24 @@ balanceTxSkel skelUnbal = do
 -- | Balances a skeleton and computes fees from an original amount, with a
 -- maximum of n recursive calls Inspired by
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
-calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> TxSkel -> m (TxSkel, Fee)
-calcFee balanceWallet n fee collateralIns skel = do
+calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee)
+calcFee balanceWallet n fee collateralIns returnCollateralWallet skel = do
   attemptedSkel <- balanceTxFromAux balanceWallet skel fee
 
   newFee <-
-    estimateTxSkelFee attemptedSkel fee collateralIns `catchError` \case
+    estimateTxSkelFee attemptedSkel fee collateralIns returnCollateralWallet `catchError` \case
       err@MCEValidationError {} -> throwError err
       err -> throwError $ MCECalcFee err
 
   case n == 0 of
     _ | newFee == fee -> return (attemptedSkel, fee) -- reached fixpoint
     True -> throwError $ MCECalcFee $ OtherMockChainError @String "Maximum number of iterations reached during fee calculation"
-    False -> calcFee balanceWallet (n - 1) newFee collateralIns skel
+    False -> calcFee balanceWallet (n - 1) newFee collateralIns returnCollateralWallet skel
 
--- | This funcion is essentially a copy of
+-- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
-estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Set Api.TxOutRef -> m Fee
-estimateTxSkelFee skel fee collateralIns = do
+estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Set Api.TxOutRef -> Wallet -> m Fee
+estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   params <- getParams
   managedData <- txSkelInputData skel
   managedTxOuts <- do
@@ -101,7 +108,7 @@ estimateTxSkelFee skel fee collateralIns = do
     collateralUtxos <- lookupUtxosPl (Set.toList collateralIns)
     return $ ins <> insRef <> collateralUtxos
   managedValidators <- txSkelInputValidators skel
-  txBodyContent <- case generateBodyContent fee collateralIns params managedData managedTxOuts managedValidators skel of
+  txBodyContent <- case generateBodyContent fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators skel of
     Left err -> throwError $ MCEGenerationError err
     Right txBodyContent -> return txBodyContent
   let nkeys = Cardano.estimateTransactionKeyWitnessCount txBodyContent
@@ -109,17 +116,6 @@ estimateTxSkelFee skel fee collateralIns = do
   case Cardano.createAndValidateTransactionBody Cardano.ShelleyBasedEraConway txBodyContent of
     Left err -> throwError $ MCEGenerationError (TxBodyError "Error creating body when estimating fees" err)
     Right txBody | Emulator.Coin fee' <- Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway pParams txBody nkeys 0 -> return $ Fee fee'
-
--- | Calculates the collateral for a transaction
-getCollateralInputs :: (MonadBlockChainBalancing m) => Wallet -> m (Set Api.TxOutRef)
-getCollateralInputs w = do
-  souts <- runUtxoSearch $ vanillaOutputsAtSearch w
-  case souts of
-    [] -> throwError MCENoSuitableCollateral
-    -- TODO We only keep one element of the list because we are limited on how
-    -- many collateral inputs a transaction can have. Should this be
-    -- investigated further for a better approach?
-    ((txOutRef, _) : _) -> return $ Set.singleton txOutRef
 
 balanceTxFromAux :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m TxSkel
 balanceTxFromAux balanceWallet txskel fee = do
@@ -186,11 +182,7 @@ calcBalanceTx balanceWallet skel fee = do
       . filter ((`notElem` inputOrefs) . fst)
       <$> utxosAt (walletAddress balanceWallet)
   case selectNewInputs candidateUtxos [] initialExcess missingValue of
-    Nothing ->
-      throwError $
-        MCEUnbalanceable
-          (MCEUnbalNotEnoughFunds balanceWallet missingValue)
-          skel
+    Nothing -> throwError $ MCEUnbalanceable (MCEUnbalNotEnoughFunds balanceWallet missingValue) skel
     Just bTxRes -> return bTxRes
   where
     selectNewInputs ::
@@ -269,9 +261,9 @@ applyBalanceTx balancePK (BalanceTxRes newInputs returnValue availableUtxos) ske
       bestOuts currentBest processed (txSkelOut@(Pays output) : nexts) =
         case isPKOutputFrom balancePK output >>= isOutputWithoutDatum >>= isOnlyAdaOutput of
           Nothing -> bestOuts currentBest (processed ++ [txSkelOut]) nexts
-          Just output' ->
-            let (Script.Lovelace amount) = output' ^. outputValueL
-             in if amount < maybe 0 (\(_, (_, x), _) -> x) currentBest
+          Just output'
+            | Script.Lovelace amount <- output' ^. outputValueL ->
+                if amount < maybe 0 (\(_, (_, x), _) -> x) currentBest
                   then -- This is a good candidate but a better one was found before
                     bestOuts currentBest (processed ++ [txSkelOut]) nexts
                   else -- This is the best candidate so far
