@@ -1,7 +1,7 @@
 -- | This module handles auto-balancing of transaction skeleton. This includes
 -- computation of fees and collaterals because their computation cannot be
 -- separated from the balancing.
-module Cooked.MockChain.Balancing (balanceTxSkel) where
+module Cooked.MockChain.Balancing (balanceTxSkel, calcMaxFee) where
 
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
@@ -23,6 +23,7 @@ import Data.List
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Ratio qualified as Rat
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
@@ -50,11 +51,10 @@ balanceTxSkel skelUnbal = do
       bw : _ -> return bw
     BalanceWith bWallet -> return bWallet
 
-  -- Initial fees is extremely large and should cover any transaction fee. When
-  -- the balancing is not required, this fee will be applied. Otherwise, a
-  -- dychotomic search will happen between this fee and 0 until an optimal fee
-  -- is found.
-  let initialFee = Fee 5_000_000
+  -- Initial fees is the largest possible fee. When the balancing is not
+  -- required, this fee will be applied. Otherwise, a dychotomic search will
+  -- happen between this fee and 0 until an optimal fee is found.
+  initialFee <- calcMaxFee
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
@@ -73,6 +73,29 @@ balanceTxSkel skelUnbal = do
       else return (skelUnbal, initialFee, collateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
+
+-- | This computes the maximum possible fee a transaction can cost based on the
+-- current protocol parameters
+calcMaxFee :: (MonadBlockChainBalancing m) => m Fee
+calcMaxFee = do
+  let defMaxTxExecutionUnits =
+        Cardano.ExecutionUnits {executionSteps = 10_000_000_000, executionMemory = 14_000_000}
+      defExecutionUnitPrices =
+        Cardano.ExecutionUnitPrices {priceExecutionSteps = 721 Rat.% 10_000_000, priceExecutionMemory = 577 Rat.% 10_000}
+
+  params <- Emulator.pProtocolParams <$> getParams
+
+  let maxTxSize = toInteger $ Cardano.protocolParamMaxTxSize params
+      Emulator.Coin txFeePerByte = Cardano.protocolParamTxFeePerByte params
+      Emulator.Coin txFeeFixed = Cardano.protocolParamTxFeeFixed params
+      Cardano.ExecutionUnitPrices priceESteps priceEMem = fromMaybe defExecutionUnitPrices $ Cardano.protocolParamPrices params
+      Cardano.ExecutionUnits (toInteger -> eSteps) (toInteger -> eMem) = fromMaybe defMaxTxExecutionUnits $ Cardano.protocolParamMaxTxExUnits params
+
+  let sizeFees = txFeeFixed + (maxTxSize * txFeePerByte)
+      eStepsFees = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
+      eMemFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
+
+  return $ Fee $ sizeFees + eStepsFees + eMemFees
 
 -- | Balances a skeleton and computes optimal fees using a dychotomic search
 calcFee :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
@@ -104,16 +127,16 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- Collateral tx outputs sorted by decreased ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
-  let candidateSetsRaw = reachValue collateralTxOuts totalCollateral nbMax
+  let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Decorated candidates with min ada and actual ada
-  let candidateSetsDecorated = second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val)) <$> candidateSetsRaw
+  let candidatesDecorated = second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val)) <$> candidatesRaw
   -- Filtered candidates that have successfully been generated and have enough
   -- ada to be considered as valid return collateral payments
-  let candidateSetsFiltered = [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- candidateSetsDecorated, minLv <= lv]
+  let candidatesFiltered = [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   -- Sorted valid candidate sets by increasing ada amount
-  let candidateSetsSorted = sortBy (compare `on` snd) candidateSetsFiltered
+  let candidatesSorted = sortBy (compare `on` snd) candidatesFiltered
   -- We return the first candidate (the most cost efficient) when present
-  case candidateSetsSorted of
+  case candidatesSorted of
     [] -> throwError MCENoSuitableCollateral
     (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
 
