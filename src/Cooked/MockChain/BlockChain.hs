@@ -96,8 +96,6 @@ data MockChainError where
   -- no datum.
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
-  -- | Errors happening at fee calculation time.
-  MCECalcFee :: MockChainError -> MockChainError
   -- | Thrown when an output reference should be in the state of the mockchain,
   -- but isn't.
   MCEUnknownOutRefError :: String -> Api.TxOutRef -> MockChainError
@@ -129,7 +127,6 @@ instance Eq MockChainError where
   MCEUnbalanceable err skel == MCEUnbalanceable err' skel' = err == err' && skel == skel'
   MCENoSuitableCollateral == MCENoSuitableCollateral = True
   MCEGenerationError err == MCEGenerationError err' = err == err'
-  MCECalcFee err == MCECalcFee err' = err == err'
   MCEUnknownOutRefError name outref == MCEUnknownOutRefError name' outref' = name == name' && outref == outref'
   MCEUnknownValidator name hash == MCEUnknownValidator name' hash' = name == name' && hash == hash'
   MCEUnknownDatum name hash == MCEUnknownDatum name' hash' = name == name' && hash == hash'

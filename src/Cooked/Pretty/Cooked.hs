@@ -116,8 +116,6 @@ instance PrettyCooked MockChainError where
       "Transaction generation error:"
       "-"
       [PP.pretty msg, PP.viaShow err]
-  prettyCookedOpt opts (MCECalcFee err) =
-    PP.vsep ["Fee calculation error:", PP.indent 2 (prettyCookedOpt opts err)]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
     prettyItemize
       "Unknown transaction output ref:"

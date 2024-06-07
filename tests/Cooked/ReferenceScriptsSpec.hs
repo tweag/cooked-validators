@@ -182,7 +182,6 @@ tests =
               def
               ( \case
                   MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _ -> testSuccess
-                  MCECalcFee (MCEUnknownOutRefError "lookupUtxos: unknown TxOutRef" _) -> testSuccess
                   _ -> testFailure
               )
               def
@@ -210,7 +209,6 @@ tests =
                   def
                   ( \case
                       MCEGenerationError err -> err .==. expectedError
-                      MCECalcFee (MCEGenerationError err) -> err .==. expectedError
                       _ -> testFailure
                   )
                   def
@@ -233,7 +231,6 @@ tests =
               def
               ( \case
                   MCEValidationError Ledger.Phase1 _ -> testSuccess
-                  MCECalcFee (MCEValidationError Ledger.Phase1 _) -> testSuccess
                   _ -> testFailure
               )
               def

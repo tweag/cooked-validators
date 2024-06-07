@@ -69,40 +69,22 @@ balanceTxSkel skelUnbal = do
   -- maximum of 5 balancing iterations (empirically sufficient).
   (txSkelBal, fee, adjustedCollateralIns) <-
     if txOptBalance . txSkelOpts $ skelUnbal
-      then calcFee balancingWallet 5 initialFee collateralIns returnCollateralWallet skelUnbal
+      then calcFee balancingWallet (Fee 0) initialFee collateralIns returnCollateralWallet skelUnbal
       else return (skelUnbal, initialFee, collateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
 
--- ensuring that the equation
---
--- > input value + minted value = output value + burned value + fee
---
--- holds. The fee depends on the transaction size, which might change during the
--- process of balancing, because additional inputs belonging to the 'balancePK'
--- might be added to ensure that transaction inputs can cover all of the
--- outputs. This means that fee calculation and balancing are tied together. We
--- follow /plutus-apps/ in breaking this mutual dependency with a fixpoint
--- iteration, which should compute realistic fees.
-
--- | Balances a skeleton and computes fees from an original amount, with a
--- maximum of n recursive calls Inspired by
--- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
-calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
-calcFee balanceWallet n fee collateralIns returnCollateralWallet skel = do
+-- | Balances a skeleton and computes optimal fees using a dychotomic search
+calcFee :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
+calcFee _ minFee maxFee _ _ _ | minFee >= maxFee = fail "cannot balance"
+calcFee balanceWallet minFee@(Fee a) maxFee@(Fee b) collateralIns returnCollateralWallet skel | fee <- Fee $ div (a + b) 2 = do
   attemptedSkel <- balanceTxFromAux balanceWallet skel fee
-
   adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
-
-  newFee <-
-    estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet `catchError` \case
-      err@MCEValidationError {} -> throwError err
-      err -> throwError $ MCECalcFee err
-
-  case n == 0 of
-    _ | newFee == fee -> return (attemptedSkel, fee, adjustedCollateralIns) -- reached fixpoint
-    True -> throwError $ MCECalcFee $ OtherMockChainError @String "Maximum number of iterations reached during fee calculation"
-    False -> calcFee balanceWallet (n - 1) newFee collateralIns returnCollateralWallet skel
+  newFee <- estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet
+  case newFee - fee of
+    x | x == 0 || (x < 0 && (b - a) == 1) -> return (attemptedSkel, newFee, adjustedCollateralIns)
+    x | x < 0 -> calcFee balanceWallet minFee fee collateralIns returnCollateralWallet skel
+    _ -> calcFee balanceWallet (fee + 1) maxFee collateralIns returnCollateralWallet skel
 
 -- | This reduces a set of given collateral inputs while accounting for:
 -- * the percentage to respect between fees and total collaterals
@@ -121,15 +103,17 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) . feeLovelace $ fee
   -- Collateral tx outputs sorted by decreased ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
-  -- We compute the min ada requirements for each of the options and only keep
-  -- the associated list of txOutRef. We sort them by increasing ada cost after
-  -- removing the ones that do not have enough lovelace to sustain their own
-  -- storage cost. We only keep the first one of them when it exists.
-  let collateralOptionsE =
-        second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val))
-          <$> reachValue collateralTxOuts totalCollateral nbMax
-      collateralOptions = sortBy (compare `on` snd) [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- collateralOptionsE, minLv <= lv]
-  case collateralOptions of
+  -- Candidate subsets of utxos to be used as collaterals
+  let candidateSetsRaw = reachValue collateralTxOuts totalCollateral nbMax
+  -- Decorated candidates with min ada and actual ada
+  let candidateSetsDecorated = second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val)) <$> candidateSetsRaw
+  -- Filtered candidates that have successfully been generated and have enough
+  -- ada to be considered as valid return collateral payments
+  let candidateSetsFiltered = [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- candidateSetsDecorated, minLv <= lv]
+  -- Sorted valid candidate sets by increasing ada amount
+  let candidateSetsSorted = sortBy (compare `on` snd) candidateSetsFiltered
+  -- We return the first candidate (the most cost efficient) when present
+  case candidateSetsSorted of
     [] -> throwError MCENoSuitableCollateral
     (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
 
