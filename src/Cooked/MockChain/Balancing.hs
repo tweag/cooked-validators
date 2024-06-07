@@ -78,23 +78,25 @@ balanceTxSkel skelUnbal = do
 -- current protocol parameters
 calcMaxFee :: (MonadBlockChainBalancing m) => m Fee
 calcMaxFee = do
+  -- Default parameters in case they are not present. It is unclear when/if this
+  -- could actually happen though.
   let defMaxTxExecutionUnits =
         Cardano.ExecutionUnits {executionSteps = 10_000_000_000, executionMemory = 14_000_000}
       defExecutionUnitPrices =
         Cardano.ExecutionUnitPrices {priceExecutionSteps = 721 Rat.% 10_000_000, priceExecutionMemory = 577 Rat.% 10_000}
-
+  -- Parameters necessary to compute the maximum possible fee for a transaction
   params <- Emulator.pProtocolParams <$> getParams
-
   let maxTxSize = toInteger $ Cardano.protocolParamMaxTxSize params
       Emulator.Coin txFeePerByte = Cardano.protocolParamTxFeePerByte params
       Emulator.Coin txFeeFixed = Cardano.protocolParamTxFeeFixed params
       Cardano.ExecutionUnitPrices priceESteps priceEMem = fromMaybe defExecutionUnitPrices $ Cardano.protocolParamPrices params
       Cardano.ExecutionUnits (toInteger -> eSteps) (toInteger -> eMem) = fromMaybe defMaxTxExecutionUnits $ Cardano.protocolParamMaxTxExUnits params
-
+  -- Intermediate computations
   let sizeFees = txFeeFixed + (maxTxSize * txFeePerByte)
       eStepsFees = (eSteps * Rat.numerator priceESteps) `div` Rat.denominator priceESteps
       eMemFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
-
+  -- Final fee accounts for the size of the transaction and the units consumed
+  -- by the execution of scripts from the transaction
   return $ Fee $ sizeFees + eStepsFees + eMemFees
 
 -- | Balances a skeleton and computes optimal fees using a dychotomic search
@@ -114,7 +116,7 @@ calcFee balanceWallet minFee@(Fee a) maxFee@(Fee b) collateralIns returnCollater
 -- * min ada in the associated return collateral
 -- * maximum number of collateral inputs
 collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Set Api.TxOutRef -> Wallet -> m (Set Api.TxOutRef)
-collateralInsFromFees fee collateralIns returnCollateralWallet = do
+collateralInsFromFees fee collateralIns (paysPK -> paysToColWallet) = do
   params <- getParams
   -- We retrieve the number max of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
@@ -123,20 +125,18 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs.
-  let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) . feeLovelace $ fee
+  let totalCollateral = toValue . Cardano.Coin . (`div` 100) . (* percentage) . feeLovelace $ fee
   -- Collateral tx outputs sorted by decreased ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
   -- Decorated candidates with min ada and actual ada
-  let candidatesDecorated = second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val)) <$> candidatesRaw
+  let candidatesDecorated = second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysToColWallet val)) <$> candidatesRaw
   -- Filtered candidates that have successfully been generated and have enough
   -- ada to be considered as valid return collateral payments
   let candidatesFiltered = [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
-  -- Sorted valid candidate sets by increasing ada amount
-  let candidatesSorted = sortBy (compare `on` snd) candidatesFiltered
-  -- We return the first candidate (the most cost efficient) when present
-  case candidatesSorted of
+  -- We return the most cost efficient candidate
+  case sortBy (compare `on` snd) candidatesFiltered of
     [] -> throwError MCENoSuitableCollateral
     (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
 
