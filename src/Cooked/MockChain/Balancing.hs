@@ -3,29 +3,35 @@
 -- separated from the balancing.
 module Cooked.MockChain.Balancing (balanceTxSkel) where
 
+import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node.Params qualified as Emulator
 import Cardano.Node.Emulator.Internal.Node.Validation qualified as Emulator
 import Control.Monad.Except
+import Cooked.Conversion
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoSearch
 import Cooked.Output
 import Cooked.Skeleton
 import Cooked.ValueUtils
 import Cooked.Wallet
+import Data.Bifunctor
 import Data.Function
 import Data.List
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Ledger.Index qualified as Ledger
 import Optics.Core hiding (chosen)
 import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Value qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
-import PlutusTx.Numeric qualified as PlutusTx
+import PlutusTx.Prelude qualified as PlutusTx
 
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and makes an attempt at balancing it using existing utxos
@@ -52,7 +58,7 @@ balanceTxSkel skelUnbal = do
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
-  (collateralInputs, returnCollateralWallet) <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
+  (collateralIns, returnCollateralWallet) <- case txOptCollateralUtxos . txSkelOpts $ skelUnbal of
     CollateralUtxosFromBalancingWallet -> (,balancingWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch balancingWallet)
     CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch cWallet)
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
@@ -61,12 +67,12 @@ balanceTxSkel skelUnbal = do
   -- collaterals when no balancing is requested. Or, we return the balanced
   -- skeleton with adjusted fees and collaterals, which are computed with a
   -- maximum of 5 balancing iterations (empirically sufficient).
-  (txSkelBal, fee) <-
+  (txSkelBal, fee, adjustedCollateralIns) <-
     if txOptBalance . txSkelOpts $ skelUnbal
-      then calcFee balancingWallet 5 initialFee collateralInputs returnCollateralWallet skelUnbal
-      else return (skelUnbal, initialFee)
+      then calcFee balancingWallet 5 initialFee collateralIns returnCollateralWallet skelUnbal
+      else return (skelUnbal, initialFee, collateralIns)
 
-  return (txSkelBal, fee, collateralInputs, returnCollateralWallet)
+  return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
 
 -- ensuring that the equation
 --
@@ -82,19 +88,72 @@ balanceTxSkel skelUnbal = do
 -- | Balances a skeleton and computes fees from an original amount, with a
 -- maximum of n recursive calls Inspired by
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-contract/src/Wallet/Emulator/Wallet.hs#L329
-calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee)
+calcFee :: (MonadBlockChainBalancing m) => Wallet -> Int -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
 calcFee balanceWallet n fee collateralIns returnCollateralWallet skel = do
   attemptedSkel <- balanceTxFromAux balanceWallet skel fee
 
+  adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
+
   newFee <-
-    estimateTxSkelFee attemptedSkel fee collateralIns returnCollateralWallet `catchError` \case
+    estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet `catchError` \case
       err@MCEValidationError {} -> throwError err
       err -> throwError $ MCECalcFee err
 
   case n == 0 of
-    _ | newFee == fee -> return (attemptedSkel, fee) -- reached fixpoint
+    _ | newFee == fee -> return (attemptedSkel, fee, adjustedCollateralIns) -- reached fixpoint
     True -> throwError $ MCECalcFee $ OtherMockChainError @String "Maximum number of iterations reached during fee calculation"
     False -> calcFee balanceWallet (n - 1) newFee collateralIns returnCollateralWallet skel
+
+-- | This reduces a set of given collateral inputs while accounting for:
+-- * the percentage to respect between fees and total collaterals
+-- * min ada in the associated return collateral
+-- * maximum number of collateral inputs
+collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Set Api.TxOutRef -> Wallet -> m (Set Api.TxOutRef)
+collateralInsFromFees fee collateralIns returnCollateralWallet = do
+  params <- getParams
+  -- We retrieve the number max of collateral inputs, with a default of 10. In
+  -- practice this will be around 3.
+  nbMax <- toInteger . fromMaybe 10 . Cardano.protocolParamMaxCollateralInputs . Emulator.pProtocolParams <$> getParams
+  -- We retrieve the percentage to respect between fees and total collaterals
+  percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
+  -- We compute the total collateral to be associated to the transaction as a
+  -- value. This will be the target value to be reached by collateral inputs.
+  let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) . feeLovelace $ fee
+  -- Collateral tx outputs sorted by decreased ada amount
+  collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
+  -- We compute the min ada requirements for each of the options and only keep
+  -- the associated list of txOutRef. We sort them by increasing ada cost after
+  -- removing the ones that do not have enough lovelace to sustain their own
+  -- storage cost. We only keep the first one of them when it exists.
+  let collateralOptionsE =
+        second (\val -> (Script.fromValue val, getTxSkelOutMinAda params $ paysPK returnCollateralWallet val))
+          <$> reachValue collateralTxOuts totalCollateral nbMax
+      collateralOptions = sortBy (compare `on` snd) [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- collateralOptionsE, minLv <= lv]
+  case collateralOptions of
+    [] -> throwError MCENoSuitableCollateral
+    (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
+
+reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
+-- Target is smaller than the empty value (which means in only contains negative
+-- entries), we stop looking as adding more elements would be superfluous.
+reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
+-- The target is not reached, but the max number of elements is reached, we
+-- would need more elements but are not allowed to looked for them.
+reachValue _ _ maxEls | maxEls == 0 = []
+-- The target is not reached, and cannot possibly be reached, as the remaining
+-- candidates do not sum up to the target.
+reachValue l target _ | not $ target `Api.leq` mconcat (Api.txOutValue . snd <$> l) = []
+-- There is no more elements to go through and the target has not been
+-- reached. Encompassed in the previous case, but required by GHC which cannot
+-- know the function is total without this case.
+reachValue [] _ _ = []
+-- Main recursive case, where we get to either pick or drop the first element
+reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
+  (++)
+    -- dropping the first element
+    (reachValue t target maxEls)
+    -- taking the first element
+    (first (h :) <$> reachValue t (target <> PlutusTx.negate hVal) (maxEls - 1))
 
 -- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19

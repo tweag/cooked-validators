@@ -174,15 +174,15 @@ txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOre
     -- thrown, because we collect the 'managedTxOuts' using (eventually)
     -- 'lookupUtxos', which will already fail on un-resolvable 'TxOutRef's.
     throwOnLookup
-      "txSkelInToTxIn: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored"
+      "txSkelRedeemerToWitness: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored"
       validatorOref
       =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
   when (scriptHashAtOref /= validatorHash) $
-    throwOnString "txSkelInToTxIn: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
+    throwOnString "txSkelRedeemerToWitness: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
   validatorTxIn <-
-    throwOnToCardanoError "txSkelIntoTxIn: translating TxOutRef where the reference script sits" $ Ledger.toCardanoTxIn validatorOref
+    throwOnToCardanoError "txSkelRedeemerToWitness: translating TxOutRef where the reference script sits" $ Ledger.toCardanoTxIn validatorOref
   scriptHash <-
-    throwOnToCardanoError "txSkelInToTxIn: could not convert script hash of referenced script" $ Ledger.toCardanoScriptHash $ Api.ScriptHash validatorHash
+    throwOnToCardanoError "txSkelRedeemerToWitness: could not convert script hash of referenced script" $ Ledger.toCardanoScriptHash $ Api.ScriptHash validatorHash
   let scriptWitnessBuilder = case version of
         Script.PlutusV1 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 (Cardano.PReferenceScript validatorTxIn (Just scriptHash))
         Script.PlutusV2 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 (Cardano.PReferenceScript validatorTxIn (Just scriptHash))
