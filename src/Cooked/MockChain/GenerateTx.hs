@@ -154,7 +154,7 @@ resolveScriptOutputOwnerAndDatum txOutRef = do
   validatorHash <-
     case outputAddress txOut of
       (Api.Address (Api.ScriptCredential (Api.ScriptHash validatorHash)) _) -> return $ Script.ValidatorHash validatorHash
-      _ -> throwOnString "txSkelInToTxIn: Output is not a script output"
+      _ -> throwOnString $ "txSkelInToTxIn: Output is not a script output" <> show txOut
   validator <- throwOnLookup "txSkelInToTxIn: Unknown validator" validatorHash =<< asks managedValidators
   datum <-
     case outputOutputDatum txOut of
