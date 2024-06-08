@@ -60,13 +60,20 @@ balanceTxSkel skelUnbal = do
     CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch cWallet)
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
+  -- We collet the balancing utxos based on the associated options. We filter
+  -- out utxos already used in the input skeleton
+  (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
+    runUtxoSearch $ case txOptBalancingUtxos (txSkelOpts skelUnbal) of
+      BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
+      BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
+
   -- We either return the original skeleton with default fees and associated
   -- collaterals when no balancing is requested. Or, we return the balanced
   -- skeleton with adjusted fees and collaterals, which are computed with a
   -- maximum of 5 balancing iterations (empirically sufficient).
   (txSkelBal, fee, adjustedCollateralIns) <-
     if txOptBalance . txSkelOpts $ skelUnbal
-      then calcFee balancingWallet (Fee 0) initialFee collateralIns returnCollateralWallet skelUnbal
+      then calcFee balancingWallet (Fee 0) initialFee collateralIns balancingUtxos returnCollateralWallet skelUnbal
       else return (skelUnbal, initialFee, collateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
@@ -96,16 +103,16 @@ calcMaxFee = do
   return $ Fee $ sizeFees + eStepsFees + eMemFees
 
 -- | Balances a skeleton and computes optimal fees using a dychotomic search
-calcFee :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Set Api.TxOutRef -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
-calcFee _ minFee maxFee _ _ _ | minFee >= maxFee = fail "cannot balance"
-calcFee balanceWallet minFee@(Fee a) maxFee@(Fee b) collateralIns returnCollateralWallet skel | fee <- Fee $ div (a + b) 2 = do
-  attemptedSkel <- computeBalancedTxSkel balanceWallet skel fee
+calcFee :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Set Api.TxOutRef -> [(Api.TxOutRef, Api.TxOut)] -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
+calcFee _ minFee maxFee _ _ _ _ | minFee >= maxFee = fail "cannot balance"
+calcFee balanceWallet minFee@(Fee a) maxFee@(Fee b) collateralIns balancingUtxos returnCollateralWallet skel | fee <- Fee $ div (a + b) 2 = do
+  attemptedSkel <- computeBalancedTxSkel balanceWallet balancingUtxos skel fee
   adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
   newFee <- estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet
   case newFee - fee of
     x | x == 0 || (x < 0 && (b - a) == 1) -> return (attemptedSkel, newFee, adjustedCollateralIns)
-    x | x < 0 -> calcFee balanceWallet minFee fee collateralIns returnCollateralWallet skel
-    _ -> calcFee balanceWallet (fee + 1) maxFee collateralIns returnCollateralWallet skel
+    x | x < 0 -> calcFee balanceWallet minFee fee collateralIns balancingUtxos returnCollateralWallet skel
+    _ -> calcFee balanceWallet (fee + 1) maxFee collateralIns balancingUtxos returnCollateralWallet skel
 
 -- | This reduces a set of given collateral inputs while accounting for:
 -- * the percentage to respect between fees and total collaterals
@@ -192,17 +199,13 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
 -- | This creates a balanced skeleton from a given skeleton and fee
 -- In other words, this ensures that the following equation holds:
 -- input value + minted value = output value + burned value + fee
-computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m TxSkel
-computeBalancedTxSkel balancingWallet txSkel@TxSkel {..} (Fee (lovelace -> feeValue)) = do
+computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> [(Api.TxOutRef, Api.TxOut)] -> TxSkel -> Fee -> m TxSkel
+computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (Fee (lovelace -> feeValue)) = do
   params <- getParams
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
       outValue = foldOf (txSkelOutsL % folded % txSkelOutValueL) txSkel
   inValue <- txSkelInputValue txSkel
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> PlutusTx.negate (inValue <> mintedValue)
-  balancingUtxosInitial <- runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
-    BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
-    BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
-  let balancingUtxos = filter ((`notElem` txSkelKnownTxOutRefs txSkel) . fst) balancingUtxosInitial
       candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
       candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK balancingWallet val)) <$> candidatesRaw
       candidatesFiltered = [(lv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
