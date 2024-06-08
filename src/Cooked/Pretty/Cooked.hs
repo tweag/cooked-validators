@@ -67,37 +67,12 @@ instance PrettyCooked MockChainError where
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
-  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =
+  prettyCookedOpt opts (MCEUnbalanceable balWallet targetValue _) =
     prettyItemize
       "Unbalanceable:"
       "-"
       [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough funds",
         "Required payment is" <+> prettyCookedOpt opts targetValue
-      ]
-  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning (spentValue, spentTxOuts) (remainingValue, remainingTxOuts) returnValue) _) =
-    prettyItemize
-      "Unbalanceable:"
-      "-"
-      [ "Value to return is below the min ada per UTxO:"
-          <+> prettyCookedOpt opts returnValue,
-        prettyItemize
-          "Spent for balancing:"
-          "-"
-          [ prettyCookedOpt opts spentValue,
-            prettyItemize
-              "Outputs:"
-              "-"
-              (prettyCookedOpt opts <$> spentTxOuts)
-          ],
-        prettyItemize
-          "Remaining candidates:"
-          "-"
-          [ prettyCookedOpt opts remainingValue,
-            prettyItemize
-              "Outputs:"
-              "-"
-              (prettyCookedOpt opts <$> remainingTxOuts)
-          ]
       ]
   prettyCookedOpt _ MCENoSuitableCollateral =
     "No suitable collateral"
@@ -133,11 +108,6 @@ instance PrettyCooked MockChainError where
       "Unknown datum hash:"
       "-"
       [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash dHash)]
-  prettyCookedOpt _ (OtherMockChainError err) =
-    prettyItemize
-      "Miscellaneous MockChainError:"
-      "-"
-      [PP.viaShow err]
 
 instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =

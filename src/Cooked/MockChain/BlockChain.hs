@@ -15,7 +15,6 @@
 -- from the core definition of our blockchain.
 module Cooked.MockChain.BlockChain
   ( MockChainError (..),
-    MCEUnbalanceableError (..),
     MonadBlockChainBalancing (..),
     MonadBlockChainWithoutValidation (..),
     MonadBlockChain (..),
@@ -82,7 +81,6 @@ import ListT
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
-import Type.Reflection
 
 -- * BlockChain monad
 
@@ -91,9 +89,9 @@ data MockChainError where
   -- FIXME, maybe the validation phase can be deduced from the nature of the
   -- error
   MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
-  MCEUnbalanceable :: MCEUnbalanceableError -> TxSkel -> MockChainError
-  -- | Thrown when the balancing wallet owns no output that is pure Ada and with
-  -- no datum.
+  -- | Thrown when the balancing wallet does not have enough funds
+  MCEUnbalanceable :: Wallet -> Api.Value -> TxSkel -> MockChainError
+  -- | Thrown when not enough collateral are provided
   MCENoSuitableCollateral :: MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   -- | Thrown when an output reference should be in the state of the mockchain,
@@ -105,36 +103,7 @@ data MockChainError where
   MCEUnknownDatum :: String -> Api.DatumHash -> MockChainError
   -- | Used to provide 'MonadFail' instances.
   FailWith :: String -> MockChainError
-  OtherMockChainError :: (Typeable err, Show err, Eq err) => err -> MockChainError
-
-data MCEUnbalanceableError
-  = -- | The balancing wallet misses some value to pay what is needed to balance
-    -- the transaction.
-    MCEUnbalNotEnoughFunds Wallet Api.Value
-  | -- | There is value to return to the balancing wallet but not enough to
-    -- fullfill the min ada requirement and there is not enough in additional
-    -- inputs to make it possible.
-    MCEUnbalNotEnoughReturning
-      (Api.Value, [Api.TxOutRef]) -- What was spent
-      (Api.Value, [Api.TxOutRef]) -- What is left to spend
-      Api.Value -- What cannot be given back
   deriving (Show, Eq)
-
-deriving instance Show MockChainError
-
-instance Eq MockChainError where
-  MCEValidationError phase err == MCEValidationError phase' err' = phase == phase' && err == err'
-  MCEUnbalanceable err skel == MCEUnbalanceable err' skel' = err == err' && skel == skel'
-  MCENoSuitableCollateral == MCENoSuitableCollateral = True
-  MCEGenerationError err == MCEGenerationError err' = err == err'
-  MCEUnknownOutRefError name outref == MCEUnknownOutRefError name' outref' = name == name' && outref == outref'
-  MCEUnknownValidator name hash == MCEUnknownValidator name' hash' = name == name' && hash == hash'
-  MCEUnknownDatum name hash == MCEUnknownDatum name' hash' = name == name' && hash == hash'
-  FailWith msg == FailWith msg' = msg == msg'
-  OtherMockChainError err == OtherMockChainError err' = case typeOf err `eqTypeRep` typeOf err' of
-    Just HRefl -> err == err'
-    Nothing -> False
-  _ == _ = False
 
 -- | Contains methods needed for balancing.
 class (MonadFail m, MonadError MockChainError m) => MonadBlockChainBalancing m where
