@@ -12,6 +12,7 @@ module Cooked.Skeleton
     TxLabel (..),
     BalanceOutputPolicy (..),
     BalancingWallet (..),
+    BalancingUtxos (..),
     RawModTx (..),
     EmulatorParamsModification (..),
     CollateralUtxos (..),
@@ -24,6 +25,7 @@ module Cooked.Skeleton
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
     txOptBalanceWalletL,
+    txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     MintsConstrs,
@@ -154,6 +156,18 @@ data BalanceOutputPolicy
 instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
+-- | Which UTxOs to use when balancing
+data BalancingUtxos
+  = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
+    -- and no reference script) belonging to the balancing wallet.
+    BalancingUtxosAutomatic
+  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
+    BalancingUtxosWith (Set Api.TxOutRef)
+  deriving (Eq, Ord, Show)
+
+instance Default BalancingUtxos where
+  def = BalancingUtxosAutomatic
+
 -- | Which wallet to use to provide outputs for balancing and collaterals.
 -- Either the first signer or an explicit wallet. In the second case, this
 -- wallet must be a signer of the transaction.
@@ -270,6 +284,10 @@ data TxOpts = TxOpts
     --
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
+    -- | Which UTxOs to use during balancing.
+    --
+    -- Default is 'BalancingUtxosAutomatic'.
+    txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
     -- unsafe thing to do if you want to preserve compatibility with the actual
@@ -297,6 +315,7 @@ makeLensesFor
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
     ("txOptBalance", "txOptBalanceL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
+    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL")
@@ -312,6 +331,7 @@ instance Default TxOpts where
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
         txOptBalanceWallet = def,
+        txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def
       }

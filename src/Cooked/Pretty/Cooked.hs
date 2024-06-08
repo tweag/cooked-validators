@@ -352,6 +352,7 @@ mPrettyTxOpts
       txOptBalance,
       txOptBalanceOutputPolicy,
       txOptBalanceWallet,
+      txOptBalancingUtxos,
       txOptEmulatorParamsModification,
       txOptCollateralUtxos
     } =
@@ -362,6 +363,7 @@ mPrettyTxOpts
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
           prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos
@@ -405,6 +407,9 @@ mPrettyTxOpts
           [ prettyItemize "Choose among the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs),
             "Send return collaterals to" <+> prettyCookedOpt opts (walletPKHash w)
           ]
+      prettyBalancingUtxos :: BalancingUtxos -> DocCooked
+      prettyBalancingUtxos BalancingUtxosAutomatic = "Balance with 'only value' utxos from the balancing wallet"
+      prettyBalancingUtxos (BalancingUtxosWith utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
 
 -- * Pretty-printing
 

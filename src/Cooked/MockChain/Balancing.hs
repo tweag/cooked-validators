@@ -203,7 +203,9 @@ computeBalancedTxSkel balancingWallet txSkel@TxSkel {..} (Fee (lovelace -> feeVa
       outValue = foldOf (txSkelOutsL % folded % txSkelOutValueL) txSkel
   inValue <- txSkelInputValue txSkel
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> PlutusTx.negate (inValue <> mintedValue)
-  balancingUtxosInitial <- runUtxoSearch $ onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
+  balancingUtxosInitial <- runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
+    BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
+    BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
   let alreadyUsedUtxos = Map.keys txSkelIns <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
       balancingUtxos = filter ((`notElem` alreadyUsedUtxos) . fst) balancingUtxosInitial
   let candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
