@@ -178,11 +178,7 @@ estimateTxSkelFee :: (MonadBlockChainBalancing m) => TxSkel -> Fee -> Set Api.Tx
 estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   params <- getParams
   managedData <- txSkelInputData skel
-  managedTxOuts <- do
-    ins <- txSkelInputUtxosPl skel
-    insRef <- txSkelReferenceInputUtxosPl skel
-    collateralUtxos <- lookupUtxosPl (Set.toList collateralIns)
-    return $ ins <> insRef <> collateralUtxos
+  managedTxOuts <- lookupUtxosPl $ txSkelKnownTxOutRefs skel <> Set.toList collateralIns
   managedValidators <- txSkelInputValidators skel
   txBodyContent <- case generateBodyContent fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators skel of
     Left err -> throwError $ MCEGenerationError err
@@ -206,16 +202,16 @@ computeBalancedTxSkel balancingWallet txSkel@TxSkel {..} (Fee (lovelace -> feeVa
   balancingUtxosInitial <- runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
     BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
     BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
-  let alreadyUsedUtxos = Map.keys txSkelIns <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
-      balancingUtxos = filter ((`notElem` alreadyUsedUtxos) . fst) balancingUtxosInitial
-  let candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
+  let balancingUtxos = filter ((`notElem` txSkelKnownTxOutRefs txSkel) . fst) balancingUtxosInitial
+      candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
       candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK balancingWallet val)) <$> candidatesRaw
       candidatesFiltered = [(lv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     [] -> throwError $ MCEUnbalanceable (MCEUnbalNotEnoughFunds balancingWallet missingLeft) txSkel
     (_, (txOutRefs, val)) : _ ->
-      return $
-        txSkel
-          { txSkelOuts = txSkelOuts ++ [paysPK balancingWallet val],
-            txSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemerForPK) <$> txOutRefs)
-          }
+      let newTxSkelOuts = case break (\(Pays output) -> outputAddress output == walletAddress balancingWallet) txSkelOuts of
+            _ | DontAdjustExistingOutput <- txOptBalanceOutputPolicy txSkelOpts -> txSkelOuts ++ [paysPK balancingWallet val]
+            (_, []) -> txSkelOuts ++ [paysPK balancingWallet val]
+            (l, h : t) -> l ++ (h & txSkelOutValueL .~ ((h ^. txSkelOutValueL) <> val)) : t
+          newTxSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemerForPK) <$> txOutRefs)
+       in return $ (txSkel & txSkelOutsL .~ newTxSkelOuts) & txSkelInsL .~ newTxSkelIns

@@ -75,6 +75,7 @@ module Cooked.Skeleton
     SkelContext (..),
     txSkelOutReferenceScripts,
     txSkelReferenceScript,
+    txSkelKnownTxOutRefs,
   )
 where
 
@@ -924,6 +925,13 @@ txSkelOutReferenceScripts =
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
     . txSkelOuts
+
+-- | All utxos present in the skeleton
+txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
+txSkelKnownTxOutRefs TxSkel {..} =
+  Map.keys txSkelIns
+    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    <> Set.toList txSkelInsReference
 
 -- * Various Optics on 'TxSkels' and all the other types defined here
 
