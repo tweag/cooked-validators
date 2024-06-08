@@ -67,8 +67,6 @@ module Cooked.Skeleton
     txSkelOutsL,
     txSkelTemplate,
     txSkelOutputData,
-    Fee (..),
-    txSkelOutputValue,
     txSkelOutValidators,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
@@ -89,7 +87,6 @@ import Cooked.Conversion.ToScript
 import Cooked.Conversion.ToScriptHash
 import Cooked.Output
 import Cooked.Pretty.Class
-import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
@@ -106,7 +103,6 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
@@ -850,9 +846,7 @@ makeLensesFor
     ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsReference", "txSkelInsReferenceL"),
-    ("txSkelInsCollateral", "txSkelInsCollateralL"),
-    ("txSkelOuts", "txSkelOutsL"),
-    ("txSkelFee", "txSkelFeeL")
+    ("txSkelOuts", "txSkelOutsL")
   ]
   ''TxSkel
 
@@ -891,18 +885,6 @@ txSkelOutputData =
           (\datum -> Map.singleton (Script.datumHash datum) txSkelOutDatum)
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
-
-newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
-
--- | The value in all transaction inputs, plus the negative parts of the minted
--- value. This is the right hand side of the "balancing equation":
---
--- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Fee -> Api.Value
-txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
-  negativePart (txSkelMintsValue mints)
-    <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
-    <> Script.lovelaceValueOf (feeLovelace fees)
 
 -- | All validators which will receive transaction outputs
 txSkelOutValidators :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)

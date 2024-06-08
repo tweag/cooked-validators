@@ -1,7 +1,7 @@
 -- | This module handles auto-balancing of transaction skeleton. This includes
 -- computation of fees and collaterals because their computation cannot be
 -- separated from the balancing.
-module Cooked.MockChain.Balancing (balanceTxSkel, calcMaxFee) where
+module Cooked.MockChain.Balancing (balanceTxSkel) where
 
 import Cardano.Api.Ledger qualified as Cardano
 import Cardano.Api.Shelley qualified as Cardano
@@ -51,7 +51,7 @@ balanceTxSkel skelUnbal = do
   -- Initial fees is the largest possible fee. When the balancing is not
   -- required, this fee will be applied. Otherwise, a dychotomic search will
   -- happen between this fee and 0 until an optimal fee is found.
-  initialFee <- calcMaxFee
+  initialFee <- getMaxFee
 
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
@@ -61,7 +61,7 @@ balanceTxSkel skelUnbal = do
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
   -- We collet the balancing utxos based on the associated options. We filter
-  -- out utxos already used in the input skeleton
+  -- out utxos already used in the input skeleton.
   (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
     runUtxoSearch $ case txOptBalancingUtxos (txSkelOpts skelUnbal) of
       BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
@@ -80,8 +80,8 @@ balanceTxSkel skelUnbal = do
 
 -- | This computes the maximum possible fee a transaction can cost based on the
 -- current protocol parameters
-calcMaxFee :: (MonadBlockChainBalancing m) => m Fee
-calcMaxFee = do
+getMaxFee :: (MonadBlockChainBalancing m) => m Fee
+getMaxFee = do
   -- Default parameters in case they are not present. It is unclear when/if this
   -- could actually happen though.
   let defMaxTxExecutionUnits =

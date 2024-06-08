@@ -3,7 +3,8 @@
 -- module should only export `generateTx` but we need to make visible a few
 -- other primitives that will be used in balancing.
 module Cooked.MockChain.GenerateTx
-  ( GenerateTxError (..),
+  ( Fee (..),
+    GenerateTxError (..),
     generateBodyContent,
     generateTxOut,
     generateTx,
@@ -35,6 +36,8 @@ import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
 -- * Domain for transaction generation and associated types
+
+newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
 
 data GenerateTxError
   = ToCardanoError String Ledger.ToCardanoError
