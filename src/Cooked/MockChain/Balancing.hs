@@ -136,27 +136,41 @@ collateralInsFromFees fee collateralIns (paysPK -> paysToColWallet) = do
     [] -> throwError MCENoSuitableCollateral
     (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
 
-reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
+-- | The main computing function for optimal balancing and collaterals. It
+-- computes the subsets of a set of UTxOs that sum up to a certain target. It
+-- stops when the target is reached, not adding superfluous UTxOs. Despite
+-- optimizations, this function is theoretically in 2^n where n is the number of
+-- candidate UTxOs. Use with caution.
+reachValue ::
+  -- | The candidates UTxOs with their associated output
+  [(Api.TxOutRef, Api.TxOut)] ->
+  -- | The target value to be reached
+  Api.Value ->
+  -- | The maximum number of elements in the output subsets
+  Integer ->
+  -- | Returns subsets of UTxOs with the surplus value
+  [([(Api.TxOutRef, Api.TxOut)], Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]
 -- The target is not reached, but the max number of elements is reached, we
--- would need more elements but are not allowed to looked for them.
+-- would need more elements but are not allowed to look for them.
 reachValue _ _ maxEls | maxEls == 0 = []
 -- The target is not reached, and cannot possibly be reached, as the remaining
 -- candidates do not sum up to the target.
 reachValue l target _ | not $ target `Api.leq` mconcat (Api.txOutValue . snd <$> l) = []
 -- There is no more elements to go through and the target has not been
--- reached. Encompassed in the previous case, but required by GHC which cannot
--- know the function is total without this case.
+-- reached. Encompassed by the previous case, but needed by GHC.
 reachValue [] _ _ = []
--- Main recursive case, where we get to either pick or drop the first element
+-- Main recursive case, where we either pick or drop the head. We only pick the
+-- head if it contributes to reaching the target, i.e. if its intersection with
+-- the positive part of the target is not empty.
 reachValue (h@(_, Api.txOutValue -> hVal) : t) target maxEls =
-  (++)
-    -- dropping the first element
-    (reachValue t target maxEls)
-    -- picking the first element
-    (first (h :) <$> reachValue t (target <> PlutusTx.negate hVal) (maxEls - 1))
+  reachValue t target maxEls
+    ++ ( if snd (Api.split target) PlutusTx./\ hVal == mempty
+           then []
+           else first (h :) <$> reachValue t (target <> PlutusTx.negate hVal) (maxEls - 1)
+       )
 
 -- | This function is essentially a copy of
 -- https://github.com/input-output-hk/plutus-apps/blob/d4255f05477fd8477ee9673e850ebb9ebb8c9657/plutus-ledger/src/Ledger/Fee.hs#L19
@@ -183,24 +197,14 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
 -- In other words, this ensures that the following equation holds:
 -- input value + minted value = output value + burned value + fee
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> TxSkel -> Fee -> m TxSkel
-computeBalancedTxSkel balancingWallet txSkel (Fee (lovelace -> feeValue)) = do
+computeBalancedTxSkel balancingWallet txSkel@TxSkel {..} (Fee (lovelace -> feeValue)) = do
   params <- getParams
-  let mintedValue = positivePart $ txSkelMintsValue $ txSkelMints txSkel
-      burnedValue = negativePart $ txSkelMintsValue $ txSkelMints txSkel
+  let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
       outValue = foldOf (txSkelOutsL % folded % txSkelOutValueL) txSkel
   inValue <- txSkelInputValue txSkel
-  let left = inValue <> mintedValue
-      right = outValue <> burnedValue <> feeValue
-      diff = right <> PlutusTx.negate left
-      -- what we need to look for in inputs
-      missingLeft = positivePart diff
-      -- what we need to provide as additional payment
-      missingRight = negativePart diff
+  let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> PlutusTx.negate (inValue <> mintedValue)
   balancingUtxosInitial <- runUtxoSearch $ onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
-  let alreadyUsedUtxos =
-        Map.keys (txSkelIns txSkel)
-          <> mapMaybe txSkelReferenceScript (Map.elems $ txSkelIns txSkel)
-          <> Set.toList (txSkelInsReference txSkel)
+  let alreadyUsedUtxos = Map.keys txSkelIns <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
       balancingUtxos = filter ((`notElem` alreadyUsedUtxos) . fst) balancingUtxosInitial
   let candidatesRaw = second (<> missingRight) <$> reachValue balancingUtxos missingLeft (toInteger $ length balancingUtxos)
       candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK balancingWallet val)) <$> candidatesRaw
@@ -210,6 +214,6 @@ computeBalancedTxSkel balancingWallet txSkel (Fee (lovelace -> feeValue)) = do
     (_, (txOutRefs, val)) : _ ->
       return $
         txSkel
-          { txSkelOuts = txSkelOuts txSkel ++ [paysPK balancingWallet val],
-            txSkelIns = txSkelIns txSkel <> Map.fromList ((,TxSkelNoRedeemerForPK) <$> txOutRefs)
+          { txSkelOuts = txSkelOuts ++ [paysPK balancingWallet val],
+            txSkelIns = txSkelIns <> Map.fromList ((,TxSkelNoRedeemerForPK) <$> txOutRefs)
           }
