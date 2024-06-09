@@ -3,8 +3,7 @@
 -- module should only export `generateTx` but we need to make visible a few
 -- other primitives that will be used in balancing.
 module Cooked.MockChain.GenerateTx
-  ( Fee (..),
-    GenerateTxError (..),
+  ( GenerateTxError (..),
     generateBodyContent,
     generateTxOut,
     generateTx,
@@ -37,8 +36,6 @@ import PlutusTx.Numeric qualified as PlutusTx
 
 -- * Domain for transaction generation and associated types
 
-newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
-
 data GenerateTxError
   = ToCardanoError String Ledger.ToCardanoError
   | TxBodyError String Cardano.TxBodyError
@@ -48,8 +45,8 @@ data GenerateTxError
 -- | Context in which various parts of transactions will be built
 data Context where
   Context ::
-    { -- | fees to apply to body generation
-      fees :: Fee,
+    { -- | fee to apply to body generation
+      fee :: Integer,
       -- | collaterals to add to body generation
       collateralIns :: Set Api.TxOutRef,
       -- | wallet to return collaterals to
@@ -112,7 +109,7 @@ txSkelToBodyContent TxSkel {..} = do
           (Cardano.TxExtraKeyWitnesses Cardano.AlonzoEraOnwardsConway)
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
-  txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . feeLovelace . fees)
+  txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . fee)
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
@@ -124,7 +121,7 @@ txSkelToBodyContent TxSkel {..} = do
   return Cardano.TxBodyContent {..}
 
 generateBodyContent ::
-  Fee ->
+  Integer ->
   Wallet ->
   Set Api.TxOutRef ->
   Emulator.Params ->
@@ -133,7 +130,7 @@ generateBodyContent ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-generateBodyContent fees returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateBodyContent fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
@@ -220,7 +217,7 @@ txOutRefsToTxInsReference =
     )
     . mapM Ledger.toCardanoTxIn
 
--- Computes the collateral triplet from the fees and the collateral inputs in
+-- Computes the collateral triplet from the fee and the collateral inputs in
 -- the context
 toCollateralTriplet ::
   TxGen
@@ -239,7 +236,7 @@ toCollateralTriplet = do
           then throwOnString "toCollateralTriplet: unresolved txOutRefs"
           else return $ mconcat (Api.txOutValue <$> collateralInsResolved)
   collateralPercentage <- asks (toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
-  coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . feeLovelace . fees)
+  coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . fee)
   txReturnCollateralValue <-
     Ledger.toCardanoTxOutValue
       <$> throwOnToCardanoError
@@ -352,7 +349,7 @@ txSkelToCardanoTx txSkel = do
     (txSkelSigners txSkel)
 
 generateTx ::
-  Fee ->
+  Integer ->
   Wallet ->
   Set Api.TxOutRef ->
   Emulator.Params ->
@@ -361,5 +358,5 @@ generateTx ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.Tx Cardano.ConwayEra)
-generateTx fees returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateTx fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToCardanoTx

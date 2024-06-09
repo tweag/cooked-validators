@@ -11,6 +11,7 @@ module Cooked.Skeleton
   ( LabelConstrs,
     TxLabel (..),
     BalanceOutputPolicy (..),
+    BalanceFeePolicy (..),
     BalancingWallet (..),
     BalancingUtxos (..),
     RawModTx (..),
@@ -24,6 +25,7 @@ module Cooked.Skeleton
     txOptAutoSlotIncreaseL,
     txOptBalanceL,
     txOptBalanceOutputPolicyL,
+    txOptBalanceFeePolicyL,
     txOptBalanceWalletL,
     txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
@@ -139,6 +141,17 @@ instance Ord TxLabel where
         Nothing -> error "Type representations compare as EQ, but are not eqTypeRep"
 
 -- * Transaction options
+
+-- | What fee to use during balancing
+data BalanceFeePolicy
+  = -- | Use automatic fee computation
+    AutoFeeComputation
+  | -- | Provide a fee to attempt to balance around
+    ManualFee Integer
+  deriving (Eq, Ord, Show)
+
+instance Default BalanceFeePolicy where
+  def = AutoFeeComputation
 
 -- | Whether to adjust a potentially existing output to the balancing wallet
 -- with the change during transaction balancing.
@@ -269,6 +282,10 @@ data TxOpts = TxOpts
     -- Default is @True@, and nobody in their right mind will ever set it
     -- otherwise.
     txOptBalance :: Bool,
+    -- | The fee to use when balancing the transaction
+    --
+    -- Default is 'AutomaticFeeComputation'
+    txOptBalanceFeePolicy :: BalanceFeePolicy,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- Default is 'AdjustExistingOutput'.
@@ -281,7 +298,9 @@ data TxOpts = TxOpts
     --
     -- Default is 'BalanceWithFirstSigner'.
     txOptBalanceWallet :: BalancingWallet,
-    -- | Which UTxOs to use during balancing.
+    -- | Which UTxOs to use during balancing. This can either be a precise list,
+    -- or rely on automatic searches for utxos with values only belonging to the
+    -- balancing wallet.
     --
     -- Default is 'BalancingUtxosAutomatic'.
     txOptBalancingUtxos :: BalancingUtxos,
@@ -311,6 +330,7 @@ makeLensesFor
     ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
     ("txOptBalance", "txOptBalanceL"),
+    ("txOptBalanceFeePolicy", "txOptBalanceFeePolicyL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptBalanceWallet", "txOptBalanceWalletL"),
@@ -327,6 +347,7 @@ instance Default TxOpts where
         txOptUnsafeModTx = [],
         txOptBalance = True,
         txOptBalanceOutputPolicy = def,
+        txOptBalanceFeePolicy = def,
         txOptBalanceWallet = def,
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,

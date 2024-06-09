@@ -338,8 +338,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
         then toTxSkelWithMinAda skelUnbal
         else return skelUnbal
     -- We balance the skeleton when requested in the skeleton option, and get
-    -- the associated fees, collateral inputs and return collateral wallet
-    (skel, fees, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
+    -- the associated fee, collateral inputs and return collateral wallet
+    (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -351,7 +351,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
-    cardanoTx <- case generateTx fees returnCollateralWallet collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fee returnCollateralWallet collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx

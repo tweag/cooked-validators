@@ -71,7 +71,7 @@ instance PrettyCooked MockChainError where
     prettyItemize
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough funds",
+      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
         "Required payment is" <+> prettyCookedOpt opts targetValue
       ]
   prettyCookedOpt _ MCENoSuitableCollateral =
@@ -321,6 +321,7 @@ mPrettyTxOpts
       txOptUnsafeModTx,
       txOptBalance,
       txOptBalanceOutputPolicy,
+      txOptBalanceFeePolicy,
       txOptBalanceWallet,
       txOptBalancingUtxos,
       txOptEmulatorParamsModification,
@@ -332,6 +333,7 @@ mPrettyTxOpts
           prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
           prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
+          prettyIfNot def prettyBalanceFeePolicy txOptBalanceFeePolicy,
           prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
           prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
@@ -380,6 +382,9 @@ mPrettyTxOpts
       prettyBalancingUtxos :: BalancingUtxos -> DocCooked
       prettyBalancingUtxos BalancingUtxosAutomatic = "Balance with 'only value' utxos from the balancing wallet"
       prettyBalancingUtxos (BalancingUtxosWith utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
+      prettyBalanceFeePolicy :: BalanceFeePolicy -> DocCooked
+      prettyBalanceFeePolicy AutoFeeComputation = "Balance using automatically computed fee"
+      prettyBalanceFeePolicy (ManualFee fee) = "Balance using the following fee:" <+> PP.pretty fee
 
 -- * Pretty-printing
 
