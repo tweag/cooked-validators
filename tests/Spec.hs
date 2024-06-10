@@ -1,4 +1,5 @@
 import Cooked.AttackSpec qualified as AttackSpec
+import Cooked.BalancingSpec qualified as BalancingSpec
 import Cooked.BasicUsageSpec qualified as BasicUsageSpec
 import Cooked.InitialDistributionSpec qualified as InitDistrib
 import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
@@ -18,6 +19,7 @@ main =
       "cooked-validators"
       [ BasicUsageSpec.tests,
         MinAdaSpec.tests,
+        BalancingSpec.tests,
         InlineDatumsSpec.tests,
         ReferenceInputsSpec.tests,
         ReferenceScriptsSpec.tests,

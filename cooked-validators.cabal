@@ -138,6 +138,7 @@ test-suite spec
       Cooked.Attack.DoubleSatSpec
       Cooked.Attack.DupTokenSpec
       Cooked.AttackSpec
+      Cooked.BalancingSpec
       Cooked.BasicUsageSpec
       Cooked.InitialDistributionSpec
       Cooked.InlineDatumsSpec
@@ -170,6 +171,7 @@ test-suite spec
       NumericUnderscores
       OverloadedStrings
       RankNTypes
+      RecordWildCards
       ScopedTypeVariables
       TemplateHaskell
       TupleSections
