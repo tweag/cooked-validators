@@ -67,12 +67,12 @@ instance PrettyCooked MockChainError where
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
-  prettyCookedOpt opts (MCEUnbalanceable balWallet targetValue _) =
+  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue _) =
     prettyItemize
       "Unbalanceable:"
       "-"
       [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
-        "Required payment is" <+> prettyCookedOpt opts targetValue
+        "Unable to find" <+> prettyCookedOpt opts missingValue
       ]
   prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
     prettyItemize

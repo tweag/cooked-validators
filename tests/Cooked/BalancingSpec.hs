@@ -133,7 +133,7 @@ tests =
                   testFailsFrom
                     def
                     ( \case
-                        (MCEUnbalanceable wal val _) -> testBool $ wal == alice && val == ada 106
+                        (MCEUnbalanceable wal val _) -> testBool $ wal == alice && val == ada 1
                         _ -> testBool False
                     )
                     initialDistributionBalancing
@@ -187,7 +187,7 @@ tests =
                   testFailsFrom
                     def
                     ( \case
-                        (MCEUnbalanceable wal val _) -> testBool $ wal == alice && val `Api.geq` (apple 2 <> orange 5 <> banana 4)
+                        (MCEUnbalanceable wal val _) -> testBool $ wal == alice && val == banana 4
                         _ -> testBool False
                     )
                     initialDistributionBalancing
