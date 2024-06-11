@@ -262,10 +262,12 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelac
   -- The candidates can now be sorted: the first one is the less expensive one
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, the transaction cannot be balanced
-    [] -> do
+    [] ->
+      -- We compute and return the difference between what's owned by the
+      -- balancing wallet and what was required to balance the transaction
       let totalValue = mconcat $ Api.txOutValue . snd <$> balancingUtxos
-          difference = missingLeft <> PlutusTx.negate totalValue
-      throwError $ MCEUnbalanceable balancingWallet (snd $ Api.split difference) txSkel
+          difference = snd $ Api.split $ missingLeft <> PlutusTx.negate totalValue
+       in throwError $ MCEUnbalanceable balancingWallet difference txSkel
     (_, (txOutRefs, val)) : _ ->
       -- We compute a new `txSkelOut` based on `txOptBalanceOutputPolicy`
       let newTxSkelOuts = case break (\(Pays output) -> outputAddress output == walletAddress balancingWallet) txSkelOuts of
