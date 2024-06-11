@@ -3,12 +3,15 @@ module Cooked.BalancingSpec where
 import Control.Monad
 import Cooked
 import Data.Default
+import Data.List qualified as List
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Set
 import Data.Set qualified as Set
 import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
+import ListT
+import Optics.Core
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -35,78 +38,98 @@ initialDistributionBalancing =
       paysPK alice (ada 100 <> banana 2) `withDatumHash` ()
     ]
 
-simplePaymentToBob :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m ((TxSkel, Integer, Set Api.TxOutRef, Wallet), Integer)
-simplePaymentToBob val f = do
+testingBalancingTemplate ::
+  (MonadBlockChain m) =>
+  -- Value to pay to bob
+  Api.Value ->
+  -- Value to pay back to alice
+  Api.Value ->
+  -- Search for utxos to be spent
+  UtxoSearch m a ->
+  -- Search for utxos to be used for balancing
+  UtxoSearch m b ->
+  -- Search for utxos to be returned through their size
+  UtxoSearch m c ->
+  -- Option modifications
+  (TxOpts -> TxOpts) ->
+  m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch returnSearch optionsMod = do
+  ((fst <$>) -> toSpendUtxos) <- runUtxoSearch spendSearch
+  ((fst <$>) -> toBalanceUtxos) <- runUtxoSearch balanceSearch
   let txSkel =
         txSkelTemplate
-          { txSkelOuts = [paysPK bob (lovelace val)],
-            txSkelSigners = [alice],
-            txSkelOpts = f def
-          }
-  res <- balanceTxSkel txSkel
-  void $ validateTxSkel txSkel
-  utxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
-  return (res, toInteger $ length utxos)
-
-bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m ((TxSkel, Integer, Set Api.TxOutRef, Wallet), Integer)
-bothPaymentsToBobAndAlice val f = do
-  let txSkel =
-        txSkelTemplate
-          { txSkelOuts = [paysPK bob (lovelace val), paysPK alice (lovelace val)],
-            txSkelSigners = [alice],
-            txSkelOpts = f def
-          }
-  res <- balanceTxSkel txSkel
-  void $ validateTxSkel txSkel
-  utxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
-  return (res, toInteger $ length utxos)
-
-fruitsPaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m ((TxSkel, Integer, Set Api.TxOutRef, Wallet), Integer)
-fruitsPaymentToBob apples oranges bananas f = do
-  let txSkel =
-        txSkelTemplate
-          { txSkelOuts = [paysPK bob (apple apples <> orange oranges <> banana bananas)],
-            txSkelSigners = [alice],
-            txSkelOpts = f (def {txOptEnsureMinAda = True})
-          }
-  res <- balanceTxSkel txSkel
-  void $ validateTxSkel txSkel
-  utxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
-  return (res, toInteger $ length utxos)
-
-fruitsPaymentToBobWithBalancingUtxos :: (MonadBlockChain m) => Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m ((TxSkel, Integer, Set Api.TxOutRef, Wallet), Integer)
-fruitsPaymentToBobWithBalancingUtxos apples oranges bananas f = do
-  aliceUtxos <- runUtxoSearch $ utxosAtSearch alice
-  let txSkel =
-        txSkelTemplate
-          { txSkelOuts = [paysPK bob (apple apples <> orange oranges <> banana bananas)],
-            txSkelSigners = [alice],
+          { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [paysPK bob toBobValue, paysPK alice toAliceValue],
+            txSkelIns = Map.fromList $ (,TxSkelNoRedeemerForPK) <$> toSpendUtxos,
             txSkelOpts =
-              f
-                ( def
-                    { txOptEnsureMinAda = True,
-                      txOptBalancingUtxos = BalancingUtxosWith (Set.fromList $ fst <$> aliceUtxos)
-                    }
-                )
+              optionsMod
+                def
+                  { txOptBalancingUtxos =
+                      if List.null toBalanceUtxos
+                        then BalancingUtxosAutomatic
+                        else BalancingUtxosWith $ Set.fromList toBalanceUtxos
+                  },
+            txSkelSigners = [alice]
           }
-  res <- balanceTxSkel txSkel
+  (skel', fee, cols, wal) <- balanceTxSkel txSkel
   void $ validateTxSkel txSkel
-  utxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)
-  return (res, toInteger $ length utxos)
+  (toInteger . length -> lengthRes) <- runUtxoSearch returnSearch
+  return (skel', fee, cols, wal, lengthRes)
 
-spendingAliceUtxos :: (MonadBlockChain m) => (TxOpts -> TxOpts) -> m ((TxSkel, Integer, Set Api.TxOutRef, Wallet), Integer)
-spendingAliceUtxos f = do
-  aliceOnlyValueUtxos <- runUtxoSearch $ onlyValueOutputsAtSearch alice
-  let txSkel =
-        txSkelTemplate
-          { txSkelIns = Map.fromList $ (,TxSkelNoRedeemerForPK) . fst <$> aliceOnlyValueUtxos,
-            txSkelSigners = [alice],
-            txSkelOpts = f def
-          }
-  res <- balanceTxSkel txSkel
-  void $ validateTxSkel txSkel
-  utxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
-  return (res, toInteger $ length utxos)
+aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
+aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
+
+aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
+aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)
+
+emptySearch :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
+emptySearch = ListT.fromFoldable []
+
+simplePaymentToBob :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+simplePaymentToBob val =
+  testingBalancingTemplate
+    (lovelace val)
+    mempty
+    emptySearch
+    emptySearch
+    aliceNonOnlyValueUtxos
+
+bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+bothPaymentsToBobAndAlice val =
+  testingBalancingTemplate
+    (lovelace val)
+    (lovelace val)
+    emptySearch
+    emptySearch
+    aliceNonOnlyValueUtxos
+
+fruitsPaymentToBob :: (MonadBlockChain m) => Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+fruitsPaymentToBob apples oranges bananas f =
+  testingBalancingTemplate
+    (apple apples <> orange oranges <> banana bananas)
+    mempty
+    emptySearch
+    emptySearch
+    aliceNonOnlyValueUtxos
+    (f . (\txOpts -> txOpts {txOptEnsureMinAda = True}))
+
+fruitsPaymentToBobWithBalancingUtxos :: (MonadBlockChain m) => Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+fruitsPaymentToBobWithBalancingUtxos apples oranges bananas f =
+  testingBalancingTemplate
+    (apple apples <> orange oranges <> banana bananas)
+    mempty
+    emptySearch
+    (utxosAtSearch alice)
+    aliceRefScriptUtxos
+    (f . (\txOpts -> txOpts {txOptEnsureMinAda = True}))
+
+spendingAliceUtxos :: (MonadBlockChain m) => (TxOpts -> TxOpts) -> m (TxSkel, Integer, Set Api.TxOutRef, Wallet, Integer)
+spendingAliceUtxos =
+  testingBalancingTemplate
+    mempty
+    mempty
+    (onlyValueOutputsAtSearch alice)
+    emptySearch
+    aliceNonOnlyValueUtxos
 
 tests :: TestTree
 tests =
@@ -119,7 +142,7 @@ tests =
            in [ testCase "Successful 1-utxo balancing" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 1_000_000 && length txSkelIns == 1 && length txSkelOuts == 2 && length refs == 1 && wal == alice && nb == 3
                     )
@@ -128,7 +151,7 @@ tests =
                 testCase "Successful 3-utxo balancing with ridiculously high fee" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 40_000_000 && length txSkelIns == 3 && length txSkelOuts == 2 && length refs == 3 && wal == alice && nb == 3
                     )
@@ -164,7 +187,7 @@ tests =
                 testCase "Successful merging of outputs to the balancing wallet" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 2_000_000 && length txSkelIns == 1 && length txSkelOuts == 2 && length refs == 1 && wal == alice && nb == 3
                     )
@@ -173,7 +196,7 @@ tests =
                 testCase "Successful creation of a new output to the balancing wallet" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 2_000_000 && length txSkelIns == 1 && length txSkelOuts == 3 && length refs == 1 && wal == alice && nb == 3
                     )
@@ -182,7 +205,7 @@ tests =
                 testCase "Successful balancing with non-ada asset" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 1_000_000 && length txSkelIns == 1 && length txSkelOuts == 2 && length refs == 1 && wal == alice && nb == 3
                     )
@@ -191,7 +214,7 @@ tests =
                 testCase "Successful balancing with multiple assets" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 1_000_000 && length txSkelIns == 2 && length txSkelOuts == 2 && length refs == 1 && wal == alice && nb == 3
                     )
@@ -209,7 +232,7 @@ tests =
                 testCase "Successful balancing with multiple assets and explicit utxo set" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 1_000_000 && length txSkelIns == 3 && length txSkelOuts == 2 && length refs == 1 && wal == alice && nb == 0
                     )
@@ -218,7 +241,7 @@ tests =
                 testCase "Successful balancing with excess consumption" $
                   testSucceedsFrom'
                     def
-                    ( \((TxSkel {..}, fee, refs, wal), nb) _ ->
+                    ( \(TxSkel {..}, fee, refs, wal, nb) _ ->
                         testBool $
                           fee == 1_000_000 && length txSkelIns == 5 && length txSkelOuts == 1 && length refs == 1 && wal == alice && nb == 3
                     )

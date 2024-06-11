@@ -2,7 +2,8 @@
 -- search relevant ones based on predicates. For instance, it makes it very
 -- convenient to gather all UTxOs at a certain address.
 module Cooked.MockChain.UtxoSearch
-  ( runUtxoSearch,
+  ( UtxoSearch,
+    runUtxoSearch,
     allUtxosSearch,
     allUtxosLedgerSearch,
     utxosAtSearch,
