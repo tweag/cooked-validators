@@ -74,8 +74,14 @@ instance PrettyCooked MockChainError where
       [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
         "Required payment is" <+> prettyCookedOpt opts targetValue
       ]
-  prettyCookedOpt _ MCENoSuitableCollateral =
-    "No suitable collateral"
+  prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
+    prettyItemize
+      "No suitable collateral"
+      "-"
+      [ "Fee was" <+> PP.pretty fee,
+        "Percentage in params was" <+> PP.pretty percentage,
+        "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
+      ]
   prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
     prettyItemize
       "Transaction generation error:"

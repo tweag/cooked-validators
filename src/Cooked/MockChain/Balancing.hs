@@ -66,8 +66,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
   (collateralIns, returnCollateralWallet) <- case txOptCollateralUtxos txSkelOpts of
-    CollateralUtxosFromBalancingWallet -> (,balancingWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch balancingWallet)
-    CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (vanillaOutputsAtSearch cWallet)
+    CollateralUtxosFromBalancingWallet -> (,balancingWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch balancingWallet)
+    CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
   -- We collect the balancing utxos based on the associated options. We filter
@@ -143,7 +143,7 @@ computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos 
       )
       `catchError` \case
         MCEUnbalanceable {} | fee - minFee > 1 -> return Nothing
-        MCENoSuitableCollateral | fee - minFee > 1 -> return Nothing
+        MCENoSuitableCollateral {} | fee - minFee > 1 -> return Nothing
         err -> throwError err
 
   case attemptedBalancing of
@@ -188,7 +188,7 @@ collateralInsFromFees fee collateralIns (paysPK -> paysToColWallet) = do
   let candidatesFiltered = [(fst <$> l, lv) | (l, (Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   -- We return the most cost efficient candidate
   case sortBy (compare `on` snd) candidatesFiltered of
-    [] -> throwError MCENoSuitableCollateral
+    [] -> throwError $ MCENoSuitableCollateral fee percentage totalCollateral
     (txOutRefs, _) : _ -> return $ Set.fromList txOutRefs
 
 -- | The main computing function for optimal balancing and collaterals. It
@@ -196,7 +196,7 @@ collateralInsFromFees fee collateralIns (paysPK -> paysToColWallet) = do
 -- stops when the target is reached, not adding superfluous UTxOs. Despite
 -- optimizations, this function is theoretically in 2^n where n is the number of
 -- candidate UTxOs. Use with caution.
-reachValue :: BalancingOutputs -> Api.Value -> Fee -> [(BalancingOutputs, Api.Value)]
+reachValue :: BalancingOutputs -> Api.Value -> Integer -> [(BalancingOutputs, Api.Value)]
 -- Target is smaller than the empty value (which means in only contains negative
 -- entries), we stop looking as adding more elements would be superfluous.
 reachValue _ target _ | target `Api.leq` mempty = [([], PlutusTx.negate target)]

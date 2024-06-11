@@ -91,8 +91,9 @@ data MockChainError where
   MCEValidationError :: Ledger.ValidationPhase -> Ledger.ValidationError -> MockChainError
   -- | Thrown when the balancing wallet does not have enough funds
   MCEUnbalanceable :: Wallet -> Api.Value -> TxSkel -> MockChainError
-  -- | Thrown when not enough collateral are provided
-  MCENoSuitableCollateral :: MockChainError
+  -- | Thrown when not enough collateral are provided. Built upon the fee, the
+  -- percentage and the expected minimal collateral value.
+  MCENoSuitableCollateral :: Integer -> Integer -> Api.Value -> MockChainError
   MCEGenerationError :: GenerateTxError -> MockChainError
   -- | Thrown when an output reference should be in the state of the mockchain,
   -- but isn't.
