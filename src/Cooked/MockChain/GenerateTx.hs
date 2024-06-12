@@ -237,26 +237,28 @@ toCollateralTriplet = do
           else return $ mconcat (Api.txOutValue <$> collateralInsResolved)
   collateralPercentage <- asks (toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
   coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . fee)
-  txReturnCollateralValue <-
-    Ledger.toCardanoTxOutValue
-      <$> throwOnToCardanoError
-        "toCollateralTriplet: cannot build return collateral value"
-        (Ledger.toCardanoValue (collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)))
-  address <-
-    throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-      Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
   let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway coinTotalCollateral
-      txReturnCollateral =
-        Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $
-          Cardano.TxOut address txReturnCollateralValue Cardano.TxOutDatumNone Cardano.ReferenceScriptNone
+      returnCollateralValue = collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)
+  txReturnCollateral <-
+    if returnCollateralValue == mempty
+      then return Cardano.TxReturnCollateralNone
+      else do
+        txReturnCollateralValue <-
+          Ledger.toCardanoTxOutValue
+            <$> throwOnToCardanoError
+              "toCollateralTriplet: cannot build return collateral value"
+              (Ledger.toCardanoValue returnCollateralValue)
+        address <-
+          throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
+            Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+        return $
+          Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $
+            Cardano.TxOut address txReturnCollateralValue Cardano.TxOutDatumNone Cardano.ReferenceScriptNone
   txInsCollateral <-
-    throwOnToCardanoError
-      "txOutRefsToTxInCollateral"
-      (toTxInsCollateral <$> mapM Ledger.toCardanoTxIn collateralInsList)
+    case collateralInsList of
+      [] -> return Cardano.TxInsCollateralNone
+      l -> throwOnToCardanoError "txOutRefsToTxInCollateral" (Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM Ledger.toCardanoTxIn l)
   return (txInsCollateral, txTotalCollateral, txReturnCollateral)
-  where
-    toTxInsCollateral [] = Cardano.TxInsCollateralNone
-    toTxInsCollateral ins = Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway ins
 
 -- Convert the 'TxSkelMints' into a 'TxMintValue'
 txSkelMintsToTxMintValue :: TxSkelMints -> TxGen (Cardano.TxMintValue Cardano.BuildTx Cardano.ConwayEra)

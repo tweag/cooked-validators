@@ -2,6 +2,7 @@
 module Cooked.Conversion.ToCredential where
 
 import Cooked.Conversion.ToScriptHash
+import Cooked.Wallet
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -14,6 +15,9 @@ instance ToCredential Api.Credential where
 
 instance ToCredential Api.PubKeyHash where
   toCredential = Api.PubKeyCredential
+
+instance ToCredential Wallet where
+  toCredential = toCredential . walletPKHash
 
 instance ToCredential Api.ScriptHash where
   toCredential = Api.ScriptCredential
