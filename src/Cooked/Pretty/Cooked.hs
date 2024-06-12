@@ -193,9 +193,10 @@ prettyBalancingWallet opts w =
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: PrettyCookedOpts -> TxOpts -> [Wallet] -> [DocCooked]
-prettySigners opts TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner : signers) =
+prettySigners opts TxOpts {txOptBalancingPolicy = DoNotBalance} signers = prettyCookedOpt opts . walletPKHash <$> signers
+prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner} (firstSigner : signers) =
   prettyBalancingWallet opts firstSigner : (prettyCookedOpt opts . walletPKHash <$> signers)
-prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
+prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet} signers =
   aux signers
   where
     aux :: [Wallet] -> [DocCooked]
@@ -325,10 +326,9 @@ mPrettyTxOpts
     { txOptEnsureMinAda,
       txOptAutoSlotIncrease,
       txOptUnsafeModTx,
-      txOptBalance,
       txOptBalanceOutputPolicy,
       txOptFeePolicy,
-      txOptBalanceWallet,
+      txOptBalancingPolicy,
       txOptBalancingUtxos,
       txOptEmulatorParamsModification,
       txOptCollateralUtxos
@@ -337,10 +337,9 @@ mPrettyTxOpts
       catMaybes
         [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
           prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
-          prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
           prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
-          prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
           prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
@@ -357,15 +356,13 @@ mPrettyTxOpts
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
-      prettyBalance :: Bool -> DocCooked
-      prettyBalance True = "Automatic balancing"
-      prettyBalance False = "No automatic balancing"
       prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
       prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
       prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
-      prettyBalanceWallet :: BalancingWallet -> DocCooked
-      prettyBalanceWallet BalanceWithFirstSigner = "Balance with first signer"
-      prettyBalanceWallet (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
+      prettyBalancingPolicy :: BalancingPolicy -> DocCooked
+      prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
+      prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
+      prettyBalancingPolicy DoNotBalance = "Do not balance"
       prettyUnsafeModTx :: [RawModTx] -> DocCooked
       prettyUnsafeModTx [] = "No transaction modifications"
       prettyUnsafeModTx (length -> n) = PP.pretty n <+> "transaction" <+> PP.plural "modification" "modifications" n

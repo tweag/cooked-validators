@@ -12,7 +12,7 @@ module Cooked.Skeleton
     TxLabel (..),
     BalanceOutputPolicy (..),
     FeePolicy (..),
-    BalancingWallet (..),
+    BalancingPolicy (..),
     BalancingUtxos (..),
     RawModTx (..),
     EmulatorParamsModification (..),
@@ -23,10 +23,9 @@ module Cooked.Skeleton
     txOptEnsureMinAdaL,
     txOptUnsafeModTxL,
     txOptAutoSlotIncreaseL,
-    txOptBalanceL,
+    txOptBalancingPolicyL,
     txOptBalanceOutputPolicyL,
     txOptFeePolicyL,
-    txOptBalanceWalletL,
     txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
@@ -182,15 +181,16 @@ data BalancingUtxos
 instance Default BalancingUtxos where
   def = BalancingUtxosAutomatic
 
--- | Which wallet to use to provide outputs for balancing and collaterals.
--- Either the first signer or an explicit wallet. In the second case, this
--- wallet must be a signer of the transaction.
-data BalancingWallet
+-- | Whether to balance the transaction or not, and which wallet to use to
+-- provide outputs for balancing. Either the first signer or an explicit
+-- wallet. In the second case, this wallet must be a signer of the transaction.
+data BalancingPolicy
   = BalanceWithFirstSigner
   | BalanceWith Wallet
+  | DoNotBalance
   deriving (Eq, Ord, Show)
 
-instance Default BalancingWallet where
+instance Default BalancingPolicy where
   def = BalanceWithFirstSigner
 
 -- | Wraps a function that will be applied to a transaction right before
@@ -274,18 +274,17 @@ data TxOpts = TxOpts
     --
     -- Default is @[]@.
     txOptUnsafeModTx :: [RawModTx],
-    -- | Whether to balance the transaction or not. Balancing ensures that
+    -- | Whether to balance the transaction or not, and which wallet should
+    -- account for the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
     --
-    -- If you decide to set @txOptBalance = False@ you will have trouble
-    -- satisfying that equation by hand because @fees@ are variable. You will
-    -- likely see a error about value preservation, and should adjust the fees
-    -- accordingly.
+    -- If you decide to set @txOptBalance = DoNotBalance@ you will have trouble
+    -- satisfying that equation by hand unless you use @ManualFee@. You will
+    -- likely see a error about value preservation.
     --
-    -- Default is @True@, and nobody in their right mind will ever set it
-    -- otherwise.
-    txOptBalance :: Bool,
+    -- Default is @BalanceWithFirstSigner@
+    txOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --
     -- Default is 'AutomaticFeeComputation'
@@ -294,14 +293,6 @@ data TxOpts = TxOpts
     --
     -- Default is 'AdjustExistingOutput'.
     txOptBalanceOutputPolicy :: BalanceOutputPolicy,
-    -- | Which wallet to use to provide outputs for balancing and collaterals.
-    -- Either the first signer by default, or an explicit wallet. In the second
-    -- case, this wallet must be a signer of the transaction. This option WILL
-    -- NOT ensure that it is added in case it is not already present in the list
-    -- of signers.
-    --
-    -- Default is 'BalanceWithFirstSigner'.
-    txOptBalanceWallet :: BalancingWallet,
     -- | Which UTxOs to use during balancing. This can either be a precise list,
     -- or rely on automatic searches for utxos with values only belonging to the
     -- balancing wallet.
@@ -333,11 +324,10 @@ makeLensesFor
   [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
     ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
-    ("txOptBalance", "txOptBalanceL"),
+    ("txOptBalancingPolicy", "txOptBalancingPolicyL"),
     ("txOptFeePolicy", "txOptFeePolicyL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
     ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
-    ("txOptBalanceWallet", "txOptBalanceWalletL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL")
   ]
@@ -349,10 +339,9 @@ instance Default TxOpts where
       { txOptEnsureMinAda = False,
         txOptAutoSlotIncrease = True,
         txOptUnsafeModTx = [],
-        txOptBalance = True,
+        txOptBalancingPolicy = def,
         txOptBalanceOutputPolicy = def,
         txOptFeePolicy = def,
-        txOptBalanceWallet = def,
         txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def

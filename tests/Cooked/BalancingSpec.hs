@@ -157,7 +157,8 @@ tests =
   let setFixedFee fee txOpts = txOpts {txOptFeePolicy = ManualFee fee}
       setDontAdjustOutput txOpts = txOpts {txOptBalanceOutputPolicy = DontAdjustExistingOutput}
       setEnsureMinAda txOpts = txOpts {txOptEnsureMinAda = True}
-      setDontBalance txOpts = txOpts {txOptBalance = False}
+      setDontBalance txOpts = txOpts {txOptBalancingPolicy = DoNotBalance}
+      setCollateralWallet wallet' txOpts = txOpts {txOptCollateralUtxos = CollateralUtxosFromWallet wallet'}
    in testGroup
         "Balancing"
         [ testGroup
@@ -165,15 +166,15 @@ tests =
             [ testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with empty inputs"
                 failsWithEmptyTxIns
-                (simplePaymentToBob 20_000_000 0 0 0 (setDontBalance . setFixedFee 1_000_000)),
+                (simplePaymentToBob 20_000_000 0 0 0 (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with too small inputs"
                 failsWithValueNotConserved
-                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "It is still possible to balance the transaction by hand"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000))
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000))
             ],
           testGroup
             "Auto balancing with manual fee"

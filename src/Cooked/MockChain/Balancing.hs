@@ -50,13 +50,15 @@ type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 -- collateral wallet.
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals, Wallet)
 balanceTxSkel skelUnbal@TxSkel {..} = do
-  -- We retrieve the balancing wallet, who is central in the balancing
-  -- process. Any missing asset will be searched within its utxos.
-  balancingWallet <- case txOptBalanceWallet txSkelOpts of
+  -- We retrieve the possible balancing wallet. Any extra payment will be
+  -- redirected to them, and utxos will be taken from their wallet if associated
+  -- with the BalancingUtxosAutomatic policy
+  balancingWallet <- case txOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
-      [] -> fail "Can't select balancing wallet: There has to be at least one wallet in txSkelSigners"
-      bw : _ -> return bw
-    BalanceWith bWallet -> return bWallet
+      [] -> fail "Can't select balancing wallet from the signers lists because it is empty."
+      bw : _ -> return $ Just bw
+    BalanceWith bWallet -> return $ Just bWallet
+    DoNotBalance -> return Nothing
 
   -- Initial fees is the largest possible fee. When the balancing is not
   -- required, this fee will be applied. Otherwise, a dychotomic search will
@@ -66,38 +68,38 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We collect collateral inputs. They might be directly provided in the
   -- skeleton, or should be retrieved from a given wallet
   (collateralIns, returnCollateralWallet) <- case txOptCollateralUtxos txSkelOpts of
-    CollateralUtxosFromBalancingWallet -> (,balancingWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch balancingWallet)
+    CollateralUtxosFromBalancingWallet -> case balancingWallet of
+      Nothing -> fail "Can't select collateral utxos from a balancing wallet because it does not exist."
+      Just bWallet -> (,bWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch bWallet)
     CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
-  -- We collect the balancing utxos based on the associated options. We filter
-  -- out utxos already used in the input skeleton.
-  (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
-    runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
-      BalancingUtxosAutomatic -> onlyValueOutputsAtSearch balancingWallet `filterWithAlways` outputTxOut
-      BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
-
-  -- We compute an adjusted skeleton with fee and collaterals based on the fee
-  -- policy and the balancing requirement
-  (txSkelBal, fee, adjustedCollateralIns) <- case (txOptFeePolicy txSkelOpts, txOptBalance txSkelOpts) of
-    -- This is full auto mode: we compute an optimal fee with a dychotomic
-    -- search and an optimal collateral set. This is costly but precise.
-    (AutoFeeComputation, True) ->
-      computeFeeAndBalance balancingWallet (minFee - 1) maxFee collateralIns balancingUtxos returnCollateralWallet skelUnbal
-    -- We give back the initial unbalanced skeleton here, with maximum fee and
-    -- the full set of collateral inputs.
-    (AutoFeeComputation, False) -> return (skelUnbal, maxFee, collateralIns)
-    -- This is semi auto mode: we automatically balanced the skeleton around a
-    -- given fee (possible too small). We adjust the collaterals accordingly.
-    (ManualFee fee, True) -> do
-      adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
-      attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skelUnbal fee
-      return (attemptedSkel, fee, adjustedCollateralIns)
-    -- This is (almost) full manual mode. We return the initial skeleton with
-    -- given fee and a suitable set of collateral utxos (hence the almost).
-    (ManualFee fee, False) -> do
-      adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
-      return (skelUnbal, fee, adjustedCollateralIns)
+  (txSkelBal, fee, adjustedCollateralIns) <- case balancingWallet of
+    Nothing ->
+      -- The balancing should not be performed. We still adjust the collaterals
+      -- though around a provided fee, or the maximum fee.
+      let fee = case txOptFeePolicy txSkelOpts of
+            AutoFeeComputation -> maxFee
+            ManualFee fee' -> fee'
+       in (skelUnbal,fee,) <$> collateralInsFromFees fee collateralIns returnCollateralWallet
+    Just bWallet -> do
+      -- We collect the balancing utxos based on the associated options. We filter
+      -- out utxos already used in the input skeleton.
+      (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
+        runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
+          BalancingUtxosAutomatic -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
+          BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
+      case txOptFeePolicy txSkelOpts of
+        -- If fee are left for us to compute, we run a dichotomic search. This
+        -- is full auto mode, the most powerful but time-consuming.
+        AutoFeeComputation ->
+          computeFeeAndBalance bWallet (minFee - 1) maxFee collateralIns balancingUtxos returnCollateralWallet skelUnbal
+        -- If fee are provided manually, we adjust the collaterals and the
+        -- skeleton around them.
+        ManualFee fee -> do
+          adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
+          attemptedSkel <- computeBalancedTxSkel bWallet balancingUtxos skelUnbal fee
+          return (attemptedSkel, fee, adjustedCollateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
 
