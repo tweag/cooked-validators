@@ -223,7 +223,7 @@ getOptimalCandidate candidates paymentTarget mceError = do
   -- We decorate the candidates with their current ada and min ada requirements
   let candidatesDecorated = second (\val -> (val, Script.fromValue val, getTxSkelOutMinAda params $ paysPK paymentTarget val)) <$> candidates
       -- We filter the candidates that have enough ada to sustain themselves
-      candidatesFiltered = [(lv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
+      candidatesFiltered = [(minLv, (fst <$> l, val)) | (l, (val, Script.Lovelace lv, Right minLv)) <- candidatesDecorated, minLv <= lv]
   case sortBy (compare `on` fst) candidatesFiltered of
     -- If the list of candidates is empty, we throw an error
     [] -> throwError mceError
