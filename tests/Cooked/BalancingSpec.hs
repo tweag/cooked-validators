@@ -149,6 +149,10 @@ failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
 failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace ((fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
+failsLackOfCollateralWallet :: (IsProp prop) => MockChainError -> prop
+failsLackOfCollateralWallet (FailWith msg) = testBool $ "Can't select collateral utxos from a balancing wallet because it does not exist." == msg
+failsLackOfCollateralWallet _ = testBool False
+
 testBalancingFailsWith :: (Show a) => String -> (MockChainError -> Assertion) -> StagedMockChain a -> TestTree
 testBalancingFailsWith msg p smc = testCase msg $ testFailsFrom def p initialDistributionBalancing smc
 
@@ -174,7 +178,11 @@ tests =
               testBalancingSucceedsWith
                 "It is still possible to balance the transaction by hand"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000))
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+              testBalancingFailsWith
+                "A collateral wallet needs to be provided when auto balancing is enabled"
+                failsLackOfCollateralWallet
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000))
             ],
           testGroup
             "Auto balancing with manual fee"

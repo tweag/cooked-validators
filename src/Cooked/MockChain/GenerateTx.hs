@@ -102,7 +102,7 @@ txSkelToBodyContent TxSkel {..} = do
   txMintValue <- txSkelMintsToTxMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSigners
-      then throwOnString "empty txSkelSigners. You must provide at least one signer"
+      then return Cardano.TxExtraKeyWitnessesNone
       else
         throwOnToCardanoErrorOrApply
           "translating the required signers"
