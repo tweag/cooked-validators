@@ -93,9 +93,11 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
       attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skelUnbal fee
       return (attemptedSkel, fee, adjustedCollateralIns)
-    -- This is full manual mode. We return the initial skeleton with given fee
-    -- and the full set of collateral inputs.
-    (ManualFee fee, False) -> return (skelUnbal, fee, collateralIns)
+    -- This is (almost) full manual mode. We return the initial skeleton with
+    -- given fee and a suitable set of collateral utxos (hence the almost).
+    (ManualFee fee, False) -> do
+      adjustedCollateralIns <- collateralInsFromFees fee collateralIns returnCollateralWallet
+      return (skelUnbal, fee, adjustedCollateralIns)
 
   return (txSkelBal, fee, adjustedCollateralIns, returnCollateralWallet)
 

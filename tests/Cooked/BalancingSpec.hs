@@ -1,7 +1,9 @@
 module Cooked.BalancingSpec where
 
+import Cardano.Api qualified as Cardano
 import Control.Monad
 import Cooked
+import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Staged
 import Data.Default
 import Data.List qualified as List
@@ -79,6 +81,9 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch optio
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
 
+aliceEightAdaUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
+aliceEightAdaUtxos = utxosAtSearch alice `filterWithPred` ((== ada 8) . Api.txOutValue)
+
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)
 
@@ -101,23 +106,6 @@ bothPaymentsToBobAndAlice val =
     emptySearch
     emptySearch
 
-fruitsPaymentToBobWithBalancingUtxos :: (MonadBlockChain m) => Integer -> Integer -> Integer -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
-fruitsPaymentToBobWithBalancingUtxos apples oranges bananas f =
-  testingBalancingTemplate
-    (apple apples <> orange oranges <> banana bananas)
-    mempty
-    emptySearch
-    (utxosAtSearch alice)
-    (f . (\txOpts -> txOpts {txOptEnsureMinAda = True}))
-
-spendingAliceUtxos :: (MonadBlockChain m) => (TxOpts -> TxOpts) -> m TestBalancingOutcome
-spendingAliceUtxos =
-  testingBalancingTemplate
-    mempty
-    mempty
-    (onlyValueOutputsAtSearch alice)
-    emptySearch
-
 type ResProp prop = TestBalancingOutcome -> prop
 
 hasFee :: (IsProp prop) => Integer -> ResProp prop
@@ -138,11 +126,8 @@ balancedBy wal (_, _, _, _, wal', _) = testBool $ wal == wal'
 retOutsNb :: (IsProp prop) => Int -> ResProp prop
 retOutsNb ros (_, _, _, _, _, refs) = testBool $ ros == length refs
 
-applyTestConjoin :: (IsProp prop) => [ResProp prop] -> TestBalancingOutcome -> UtxoState -> prop
-applyTestConjoin props res _ = testConjoin $ ($ res) <$> props
-
 testBalancingSucceedsWith :: String -> [ResProp Assertion] -> StagedMockChain TestBalancingOutcome -> TestTree
-testBalancingSucceedsWith msg props smc = testCase msg $ testSucceedsFrom' def (applyTestConjoin props) initialDistributionBalancing smc
+testBalancingSucceedsWith msg props smc = testCase msg $ testSucceedsFrom' def (\res _ -> testConjoin $ ($ res) <$> props) initialDistributionBalancing smc
 
 failsAtBalancingWith :: (IsProp prop) => Api.Value -> Wallet -> MockChainError -> prop
 failsAtBalancingWith val' wal' (MCEUnbalanceable wal val _) = testBool $ val' == val && wal' == wal
@@ -151,6 +136,14 @@ failsAtBalancingWith _ _ _ = testBool False
 failsWithTooLittleFee :: (IsProp prop) => MockChainError -> prop
 failsWithTooLittleFee (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
 failsWithTooLittleFee _ = testBool False
+
+failsWithValueNotConserved :: (IsProp prop) => MockChainError -> prop
+failsWithValueNotConserved (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "ValueNotConserved" text
+failsWithValueNotConserved _ = testBool False
+
+failsWithEmptyTxIns :: (IsProp prop) => MockChainError -> prop
+failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)) = testBool True
+failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
 failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace ((fee * percentage) `div` 100)
@@ -164,10 +157,26 @@ tests =
   let setFixedFee fee txOpts = txOpts {txOptFeePolicy = ManualFee fee}
       setDontAdjustOutput txOpts = txOpts {txOptBalanceOutputPolicy = DontAdjustExistingOutput}
       setEnsureMinAda txOpts = txOpts {txOptEnsureMinAda = True}
+      setDontBalance txOpts = txOpts {txOptBalance = False}
    in testGroup
         "Balancing"
         [ testGroup
-            "Fee fixed"
+            "Manual balancing with manual fee"
+            [ testBalancingFailsWith
+                "Balancing does not occur when not requested, fails with empty inputs"
+                failsWithEmptyTxIns
+                (simplePaymentToBob 20_000_000 0 0 0 (setDontBalance . setFixedFee 1_000_000)),
+              testBalancingFailsWith
+                "Balancing does not occur when not requested, fails with too small inputs"
+                failsWithValueNotConserved
+                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000)),
+              testBalancingSucceedsWith
+                "It is still possible to balance the transaction by hand"
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000))
+            ],
+          testGroup
+            "Auto balancing with manual fee"
             [ testBalancingSucceedsWith
                 "We can use a single utxo for balancing purpose"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
@@ -193,11 +202,15 @@ tests =
                 [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
                 (simplePaymentToBob 65_000_000 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
+                "It still leads to no output change when requesting a new output"
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
+                (simplePaymentToBob 65_000_000 3 6 0 (setDontAdjustOutput . setFixedFee 2_000_000)),
+              testBalancingSucceedsWith
                 "1 lovelace more than the exact right amount leads to an additional output"
                 [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
                 (simplePaymentToBob 65_000_001 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
-                "1 lovelace less than the exact right amount leads to an additional input to account for minAda"
+                "1 lovelace less than the exact right amount leads to an additional output to account for minAda"
                 [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
                 (simplePaymentToBob 65_000_001 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
@@ -223,10 +236,10 @@ tests =
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets and explicit utxo set, reference script is lost"
                 [hasFee 1_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 2]
-                (fruitsPaymentToBobWithBalancingUtxos 2 5 4 (setFixedFee 1_000_000)),
+                (testingBalancingTemplate (apple 2 <> orange 5 <> banana 4) mempty emptySearch (utxosAtSearch alice) (setEnsureMinAda . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "Successful balancing with excess initial consumption"
                 [hasFee 1_000_000, insNb 5, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
-                (spendingAliceUtxos (setFixedFee 1_000_000))
+                (testingBalancingTemplate mempty mempty (onlyValueOutputsAtSearch alice) emptySearch (setFixedFee 1_000_000))
             ]
         ]
