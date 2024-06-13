@@ -31,7 +31,8 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ paysPK alice (ada 2 <> apple 3),
+    [ paysPK bob (ada 100),
+      paysPK alice (ada 2 <> apple 3),
       paysPK alice (ada 25),
       paysPK alice (ada 40 <> orange 6),
       paysPK alice (ada 8),
@@ -41,7 +42,7 @@ initialDistributionBalancing =
       paysPK alice (ada 100 <> banana 2) `withDatumHash` ()
     ]
 
-type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, Wallet, [Api.TxOutRef])
+type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, [Api.TxOutRef])
 
 testingBalancingTemplate ::
   (MonadBlockChain m) =>
@@ -53,12 +54,15 @@ testingBalancingTemplate ::
   UtxoSearch m a ->
   -- Search for utxos to be used for balancing
   UtxoSearch m b ->
+  -- Search for utxos to be used for collaterals
+  UtxoSearch m b ->
   -- Option modifications
   (TxOpts -> TxOpts) ->
   m TestBalancingOutcome
-testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch optionsMod = do
+testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch collateralSearch optionsMod = do
   ((fst <$>) -> toSpendUtxos) <- runUtxoSearch spendSearch
   ((fst <$>) -> toBalanceUtxos) <- runUtxoSearch balanceSearch
+  ((fst <$>) -> toCollateralUtxos) <- runUtxoSearch collateralSearch
   let skel =
         txSkelTemplate
           { txSkelOuts = List.filter ((/= mempty) . (^. txSkelOutValueL)) [paysPK bob toBobValue, paysPK alice toAliceValue],
@@ -69,14 +73,18 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch optio
                   { txOptBalancingUtxos =
                       if List.null toBalanceUtxos
                         then BalancingUtxosAutomatic
-                        else BalancingUtxosWith $ Set.fromList toBalanceUtxos
+                        else BalancingUtxosWith $ Set.fromList toBalanceUtxos,
+                    txOptCollateralUtxos =
+                      if List.null toCollateralUtxos
+                        then CollateralUtxosFromBalancingWallet
+                        else CollateralUtxosFromSet (Set.fromList toCollateralUtxos) alice
                   },
             txSkelSigners = [alice]
           }
-  (skel', fee, cols, wal) <- balanceTxSkel skel
+  (skel', fee, cols, _) <- balanceTxSkel skel
   void $ validateTxSkel skel
   nonOnlyValueUtxos <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
-  return (skel, skel', fee, cols, wal, fst <$> nonOnlyValueUtxos)
+  return (skel, skel', fee, cols, fst <$> nonOnlyValueUtxos)
 
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
@@ -97,6 +105,7 @@ simplePaymentToBob lv apples oranges bananas =
     mempty
     emptySearch
     emptySearch
+    emptySearch
 
 bothPaymentsToBobAndAlice :: (MonadBlockChain m) => Integer -> (TxOpts -> TxOpts) -> m TestBalancingOutcome
 bothPaymentsToBobAndAlice val =
@@ -105,26 +114,64 @@ bothPaymentsToBobAndAlice val =
     (lovelace val)
     emptySearch
     emptySearch
+    emptySearch
+
+noBalanceMaxFee :: (MonadBlockChain m) => m ()
+noBalanceMaxFee = do
+  maxFee <- snd <$> getMinAndMaxFee
+  ((txOutRef, _) : _) <- runUtxoSearch $ utxosAtSearch alice `filterWithPred` ((== ada 30) . Api.txOutValue)
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOuts = [paysPK bob (lovelace (30_000_000 - maxFee))],
+          txSkelIns = Map.singleton txOutRef TxSkelNoRedeemerForPK,
+          txSkelOpts =
+            def
+              { txOptBalancingPolicy = DoNotBalance,
+                txOptFeePolicy = AutoFeeComputation,
+                txOptCollateralUtxos = CollateralUtxosFromSet (Set.singleton txOutRef) alice
+              },
+          txSkelSigners = [alice]
+        }
+
+balanceReduceFee :: (MonadBlockChain m) => m (Integer, Integer, Integer, Integer)
+balanceReduceFee = do
+  let skelAutoFee =
+        txSkelTemplate
+          { txSkelOuts = [paysPK bob (ada 50)],
+            txSkelSigners = [alice]
+          }
+  (skelBalanced, feeBalanced, cols, rColWal) <- balanceTxSkel skelAutoFee
+  feeBalanced' <- estimateTxSkelFee skelBalanced feeBalanced cols rColWal
+
+  let skelManualFee =
+        skelAutoFee
+          { txSkelOpts =
+              def
+                { txOptFeePolicy = ManualFee (feeBalanced - 1)
+                }
+          }
+  (skelBalancedManual, feeBalancedManual, colsManual, rColWalManual) <- balanceTxSkel skelManualFee
+  feeBalancedManual' <- estimateTxSkelFee skelBalancedManual feeBalancedManual colsManual rColWalManual
+
+  return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
 
 type ResProp prop = TestBalancingOutcome -> prop
 
 hasFee :: (IsProp prop) => Integer -> ResProp prop
-hasFee fee (_, _, fee', _, _, _) = testBool $ fee == fee'
+hasFee fee (_, _, fee', _, _) = testBool $ fee == fee'
 
 additionalOutsNb :: (IsProp prop) => Int -> ResProp prop
-additionalOutsNb ao (txSkel1, txSkel2, _, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
+additionalOutsNb ao (txSkel1, txSkel2, _, _, _) = testBool $ length (txSkelOuts txSkel2) - length (txSkelOuts txSkel1) == ao
 
 insNb :: (IsProp prop) => Int -> ResProp prop
-insNb is (_, TxSkel {..}, _, _, _, _) = testBool $ length txSkelIns == is
+insNb is (_, TxSkel {..}, _, _, _) = testBool $ length txSkelIns == is
 
 colInsNb :: (IsProp prop) => Int -> ResProp prop
-colInsNb cis (_, _, _, refs, _, _) = testBool $ cis == length refs
-
-balancedBy :: (IsProp prop) => Wallet -> ResProp prop
-balancedBy wal (_, _, _, _, wal', _) = testBool $ wal == wal'
+colInsNb cis (_, _, _, refs, _) = testBool $ cis == length refs
 
 retOutsNb :: (IsProp prop) => Int -> ResProp prop
-retOutsNb ros (_, _, _, _, _, refs) = testBool $ ros == length refs
+retOutsNb ros (_, _, _, _, refs) = testBool $ ros == length refs
 
 testBalancingSucceedsWith :: String -> [ResProp Assertion] -> StagedMockChain TestBalancingOutcome -> TestTree
 testBalancingSucceedsWith msg props smc = testCase msg $ testSucceedsFrom' def (\res _ -> testConjoin $ ($ res) <$> props) initialDistributionBalancing smc
@@ -174,25 +221,49 @@ tests =
               testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with too small inputs"
                 failsWithValueNotConserved
-                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "It is still possible to balance the transaction by hand"
-                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingFailsWith
                 "A collateral wallet needs to be provided when auto balancing is enabled"
                 failsLackOfCollateralWallet
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch (setDontBalance . setFixedFee 1_000_000))
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch emptySearch (setDontBalance . setFixedFee 1_000_000)),
+              testBalancingSucceedsWith
+                "We can also directly give a set of collateral utxos"
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
+                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch aliceEightAdaUtxos (setDontBalance . setFixedFee 1_000_000))
+            ],
+          testGroup
+            "Manual balancing with auto fee"
+            [ testCase "Auto fee with manual balancing yields maximum fee" $
+                testSucceedsFrom def initialDistributionBalancing noBalanceMaxFee
+            ],
+          testGroup
+            "Auto balancing with auto fee"
+            [ testBalancingSucceedsWith
+                "We can auto balance a transaction with auto fee"
+                [insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                (simplePaymentToBob 20_000_000 0 0 0 id),
+              testCase "Auto fee are minimal: less fee will lead to lower fee than estimated" $
+                testSucceedsFrom'
+                  def
+                  ( \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') _ ->
+                      testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual
+                  )
+                  initialDistributionBalancing
+                  balanceReduceFee
             ],
           testGroup
             "Auto balancing with manual fee"
             [ testBalancingSucceedsWith
                 "We can use a single utxo for balancing purpose"
-                [hasFee 1_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 1_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 20_000_000 0 0 0 (setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "We can use several utxos for balancing with ridiculously high fee"
-                [hasFee 40_000_000, insNb 3, additionalOutsNb 1, colInsNb 3, balancedBy alice, retOutsNb 3]
+                [hasFee 40_000_000, insNb 3, additionalOutsNb 1, colInsNb 3, retOutsNb 3]
                 (simplePaymentToBob 20_000_000 0 0 0 (setFixedFee 40_000_000)),
               testBalancingFailsWith
                 "We cannot balance with too little fee"
@@ -208,35 +279,35 @@ tests =
                 (simplePaymentToBob 6_000_000 0 0 0 (setFixedFee 80_000_000)),
               testBalancingSucceedsWith
                 "Exactly the right amount leads to no output change"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 65_000_000 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
                 "It still leads to no output change when requesting a new output"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 65_000_000 3 6 0 (setDontAdjustOutput . setFixedFee 2_000_000)),
               testBalancingSucceedsWith
                 "1 lovelace more than the exact right amount leads to an additional output"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 65_000_001 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
                 "1 lovelace less than the exact right amount leads to an additional output to account for minAda"
-                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 65_000_001 3 6 0 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
                 "We can merge assets to an existing outputs at the balancing wallet address"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
                 (bothPaymentsToBobAndAlice 6_000_000 (setFixedFee 2_000_000)),
               testBalancingSucceedsWith
                 "We can create a new output at the balancing wallet address even if one already exists"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (bothPaymentsToBobAndAlice 6_000_000 (setFixedFee 2_000_000 . setDontAdjustOutput)),
               testBalancingSucceedsWith
                 "We can balance transactions with non-ada assets"
-                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 2_000_000, insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 0 0 5 0 (setFixedFee 2_000_000 . setEnsureMinAda)),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets"
-                [hasFee 1_000_000, insNb 2, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
+                [hasFee 1_000_000, insNb 2, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 0 2 5 0 (setEnsureMinAda . setFixedFee 1_000_000)),
               testBalancingFailsWith
                 "Unsuccessful balancing with multiple assets in non value only utxos"
@@ -244,11 +315,11 @@ tests =
                 (simplePaymentToBob 0 2 5 4 (setEnsureMinAda . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "Successful balancing with multiple assets and explicit utxo set, reference script is lost"
-                [hasFee 1_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 2]
-                (testingBalancingTemplate (apple 2 <> orange 5 <> banana 4) mempty emptySearch (utxosAtSearch alice) (setEnsureMinAda . setFixedFee 1_000_000)),
+                [hasFee 1_000_000, insNb 3, additionalOutsNb 1, colInsNb 1, retOutsNb 2]
+                (testingBalancingTemplate (apple 2 <> orange 5 <> banana 4) mempty emptySearch (utxosAtSearch alice) emptySearch (setEnsureMinAda . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "Successful balancing with excess initial consumption"
-                [hasFee 1_000_000, insNb 5, additionalOutsNb 1, colInsNb 1, balancedBy alice, retOutsNb 3]
-                (testingBalancingTemplate mempty mempty (onlyValueOutputsAtSearch alice) emptySearch (setFixedFee 1_000_000))
+                [hasFee 1_000_000, insNb 5, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
+                (testingBalancingTemplate mempty mempty (onlyValueOutputsAtSearch alice) emptySearch emptySearch (setFixedFee 1_000_000))
             ]
         ]
