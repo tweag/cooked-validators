@@ -146,9 +146,9 @@ computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos 
       return (attemptedSkel, minFee, adjustedCollateralIns)
 computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos returnCollateralWallet skel
   | fee <- div (minFee + maxFee) 2 = do
-      -- We attempt to compte a balanced skeleton and associated collateral. If one
-      -- of the two fails but the interval is not unitary, there is a chance this
-      -- can still succeed for smaller fee. Otherwise, we just spread the error.
+      -- We attempt to create a balanced skeleton and associated collateral. If
+      -- one of the two fails but the interval is not unitary, this can still
+      -- succeed for smaller fee. Otherwise, we just spread the error.
       attemptedBalancing <-
         fmap Just (attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos returnCollateralWallet fee skel)
           `catchError` \case
