@@ -144,31 +144,27 @@ computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos 
   | minFee == maxFee = do
       (adjustedCollateralIns, attemptedSkel) <- attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos returnCollateralWallet minFee skel
       return (attemptedSkel, minFee, adjustedCollateralIns)
-computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos returnCollateralWallet skel = do
-  -- We fix the fee in the middle of the interval
-  let fee = div (minFee + maxFee) 2
-  -- We attempt to compte a balanced skeleton and associated collateral. If one
-  -- of the two fails but the interval is not unitary, there is a chance this
-  -- can still succeed for smaller fee. Otherwise, we just spread the error.
-  attemptedBalancing <-
-    fmap Just (attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos returnCollateralWallet fee skel)
-      `catchError` \case
-        MCEUnbalanceable {} | fee - minFee > 1 -> return Nothing
-        MCENoSuitableCollateral {} | fee - minFee > 1 -> return Nothing
-        err -> throwError err
+computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos returnCollateralWallet skel
+  | fee <- div (minFee + maxFee) 2 = do
+      -- We attempt to compte a balanced skeleton and associated collateral. If one
+      -- of the two fails but the interval is not unitary, there is a chance this
+      -- can still succeed for smaller fee. Otherwise, we just spread the error.
+      attemptedBalancing <-
+        fmap Just (attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos returnCollateralWallet fee skel)
+          `catchError` \case
+            MCEUnbalanceable {} | fee - minFee > 1 -> return Nothing
+            MCENoSuitableCollateral {} | fee - minFee > 1 -> return Nothing
+            err -> throwError err
 
-  case attemptedBalancing of
-    -- The skeleton was not balanceable, we try strictly smaller fee
-    Nothing -> computeFeeAndBalance balancingWallet minFee (fee - 1) collateralIns balancingUtxos returnCollateralWallet skel
-    -- The skeleton was balanceable, we compute and analyse the resulting fee
-    Just (adjustedCollateralIns, attemptedSkel) -> do
-      newFee <- estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet
-      if newFee <= fee
-        then -- The fee is smaller than anticipated, and there is still room for
-        -- possible improvement, so we proceed with smaller fee
-          computeFeeAndBalance balancingWallet minFee fee collateralIns balancingUtxos returnCollateralWallet skel
-        else -- The fee is higher than anticipated, we try with higher fee
-          computeFeeAndBalance balancingWallet (fee + 1) maxFee collateralIns balancingUtxos returnCollateralWallet skel
+      case attemptedBalancing of
+        -- The skeleton was not balanceable, we try strictly smaller fee
+        Nothing -> computeFeeAndBalance balancingWallet minFee (fee - 1) collateralIns balancingUtxos returnCollateralWallet skel
+        -- The skeleton was balanceable, we compute and analyse the resulting
+        -- fee to seach upwards or downwards for an optimal solution
+        Just (adjustedCollateralIns, attemptedSkel) -> do
+          newFee <- estimateTxSkelFee attemptedSkel fee adjustedCollateralIns returnCollateralWallet
+          let (newMinFee, newMaxFee) = if newFee <= fee then (minFee, fee) else (fee + 1, maxFee)
+          computeFeeAndBalance balancingWallet newMinFee newMaxFee collateralIns balancingUtxos returnCollateralWallet skel
 
 -- | This reduces a set of given collateral inputs while accounting for:
 -- * the percentage to respect between fees and total collaterals

@@ -15,6 +15,7 @@ import Data.Text (isInfixOf)
 import Ledger.Index qualified as Ledger
 import ListT
 import Optics.Core
+import Plutus.Script.Utils.Ada qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import Test.Tasty
@@ -31,15 +32,14 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ paysPK bob (ada 100),
-      paysPK alice (ada 2 <> apple 3),
+    [ paysPK alice (lovelace 2_000_000 <> apple 3),
       paysPK alice (ada 25),
-      paysPK alice (ada 40 <> orange 6),
+      paysPK alice (lovelace 40_000_000 <> orange 6),
       paysPK alice (ada 8),
       paysPK alice (ada 30),
       paysPK alice (ada 12 <> banana 3) `withDatum` (10 :: Integer),
-      paysPK alice (ada 5 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
-      paysPK alice (ada 100 <> banana 2) `withDatumHash` ()
+      paysPK alice (ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
+      paysPK alice (ada 105 <> banana 2) `withDatumHash` ()
     ]
 
 type TestBalancingOutcome = (TxSkel, TxSkel, Integer, Set Api.TxOutRef, [Api.TxOutRef])
@@ -55,7 +55,7 @@ testingBalancingTemplate ::
   -- Search for utxos to be used for balancing
   UtxoSearch m b ->
   -- Search for utxos to be used for collaterals
-  UtxoSearch m b ->
+  UtxoSearch m c ->
   -- Option modifications
   (TxOpts -> TxOpts) ->
   m TestBalancingOutcome
@@ -89,8 +89,8 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
 aliceNonOnlyValueUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceNonOnlyValueUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o) || (Api.txOutDatum o /= Api.NoOutputDatum)
 
-aliceEightAdaUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
-aliceEightAdaUtxos = utxosAtSearch alice `filterWithPred` ((== ada 8) . Api.txOutValue)
+aliceNAdaUtxos :: (MonadBlockChain m) => Integer -> UtxoSearch m Api.TxOut
+aliceNAdaUtxos n = utxosAtSearch alice `filterWithPred` ((== Script.Lovelace (n * 1_000_000)) . Script.fromValue . Api.txOutValue)
 
 aliceRefScriptUtxos :: (MonadBlockChain m) => UtxoSearch m Api.TxOut
 aliceRefScriptUtxos = utxosAtSearch alice `filterWithPred` \o -> isJust (Api.txOutReferenceScript o)
@@ -180,6 +180,10 @@ failsAtBalancingWith :: (IsProp prop) => Api.Value -> Wallet -> MockChainError -
 failsAtBalancingWith val' wal' (MCEUnbalanceable wal val _) = testBool $ val' == val && wal' == wal
 failsAtBalancingWith _ _ _ = testBool False
 
+failsAtBalancing :: (IsProp prop) => MockChainError -> prop
+failsAtBalancing MCEUnbalanceable {} = testBool True
+failsAtBalancing _ = testBool False
+
 failsWithTooLittleFee :: (IsProp prop) => MockChainError -> prop
 failsWithTooLittleFee (MCEValidationError Ledger.Phase1 (Ledger.CardanoLedgerValidationError text)) = testBool $ isInfixOf "FeeTooSmallUTxO" text
 failsWithTooLittleFee _ = testBool False
@@ -195,6 +199,10 @@ failsWithEmptyTxIns _ = testBool False
 failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
 failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace ((fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
+
+failsAtCollaterals :: (IsProp prop) => MockChainError -> prop
+failsAtCollaterals MCENoSuitableCollateral {} = testBool True
+failsAtCollaterals _ = testBool False
 
 failsLackOfCollateralWallet :: (IsProp prop) => MockChainError -> prop
 failsLackOfCollateralWallet (FailWith msg) = testBool $ "Can't select collateral utxos from a balancing wallet because it does not exist." == msg
@@ -221,19 +229,19 @@ tests =
               testBalancingFailsWith
                 "Balancing does not occur when not requested, fails with too small inputs"
                 failsWithValueNotConserved
-                (testingBalancingTemplate (ada 50) mempty aliceEightAdaUtxos emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (ada 50) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "It is still possible to balance the transaction by hand"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setCollateralWallet alice . setDontBalance . setFixedFee 1_000_000)),
               testBalancingFailsWith
                 "A collateral wallet needs to be provided when auto balancing is enabled"
                 failsLackOfCollateralWallet
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch emptySearch (setDontBalance . setFixedFee 1_000_000)),
+                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch emptySearch (setDontBalance . setFixedFee 1_000_000)),
               testBalancingSucceedsWith
                 "We can also directly give a set of collateral utxos"
                 [hasFee 1_000_000, insNb 1, additionalOutsNb 0, colInsNb 1, retOutsNb 3]
-                (testingBalancingTemplate (ada 7) mempty aliceEightAdaUtxos emptySearch aliceEightAdaUtxos (setDontBalance . setFixedFee 1_000_000))
+                (testingBalancingTemplate (ada 7) mempty (aliceNAdaUtxos 8) emptySearch (aliceNAdaUtxos 8) (setDontBalance . setFixedFee 1_000_000))
             ],
           testGroup
             "Manual balancing with auto fee"
@@ -246,14 +254,27 @@ tests =
                 "We can auto balance a transaction with auto fee"
                 [insNb 1, additionalOutsNb 1, colInsNb 1, retOutsNb 3]
                 (simplePaymentToBob 20_000_000 0 0 0 id),
-              testCase "Auto fee are minimal: less fee will lead to lower fee than estimated" $
+              testCase "Auto fee are minimal: less fee will lead to strictly smaller fee than Cardano's estimate" $
                 testSucceedsFrom'
                   def
-                  ( \(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') _ ->
-                      testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual
-                  )
+                  (\(feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual') _ -> testBool $ feeBalanced' <= feeBalanced && feeBalancedManual' > feeBalancedManual)
                   initialDistributionBalancing
-                  balanceReduceFee
+                  balanceReduceFee,
+              testCase "The auto-fee process can sometimes recover from a temporary balancing error..." $
+                testSucceedsFrom def initialDistributionBalancing (simplePaymentToBob 103_500_000 0 0 0 id),
+              testCase "... but not always" $
+                testFailsFrom def failsAtBalancing initialDistributionBalancing (simplePaymentToBob 104_000_000 0 0 0 id),
+              testCase "The auto-fee process can recover from a temporary collateral error..." $
+                testSucceedsFrom
+                  def
+                  initialDistributionBalancing
+                  (testingBalancingTemplate (ada 100) mempty emptySearch emptySearch (aliceNAdaUtxos 2) id),
+              testCase "... but not always" $
+                testFailsFrom
+                  def
+                  failsAtCollaterals
+                  initialDistributionBalancing
+                  (testingBalancingTemplate (ada 100) mempty (utxosAtSearch alice) emptySearch (aliceNAdaUtxos 1) id)
             ],
           testGroup
             "Auto balancing with manual fee"
