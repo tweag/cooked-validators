@@ -77,9 +77,11 @@ Here is the semantics of the constructors:
 * `BalanceWithFirstSigner`: Turns on auto-balancing, and will use the first
   wallet in the list of signers as the balancing wallet. If the list of signers
   is empty, this throws the following error:
+  
   ``` haskell
   FailWith "Can't select balancing wallet from the signers lists because it is empty."
   ```
+  
   Note that an empty list of signers would lead to a validation error anyway due
   to collaterals requirements.
 * `BalanceWith Wallet`: Turns on auto-balancing, and uses the given wallet as
@@ -303,3 +305,79 @@ We can then sort the candidate sets by the minimal ada required to pay back the
 surplus value to the balancing wallet. The first element of the sorted list is
 our current best candidate set of utxos to either balancing the transaction or
 the collaterals, which satisfy all our criteria.
+
+### Computing optimal fee
+
+Computing a reasonable amount of fee for a given skeleton is challenging in
+Cardano, because although the fee depends on the transaction itself, it depends
+on aspects of the transaction that can hardly be assessed prior to the
+submission of the transaction. However, the fee has to be provided in the
+transaction itself, making it a challenging issue. What actually happens when
+submitting transaction is that the user is requested to provide a fee that will,
+in turn, happen to be sufficient during validation. So what the user need is a
+reliable way to have a fee that will both be sufficiently high to account for
+requirements at validation time, and sufficiently small that they limit their
+fee payment overall.
+
+Overall, here are the requirements of our fee computation mechanism:
+* the fee need to be high enough to account for the estimated transaction fee
+  computed through Cardano api (which is a guaranted over-estimated of the
+  actual transaction fee at validation time).
+* the fee must be minimal, in the sense that any smaller fee should yield a
+  transaction that no longer satisfy the previous requirement.
+* the transaction must be balanceable around those fee.
+* collateral must be computable around those fee.
+
+The good thing with fees it that they are bounded in a specific interval that
+can be deduced from the protocol parameters. This is why our implementation
+relies on a dichotomic search within this interval. The function that makes this
+computation is `computeFeeAndBalance`, with the following signature:
+
+``` haskell
+(MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Collaterals -> [(Api.TxOutRef, Api.TxOut)] -> Wallet -> TxSkel -> m (TxSkel, Fee, Set Api.TxOutRef)
+```
+
+It takes as input the balancing wallet, the two boundaries of the search
+interval, the candidate balancing utxos, the return collateral wallet and the
+skeleton to adjust. It returns the adjusted skeleton with the computed fee and
+associate set of collateral inputs.
+
+What makes this function delicate is the fact that coupling a balancing and a
+fee computation attempt can fail in three different ways:
+- the balancing itself can fail, due to a lack of candidate inputs or lack of
+  collateral inputs
+- the associated estimated fee for the generated skeleton can be higher that
+  what the skeleton accounts for
+
+The function is a (slightly optimized) usual dychotomic search that unfolds as
+follows. The input interval should never be empty. If it is reduced to a single
+dot, we just make an attempt at balancing with the only possible fee value,
+which might, or might not, succeed. When the interval is larger, interesting
+things happen.
+
+We attempt to balance the skeleton around the middle in the interval. Based on
+the estimated fee resulting from this balancing, we reduce our search interval.
+- if the balancing succeeds, but the resulting estimated fee is higher than the
+  current applied fee, we search higher up, excluding the current fee attempt.
+- if the balancing fails, and the remaining strictly smaller left interval is
+  empty, we spread the error, as the balancing is sadly impossible. We cannot
+  balance around the minimum possible fee for this transaction.
+- if the balancing fails but the strictly left interval is not empty, we try to
+  balance around the strictly smaller interval. Maybe there is another set of
+  candidates that could provide a slightly smaller fee which could be suitable
+  for the transaction.
+- if the balancing succeeds with a smaller estimated fee than attempted, and the
+  output value of the new skeleton is the same as the output value of the input
+  skeleton (in other words, the balancing was exactly right, there was no
+  surplus value to give back to the balancing wallet), we attempt to search in
+  the smaller interval.
+- if the balancing succeeds with a smaller estimated fee than attempted, while
+  already returning some value to the balancing wallet, we can do some
+  optimization. Indeed, experience proves that with the same utxo configuration
+  in such a skeleton, the estimated fee would not change if we lower the fee in
+  the transaction and compensate by increasing the amount given back to the
+  balancing wallet. Thus we can safely search in the smaller interval that ends
+  at the estimated fee instead of the currently attempted fee.
+  
+The recursion proceeds untils an error is spread or the interval is reduced to a
+single point.
