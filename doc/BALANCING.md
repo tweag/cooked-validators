@@ -121,7 +121,43 @@ Here is the semantics of the constructors:
   if they get chosen for balancing. This option is thus inherently less safe
   than the former but offers more control in return.
   
-If auto-balancing is disabled, this option is ignored.
+If auto-balancing is disabled, this option will be ignored.
+
+### Balance output policy
+
+Whether to add up extra balancing value to existing output, or create a new one.
+
+``` haskell
+data BalanceOutputPolicy
+  = AdjustExistingOutput -- default
+  | DontAdjustExistingOutput
+```
+
+If auto-balancing is enabled, new utxos will be consumed to account for any
+missing value in inputs. In the process, and since those utxos have a fixed
+value, extra value might be fed into the transaction, which needs to be given
+back to the balancing wallet in return. This option controls how this extra
+payment is performed within the transaction.
+
+Here is the semantics of the constructors:
+* `AdjustExistingOutput`: Any extra value will be added to the first output of
+  the transaction that goes to the balancing wallet. If this output contains
+  other pieces of informations, they will be kept intact. Only the value will be
+  changed. If no such output exists, the semantics will be the same as using
+  `DontAdjustExistingOutput`. This option is to be preferred when one wants to
+  limitate the number of utxos present in the index.
+* `DontAdjustExistingOutput`: Any extra value will be given back to the
+  balancing wallet using a new transaction output. This output will be placed at
+  the end of the list of outputs of the transaction. This option is to be
+  preferred when ones wants to clearly separate what originated from the initial
+  unbalanced transaction, and what came from the balancing process.
+  
+Note that both these options lead to changes in the outputs of the transaction
+that are *order-preserving*. This is very important since many smart contracts
+require a certain outputs order, and we don't want the balancing process to
+alter it somehow.
+
+If auto-balancing is disabled, this option will be ignored.
 
 ### Fee policy
 
@@ -142,14 +178,4 @@ data CollateralUtxos
   = CollateralUtxosFromBalancingWallet -- default
   | CollateralUtxosFromWallet Wallet
   | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
-```
-
-### Balance output policy
-
-Whether to add up return value to existing output, or create a new one.
-
-``` haskell
-data BalanceOutputPolicy
-  = AdjustExistingOutput -- default
-  | DontAdjustExistingOutput
 ```
