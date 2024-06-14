@@ -48,7 +48,14 @@ It takes a skeleton as input living into a `MonadBlockChainBalancing` environeme
 
 ## Options piloting balancing
 
-### Balancing policy -- Whether to balance or not, and with which wallet.
+There are various options piloting transaction generation that are related to
+balancing. Here is an overview of those options with the semantics of their
+various constructors, alongside their default value.
+
+### Balancing policy
+
+Whether to automatically balance a skeleton or not, and which wallet to use as a
+balancing wallet.
 
 ``` haskell
 data BalancingPolicy
@@ -57,23 +64,36 @@ data BalancingPolicy
   | DoNotBalance
 ```
 
-### Fee policy -- Whether to use manual fee or assess a suitable fee.
+This options turns on or off the automated balancing feature. When the feature
+is on, a balancing wallet needs to be provided. The balancing wallet is a
+specific wallet that is required during balancing. The address of the balancing
+wallet is used when extra value is generated through balancing (which is almost
+always the case) and needs to be returned somewhere. When the option
+`BalancingUtxos` requires it, the balancing wallet is also used to provide utxos
+for missing inputs in the transaction.
 
-``` haskell
-data FeePolicy
-  = AutoFeeComputation -- default
-  | ManualFee Integer
-```
+Here is the semantics of the constructors:
+* `BalanceWithFirstSigner`: Turns on auto-balancing, and will use the first
+  wallet in the list of signers as the balancing wallet. If the list of signers
+  is empty, this throws the following error:
+  ``` haskell
+  FailWith "Can't select balancing wallet from the signers lists because it is empty."
+  ```
+  Note that an empty list of signers would lead to a validation error anyway due
+  to collaterals requirements.
+* `BalanceWith Wallet`: Turns on auto-balancing, and uses the given wallet as
+  balancing wallet. Note that if the balancing process requires additional utxos
+  from that wallet to be consumed (which will most certainly happen), then this
+  wallet will need to be a signer of the transaction for the generated
+  transaction to be successfully validated.
+* `DoNotBalance`: Turns off auto balancing. The transaction skeleton, and in
+  particular its inputs and outputs, will remain unchanged through the
+  process. Note that it will still be possible to balance those transactions by
+  hand by providing a manual fee (see [`FeePolicy`](#fee-policy)).
 
-### Balance output policy -- Whether to add up return value to existing output, or create a new one.
+### Balancing utxos
 
-``` haskell
-data BalanceOutputPolicy
-  = AdjustExistingOutput -- default
-  | DontAdjustExistingOutput
-```
-
-### Balancing utxos -- Which utxos to pick from to account for the missing value in the inputs of the skeleton.
+Which utxos to pick from to account for the missing value in the inputs of the skeleton.
 
 ``` haskell
 data BalancingUtxos
@@ -81,11 +101,33 @@ data BalancingUtxos
     BalancingUtxosWith (Set Api.TxOutRef)
 ```
 
-### Collateral utxos -- Which utxos to pick from as collateral inputs.
+### Fee policy
+
+Whether to use manual fee or automatically assess a suitable fee.
+
+``` haskell
+data FeePolicy
+  = AutoFeeComputation -- default
+  | ManualFee Integer
+```
+
+### Collateral utxos
+
+Which utxos to pick from as collateral inputs.
 
 ``` haskell
 data CollateralUtxos
   = CollateralUtxosFromBalancingWallet -- default
   | CollateralUtxosFromWallet Wallet
   | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
+```
+
+### Balance output policy
+
+Whether to add up return value to existing output, or create a new one.
+
+``` haskell
+data BalanceOutputPolicy
+  = AdjustExistingOutput -- default
+  | DontAdjustExistingOutput
 ```
