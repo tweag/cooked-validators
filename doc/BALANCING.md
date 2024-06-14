@@ -6,7 +6,7 @@ generated Cardano transaction, such as inputs and outputs, and various options
 piloting this generation. In particular, this transaction generation contains a
 pass of balancing which is heavily controlled by those options. In this
 document, we explain what balancing entails, how it is currently implemented,
-and was are the options impacting this mechanism.
+and what are the options impacting this mechanism.
 
 ## Balancing: Kesako?
 
@@ -48,4 +48,44 @@ It takes a skeleton as input living into a `MonadBlockChainBalancing` environeme
 
 ## Options piloting balancing
 
-## The balancing algorithm
+### Balancing policy -- Whether to balance or not, and with which wallet.
+
+``` haskell
+data BalancingPolicy
+  = BalanceWithFirstSigner -- default
+  | BalanceWith Wallet
+  | DoNotBalance
+```
+
+### Fee policy -- Whether to use manual fee or assess a suitable fee.
+
+``` haskell
+data FeePolicy
+  = AutoFeeComputation -- default
+  | ManualFee Integer
+```
+
+### Balance output policy -- Whether to add up return value to existing output, or create a new one.
+
+``` haskell
+data BalanceOutputPolicy
+  = AdjustExistingOutput -- default
+  | DontAdjustExistingOutput
+```
+
+### Balancing utxos -- Which utxos to pick from to account for the missing value in the inputs of the skeleton.
+
+``` haskell
+data BalancingUtxos
+  = BalancingUtxosAutomatic -- default
+    BalancingUtxosWith (Set Api.TxOutRef)
+```
+
+### Collateral utxos -- Which utxos to pick from as collateral inputs.
+
+``` haskell
+data CollateralUtxos
+  = CollateralUtxosFromBalancingWallet -- default
+  | CollateralUtxosFromWallet Wallet
+  | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
+```
