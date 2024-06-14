@@ -205,3 +205,41 @@ data CollateralUtxos
   | CollateralUtxosFromWallet Wallet
   | CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
 ```
+
+In addition to the regular utxos consumed in a transaction, additional utxos
+need to be provided in case the validation fails in phase 2. These utxos should
+be sufficient to cover a certain total collateral, which is a multiple of the
+given transaction fee (usually 1.5, depending on the protocol parameters). The
+excess can be given back to a certain wallet through an output called a return
+collateral. This option pilots which utxos should be *considered* by the
+balancing mechanism to be provided in the transaction. Similarly to
+[`BalancingUtxos`](#balancing-utxos), the final set of utxos will not
+necessarilly be equal to the considered set, but will be included in it. This is
+especially true for collaterals since protocol parameters also dictate a maximum
+number of allowed collateral utxos.
+
+Here is the semantics of the constructors:
+* `CollateralUtxosFromBalancingWallet`: Use only-value utxos belonging to the
+  balancing wallet. The return collateral will be sent to the balancing
+  wallet. Synonym to `CollateralUtxosFromWallet (balancingWallet)`.
+* `CollateralUtxosFromWallet Wallet`: Use only-value utxos belonging to the
+  given wallet. For the transaction to be validated, this wallet will need to
+  sign it. The return collateral will be sent to the same wallet.
+* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Use utxos from the given
+  set, and send back return collaterals to the given wallet. Note that if some
+  of those utxos belong to a script, and are chosen by the balancing mechanism,
+  the validation will fail as only PK utxos are allowed as collaterals by the
+  ledger rules. This option is inherently less safe than the others, as the
+  additional information contained in the chosen utxo will be lost in the
+  balancing process. To be used with caution.
+
+If the auto-balancing is disabled, the computing for the collateral will still
+happen around the fee chosen by the [`FeePolicy`](#fee-policy). In addition, it
+is not currently possible for user to specify a specific amount of collaterals
+to be used in a given transaction (as opposed to fee). This was a deliberate
+choice to limitate the user interaction with the collateral mechanism as this is
+very seldom used and `cooked-validators` currently does not support to keep
+issuing transactions after a validation failure, thus rendering the collateral
+mechanism almost irrelevant outside of transaction validation.
+
+## Balancing algorithm
