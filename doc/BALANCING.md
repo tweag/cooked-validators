@@ -40,13 +40,14 @@ Overall, our balancing function is signed as follows:
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals, Wallet)
 ```
 
-It takes a skeleton as input living into a `MonadBlockChainBalancing` environement, and returns:
+It takes a skeleton as input living into a `MonadBlockChainBalancing`
+environement, and returns:
 - A balanced skeleton
 - The associated fee accounted for in the skeleton
 - The associated set of collateral inputs to account for the chosen fee
 - The return collateral wallet to return excess collateral to
 
-## Options piloting balancing
+## Balancing options
 
 There are various options piloting transaction generation that are related to
 balancing. Here is an overview of those options with the semantics of their
@@ -243,3 +244,62 @@ issuing transactions after a validation failure, thus rendering the collateral
 mechanism almost irrelevant outside of transaction validation.
 
 ## Balancing algorithm
+
+The balancing algorithm consists in taking as input a skeleton in a
+`MonadBlockChain` environment, and given back this skeleton with associated
+fees, collaterals and return collateral wallet. These four elements are piloted
+by the [balancing options](#balancing-options). It is composed of several
+parts. While not all of them will be subjected to a detailed description here
+(the code is extensively commented), we will detailed the most important or
+challenging ones.
+
+### Reaching a given value with a set of utxos
+
+When balancing a transaction, we take as input a set of candidate utxos, and
+need to decide on a subset of those which is:
+- sufficient to cover missing value in inputs of the skeleton.
+- either providing exactly the right amount of funds, or enough extra to sustain
+  an additional output in terms of minimal ada (as excess will be given back to
+  the balancing wallet).
+- minimal in a way, as we do not want to generate big transactions and to
+  systematically take the whole candidate set for balancing. The definition we
+  take as minimal is that the subset does not contain any utxos that does not
+  contribute to reaching the final value. In other words, taking any utxo out of
+  the chosen subset should not amount to the required value.
+  
+We have the same kind of requirement to compute a suitable subset of
+collaterals, with the additional one of having a maximum number of elements in
+the subsets.
+  
+Function `reachValue` performs the candidates subset computation. Here is its
+signature:
+
+``` haskell
+reachValue :: [(Api.TxOutRef, Api.TxOut)] -> Api.Value -> Integer -> [[(Api.TxOutRef, Api.TxOut)], Api.Value)]
+```
+
+This function takes a list of utxos coupled with their associated outputs, a
+value (the target to be reached) and an integer, which represents the maximum
+number of elements candidate subsets should contain. The function is recursive
+and computes in 2^n, where n is the number of input utxos, as all `find all
+subsets` do. The idea is to go through the input list and decide to either pick
+or drop the first element. It is optimized four ways compared to a regular `find
+all subsets` algorithm:
+- at each step, we check whether taking the whole remaining list would be
+  sufficient to reach the value. If not, we stop the computation.
+- we limit our search to the number of elements stipulated in the parameters of
+  the function. For the limitation on collaterals inputs (usually at 3) this
+  makes the search much faster.
+- we only consider picking the current element if it contributes to reaching the
+  target. In other words, if the intersection between the current element value
+  and the target value is empty, we skip it.
+- once the target is reached, we directly stop the search and do not attempt to
+  add more elements to the subset.
+  
+The function returns a list of lists of candidates with their associated surplus
+value beyond the target.
+
+We can then sort the candidate sets by the minimal ada required to pay back the
+surplus value to the balancing wallet. The first element of the sorted list is
+our current best candidate set of utxos to either balancing the transaction or
+the collaterals, which satisfy all our criteria.
