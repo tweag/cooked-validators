@@ -169,6 +169,32 @@ data FeePolicy
   | ManualFee Integer
 ```
 
+Since fee are a part of the balancing equation that a transaction must satisfy,
+their value is an inherent part of the balancing process. This option controls
+whether these fee should be assessed automatically during the balancing process,
+of if the balancing should occur around a given fee.
+
+Here is the semantics of the constructors:
+* `AutoFeeComputation`: The balancing process will perform a dichotomic search
+  between minFee and maxFee (both depending on some protocol parameters) to
+  search for an optimal fee around which the transaction can be balanced given
+  the available balancing utxos (see [`BalancingUtxos`](#balancing-utxos)). The
+  balancing process guarantees that this fee is optimal regarding Cardano's fee
+  estimate. In other words, a lower fee will be below Cardano's estimate for the
+  current transaction fee. Note that the actual required fee could be smaller
+  because this estimate is conservative, but it bears guarantees that the actual
+  fee will not be higher that this estimate, which is the most important. This
+  option should be preferred when one wants to be paying as little fee as
+  possible.
+* `ManualFee Integer`: The balancing process will be performed around the given
+  fee. No check will be done to assess whether this fee will be enough when
+  validating the transaction. This option is to be preferred when one wants to
+  prioritize performance at the cost of a non-optimal fee.
+  
+If auto-balancing is disabled, the first option will choose the maximum fee
+authorized by the protocol parameters, while the second will keep the
+user-provided fee.
+
 ### Collateral utxos
 
 Which utxos to pick from as collateral inputs.
