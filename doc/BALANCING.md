@@ -93,13 +93,35 @@ Here is the semantics of the constructors:
 
 ### Balancing utxos
 
-Which utxos to pick from to account for the missing value in the inputs of the skeleton.
+Which utxos to pick from to account for the missing value in the inputs of the
+skeleton.
 
 ``` haskell
 data BalancingUtxos
   = BalancingUtxosAutomatic -- default
     BalancingUtxosWith (Set Api.TxOutRef)
 ```
+
+If auto-balancing is enabled, additional utxos will be added to the transaction
+inputs to account for any missing value there. These utxos need to be found
+somewhere. The options gives two choice as to where to look for them. Note that
+the set of utxos *considered* for balancing is not necessarily equal to the
+eventual set of balancing utxos. Instead, the latter is included in the former.
+
+Here is the semantics of the constructors:
+* `BalancingUtxosAutomatic`: The utxos that will be considered to be used for
+  balancing purposes are those possessed by the balancing wallet, and which only
+  contain a value. In particular, utxos with a reference script, a datum or a
+  staking credential will not be considered for balancing.
+* `BalancingUtxosWith (Set Api.TxOutRef)`: The given set of utxos will be
+  considered for balancing purpose, minus the utxos belonging to a script. Those
+  are not eligible as they would need to be consumed using an unknown
+  redeemer. Note that any additional element in the provided utxos (staking
+  credential, reference script or datum) will be lost in the balancing process
+  if they get chosen for balancing. This option is thus inherently less safe
+  than the former but offers more control in return.
+  
+If auto-balancing is disabled, this option is ignored.
 
 ### Fee policy
 
