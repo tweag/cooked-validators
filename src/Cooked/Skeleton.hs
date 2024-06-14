@@ -75,6 +75,7 @@ module Cooked.Skeleton
     txSkelOutReferenceScripts,
     txSkelReferenceScript,
     txSkelKnownTxOutRefs,
+    txSkelOutputsValue,
   )
 where
 
@@ -884,6 +885,10 @@ data SkelContext = SkelContext
   { skelContextTxOuts :: Map Api.TxOutRef Api.TxOut,
     skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
   }
+
+-- | Returns the full value contained in the skeleton outputs
+txSkelOutputsValue :: TxSkel -> Api.Value
+txSkelOutputsValue = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | Return all data on transaction outputs.
 txSkelOutputData :: TxSkel -> Map Api.DatumHash TxSkelOutDatum

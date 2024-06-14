@@ -72,7 +72,9 @@ instance PrettyCooked MockChainError where
       "Unbalanceable:"
       "-"
       [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
-        "Unable to find" <+> prettyCookedOpt opts missingValue
+        if missingValue == mempty
+          then "Not enough funds to sustain the minimal ada of the return utxo"
+          else "Unable to find" <+> prettyCookedOpt opts missingValue
       ]
   prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
     prettyItemize

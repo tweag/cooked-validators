@@ -32,12 +32,12 @@ banana = permanentValue "banana"
 initialDistributionBalancing :: InitialDistribution
 initialDistributionBalancing =
   InitialDistribution
-    [ paysPK alice (lovelace 2_000_000 <> apple 3),
+    [ paysPK alice (ada 2 <> apple 3),
       paysPK alice (ada 25),
-      paysPK alice (lovelace 40_000_000 <> orange 6),
+      paysPK alice (ada 40 <> orange 6),
       paysPK alice (ada 8),
       paysPK alice (ada 30),
-      paysPK alice (ada 12 <> banana 3) `withDatum` (10 :: Integer),
+      paysPK alice (lovelace 1280229 <> banana 3) `withDatum` (10 :: Integer),
       paysPK alice (ada 1 <> banana 7) `withReferenceScript` (alwaysTrueValidator @MockContract),
       paysPK alice (ada 105 <> banana 2) `withDatumHash` ()
     ]
@@ -143,7 +143,6 @@ balanceReduceFee = do
           }
   (skelBalanced, feeBalanced, cols, rColWal) <- balanceTxSkel skelAutoFee
   feeBalanced' <- estimateTxSkelFee skelBalanced feeBalanced cols rColWal
-
   let skelManualFee =
         skelAutoFee
           { txSkelOpts =
@@ -153,8 +152,21 @@ balanceReduceFee = do
           }
   (skelBalancedManual, feeBalancedManual, colsManual, rColWalManual) <- balanceTxSkel skelManualFee
   feeBalancedManual' <- estimateTxSkelFee skelBalancedManual feeBalancedManual colsManual rColWalManual
-
   return (feeBalanced, feeBalanced', feeBalancedManual, feeBalancedManual')
+
+reachingMagic :: (MonadBlockChain m) => m ()
+reachingMagic = do
+  bananaOutRefs <- (fst <$>) <$> runUtxoSearch (utxosAtSearch alice `filterWithPred` \o -> banana 1 `Api.leq` Api.txOutValue o)
+  void $
+    validateTxSkel $
+      txSkelTemplate
+        { txSkelOuts = [paysPK bob (ada 106 <> banana 12)],
+          txSkelSigners = [alice],
+          txSkelOpts =
+            def
+              { txOptBalancingUtxos = BalancingUtxosWith (Set.fromList bananaOutRefs)
+              }
+        }
 
 type ResProp prop = TestBalancingOutcome -> prop
 
@@ -274,7 +286,12 @@ tests =
                   def
                   failsAtCollaterals
                   initialDistributionBalancing
-                  (testingBalancingTemplate (ada 100) mempty (utxosAtSearch alice) emptySearch (aliceNAdaUtxos 1) id)
+                  (testingBalancingTemplate (ada 100) mempty (utxosAtSearch alice) emptySearch (aliceNAdaUtxos 1) id),
+              testCase "Reaching magical spot with the exact balance during auto fee computation" $
+                testSucceedsFrom
+                  def
+                  initialDistributionBalancing
+                  reachingMagic
             ],
           testGroup
             "Auto balancing with manual fee"
