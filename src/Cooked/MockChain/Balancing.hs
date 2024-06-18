@@ -70,7 +70,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
     CollateralUtxosFromWallet cWallet -> (,cWallet) . Set.fromList . map fst <$> runUtxoSearch (onlyValueOutputsAtSearch cWallet)
     CollateralUtxosFromSet utxos rWallet -> return (utxos, rWallet)
 
-  -- At this point, the presence (or absence) of ballancing wallet dictates
+  -- At this point, the presence (or absence) of balancing wallet dictates
   -- whether the transaction should be automatically balanced or not.
   (txSkelBal, fee, adjustedCollateralIns) <- case balancingWallet of
     Nothing ->
@@ -88,7 +88,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
           BalancingUtxosAutomatic -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
           BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
       case txOptFeePolicy txSkelOpts of
-        -- If fee are left for us to compute, we run a dichotomic search. This
+        -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.
         AutoFeeComputation ->
           computeFeeAndBalance bWallet minFee maxFee collateralIns balancingUtxos returnCollateralWallet skelUnbal
@@ -125,7 +125,7 @@ getMinAndMaxFee = do
       eMemFees = (eMem * Rat.numerator priceEMem) `div` Rat.denominator priceEMem
   return (txFeeFixed, sizeFees + eStepsFees + eMemFees)
 
--- | Computes optimal fee for a given skeleton and balances it around those fee.
+-- | Computes optimal fee for a given skeleton and balances it around those fees.
 -- This uses a dychotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Collaterals -> BalancingOutputs -> Wallet -> TxSkel -> m (TxSkel, Fee, Collaterals)
 computeFeeAndBalance _ minFee maxFee _ _ _ _

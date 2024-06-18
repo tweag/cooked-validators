@@ -142,11 +142,11 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
--- | What fee to use in the transaction.
+-- | What fee policy to use in the transaction.
 data FeePolicy
   = -- | Use automatic fee computation. If balancing is activated, an optimal
     -- fee will be computed based on the transaction and existing utxos in the
-    -- balancing wallet. Otherwise, the maximam transaction fee will be applied.
+    -- balancing wallet. Otherwise, the maximum transaction fee will be applied.
     AutoFeeComputation
   | -- | Provide a fee to the transaction. If the autobalancing is activated, it
     -- will be attempted around this fee, which might lead to failure if it is
@@ -175,7 +175,7 @@ data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing wallet.
     BalancingUtxosAutomatic
-  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
+  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out.
     BalancingUtxosWith (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
@@ -276,7 +276,7 @@ data TxOpts = TxOpts
     -- Default is @[]@.
     txOptUnsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not, and which wallet should
-    -- account for the missing and surplus value. Balancing ensures that
+    -- provide/reclaim the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
     --
@@ -284,7 +284,7 @@ data TxOpts = TxOpts
     -- satisfying that equation by hand unless you use @ManualFee@. You will
     -- likely see a error about value preservation.
     --
-    -- Default is @BalanceWithFirstSigner@
+    -- Default is 'BalanceWithFirstSigner'
     txOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --

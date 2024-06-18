@@ -100,7 +100,7 @@ skeleton.
 ``` haskell
 data BalancingUtxos
   = BalancingUtxosAutomatic -- default
-    BalancingUtxosWith (Set Api.TxOutRef)
+  | BalancingUtxosWith (Set Api.TxOutRef)
 ```
 
 When auto-balancing is enabled, extra UTXOs will be included in the transaction
@@ -231,12 +231,12 @@ Here are the options available:
 * `CollateralUtxosFromBalancingWallet`: Use UTXOs containing only value from the
   balancing wallet. The return collateral will be directed back to the balancing
   wallet. This option is synonymous with `CollateralUtxosFromWallet
-  (balancingWallet)`.
+  balancingWallet`.
 * `CollateralUtxosFromWallet Wallet`: Use UTXOs containing only value from the
   specified wallet. Transactions using these UTXOs will require the signing of
   the wallet owner for validation. The return collateral will also be sent to
   this same wallet.
-* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Utilize UTXOs from the
+* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Use UTXOs from the
   provided set and direct return collaterals to the designated wallet. Note that
   if any of these UTXOs belong to a script and are selected by the balancing
   mechanism, validation will fail because only UTXOs controlled by public keys
@@ -331,7 +331,7 @@ Here are the requirements for our fee computation mechanism:
 * The fee must be minimal, meaning any smaller fee would result in a transaction
   that no longer meets the previous requirement.
 * The transaction must be balanceable around the chosen fee.
-* Collateral must be computable around the chose fee.
+* Collateral must be computable around the chosen fee.
 
 Fortunately, fees are bounded within a specific interval that can be deduced
 from protocol parameters. Our implementation relies on a dichotomic search
