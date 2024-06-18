@@ -10,12 +10,17 @@ dependencies:
   - bytestring
   - cardano-api
   - cardano-crypto
+  - cardano-data
+  - cardano-ledger-core
   - cardano-ledger-shelley
+  - cardano-ledger-conway
   - cardano-node-emulator
   - containers
   - data-default
+  - download
   - either
   - flat
+  - lens
   - list-t
   - monad-control
   - mtl

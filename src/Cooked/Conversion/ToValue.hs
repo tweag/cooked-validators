@@ -16,3 +16,6 @@ instance ToValue Script.Ada where
 
 instance ToValue Cardano.Coin where
   toValue (Cardano.Coin x) = toValue (Script.Lovelace x)
+
+instance ToValue Api.Lovelace where
+  toValue (Api.Lovelace lv) = toValue (Script.Lovelace lv)

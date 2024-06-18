@@ -56,7 +56,7 @@ lockTxSkel :: Api.TxOutRef -> Script.TypedValidator DHContract -> TxSkel
 lockTxSkel o v =
   txSkelTemplate
     { txSkelOpts = def {txOptEnsureMinAda = True},
-      txSkelIns = Map.singleton o TxSkelNoRedeemerForPK,
+      txSkelIns = Map.singleton o TxSkelNoRedeemer,
       txSkelOuts = [paysScriptInlineDatum v FirstLock lockValue],
       txSkelSigners = [wallet 1]
     }

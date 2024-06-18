@@ -39,6 +39,7 @@ dependencies:
 ### [`cardano-ledger`](https://github.com/IntersectMBO/cardano-ledger)
 
 - package `cardano-ledger-shelley`, prefix `Shelley`
+- package `cardano-ledger-conway`, prefix `Conway`
 
 ### Exception
 

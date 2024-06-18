@@ -171,7 +171,7 @@ instance PrettyCooked MockChainLog where
       go acc [] = reverse acc
 
 prettyTxSkel :: PrettyCookedOpts -> SkelContext -> TxSkel -> DocCooked
-prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs) =
+prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins insReference outs proposals) =
   prettyItemize
     "transaction skeleton:"
     "-"
@@ -183,9 +183,14 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Signers:" "-" (prettySigners opts txopts signers),
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
-          prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs)
+          prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs),
+          prettyItemizeNonEmpty "Proposals:" "_" (prettyTxSkelProposal opts skelContext <$> proposals)
         ]
     )
+
+-- TODO
+prettyTxSkelProposal :: PrettyCookedOpts -> SkelContext -> TxSkelProposal -> DocCooked
+prettyTxSkelProposal = undefined
 
 -- | Same as the 'PrettyCooked' instance for 'Wallet' with a suffix mentioning
 -- this is the balancing wallet
@@ -214,18 +219,27 @@ prettySigners _ _ [] = []
 -- Examples without and with redeemer
 -- > #abcdef "Foo" -> 500
 -- > #123456 "Bar" | Redeemer -> 1000
-prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, MintsRedeemer, Api.TokenName, Integer) -> DocCooked
-prettyMints opts (policy, NoMintsRedeemer, tokenName, amount) =
+prettyMints :: PrettyCookedOpts -> (Script.Versioned Script.MintingPolicy, TxSkelRedeemer, Api.TokenName, Integer) -> DocCooked
+prettyMints opts (policy, TxSkelNoRedeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "->"
     <+> PP.viaShow amount
-prettyMints opts (policy, SomeMintsRedeemer redeemer, tokenName, amount) =
+prettyMints opts (policy, TxSkelRedeemerForScript redeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "|"
     <+> prettyCookedOpt opts redeemer
     <+> "->"
+    <+> PP.viaShow amount
+prettyMints opts (policy, TxSkelRedeemerForReferencedScript oref redeemer, tokenName, amount) =
+  prettyCookedOpt opts policy
+    <+> PP.viaShow tokenName
+    <+> "|"
+    <+> prettyCookedOpt opts redeemer
+    <+> " (with reference script at "
+    <+> prettyCookedOpt opts oref
+    <+> ") ->"
     <+> PP.viaShow amount
 
 prettyTxSkelOut :: PrettyCookedOpts -> TxSkelOut -> DocCooked
@@ -278,7 +292,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
                   prettyCookedOpt opts (outputAddress output)
                     <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
                 )
-              TxSkelNoRedeemerForPK -> (Nothing, prettyCookedOpt opts (outputAddress output))
+              TxSkelNoRedeemer -> (Nothing, prettyCookedOpt opts (outputAddress output))
        in prettyItemize
             ("Spends from" <+> ownerDoc)
             "-"

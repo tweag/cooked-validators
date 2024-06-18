@@ -10,9 +10,16 @@ module Cooked.MockChain.GenerateTx
   )
 where
 
-import Cardano.Api qualified as Cardano
-import Cardano.Api.Shelley qualified as Cardano
+import Cardano.Api qualified as Cardanon
+import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
+import Cardano.Ledger.Address qualified as Cardano
+import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.Conway.Governance qualified as Conway
+import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Credential qualified as Cardano
+import Cardano.Ledger.Crypto qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
+import Control.Lens qualified as Lens
 import Control.Monad
 import Control.Monad.Reader
 import Cooked.Conversion
@@ -24,11 +31,15 @@ import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.OSet.Strict qualified as OSet
 import Data.Set (Set)
 import Data.Set qualified as Set
+import Data.Text qualified as Text
+import GHC.IO.Unsafe
 import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Network.Download qualified as Network
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V3 qualified as Api
@@ -110,15 +121,81 @@ txSkelToBodyContent TxSkel {..} = do
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
   txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . fee)
+  txProposalProcedures <- txSkelProposalsToProposalProcedures txSkelProposals
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
       txCertificates = Cardano.TxCertificatesNone -- That's what plutus-apps does as well
       txUpdateProposal = Cardano.TxUpdateProposalNone -- That's what plutus-apps does as well
       txScriptValidity = Cardano.TxScriptValidityNone -- That's what plutus-apps does as well
-      txProposalProcedures = Nothing -- TODO, should appear in our skeleton?
       txVotingProcedures = Nothing -- TODO, same as above
   return Cardano.TxBodyContent {..}
+
+txSkelProposalsToProposalProcedures ::
+  [TxSkelProposal] ->
+  TxGen
+    (Maybe (Cardano.Featured Cardano.ConwayEraOnwards Cardano.ConwayEra (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)))
+txSkelProposalsToProposalProcedures [] = return Nothing -- what would be the difference with
+-- return $ Just $ Cardano.Featured Cardano.ConwayEraOnwardsConway Cardano.TxProposalProceduresNone
+txSkelProposalsToProposalProcedures props = do
+  minDeposit <- asks (Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams . params)
+  (ppSet, ppMap) <- fromProposals props minDeposit
+  return $ Just $ Cardano.Featured Cardano.ConwayEraOnwardsConway $ Cardano.TxProposalProcedures (OSet.fromSet ppSet) (Cardano.BuildTxWith ppMap)
+  where
+    fromProposals ::
+      [TxSkelProposal] ->
+      Integer ->
+      TxGen
+        ( Set (Conway.ProposalProcedure (Cardano.ShelleyLedgerEra Cardano.ConwayEra)),
+          Map (Conway.ProposalProcedure (Cardano.ShelleyLedgerEra Cardano.ConwayEra)) (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra)
+        )
+    fromProposals [] _ = return (Set.empty, Map.empty)
+    fromProposals (h : t) minDeposit = do
+      (proposals, mapWitnesses) <- fromProposals t minDeposit
+      (proposal, maybeWitness) <- fromProposal h minDeposit
+      let outputMap = case maybeWitness of
+            Nothing -> mapWitnesses
+            Just newWitness -> Map.insert proposal newWitness mapWitnesses
+      return (Set.insert proposal proposals, outputMap)
+
+    fromProposal txSkelProposal@TxSkelProposal {..} minDeposit = do
+      conwayProposalProcedure <- toConwayProposalProcedure txSkelProposal minDeposit
+      (conwayProposalProcedure,) <$> case txSkelProposalWitness of
+        Nothing -> return Nothing
+        Just (script, redeemer) -> do
+          witness <- scriptToScriptWitness (toScript script) redeemer Cardano.NoScriptDatumForStake
+          return $ Just witness
+
+    toConwayProposalProcedure TxSkelProposal {..} minDeposit = do
+      cred <- case toCredential txSkelProposalAddress of
+        Api.ScriptCredential scriptHash -> do
+          Cardano.ScriptHash cHash <- throwOnToCardanoError "unable to convert script hash" $ Ledger.toCardanoScriptHash scriptHash
+          return $ Cardano.ScriptHashObj cHash
+        Api.PubKeyCredential pubkeyHash -> do
+          Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "unable to convert address" $ Ledger.toCardanoStakeKeyHash pubkeyHash
+          return $ Cardano.KeyHashObj pkHash
+      return $
+        Conway.ProposalProcedure @Emulator.EmulatorEra
+          (Emulator.Coin (fromMaybe minDeposit txSkelProposalDeposit))
+          (Cardano.RewardAcnt Cardano.Testnet cred)
+          undefined
+          ( maybe
+              def
+              ( \s ->
+                  maybe
+                    def
+                    ( \url ->
+                        Cardano.Anchor
+                          { anchorUrl = url,
+                            anchorDataHash = unsafePerformIO $ do
+                              Right page <- Network.openURI s
+                              return $ Cardano.hashAnchorData $ Cardano.AnchorData page
+                          }
+                    )
+                    (Cardano.textToUrl (length s) (Text.pack s))
+              )
+              txSkelProposalAnchor
+          )
 
 generateBodyContent ::
   Integer ->
@@ -140,7 +217,13 @@ txSkelInToTxIn ::
   (Api.TxOutRef, TxSkelRedeemer) ->
   TxGen (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
 txSkelInToTxIn (txOutRef, txSkelRedeemer) = do
-  witness <- txSkelRedeemerToWitness txOutRef txSkelRedeemer
+  txOut <- asks (Map.lookup txOutRef . managedTxOuts)
+  witness <- case toCredential . Api.txOutAddress <$> txOut of
+    Just (Api.PubKeyCredential _) -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
+    Just (Api.ScriptCredential _) -> do
+      (_, script, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
+      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> scriptToScriptWitness script txSkelRedeemer datum
+    Nothing -> throwOnString "txSkelInToTxIn: unable to resolve input txOutRef"
   throwOnToCardanoErrorOrApply
     "txSkelIntoTxIn, translating TxOutRef"
     (,Cardano.BuildTxWith witness)
@@ -165,46 +248,34 @@ resolveScriptOutputOwnerAndDatum txOutRef = do
         return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum datum
   return (validatorHash, validator, datum)
 
-txSkelRedeemerToWitness :: Api.TxOutRef -> TxSkelRedeemer -> TxGen (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra)
-txSkelRedeemerToWitness _ TxSkelNoRedeemerForPK = return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
-  (Script.ValidatorHash validatorHash, Script.Versioned _ version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
-  Api.ScriptHash scriptHashAtOref <-
-    -- In our own MockChainT implementation, this error should never been
-    -- thrown, because we collect the 'managedTxOuts' using (eventually)
-    -- 'lookupUtxos', which will already fail on un-resolvable 'TxOutRef's.
-    throwOnLookup
-      "txSkelRedeemerToWitness: Can't resolve reference script outref. This might mean that you either never created or accidentally consumed the UTxO where the reference script is stored"
-      validatorOref
-      =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
-  when (scriptHashAtOref /= validatorHash) $
+plutusScriptBuilder :: Api.SerialisedScript -> TxSkelRedeemer -> TxGen (Cardano.PlutusScriptOrReferenceInput lang, Cardano.HashableScriptData)
+plutusScriptBuilder script TxSkelNoRedeemer =
+  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
+plutusScriptBuilder script (TxSkelRedeemerForScript redeemer) =
+  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
+plutusScriptBuilder script (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
+  refScriptHash <-
+    throwOnLookup "txSkelRedeemerToWitness: Can't resolve reference script outref. " validatorOref =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
+  when (refScriptHash /= toScriptHash script) $
     throwOnString "txSkelRedeemerToWitness: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
   validatorTxIn <-
     throwOnToCardanoError "txSkelRedeemerToWitness: translating TxOutRef where the reference script sits" $ Ledger.toCardanoTxIn validatorOref
   scriptHash <-
-    throwOnToCardanoError "txSkelRedeemerToWitness: could not convert script hash of referenced script" $ Ledger.toCardanoScriptHash $ Api.ScriptHash validatorHash
-  let scriptWitnessBuilder = case version of
-        Script.PlutusV1 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 (Cardano.PReferenceScript validatorTxIn (Just scriptHash))
-        Script.PlutusV2 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 (Cardano.PReferenceScript validatorTxIn (Just scriptHash))
-        Script.PlutusV3 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 (Cardano.PReferenceScript validatorTxIn (Just scriptHash))
-  return $
-    Cardano.ScriptWitness Cardano.ScriptWitnessForSpending $
-      scriptWitnessBuilder
-        datum
-        (Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-        Ledger.zeroExecutionUnits -- We can't guess that yet, no?
-txSkelRedeemerToWitness txOutRef (TxSkelRedeemerForScript redeemer) = do
-  (_validatorHash, Script.Versioned (Script.Validator (Script.Script script)) version, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
-  let scriptWitnessBuilder = case version of
-        Script.PlutusV1 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-        Script.PlutusV2 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-        Script.PlutusV3 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-  return $
-    Cardano.ScriptWitness Cardano.ScriptWitnessForSpending $
-      scriptWitnessBuilder
-        datum
-        (Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-        Ledger.zeroExecutionUnits -- We can't guess that yet, no?
+    throwOnToCardanoError "txSkelRedeemerToWitness: could not convert script hash of referenced script" $ Ledger.toCardanoScriptHash refScriptHash
+  return (Cardano.PReferenceScript validatorTxIn (Just scriptHash), Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
+
+scriptToScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> TxGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+scriptToScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) redeemer datum =
+  case version of
+    Script.PlutusV1 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum y Ledger.zeroExecutionUnits)
+        <$> plutusScriptBuilder script redeemer
+    Script.PlutusV2 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum y Ledger.zeroExecutionUnits)
+        <$> plutusScriptBuilder script redeemer
+    Script.PlutusV3 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum y Ledger.zeroExecutionUnits)
+        <$> plutusScriptBuilder script redeemer
 
 -- Convert a list of 'Api.TxOutRef' into a 'Cardano.TxInsReference'
 txOutRefsToTxInsReference :: [Api.TxOutRef] -> TxGen (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
@@ -275,27 +346,12 @@ txSkelMintsToTxMintValue mints =
                 throwOnToCardanoError
                   "txSkelMintsToTxMintValue, calculating the witness map"
                   (Ledger.toCardanoPolicyId (Script.mintingPolicyHash policy))
-              mintWitness <- mintingPolicyToMintWitness policy redeemer
+              mintWitness <- scriptToScriptWitness policy redeemer Cardano.NoScriptDatumForMint
               return $ Map.insert policyId mintWitness acc
           )
           Map.empty
           (txSkelMintsToList mints)
       return $ Cardano.TxMintValue Cardano.MaryEraOnwardsConway mintVal (Cardano.BuildTxWith witnessMap)
-
-mintingPolicyToMintWitness :: Script.Versioned Script.MintingPolicy -> MintsRedeemer -> TxGen (Cardano.ScriptWitness Cardano.WitCtxMint Cardano.ConwayEra)
-mintingPolicyToMintWitness (Script.Versioned (Script.MintingPolicy (Script.Script script)) version) redeemer = do
-  let scriptWitnessBuilder = case version of
-        Script.PlutusV1 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-        Script.PlutusV2 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-        Script.PlutusV3 -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 $ Cardano.PScript $ Cardano.PlutusScriptSerialised script
-  return $
-    scriptWitnessBuilder
-      Cardano.NoScriptDatumForMint -- This seems to be the only well-typed option (?)
-      ( case redeemer of
-          NoMintsRedeemer -> Ledger.toCardanoScriptData $ Api.toBuiltinData ()
-          SomeMintsRedeemer red -> Ledger.toCardanoScriptData $ Api.toBuiltinData red
-      )
-      Ledger.zeroExecutionUnits -- This is what plutus-apps does as well, we can't know this yet, no?
 
 -- Convert a 'TxSkelOut' to the corresponding 'Cardano.TxOut'.
 txSkelOutToCardanoTxOut :: TxSkelOut -> TxGen (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)

@@ -194,7 +194,7 @@ tests =
                 validateTxSkel'
                   txSkelTemplate
                     { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
-                      txSkelIns = Map.singleton consumedOref TxSkelNoRedeemerForPK,
+                      txSkelIns = Map.singleton consumedOref TxSkelNoRedeemer,
                       txSkelSigners = [wallet 1]
                     }
               void $
