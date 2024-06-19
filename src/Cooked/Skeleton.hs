@@ -73,19 +73,19 @@ module Cooked.Skeleton
     txSkelInsReferenceL,
     txSkelOutsL,
     txSkelTemplate,
-    txSkelOutputData,
-    txSkelOutValidators,
+    txSkelDataInOutputs,
+    txSkelValidatorsInOutputs,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
-    txSkelOutReferenceScripts,
     txSkelReferenceScript,
     txSkelKnownTxOutRefs,
-    txSkelOutputsValue,
     simpleTxSkelProposal,
     withWitness,
     withDeposit,
     withAnchor,
+    txSkelValueInOutputs,
+    txSkelReferenceScripts,
   )
 where
 
@@ -148,11 +148,11 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
--- | What fee to use in the transaction.
+-- | What fee policy to use in the transaction.
 data FeePolicy
   = -- | Use automatic fee computation. If balancing is activated, an optimal
     -- fee will be computed based on the transaction and existing utxos in the
-    -- balancing wallet. Otherwise, the maximam transaction fee will be applied.
+    -- balancing wallet. Otherwise, the maximum transaction fee will be applied.
     AutoFeeComputation
   | -- | Provide a fee to the transaction. If the autobalancing is activated, it
     -- will be attempted around this fee, which might lead to failure if it is
@@ -176,17 +176,19 @@ data BalanceOutputPolicy
 instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
--- | Which UTxOs to use when balancing
+-- | Which UTxOs to use when balancing. Note that utxos that are already known
+-- by the skeleton being balanced (in the sense of `txSkelKnownTxOutRefs`,
+-- i.e. inputs and reference inputs) will be filtered out during balancing.
 data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing wallet.
-    BalancingUtxosAutomatic
+    BalancingUtxosFromBalancingWallet
   | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
-    BalancingUtxosWith (Set Api.TxOutRef)
+    BalancingUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
 instance Default BalancingUtxos where
-  def = BalancingUtxosAutomatic
+  def = BalancingUtxosFromBalancingWallet
 
 -- | Whether to balance the transaction or not, and which wallet to use to
 -- provide outputs for balancing. Either the first signer or an explicit
@@ -236,10 +238,10 @@ applyEmulatorParamsModification Nothing = id
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
-  = -- | Rely on automated computation with vanilla UTxOs from the balancing
+  = -- | Rely on automated computation with only-value UTxOs from the balancing
     -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computation with vanilla UTxOs from a given
+  | -- | Rely on automated computation with only-value UTxOs from a given
     -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromWallet Wallet
   | -- | Manually provide a set of candidate UTxOs to be used as collaterals
@@ -282,7 +284,7 @@ data TxOpts = TxOpts
     -- Default is @[]@.
     txOptUnsafeModTx :: [RawModTx],
     -- | Whether to balance the transaction or not, and which wallet should
-    -- account for the missing and surplus value. Balancing ensures that
+    -- provide/reclaim the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
     --
@@ -290,7 +292,7 @@ data TxOpts = TxOpts
     -- satisfying that equation by hand unless you use @ManualFee@. You will
     -- likely see a error about value preservation.
     --
-    -- Default is @BalanceWithFirstSigner@
+    -- Default is 'BalanceWithFirstSigner'
     txOptBalancingPolicy :: BalancingPolicy,
     -- | The fee to use when balancing the transaction
     --
@@ -304,7 +306,7 @@ data TxOpts = TxOpts
     -- or rely on automatic searches for utxos with values only belonging to the
     -- balancing wallet.
     --
-    -- Default is 'BalancingUtxosAutomatic'.
+    -- Default is 'BalancingUtxosFromBalancingWallet'.
     txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
@@ -916,12 +918,12 @@ data SkelContext = SkelContext
   }
 
 -- | Returns the full value contained in the skeleton outputs
-txSkelOutputsValue :: TxSkel -> Api.Value
-txSkelOutputsValue = foldOf (txSkelOutsL % folded % txSkelOutValueL)
+txSkelValueInOutputs :: TxSkel -> Api.Value
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
-txSkelOutputData =
+txSkelDataInOutputs :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
+txSkelDataInOutputs =
   foldMapOf
     ( txSkelOutsL
         % folded
@@ -935,15 +937,15 @@ txSkelOutputData =
     )
 
 -- | All validators which will receive transaction outputs
-txSkelOutValidators :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutValidators =
+txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelValidatorsInOutputs =
   Map.fromList
     . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
-txSkelOutReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutReferenceScripts =
+txSkelReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelReferenceScripts =
   mconcat
     . map
       ( \(Pays output) ->
@@ -956,7 +958,11 @@ txSkelOutReferenceScripts =
       )
     . txSkelOuts
 
--- | All utxos present in the skeleton
+-- | All `TxOutRefs` known by a given transaction skeleton. This includes
+-- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
+-- inputs of the skeleton.  This does not include additional possible
+-- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
+-- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelKnownTxOutRefs TxSkel {..} =
   Map.keys txSkelIns

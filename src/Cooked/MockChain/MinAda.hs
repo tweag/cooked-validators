@@ -1,5 +1,5 @@
--- | This module provides functions to ensure outputs are furnished with enough
--- ada to satisfy the minimum ada constraint, by themselves or within skeletons.
+-- | This module provides functions to ensure skeleton outputs contain enough
+-- ada to satisfy the minimum ada constraint.
 module Cooked.MockChain.MinAda
   ( toTxSkelOutWithMinAda,
     toTxSkelWithMinAda,
@@ -43,10 +43,9 @@ toTxSkelOutWithMinAda :: Emulator.Params -> TxSkelOut -> Either GenerateTxError 
 toTxSkelOutWithMinAda params txSkelOut = do
   let Script.Lovelace oldAda = txSkelOut ^. txSkelOutValueL % adaL
   requiredAda <- getTxSkelOutMinAda params txSkelOut
-  let updatedTxSkelOut = txSkelOut & txSkelOutValueL % adaL .~ Script.Lovelace (max oldAda requiredAda)
   if oldAda < requiredAda
-    then toTxSkelOutWithMinAda params updatedTxSkelOut
-    else return updatedTxSkelOut
+    then toTxSkelOutWithMinAda params $ txSkelOut & txSkelOutValueL % adaL .~ Script.Lovelace requiredAda
+    else return txSkelOut
 
 -- | This transforms a skeleton by replacing all its `TxSkelOut` by their
 -- updated variants with their minimal amount of required ada. Any error raised

@@ -8,7 +8,7 @@ generation process includes a balancing phase that is significantly influenced
 by these options. In this document, we explain what balancing involves, how it
 is currently implemented, and which options affect this mechanism.
 
-## Balancing: Kesako?
+## Balancing: what this is about.
 
 ### Balancing requirements
 In Cardano, transactions must be balanced before they can be submitted for
@@ -99,8 +99,8 @@ skeleton.
 
 ``` haskell
 data BalancingUtxos
-  = BalancingUtxosAutomatic -- default
-    BalancingUtxosWith (Set Api.TxOutRef)
+  = BalancingUtxosFromBalancingWallet -- default
+  | BalancingUtxosFromSet (Set Api.TxOutRef)
 ```
 
 When auto-balancing is enabled, extra UTXOs will be included in the transaction
@@ -110,11 +110,11 @@ set of UTXOs considered for balancing is not necessarily the same as the final
 set used; rather, the final set is a subset of the initially considered UTXOs.
 
 Here is the semantics of the constructors:
-* `BalancingUtxosAutomatic`: The UTXOs considered for balancing will be those
+* `BalancingUtxosFromBalancingWallet`: The UTXOs considered for balancing will be those
   owned by the balancing wallet and containing only a value. UTXOs with a
   reference script, a datum, or a staking credential will not be considered for
   balancing.
-* `BalancingUtxosWith (Set Api.TxOutRef)`: The specified set of UTXOs will be
+* `BalancingUtxosFromSet (Set Api.TxOutRef)`: The specified set of UTXOs will be
   considered for balancing, excluding those associated with a script, as they
   would require an unknown redeemer to be consumed. Any additional elements in
   the provided UTXOs (staking credential, reference script, or datum) will be
@@ -181,11 +181,10 @@ Here's how each option operates:
   between minFee and maxFee (both dependent on protocol parameters) to find an
   optimal fee around which the transaction can be balanced, considering
   available balancing UTXOs (see [`BalancingUtxos`](#balancing-utxos)). This
-  approach ensures the fee aligns with Cardano's fee estimate. While this
-  estimate may be conservative, it guarantees that the actual fee will not
-  exceed this estimate, which is crucial. This option is recommended for
-  minimizing fees.
-  
+  method ensures that the fee aligns with Cardano's fee estimate, which tends to
+  be an overestimate but guarantees that the actual fee will not exceed this
+  amount. This option is recommended for minimizing fees.
+
 * `ManualFee`: The balancing process will proceed with the transaction
   using the specified fee. No check will verify if this fee is adequate while
   allowing a successful validation. This option is suitable when prioritizing
@@ -231,12 +230,12 @@ Here are the options available:
 * `CollateralUtxosFromBalancingWallet`: Use UTXOs containing only value from the
   balancing wallet. The return collateral will be directed back to the balancing
   wallet. This option is synonymous with `CollateralUtxosFromWallet
-  (balancingWallet)`.
+  balancingWallet`.
 * `CollateralUtxosFromWallet Wallet`: Use UTXOs containing only value from the
   specified wallet. Transactions using these UTXOs will require the signing of
   the wallet owner for validation. The return collateral will also be sent to
   this same wallet.
-* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Utilize UTXOs from the
+* `CollateralUtxosFromSet (Set Api.TxOutRef) Wallet`: Use UTXOs from the
   provided set and direct return collaterals to the designated wallet. Note that
   if any of these UTXOs belong to a script and are selected by the balancing
   mechanism, validation will fail because only UTXOs controlled by public keys
@@ -250,8 +249,10 @@ specify the exact amount of collateral to be used in a transaction, unlike
 fees. This limitation is intentional to minimize user interaction with the
 collateral mechanism, which is rarely needed. Additionally, `cooked-validators`
 does not support issuing new transactions after a validation failure, making the
-collateral mechanism less relevant outside of transaction validation
-requirements.
+collateral mechanism irrelevant outside of transaction validation requirements.
+However, future enhancements should allow validation failures to be treated as
+acceptable, thereby increasing the usefulness of the collateral mechanism and
+potentially introducing new skeleton options related to it.
 
 ## Balancing algorithm
 
@@ -331,7 +332,7 @@ Here are the requirements for our fee computation mechanism:
 * The fee must be minimal, meaning any smaller fee would result in a transaction
   that no longer meets the previous requirement.
 * The transaction must be balanceable around the chosen fee.
-* Collateral must be computable around the chose fee.
+* Collateral must be computable around the chosen fee.
 
 Fortunately, fees are bounded within a specific interval that can be deduced
 from protocol parameters. Our implementation relies on a dichotomic search

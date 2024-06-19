@@ -22,21 +22,20 @@
   context within on-chain code
 - `validatorToTypedValidator` which does what its name indicates
 - Adding support for `PrettyCooked` for `TxLbl`
-- A set of module living into the `Conversion` where each module defines a type
-  class of elements that can be converted to a certain type. For example
-  `ToPubKeyHash` or `ToAddress`.
+- A set of modules (in `Conversion`) that each defines a typeclass of elements that can be converted to a certain type. For example `ToPubKeyHash` or `ToAddress`.
 - New utxos searches `vanillaOutputsAtSearch`, `scriptOutputsSearch`,
   `onlyValueOutputsAtSearch` and `referenceScriptOutputsSearch`
-- A test file `Cooked/BalancingSpec.hs` that cover the new balancing mechanism
+- A test file `Cooked/BalancingSpec.hs` that covers the new balancing mechanism
   extensively.
 - A new module `Cooked/MockChain/MinAda.hs` to separate min ada computation from
   the balancing mechanism.
 - A new documentation file `doc/BALANCING.md` that extensively describes the new
   balancing mechanism and the available options.
-- A new skeleton option to manage fee called `FeePolicy`. This makes it possible
-  to have successful validation on transaction that have not been automatically
+- A new skeleton option to manage fees called `FeePolicy`. It makes it possible
+  to successfully validate transactions that have not been automatically
   balanced.
-- Support and auto computation of return collaterals.
+- Auto computation of total and return collaterals based on fees and protocol
+  parameters now fully handled during balancing and transaction generation.
 - Two filters in `Output.hs`, `isScriptOutput` and `isPKOutput`
 - A new helper function to get the full output value of a skeleton,
   `txSkelOutputsValue`
@@ -69,6 +68,7 @@
 - Homogenized and simplified the functions to generate transaction parts from a
   `TxSkel` by using a reader monad over various parameters.
 - Fully reworked the balancing process and associated balancing options.
+  See in the dedicated [documentation](doc/BALANCING.md).
 - Reworked `MockChain` errors related to balancing.
 
 ### Fixed

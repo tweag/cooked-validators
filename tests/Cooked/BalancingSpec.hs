@@ -72,8 +72,8 @@ testingBalancingTemplate toBobValue toAliceValue spendSearch balanceSearch colla
                 def
                   { txOptBalancingUtxos =
                       if List.null toBalanceUtxos
-                        then BalancingUtxosAutomatic
-                        else BalancingUtxosWith $ Set.fromList toBalanceUtxos,
+                        then BalancingUtxosFromBalancingWallet
+                        else BalancingUtxosFromSet $ Set.fromList toBalanceUtxos,
                     txOptCollateralUtxos =
                       if List.null toCollateralUtxos
                         then CollateralUtxosFromBalancingWallet
@@ -164,7 +164,7 @@ reachingMagic = do
           txSkelSigners = [alice],
           txSkelOpts =
             def
-              { txOptBalancingUtxos = BalancingUtxosWith (Set.fromList bananaOutRefs)
+              { txOptBalancingUtxos = BalancingUtxosFromSet (Set.fromList bananaOutRefs)
               }
         }
 
@@ -209,7 +209,7 @@ failsWithEmptyTxIns (MCEGenerationError (TxBodyError _ Cardano.TxBodyEmptyTxIns)
 failsWithEmptyTxIns _ = testBool False
 
 failsAtCollateralsWith :: (IsProp prop) => Integer -> MockChainError -> prop
-failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace ((fee * percentage) `div` 100)
+failsAtCollateralsWith fee' (MCENoSuitableCollateral fee percentage val) = testBool $ fee == fee' && val == lovelace (1 + (fee * percentage) `div` 100)
 failsAtCollateralsWith _ _ = testBool False
 
 failsAtCollaterals :: (IsProp prop) => MockChainError -> prop

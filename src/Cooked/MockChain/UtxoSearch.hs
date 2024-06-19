@@ -119,6 +119,7 @@ filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flatten
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
 
+-- | Search for UTxOs which only carry address and value information (no datum, staking credential, or reference script).
 onlyValueOutputsAtSearch ::
   (MonadBlockChainBalancing m, ToAddress addr) =>
   addr ->
@@ -130,7 +131,7 @@ onlyValueOutputsAtSearch addr =
     `filterWithPure` isEmptyStakingCredentialOutput
     `filterWithPred` (isNothing . view outputReferenceScriptL)
 
--- A vanilla output only possesses an ada-only value and does not have a staking
+-- | A vanilla output only possesses an ada-only value and does not have a staking
 -- credential, a datum or a reference script. A vanilla UTxO is a perfect
 -- candidate to be used for fee, balancing or collateral.
 vanillaOutputsAtSearch ::

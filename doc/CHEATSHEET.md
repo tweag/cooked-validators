@@ -300,9 +300,6 @@ txSkelTemplate
 
 ## Balancing
 
-A full documentation on balancing options (including handling of fees and
-collaterals) is available [here](doc/BALANCING.md).
-
 ### Choose which wallet provides UTxOs to balance a transaction
 
 First signer (default):
@@ -326,7 +323,7 @@ txSkelTemplate
   }
 ```
 
-Do not automatically balance:
+### Do not automatically balance
 
 ```haskell
 txSkelTemplate
