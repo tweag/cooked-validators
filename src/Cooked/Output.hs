@@ -199,7 +199,11 @@ isPKOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific public key
 isPKOutputFrom :: (IsTxInfoOutput out) => Api.PubKeyHash -> out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isPKOutputFrom pkh out = isPKOutput out >>= (\x -> if pkh == x ^. outputOwnerL then Just x else Nothing)
+isPKOutputFrom pkh out = do
+  x <- isPKOutput out
+  if pkh == x ^. outputOwnerL
+    then Just x
+    else Nothing
 
 -- ** Filtering on the staking credential
 
