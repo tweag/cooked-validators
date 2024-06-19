@@ -31,6 +31,7 @@ import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
+import PlutusLedgerApi.V1.Value qualified as Api
 import PlutusLedgerApi.V3 qualified as Api
 import PlutusTx.Numeric qualified as PlutusTx
 
@@ -50,7 +51,7 @@ data Context where
       -- | collaterals to add to body generation
       collateralIns :: Set Api.TxOutRef,
       -- | wallet to return collaterals to
-      returnCollateralWallet :: Wallet,
+      returnCollateralWallet :: Maybe Wallet,
       -- | parameters of the emulator
       params :: Emulator.Params,
       -- | datums present in our environment
@@ -63,7 +64,7 @@ data Context where
     Context
 
 instance Default Context where
-  def = Context 0 mempty (wallet 1) def Map.empty Map.empty Map.empty
+  def = Context 0 mempty Nothing def Map.empty Map.empty Map.empty
 
 -- The domain in which transactions are generated.
 type TxGen a = ReaderT Context (Either GenerateTxError) a
@@ -130,7 +131,7 @@ generateBodyContent ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-generateBodyContent fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateBodyContent fee (Just -> returnCollateralWallet) collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToBodyContent
 
 -- Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
@@ -217,8 +218,13 @@ txOutRefsToTxInsReference =
     )
     . mapM Ledger.toCardanoTxIn
 
--- Computes the collateral triplet from the fee and the collateral inputs in
--- the context
+-- | Computes the collateral triplet from the fees and the collateral inputs in
+-- the context. What we call a collateral triplet is composed of:
+-- * The set of collateral inputs
+-- * The total collateral paid by the transaction in case of phase 2 failure
+-- * An output returning excess collateral value when collaterals are used
+-- These quantity should satisfy the equation (in terms of their values):
+-- collateral inputs = total collateral + return collateral
 toCollateralTriplet ::
   TxGen
     ( Cardano.TxInsCollateral Cardano.ConwayEra,
@@ -226,38 +232,64 @@ toCollateralTriplet ::
       Cardano.TxReturnCollateral Cardano.CtxTx Cardano.ConwayEra
     )
 toCollateralTriplet = do
+  -- Retrieving know outputs
   knownTxOuts <- asks managedTxOuts
-  returnCollateralWallet <- asks returnCollateralWallet
-  networkId <- asks (Emulator.pNetworkId . params)
+  -- Retrieving the outputs to be used as collateral inputs
   collateralInsList <- asks (Set.toList . collateralIns)
-  collateralInsValue <-
+  -- We build the collateral inputs from this list
+  txInsCollateral <-
+    case collateralInsList of
+      [] -> return Cardano.TxInsCollateralNone
+      l -> throwOnToCardanoError "txOutRefsToTxInCollateral" (Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM Ledger.toCardanoTxIn l)
+  -- Retrieving the total value in collateral inputs. This fails if one of the
+  -- collaterals has been been successfully resolved.
+  collateralInsValue <- do
     let collateralInsResolved = mapMaybe (`Map.lookup` knownTxOuts) collateralInsList
-     in if length collateralInsResolved /= length collateralInsList
-          then throwOnString "toCollateralTriplet: unresolved txOutRefs"
-          else return $ mconcat (Api.txOutValue <$> collateralInsResolved)
-  collateralPercentage <- asks (toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
+    when (length collateralInsResolved /= length collateralInsList) $ throwOnString "toCollateralTriplet: unresolved txOutRefs"
+    return $ mconcat (Api.txOutValue <$> collateralInsResolved)
+  -- We retrieve the collateral percentage compared to fees. By default, we use
+  -- 150% which is the current value in the parameters, although the default
+  -- value should never be used here, as the call is supposed to always succeed.
+  collateralPercentage <- asks (toInteger . fromMaybe 150 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams . params)
+  -- The total collateral corresponds to the fees multiplied by the collateral
+  -- percentage. We add 1 because the ledger apparently rounds up this value.
   coinTotalCollateral <- asks (Emulator.Coin . (+ 1) . (`div` 100) . (* collateralPercentage) . fee)
+  -- We create the total collateral based on the computed value
   let txTotalCollateral = Cardano.TxTotalCollateral Cardano.BabbageEraOnwardsConway coinTotalCollateral
-      returnCollateralValue = collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)
+  -- We compute a return collateral value by subtracting the total collateral to
+  -- the value in collateral inputs
+  let returnCollateralValue = collateralInsValue <> PlutusTx.negate (toValue coinTotalCollateral)
+  -- This should never happen, as we always compute the collaterals for the
+  -- user, but we guard against having some negative elements in the value in
+  -- case we give more freedom to the users in the future
+  when (fst (Api.split returnCollateralValue) /= mempty) $ throwOnString "toCollateralTriplet: negative parts in return collateral value"
+  -- The return collateral is then computed
   txReturnCollateral <-
+    -- If the total collateral equal what the inputs provide, we return `None`
     if returnCollateralValue == mempty
       then return Cardano.TxReturnCollateralNone
-      else do
+      else -- Otherwise, we compute the elements of a new output
+      do
+        -- The value is a translation of the remaining value
         txReturnCollateralValue <-
           Ledger.toCardanoTxOutValue
             <$> throwOnToCardanoError
               "toCollateralTriplet: cannot build return collateral value"
               (Ledger.toCardanoValue returnCollateralValue)
-        address <-
-          throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-            Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+        -- The address is the one from the return collateral wallet, which is
+        -- required to exist here.
+        address <- do
+          mReturnCollateralWallet <- asks returnCollateralWallet
+          case mReturnCollateralWallet of
+            Nothing -> throwOnString "toCollateralTriplet: unable to find a return collateral wallet"
+            Just returnCollateralWallet -> do
+              networkId <- asks (Emulator.pNetworkId . params)
+              throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
+                Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+        -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $
             Cardano.TxOut address txReturnCollateralValue Cardano.TxOutDatumNone Cardano.ReferenceScriptNone
-  txInsCollateral <-
-    case collateralInsList of
-      [] -> return Cardano.TxInsCollateralNone
-      l -> throwOnToCardanoError "txOutRefsToTxInCollateral" (Cardano.TxInsCollateral Cardano.AlonzoEraOnwardsConway <$> mapM Ledger.toCardanoTxIn l)
   return (txInsCollateral, txTotalCollateral, txReturnCollateral)
 
 -- Convert the 'TxSkelMints' into a 'TxMintValue'
@@ -360,5 +392,5 @@ generateTx ::
   Map Script.ValidatorHash (Script.Versioned Script.Validator) ->
   TxSkel ->
   Either GenerateTxError (Cardano.Tx Cardano.ConwayEra)
-generateTx fee returnCollateralWallet collateralIns params managedData managedTxOuts managedValidators =
+generateTx fee (Just -> returnCollateralWallet) collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT Context {..} . txSkelToCardanoTx

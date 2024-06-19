@@ -67,15 +67,15 @@ module Cooked.Skeleton
     txSkelInsReferenceL,
     txSkelOutsL,
     txSkelTemplate,
-    txSkelOutputData,
-    txSkelOutValidators,
+    txSkelDataInOutputs,
+    txSkelValidatorsInOutputs,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
-    txSkelOutReferenceScripts,
     txSkelReferenceScript,
     txSkelKnownTxOutRefs,
-    txSkelOutputsValue,
+    txSkelValueInOutputs,
+    txSkelReferenceScripts,
   )
 where
 
@@ -170,17 +170,19 @@ data BalanceOutputPolicy
 instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
--- | Which UTxOs to use when balancing
+-- | Which UTxOs to use when balancing. Note that utxos that are already known
+-- by the skeleton being balanced (in the sense of `txSkelKnownTxOutRefs`,
+-- i.e. inputs and reference inputs) will be filtered out during balancing.
 data BalancingUtxos
   = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
     -- and no reference script) belonging to the balancing wallet.
-    BalancingUtxosAutomatic
-  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out.
-    BalancingUtxosWith (Set Api.TxOutRef)
+    BalancingUtxosFromBalancingWallet
+  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
+    BalancingUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
 instance Default BalancingUtxos where
-  def = BalancingUtxosAutomatic
+  def = BalancingUtxosFromBalancingWallet
 
 -- | Whether to balance the transaction or not, and which wallet to use to
 -- provide outputs for balancing. Either the first signer or an explicit
@@ -298,7 +300,7 @@ data TxOpts = TxOpts
     -- or rely on automatic searches for utxos with values only belonging to the
     -- balancing wallet.
     --
-    -- Default is 'BalancingUtxosAutomatic'.
+    -- Default is 'BalancingUtxosFromBalancingWallet'.
     txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
@@ -887,12 +889,12 @@ data SkelContext = SkelContext
   }
 
 -- | Returns the full value contained in the skeleton outputs
-txSkelOutputsValue :: TxSkel -> Api.Value
-txSkelOutputsValue = foldOf (txSkelOutsL % folded % txSkelOutValueL)
+txSkelValueInOutputs :: TxSkel -> Api.Value
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
 
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
-txSkelOutputData =
+txSkelDataInOutputs :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
+txSkelDataInOutputs =
   foldMapOf
     ( txSkelOutsL
         % folded
@@ -906,15 +908,15 @@ txSkelOutputData =
     )
 
 -- | All validators which will receive transaction outputs
-txSkelOutValidators :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutValidators =
+txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelValidatorsInOutputs =
   Map.fromList
     . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
-txSkelOutReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutReferenceScripts =
+txSkelReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelReferenceScripts =
   mconcat
     . map
       ( \(Pays output) ->
@@ -927,7 +929,11 @@ txSkelOutReferenceScripts =
       )
     . txSkelOuts
 
--- | All utxos present in the skeleton
+-- | All `TxOutRefs` known by a given transaction skeleton. This includes
+-- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
+-- inputs of the skeleton.  This does not include additional possible
+-- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
+-- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
 txSkelKnownTxOutRefs TxSkel {..} =
   Map.keys txSkelIns

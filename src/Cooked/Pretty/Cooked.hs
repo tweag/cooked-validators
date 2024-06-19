@@ -373,10 +373,10 @@ mPrettyTxOpts
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
       prettyCollateralUtxos :: CollateralUtxos -> DocCooked
       prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
-        prettyItemize "Collateral policy:" "-" ["Use vanilla utxos from balancing wallet", "Send return collaterals to balancing wallet"]
+        prettyItemize "Collateral policy:" "-" ["Use value-only utxos from balancing wallet", "Send return collaterals to balancing wallet"]
       prettyCollateralUtxos (CollateralUtxosFromWallet w)
         | prettyWallet <- prettyCookedOpt opts (walletPKHash w) =
-            prettyItemize "Collateral policy:" "-" ["Use vanilla utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
+            prettyItemize "Collateral policy:" "-" ["Use value-only utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
       prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
         prettyItemize
           "Collateral policy:"
@@ -385,8 +385,8 @@ mPrettyTxOpts
             "Send return collaterals to" <+> prettyCookedOpt opts (walletPKHash w)
           ]
       prettyBalancingUtxos :: BalancingUtxos -> DocCooked
-      prettyBalancingUtxos BalancingUtxosAutomatic = "Balance with 'only value' utxos from the balancing wallet"
-      prettyBalancingUtxos (BalancingUtxosWith utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
+      prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
+      prettyBalancingUtxos (BalancingUtxosFromSet utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
       prettyBalanceFeePolicy :: FeePolicy -> DocCooked
       prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
       prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> PP.pretty fee

@@ -34,7 +34,8 @@
 - A new skeleton option to manage fees called `FeePolicy`. It makes it possible
   to successfully validate transactions that have not been automatically
   balanced.
-- Support and auto computation of return collaterals.
+- Auto computation of total and return collaterals based on fees and protocol
+  parameters now fully handled during balancing and transaction generation.
 - Two filters in `Output.hs`, `isScriptOutput` and `isPKOutput`
 - A new helper function to get the full output value of a skeleton,
   `txSkelOutputsValue`

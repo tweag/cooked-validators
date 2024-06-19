@@ -48,7 +48,7 @@ balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Colla
 balanceTxSkel skelUnbal@TxSkel {..} = do
   -- We retrieve the possible balancing wallet. Any extra payment will be
   -- redirected to them, and utxos will be taken from their wallet if associated
-  -- with the BalancingUtxosAutomatic policy
+  -- with the BalancingUtxosFromBalancingWallet policy
   balancingWallet <- case txOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
       [] -> fail "Can't select balancing wallet from the signers lists because it is empty."
@@ -85,8 +85,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
       -- filter out those already used in the unbalanced skeleton.
       (filter ((`notElem` txSkelKnownTxOutRefs skelUnbal) . fst) -> balancingUtxos) <-
         runUtxoSearch $ case txOptBalancingUtxos txSkelOpts of
-          BalancingUtxosAutomatic -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
-          BalancingUtxosWith utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
+          BalancingUtxosFromBalancingWallet -> onlyValueOutputsAtSearch bWallet `filterWithAlways` outputTxOut
+          BalancingUtxosFromSet utxos -> txOutByRefSearch (Set.toList utxos) `filterWithPure` isPKOutput `filterWithAlways` outputTxOut
       case txOptFeePolicy txSkelOpts of
         -- If fees are left for us to compute, we run a dichotomic search. This
         -- is full auto mode, the most powerful but time-consuming.
@@ -169,7 +169,7 @@ computeFeeAndBalance balancingWallet minFee maxFee collateralIns balancingUtxos 
             -- created at the balancing wallet address, thus we cannot assume
             -- the actual estimated fee can be accounted for with the current
             -- set of balancing utxos and we cannot speed up search.
-            _ | txSkelOutputsValue attemptedSkel == txSkelOutputsValue skel -> (minFee, fee)
+            _ | txSkelValueInOutputs attemptedSkel == txSkelValueInOutputs skel -> (minFee, fee)
             -- Current fee is sufficient, and the set of utxo could account for
             -- less fee by feeding into whatever output already goes back to the
             -- balancing wallet. We can speed up search, because the current
@@ -200,7 +200,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs.
-  let totalCollateral = toValue . Cardano.Coin . (`div` 100) . (* percentage) $ fee
+  let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreased ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
@@ -282,7 +282,7 @@ computeBalancedTxSkel balancingWallet balancingUtxos txSkel@TxSkel {..} (lovelac
   -- We compute the necessary values from the skeleton that are part of the
   -- equation, except for the `feeValue` which we already have.
   let (burnedValue, mintedValue) = Api.split $ txSkelMintsValue txSkelMints
-      outValue = txSkelOutputsValue txSkel
+      outValue = txSkelValueInOutputs txSkel
   inValue <- txSkelInputValue txSkel
   -- We compute the values missing in the left and right side of the equation
   let (missingRight, missingLeft) = Api.split $ outValue <> burnedValue <> feeValue <> PlutusTx.negate (inValue <> mintedValue)
