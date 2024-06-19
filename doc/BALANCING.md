@@ -8,7 +8,7 @@ generation process includes a balancing phase that is significantly influenced
 by these options. In this document, we explain what balancing involves, how it
 is currently implemented, and which options affect this mechanism.
 
-## Balancing: Kesako?
+## Balancing: what this is about.
 
 ### Balancing requirements
 In Cardano, transactions must be balanced before they can be submitted for
