@@ -232,10 +232,10 @@ applyEmulatorParamsModification Nothing = id
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
-  = -- | Rely on automated computation with vanilla UTxOs from the balancing
+  = -- | Rely on automated computation with only-value UTxOs from the balancing
     -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computation with vanilla UTxOs from a given
+  | -- | Rely on automated computation with only-value UTxOs from a given
     -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromWallet Wallet
   | -- | Manually provide a set of candidate UTxOs to be used as collaterals
