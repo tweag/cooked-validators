@@ -186,7 +186,11 @@ isScriptOutput _ = Nothing
 
 -- | Test if the owner of an output is a specific script
 isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
-isScriptOutputFrom validator out = isScriptOutput out >>= (\x -> if toScriptHash validator == x ^. outputOwnerL then Just (x {concreteOutputOwner = validator}) else Nothing)
+isScriptOutputFrom validator out = do
+  x <- isScriptOutput out
+  if toScriptHash validator == x ^. outputOwnerL
+    then Just (x {concreteOutputOwner = validator})
+    else Nothing
 
 -- Test if the owner of an output is a public key
 isPKOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
