@@ -15,6 +15,7 @@ dependencies:
   - cardano-ledger-shelley
   - cardano-ledger-conway
   - cardano-node-emulator
+  - cardano-strict-containers
   - containers
   - data-default
   - download

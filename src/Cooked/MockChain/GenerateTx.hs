@@ -14,6 +14,7 @@ import Cardano.Api qualified as Cardanon
 import Cardano.Api.Shelley qualified as Cardano hiding (Testnet)
 import Cardano.Ledger.Address qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
+import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Ledger.Credential qualified as Cardano
@@ -30,7 +31,9 @@ import Data.Bifunctor
 import Data.Default
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Map.Strict qualified as SMap
 import Data.Maybe
+import Data.Maybe.Strict qualified as SMaybe
 import Data.OSet.Strict qualified as OSet
 import Data.Set (Set)
 import Data.Set qualified as Set
@@ -167,19 +170,23 @@ txSkelProposalsToProposalProcedures props = do
           witness <- scriptToScriptWitness (toScript script) redeemer Cardano.NoScriptDatumForStake
           return $ Just witness
 
-    toConwayProposalProcedure TxSkelProposal {..} minDeposit = do
-      cred <- case toCredential txSkelProposalAddress of
+    toRewardAccount cred =
+      Cardano.RewardAcnt Cardano.Testnet <$> case cred of
         Api.ScriptCredential scriptHash -> do
           Cardano.ScriptHash cHash <- throwOnToCardanoError "unable to convert script hash" $ Ledger.toCardanoScriptHash scriptHash
           return $ Cardano.ScriptHashObj cHash
         Api.PubKeyCredential pubkeyHash -> do
           Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "unable to convert address" $ Ledger.toCardanoStakeKeyHash pubkeyHash
           return $ Cardano.KeyHashObj pkHash
+
+    toConwayProposalProcedure txSkelProposal@TxSkelProposal {..} minDeposit = do
+      cred <- toRewardAccount $ toCredential txSkelProposalAddress
+      govAction <- toGovAction txSkelProposal
       return $
         Conway.ProposalProcedure @Emulator.EmulatorEra
           (Emulator.Coin (fromMaybe minDeposit txSkelProposalDeposit))
-          (Cardano.RewardAcnt Cardano.Testnet cred)
-          undefined
+          cred
+          govAction
           ( maybe
               def
               ( \s ->
@@ -197,6 +204,27 @@ txSkelProposalsToProposalProcedures props = do
               )
               txSkelProposalAnchor
           )
+
+    toGovAction TxSkelProposal {..} = do
+      sHash <- case txSkelProposalWitness of
+        Nothing -> return SMaybe.SNothing
+        Just (script, _) -> do
+          Cardano.ScriptHash sHash <- throwOnToCardanoError "" (Ledger.toCardanoScriptHash (toScriptHash script))
+          return $ SMaybe.SJust sHash
+      case txSkelProposalAction of
+        TxGovActionParameterChange (Api.ChangedParameters builtinData) ->
+          return $
+            Conway.ParameterChange
+              SMaybe.SNothing
+              (Conway.PParamsUpdate undefined)
+              sHash
+        TxGovActionHardForkInitiation protocolVersion -> undefined
+        TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
+          cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
+          return $ Conway.TreasuryWithdrawals cardanoMap sHash
+        TxGovActionNoConfidence -> return $ Conway.NoConfidence SMaybe.SNothing
+        TxGovActionUpdateCommittee coldCommitteeCredentialList mapColdCommitteeCredentialInteger rational -> undefined
+        TxGovActionNewConstitution constitution -> undefined
 
 generateBodyContent ::
   Integer ->
