@@ -23,6 +23,7 @@ dependencies:
   - flat
   - lens
   - list-t
+  - microlens
   - monad-control
   - mtl
   - nonempty-containers

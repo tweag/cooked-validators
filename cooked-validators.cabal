@@ -114,6 +114,7 @@ library
     , flat
     , lens
     , list-t
+    , microlens
     , monad-control
     , mtl
     , nonempty-containers
@@ -205,6 +206,7 @@ test-suite spec
     , flat
     , lens
     , list-t
+    , microlens
     , monad-control
     , mtl
     , nonempty-containers

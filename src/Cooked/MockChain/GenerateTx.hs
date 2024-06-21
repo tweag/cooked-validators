@@ -17,8 +17,9 @@ import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Conway.PParams qualified as Conway
+import Cardano.Ledger.Core qualified as Cardano (emptyPParamsStrictMaybe)
 import Cardano.Ledger.Credential qualified as Cardano
-import Cardano.Ledger.Crypto qualified as Cardano
+import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad
@@ -33,7 +34,7 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.Strict qualified as SMap
 import Data.Maybe
-import Data.Maybe.Strict qualified as SMaybe
+import Data.Maybe.Strict
 import Data.OSet.Strict qualified as OSet
 import Data.Set (Set)
 import Data.Set qualified as Set
@@ -42,6 +43,7 @@ import GHC.IO.Unsafe
 import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
+import Lens.Micro qualified as MicroLens
 import Network.Download qualified as Network
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
@@ -207,24 +209,85 @@ txSkelProposalsToProposalProcedures props = do
 
     toGovAction TxSkelProposal {..} = do
       sHash <- case txSkelProposalWitness of
-        Nothing -> return SMaybe.SNothing
+        Nothing -> return SNothing
         Just (script, _) -> do
           Cardano.ScriptHash sHash <- throwOnToCardanoError "" (Ledger.toCardanoScriptHash (toScriptHash script))
-          return $ SMaybe.SJust sHash
+          return $ SJust sHash
       case txSkelProposalAction of
-        TxGovActionParameterChange (Api.ChangedParameters builtinData) ->
+        TxGovActionParameterChange changes ->
           return $
             Conway.ParameterChange
-              SMaybe.SNothing
-              (Conway.PParamsUpdate undefined)
+              SNothing
+              (foldl (flip toParameterChange) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
               sHash
         TxGovActionHardForkInitiation protocolVersion -> undefined
         TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
           cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
           return $ Conway.TreasuryWithdrawals cardanoMap sHash
-        TxGovActionNoConfidence -> return $ Conway.NoConfidence SMaybe.SNothing
+        TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing
         TxGovActionUpdateCommittee coldCommitteeCredentialList mapColdCommitteeCredentialInteger rational -> undefined
         TxGovActionNewConstitution constitution -> undefined
+
+    toParameterChange :: TxParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
+    toParameterChange pChange =
+      let justFromIntegral :: (Integral a, Num b) => a -> StrictMaybe b
+          justFromIntegral = SJust . fromIntegral
+
+          toBoundedRational :: (Cardano.BoundedRational r) => Rational -> r
+          toBoundedRational = fromMaybe minBound . Cardano.boundRational
+       in case pChange of
+            FeePerByte n -> MicroLens.set Conway.ppuMinFeeAL $ justFromIntegral n
+            FeeFixed n -> MicroLens.set Conway.ppuMinFeeBL $ justFromIntegral n
+            MaxBlockBodySize n -> MicroLens.set Conway.ppuMaxBBSizeL $ justFromIntegral n
+            MaxTxSize n -> MicroLens.set Conway.ppuMaxTxSizeL $ justFromIntegral n
+            MaxBlockHeaderSize n -> MicroLens.set Conway.ppuMaxBHSizeL $ justFromIntegral n
+            KeyDeposit n -> MicroLens.set Conway.ppuKeyDepositL $ justFromIntegral n
+            PoolDeposit n -> MicroLens.set Conway.ppuPoolDepositL $ justFromIntegral n
+            PoolRetirementMaxEpoch n -> MicroLens.set Conway.ppuEMaxL $ SJust $ Cardano.EpochInterval $ fromIntegral n
+            PoolNumber n -> MicroLens.set Conway.ppuNOptL $ justFromIntegral n
+            PoolInfluence q -> MicroLens.set Conway.ppuA0L $ SJust $ fromMaybe minBound $ Cardano.boundRational q
+            MonetaryExpansion q -> MicroLens.set Conway.ppuRhoL $ SJust $ fromMaybe minBound $ Cardano.boundRational q
+            TreasuryCut q -> MicroLens.set Conway.ppuTauL $ SJust $ toBoundedRational q
+            ProtocolVersion _ _ -> id -- Non updatable in Conway
+            MinPoolCost n -> MicroLens.set Conway.ppuMinPoolCostL $ justFromIntegral n
+            CoinsPerUTxOByte n -> MicroLens.set Conway.ppuCoinsPerUTxOByteL $ SJust $ Conway.CoinPerByte $ fromIntegral n
+            Prices q r -> MicroLens.set Conway.ppuPricesL $ SJust $ Cardano.Prices (toBoundedRational q) (toBoundedRational r)
+            MaxTxExUnits n m -> MicroLens.set Conway.ppuMaxTxExUnitsL $ SJust $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+            MaxBlockExUnits n m -> MicroLens.set Conway.ppuMaxBlockExUnitsL $ SJust $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+            MaxValSize n -> MicroLens.set Conway.ppuMaxValSizeL $ justFromIntegral n
+            CollateralPercentage n -> MicroLens.set Conway.ppuCollateralPercentageL $ justFromIntegral n
+            MaxCollateralInputs n -> MicroLens.set Conway.ppuMaxCollateralInputsL $ justFromIntegral n
+            PoolVotingThresholds a b c d e ->
+              MicroLens.set Conway.ppuPoolVotingThresholdsL $
+                SJust $
+                  Conway.PoolVotingThresholds
+                    (toBoundedRational a)
+                    (toBoundedRational b)
+                    (toBoundedRational c)
+                    (toBoundedRational d)
+                    (toBoundedRational e)
+            DRepVotingThresholds a b c d e f g h i j ->
+              MicroLens.set Conway.ppuDRepVotingThresholdsL $
+                SJust $
+                  Conway.DRepVotingThresholds
+                    (toBoundedRational a)
+                    (toBoundedRational b)
+                    (toBoundedRational c)
+                    (toBoundedRational d)
+                    (toBoundedRational e)
+                    (toBoundedRational f)
+                    (toBoundedRational g)
+                    (toBoundedRational h)
+                    (toBoundedRational i)
+                    (toBoundedRational j)
+            CommitteeMinSize n -> MicroLens.set Conway.ppuCommitteeMinSizeL $ justFromIntegral n
+            CommitteeMaxTermLength n -> MicroLens.set Conway.ppuCommitteeMaxTermLengthL $ SJust $ Cardano.EpochInterval $ fromIntegral n
+            GovActionLifetime n -> MicroLens.set Conway.ppuGovActionLifetimeL $ SJust $ Cardano.EpochInterval $ fromIntegral n
+            GovActionDeposit n -> MicroLens.set Conway.ppuGovActionDepositL $ justFromIntegral n
+            DRepRegistrationDeposit n -> MicroLens.set Conway.ppuDRepDepositL $ justFromIntegral n
+            DRepActivity n -> MicroLens.set Conway.ppuDRepActivityL $ SJust $ Cardano.EpochInterval $ fromIntegral n
+
+-- will exist later on: MinFeeRefScriptCostPerByte n -> MicroLens.set Conway.ppuMinFeeRefScriptCostPerByteL $ justFromIntegral n
 
 generateBodyContent ::
   Integer ->

@@ -55,6 +55,7 @@ module Cooked.Skeleton
     withStakingCredential,
     TxSkelRedeemer (..),
     txSkelTypedRedeemer,
+    TxParameterChange (..),
     TxGovAction (..),
     TxSkelProposal (..),
     txSkelProposalsL,
@@ -397,8 +398,87 @@ instance Eq TxSkelRedeemer where
 
 -- * Description of the Governance actions (or proposal procedures)
 
+-- These are all the protocol parameters. They are taken from
+-- https://github.com/IntersectMBO/cardano-ledger/blob/master/eras/conway/impl/src/Cardano/Ledger/Conway/PParams.hs
+-- and will most likely change in future eras.
+data TxParameterChange where
+  -- | 0. The linear factor for the minimum fee calculation
+  FeePerByte :: Integer -> TxParameterChange
+  -- | 1. The constant factor for the minimum fee calculation
+  FeeFixed :: Integer -> TxParameterChange
+  -- | 2. Maximal block body size
+  MaxBlockBodySize :: Integer -> TxParameterChange
+  -- | 3. Maximal transaction size
+  MaxTxSize :: Integer -> TxParameterChange
+  -- | 4. Maximal block header size
+  MaxBlockHeaderSize :: Integer -> TxParameterChange
+  -- | 5. The amount of a key registration deposit
+  KeyDeposit :: Integer -> TxParameterChange
+  -- | 6. The amount of a pool registration deposit
+  PoolDeposit :: Integer -> TxParameterChange
+  -- | 7. Maximum number of epochs in the future a pool retirement is allowed to
+  -- be scheduled future or.
+  PoolRetirementMaxEpoch :: Integer -> TxParameterChange
+  -- | 8. Desired number of pools
+  PoolNumber :: Integer -> TxParameterChange
+  -- | 9. Pool influence
+  PoolInfluence :: Rational -> TxParameterChange
+  -- | 10. Monetary expansion
+  MonetaryExpansion :: Rational -> TxParameterChange
+  -- | 11. Treasury expansion
+  TreasuryCut :: Rational -> TxParameterChange
+  -- | 12. Protocol version (major and minor)
+  ProtocolVersion :: Integer -> Integer -> TxParameterChange
+  -- | 13. Minimum Stake Pool Cost
+  MinPoolCost :: Integer -> TxParameterChange
+  -- | 14. Cost in lovelace per byte of UTxO storage
+  CoinsPerUTxOByte :: Integer -> TxParameterChange
+  -- | 15. Cost models for non-native script languages
+  -- TODO handle cost models. CostModels :: CostModels -> TxParameterChange
+  -- | 16. Prices of execution units (for non-native script languages)
+  Prices :: Rational -> Rational -> TxParameterChange
+  -- | 17. Max total script execution resources units allowed per tx (memory,
+  -- then steps)
+  MaxTxExUnits :: Integer -> Integer -> TxParameterChange
+  -- | 18. Max total script execution resources units allowed per block (memory,
+  -- then steps)
+  MaxBlockExUnits :: Integer -> Integer -> TxParameterChange
+  -- | 19. Max size of a Value in an output
+  MaxValSize :: Integer -> TxParameterChange
+  -- | 20. Percentage of the txfee which must be provided as collateral when
+  -- including non-native scripts.
+  CollateralPercentage :: Integer -> TxParameterChange
+  -- | 21. Maximum number of collateral inputs allowed in a transaction
+  MaxCollateralInputs :: Integer -> TxParameterChange
+  -- | 22. Thresholds for pool votes (motionNoConfidence, committeeNormal,
+  -- committeeNoConfidence, hardFork, securityGroup)
+  PoolVotingThresholds :: Rational -> Rational -> Rational -> Rational -> Rational -> TxParameterChange
+  -- | 23. Thresholds for DRep votes (motionNoConfidence, committeeNormal,
+  -- committeeNoConfidence, updateToConsitution, hardForkInitialization,
+  -- networkGroup, economicGroup, technicalGroup, govGroup, treasuryWithDrawal)
+  DRepVotingThresholds :: Rational -> Rational -> Rational -> Rational -> Rational -> Rational -> Rational -> Rational -> Rational -> Rational -> TxParameterChange
+  -- | 24. Minimum size of the Constitutional Committee
+  CommitteeMinSize :: Integer -> TxParameterChange
+  -- | 25. The Constitutional Committee Term limit in number of Slots
+  CommitteeMaxTermLength :: Integer -> TxParameterChange
+  -- | 26. Gov action lifetime in number of Epochs
+  GovActionLifetime :: Integer -> TxParameterChange
+  -- | 27. The amount of the Gov Action deposit
+  GovActionDeposit :: Integer -> TxParameterChange
+  -- | 28. The amount of a DRep registration deposit
+  DRepRegistrationDeposit :: Integer -> TxParameterChange
+  -- | 29. The number of Epochs that a DRep can perform no activity without losing
+  -- their @Active@ status.
+  DRepActivity :: Integer -> TxParameterChange
+  deriving
+    ( -- | 30. Reference scripts fee for the minimum fee calculation
+      -- will exist later on MinFeeRefScriptCostPerByte :: Integer -> TxParameterChange
+      Show,
+      Eq
+    )
+
 data TxGovAction where
-  TxGovActionParameterChange :: Api.ChangedParameters -> TxGovAction
+  TxGovActionParameterChange :: [TxParameterChange] -> TxGovAction
   TxGovActionHardForkInitiation :: Api.ProtocolVersion -> TxGovAction
   TxGovActionTreasuryWithdrawals :: Map Api.Credential Api.Lovelace -> TxGovAction
   TxGovActionNoConfidence :: TxGovAction
