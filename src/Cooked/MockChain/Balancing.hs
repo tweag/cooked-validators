@@ -106,7 +106,8 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
 getMinAndMaxFee :: (MonadBlockChainBalancing m) => m (Fee, Fee)
 getMinAndMaxFee = do
   -- Default parameters in case they are not present. It is unclear when/if this
-  -- could actually happen though.
+  -- could actually happen though. These default values have been taken from the
+  -- current default instance of the protocol parameters.
   let defMaxTxExecutionUnits =
         Cardano.ExecutionUnits {executionSteps = 10_000_000_000, executionMemory = 14_000_000}
       defExecutionUnitPrices =
@@ -187,10 +188,10 @@ attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos retu
   attemptedSkel <- computeBalancedTxSkel balancingWallet balancingUtxos skel fee
   return (adjustedCollateralIns, attemptedSkel)
 
--- | This reduces a set of given collateral inputs while accounting for:
--- * the percentage to respect between fees and total collaterals
--- * min ada in the associated return collateral
--- * maximum number of collateral inputs
+-- | This selects a subset of suitable collateral inputs from a given set while
+-- accounting for the ratio to respect between fees and total collaterals, the
+-- min ada requirements in the associated return collateral and the maximum
+-- number of collateral inputs authorized by protocol parameters.
 collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> Wallet -> m Collaterals
 collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- We retrieve the max number of collateral inputs, with a default of 10. In
@@ -199,7 +200,8 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- We retrieve the percentage to respect between fees and total collaterals
   percentage <- toInteger . fromMaybe 100 . Cardano.protocolParamCollateralPercent . Emulator.pProtocolParams <$> getParams
   -- We compute the total collateral to be associated to the transaction as a
-  -- value. This will be the target value to be reached by collateral inputs.
+  -- value. This will be the target value to be reached by collateral inputs. We
+  -- add one because of ledger requirement which seem to round up this value.
   let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) $ fee
   -- Collateral tx outputs sorted by decreasing ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
