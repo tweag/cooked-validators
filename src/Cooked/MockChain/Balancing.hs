@@ -42,7 +42,7 @@ type BalancingOutputs = [(Api.TxOutRef, Api.TxOut)]
 -- | This is the main entry point of our balancing mechanism. This function
 -- takes a skeleton and returns a (possibly) balanced skeleton alongside the
 -- associated fee, collateral inputs and return collateral wallet. The options
--- from the skeleton pilot whether it should be balanced, and how to compute its
+-- from the skeleton control whether it should be balanced, and how to compute its
 -- associated elements.
 balanceTxSkel :: (MonadBlockChainBalancing m) => TxSkel -> m (TxSkel, Fee, Collaterals, Wallet)
 balanceTxSkel skelUnbal@TxSkel {..} = do
@@ -51,7 +51,7 @@ balanceTxSkel skelUnbal@TxSkel {..} = do
   -- with the BalancingUtxosFromBalancingWallet policy
   balancingWallet <- case txOptBalancingPolicy txSkelOpts of
     BalanceWithFirstSigner -> case txSkelSigners of
-      [] -> fail "Can't select balancing wallet from the signers lists because it is empty."
+      [] -> fail "Can't select a balancing wallet from the list of signers because it is empty."
       bw : _ -> return $ Just bw
     BalanceWith bWallet -> return $ Just bWallet
     DoNotBalance -> return Nothing
@@ -126,7 +126,7 @@ getMinAndMaxFee = do
   return (txFeeFixed, sizeFees + eStepsFees + eMemFees)
 
 -- | Computes optimal fee for a given skeleton and balances it around those fees.
--- This uses a dychotomic search for an optimal "balanceable around" fee.
+-- This uses a dichotomic search for an optimal "balanceable around" fee.
 computeFeeAndBalance :: (MonadBlockChainBalancing m) => Wallet -> Fee -> Fee -> Collaterals -> BalancingOutputs -> Wallet -> TxSkel -> m (TxSkel, Fee, Collaterals)
 computeFeeAndBalance _ minFee maxFee _ _ _ _
   | minFee > maxFee =
@@ -193,7 +193,7 @@ attemptBalancingAndCollaterals balancingWallet collateralIns balancingUtxos retu
 -- * maximum number of collateral inputs
 collateralInsFromFees :: (MonadBlockChainBalancing m) => Fee -> Collaterals -> Wallet -> m Collaterals
 collateralInsFromFees fee collateralIns returnCollateralWallet = do
-  -- We retrieve the number max of collateral inputs, with a default of 10. In
+  -- We retrieve the max number of collateral inputs, with a default of 10. In
   -- practice this will be around 3.
   nbMax <- toInteger . fromMaybe 10 . Cardano.protocolParamMaxCollateralInputs . Emulator.pProtocolParams <$> getParams
   -- We retrieve the percentage to respect between fees and total collaterals
@@ -201,7 +201,7 @@ collateralInsFromFees fee collateralIns returnCollateralWallet = do
   -- We compute the total collateral to be associated to the transaction as a
   -- value. This will be the target value to be reached by collateral inputs.
   let totalCollateral = toValue . Cardano.Coin . (+ 1) . (`div` 100) . (* percentage) $ fee
-  -- Collateral tx outputs sorted by decreased ada amount
+  -- Collateral tx outputs sorted by decreasing ada amount
   collateralTxOuts <- runUtxoSearch (txOutByRefSearch $ Set.toList collateralIns)
   -- Candidate subsets of utxos to be used as collaterals
   let candidatesRaw = reachValue collateralTxOuts totalCollateral nbMax
