@@ -22,6 +22,7 @@ import Cooked.InitialDistribution
 import Cooked.MockChain.Balancing
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
+import Cooked.MockChain.MinAda
 import Cooked.MockChain.UtxoState
 import Cooked.Output
 import Cooked.Skeleton
@@ -330,9 +331,12 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     let newParams = applyEmulatorParamsModification (txOptEmulatorParamsModification . txSkelOpts $ skelUnbal) oldParams
     -- We change the parameters for the duration of the validation process
     setParams newParams
-    -- We balance the skeleton (when requested in the options) and get the
-    -- associated fees and collateral inputs
-    (skel, fees, collateralIns) <- balanceTxSkel skelUnbal
+    -- We ensure that the outputs have the required minimal amount of ada, when
+    -- requested in the skeleton options
+    minAdaSkelUnbal <- if txOptEnsureMinAda . txSkelOpts $ skelUnbal then toTxSkelWithMinAda skelUnbal else return skelUnbal
+    -- We balance the skeleton when requested in the skeleton option, and get
+    -- the associated fee, collateral inputs and return collateral wallet
+    (skel, fee, collateralIns, returnCollateralWallet) <- balanceTxSkel minAdaSkelUnbal
     -- We retrieve data that will be used in the transaction generation process:
     -- datums, validators and various kinds of inputs. This idea is to provide a
     -- rich-enough context for the transaction generation to succeed.
@@ -344,7 +348,7 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
     -- We attempt to generate the transaction associated with the balanced
     -- skeleton and the retrieved data. This is an internal generation, there is
     -- no validation involved yet.
-    cardanoTx <- case generateTx fees collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
+    cardanoTx <- case generateTx fee returnCollateralWallet collateralIns newParams insData (insMap <> refInsMap <> collateralInsMap) insValidators skel of
       Left err -> throwError . MCEGenerationError $ err
       -- We apply post-generation modification when applicable
       Right tx -> return $ Ledger.CardanoEmulatorEraTx $ applyRawModOnBalancedTx (txOptUnsafeModTx . txSkelOpts $ skelUnbal) tx
@@ -375,8 +379,8 @@ instance (Monad m) => MonadBlockChain (MockChainT m) where
       Just err -> throwError (uncurry MCEValidationError err)
       -- Otherwise, we update known validators and datums.
       Nothing -> do
-        modify' (\st -> st {mcstDatums = (mcstDatums st `removeMcstDatums` insData) `addMcstDatums` txSkelOutputData skel})
-        modify' (\st -> st {mcstValidators = mcstValidators st `Map.union` (txSkelOutValidators skel <> txSkelOutReferenceScripts skel)})
+        modify' (\st -> st {mcstDatums = (mcstDatums st `removeMcstDatums` insData) `addMcstDatums` txSkelDataInOutputs skel})
+        modify' (\st -> st {mcstValidators = mcstValidators st `Map.union` (txSkelValidatorsInOutputs skel <> txSkelReferenceScripts skel)})
     -- We apply a change of slot when requested in the options
     when (txOptAutoSlotIncrease $ txSkelOpts skel) $
       modify' (\st -> st {mcstCurrentSlot = mcstCurrentSlot st + 1})

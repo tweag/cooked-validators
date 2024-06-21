@@ -2,7 +2,8 @@
 -- search relevant ones based on predicates. For instance, it makes it very
 -- convenient to gather all UTxOs at a certain address.
 module Cooked.MockChain.UtxoSearch
-  ( runUtxoSearch,
+  ( UtxoSearch,
+    runUtxoSearch,
     allUtxosSearch,
     allUtxosLedgerSearch,
     utxosAtSearch,
@@ -16,6 +17,7 @@ module Cooked.MockChain.UtxoSearch
     filterWithValuePred,
     filterWithOnlyAda,
     filterWithNotOnlyAda,
+    onlyValueOutputsAtSearch,
     vanillaOutputsAtSearch,
     filterWithAlways,
     scriptOutputsSearch,
@@ -117,7 +119,19 @@ filterWithOnlyAda as = filterWithValuePred as $ (1 ==) . length . Script.flatten
 filterWithNotOnlyAda :: (Monad m) => UtxoSearch m Api.TxOut -> UtxoSearch m Api.Value
 filterWithNotOnlyAda as = filterWithValuePred as $ (1 <) . length . Script.flattenValue
 
--- A vanilla output only possesses an ada-only value and does not have a staking
+-- | Search for UTxOs which only carry address and value information (no datum, staking credential, or reference script).
+onlyValueOutputsAtSearch ::
+  (MonadBlockChainBalancing m, ToAddress addr) =>
+  addr ->
+  UtxoSearch m (ConcreteOutput Api.Credential () Api.Value Api.ScriptHash)
+onlyValueOutputsAtSearch addr =
+  utxosAtSearch addr
+    `filterWithAlways` fromAbstractOutput
+    `filterWithPure` isOutputWithoutDatum
+    `filterWithPure` isEmptyStakingCredentialOutput
+    `filterWithPred` (isNothing . view outputReferenceScriptL)
+
+-- | A vanilla output only possesses an ada-only value and does not have a staking
 -- credential, a datum or a reference script. A vanilla UTxO is a perfect
 -- candidate to be used for fee, balancing or collateral.
 vanillaOutputsAtSearch ::
@@ -125,12 +139,8 @@ vanillaOutputsAtSearch ::
   addr ->
   UtxoSearch m (ConcreteOutput Api.Credential () Script.Ada Api.ScriptHash)
 vanillaOutputsAtSearch addr =
-  utxosAtSearch addr
-    `filterWithAlways` fromAbstractOutput
+  onlyValueOutputsAtSearch addr
     `filterWithPure` isOnlyAdaOutput
-    `filterWithPure` isOutputWithoutDatum
-    `filterWithPure` isEmptyStakingCredentialOutput
-    `filterWithPred` (isNothing . view outputReferenceScriptL)
 
 scriptOutputsSearch ::
   (MonadBlockChain m, ToScriptHash s) =>

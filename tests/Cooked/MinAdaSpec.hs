@@ -41,7 +41,6 @@ tests =
           def
           ( \case
               MCEValidationError Ledger.Phase1 _ -> testSuccess
-              MCECalcFee (MCEValidationError Ledger.Phase1 _) -> testSuccess
               _ -> testFailure
           )
         $ paymentWithMinAda >>= paymentWithoutMinAda . (+ (-1))

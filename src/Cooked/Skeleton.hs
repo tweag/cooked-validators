@@ -11,7 +11,9 @@ module Cooked.Skeleton
   ( LabelConstrs,
     TxLabel (..),
     BalanceOutputPolicy (..),
-    BalancingWallet (..),
+    FeePolicy (..),
+    BalancingPolicy (..),
+    BalancingUtxos (..),
     RawModTx (..),
     EmulatorParamsModification (..),
     CollateralUtxos (..),
@@ -21,9 +23,10 @@ module Cooked.Skeleton
     txOptEnsureMinAdaL,
     txOptUnsafeModTxL,
     txOptAutoSlotIncreaseL,
-    txOptBalanceL,
+    txOptBalancingPolicyL,
     txOptBalanceOutputPolicyL,
-    txOptBalanceWalletL,
+    txOptFeePolicyL,
+    txOptBalancingUtxosL,
     txOptEmulatorParamsModificationL,
     txOptCollateralUtxosL,
     MintsConstrs,
@@ -64,15 +67,15 @@ module Cooked.Skeleton
     txSkelInsReferenceL,
     txSkelOutsL,
     txSkelTemplate,
-    txSkelOutputData,
-    Fee (..),
-    txSkelOutputValue,
-    txSkelOutValidators,
+    txSkelDataInOutputs,
+    txSkelValidatorsInOutputs,
     txSkelOutOwnerTypeP,
     txSkelOutputDatumTypeAT,
     SkelContext (..),
-    txSkelOutReferenceScripts,
     txSkelReferenceScript,
+    txSkelKnownTxOutRefs,
+    txSkelValueInOutputs,
+    txSkelReferenceScripts,
   )
 where
 
@@ -86,7 +89,6 @@ import Cooked.Conversion.ToScript
 import Cooked.Conversion.ToScriptHash
 import Cooked.Output
 import Cooked.Pretty.Class
-import Cooked.ValueUtils
 import Cooked.Wallet
 import Data.Default
 import Data.Either.Combinators
@@ -103,7 +105,6 @@ import Data.Set qualified as Set
 import Ledger.Slot qualified as Ledger
 import Optics.Core
 import Optics.TH
-import Plutus.Script.Utils.Ada qualified as Script
 import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.Value qualified as Script hiding (adaSymbol, adaToken)
@@ -141,6 +142,21 @@ instance Ord TxLabel where
 
 -- * Transaction options
 
+-- | What fee policy to use in the transaction.
+data FeePolicy
+  = -- | Use automatic fee computation. If balancing is activated, an optimal
+    -- fee will be computed based on the transaction and existing utxos in the
+    -- balancing wallet. Otherwise, the maximum transaction fee will be applied.
+    AutoFeeComputation
+  | -- | Provide a fee to the transaction. If the autobalancing is activated, it
+    -- will be attempted around this fee, which might lead to failure if it is
+    -- too low, otherwise, this fee will be given to transaction generation.
+    ManualFee Integer
+  deriving (Eq, Ord, Show)
+
+instance Default FeePolicy where
+  def = AutoFeeComputation
+
 -- | Whether to adjust a potentially existing output to the balancing wallet
 -- with the change during transaction balancing.
 data BalanceOutputPolicy
@@ -154,15 +170,30 @@ data BalanceOutputPolicy
 instance Default BalanceOutputPolicy where
   def = AdjustExistingOutput
 
--- | Which wallet to use to provide outputs for balancing and collaterals.
--- Either the first signer or an explicit wallet. In the second case, this
--- wallet must be a signer of the transaction.
-data BalancingWallet
-  = BalanceWithFirstSigner
-  | BalanceWith Wallet
+-- | Which UTxOs to use when balancing. Note that utxos that are already known
+-- by the skeleton being balanced (in the sense of `txSkelKnownTxOutRefs`,
+-- i.e. inputs and reference inputs) will be filtered out during balancing.
+data BalancingUtxos
+  = -- | Use all UTxOs containing only a Value (no datum, no staking credential,
+    -- and no reference script) belonging to the balancing wallet.
+    BalancingUtxosFromBalancingWallet
+  | -- | Use the provided UTxOs. UTxOs belonging to scripts will be filtered out
+    BalancingUtxosFromSet (Set Api.TxOutRef)
   deriving (Eq, Ord, Show)
 
-instance Default BalancingWallet where
+instance Default BalancingUtxos where
+  def = BalancingUtxosFromBalancingWallet
+
+-- | Whether to balance the transaction or not, and which wallet to use to
+-- provide outputs for balancing. Either the first signer or an explicit
+-- wallet. In the second case, this wallet must be a signer of the transaction.
+data BalancingPolicy
+  = BalanceWithFirstSigner
+  | BalanceWith Wallet
+  | DoNotBalance
+  deriving (Eq, Ord, Show)
+
+instance Default BalancingPolicy where
   def = BalanceWithFirstSigner
 
 -- | Wraps a function that will be applied to a transaction right before
@@ -201,12 +232,15 @@ applyEmulatorParamsModification Nothing = id
 
 -- | Describe which UTxOs to use as collaterals
 data CollateralUtxos
-  = -- | Rely on automated computation with UTxOs from the balancing wallet
+  = -- | Rely on automated computation with only-value UTxOs from the balancing
+    -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromBalancingWallet
-  | -- | Rely on automated computaton with UTxOs from a given wallet
+  | -- | Rely on automated computation with only-value UTxOs from a given
+    -- wallet. Return collaterals will be sent to this wallet.
     CollateralUtxosFromWallet Wallet
-  | -- | Manually provide a set of UTxOs
-    CollateralUtxosFromSet (Set Api.TxOutRef)
+  | -- | Manually provide a set of candidate UTxOs to be used as collaterals
+    -- alongside a wallet to send return collaterals back to.
+    CollateralUtxosFromSet (Set Api.TxOutRef) Wallet
   deriving (Eq, Show)
 
 instance Default CollateralUtxos where
@@ -243,30 +277,31 @@ data TxOpts = TxOpts
     --
     -- Default is @[]@.
     txOptUnsafeModTx :: [RawModTx],
-    -- | Whether to balance the transaction or not. Balancing ensures that
+    -- | Whether to balance the transaction or not, and which wallet should
+    -- provide/reclaim the missing and surplus value. Balancing ensures that
     --
     -- > input + mints == output + fees + burns
     --
-    -- If you decide to set @txOptBalance = False@ you will have trouble
-    -- satisfying that equation by hand because @fees@ are variable. You will
-    -- likely see a error about value preservation, and should adjust the fees
-    -- accordingly.
+    -- If you decide to set @txOptBalance = DoNotBalance@ you will have trouble
+    -- satisfying that equation by hand unless you use @ManualFee@. You will
+    -- likely see a error about value preservation.
     --
-    -- Default is @True@, and nobody in their right mind will ever set it
-    -- otherwise.
-    txOptBalance :: Bool,
+    -- Default is 'BalanceWithFirstSigner'
+    txOptBalancingPolicy :: BalancingPolicy,
+    -- | The fee to use when balancing the transaction
+    --
+    -- Default is 'AutomaticFeeComputation'
+    txOptFeePolicy :: FeePolicy,
     -- | The 'BalanceOutputPolicy' to apply when balancing the transaction.
     --
     -- Default is 'AdjustExistingOutput'.
     txOptBalanceOutputPolicy :: BalanceOutputPolicy,
-    -- | Which wallet to use to provide outputs for balancing and collaterals.
-    -- Either the first signer by default, or an explicit wallet. In the second
-    -- case, this wallet must be a signer of the transaction. This option WILL
-    -- NOT ensure that it is added in case it is not already present in the list
-    -- of signers.
+    -- | Which UTxOs to use during balancing. This can either be a precise list,
+    -- or rely on automatic searches for utxos with values only belonging to the
+    -- balancing wallet.
     --
-    -- Default is 'BalanceWithFirstSigner'.
-    txOptBalanceWallet :: BalancingWallet,
+    -- Default is 'BalancingUtxosFromBalancingWallet'.
+    txOptBalancingUtxos :: BalancingUtxos,
     -- | Apply an arbitrary modification to the protocol parameters that are
     -- used to balance and submit the transaction. This is obviously a very
     -- unsafe thing to do if you want to preserve compatibility with the actual
@@ -292,9 +327,10 @@ makeLensesFor
   [ ("txOptEnsureMinAda", "txOptEnsureMinAdaL"),
     ("txOptAutoSlotIncrease", "txOptAutoSlotIncreaseL"),
     ("txOptUnsafeModTx", "txOptUnsafeModTxL"),
-    ("txOptBalance", "txOptBalanceL"),
+    ("txOptBalancingPolicy", "txOptBalancingPolicyL"),
+    ("txOptFeePolicy", "txOptFeePolicyL"),
     ("txOptBalanceOutputPolicy", "txOptBalanceOutputPolicyL"),
-    ("txOptBalanceWallet", "txOptBalanceWalletL"),
+    ("txOptBalancingUtxos", "txOptBalancingUtxosL"),
     ("txOptEmulatorParamsModification", "txOptEmulatorParamsModificationL"),
     ("txOptCollateralUtxos", "txOptCollateralUtxosL")
   ]
@@ -306,9 +342,10 @@ instance Default TxOpts where
       { txOptEnsureMinAda = False,
         txOptAutoSlotIncrease = True,
         txOptUnsafeModTx = [],
-        txOptBalance = True,
+        txOptBalancingPolicy = def,
         txOptBalanceOutputPolicy = def,
-        txOptBalanceWallet = def,
+        txOptFeePolicy = def,
+        txOptBalancingUtxos = def,
         txOptEmulatorParamsModification = Nothing,
         txOptCollateralUtxos = def
       }
@@ -826,9 +863,7 @@ makeLensesFor
     ("txSkelSigners", "txSkelSignersL"),
     ("txSkelIns", "txSkelInsL"),
     ("txSkelInsReference", "txSkelInsReferenceL"),
-    ("txSkelInsCollateral", "txSkelInsCollateralL"),
-    ("txSkelOuts", "txSkelOutsL"),
-    ("txSkelFee", "txSkelFeeL")
+    ("txSkelOuts", "txSkelOutsL")
   ]
   ''TxSkel
 
@@ -853,9 +888,13 @@ data SkelContext = SkelContext
     skelContextTxSkelOutDatums :: Map Api.DatumHash TxSkelOutDatum
   }
 
+-- | Returns the full value contained in the skeleton outputs
+txSkelValueInOutputs :: TxSkel -> Api.Value
+txSkelValueInOutputs = foldOf (txSkelOutsL % folded % txSkelOutValueL)
+
 -- | Return all data on transaction outputs.
-txSkelOutputData :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
-txSkelOutputData =
+txSkelDataInOutputs :: TxSkel -> Map Api.DatumHash TxSkelOutDatum
+txSkelDataInOutputs =
   foldMapOf
     ( txSkelOutsL
         % folded
@@ -868,28 +907,16 @@ txSkelOutputData =
           (txSkelOutUntypedDatum txSkelOutDatum)
     )
 
-newtype Fee = Fee {feeLovelace :: Integer} deriving (Eq, Ord, Show, Num)
-
--- | The value in all transaction inputs, plus the negative parts of the minted
--- value. This is the right hand side of the "balancing equation":
---
--- > mints + inputs = fees + burns + outputs
-txSkelOutputValue :: TxSkel -> Fee -> Api.Value
-txSkelOutputValue skel@TxSkel {txSkelMints = mints} fees =
-  negativePart (txSkelMintsValue mints)
-    <> foldOf (txSkelOutsL % folded % txSkelOutValueL) skel
-    <> Script.lovelaceValueOf (feeLovelace fees)
-
 -- | All validators which will receive transaction outputs
-txSkelOutValidators :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutValidators =
+txSkelValidatorsInOutputs :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelValidatorsInOutputs =
   Map.fromList
     . mapMaybe (fmap (\val -> (Script.validatorHash val, val)) . txSkelOutValidator)
     . txSkelOuts
 
 -- | All validators in the reference script field of transaction outputs
-txSkelOutReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
-txSkelOutReferenceScripts =
+txSkelReferenceScripts :: TxSkel -> Map Script.ValidatorHash (Script.Versioned Script.Validator)
+txSkelReferenceScripts =
   mconcat
     . map
       ( \(Pays output) ->
@@ -901,6 +928,17 @@ txSkelOutReferenceScripts =
                in Map.singleton (Script.ValidatorHash hash) $ Script.Versioned (Script.Validator script) version
       )
     . txSkelOuts
+
+-- | All `TxOutRefs` known by a given transaction skeleton. This includes
+-- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
+-- inputs of the skeleton.  This does not include additional possible
+-- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
+-- inputs, as they are not part of the skeleton.
+txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
+txSkelKnownTxOutRefs TxSkel {..} =
+  Map.keys txSkelIns
+    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
+    <> Set.toList txSkelInsReference
 
 -- * Various Optics on 'TxSkels' and all the other types defined here
 

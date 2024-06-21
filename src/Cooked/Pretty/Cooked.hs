@@ -67,40 +67,23 @@ instance PrettyCooked MockChainError where
     PP.vsep ["Validation error " <+> prettyCookedOpt opts plutusPhase, PP.indent 2 (prettyCookedOpt opts plutusError)]
   -- Here we don't print the skel because we lack its context and this error is
   -- printed alongside the skeleton when a test fails
-  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughFunds balWallet targetValue) _) =
+  prettyCookedOpt opts (MCEUnbalanceable balWallet missingValue _) =
     prettyItemize
       "Unbalanceable:"
       "-"
-      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "has not enough funds",
-        "Required payment is" <+> prettyCookedOpt opts targetValue
+      [ prettyCookedOpt opts (walletPKHash balWallet) <+> "does not have enough funds",
+        if missingValue == mempty
+          then "Not enough funds to sustain the minimal ada of the return utxo"
+          else "Unable to find" <+> prettyCookedOpt opts missingValue
       ]
-  prettyCookedOpt opts (MCEUnbalanceable (MCEUnbalNotEnoughReturning (spentValue, spentTxOuts) (remainingValue, remainingTxOuts) returnValue) _) =
+  prettyCookedOpt opts (MCENoSuitableCollateral fee percentage colVal) =
     prettyItemize
-      "Unbalanceable:"
+      "No suitable collateral"
       "-"
-      [ "Value to return is below the min ada per UTxO:"
-          <+> prettyCookedOpt opts returnValue,
-        prettyItemize
-          "Spent for balancing:"
-          "-"
-          [ prettyCookedOpt opts spentValue,
-            prettyItemize
-              "Outputs:"
-              "-"
-              (prettyCookedOpt opts <$> spentTxOuts)
-          ],
-        prettyItemize
-          "Remaining candidates:"
-          "-"
-          [ prettyCookedOpt opts remainingValue,
-            prettyItemize
-              "Outputs:"
-              "-"
-              (prettyCookedOpt opts <$> remainingTxOuts)
-          ]
+      [ "Fee was" <+> PP.pretty fee,
+        "Percentage in params was" <+> PP.pretty percentage,
+        "Resulting minimal collateral value was" <+> prettyCookedOpt opts colVal
       ]
-  prettyCookedOpt _ MCENoSuitableCollateral =
-    "No suitable collateral"
   prettyCookedOpt _ (MCEGenerationError (ToCardanoError msg cardanoError)) =
     prettyItemize
       "Transaction generation error:"
@@ -116,8 +99,6 @@ instance PrettyCooked MockChainError where
       "Transaction generation error:"
       "-"
       [PP.pretty msg, PP.viaShow err]
-  prettyCookedOpt opts (MCECalcFee err) =
-    PP.vsep ["Fee calculation error:", PP.indent 2 (prettyCookedOpt opts err)]
   prettyCookedOpt opts (MCEUnknownOutRefError msg txOutRef) =
     prettyItemize
       "Unknown transaction output ref:"
@@ -135,11 +116,6 @@ instance PrettyCooked MockChainError where
       "Unknown datum hash:"
       "-"
       [PP.pretty msg, "hash:" <+> prettyHash (pcOptHashes opts) (toHash dHash)]
-  prettyCookedOpt _ (OtherMockChainError err) =
-    prettyItemize
-      "Miscellaneous MockChainError:"
-      "-"
-      [PP.viaShow err]
 
 instance (Show a) => PrettyCooked (a, UtxoState) where
   prettyCookedOpt opts (res, state) =
@@ -219,9 +195,10 @@ prettyBalancingWallet opts w =
 
 -- | Prints a list of pubkeys with a flag next to the balancing wallet
 prettySigners :: PrettyCookedOpts -> TxOpts -> [Wallet] -> [DocCooked]
-prettySigners opts TxOpts {txOptBalanceWallet = BalanceWithFirstSigner} (firstSigner : signers) =
+prettySigners opts TxOpts {txOptBalancingPolicy = DoNotBalance} signers = prettyCookedOpt opts . walletPKHash <$> signers
+prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWithFirstSigner} (firstSigner : signers) =
   prettyBalancingWallet opts firstSigner : (prettyCookedOpt opts . walletPKHash <$> signers)
-prettySigners opts TxOpts {txOptBalanceWallet = BalanceWith balancingWallet} signers =
+prettySigners opts TxOpts {txOptBalancingPolicy = BalanceWith balancingWallet} signers =
   aux signers
   where
     aux :: [Wallet] -> [DocCooked]
@@ -351,9 +328,10 @@ mPrettyTxOpts
     { txOptEnsureMinAda,
       txOptAutoSlotIncrease,
       txOptUnsafeModTx,
-      txOptBalance,
       txOptBalanceOutputPolicy,
-      txOptBalanceWallet,
+      txOptFeePolicy,
+      txOptBalancingPolicy,
+      txOptBalancingUtxos,
       txOptEmulatorParamsModification,
       txOptCollateralUtxos
     } =
@@ -361,9 +339,10 @@ mPrettyTxOpts
       catMaybes
         [ prettyIfNot def prettyEnsureMinAda txOptEnsureMinAda,
           prettyIfNot True prettyAutoSlotIncrease txOptAutoSlotIncrease,
-          prettyIfNot True prettyBalance txOptBalance,
           prettyIfNot def prettyBalanceOutputPolicy txOptBalanceOutputPolicy,
-          prettyIfNot def prettyBalanceWallet txOptBalanceWallet,
+          prettyIfNot def prettyBalanceFeePolicy txOptFeePolicy,
+          prettyIfNot def prettyBalancingPolicy txOptBalancingPolicy,
+          prettyIfNot def prettyBalancingUtxos txOptBalancingUtxos,
           prettyIfNot [] prettyUnsafeModTx txOptUnsafeModTx,
           prettyIfNot def prettyEmulatorParamsModification txOptEmulatorParamsModification,
           prettyIfNot def prettyCollateralUtxos txOptCollateralUtxos
@@ -379,33 +358,38 @@ mPrettyTxOpts
       prettyAutoSlotIncrease :: Bool -> DocCooked
       prettyAutoSlotIncrease True = "Automatic slot increase"
       prettyAutoSlotIncrease False = "No automatic slot increase"
-      prettyBalance :: Bool -> DocCooked
-      prettyBalance True = "Automatic balancing"
-      prettyBalance False = "No automatic balancing"
       prettyBalanceOutputPolicy :: BalanceOutputPolicy -> DocCooked
       prettyBalanceOutputPolicy AdjustExistingOutput = "Balance policy: Adjust existing outputs"
       prettyBalanceOutputPolicy DontAdjustExistingOutput = "Balance policy: Don't adjust existing outputs"
-      prettyBalanceWallet :: BalancingWallet -> DocCooked
-      prettyBalanceWallet BalanceWithFirstSigner = "Balance with first signer"
-      prettyBalanceWallet (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
+      prettyBalancingPolicy :: BalancingPolicy -> DocCooked
+      prettyBalancingPolicy BalanceWithFirstSigner = "Balance with first signer"
+      prettyBalancingPolicy (BalanceWith w) = "Balance with" <+> prettyCookedOpt opts (walletPKHash w)
+      prettyBalancingPolicy DoNotBalance = "Do not balance"
       prettyUnsafeModTx :: [RawModTx] -> DocCooked
       prettyUnsafeModTx [] = "No transaction modifications"
-      prettyUnsafeModTx xs =
-        let n = length xs
-         in PP.pretty n
-              <+> "transaction"
-              <+> PP.plural "modification" "modifications" n
+      prettyUnsafeModTx (length -> n) = PP.pretty n <+> "transaction" <+> PP.plural "modification" "modifications" n
       prettyEmulatorParamsModification :: Maybe EmulatorParamsModification -> DocCooked
       prettyEmulatorParamsModification Nothing = "No modifications of protocol paramters"
       prettyEmulatorParamsModification Just {} = "With modifications of protocol parameters"
       prettyCollateralUtxos :: CollateralUtxos -> DocCooked
-      prettyCollateralUtxos col =
-        "Collateral policy:"
-          <+> ( case col of
-                  CollateralUtxosFromBalancingWallet -> "Use balancing wallet"
-                  (CollateralUtxosFromWallet w) -> "Use specific wallet:" <+> prettyCookedOpt opts (walletPKHash w)
-                  (CollateralUtxosFromSet txOutRefs) -> prettyItemize "Use the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs)
-              )
+      prettyCollateralUtxos CollateralUtxosFromBalancingWallet =
+        prettyItemize "Collateral policy:" "-" ["Use value-only utxos from balancing wallet", "Send return collaterals to balancing wallet"]
+      prettyCollateralUtxos (CollateralUtxosFromWallet w)
+        | prettyWallet <- prettyCookedOpt opts (walletPKHash w) =
+            prettyItemize "Collateral policy:" "-" ["Use value-only utxos from" <+> prettyWallet, "Send return collaterals to" <+> prettyWallet]
+      prettyCollateralUtxos (CollateralUtxosFromSet txOutRefs w) =
+        prettyItemize
+          "Collateral policy:"
+          "-"
+          [ prettyItemize "Choose among the following TxOutRefs:" "-" (prettyCookedOpt opts <$> Set.toList txOutRefs),
+            "Send return collaterals to" <+> prettyCookedOpt opts (walletPKHash w)
+          ]
+      prettyBalancingUtxos :: BalancingUtxos -> DocCooked
+      prettyBalancingUtxos BalancingUtxosFromBalancingWallet = "Balance with 'only value' utxos from the balancing wallet"
+      prettyBalancingUtxos (BalancingUtxosFromSet utxos) = prettyItemize "Balance with the following utxos:" "-" (prettyCookedOpt opts <$> Set.toList utxos)
+      prettyBalanceFeePolicy :: FeePolicy -> DocCooked
+      prettyBalanceFeePolicy AutoFeeComputation = "Use automatically computed fee"
+      prettyBalanceFeePolicy (ManualFee fee) = "Use the following fee:" <+> PP.pretty fee
 
 -- * Pretty-printing
 

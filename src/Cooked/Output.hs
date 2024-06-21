@@ -32,6 +32,8 @@ module Cooked.Output
     isReferenceScriptOutputFrom,
     isStakingCredentialOutputFrom,
     isEmptyStakingCredentialOutput,
+    isPKOutput,
+    isScriptOutput,
   )
 where
 
@@ -177,18 +179,31 @@ isOutputWithDatumHash _ = Nothing
 
 -- ** Filtering on the owner
 
--- | Test if the owner of an output is a specific script. If it is,
--- return an output with the script type as its 'OwnerType'.
-isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
-isScriptOutputFrom validator out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out, scriptHash == toScriptHash validator = Just $ (fromAbstractOutput out) {concreteOutputOwner = validator}
-isScriptOutputFrom _ _ = Nothing
+-- | Test if the owner of an output is a script
+isScriptOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.ScriptHash (DatumType out) (ValueType out) (ReferenceScriptType out))
+isScriptOutput out | Api.Address (Api.ScriptCredential scriptHash) _ <- outputAddress out = Just $ (fromAbstractOutput out) {concreteOutputOwner = scriptHash}
+isScriptOutput _ = Nothing
 
--- | Test if the owner of an output is a specific public key. If it is, return
--- an output of the same 'DatumType', but with 'Api.PubKeyHash' as its
--- 'OwnerType'.
+-- | Test if the owner of an output is a specific script
+isScriptOutputFrom :: (IsTxInfoOutput out, ToScriptHash s) => s -> out -> Maybe (ConcreteOutput s (DatumType out) (ValueType out) (ReferenceScriptType out))
+isScriptOutputFrom validator out = do
+  x <- isScriptOutput out
+  if toScriptHash validator == x ^. outputOwnerL
+    then Just (x {concreteOutputOwner = validator})
+    else Nothing
+
+-- Test if the owner of an output is a public key
+isPKOutput :: (IsTxInfoOutput out) => out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
+isPKOutput out | Api.Address (Api.PubKeyCredential pkh) _ <- outputAddress out = Just $ (fromAbstractOutput out) {concreteOutputOwner = pkh}
+isPKOutput _ = Nothing
+
+-- | Test if the owner of an output is a specific public key
 isPKOutputFrom :: (IsTxInfoOutput out) => Api.PubKeyHash -> out -> Maybe (ConcreteOutput Api.PubKeyHash (DatumType out) (ValueType out) (ReferenceScriptType out))
-isPKOutputFrom pkh out | Api.Address (Api.PubKeyCredential pkh') _ <- outputAddress out, pkh == pkh' = Just $ (fromAbstractOutput out) {concreteOutputOwner = pkh}
-isPKOutputFrom _ _ = Nothing
+isPKOutputFrom pkh out = do
+  x <- isPKOutput out
+  if pkh == x ^. outputOwnerL
+    then Just x
+    else Nothing
 
 -- ** Filtering on the staking credential
 

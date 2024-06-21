@@ -109,6 +109,7 @@ tests:
       - NumericUnderscores
       - OverloadedStrings
       - RankNTypes
+      - RecordWildCards
       - ScopedTypeVariables
       - TemplateHaskell
       - TupleSections

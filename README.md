@@ -108,6 +108,10 @@ ready-to-use recipes book.
 - The [IMPORTS](doc/IMPORTS.md) file describes and helps to understand our
   dependencies and naming conventions for imports.
 
+- The [BALANCING](doc/BALANCING.md) file thorougly describes cooked-validator's
+  automated balancing mechanism and associated options (including options
+  revolving around fees and collaterals).
+
 - We also have a [repository](https://github.com/tweag/cooked-smart-contracts)
 of example contracts with offchain code and tests written using
 `cooked-validators`. Note that some examples are not maintained and thus written
