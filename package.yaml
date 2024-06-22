@@ -18,9 +18,10 @@ dependencies:
   - cardano-strict-containers
   - containers
   - data-default
-  - download
   - either
+  - exceptions
   - flat
+  - http-conduit
   - lens
   - list-t
   - microlens

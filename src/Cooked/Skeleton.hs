@@ -60,7 +60,6 @@ module Cooked.Skeleton
     TxSkelProposal (..),
     txSkelProposalsL,
     txSkelProposalAddressL,
-    txSkelProposalDepositL,
     txSkelProposalActionL,
     txSkelProposalWitnessL,
     txSkelProposalAnchorL,
@@ -83,7 +82,6 @@ module Cooked.Skeleton
     txSkelKnownTxOutRefs,
     simpleTxSkelProposal,
     withWitness,
-    withDeposit,
     withAnchor,
     txSkelValueInOutputs,
     txSkelReferenceScripts,
@@ -490,9 +488,6 @@ data TxSkelProposal where
   TxSkelProposal ::
     { -- | Whatever credential will get back the deposit
       txSkelProposalAddress :: Api.Address,
-      -- | An optional amount to deposit. If unspecified, the value of the
-      -- protocal parameter `govActionDeposit` will be used
-      txSkelProposalDeposit :: Maybe Integer,
       -- | The proposed action
       txSkelProposalAction :: TxGovAction,
       -- | An optional script to witness the proposal and validate it. Only
@@ -507,7 +502,6 @@ data TxSkelProposal where
 
 makeLensesFor
   [ ("txSkelProposalAddress", "txSkelProposalAddressL"),
-    ("txSkelProposalDeposit", "txSkelProposalDepositL"),
     ("txSkelProposalAction", "txSkelProposalActionL"),
     ("txSkelProposalWitness", "txSkelProposalWitnessL"),
     ("txSkelProposalAnchor", "txSkelProposalAnchorL")
@@ -515,13 +509,10 @@ makeLensesFor
   ''TxSkelProposal
 
 simpleTxSkelProposal :: (ToAddress a) => a -> TxGovAction -> TxSkelProposal
-simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) Nothing govAction Nothing Nothing
+simpleTxSkelProposal a govAction = TxSkelProposal (toAddress a) govAction Nothing Nothing
 
-withWitness :: (ToScript a) => TxSkelProposal -> a -> TxSkelRedeemer -> TxSkelProposal
-withWitness prop s red = prop {txSkelProposalWitness = Just (toScript s, red)}
-
-withDeposit :: TxSkelProposal -> Integer -> TxSkelProposal
-withDeposit prop i = prop {txSkelProposalDeposit = Just i}
+withWitness :: (ToScript a) => TxSkelProposal -> (a, TxSkelRedeemer) -> TxSkelProposal
+withWitness prop (s, red) = prop {txSkelProposalWitness = Just (toScript s, red)}
 
 withAnchor :: TxSkelProposal -> String -> TxSkelProposal
 withAnchor prop url = prop {txSkelProposalAnchor = Just url}

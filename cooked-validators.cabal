@@ -109,9 +109,10 @@ library
     , cardano-strict-containers
     , containers
     , data-default
-    , download
     , either
+    , exceptions
     , flat
+    , http-conduit
     , lens
     , list-t
     , microlens
@@ -153,6 +154,7 @@ test-suite spec
       Cooked.MinAdaSpec
       Cooked.MockChain.BlockChainSpec
       Cooked.MockChainSpec
+      Cooked.ProposingScriptSpec
       Cooked.ReferenceInputsSpec
       Cooked.ReferenceScriptsSpec
       Cooked.ShowBSSpec
@@ -201,9 +203,10 @@ test-suite spec
     , containers
     , cooked-validators
     , data-default
-    , download
     , either
+    , exceptions
     , flat
+    , http-conduit
     , lens
     , list-t
     , microlens

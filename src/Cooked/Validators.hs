@@ -4,6 +4,9 @@
 module Cooked.Validators
   ( alwaysTrueValidator,
     alwaysFalseValidator,
+    alwaysFalseProposingValidator,
+    alwaysTrueProposingValidator,
+    mkProposingScript,
     MockContract,
   )
 where
@@ -12,6 +15,8 @@ import Plutus.Script.Utils.Scripts qualified as Script
 import Plutus.Script.Utils.Typed qualified as Script hiding (validatorHash)
 import Plutus.Script.Utils.V3.Generators qualified as Script
 import Plutus.Script.Utils.V3.Typed.Scripts.MonetaryPolicies qualified as Script
+import PlutusLedgerApi.V3 qualified as Api
+import PlutusTx.Code qualified as PlutusTx
 import PlutusTx.Prelude qualified as PlutusTx
 import PlutusTx.TH qualified as PlutusTx
 
@@ -45,3 +50,15 @@ data MockContract
 instance Script.ValidatorTypes MockContract where
   type RedeemerType MockContract = ()
   type DatumType MockContract = ()
+
+-- | A dummy proposing validator
+alwaysFalseProposingValidator :: Script.Versioned Script.Script
+alwaysFalseProposingValidator =
+  mkProposingScript $$(PlutusTx.compile [||PlutusTx.traceError "False proposing validator"||])
+
+alwaysTrueProposingValidator :: Script.Versioned Script.Script
+alwaysTrueProposingValidator =
+  mkProposingScript $$(PlutusTx.compile [||\_ _ -> ()||])
+
+mkProposingScript :: PlutusTx.CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()) -> Script.Versioned Script.Script
+mkProposingScript code = Script.Versioned (Script.Script $ Api.serialiseCompiledCode code) Script.PlutusV3

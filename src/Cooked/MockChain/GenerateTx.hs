@@ -16,13 +16,13 @@ import Cardano.Ledger.Address qualified as Cardano
 import Cardano.Ledger.BaseTypes qualified as Cardano
 import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
-import Cardano.Ledger.Conway.PParams qualified as Conway
 import Cardano.Ledger.Core qualified as Cardano (emptyPParamsStrictMaybe)
 import Cardano.Ledger.Credential qualified as Cardano
 import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
 import Control.Monad
+import Control.Monad.Catch
 import Control.Monad.Reader
 import Cooked.Conversion
 import Cooked.Output
@@ -44,7 +44,7 @@ import Ledger.Address qualified as Ledger
 import Ledger.Tx qualified as Ledger
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Lens.Micro qualified as MicroLens
-import Network.Download qualified as Network
+import Network.HTTP.Simple qualified as Network
 import Optics.Core
 import Plutus.Script.Utils.Scripts qualified as Script
 import PlutusLedgerApi.V1.Value qualified as Api
@@ -148,13 +148,6 @@ txSkelProposalsToProposalProcedures props = do
   (ppSet, ppMap) <- fromProposals props minDeposit
   return $ Just $ Cardano.Featured Cardano.ConwayEraOnwardsConway $ Cardano.TxProposalProcedures (OSet.fromSet ppSet) (Cardano.BuildTxWith ppMap)
   where
-    fromProposals ::
-      [TxSkelProposal] ->
-      Integer ->
-      TxGen
-        ( Set (Conway.ProposalProcedure (Cardano.ShelleyLedgerEra Cardano.ConwayEra)),
-          Map (Conway.ProposalProcedure (Cardano.ShelleyLedgerEra Cardano.ConwayEra)) (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra)
-        )
     fromProposals [] _ = return (Set.empty, Map.empty)
     fromProposals (h : t) minDeposit = do
       (proposals, mapWitnesses) <- fromProposals t minDeposit
@@ -175,43 +168,31 @@ txSkelProposalsToProposalProcedures props = do
     toRewardAccount cred =
       Cardano.RewardAcnt Cardano.Testnet <$> case cred of
         Api.ScriptCredential scriptHash -> do
-          Cardano.ScriptHash cHash <- throwOnToCardanoError "unable to convert script hash" $ Ledger.toCardanoScriptHash scriptHash
+          Cardano.ScriptHash cHash <- throwOnToCardanoError "Unable to convert script hash" $ Ledger.toCardanoScriptHash scriptHash
           return $ Cardano.ScriptHashObj cHash
         Api.PubKeyCredential pubkeyHash -> do
-          Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "unable to convert address" $ Ledger.toCardanoStakeKeyHash pubkeyHash
+          Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "Unable to convert address" $ Ledger.toCardanoStakeKeyHash pubkeyHash
           return $ Cardano.KeyHashObj pkHash
 
     toConwayProposalProcedure txSkelProposal@TxSkelProposal {..} minDeposit = do
       cred <- toRewardAccount $ toCredential txSkelProposalAddress
       govAction <- toGovAction txSkelProposal
-      return $
-        Conway.ProposalProcedure @Emulator.EmulatorEra
-          (Emulator.Coin (fromMaybe minDeposit txSkelProposalDeposit))
-          cred
-          govAction
-          ( maybe
-              def
-              ( \s ->
-                  maybe
-                    def
-                    ( \url ->
-                        Cardano.Anchor
-                          { anchorUrl = url,
-                            anchorDataHash = unsafePerformIO $ do
-                              Right page <- Network.openURI s
-                              return $ Cardano.hashAnchorData $ Cardano.AnchorData page
-                          }
-                    )
-                    (Cardano.textToUrl (length s) (Text.pack s))
-              )
-              txSkelProposalAnchor
-          )
+      let proposalAnchor = do
+            anchor <- txSkelProposalAnchor
+            anchorUrl <- Cardano.textToUrl (length anchor) (Text.pack anchor)
+            let anchorDataHash =
+                  handle
+                    (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
+                    ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Cardano.hashAnchorData . Cardano.AnchorData . Network.getResponseBody)
+            return $ Cardano.Anchor anchorUrl <$> unsafePerformIO anchorDataHash
+      anchor <- fromMaybe (return def) proposalAnchor
+      return $ Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
 
     toGovAction TxSkelProposal {..} = do
       sHash <- case txSkelProposalWitness of
         Nothing -> return SNothing
         Just (script, _) -> do
-          Cardano.ScriptHash sHash <- throwOnToCardanoError "" (Ledger.toCardanoScriptHash (toScriptHash script))
+          Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash (toScriptHash script))
           return $ SJust sHash
       case txSkelProposalAction of
         TxGovActionParameterChange changes ->
@@ -220,13 +201,13 @@ txSkelProposalsToProposalProcedures props = do
               SNothing
               (foldl (flip toParameterChange) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
               sHash
-        TxGovActionHardForkInitiation protocolVersion -> undefined
+        TxGovActionHardForkInitiation _ -> throwOnString "TxGovActionHardForkInitiation unsupported"
         TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
           cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
           return $ Conway.TreasuryWithdrawals cardanoMap sHash
         TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing
-        TxGovActionUpdateCommittee coldCommitteeCredentialList mapColdCommitteeCredentialInteger rational -> undefined
-        TxGovActionNewConstitution constitution -> undefined
+        TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"
+        TxGovActionNewConstitution _ -> throwOnString "TxGovActionNewConstitution unsupported"
 
     toParameterChange :: TxParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
     toParameterChange pChange =
