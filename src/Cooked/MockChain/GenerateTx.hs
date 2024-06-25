@@ -18,6 +18,7 @@ import Cardano.Ledger.Conway.Core qualified as Conway
 import Cardano.Ledger.Conway.Governance qualified as Conway
 import Cardano.Ledger.Core qualified as Cardano (emptyPParamsStrictMaybe)
 import Cardano.Ledger.Credential qualified as Cardano
+import Cardano.Ledger.Crypto qualified as Crypto
 import Cardano.Ledger.Plutus.ExUnits qualified as Cardano
 import Cardano.Node.Emulator.Internal.Node qualified as Emulator
 import Control.Lens qualified as Lens
@@ -87,21 +88,21 @@ type TxGen a = ReaderT Context (Either GenerateTxError) a
 
 -- * Helpers to throw errors in 'TxGen'
 
--- Looks up a key in a map. Throws a 'GenerateTxErrorGeneral' error with a given
+-- | Looks up a key in a map. Throws a 'GenerateTxErrorGeneral' error with a given
 -- message when the key is absent, returns the associated value otherwise.
 throwOnLookup :: (Ord k) => String -> k -> Map k a -> TxGen a
 throwOnLookup errorMsg key = maybe (throwOnString errorMsg) return . Map.lookup key
 
--- Throws a general error from a String
+-- | Throws a general error from a String
 throwOnString :: String -> TxGen a
 throwOnString = lift . Left . GenerateTxErrorGeneral
 
--- Lifts a 'ToCardanoError' with an associated error message, or apply a
+-- | Lifts a 'ToCardanoError' with an associated error message, or apply a
 -- function if a value exists
 throwOnToCardanoErrorOrApply :: String -> (a -> b) -> Either Ledger.ToCardanoError a -> TxGen b
 throwOnToCardanoErrorOrApply errorMsg f = lift . bimap (ToCardanoError errorMsg) f
 
--- Lifts a 'ToCardanoError' with an associated error message, or leaves the
+-- | Lifts a 'ToCardanoError' with an associated error message, or leaves the
 -- value unchanged if it exists
 throwOnToCardanoError :: String -> Either Ledger.ToCardanoError a -> TxGen a
 throwOnToCardanoError = flip throwOnToCardanoErrorOrApply id
@@ -127,7 +128,7 @@ txSkelToBodyContent TxSkel {..} = do
           $ mapM (Ledger.toCardanoPaymentKeyHash . Ledger.PaymentPubKeyHash . walletPKHash) txSkelSigners
   txProtocolParams <- asks (Cardano.BuildTxWith . Just . Emulator.ledgerProtocolParameters . params)
   txFee <- asks (Cardano.TxFeeExplicit Cardano.ShelleyBasedEraConway . Emulator.Coin . fee)
-  txProposalProcedures <- txSkelProposalsToProposalProcedures txSkelProposals
+  txProposalProcedures <- Just . Cardano.Featured Cardano.ConwayEraOnwardsConway <$> txSkelProposalsToProposalProcedures txSkelProposals
   let txMetadata = Cardano.TxMetadataNone -- That's what plutus-apps does as well
       txAuxScripts = Cardano.TxAuxScriptsNone -- That's what plutus-apps does as well
       txWithdrawals = Cardano.TxWithdrawalsNone -- That's what plutus-apps does as well
@@ -137,138 +138,153 @@ txSkelToBodyContent TxSkel {..} = do
       txVotingProcedures = Nothing -- TODO, same as above
   return Cardano.TxBodyContent {..}
 
-txSkelProposalsToProposalProcedures ::
-  [TxSkelProposal] ->
-  TxGen
-    (Maybe (Cardano.Featured Cardano.ConwayEraOnwards Cardano.ConwayEra (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)))
-txSkelProposalsToProposalProcedures [] = return Nothing -- what would be the difference with
--- return $ Just $ Cardano.Featured Cardano.ConwayEraOnwardsConway Cardano.TxProposalProceduresNone
-txSkelProposalsToProposalProcedures props = do
+-- * Translation credentials and witnesses
+
+-- | Translating a given credential to a reward account
+generateRewardAccount :: Api.Credential -> TxGen (Cardano.RewardAcnt Crypto.StandardCrypto)
+generateRewardAccount cred =
+  Cardano.RewardAcnt Cardano.Testnet <$> case cred of
+    Api.ScriptCredential scriptHash -> do
+      Cardano.ScriptHash cHash <- throwOnToCardanoError "Unable to convert script hash." $ Ledger.toCardanoScriptHash scriptHash
+      return $ Cardano.ScriptHashObj cHash
+    Api.PubKeyCredential pubkeyHash -> do
+      -- TODO: we take the pubkeyHash, maybe we should take the stakehash if any? I am confused about the nature of the stake address..
+      Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "Unable to convert private key hash." $ Ledger.toCardanoStakeKeyHash pubkeyHash
+      return $ Cardano.KeyHashObj pkHash
+
+generateScriptAndRedeemerData :: Api.SerialisedScript -> TxSkelRedeemer -> TxGen (Cardano.PlutusScriptOrReferenceInput lang, Cardano.HashableScriptData)
+generateScriptAndRedeemerData script TxSkelNoRedeemer =
+  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
+generateScriptAndRedeemerData script (TxSkelRedeemerForScript redeemer) =
+  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
+generateScriptAndRedeemerData script (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
+  refScriptHash <- throwOnLookup "Can't resolve reference script utxo." validatorOref =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
+  when (refScriptHash /= toScriptHash script) $ throwOnString "Wrong reference script hash."
+  validatorTxIn <- throwOnToCardanoError "Unable to translate reference script utxo." $ Ledger.toCardanoTxIn validatorOref
+  scriptHash <- throwOnToCardanoError "Unable to translate script hash of reference script." $ Ledger.toCardanoScriptHash refScriptHash
+  return (Cardano.PReferenceScript validatorTxIn (Just scriptHash), Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
+
+generateScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> TxGen (Cardano.ScriptWitness b Cardano.ConwayEra)
+generateScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) redeemer datum =
+  case version of
+    Script.PlutusV1 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum y Ledger.zeroExecutionUnits)
+        <$> generateScriptAndRedeemerData script redeemer
+    Script.PlutusV2 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum y Ledger.zeroExecutionUnits)
+        <$> generateScriptAndRedeemerData script redeemer
+    Script.PlutusV3 ->
+      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum y Ledger.zeroExecutionUnits)
+        <$> generateScriptAndRedeemerData script redeemer
+
+-- * Translating proposal procedures
+
+-- | Transorms a `TxParameterChange` into an actual change over a
+-- Cardano parameter update
+txParameterChangeToPParamsUpdate :: TxParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
+txParameterChangeToPParamsUpdate pChange =
+  -- From rational to bounded rational
+  let toBR :: (Cardano.BoundedRational r) => Rational -> r
+      toBR = fromMaybe minBound . Cardano.boundRational
+      -- Helper to set one of the param update with a lenso
+      setL l = MicroLens.set l . SJust
+   in case pChange of
+        -- will exist later on: MinFeeRefScriptCostPerByte n -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromIntegral n
+        FeePerByte n -> setL Conway.ppuMinFeeAL $ fromIntegral n
+        FeeFixed n -> setL Conway.ppuMinFeeBL $ fromIntegral n
+        MaxBlockBodySize n -> setL Conway.ppuMaxBBSizeL $ fromIntegral n
+        MaxTxSize n -> setL Conway.ppuMaxTxSizeL $ fromIntegral n
+        MaxBlockHeaderSize n -> setL Conway.ppuMaxBHSizeL $ fromIntegral n
+        KeyDeposit n -> setL Conway.ppuKeyDepositL $ fromIntegral n
+        PoolDeposit n -> setL Conway.ppuPoolDepositL $ fromIntegral n
+        PoolRetirementMaxEpoch n -> setL Conway.ppuEMaxL $ Cardano.EpochInterval $ fromIntegral n
+        PoolNumber n -> setL Conway.ppuNOptL $ fromIntegral n
+        PoolInfluence q -> setL Conway.ppuA0L $ fromMaybe minBound $ Cardano.boundRational q
+        MonetaryExpansion q -> setL Conway.ppuRhoL $ fromMaybe minBound $ Cardano.boundRational q
+        TreasuryCut q -> setL Conway.ppuTauL $ toBR q
+        MinPoolCost n -> setL Conway.ppuMinPoolCostL $ fromIntegral n
+        CoinsPerUTxOByte n -> setL Conway.ppuCoinsPerUTxOByteL $ Conway.CoinPerByte $ fromIntegral n
+        CostModels _pv1 _pv2 _pv3 -> id -- TODO unsupported for now
+        Prices q r -> setL Conway.ppuPricesL $ Cardano.Prices (toBR q) (toBR r)
+        MaxTxExUnits n m -> setL Conway.ppuMaxTxExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+        MaxBlockExUnits n m -> setL Conway.ppuMaxBlockExUnitsL $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
+        MaxValSize n -> setL Conway.ppuMaxValSizeL $ fromIntegral n
+        CollateralPercentage n -> setL Conway.ppuCollateralPercentageL $ fromIntegral n
+        MaxCollateralInputs n -> setL Conway.ppuMaxCollateralInputsL $ fromIntegral n
+        PoolVotingThresholds a b c d e ->
+          setL Conway.ppuPoolVotingThresholdsL $
+            Conway.PoolVotingThresholds (toBR a) (toBR b) (toBR c) (toBR d) (toBR e)
+        DRepVotingThresholds a b c d e f g h i j ->
+          setL Conway.ppuDRepVotingThresholdsL $
+            Conway.DRepVotingThresholds (toBR a) (toBR b) (toBR c) (toBR d) (toBR e) (toBR f) (toBR g) (toBR h) (toBR i) (toBR j)
+        CommitteeMinSize n -> setL Conway.ppuCommitteeMinSizeL $ fromIntegral n
+        CommitteeMaxTermLength n -> setL Conway.ppuCommitteeMaxTermLengthL $ Cardano.EpochInterval $ fromIntegral n
+        GovActionLifetime n -> setL Conway.ppuGovActionLifetimeL $ Cardano.EpochInterval $ fromIntegral n
+        GovActionDeposit n -> setL Conway.ppuGovActionDepositL $ fromIntegral n
+        DRepRegistrationDeposit n -> setL Conway.ppuDRepDepositL $ fromIntegral n
+        DRepActivity n -> setL Conway.ppuDRepActivityL $ Cardano.EpochInterval $ fromIntegral n
+
+-- | Translates a given skeleton proposal into a governance action
+txSkelProposalToGovAction :: TxSkelProposal -> TxGen (Conway.GovAction Emulator.EmulatorEra)
+txSkelProposalToGovAction TxSkelProposal {..} = do
+  sHash <- case txSkelProposalWitness of
+    Nothing -> return SNothing
+    Just (script, _) -> do
+      Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash (toScriptHash script))
+      return $ SJust sHash
+  case txSkelProposalAction of
+    TxGovActionParameterChange changes ->
+      return $
+        Conway.ParameterChange
+          SNothing -- TODO, should not be Nothing later on
+          (foldl (flip txParameterChangeToPParamsUpdate) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
+          sHash
+    TxGovActionHardForkInitiation _ -> throwOnString "TxGovActionHardForkInitiation unsupported"
+    TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
+      cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> generateRewardAccount cred) (Map.toList mapCredentialLovelace)
+      return $ Conway.TreasuryWithdrawals cardanoMap sHash
+    TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing -- TODO, should not be Nothing later on
+    TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"
+    TxGovActionNewConstitution _ -> throwOnString "TxGovActionNewConstitution unsupported"
+
+-- | Translates a skeleton proposal into a proposal procedure
+-- alongside a possible witness
+txSkelProposalToProposalProcedureAndWitness :: TxSkelProposal -> TxGen (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
+txSkelProposalToProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} = do
   minDeposit <- asks (Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . Emulator.emulatorPParams . params)
-  (ppSet, ppMap) <- fromProposals props minDeposit
-  return $ Just $ Cardano.Featured Cardano.ConwayEraOnwardsConway $ Cardano.TxProposalProcedures (OSet.fromSet ppSet) (Cardano.BuildTxWith ppMap)
+  cred <- generateRewardAccount $ toCredential txSkelProposalAddress
+  govAction <- txSkelProposalToGovAction txSkelProposal
+  let proposalAnchor = do
+        anchor <- txSkelProposalAnchor
+        anchorUrl <- Cardano.textToUrl (length anchor) (Text.pack anchor)
+        let anchorDataHash =
+              handle
+                (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
+                ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Cardano.hashAnchorData . Cardano.AnchorData . Network.getResponseBody)
+        return $ Cardano.Anchor anchorUrl <$> unsafePerformIO anchorDataHash
+  anchor <- fromMaybe (return def) proposalAnchor
+  let conwayProposalProcedure = Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
+  (conwayProposalProcedure,) <$> case txSkelProposalWitness of
+    Nothing -> return Nothing
+    Just (script, redeemer) -> Just <$> generateScriptWitness (toScript script) redeemer Cardano.NoScriptDatumForStake
+
+-- | Translates a list of skeleton proposals into a proposal procedures
+txSkelProposalsToProposalProcedures :: [TxSkelProposal] -> TxGen (Cardano.TxProposalProcedures Cardano.BuildTx Cardano.ConwayEra)
+txSkelProposalsToProposalProcedures props = do
+  (OSet.fromSet -> ppSet, Cardano.BuildTxWith -> ppMap) <- go props
+  return $
+    if null ppSet
+      then Cardano.TxProposalProceduresNone
+      else Cardano.TxProposalProcedures ppSet ppMap
   where
-    fromProposals [] _ = return (Set.empty, Map.empty)
-    fromProposals (h : t) minDeposit = do
-      (proposals, mapWitnesses) <- fromProposals t minDeposit
-      (proposal, maybeWitness) <- fromProposal h minDeposit
+    go [] = return (Set.empty, Map.empty)
+    go (h : t) = do
+      (proposals, mapWitnesses) <- go t
+      (proposal, maybeWitness) <- txSkelProposalToProposalProcedureAndWitness h
       let outputMap = case maybeWitness of
             Nothing -> mapWitnesses
             Just newWitness -> Map.insert proposal newWitness mapWitnesses
       return (Set.insert proposal proposals, outputMap)
-
-    fromProposal txSkelProposal@TxSkelProposal {..} minDeposit = do
-      conwayProposalProcedure <- toConwayProposalProcedure txSkelProposal minDeposit
-      (conwayProposalProcedure,) <$> case txSkelProposalWitness of
-        Nothing -> return Nothing
-        Just (script, redeemer) -> do
-          witness <- scriptToScriptWitness (toScript script) redeemer Cardano.NoScriptDatumForStake
-          return $ Just witness
-
-    toRewardAccount cred =
-      Cardano.RewardAcnt Cardano.Testnet <$> case cred of
-        Api.ScriptCredential scriptHash -> do
-          Cardano.ScriptHash cHash <- throwOnToCardanoError "Unable to convert script hash" $ Ledger.toCardanoScriptHash scriptHash
-          return $ Cardano.ScriptHashObj cHash
-        Api.PubKeyCredential pubkeyHash -> do
-          Cardano.StakeKeyHash pkHash <- throwOnToCardanoError "Unable to convert address" $ Ledger.toCardanoStakeKeyHash pubkeyHash
-          return $ Cardano.KeyHashObj pkHash
-
-    toConwayProposalProcedure txSkelProposal@TxSkelProposal {..} minDeposit = do
-      cred <- toRewardAccount $ toCredential txSkelProposalAddress
-      govAction <- toGovAction txSkelProposal
-      let proposalAnchor = do
-            anchor <- txSkelProposalAnchor
-            anchorUrl <- Cardano.textToUrl (length anchor) (Text.pack anchor)
-            let anchorDataHash =
-                  handle
-                    (return . throwOnString . (("Error when parsing anchor " ++ show anchor ++ " with error: ") ++) . (show @Network.HttpException))
-                    ((Network.parseRequest anchor >>= Network.httpBS) <&> return . Cardano.hashAnchorData . Cardano.AnchorData . Network.getResponseBody)
-            return $ Cardano.Anchor anchorUrl <$> unsafePerformIO anchorDataHash
-      anchor <- fromMaybe (return def) proposalAnchor
-      return $ Conway.ProposalProcedure (Emulator.Coin minDeposit) cred govAction anchor
-
-    toGovAction TxSkelProposal {..} = do
-      sHash <- case txSkelProposalWitness of
-        Nothing -> return SNothing
-        Just (script, _) -> do
-          Cardano.ScriptHash sHash <- throwOnToCardanoError "Unable to convert script hash" (Ledger.toCardanoScriptHash (toScriptHash script))
-          return $ SJust sHash
-      case txSkelProposalAction of
-        TxGovActionParameterChange changes ->
-          return $
-            Conway.ParameterChange
-              SNothing
-              (foldl (flip toParameterChange) (Conway.PParamsUpdate Cardano.emptyPParamsStrictMaybe) changes)
-              sHash
-        TxGovActionHardForkInitiation _ -> throwOnString "TxGovActionHardForkInitiation unsupported"
-        TxGovActionTreasuryWithdrawals mapCredentialLovelace -> do
-          cardanoMap <- SMap.fromList <$> mapM (\(cred, Api.Lovelace lv) -> (,Emulator.Coin lv) <$> toRewardAccount cred) (Map.toList mapCredentialLovelace)
-          return $ Conway.TreasuryWithdrawals cardanoMap sHash
-        TxGovActionNoConfidence -> return $ Conway.NoConfidence SNothing
-        TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"
-        TxGovActionNewConstitution _ -> throwOnString "TxGovActionNewConstitution unsupported"
-
-    toParameterChange :: TxParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
-    toParameterChange pChange =
-      let justFromIntegral :: (Integral a, Num b) => a -> StrictMaybe b
-          justFromIntegral = SJust . fromIntegral
-
-          toBoundedRational :: (Cardano.BoundedRational r) => Rational -> r
-          toBoundedRational = fromMaybe minBound . Cardano.boundRational
-       in case pChange of
-            FeePerByte n -> MicroLens.set Conway.ppuMinFeeAL $ justFromIntegral n
-            FeeFixed n -> MicroLens.set Conway.ppuMinFeeBL $ justFromIntegral n
-            MaxBlockBodySize n -> MicroLens.set Conway.ppuMaxBBSizeL $ justFromIntegral n
-            MaxTxSize n -> MicroLens.set Conway.ppuMaxTxSizeL $ justFromIntegral n
-            MaxBlockHeaderSize n -> MicroLens.set Conway.ppuMaxBHSizeL $ justFromIntegral n
-            KeyDeposit n -> MicroLens.set Conway.ppuKeyDepositL $ justFromIntegral n
-            PoolDeposit n -> MicroLens.set Conway.ppuPoolDepositL $ justFromIntegral n
-            PoolRetirementMaxEpoch n -> MicroLens.set Conway.ppuEMaxL $ SJust $ Cardano.EpochInterval $ fromIntegral n
-            PoolNumber n -> MicroLens.set Conway.ppuNOptL $ justFromIntegral n
-            PoolInfluence q -> MicroLens.set Conway.ppuA0L $ SJust $ fromMaybe minBound $ Cardano.boundRational q
-            MonetaryExpansion q -> MicroLens.set Conway.ppuRhoL $ SJust $ fromMaybe minBound $ Cardano.boundRational q
-            TreasuryCut q -> MicroLens.set Conway.ppuTauL $ SJust $ toBoundedRational q
-            ProtocolVersion _ _ -> id -- Non updatable in Conway
-            MinPoolCost n -> MicroLens.set Conway.ppuMinPoolCostL $ justFromIntegral n
-            CoinsPerUTxOByte n -> MicroLens.set Conway.ppuCoinsPerUTxOByteL $ SJust $ Conway.CoinPerByte $ fromIntegral n
-            Prices q r -> MicroLens.set Conway.ppuPricesL $ SJust $ Cardano.Prices (toBoundedRational q) (toBoundedRational r)
-            MaxTxExUnits n m -> MicroLens.set Conway.ppuMaxTxExUnitsL $ SJust $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
-            MaxBlockExUnits n m -> MicroLens.set Conway.ppuMaxBlockExUnitsL $ SJust $ Cardano.ExUnits (fromIntegral n) (fromIntegral m)
-            MaxValSize n -> MicroLens.set Conway.ppuMaxValSizeL $ justFromIntegral n
-            CollateralPercentage n -> MicroLens.set Conway.ppuCollateralPercentageL $ justFromIntegral n
-            MaxCollateralInputs n -> MicroLens.set Conway.ppuMaxCollateralInputsL $ justFromIntegral n
-            PoolVotingThresholds a b c d e ->
-              MicroLens.set Conway.ppuPoolVotingThresholdsL $
-                SJust $
-                  Conway.PoolVotingThresholds
-                    (toBoundedRational a)
-                    (toBoundedRational b)
-                    (toBoundedRational c)
-                    (toBoundedRational d)
-                    (toBoundedRational e)
-            DRepVotingThresholds a b c d e f g h i j ->
-              MicroLens.set Conway.ppuDRepVotingThresholdsL $
-                SJust $
-                  Conway.DRepVotingThresholds
-                    (toBoundedRational a)
-                    (toBoundedRational b)
-                    (toBoundedRational c)
-                    (toBoundedRational d)
-                    (toBoundedRational e)
-                    (toBoundedRational f)
-                    (toBoundedRational g)
-                    (toBoundedRational h)
-                    (toBoundedRational i)
-                    (toBoundedRational j)
-            CommitteeMinSize n -> MicroLens.set Conway.ppuCommitteeMinSizeL $ justFromIntegral n
-            CommitteeMaxTermLength n -> MicroLens.set Conway.ppuCommitteeMaxTermLengthL $ SJust $ Cardano.EpochInterval $ fromIntegral n
-            GovActionLifetime n -> MicroLens.set Conway.ppuGovActionLifetimeL $ SJust $ Cardano.EpochInterval $ fromIntegral n
-            GovActionDeposit n -> MicroLens.set Conway.ppuGovActionDepositL $ justFromIntegral n
-            DRepRegistrationDeposit n -> MicroLens.set Conway.ppuDRepDepositL $ justFromIntegral n
-            DRepActivity n -> MicroLens.set Conway.ppuDRepActivityL $ SJust $ Cardano.EpochInterval $ fromIntegral n
-
--- will exist later on: MinFeeRefScriptCostPerByte n -> MicroLens.set Conway.ppuMinFeeRefScriptCostPerByteL $ justFromIntegral n
 
 generateBodyContent ::
   Integer ->
@@ -295,7 +311,7 @@ txSkelInToTxIn (txOutRef, txSkelRedeemer) = do
     Just (Api.PubKeyCredential _) -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
     Just (Api.ScriptCredential _) -> do
       (_, script, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
-      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> scriptToScriptWitness script txSkelRedeemer datum
+      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> generateScriptWitness script txSkelRedeemer datum
     Nothing -> throwOnString "txSkelInToTxIn: unable to resolve input txOutRef"
   throwOnToCardanoErrorOrApply
     "txSkelIntoTxIn, translating TxOutRef"
@@ -320,35 +336,6 @@ resolveScriptOutputOwnerAndDatum txOutRef = do
         datum <- throwOnLookup "txSkelInToTxIn: Datum hash could not be resolved" datumHash =<< asks managedData
         return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum datum
   return (validatorHash, validator, datum)
-
-plutusScriptBuilder :: Api.SerialisedScript -> TxSkelRedeemer -> TxGen (Cardano.PlutusScriptOrReferenceInput lang, Cardano.HashableScriptData)
-plutusScriptBuilder script TxSkelNoRedeemer =
-  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
-plutusScriptBuilder script (TxSkelRedeemerForScript redeemer) =
-  return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-plutusScriptBuilder script (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
-  refScriptHash <-
-    throwOnLookup "txSkelRedeemerToWitness: Can't resolve reference script outref. " validatorOref =<< asks (Map.mapMaybe (^. outputReferenceScriptL) . managedTxOuts)
-  when (refScriptHash /= toScriptHash script) $
-    throwOnString "txSkelRedeemerToWitness: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
-  validatorTxIn <-
-    throwOnToCardanoError "txSkelRedeemerToWitness: translating TxOutRef where the reference script sits" $ Ledger.toCardanoTxIn validatorOref
-  scriptHash <-
-    throwOnToCardanoError "txSkelRedeemerToWitness: could not convert script hash of referenced script" $ Ledger.toCardanoScriptHash refScriptHash
-  return (Cardano.PReferenceScript validatorTxIn (Just scriptHash), Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-
-scriptToScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> TxGen (Cardano.ScriptWitness b Cardano.ConwayEra)
-scriptToScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) redeemer datum =
-  case version of
-    Script.PlutusV1 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV1InConway Cardano.PlutusScriptV1 x datum y Ledger.zeroExecutionUnits)
-        <$> plutusScriptBuilder script redeemer
-    Script.PlutusV2 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV2InConway Cardano.PlutusScriptV2 x datum y Ledger.zeroExecutionUnits)
-        <$> plutusScriptBuilder script redeemer
-    Script.PlutusV3 ->
-      (\(x, y) -> Cardano.PlutusScriptWitness Cardano.PlutusScriptV3InConway Cardano.PlutusScriptV3 x datum y Ledger.zeroExecutionUnits)
-        <$> plutusScriptBuilder script redeemer
 
 -- Convert a list of 'Api.TxOutRef' into a 'Cardano.TxInsReference'
 txOutRefsToTxInsReference :: [Api.TxOutRef] -> TxGen (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
@@ -450,7 +437,7 @@ txSkelMintsToTxMintValue mints =
                 throwOnToCardanoError
                   "txSkelMintsToTxMintValue, calculating the witness map"
                   (Ledger.toCardanoPolicyId (Script.mintingPolicyHash policy))
-              mintWitness <- scriptToScriptWitness policy redeemer Cardano.NoScriptDatumForMint
+              mintWitness <- generateScriptWitness policy redeemer Cardano.NoScriptDatumForMint
               return $ Map.insert policyId mintWitness acc
           )
           Map.empty
