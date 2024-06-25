@@ -124,7 +124,7 @@ tests :: TestTree
 tests =
   testGroup
     "Reference scripts"
-    [ testGroup "putting reference scripts on chain and retreiving them" $
+    [ testGroup "putting reference scripts on chain and retrieving them" $
         let theRefScript = alwaysFalseValidator
             theRefScriptHash = toScriptHash theRefScript
          in [ testCase "on a public key output"
@@ -203,29 +203,28 @@ tests =
                     { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript consumedOref ()),
                       txSkelSigners = [wallet 1]
                     },
-          testCase "fail from transaction generation for mismatching reference scripts" $
-            let expectedError = GenerateTxErrorGeneral "txSkelRedeemerToWitness: Wrong reference script hash. Are you using the correct TxOutRef on your TxSkelRedeemerForReferencedScript?"
-             in testFailsFrom
-                  def
-                  ( \case
-                      MCEGenerationError err -> err .==. expectedError
-                      _ -> testFailure
-                  )
-                  def
-                  $ do
-                    scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
-                    oref : _ <-
-                      validateTxSkel'
-                        txSkelTemplate
-                          { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
-                            txSkelSigners = [wallet 1]
-                          }
-                    void $
-                      validateTxSkel
-                        txSkelTemplate
-                          { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript scriptOref ()),
-                            txSkelSigners = [wallet 1]
-                          },
+          testCase "fail from transaction generation for mismatching reference scripts"
+            $ testFailsFrom
+              def
+              ( \case
+                  MCEGenerationError err -> err .==. GenerateTxErrorGeneral "toScriptAndRedeemerData: Wrong reference script hash."
+                  _ -> testFailure
+              )
+              def
+            $ do
+              scriptOref <- putRefScriptOnWalletOutput (wallet 3) alwaysFalseValidator
+              oref : _ <-
+                validateTxSkel'
+                  txSkelTemplate
+                    { txSkelOuts = [paysScript (alwaysTrueValidator @MockContract) () (ada 42)],
+                      txSkelSigners = [wallet 1]
+                    }
+              void $
+                validateTxSkel
+                  txSkelTemplate
+                    { txSkelIns = Map.singleton oref (TxSkelRedeemerForReferencedScript scriptOref ()),
+                      txSkelSigners = [wallet 1]
+                    },
           testCase "phase 1 - fail if using a reference script with 'TxSkelRedeemerForScript'"
             $ testFailsFrom
               def

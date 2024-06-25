@@ -1,4 +1,4 @@
-module Cooked.PropositingScriptSpec where
+module Cooked.ProposingScriptSpec where
 
 import Control.Monad
 import Cooked
