@@ -71,13 +71,22 @@ instance Transform TxContext (Emulator.PParams, Map Api.TxOutRef Api.TxOut) wher
   transform ctx = (Emulator.pEmulatorPParams $ params ctx, transform ctx)
 
 txSkelToBodyContent :: TxSkel -> TxGenTrans (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
-txSkelToBodyContent TxSkel {..} = do
+txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
   txIns <- mapM txSkelInToTxIn $ Map.toList txSkelIns
-  txInsReference <- txOutRefsToTxInsReference $ mapMaybe txSkelReferenceScript (Map.elems txSkelIns) ++ Set.toList txSkelInsReference
+  txInsReference <-
+    if null txSkelReferenceInputs
+      then return Cardano.TxInsReferenceNone
+      else
+        throwOnToCardanoErrorOrApply
+          "txSkelToBodyContent: Unable to translate reference inputs."
+          (Cardano.TxInsReference Cardano.BabbageEraOnwardsConway)
+          $ mapM Ledger.toCardanoTxIn txSkelReferenceInputs
   (txInsCollateral, txTotalCollateral, txReturnCollateral) <- toCollateralTriplet
   txOuts <- mapM (liftTxGen . toCardanoTxOut) txSkelOuts
   (txValidityLowerBound, txValidityUpperBound) <-
-    throwOnToCardanoError "translating the transaction validity range" $ Ledger.toCardanoValidityRange txSkelValidityRange
+    throwOnToCardanoError
+      "txSkelToBodyContent: Unable to translate transaction validity range"
+      $ Ledger.toCardanoValidityRange txSkelValidityRange
   txMintValue <- txSkelMintsToTxMintValue txSkelMints
   txExtraKeyWits <-
     if null txSkelSigners
@@ -149,17 +158,6 @@ resolveScriptOutputOwnerAndDatum txOutRef = do
         datum <- throwOnLookup "txSkelInToTxIn: Datum hash could not be resolved" datumHash =<< asks managedData
         return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum datum
   return (validatorHash, validator, datum)
-
--- Convert a list of 'Api.TxOutRef' into a 'Cardano.TxInsReference'
-txOutRefsToTxInsReference :: [Api.TxOutRef] -> TxGenTrans (Cardano.TxInsReference Cardano.BuildTx Cardano.ConwayEra)
-txOutRefsToTxInsReference =
-  throwOnToCardanoErrorOrApply
-    "txOutRefsToTxInsReference"
-    ( \case
-        [] -> Cardano.TxInsReferenceNone
-        txIns -> Cardano.TxInsReference Cardano.BabbageEraOnwardsConway txIns
-    )
-    . mapM Ledger.toCardanoTxIn
 
 -- | Computes the collateral triplet from the fees and the collateral inputs in
 -- the context. What we call a collateral triplet is composed of:

@@ -85,6 +85,7 @@ module Cooked.Skeleton
     withAnchor,
     txSkelValueInOutputs,
     txSkelReferenceScripts,
+    txSkelReferenceTxOutRefs,
   )
 where
 
@@ -1057,16 +1058,17 @@ txSkelReferenceScripts =
       )
     . txSkelOuts
 
+-- | All `TxOutRefs` in reference inputs
+txSkelReferenceTxOutRefs :: TxSkel -> [Api.TxOutRef]
+txSkelReferenceTxOutRefs TxSkel {..} = mapMaybe txSkelReferenceScript (Map.elems txSkelIns) <> Set.toList txSkelInsReference
+
 -- | All `TxOutRefs` known by a given transaction skeleton. This includes
 -- TxOutRef`s used as inputs of the skeleton and `TxOutRef`s used as reference
 -- inputs of the skeleton.  This does not include additional possible
 -- `TxOutRef`s used for balancing and additional `TxOutRef`s used as collateral
 -- inputs, as they are not part of the skeleton.
 txSkelKnownTxOutRefs :: TxSkel -> [Api.TxOutRef]
-txSkelKnownTxOutRefs TxSkel {..} =
-  Map.keys txSkelIns
-    <> mapMaybe txSkelReferenceScript (Map.elems txSkelIns)
-    <> Set.toList txSkelInsReference
+txSkelKnownTxOutRefs skel@TxSkel {..} = txSkelReferenceTxOutRefs skel <> Map.keys txSkelIns
 
 -- * Various Optics on 'TxSkels' and all the other types defined here
 
