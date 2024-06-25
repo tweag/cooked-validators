@@ -32,6 +32,12 @@ type TxGen context a = ReaderT context (Either GenerateTxError) a
 class Transform a b where
   transform :: a -> b
 
+instance Transform (a, b) b where
+  transform = snd
+
+instance Transform (a, b) a where
+  transform = fst
+
 -- | Lifts a computation from a smaller context
 liftTxGen :: (Transform context' context) => TxGen context a -> TxGen context' a
 liftTxGen comp = (lift . runReaderT comp) =<< asks transform

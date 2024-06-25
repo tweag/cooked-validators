@@ -36,6 +36,7 @@ library
       Cooked.MockChain.GenerateTx
       Cooked.MockChain.GenerateTx.Common
       Cooked.MockChain.GenerateTx.Output
+      Cooked.MockChain.GenerateTx.Proposal
       Cooked.MockChain.GenerateTx.Witness
       Cooked.MockChain.MinAda
       Cooked.MockChain.Staged
