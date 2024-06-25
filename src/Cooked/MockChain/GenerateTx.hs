@@ -17,10 +17,10 @@ import Control.Monad
 import Control.Monad.Reader
 import Cooked.Conversion
 import Cooked.MockChain.GenerateTx.Common
+import Cooked.MockChain.GenerateTx.Input qualified as Input
 import Cooked.MockChain.GenerateTx.Output
 import Cooked.MockChain.GenerateTx.Proposal
 import Cooked.MockChain.GenerateTx.Witness
-import Cooked.Output
 import Cooked.Skeleton
 import Cooked.Wallet
 import Data.Bifunctor
@@ -70,9 +70,12 @@ instance Transform TxContext (Map Api.TxOutRef Api.TxOut) where
 instance Transform TxContext (Emulator.PParams, Map Api.TxOutRef Api.TxOut) where
   transform ctx = (Emulator.pEmulatorPParams $ params ctx, transform ctx)
 
+instance Transform TxContext Input.InputContext where
+  transform TxContext {..} = Input.InputContext {..}
+
 txSkelToBodyContent :: TxSkel -> TxGenTrans (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 txSkelToBodyContent skel@TxSkel {..} | txSkelReferenceInputs <- txSkelReferenceTxOutRefs skel = do
-  txIns <- mapM txSkelInToTxIn $ Map.toList txSkelIns
+  txIns <- mapM (liftTxGen . Input.toTxInAndWitness) $ Map.toList txSkelIns
   txInsReference <-
     if null txSkelReferenceInputs
       then return Cardano.TxInsReferenceNone
@@ -120,44 +123,6 @@ generateBodyContent ::
   Either GenerateTxError (Cardano.TxBodyContent Cardano.BuildTx Cardano.ConwayEra)
 generateBodyContent fee (Just -> returnCollateralWallet) collateralIns params managedData managedTxOuts managedValidators =
   flip runReaderT TxContext {..} . txSkelToBodyContent
-
--- Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
--- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate witness. If
--- you add reference inputs, don't forget to also update the 'txInsReference'!
-txSkelInToTxIn ::
-  (Api.TxOutRef, TxSkelRedeemer) ->
-  TxGenTrans (Cardano.TxIn, Cardano.BuildTxWith Cardano.BuildTx (Cardano.Witness Cardano.WitCtxTxIn Cardano.ConwayEra))
-txSkelInToTxIn (txOutRef, txSkelRedeemer) = do
-  txOut <- asks (Map.lookup txOutRef . managedTxOuts)
-  witness <- case toCredential . Api.txOutAddress <$> txOut of
-    Just (Api.PubKeyCredential _) -> return $ Cardano.KeyWitness Cardano.KeyWitnessForSpending
-    Just (Api.ScriptCredential _) -> do
-      (_, script, datum) <- resolveScriptOutputOwnerAndDatum txOutRef
-      Cardano.ScriptWitness Cardano.ScriptWitnessForSpending <$> liftTxGen (toScriptWitness script txSkelRedeemer datum)
-    Nothing -> throwOnString "txSkelInToTxIn: unable to resolve input txOutRef"
-  throwOnToCardanoErrorOrApply
-    "txSkelIntoTxIn, translating TxOutRef"
-    (,Cardano.BuildTxWith witness)
-    $ Ledger.toCardanoTxIn txOutRef
-
-resolveScriptOutputOwnerAndDatum ::
-  Api.TxOutRef ->
-  TxGenTrans (Script.ValidatorHash, Script.Versioned Script.Validator, Cardano.ScriptDatum Cardano.WitCtxTxIn)
-resolveScriptOutputOwnerAndDatum txOutRef = do
-  txOut <- throwOnLookup "txSkelInToTxIn: Unknown txOutRef" txOutRef =<< asks managedTxOuts
-  validatorHash <-
-    case outputAddress txOut of
-      (Api.Address (Api.ScriptCredential (Api.ScriptHash validatorHash)) _) -> return $ Script.ValidatorHash validatorHash
-      _ -> throwOnString $ "txSkelInToTxIn: Output is not a script output" <> show txOut
-  validator <- throwOnLookup "txSkelInToTxIn: Unknown validator" validatorHash =<< asks managedValidators
-  datum <-
-    case outputOutputDatum txOut of
-      Api.NoOutputDatum -> throwOnString "txSkelInToTxIn: No datum found on script output"
-      Api.OutputDatum _ -> return Cardano.InlineScriptDatum
-      Api.OutputDatumHash datumHash -> do
-        datum <- throwOnLookup "txSkelInToTxIn: Datum hash could not be resolved" datumHash =<< asks managedData
-        return $ Cardano.ScriptDatumForTxIn $ Ledger.toCardanoScriptData $ Api.getDatum datum
-  return (validatorHash, validator, datum)
 
 -- | Computes the collateral triplet from the fees and the collateral inputs in
 -- the context. What we call a collateral triplet is composed of:
