@@ -43,7 +43,7 @@ toPParamsUpdate pChange =
   -- From rational to bounded rational
   let toBR :: (Cardano.BoundedRational r) => Rational -> r
       toBR = fromMaybe minBound . Cardano.boundRational
-      -- Helper to set one of the param update with a lenso
+      -- Helper to set one of the param update with a lens
       setL l = MicroLens.set l . SJust
    in case pChange of
         -- will exist later on: MinFeeRefScriptCostPerByte n -> setL Conway.ppuMinFeeRefScriptCostPerByteL $ fromIntegral n

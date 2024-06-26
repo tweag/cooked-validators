@@ -276,7 +276,7 @@ estimateTxSkelFee skel fee collateralIns returnCollateralWallet = do
   -- We return an accurate estimate of the resulting transaction fee
   return $ Emulator.unCoin $ Cardano.evaluateTransactionFee Cardano.ShelleyBasedEraConway (Emulator.pEmulatorPParams params) txBody nkeys 0
 
--- | This creates a balanced skeleton from a given skeleton and fee In other
+-- | This creates a balanced skeleton from a given skeleton and fee. In other
 -- words, this ensures that the following equation holds: input value + minted
 -- value = output value + burned value + fee + deposits
 computeBalancedTxSkel :: (MonadBlockChainBalancing m) => Wallet -> BalancingOutputs -> TxSkel -> Fee -> m TxSkel
