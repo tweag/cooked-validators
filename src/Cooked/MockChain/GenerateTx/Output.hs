@@ -1,6 +1,5 @@
 module Cooked.MockChain.GenerateTx.Output
   ( toCardanoTxOut,
-    generateTxOut,
   )
 where
 
@@ -46,9 +45,3 @@ toCardanoTxOut (Pays output) = do
     TxSkelOutDatum datum -> return $ Cardano.TxOutDatumInTx Cardano.AlonzoEraOnwardsConway $ toHashableScriptData datum
     TxSkelOutInlineDatum datum -> return $ Cardano.TxOutDatumInline Cardano.BabbageEraOnwardsConway $ toHashableScriptData datum
   return $ Cardano.TxOut address value datum $ Ledger.toCardanoReferenceScript (toScript <$> oRefScript)
-
--- | Generates a Cardano `TxOut` from a `TxSkelOut` and the network
--- Id. This runs the generation and is meant to be used outside of the
--- regular transaction generation process.
-generateTxOut :: Cardano.NetworkId -> TxSkelOut -> Either GenerateTxError (Cardano.TxOut Cardano.CtxTx Cardano.ConwayEra)
-generateTxOut networkId txSkelOut = runReaderT (toCardanoTxOut txSkelOut) networkId
