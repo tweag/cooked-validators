@@ -56,6 +56,7 @@ alwaysFalseProposingValidator :: Script.Versioned Script.Script
 alwaysFalseProposingValidator =
   mkProposingScript $$(PlutusTx.compile [||PlutusTx.traceError "False proposing validator"||])
 
+-- | A dummy proposing validator
 alwaysTrueProposingValidator :: Script.Versioned Script.Script
 alwaysTrueProposingValidator =
   mkProposingScript $$(PlutusTx.compile [||\_ _ -> ()||])
