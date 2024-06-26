@@ -184,7 +184,7 @@ prettyTxSkel opts skelContext (TxSkel lbl txopts mints signers validityRange ins
           prettyItemizeNonEmpty "Inputs:" "-" (prettyTxSkelIn opts skelContext <$> Map.toList ins),
           prettyItemizeNonEmpty "Reference inputs:" "-" (mapMaybe (prettyTxSkelInReference opts skelContext) $ Set.toList insReference),
           prettyItemizeNonEmpty "Outputs:" "-" (prettyTxSkelOut opts <$> outs),
-          prettyItemizeNonEmpty "Proposals:" "_" (prettyTxSkelProposal opts skelContext <$> proposals)
+          prettyItemizeNonEmpty "Proposals:" "-" (prettyTxSkelProposal opts skelContext <$> proposals)
         ]
     )
 

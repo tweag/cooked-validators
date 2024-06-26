@@ -167,7 +167,7 @@ txSkelTemplate
 
 ### Spend some UTxOs
 
-* No redeemer: `TxSkelNoRedeemerForPK`
+* No redeemer: `TxSkelNoRedeemer`
 * With redeemer:
     * Regular script: `TxSkelRedeemerForScript typedRedeemer`
     * Reference script: `TxSkelRedeemerForReferencedScript txOutRefCarryingReferenceScript typedRedeemer`
@@ -218,8 +218,9 @@ foo txOutRef = do
 
 ### Mint or burn tokens
 
-* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, NoMintsRedeemer, "fooName", 3)`
-* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, SomeMintsRedeemer typedRedeemer, "barName", 12)`
+* No redeemer: `(Script.Versioned fooPolicy Script.PlutusV3, TxSkelNoRedeemer, "fooName", 3)`
+* With redeemer: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForScript typedRedeemer, "barName", 12)`
+* With a reference script: `(Script.Versioned barPolicy Script.PlutusV3, TxSkelRedeemerForReferenceScript txOutRef typedRedeemer, "barName", 12)`
 * Burn tokens (negative amount): `(Script.Versioned bazPolicy Script.PlutusV3, ..., "bazName", -7)`
 
 ```haskell
@@ -446,7 +447,7 @@ foo = do
     bar `withTweak` ( do
                         addOutputTweak $ paysScript bazValidator bazDatum bazValue
                         removeOutputTweak (\(Pays out) -> somePredicate out)
-                        addInputTweak somePkTxOutRef C.TxSkelNoRedeemerForPK
+                        addInputTweak somePkTxOutRef C.TxSkelNoRedeemer
                         removeInputTweak (\txOutRef redeemer -> somePredicate txOutRef redeemer)
                     )
 ```
