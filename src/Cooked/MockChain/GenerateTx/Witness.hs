@@ -38,15 +38,14 @@ toRewardAccount cred =
       Cardano.StakeKeyHash pkHash <-
         throwOnToCardanoError
           "toRewardAccount: Unable to convert private key hash."
-          -- TODO: we take the pubkeyHash, maybe we should take the
-          -- stakehash if any? I am confused about the nature of the
-          -- stake address.
+          -- TODO: we take the pubkeyHash, maybe we should take the stakehash if
+          -- any? I am confused about the nature of the stake address.
           (Ledger.toCardanoStakeKeyHash pubkeyHash)
       return $ Cardano.KeyHashObj pkHash
 
 -- | Translates a serialised script and a redeemer to their Cardano
--- counterparts. They cannot be uncoupled because of the possible
--- presence of a reference script utxo in the redeemer.
+-- counterparts. They cannot be uncoupled because of the possible presence of a
+-- reference script utxo in the redeemer.
 toScriptAndRedeemerData :: Api.SerialisedScript -> TxSkelRedeemer -> WitnessGen (Cardano.PlutusScriptOrReferenceInput lang, Cardano.HashableScriptData)
 toScriptAndRedeemerData script TxSkelNoRedeemer =
   return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
@@ -71,8 +70,8 @@ toScriptAndRedeemerData script (TxSkelRedeemerForReferencedScript validatorOref 
       (Ledger.toCardanoScriptHash refScriptHash)
   return (Cardano.PReferenceScript validatorTxIn (Just scriptHash), Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
 
--- | Translates a script with its associated redeemer and datum to a
--- script witness.
+-- | Translates a script with its associated redeemer and datum to a script
+-- witness.
 toScriptWitness :: (ToScript a) => a -> TxSkelRedeemer -> Cardano.ScriptDatum b -> WitnessGen (Cardano.ScriptWitness b Cardano.ConwayEra)
 toScriptWitness (toScript -> (Script.Versioned (Script.Script script) version)) redeemer datum =
   case version of

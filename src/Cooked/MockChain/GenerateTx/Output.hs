@@ -16,6 +16,7 @@ import PlutusLedgerApi.V3 qualified as Api
 
 type OutputGen a = TxGen Cardano.NetworkId a
 
+-- | Convert a plutus data to a cardano data
 toHashableScriptData :: (Api.ToData a) => a -> Cardano.HashableScriptData
 toHashableScriptData = Cardano.unsafeHashableScriptData . Cardano.fromPlutusData . Api.builtinDataToData . Api.toBuiltinData
 

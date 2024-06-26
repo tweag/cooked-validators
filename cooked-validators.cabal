@@ -34,9 +34,11 @@ library
       Cooked.MockChain.BlockChain
       Cooked.MockChain.Direct
       Cooked.MockChain.GenerateTx
+      Cooked.MockChain.GenerateTx.Body
       Cooked.MockChain.GenerateTx.Collateral
       Cooked.MockChain.GenerateTx.Common
       Cooked.MockChain.GenerateTx.Input
+      Cooked.MockChain.GenerateTx.Mint
       Cooked.MockChain.GenerateTx.Output
       Cooked.MockChain.GenerateTx.Proposal
       Cooked.MockChain.GenerateTx.Witness

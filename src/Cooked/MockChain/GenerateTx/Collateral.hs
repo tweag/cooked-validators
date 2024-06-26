@@ -23,7 +23,7 @@ data CollateralContext where
     { managedTxOuts :: Map Api.TxOutRef Api.TxOut,
       collateralIns :: Set Api.TxOutRef,
       fee :: Integer,
-      returnCollateralWallet :: Maybe Wallet,
+      returnCollateralWallet :: Wallet,
       params :: Emulator.Params
     } ->
     CollateralContext
@@ -91,13 +91,10 @@ toCollateralTriplet = do
         -- The address is the one from the return collateral wallet, which is
         -- required to exist here.
         address <- do
-          mReturnCollateralWallet <- asks returnCollateralWallet
-          case mReturnCollateralWallet of
-            Nothing -> throwOnString "toCollateralTriplet: unable to find a return collateral wallet"
-            Just returnCollateralWallet -> do
-              networkId <- asks (Emulator.pNetworkId . params)
-              throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
-                Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
+          returnCollateralWallet <- asks returnCollateralWallet
+          networkId <- asks (Emulator.pNetworkId . params)
+          throwOnToCardanoError "toCollateralTriplet: cannot build return collateral address" $
+            Ledger.toCardanoAddressInEra networkId (walletAddress returnCollateralWallet)
         -- The return collateral is built up from those elements
         return $
           Cardano.TxReturnCollateral Cardano.BabbageEraOnwardsConway $

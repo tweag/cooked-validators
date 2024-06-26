@@ -17,8 +17,6 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger.Tx qualified as Ledger
 
--- * Domain for transaction generation and associated types
-
 -- | Errors that can arise during transaction generation
 data GenerateTxError
   = ToCardanoError String Ledger.ToCardanoError

@@ -36,8 +36,8 @@ import PlutusLedgerApi.V3 qualified as Api
 
 type ProposalGen a = TxGen (Emulator.PParams, Map Api.TxOutRef Api.TxOut) a
 
--- | Transorms a `TxParameterChange` into an actual change over a
--- Cardano parameter update
+-- | Transorms a `TxParameterChange` into an actual change over a Cardano
+-- parameter update
 toPParamsUpdate :: TxParameterChange -> Conway.PParamsUpdate Emulator.EmulatorEra -> Conway.PParamsUpdate Emulator.EmulatorEra
 toPParamsUpdate pChange =
   -- From rational to bounded rational
@@ -107,8 +107,8 @@ toGovAction TxSkelProposal {..} = do
     TxGovActionUpdateCommittee {} -> throwOnString "TxGovActionUpdateCommittee unsupported"
     TxGovActionNewConstitution _ -> throwOnString "TxGovActionNewConstitution unsupported"
 
--- | Translates a skeleton proposal into a proposal procedure
--- alongside a possible witness
+-- | Translates a skeleton proposal into a proposal procedure alongside a
+-- possible witness
 toProposalProcedureAndWitness :: TxSkelProposal -> ProposalGen (Conway.ProposalProcedure Emulator.EmulatorEra, Maybe (Cardano.ScriptWitness Cardano.WitCtxStake Cardano.ConwayEra))
 toProposalProcedureAndWitness txSkelProposal@TxSkelProposal {..} = do
   minDeposit <- asks (Emulator.unCoin . Lens.view Conway.ppGovActionDepositL . fst)

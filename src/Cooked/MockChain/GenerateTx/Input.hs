@@ -27,7 +27,7 @@ instance Transform InputContext (Map Api.TxOutRef Api.TxOut) where
 
 type InputGen a = TxGen InputContext a
 
--- | Convert a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
+-- | Converts a 'TxSkel' input, which consists of a 'Api.TxOutRef' and a
 -- 'TxSkelIn', into a 'Cardano.TxIn', together with the appropriate witness.
 toTxInAndWitness ::
   (Api.TxOutRef, TxSkelRedeemer) ->
