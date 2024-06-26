@@ -369,17 +369,17 @@ type RedeemerConstrs redeemer =
 data TxSkelRedeemer where
   TxSkelNoRedeemer :: TxSkelRedeemer
   TxSkelRedeemerForScript :: (RedeemerConstrs redeemer) => redeemer -> TxSkelRedeemer
-  -- | The first argument is a reference to the output where the referenced
+  -- | The first argument is a reference to the output where the reference
   -- script is stored.
-  TxSkelRedeemerForReferencedScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
+  TxSkelRedeemerForReferenceScript :: (RedeemerConstrs redeemer) => Api.TxOutRef -> redeemer -> TxSkelRedeemer
 
 txSkelTypedRedeemer :: (Api.FromData (Script.RedeemerType a)) => TxSkelRedeemer -> Maybe (Script.RedeemerType a)
 txSkelTypedRedeemer (TxSkelRedeemerForScript redeemer) = Api.fromData . Api.toData $ redeemer
-txSkelTypedRedeemer (TxSkelRedeemerForReferencedScript _ redeemer) = Api.fromData . Api.toData $ redeemer
+txSkelTypedRedeemer (TxSkelRedeemerForReferenceScript _ redeemer) = Api.fromData . Api.toData $ redeemer
 txSkelTypedRedeemer _ = Nothing
 
 txSkelReferenceScript :: TxSkelRedeemer -> Maybe Api.TxOutRef
-txSkelReferenceScript (TxSkelRedeemerForReferencedScript refScript _) = Just refScript
+txSkelReferenceScript (TxSkelRedeemerForReferenceScript refScript _) = Just refScript
 txSkelReferenceScript _ = Nothing
 
 deriving instance (Show TxSkelRedeemer)
@@ -390,7 +390,7 @@ instance Eq TxSkelRedeemer where
     case typeOf r1 `eqTypeRep` typeOf r2 of
       Just HRefl -> r1 PlutusTx.== r2
       Nothing -> False
-  (TxSkelRedeemerForReferencedScript o1 r1) == (TxSkelRedeemerForReferencedScript o2 r2) =
+  (TxSkelRedeemerForReferenceScript o1 r1) == (TxSkelRedeemerForReferenceScript o2 r2) =
     TxSkelRedeemerForScript r1 == TxSkelRedeemerForScript r2
       && o1 == o2
   _ == _ = False

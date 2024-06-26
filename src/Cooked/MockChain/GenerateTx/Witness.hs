@@ -51,7 +51,7 @@ toScriptAndRedeemerData script TxSkelNoRedeemer =
   return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData ())
 toScriptAndRedeemerData script (TxSkelRedeemerForScript redeemer) =
   return (Cardano.PScript $ Cardano.PlutusScriptSerialised script, Ledger.toCardanoScriptData $ Api.toBuiltinData redeemer)
-toScriptAndRedeemerData script (TxSkelRedeemerForReferencedScript validatorOref redeemer) = do
+toScriptAndRedeemerData script (TxSkelRedeemerForReferenceScript validatorOref redeemer) = do
   referenceScriptsMap <- asks $ Map.mapMaybe (^. outputReferenceScriptL)
   refScriptHash <-
     throwOnLookup

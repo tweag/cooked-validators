@@ -44,7 +44,7 @@ spendReferenceAlwaysTrueValidator = do
     validateTxSkel $
       txSkelTemplate
         { txSkelOuts = [paysPK alice (ada 2)],
-          txSkelIns = Map.singleton scriptTxOutRef (TxSkelRedeemerForReferencedScript referenceScriptTxOutRef ()),
+          txSkelIns = Map.singleton scriptTxOutRef (TxSkelRedeemerForReferenceScript referenceScriptTxOutRef ()),
           txSkelSigners = [bob]
         }
 

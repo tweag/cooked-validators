@@ -232,7 +232,7 @@ prettyMints opts (policy, TxSkelRedeemerForScript redeemer, tokenName, amount) =
     <+> prettyCookedOpt opts redeemer
     <+> "->"
     <+> PP.viaShow amount
-prettyMints opts (policy, TxSkelRedeemerForReferencedScript oref redeemer, tokenName, amount) =
+prettyMints opts (policy, TxSkelRedeemerForReferenceScript oref redeemer, tokenName, amount) =
   prettyCookedOpt opts policy
     <+> PP.viaShow tokenName
     <+> "|"
@@ -287,7 +287,7 @@ prettyTxSkelIn opts skelContext (txOutRef, txSkelRedeemer) = do
                 ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
                   prettyCookedOpt opts (outputAddress output)
                 )
-              TxSkelRedeemerForReferencedScript refScriptOref redeemer ->
+              TxSkelRedeemerForReferenceScript refScriptOref redeemer ->
                 ( Just ("Redeemer:" <+> prettyCookedOpt opts redeemer),
                   prettyCookedOpt opts (outputAddress output)
                     <+> PP.parens ("Reference Script at" <+> prettyCookedOpt opts refScriptOref)
