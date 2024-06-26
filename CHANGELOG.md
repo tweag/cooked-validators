@@ -39,7 +39,12 @@
 - Two filters in `Output.hs`, `isScriptOutput` and `isPKOutput`
 - A new helper function to get the full output value of a skeleton,
   `txSkelOutputsValue`
-  
+- Proposal procedures can now be issued and described in transaction
+  skeletons. If they contain parameter changes or treasury withdrawals, a
+  witness script can be attached and will be run.
+- `TxSkelRedeemer` is now used for all kind of scripts.
+- Transaction generation has been rendered clearer. 
+
 ### Removed
 - Extraneous dependencies in package.yaml
 - File `Cooked.TestUtils`, its content has been added to `Cooked.MockChain.Testing`
@@ -49,6 +54,7 @@
 - Deprecated use of `*` instead of `Type`
 - Many unused pragmas
 - Orphan default instance for `Ledger.Slot`
+- `MintsRedeemer` (replaced by `TxSkelRedeemer`)
 
 ### Changed
 - Default era from Babbage to Conway

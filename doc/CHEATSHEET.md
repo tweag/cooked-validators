@@ -244,6 +244,44 @@ txSkelTemplate
     }
 ```
 
+### Attach a Proposal Procedure to a transaction
+
+* Using the builtin constructor for proposals:
+```haskell
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ TxSkelProposal
+          { txSkelProposalAddress = walletAddress (wallet 1),
+            txSkelProposalAction =
+              TxGovActionTreasuryWithdrawals $
+                Map.fromList
+                  [ (toCredential $ wallet 1, Api.Lovelace 100),
+                    (toCredential $ wallet 2, Api.Lovelace 10_000)
+                  ],
+            txSkelProposalWitness = (toScript myScript, myRedeemer),
+            txSkelProposalAnchor = Nothing
+          }
+      ]
+    ...
+  }
+```
+
+* Using smart constructors:
+```haskell 
+txSkelTemplate
+  { ...
+    txSkelProposals =
+      [ simpleTxSkelProposal
+          (wallet 1)
+          (TxGovActionParameterChange [FeePerByte 100, FeeFixed 1_000])
+          `withWitness` (myScript, myRedeemer)
+          `withAnchor` "https://www.tweag.io/"
+      ]
+    ...
+  } 
+```
+
 ### Have pre-existing non-Ada tokens that cannot be minted or burnt
 
 * `distributionFromList [..., (... <> permanentValue "customToken" 1000), ...]`

@@ -112,6 +112,8 @@ ready-to-use recipes book.
   automated balancing mechanism and associated options (including options
   revolving around fees and collaterals).
 
+- The [CONWAY](doc/CONWAY.md) file describes the Conway features that are currently supported by `cooked-validators`.
+
 - We also have a [repository](https://github.com/tweag/cooked-smart-contracts)
 of example contracts with offchain code and tests written using
 `cooked-validators`. Note that some examples are not maintained and thus written
