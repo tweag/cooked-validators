@@ -12,7 +12,7 @@ a challenge. This is why this file exists. We detail here the two main keys to
 have a standardized way of importing definition in cooked-validators: qualified
 modules and preferred import locations.
 
-## Names of qualified modules
+## Names of qualified modules related to Cardano
 
 Here is the correspondance between package and prefix for each of our main
 dependencies:
@@ -47,6 +47,15 @@ When using `PlutusTx.Prelude` (from `plutus-tx`) in conjunction with the
 `NoImplicitPrelude` language extension, no prefix should be used. Instead,
 functions coming from the usual prelude should be prefixed `Haskell` in those
 modules instead.
+
+## Names of qualifed modules unrelated to Cardano
+
+`cooked-validators` uses optics in various places of the codebase. These optics
+come from the package `Optics.Core` and are used unqualified in the code. Some
+of our dependencies however use optics coming from the `lens` or `microlens`
+packages. When using those, we should make very clear that they do not come from
+our default optics library, and thus prefix them with `Lens` or `Microlens`
+respectively.
 
 ## Preferred import locations rules
 
