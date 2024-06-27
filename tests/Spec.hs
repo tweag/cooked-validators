@@ -1,11 +1,12 @@
 import Cooked.AttackSpec qualified as AttackSpec
 import Cooked.BalancingSpec qualified as BalancingSpec
 import Cooked.BasicUsageSpec qualified as BasicUsageSpec
-import Cooked.InitialDistributionSpec qualified as InitDistrib
+import Cooked.InitialDistributionSpec qualified as InitDistribSpec
 import Cooked.InlineDatumsSpec qualified as InlineDatumsSpec
 import Cooked.LtlSpec qualified as LtlSpec
 import Cooked.MinAdaSpec qualified as MinAdaSpec
 import Cooked.MockChainSpec qualified as MockChainSpec
+import Cooked.ProposingScriptSpec qualified as ProposingSpec
 import Cooked.ReferenceInputsSpec qualified as ReferenceInputsSpec
 import Cooked.ReferenceScriptsSpec qualified as ReferenceScriptsSpec
 import Cooked.ShowBSSpec qualified as ShowBSSpec
@@ -28,5 +29,6 @@ main =
         LtlSpec.tests,
         MockChainSpec.tests,
         ShowBSSpec.tests,
-        InitDistrib.tests
+        InitDistribSpec.tests,
+        ProposingSpec.tests
       ]

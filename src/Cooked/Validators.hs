@@ -51,15 +51,17 @@ instance Script.ValidatorTypes MockContract where
   type RedeemerType MockContract = ()
   type DatumType MockContract = ()
 
--- | A dummy proposing validator
+-- | A dummy false proposing validator
 alwaysFalseProposingValidator :: Script.Versioned Script.Script
 alwaysFalseProposingValidator =
   mkProposingScript $$(PlutusTx.compile [||PlutusTx.traceError "False proposing validator"||])
 
--- | A dummy proposing validator
+-- | A dummy true proposing validator
 alwaysTrueProposingValidator :: Script.Versioned Script.Script
 alwaysTrueProposingValidator =
   mkProposingScript $$(PlutusTx.compile [||\_ _ -> ()||])
 
+-- | Helper to build a proposing script. This should come from
+-- plutus-script-utils at some point.
 mkProposingScript :: PlutusTx.CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData -> ()) -> Script.Versioned Script.Script
 mkProposingScript code = Script.Versioned (Script.Script $ Api.serialiseCompiledCode code) Script.PlutusV3
