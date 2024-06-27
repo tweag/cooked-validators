@@ -30,7 +30,6 @@ module Cooked.Pretty.Cooked
 where
 
 import Cooked.Conversion
-import Cooked.Conversion.ToScriptHash
 import Cooked.MockChain.BlockChain
 import Cooked.MockChain.GenerateTx
 import Cooked.MockChain.Staged
